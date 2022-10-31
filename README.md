@@ -1,12 +1,25 @@
 # MATLAB Stochastic System Identification Toolkit (SSIT) for modeling single-cell fluorescence microscopy data
 
+The SSIT allows users to specifiy and solve the chemical master equation for discreate stochastic models, especially those used for the analysis of single-cell gene regulaton.  
+
+The SSIT includes command line tools and a graphical user interface to:
+- Build, save, and load models
+- Generate synthetic data from models using Stochastic Simulations
+- Solve models using the Finite State Projection algorithm
+- Compute sensitivity of FSP solutions to parameter variations
+- Load experimental smFISH data
+- Compute/Maximize the likelihood of data givien model
+- Run Metropolis Hastings algorithm to estimate parametr uncertainties given single-cell data
+- Compute the Fisher Information Matrix for CME models
+- Search experiment design space to find optimally informative experiments
+
 ## Dependencies
 For all basic functionalities:
 - MATLAB R2021b or later.
 - Symbolic Computing Toolbox.
 - Global Optimization Toolbox.
 - Parallel Computing Toolbox.
-- [Tensor Toolbox for MATLAB](https://www.tensortoolbox.org/).
+- [Tensor Toolbox for MATLAB](https://www.tensortoolbox.org/).  You will need to make sure to add the TTB to the Matlab path before running the SSIT.
 
 Optionally, Sundial's CVODE and CVODES can be used to solve the reduced CME (optional). This requires that [Sundials](https://computing.llnl.gov/projects/sundials) library is installed and is in the computer's search path.
 
