@@ -19,5 +19,7 @@ The SSIT provides two basic interaction options: (1) command line tools and (2) 
 To get started with the Command line Tools, navigate to the directory "CommandLine" and open one of the tutorial scripts "example_XXX.m".
 
 To get started with the GUI, compile and launch to tool kit with the following commands:
->> src2app;
->> A = SSIT_GUI;
+
+%: src2app;
+
+%: A = SSIT_GUI;
