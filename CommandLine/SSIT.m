@@ -318,7 +318,7 @@ classdef SSIT
             if obj.initialTime>obj.tSpan(1)
                 error('First time in tspan cannot be earlier than the initial time.')
             elseif obj.initialTime~=obj.tSpan(1)
-                warning('First time in tspan is not the same as initial time.')
+%                 warning('First time in tspan is not the same as initial time.')
                 obj.tSpan = unique([obj.initialTime,obj.tSpan]);
             end
 
@@ -605,7 +605,6 @@ classdef SSIT
         end
 
         function [logL,fitSolutions] = computeLikelihood(obj,pars,stateSpace)
-
             arguments
                 obj
                 pars = [];
@@ -660,7 +659,7 @@ classdef SSIT
                 szP = max(szP,size(solutions.fsp{it}.p.data));
             end
 
-            P = zeros([length(obj.tSpan),szP]);
+            P = zeros([length(obj.tSpan),szP(indsPlots)]);
             for it = length(obj.tSpan):-1:1
                 if ~isempty(solutions.fsp{it})
                     INDS = setdiff([1:Nd],find(indsPlots));
@@ -836,6 +835,24 @@ classdef SSIT
             end
         end
 
+        function [pars,likelihood] = maximizeLikelihood(obj,parGuess,fitOptions)
+            arguments
+                obj
+                parGuess =[];
+                fitOptions = optimset('Display','iter','MaxIter',1000);
+            end
+            if isempty(parGuess)
+                parGuess = [obj.parameters{:,2}]';
+            end
+            obj.solutionScheme = 'FSP';   % Set solution scheme to FSP.
+            [FSPsoln,bounds] = obj.solve;  % Solve the FSP analysis
+            obj.fspOptions.bounds = bounds;% Save bound for faster analyses
+             objFun = @(x)-obj.computeLikelihood(10.^x,FSPsoln.stateSpace);  % We want to MAXIMIZE the likelihood.
+%             objFun = @(x)-obj.computeLikelihood(10.^x);  % We want to MAXIMIZE the likelihood.
+            x0 = log10(parGuess);
+            [x0,likelihood]  = fminsearch(objFun,x0,fitOptions);
+            pars = 10.^x0;
+        end
         %% Plotting/Visualization Functions
         function makePlot(obj,solution,plotType,indTimes,includePDO,figureNums)
             % SSIT.makePlot -- tool to make plot of the FSP or SSA results.
@@ -1027,6 +1044,14 @@ classdef SSIT
         end
 
         function makeFitPlot(obj,fitSolution)
+            % Produces plots to compare model to experimental data.
+            arguments
+                obj
+                fitSolution =[];
+            end
+            if isempty(fitSolution)
+               [~,fitSolution] = obj.computeLikelihood;
+            end
             makeSeparatePlotOfData(fitSolution)
         end
 
@@ -1069,6 +1094,7 @@ classdef SSIT
                 legend(legs)
 
         end
+
     end
     methods (Static)
         function FIM = totalFim(fims,Nc)

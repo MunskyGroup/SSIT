@@ -127,9 +127,10 @@ end
 title('Trajectory of means and standard deviations')
 
 %% Add data to trajectory plot.
-for iplt = 1:Nd
-    if Plts_to_make(iplt)
-        so = setdiff([1:Nd],iplt)+1;
+Ned = length(size(app.DataLoadingAndFittingTabOutputs.dataTensor))-1;
+for iplt = 1:Ned
+%     if Plts_to_make(iplt)
+        so = setdiff([1:Ned],iplt)+1;
         matTensor = double(app.DataLoadingAndFittingTabOutputs.dataTensor);
         if ~isempty(so)
             matTensor = squeeze(sum(matTensor,so));
@@ -144,7 +145,7 @@ for iplt = 1:Nd
             mn,sqrt(var),[cols(iplt),...
             'o'],'MarkerSize',12,'MarkerFaceColor',cols(iplt),'linewidth',3)
         LG{end+1} = [char(app.NameTable.Data(iplt,2)),' Data mean \pm std'];
-    end
+%     end
 end
 legend(FNTraj,LG)
 

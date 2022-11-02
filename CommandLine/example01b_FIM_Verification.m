@@ -1,6 +1,6 @@
-%% BirthDeathTest
-% In this script, we show how to set up and solve the FSP-FIM matrix with
-% partial observations and probabilistic distortion.
+%% example01_FIM_Verification
+% In this script, we test that the FSP-FIM correctly idenrtifies the FIM
+% and that it matches to MLE covariance for some simple problems.
 clear all
 ModelChoice = 'BirthDeath';  % Two species problem (mRNa and protein)
 F = SSIT(ModelChoice);
