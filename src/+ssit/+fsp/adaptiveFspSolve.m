@@ -222,7 +222,13 @@ while (tNow < maxOutputTime)
 
         stateSpace = stateSpace.expand(constraintFunctions, constraintBoundsFinal);
 
-        Afsp = Afsp.regenerate(propensities, stateSpace, constraintCount);
+        try
+            Afsp = Afsp.regenerate(propensities, stateSpace, constraintCount);
+        catch
+            stateSpace = ssit.FiniteStateSet(initStates, stoichMatrix);
+            stateSpace = stateSpace.expand(constraintFunctions, constraintBoundsFinal);
+            Afsp = Afsp.regenerate(propensities, stateSpace, constraintCount);
+        end
 
         stateCountOld = stateCount;
         stateCount = stateSpace.getNumStates;
