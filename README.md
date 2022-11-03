@@ -1,6 +1,6 @@
 # MATLAB Stochastic System Identification Toolkit (SSIT) for modeling single-cell fluorescence microscopy data
 
-![SSIT](https://github.com/MunskyGroup/SSIT/blob/main/GraphicalAbstract.png)
+![SSIT](https://github.com/MunskyGroup/SSIT/blob/main/images/GraphicalAbstract.png)
 
 Authors: Huy Vo, Joshua Cook, Brian Munsky
 
@@ -19,7 +19,7 @@ The SSIT includes command line tools and a graphical user interface to:
 - Compute the Fisher Information Matrix for CME models
 - Search experiment design space to find optimally informative experiments
 
-## Dependencies
+# Dependencies
 For all basic functionalities:
 - MATLAB R2021b or later.
 - Symbolic Computing Toolbox.
@@ -29,16 +29,66 @@ For all basic functionalities:
 
 Optionally, Sundial's CVODE and CVODES can be used to solve the reduced CME (optional). This requires that [Sundials](https://computing.llnl.gov/projects/sundials) library is installed and is in the computer's search path.
 
-## Installation
+# Installation
 Clone this package to a local folder on your computer. Then add the path to that folder (with subfolders) into MATLAB's search path. You can then call all functions from MATLAB. 
 
-## Getting Started
+# Getting Started
 The SSIT provides two basic interaction options: (1) command line tools and (2) a graphical user interface.
 
-To get started with the Command line Tools, navigate to the directory "CommandLine" and open one of the tutorial scripts "example_XXX.m".
-
+## GUI Version  
 To get started with the GUI, compile and launch to tool kit with the following commands:
 
-%: src2app;
+>> src2app;
 
-%: A = SSIT_GUI;
+>> A = SSIT_GUI;
+
+You should then see the model loading and building page of the graphical interface, and you are off to the races...
+![SSIT](https://github.com/MunskyGroup/SSIT/blob/main/images/SSITGUI_snapshot.png)
+
+## Command Line Version
+
+To get started with the Command line Tools, navigate to the directory "CommandLine" and open one of the tutorial scripts "example_XXX.m".  Or you caan start creating and solving models as follows.
+
+Example for generating an FSI model and fitting it to smFISH data for Dusp1 activation following glucocorticoid stimulation:
+
+Define SSIT Model
+
+>> Model = SSIT;
+
+>> Model.species = {'x1';'x2'};
+
+>> Model.initialCondition = [0; 0];
+
+>> Model.propensityFunctions = {'kon * IGR * (2-x1)'; 'koff * x1'; 'kr * x1'; 'gr * x2'};
+
+>> Model.stoichiometry = [1,-1,0,0; 0,0,1,-1];
+
+>> Model.inputExpressions = {'IGR','a0 + a1 * exp(-r1 * t) * (1-exp(-r2 * t)) * (t>0)'};
+
+>> Model.parameters = ({'koff',0.14; 'kon',0.14; 'kr',25; 'gr',0.01; 'a0',0.006; 'a1',0.4; 'r1',0.04; 'r2',0.1});
+    
+>> Model.initialTime = -120;  % large negative time to simulate steady state at t=0
+
+Load and Fit smFISH Data
+    
+>> Model = Model.loadData('../ExampleData/DUSP1_Dex_100nM_Rep1_Rep2.csv',{'x2','RNA_nuc'});
+    
+>> Model.tSpan = unique([Model.initialTime,Model.dataSet.times]);
+>> fitOptions = optimset('Display','iter','MaxIter',100);
+>> pars,likelihood] = Model.maximizeLikelihood([],fitOptions);
+
+Update Model and Make Plots of Results
+
+>> Model.parameters(:,2) = num2cell(pars);
+
+>> Model.makeFitPlot
+
+You should arrive at a fit of the model to the experimentally measured Dusp1 mRNA distributions looking something like this:
+
+![SSIT](https://github.com/MunskyGroup/SSIT/blob/main/images/Dusp1Fit.png)
+
+
+
+
+
+
