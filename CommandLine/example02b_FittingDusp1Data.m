@@ -20,6 +20,12 @@ clear all
     Model.parameters(:,2) = num2cell(pars);
     Model.makeFitPlot
 
+%% Metropolis Hastings
+    MHOptions = struct('numberOfSamples',1000,'burnin',500);
+    [pars,likelihood,chainResults] = Model.maximizeLikelihood([],MHOptions,'MetropolisHastings');
+
+
+
 
 
 

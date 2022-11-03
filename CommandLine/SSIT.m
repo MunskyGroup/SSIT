@@ -795,7 +795,7 @@ classdef SSIT
             end
             %             obj.parameters = originalPars;
             %             fit_error = app.DataLoadingAndFittingTabOutputs.J_LogLk;
-        end
+end
 
         function fitErrors = likelihoodSweep(obj,parIndices,scalingRange,makePlot)
             % likelihoodSweep - sweep over range of parameters and return
@@ -836,11 +836,12 @@ classdef SSIT
             end
         end
 
-        function [pars,likelihood] = maximizeLikelihood(obj,parGuess,fitOptions)
+        function [pars,likelihood,otherResults] = maximizeLikelihood(obj,parGuess,fitOptions,fitAlgorithm)
             arguments
                 obj
                 parGuess =[];
                 fitOptions = optimset('Display','iter','MaxIter',10);
+                fitAlgorithm = 'fminsearch';
             end
             if isempty(parGuess)
                 parGuess = [obj.parameters{:,2}]';
@@ -850,7 +851,71 @@ classdef SSIT
             obj.fspOptions.bounds = bounds;% Save bound for faster analyses
             objFun = @(x)-obj.computeLikelihood(10.^x,FSPsoln.stateSpace);  % We want to MAXIMIZE the likelihood.
             x0 = log10(parGuess);
-            [x0,likelihood]  = fminsearch(objFun,x0,fitOptions);
+
+            switch fitAlgorithm
+                case 'fminsearch'
+                    [x0,likelihood]  = fminsearch(objFun,x0,fitOptions);
+                case 'particleSwarm'
+                    obj.fspOptions.fspTol=inf;
+                    rng('shuffle')
+                    OBJps = @(x)objFun(x');
+                    LB = -5*ones(size(x0'));
+                    UB = 5*ones(size(x0'));
+                    initSwarm = repmat(x0',fitOptions.SwarmSize-1,1);
+                    initSwarm = [x0';initSwarm.*(1+0.1*randn(size(initSwarm)))];
+                    fitOptions.InitialSwarmMatrix = initSwarm;
+                    [x0,likelihood] = particleswarm(OBJps,length(x0),LB,UB,fitOptions);
+
+                case 'MetropolisHastings'
+                    allFitOptions.isPropDistSymmetric=true;
+                    allFitOptions.thin=1;
+                    allFitOptions.numberOfSamples=1000;
+                    allFitOptions.burnIn=100;
+                    allFitOptions.progress=true;
+                    allFitOptions.proposalDistribution=@(x)x+0.01*randn(size(x));
+                    allFitOptions.numChains = 1;
+                    fNames = fieldnames(fitOptions);
+                    for i=1:length(fNames)
+                        allFitOptions.(fNames{i}) = fitOptions.(fNames{i});
+                    end
+
+                    rng('shuffle')
+                    OBJmh = @(x)-objFun(x');
+                    if allFitOptions.numChains==1
+                        [otherResults.mhSamples,otherResults.mhAcceptance,otherResults.mhValue,x0,likelihood] = ...
+                            ssit.parest.metropolisHastingsSample(x0',allFitOptions.numberOfSamples,...
+                            'logpdf',OBJmh,'proprnd',allFitOptions.proposalDistribution,...
+                            'symmetric',allFitOptions.isPropDistSymmetric,...
+                            'thin',allFitOptions.thin,'nchain',1,'burnin',allFitOptions.burnIn,...
+                            'progress',allFitOptions.progress);
+                    else
+                        try
+                            parpool
+                        catch
+                        end
+                        allFitOptions.progress=0;
+                        clear tmpMH*
+                        parfor iChain = 1:allFitOptions.numChains
+                            [mhSamples, mhAcceptance, mhValue,xbest,fbest] = ...
+                                ssit.parest.metropolisHastingsSample(x0',allFitOptions.numberOfSamples,...
+                                'logpdf',OBJmh,'proprnd',allFitOptions.proposalDistribution,'symmetric',...
+                                allFitOptions.isPropDistSymmetric,...
+                                'thin',allFitOptions.thin,'nchain',1,'burnin',allFitOptions.burnIn,...
+                                'progress',allFitOptions.progress);
+                            tmpMHSamp(iChain) = {mhSamples};
+                            tmpMHAcceptance(iChain) = {mhAcceptance};
+                            tmpMHValue(iChain) = {mhValue};
+                            tmpMHxbest(iChain) = {xbest};
+                            tmpMHfbest(iChain) = fbest;
+                        end
+                        [~,jBest] = max(tmpMHfbest);
+                        x0 = tmpMHxbest{jBest}';
+                        otherResults.mhSamples = tmpMHSamp;
+                        otherResults.mhAcceptance = tmpMHAcceptance;
+                        otherResults.mhValue = tmpMHValue;
+                        clear tmpMH*
+                    end
+            end
             pars = 10.^x0;
         end
         %% Plotting/Visualization Functions
