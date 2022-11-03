@@ -1,5 +1,7 @@
 # MATLAB Stochastic System Identification Toolkit (SSIT) for modeling single-cell fluorescence microscopy data
 
+![SSIT](https://github.com/MunskyGroup/SSIT/blob/main/GraphicalAbstract.png)
+
 Authors: Huy Vo, Joshua Cook, Brian Munsky
 
 [![License](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
