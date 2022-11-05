@@ -67,7 +67,11 @@ classdef FspMatrixTerm
             elseif (obj.isFactorizable)
                 w = obj.propensity.timeDependentFactor(t)*(obj.matrix*v);
             else
-                A = ssit.FspMatrixTerm.generateTimeVaryingMatrixTerm(t, obj.propensity, obj.matrix, obj.numConstraints);
+%                 try
+                    A = ssit.FspMatrixTerm.generateTimeVaryingMatrixTerm(t, obj.propensity, obj.matrix, obj.numConstraints);
+%                 catch
+%                     1+1
+%                 end
                 w = A*v;
             end
         end
@@ -179,7 +183,11 @@ classdef FspMatrixTerm
             j = j(indices_keep);
             aij = aij(indices_keep);
 
-            A_fsp = sparse([i;isinks], [j;jsinks], [aij;aijsinks], n_states + numConstraints, n_states + numConstraints);
-        end
+%             try
+                A_fsp = sparse([i;isinks], [j;jsinks], [aij;aijsinks], n_states + numConstraints, n_states + numConstraints);
+%             catch
+%                 1+1
+%             end
+            end
     end
 end

@@ -603,6 +603,10 @@ classdef SSIT
             obj.dataSet.app.SpeciesForFitPlot.Items = obj.species;
             obj.dataSet.app = filterAndMarginalize([],[],obj.dataSet.app);
 
+            for i = 1:size(obj.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor,1)
+                obj.dataSet.nCells(i) = sum(double(obj.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor(i,:)),'all');
+            end
+
         end
 
         function [logL,fitSolutions] = computeLikelihood(obj,pars,stateSpace)
@@ -642,8 +646,11 @@ classdef SSIT
             obj.parameters(indsParsToFit,2) =  num2cell(pars(1:nModelPars));
 
             obj.solutionScheme = 'FSP'; % Chosen solutuon scheme ('FSP','SSA')
-            [solutions,bounds] = obj.solve(stateSpace);  % Solve the FSP analysis
-
+            try
+                [solutions,bounds] = obj.solve(stateSpace);  % Solve the FSP analysis
+            catch
+                [solutions,bounds] = obj.solve;  % Solve the FSP analysis
+            end
             if nPdoPars>0
                 obj.pdoOptions.props.ParameterGuess(indsPdoParsToFit) = pars(nModelPars+1:end);
                 obj.pdoOptions.PDO = obj.generatePDO(obj.pdoOptions,[],solutions.fsp); % call method to generate the PDO.
