@@ -8,6 +8,9 @@ Authors: Huy Vo, Joshua Cook, Brian Munsky
 
 The SSIT allows users to specifiy and solve the chemical master equation for discreate stochastic models, especially those used for the analysis of single-cell gene regulaton.  
 
+To learn more about the FSP theory that underlies the SSIT, please see the slide from our [Nov. 3, 2022 BPPB Seminar](https://github.com/MunskyGroup/SSIT/blob/main/images/BPPBSeminarNov2022.pdf)
+
+
 The SSIT includes command line tools and a graphical user interface to:
 - Build, save, and load models
 - Generate synthetic data from models using Stochastic Simulations
