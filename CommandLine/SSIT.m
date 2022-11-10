@@ -324,6 +324,10 @@ classdef SSIT
 
             switch obj.solutionScheme
                 case 'FSP'
+                    if ~isempty(stateSpace)&&size(stateSpace.states,2)~=stateSpace.state2indMap.Count
+                        error('HERE')
+                    end
+
                     [Solution.fsp, bConstraints,Solution.stateSpace] = ssit.fsp.adaptiveFspSolve(obj.tSpan,...
                         obj.initialCondition,...
                         1.0, ...
@@ -609,12 +613,24 @@ classdef SSIT
 
         end
 
-        function [logL,fitSolutions] = computeLikelihood(obj,pars,stateSpace)
+        function [logL,gradient] = minusLogL(obj,pars,stateSpace,computeSensitivity)
+            [logL,gradient] = computeLikelihood(obj,exp(pars),stateSpace,computeSensitivity);
+            logL = -logL;
+            gradient = -gradient.*exp(pars);
+        end
+
+        function [logL,gradient,fitSolutions] = computeLikelihood(obj,pars,stateSpace,computeSensitivity)
             arguments
                 obj
                 pars = [];
                 stateSpace =[];
+                computeSensitivity = false;
             end
+
+            if ~isempty(stateSpace)&&size(stateSpace.states,2)~=stateSpace.state2indMap.Count
+                stateSpace =[];
+            end
+
             if strcmp(obj.fittingOptions.modelVarsToFit,'all')
                 indsParsToFit = [1:length(obj.parameters)];
             else
@@ -645,12 +661,23 @@ classdef SSIT
             % Update Model and PDO parameters using supplied guess
             obj.parameters(indsParsToFit,2) =  num2cell(pars(1:nModelPars));
 
-            obj.solutionScheme = 'FSP'; % Chosen solutuon scheme ('FSP','SSA')
-            try
-                [solutions,bounds] = obj.solve(stateSpace);  % Solve the FSP analysis
-            catch
-                [solutions,bounds] = obj.solve;  % Solve the FSP analysis
+            if computeSensitivity&&nargout>=2
+                obj.solutionScheme = 'fspSens'; % Chosen solutuon scheme ('FSP','SSA')
+                [solutions] = obj.solve(stateSpace);  % Solve the FSP analysis
+            else
+                obj.solutionScheme = 'FSP'; % Chosen solutuon scheme ('FSP','SSA')
+%                 try
+                    [solutions] = obj.solve(stateSpace);  % Solve the FSP analysis
+%                 catch
+                    % sometimes the FSP analysis crashes if the provided statespace
+                    % is incorrect.  Not sure why, but regenerating it will fix
+                    % the problem...
+                    %                 warning('Regenerate stateset.')
+%                     [solutions,bounds] = obj.solve;  % Solve the FSP analysis
+%                 end
             end
+            obj.parameters =  originalPars;
+
             if nPdoPars>0
                 obj.pdoOptions.props.ParameterGuess(indsPdoParsToFit) = pars(nModelPars+1:end);
                 obj.pdoOptions.PDO = obj.generatePDO(obj.pdoOptions,[],solutions.fsp); % call method to generate the PDO.
@@ -664,50 +691,62 @@ classdef SSIT
 
             szP = zeros(1,Nd);
             for it = length(obj.tSpan):-1:1
-                szP = max(szP,size(solutions.fsp{it}.p.data));
+                if ~computeSensitivity||nargout<2
+                    szP = max(szP,size(solutions.fsp{it}.p.data));
+                else
+                    szP = max(szP,size(solutions.sens.data{it}.p.data));
+                end
             end
 
             P = zeros([length(obj.tSpan),szP(indsPlots)]);
             for it = length(obj.tSpan):-1:1
-                if ~isempty(solutions.fsp{it})
-                    INDS = setdiff([1:Nd],find(indsPlots));
+                %                 if ~isempty(solutions.fsp{it})
+                INDS = setdiff([1:Nd],find(indsPlots));
+                if ~computeSensitivity||nargout<2
                     px = solutions.fsp{it}.p;
-                    %                     if computeSensitivity
-                    %                         Sx = solutions{it}.S;
-                    %                         parCount = length(Sx);
-                    %                         % Add effect of PDO.
-                    %                         if ~isempty(obj.pdoOptions.PDO)
-                    %                             for iPar = 1:parCount
-                    %                                 Sx(iPar) = obj.pdoOptions.PDO.computeObservationDistDiff(px, Sx(iPar), iPar);
-                    %                             end
-                    %                         end
-                    %                     end
-
-                    %                     % Add effect of PDO.
-                    if ~isempty(obj.pdoOptions.PDO)
-                        try
-                            px = obj.pdoOptions.PDO.computeObservationDist(px);
-                        catch
-                            obj.pdoOptions.PDO = obj.generatePDO(obj.pdoOptions,[],solutions.fsp); % call method to generate the PDO.
+                else
+                    if computeSensitivity&&nargout>=2
+                        px = solutions.sens.data{it}.p;
+                        Sx = solutions.sens.data{it}.S;
+                        parCount = length(Sx);
+                        % Add effect of PDO.
+                        if ~isempty(obj.pdoOptions.PDO)
+                            for iPar = 1:parCount
+                                Sx(iPar) = obj.pdoOptions.PDO.computeObservationDistDiff(px, Sx(iPar), iPar);
+                            end
                         end
                     end
-
-                    if ~isempty(INDS)
-                        d = double(px.sumOver(INDS).data);
-                    else
-                        d = double(px.data);
-                    end
-
-
-                    P(it,d~=0) = d(d~=0);
-
-                    %                     if computeSensitivity
-                    %                         for iPar = parCount:-1:1
-                    %                             d = double(Sx(iPar).sumOver(INDS).data);
-                    %                             S{iPar}(it,1:length(d)) = d;
-                    %                         end
-                    %                     end
                 end
+
+                % Add effect of PDO.
+                if ~isempty(obj.pdoOptions.PDO)
+                    try
+                        px = obj.pdoOptions.PDO.computeObservationDist(px);
+                    catch
+                        obj.pdoOptions.PDO = obj.generatePDO(obj.pdoOptions,[],solutions.fsp); % call method to generate the PDO.
+                        px = obj.pdoOptions.PDO.computeObservationDist(px);
+                    end
+                end
+
+                if ~isempty(INDS)
+                    d = double(px.sumOver(INDS).data);
+                else
+                    d = double(px.data);
+                end
+
+                P(it,d~=0) = d(d~=0);
+
+                if computeSensitivity&&nargout>=2
+                    for iPar = parCount:-1:1
+                        if ~isempty(INDS)
+                            d = double(Sx(iPar).sumOver(INDS).data);
+                        else
+                            d = double(Sx(iPar).data);
+                        end
+                        S{iPar}(it,d~=0) = d(d~=0);
+                    end
+                end
+%             end
             end
 
             %% Padd P or Data to match sizes of tensors.
@@ -721,7 +760,13 @@ classdef SSIT
                     tmp = [tmp,',NP(',num2str(j),')'];
                 end
                 tmp = [tmp,')=0;'];
-                eval(tmp)
+                eval(tmp);
+                if computeSensitivity&&nargout>=2
+                    for iPar = 1:parCount
+                        tmp2 = strrep(tmp,'P(end',['S{',num2str(iPar),'}(end']);
+                        eval(tmp2);
+                    end
+                end
             end
             if max(NP(2:length(NDat))-NDat(2:end))>0   % truncate if model longer than data
                 tmp = 'P = P(:';
@@ -733,6 +778,12 @@ classdef SSIT
                 end
                 tmp = [tmp,');'];
                 eval(tmp)
+                if computeSensitivity&&nargout>=2
+                    for iPar = 1:parCount
+                        tmp2 = strrep(tmp,'P = P',['S{',num2str(iPar),'} = S{',num2str(iPar),'}']);
+                        eval(tmp2);
+                    end
+                end
             end
             P = max(P,1e-10);
 
@@ -743,7 +794,7 @@ classdef SSIT
                 times = obj.dataSet.times(obj.fittingOptions.timesToFit);
             end
             %% Compute log likelihood using equal sized P and Data tensors.
-            if nargout>=2
+            if nargout>=3
                 sz = size(P);
                 fitSolutions.DataLoadingAndFittingTabOutputs.fitResults.current = zeros([length(times),sz(2:end)]);
                 fitSolutions.DataLoadingAndFittingTabOutputs.fitResults.currentData = zeros([length(times),sz(2:end)]);
@@ -753,10 +804,18 @@ classdef SSIT
                 fitSolutions.SpeciesForFitPlot.Items = obj.species;
                 fitSolutions.DataLoadingAndFittingTabOutputs.dataTensor = obj.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor;
                 fitSolutions.FspPrintTimesField.Value = ['[',num2str(obj.tSpan),']'];
-                fitSolutions.FspTabOutputs.solutions = solutions.fsp;
+                if ~computeSensitivity
+                    fitSolutions.FspTabOutputs.solutions = solutions.fsp;
+                else
+                    fitSolutions.FspTabOutputs.solutions = solutions;
+                end
                 fitSolutions.FIMTabOutputs.distortionOperator = obj.pdoOptions.PDO;
                 fitSolutions.DataLoadingAndFittingTabOutputs.fittingOptions.dataTimes = obj.dataSet.times;
                 fitSolutions.DataLoadingAndFittingTabOutputs.fittingOptions.fit_times = times;
+            end
+
+            if computeSensitivity&&nargout>=2
+                dlogL_dPar = zeros(parCount,length(times));
             end
             LogLk = zeros(1,length(times));
             numCells = zeros(1,length(times));
@@ -772,33 +831,35 @@ classdef SSIT
                 Pt = P(j,:,:,:,:,:,:,:,:,:);
                 LogLk(i) = sum(H(:).*log(Pt(:)));
                 numCells(i) = sum(H(:));
-                %                 if computeSensitivity
-                %                     for iPar = parCount:-1:1
-                %                         St = S{iPar}(j,:,:,:);
-                %                         dlogL_dPar(iPar,i) = sum(H(:).*St(:)./Pt(:));
-                %                     end
-                %                 end
-                if nargout>=2
+                if computeSensitivity&&nargout>=2
+                    for iPar = parCount:-1:1
+                        St = S{iPar}(j,:,:,:,:,:,:);
+                        dlogL_dPar(iPar,i) = sum(H(:).*St(:)./Pt(:));
+                    end
+                end
+                if nargout>=3
                     Q = H(:)/sum(H(:));
                     smQ = smooth(Q);
                     logQ = log(Q); logQ(H==0)=1;
                     logSmQ = log(smQ); logSmQ(H==0)=1;
                     perfectMod(i) = sum(H(:).*logQ);
                     perfectModSmoothed(i) = sum(H(:).*logSmQ);
-                    fitSolutions.DataLoadingAndFittingTabOutputs.fitResults.current(i,:,:,:) = Pt;
-                    fitSolutions.DataLoadingAndFittingTabOutputs.fitResults.currentData(i,:,:,:) = ...
+                    fitSolutions.DataLoadingAndFittingTabOutputs.fitResults.current(i,:,:,:,:,:,:) = Pt;
+                    fitSolutions.DataLoadingAndFittingTabOutputs.fitResults.currentData(i,:,:,:,:,:,:) = ...
                         reshape(Q,size(fitSolutions.DataLoadingAndFittingTabOutputs.fitResults.currentData(i,:,:,:)));
                 end
             end
             logL = sum(LogLk) + logPrior;
-            %             if computeSensitivity
-            %                 app.DataLoadingAndFittingTabOutputs.dLogLk_dpar = sum(dlogL_dPar,2);
-            %             end
-            if nargout>=2
+            if nargout>=3
                 fitSolutions.DataLoadingAndFittingTabOutputs.V_LogLk = LogLk;
                 fitSolutions.DataLoadingAndFittingTabOutputs.numCells = numCells;
                 fitSolutions.DataLoadingAndFittingTabOutputs.perfectMod = perfectMod;
                 fitSolutions.DataLoadingAndFittingTabOutputs.perfectModSmoothed = perfectModSmoothed;
+            end
+            if computeSensitivity&&nargout>=2
+                gradient = sum(dlogL_dPar,2); % need to also add gradient wrt prior!!
+            else
+                gradient = [];
             end
             %             obj.parameters = originalPars;
             %             fit_error = app.DataLoadingAndFittingTabOutputs.J_LogLk;
@@ -856,12 +917,19 @@ end
             obj.solutionScheme = 'FSP';   % Set solution scheme to FSP.
             [FSPsoln,bounds] = obj.solve;  % Solve the FSP analysis
             obj.fspOptions.bounds = bounds;% Save bound for faster analyses
-            objFun = @(x)-obj.computeLikelihood(10.^x,FSPsoln.stateSpace);  % We want to MAXIMIZE the likelihood.
-            x0 = log10(parGuess);
+            objFun = @(x)-obj.computeLikelihood(exp(x),FSPsoln.stateSpace);  % We want to MAXIMIZE the likelihood.
+            x0 = log(parGuess);
 
             switch fitAlgorithm
                 case 'fminsearch'
                     [x0,likelihood]  = fminsearch(objFun,x0,fitOptions);
+
+                case 'fminunc'
+                    obj.fspOptions.fspTol = inf;
+                    objFun = @obj.minusLogL;  % We want to MAXIMIZE the likelihood.
+                    x0 = log(parGuess);
+                    [x0,likelihood]  = fminunc(objFun,x0,fitOptions,FSPsoln.stateSpace,true);
+
                 case 'particleSwarm'
                     obj.fspOptions.fspTol=inf;
                     rng('shuffle')
@@ -874,6 +942,8 @@ end
                     [x0,likelihood] = particleswarm(OBJps,length(x0),LB,UB,fitOptions);
 
                 case 'MetropolisHastings'
+                    OBJmh = @(x)obj.computeLikelihood(exp(x),FSPsoln.stateSpace);  % We want to MAXIMIZE the likelihood.
+                    x0 = log(parGuess);
                     allFitOptions.isPropDistSymmetric=true;
                     allFitOptions.thin=1;
                     allFitOptions.numberOfSamples=1000;
@@ -887,7 +957,6 @@ end
                     end
 
                     rng('shuffle')
-                    OBJmh = @(x)-objFun(x');
                     if allFitOptions.numChains==1
                         [otherResults.mhSamples,otherResults.mhAcceptance,otherResults.mhValue,x0,likelihood] = ...
                             ssit.parest.metropolisHastingsSample(x0',allFitOptions.numberOfSamples,...
@@ -923,8 +992,9 @@ end
                         clear tmpMH*
                     end
             end
-            pars = 10.^x0;
+            pars = exp(x0);
         end
+
         %% Plotting/Visualization Functions
         function makePlot(obj,solution,plotType,indTimes,includePDO,figureNums)
             % SSIT.makePlot -- tool to make plot of the FSP or SSA results.
@@ -1122,7 +1192,7 @@ end
                 fitSolution =[];
             end
             if isempty(fitSolution)
-               [~,fitSolution] = obj.computeLikelihood;
+               [~,~,fitSolution] = obj.computeLikelihood;
             end
             makeSeparatePlotOfData(fitSolution)
         end
@@ -1159,7 +1229,7 @@ end
 
             if ~isempty(FIM)
                 covFIM = FIM^(-1);
-                ssit.parest.ellipse(par0,icdf('chi2',CI,2)*covFIM(indPars,indPars),'--','linewidth',3)
+                ssit.parest.ellipse(par0(indPars),icdf('chi2',CI,2)*covFIM(indPars,indPars),'--','linewidth',3)
                 legs(end+1) = {[num2str(CIp),'% CI (FIM)']};
             end
             set(gca,'fontsize',15)

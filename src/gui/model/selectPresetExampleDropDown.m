@@ -11,8 +11,12 @@ value = app.ModelUsePresetExampleTypeDropDown.Value;   % Evaluates the Selection
 %     disp('Platform not supported');
 % end
 
-v2 = [MatlabFiles.m; 
-    MatlabFiles.mat];
+v2 = [MatlabFiles(end).m; 
+    MatlabFiles(end).mat];
+
+if length(MatlabFiles)>1
+    disp(['Warning-Multple SSIT directorys detected in path.  Using path = ',MatlabFiles(end).path])
+end
 
 app.ModelDropDown.Items = v2; % Fills the second dropdown menu to select the models within the category
 

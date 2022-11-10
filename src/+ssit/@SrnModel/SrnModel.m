@@ -254,7 +254,6 @@ classdef (HandleCompatible) SrnModel
                     end
                 end
 
-
                 if ~isempty(parDict)
                     parameterCount = length(parDict.keys);
                     parameterNames = parDict.keys;
@@ -279,11 +278,6 @@ classdef (HandleCompatible) SrnModel
                     for iSp = 1:length(varNames)
                         tmp = strrep(tmp, varNames{iSp}, ['x(',num2str(iSp),',:)']);
                     end
-%                     tmp = strrep(tmp, 'x2', 'x(2,:)');
-%                     tmp = strrep(tmp, 'x3', 'x(3,:)');
-%                     if ~ismember('x', tmp)
-%                         tmp = [tmp '* ones(1, size(x,2))'];
-%                     end
 
                     operators = {'*', '/', '^'};                    
                     for iOp = 1:length(operators)
@@ -294,9 +288,6 @@ classdef (HandleCompatible) SrnModel
                     for iSp = 1:length(varNames)
                         tmp = strrep(tmp, varNames{iSp}, ['x(',num2str(iSp),')']);
                     end
-%                     tmp = strrep(tmp, 'x1', 'x(1)');
-%                     tmp = strrep(tmp, 'x2', 'x(2)');
-%                     tmp = strrep(tmp, 'x3', 'x(3)');                    
                     props{i} = str2func(['@(x,t)',tmp]);
                 end
             end

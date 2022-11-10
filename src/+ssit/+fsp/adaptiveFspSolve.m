@@ -220,7 +220,18 @@ while (tNow < maxOutputTime)
             fspStopStatus.error_bound);
         constraintBoundsFinal(constraintsToRelax) = 1.2*constraintBoundsFinal(constraintsToRelax);
 
-        stateSpace = stateSpace.expand(constraintFunctions, constraintBoundsFinal);
+        if min(constraintsToRelax)<=2
+            stateSpace = ssit.FiniteStateSet(initStates, stoichMatrix);
+            stateSpace = stateSpace.expand(constraintFunctions, constraintBoundsFinal);
+            warning('Regenerate State Space')
+        else
+            try
+                stateSpace = stateSpace.expand(constraintFunctions, constraintBoundsFinal);
+            catch
+                stateSpace = ssit.FiniteStateSet(initStates, stoichMatrix);
+                stateSpace = stateSpace.expand(constraintFunctions, constraintBoundsFinal);
+            end
+        end
 
         try
             Afsp = Afsp.regenerate(propensities, stateSpace, constraintCount);

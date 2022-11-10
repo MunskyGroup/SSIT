@@ -78,6 +78,9 @@ classdef FiniteStateSet
             obj.reachableIndices = zeros(size(states,2), size(stoichMatrix, 2));
             key_set = state2key(states);
             obj.state2indMap = containers.Map(key_set, 1:size(states,2));
+            if size(obj.states,2)~=obj.state2indMap.Count
+                error('HERE')
+            end
         end
         
         function obj = expand(obj, fConstraints, bConstraints)
@@ -123,6 +126,12 @@ classdef FiniteStateSet
             activeNodes = 1:size(obj.states,2);
             
             stop = false;
+
+            if size(obj.states,2)~=obj.state2indMap.Count
+                error('Stateset does not match index map.')
+            end
+
+
             while (~stop)
                 n_states_old = size(obj.states, 2);
                 
@@ -167,7 +176,11 @@ classdef FiniteStateSet
                         obj.outboundTransitions = [obj.outboundTransitions; 
                                                    zeros(length(i_accept_new), nConstraints*nReactions)];
                     end
+
                                         
+                end
+                if size(obj.states,2)~=obj.state2indMap.Count
+                    error('Stateset does not match index map.')
                 end
                 
                 if (size(obj.states, 2) == n_states_old)

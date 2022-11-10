@@ -2,7 +2,8 @@ function makeSeparatePlotOfData(app)
 
 %% This function creates a histogram from the loaded data.
 NT = length(app.ParEstFitTimesList.Value);
-Nd = size(app.NameTable.Data,1);
+NdMod = length(size(app.DataLoadingAndFittingTabOutputs.fitResults.current))-1;
+NdDat = length(app.SpeciesForFitPlot.Value);
 
 for DistType = 0:1
     figure
@@ -24,17 +25,19 @@ for DistType = 0:1
         
         % Switches plotted data, (x1, x2, x3,...), and legend depending on if the
         % species was selected for plotting.
-        for icb=1:Nd
-            cb = max(contains(app.SpeciesForFitPlot.Value,app.SpeciesForFitPlot.Items{icb}));
-            Plts_to_make(icb) = cb;
-            so = setdiff([1:Nd],icb);
+        for icb=1:NdDat
+            cb = contains(app.SpeciesForFitPlot.Items,app.SpeciesForFitPlot.Value{icb});
+            Plts_to_make(cb) = 1;
+            
+            soMod = setdiff([1:NdMod],icb);
+            soDat = setdiff([1:NdDat],icb);
             le = app.NameTable.Data{icb,2};
             
-            if cb
+%             if cb
                 matTensor = double(app.DataLoadingAndFittingTabOutputs.dataTensor);
                 H1 = squeeze(matTensor(it,:,:,:,:,:,:,:,:,:));
-                if ~isempty(so)
-                    H1 = sum(H1,so);
+                if ~isempty(soDat)
+                    H1 = sum(H1,soDat);
                 end
                 H1 = H1/sum(H1(:));  % Normalize data before plotting.
                 
@@ -51,10 +54,9 @@ for DistType = 0:1
                 L{end+1} = [le,'-data'];
                 xm = max(xm,length(H1));
                 
-                so = so(so~=0);
-                if ~isempty(so)
+                if ~isempty(soMod)
                     M = squeeze(app.DataLoadingAndFittingTabOutputs.fitResults.current(it,:,:,:,:,:,:,:,:,:,:,:,:));
-                    H1 = squeeze(sum(M,so));
+                    H1 = squeeze(sum(M,soMod));
                 else
                     H1 = squeeze(app.DataLoadingAndFittingTabOutputs.fitResults.current(it,:,:,:,:,:,:,:,:,:,:,:,:));
                 end
@@ -68,7 +70,7 @@ for DistType = 0:1
                 end
                 hold(FNHists,'on')
                 L{end+1} = [le,'-mod'];
-            end
+%             end
         end
         title(['t = ',app.ParEstFitTimesList.Value{iTime}])
 %         if mod(iTime,subPlotSize(2))==1
@@ -89,12 +91,13 @@ end
 
 
 %% Make a trajectory plot for model.
+NdMod = size(app.NameTable.Data,1);
 figure; FNTraj = gca;
 T_array = eval(app.FspPrintTimesField.Value);
 for it = 1:length(T_array)
     if ~isempty(app.FspTabOutputs.solutions{it})
-        for i=1:Nd
-            INDS = setdiff([1:Nd],i);
+        for i=1:NdMod
+            INDS = setdiff([1:NdMod],i);
 
             % Add effect of PDO.
             px = app.FspTabOutputs.solutions{it}.p;
@@ -103,7 +106,7 @@ for it = 1:length(T_array)
             end
             mdist{i} = double(px.sumOver(INDS).data);
         end
-        for j=1:Nd
+        for j=1:NdMod
             mns(it,j) = [0:length(mdist{j})-1]*mdist{j};
             mns2(it,j) = [0:length(mdist{j})-1].^2*mdist{j};
         end
@@ -113,7 +116,7 @@ vars = mns2-mns.^2;
 cols = ['b','r','g','m','c','k'];
 cols2 = [.90 .90  1.00; 1.00 .90 .90; .90 1.00 .90];
 LG = {};
-for iplt=1:Nd
+for iplt=1:NdMod
     if Plts_to_make(iplt)
         BD = [mns(:,iplt)'+sqrt(vars(:,iplt)'),mns(end:-1:1,iplt)'-sqrt(vars(end:-1:1,iplt)')];
         TT = [T_array(1:end),T_array(end:-1:1)];
