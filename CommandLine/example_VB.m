@@ -30,7 +30,7 @@ Model.stoichiometry = [-1,1,0,0;...
 Model.inputExpressions = {'IHog','a0+a1*exp(-r1*t)*(1-exp(-r2*t))*(t>0)'};
 
 % Set propensity functions:
-Model.propensityFunctions = {'k12*x1*IHog';'k21*x2';'kr*x2';'g*x3'}; 
+Model.propensityFunctions = {'x1*IHog';'k21*x2';'kr*x2';'g*x3'}; 
 % Model.propensityFunctions = {'k12*x1';'k21*x2*max(0,1-IHog)';'kr*x2';'g*x3'}; 
 
 % Set initial condition:
@@ -44,11 +44,11 @@ Model.tSpan = [0:5:60];
 % First, let's tinker with the MAPK signal to get it to match somewhat
 % qualitatively to what we see in experiments.  We don't have to be exact,
 % ballpark parameters should be fine to start.
-Model.parameters = ({'k12',6;'k21',30;'kr',100;'g',0.005; ...
+Model.parameters = ({'k21',30;'kr',100;'g',0.005; ...
     'a0',0.01;'a1',1;'r1',0.4;'r2',.1});
 par = [Model.parameters{:,2}];
 t = [0:60];
-TF = par(5)+par(6)*exp(-par(7)*t).*(1-exp(-par(8)*t)).*(t>0);
+TF = par(4)+par(5)*exp(-par(6)*t).*(1-exp(-par(7)*t)).*(t>0);
 figure(1); plot(t,TF,'linewidth',3); 
 set(gca,'fontsize',16)
 xlabel('Time (min)'); ylabel('Hog1(t)')
@@ -60,7 +60,7 @@ xlabel('Time (min)'); ylabel('Hog1(t)')
 %% Solve and plot using the FSP approach
 % To solve the model, we first select the solution scheme ('FSP') and then
 % we call the SSIT.solve method.
-Model.parameters = ({'k12',6;'k21',30;'kr',100;'g',0.005; ...
+Model.parameters = ({'k21',30;'kr',100;'g',0.005; ...
     'a0',0.01;'a1',1;'r1',0.4;'r2',.1});
 
 Model.solutionScheme = 'FSP';    % Set solutions scheme to FSP.
@@ -112,7 +112,7 @@ Model.makeFitPlot
 % Once you have an okay guess for parameters, we can use this as an initial
 % guess and let the computer try to identify better parameters.  Here, we
 % will start by fitting on the first four parameters.
-Model.fittingOptions.modelVarsToFit = [1:8];
+Model.fittingOptions.modelVarsToFit = [1:7];
 
 % Here we use the current parameters as our initial guess:
 x0 = [Model.parameters{Model.fittingOptions.modelVarsToFit,2}]';
@@ -133,13 +133,13 @@ Model.makeFitPlot
 %% Does the Model predict a good MAPK(t)?
 par = [Model.parameters{:,2}];
 t = [0:60];
-TF = par(5)+par(6)*exp(-par(7)*t).*(1-exp(-par(8)*t)).*(t>0);
+TF = par(4)+par(5)*exp(-par(6)*t).*(1-exp(-par(7)*t)).*(t>0);
 figure(25); plot(t,TF,'linewidth',3); 
 set(gca,'fontsize',16)
 xlabel('Time (min)'); ylabel('Hog1(t)')
 
 
-%% Quantifying model uncertainties.
+%% Quantifying model Sensitivities.
 % By now, you have found a model that matches okay to your data.  (If not,
 % you could add additional states or reactions to the system).  But just
 % because you found one model that fits, does NOT mean that is the correct
@@ -177,8 +177,8 @@ covLog = FIMlog^-1;
 % distribution is a multi-variate gaussian with a covariance that is
 % proportional to the inverse FIM.  Here, we set up the MH parameters:
 Model.solutionScheme = 'FSP'; % Set solutions scheme to FSP Sensitivity
-Model.fittingOptions.modelVarsToFit = [1:8];
-MHOptions = struct('numberOfSamples',1000,'burnin',0,'thin',5);
+Model.fittingOptions.modelVarsToFit = [1:7];
+MHOptions = struct('numberOfSamples',1000,'burnin',0,'thin',3);
 proposalWidthScale = 0.002;
 MHOptions.proposalDistribution  = @(x)mvnrnd(x,proposalWidthScale*(covLog+covLog')/2);
 
@@ -187,12 +187,19 @@ MHOptions.proposalDistribution  = @(x)mvnrnd(x,proposalWidthScale*(covLog+covLog
 % When this runs, you want to see an acceptance of about 0.3 to 0.4, meaning that
 % about a third of the proposals are accepted.  If the number is too small
 % you need to decrease the proposal width; if it is too large you may need
-% to increase the proposal width. 
+% to increase the proposal width. For the default data set and model, I
+% found that a scale of .5 to 5% of the FIM-based COV led to an okay acceptance
+% rate, but this is variable and will change depending on the initial value
+% in the chain.
 
 % Often the MH search can reveal a better parameter set, so let's make sure
 % to update our model if it does:
 Model.parameters(:,2) = num2cell(pars);
 Model.makeFitPlot
+% If you do notice better fits, it would be good to re-run the fminsearch
+% again - it is possible you can still find a better model to explain your
+% data.  This can take several rounds of iteration before convergence.  I
+% recommend creating a while loop to make it automated.
 
 %% Evaluating the MH results
 % Here we will generate three plots.  The first one will show the
@@ -217,3 +224,29 @@ title('Posterior -- Linear Scale')
 subplot(1,3,3)
 Model.makeMleFimPlot(chainResults.mhSamples',FIMlog,Q,0.95,1); hold on
 title('Posterior -- Log Scale')
+
+%% Effective Sample Size
+ipar = 5;
+ac = xcorr(chainResults.mhSamples(:,ipar)-mean(chainResults.mhSamples(:,ipar)),'normalized');
+ac = ac(size(chainResults.mhSamples,1):end);
+plot(ac,'LineWidth',3)
+N = size(chainResults.mhSamples,1);
+tau = 1+2*sum(abs(ac(2:N/5)));
+Neff = N/tau
+
+%% Simulate Dataset
+ModelSim = Model;
+ModelSim.solutionScheme = 'SSA';  % Set solution scheme to SSA.
+ModelSim.ssaOptions.Nexp = 1; 
+ModelSim.ssaOptions.useTimeVar = true;
+ModelSim.ssaOptions.signalUpdateRate = 5;
+ModelSim.ssaOptions.nSimsPerExpt = 1000;
+ModelSim.ssaOptions.applyPDO = false; % Include the distortion in the SSA data.
+ModelSim.solve([],'HogSSAData.csv');   
+
+%% Fit Simulated Data Set.
+ModelSim.solutionScheme = 'FSP';  % Set solution scheme back to FSP.
+ModelSim = ModelSim.loadData('HogSSAData.csv',{'x3','exp1_s3'});
+[FSPsoln,ModelSim.fspOptions.bounds] = ModelSim.solve;  % Solve the FSP analysis
+ModelSim.makeFitPlot
+
