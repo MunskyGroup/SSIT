@@ -31,6 +31,7 @@ Model.inputExpressions = {'IHog','a0+a1*exp(-r1*t)*(1-exp(-r2*t))*(t>0)'};
 
 % Set propensity functions:
 Model.propensityFunctions = {'k12*x1*IHog';'k21*x2';'kr*x2';'g*x3'}; 
+% Model.propensityFunctions = {'k12*x1';'k21*x2*max(0,1-IHog)';'kr*x2';'g*x3'}; 
 
 % Set initial condition:
 Model.initialCondition = [1;0;0]; 
@@ -44,7 +45,7 @@ Model.tSpan = [0:5:60];
 % qualitatively to what we see in experiments.  We don't have to be exact,
 % ballpark parameters should be fine to start.
 Model.parameters = ({'k12',6;'k21',30;'kr',100;'g',0.005; ...
-    'a0',0.01;'a1',1;'r1',0.2;'r2',.1});
+    'a0',0.01;'a1',1;'r1',0.4;'r2',.1});
 par = [Model.parameters{:,2}];
 t = [0:60];
 TF = par(5)+par(6)*exp(-par(7)*t).*(1-exp(-par(8)*t)).*(t>0);
@@ -59,8 +60,8 @@ xlabel('Time (min)'); ylabel('Hog1(t)')
 %% Solve and plot using the FSP approach
 % To solve the model, we first select the solution scheme ('FSP') and then
 % we call the SSIT.solve method.
-Model.parameters = ({'k12',4;'k21',0.1;'kr',10;'g',.2; ...
-    'a0',0.01;'a1',1;'r1',0.2;'r2',.1});
+Model.parameters = ({'k12',6;'k21',30;'kr',100;'g',0.005; ...
+    'a0',0.01;'a1',1;'r1',0.4;'r2',.1});
 
 Model.solutionScheme = 'FSP';    % Set solutions scheme to FSP.
 [FSPsoln,Model.fspOptions.bounds] = Model.solve;  % Solve the FSP analysis
@@ -117,7 +118,7 @@ Model.fittingOptions.modelVarsToFit = [1:8];
 x0 = [Model.parameters{Model.fittingOptions.modelVarsToFit,2}]';
 
 % Here we call the search process with some fitting options.
-fitOptions = optimset('Display','iter','MaxIter',100);
+fitOptions = optimset('Display','iter','MaxIter',1000);
 [pars,likelihood] = Model.maximizeLikelihood(x0,fitOptions);
 
 % Update Model and Make Plots of Results
@@ -128,6 +129,15 @@ Model.makeFitPlot
 % the MAPK signal dynamics as well.  For the default data set,
 % "Result_Exp1_rep1_RNA_CY5_total_FORMATTED", you should be able to get a
 % fit with the MLE of better than 38500 after a few rounds of fitting. 
+
+%% Does the Model predict a good MAPK(t)?
+par = [Model.parameters{:,2}];
+t = [0:60];
+TF = par(5)+par(6)*exp(-par(7)*t).*(1-exp(-par(8)*t)).*(t>0);
+figure(25); plot(t,TF,'linewidth',3); 
+set(gca,'fontsize',16)
+xlabel('Time (min)'); ylabel('Hog1(t)')
+
 
 %% Quantifying model uncertainties.
 % By now, you have found a model that matches okay to your data.  (If not,
@@ -166,9 +176,10 @@ covLog = FIMlog^-1;
 % going to use the Metropolis Hastings algorithm, where the proposal
 % distribution is a multi-variate gaussian with a covariance that is
 % proportional to the inverse FIM.  Here, we set up the MH parameters:
+Model.solutionScheme = 'FSP'; % Set solutions scheme to FSP Sensitivity
 Model.fittingOptions.modelVarsToFit = [1:8];
-MHOptions = struct('numberOfSamples',1000,'burnin',500,'thin',1);
-proposalWidthScale = 0.01;
+MHOptions = struct('numberOfSamples',1000,'burnin',0,'thin',5);
+proposalWidthScale = 0.002;
 MHOptions.proposalDistribution  = @(x)mvnrnd(x,proposalWidthScale*(covLog+covLog')/2);
 
 % Next, we call the codes to sample the posterior parameter space:

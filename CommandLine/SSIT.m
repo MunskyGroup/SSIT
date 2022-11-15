@@ -638,16 +638,17 @@ classdef SSIT
             end
             nModelPars = length(indsParsToFit);
 
-            if isempty(pars)
-                pars = [obj.parameters{:,2}];
-            end
-
             if strcmp(obj.fittingOptions.pdoVarsToFit,'all')
                 indsPdoParsToFit = [1:length(obj.pdoOptions.props.ParameterGuess)];
             else
                 indsPdoParsToFit = obj.fittingOptions.pdoVarsToFit;
             end
             nPdoPars = length(indsPdoParsToFit);
+
+            if isempty(pars)
+                pars = [obj.parameters{:,2}];
+                
+            end
 
             if ~isempty(obj.fittingOptions.logPrior)
                 logPrior = sum(obj.fittingOptions.logPrior(pars));
@@ -678,7 +679,7 @@ classdef SSIT
             end
             obj.parameters =  originalPars;
 
-            if nPdoPars>0
+            if ~isempty(pars)&&nPdoPars>0
                 obj.pdoOptions.props.ParameterGuess(indsPdoParsToFit) = pars(nModelPars+1:end);
                 obj.pdoOptions.PDO = obj.generatePDO(obj.pdoOptions,[],solutions.fsp); % call method to generate the PDO.
             end
@@ -1185,16 +1186,17 @@ end
             end
         end
 
-        function makeFitPlot(obj,fitSolution)
+        function makeFitPlot(obj,fitSolution,smoothWindow)
             % Produces plots to compare model to experimental data.
             arguments
                 obj
                 fitSolution =[];
+                smoothWindow = 5;
             end
             if isempty(fitSolution)
                [~,~,fitSolution] = obj.computeLikelihood;
             end
-            makeSeparatePlotOfData(fitSolution)
+            makeSeparatePlotOfData(fitSolution,smoothWindow)
         end
 
         function makeMleFimPlot(obj,MLE,FIM,indPars,CI,figNum,par0)

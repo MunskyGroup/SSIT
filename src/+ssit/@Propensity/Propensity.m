@@ -108,10 +108,11 @@ classdef Propensity
                 TMP = strrep(TMP,'x(1,:)','x1');
                 TMP = strrep(TMP,'x(2,:)','x2');
                 TMP = strrep(TMP,'x(3,:)','x3');
+                TMP = strrep(TMP,'x(4,:)','x4');
                 syms tt
-                syms x1 x2 x3 positive
+                syms x1 x2 x3 x4 positive
                 eval(['Q=',TMP(5:end),';'])
-                y = eval(subs(Q,{x1,x2,x3},{x(1,:),x(2,:),x(3,:)}));
+                y = eval(subs(Q,{x1,x2,x3,x4},{x(1,:),x(2,:),x(3,:),x(4,:)}));
             end
   
         end

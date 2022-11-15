@@ -1,4 +1,8 @@
-function makeSeparatePlotOfData(app)
+function makeSeparatePlotOfData(app,smoothWindow)
+arguments
+    app
+    smoothWindow = 5;
+end
 
 %% This function creates a histogram from the loaded data.
 NT = length(app.ParEstFitTimesList.Value);
@@ -42,8 +46,8 @@ for DistType = 0:1
                 H1 = H1/sum(H1(:));  % Normalize data before plotting.
                 
                 if DistType
-                    stairs(FNHists,[0:length(H1)-1],H1); hold on
-                    stairs(FNHists,[0:length(H1)-1],smooth(H1),'linewidth',3);
+                    stairs(FNHists,[0:length(H1)-1],smoothBins(H1,smoothWindow)); hold on
+                    stairs(FNHists,[0:length(H1)-1],smoothBins(H1,smoothWindow),'linewidth',3);
                     
                     ym = max(ym,max(H1));
                 else
@@ -62,7 +66,7 @@ for DistType = 0:1
                 end
                 H1(end+1)=0;
                 if DistType
-                    stairs(FNHists,[0:length(H1)-1],H1,'linewidth',3);
+                    stairs(FNHists,[0:length(H1)-1],smoothBins(H1,smoothWindow),'linewidth',3);
                     ym = max(ym,max(H1));
                 else
                     stairs(FNHists,[0:length(H1)-1],cumsum(H1),'linewidth',3);
@@ -114,7 +118,7 @@ for it = 1:length(T_array)
 end
 vars = mns2-mns.^2;
 cols = ['b','r','g','m','c','k'];
-cols2 = [.90 .90  1.00; 1.00 .90 .90; .90 1.00 .90];
+cols2 = [.90 .90  1.00; 1.00 .90 .90; .90 1.00 .90; .60 .60  1.00; 1.00 .60 .60; .60 1.00 .60];
 LG = {};
 for iplt=1:NdMod
     if Plts_to_make(iplt)
@@ -184,4 +188,12 @@ for i=1:3
 end
 
 
+end
+
+function sb = smoothBins(x,bnsz)
+sb = 0*x;
+for i=1:length(x)
+    j = bnsz*floor(i/bnsz);
+    sb(j+1:min(j+bnsz,length(x))) = sb(j+1:min(j+bnsz,length(x)))+x(i);
+end
 end

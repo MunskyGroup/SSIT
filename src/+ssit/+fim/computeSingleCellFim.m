@@ -20,7 +20,7 @@ end
 
 parCountModel = length(Sx);
 if ~isempty(distortionOperator)
-    parCountPDO = size(distortionOperator.dCdLam,1);
+    parCountPDO = size(distortionOperator.dCdLam,2);
 else
     parCountPDO = 0;
 end
@@ -51,6 +51,8 @@ for iPar = 1:parCountModel+parCountPDO
         si = double(Sy(iPar).data);
         sj = double(Sy(jPar).data);
         p = double(py.data);
+        si=padarray(si,max(0,size(p)-size(si)),'post');
+        sj=padarray(sj,max(0,size(p)-size(sj)),'post');
         if isempty(si)||isempty(sj)
             F(iPar, jPar) = 0;
         else

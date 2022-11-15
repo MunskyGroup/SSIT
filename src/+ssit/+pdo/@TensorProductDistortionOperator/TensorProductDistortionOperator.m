@@ -96,8 +96,8 @@ classdef TensorProductDistortionOperator < ssit.pdo.AbstractDistortionOperator
 %                 nonZeroRows = find(sum(pdoFactors{iSpecies},2)~=0,1,'last');
 %                 pdoFactors{iSpecies} = obj.dCdLam{parameter_idx,iSpecies}(1:nonZeroRows,1:speciesBounds(iSpecies));
 %             end
-            pdoFactors = obj.dCdLam(parameter_idx,:);
-            pdoParCount = size(pdoFactors,2);
+            pdoFactors = obj.dCdLam(:,parameter_idx);
+            pdoParCount = size(pdoFactors,1);
             for iSpecies = 1:pdoParCount
                 sz(iSpecies) = ~isempty(pdoFactors{iSpecies});
             end

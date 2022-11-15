@@ -98,7 +98,11 @@ for i = 1:size(parameters,1)
 
     % Find the average of the upper and lower bound vectors
     for j = 1:length(outputTimes)
-        dsolutions{j}(i) = ssit.FspVector((1.0/abs(2*perturbationFactor*parameters{i, 2}))*(solsPlus{j}.p.data - solsMinus{j}.p.data));
+        try
+            dsolutions{j}(i) = ssit.FspVector((1.0/abs(2*perturbationFactor*parameters{i, 2}))*(solsPlus{j}.p.data - solsMinus{j}.p.data));
+        catch
+            1+1
+        end
     end
 end
 outputs = cell(length(outputTimes),1);

@@ -213,6 +213,10 @@ for i = 1-burnin:nsamples*thin
         waitbar((i+burnin)/(burnin+nsamples*thin),D,...
             ['Running MetHast, Acceptance = ',num2str(accept/(i+burnin))]);
     end
+
+    if mod(i,1000)
+        save TMPMetHast value smpl
+    end
 end
 if progress
     close(D);

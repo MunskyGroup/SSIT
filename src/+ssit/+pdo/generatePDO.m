@@ -135,7 +135,7 @@ switch app.DistortionTypeDropDown.Value
                             numsFakeSpots = [0:ceil(lamb+5*sqrt(lamb))];
                             indsFakeSpots = j+numsFakeSpots;
                             probFakeSpots = pdf('poiss',numsFakeSpots,lamb);
-                            dCdLam{ispec}(indsFakeSpots,j) = (numsFakeSpots/lamb-1).*probFakeSpots;
+                            dCdLam{ispec,ispec}(indsFakeSpots,j) = (numsFakeSpots/lamb-1).*probFakeSpots;
                     end
                 else
                     dCdLam{ispec,ispec} = 0;
@@ -204,6 +204,80 @@ switch app.DistortionTypeDropDown.Value
                 conditionalPmfs{ispec} = 1;
             end
         end
+    
+    case 'BinoPoiss'
+        if variablePDO
+            dCdLam = cell(nSpecies,2*nSpecies);
+            for ispec = 1:nSpecies
+                for jspec = 1:nSpecies
+                    dCdLam{ispec,jspec} = [];
+                end
+            end
+        end
+        for ispec = 1:nSpecies
+            if mxSize(ispec)>1
+                conditionalPmfsBino=[];
+                conditionalPmfsPoiss=[];
+                dCdLamBino=[];
+                dCdLamPoiss=[];
+                alpha = app.FIMTabOutputs.PDOProperties.props.(['CaptureProbabilityS',num2str(ispec)]);
+                for j = mxSize(ispec):-1:1
+                    conditionalPmfsBino(1:j,j) = pdf('bino',0:j-1,j-1,alpha);
+                end
+
+                lamb = app.FIMTabOutputs.PDOProperties.props.(['NoiseMeanS',num2str(ispec)]);
+                for j = mxSize(ispec):-1:1
+                    numsFakeSpots = [0:ceil(lamb+5*sqrt(lamb))];
+                    indsFakeSpots = j+numsFakeSpots;
+                    probFakeSpots = pdf('poiss',numsFakeSpots,lamb);
+                    conditionalPmfsPoiss(indsFakeSpots,j) = probFakeSpots;
+                end
+                conditionalPmfs{ispec} = conditionalPmfsPoiss*conditionalPmfsBino;
+
+                if variablePDO
+                    alpha = app.FIMTabOutputs.PDOProperties.props.(['CaptureProbabilityS',num2str(ispec)]);
+                    for j = mxSize(ispec)-1:-1:0
+                        k=0:j;
+                        dCdLamBino(k+1,j+1) = (k/alpha-(j-k)/(1-alpha)).*pdf('bino',k,j,alpha);
+                    end
+                    lamb = app.FIMTabOutputs.PDOProperties.props.(['NoiseMeanS',num2str(ispec)]);
+                    for j = mxSize(ispec):-1:1
+                            numsFakeSpots = [0:ceil(lamb+5*sqrt(lamb))];
+                            indsFakeSpots = j+numsFakeSpots;
+                            probFakeSpots = pdf('poiss',numsFakeSpots,lamb);
+                            dCdLamPoiss(indsFakeSpots,j) = (numsFakeSpots/lamb-1).*probFakeSpots;
+                    end
+                    dCdLam{ispec,(ispec-1)*2+1} =  conditionalPmfsPoiss*dCdLamBino;
+                    dCdLam{ispec,ispec*2} =  dCdLamPoiss*conditionalPmfsBino;
+                end
+            else
+                conditionalPmfs{ispec} = 1;
+                if variablePDO
+                    dCdLam{ispec,ispec*2-1} = 0;
+                    dCdLam{ispec,ispec*2} = 0;
+                end
+            end
+        end
+
+    
+    case 'BinoAffinePoiss'
+        for ispec = 1:nSpecies
+            if mxSize(ispec)>1
+                alpha = app.FIMTabOutputs.PDOProperties.props.PDOpars((ispec-1)*3+1);
+                for j = mxSize(ispec):-1:1
+                    lamb = app.FIMTabOutputs.PDOProperties.props.PDOpars((ispec-1)*3+2)+...
+                        app.FIMTabOutputs.PDOProperties.props.PDOpars((ispec-1)*3+3)*(j-1);
+                    Np = ceil(lamb+10*sqrt(lamb))+50;
+                    P2 = pdf('poiss',[0:Np],lamb);
+                    P1 = binopdf([0:j-1],j-1,alpha);
+                    conditionalPmfs{ispec}(1:j+Np,j) = conv(P2,P1);
+                end
+            else
+                conditionalPmfs{ispec} = 1;
+            end
+        end
+
+    
     case 'Custom Function'
         for ispec = 1:nSpecies
             if mxSize(ispec)>1
@@ -227,7 +301,7 @@ switch app.DistortionTypeDropDown.Value
         end
 end
 if variablePDO
-    app.FIMTabOutputs.distortionOperator = ssit.pdo.TensorProductDistortionOperator(conditionalPmfs(indsObserved),dCdLam(:,indsObserved));
+    app.FIMTabOutputs.distortionOperator = ssit.pdo.TensorProductDistortionOperator(conditionalPmfs(indsObserved),dCdLam(indsObserved,:));
 else
     app.FIMTabOutputs.distortionOperator = ssit.pdo.TensorProductDistortionOperator(conditionalPmfs(indsObserved),[]);
 end
