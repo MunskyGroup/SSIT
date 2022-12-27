@@ -1,0 +1,19 @@
+\multirow{3}{*}{$k_{\rm OFF}$ (s$^{-1}$)}
+&$\log_{10}(\lambda)$&-4.0&O11&O12&O13\\ \cline{2-6}
+&$\sigma_{p/MH}$&1.0&O21&O22&O23\\  \cline{2-6}
+&$\sigma_{FIM}$&-&O31&O32&O33\\  \hline
+%
+\multirow{3}{*}{$\omega$ (s$^{-1}$)}
+&$\log_{10}(\lambda)$&-0.70&W11&W12&W13\\ \cline{2-6}
+&$\sigma_{p/MH}$&0.5&W21&W22&W23\\  \cline{2-6}
+&$\sigma_{FIM}$&-&W31&W32&W33\\  \hline
+%
+\multirow{3}{*}{$\beta$ (s$^{-1}$)}
+&$\log_{10}(\lambda)$&0.85&B11&B12&B13\\ \cline{2-6}
+&$\sigma_{p/MH}$&0.5&B21&B22&B23\\  \cline{2-6}
+&$\sigma_{FIM}$&-&B31&B32&B33\\  \hline
+%
+\multirow{3}{*}{$\gamma$ (s$^{-1}$)}
+&$\log_{10}(\lambda)$&-2.2&G11&G12&G13\\ \cline{2-6}
+&$\sigma_{p/MH}$&0.5&G21&G22&G23\\  \cline{2-6}
+&$\sigma_{FIM}$&-&G31&G32&G33\\  \hline
