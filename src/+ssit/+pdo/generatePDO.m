@@ -276,9 +276,58 @@ switch app.DistortionTypeDropDown.Value
                 conditionalPmfs{ispec} = 1;
             end
         end
+    case 'AffinePoissLoss'
+        for ispec = 1:nSpecies
+            if mxSize(ispec)>1
+                alpha = app.FIMTabOutputs.PDOProperties.props.PDOpars((ispec-1)*3+3);
+                for j = mxSize(ispec):-1:1
+                    lamb = app.FIMTabOutputs.PDOProperties.props.PDOpars((ispec-1)*3+1)+...
+                        app.FIMTabOutputs.PDOProperties.props.PDOpars((ispec-1)*3+2)*(j-1);
+                    Np = ceil(lamb+10*sqrt(lamb))+50;
+                    P2 = pdf('poiss',[0:Np],lamb);
+                    conditionalPmfs{ispec}(1:Np+1,j) = P2*alpha;
+                    conditionalPmfs{ispec}(1,j) = conditionalPmfs{ispec}(1,j) + 1-alpha;
+                end
+            else
+                conditionalPmfs{ispec} = 1;
+            end
+        end
 
     
-    case 'Custom Function'
+    case 'AffinePoiss'
+        for ispec = 1:nSpecies
+            if mxSize(ispec)>1
+                for j = mxSize(ispec):-1:1
+                    lamb = max(app.FIMTabOutputs.PDOProperties.props.PDOpars((ispec-1)*3+1),...
+                    app.FIMTabOutputs.PDOProperties.props.PDOpars((ispec-1)*3+2)+...
+                        app.FIMTabOutputs.PDOProperties.props.PDOpars((ispec-1)*3+3)*(j-1));
+                    Np = ceil(lamb+10*sqrt(lamb))+50;
+                    P2 = pdf('poiss',[0:Np],lamb);
+                    conditionalPmfs{ispec}(1:Np+1,j) = P2;
+                end
+            else
+                conditionalPmfs{ispec} = 1;
+            end
+        end
+
+    
+    case 'AffinePoissBounded'
+        for ispec = 1:nSpecies
+            if mxSize(ispec)>1
+                for j = mxSize(ispec):-1:1
+                    lamb = max(1,app.FIMTabOutputs.PDOProperties.props.PDOpars((ispec-1)*2+1)+...
+                        app.FIMTabOutputs.PDOProperties.props.PDOpars((ispec-1)*2+2)*(j-1));
+                    Np = ceil(lamb+10*sqrt(lamb))+50;
+                    P2 = pdf('poiss',[0:Np],lamb);
+                    conditionalPmfs{ispec}(1:Np+1,j) = P2;
+                end
+            else
+                conditionalPmfs{ispec} = 1;
+            end
+        end
+
+    
+case 'Custom Function'
         for ispec = 1:nSpecies
             if mxSize(ispec)>1
                 func = app.FIMTabOutputs.PDOProperties.props.(['PDO_S',num2str(ispec)]);

@@ -87,11 +87,22 @@ function [smpl,accept,value,bestfound,bestObjToNow] = metropolisHastingsSample(s
 
 % parse the information in the name/value pairs 
 pnames = {'pdf' ,'logpdf', 'proppdf','logproppdf','proprnd', ...
-    'burnin','thin','symmetric','nchains','progress'};
-dflts =  {[] [] [],[],[] 0,1,false,1,false};
-[pdf,logpdf,proppdf,logproppdf, proprnd,burnin,thin,sym,nchain,progress] = ...
+    'burnin','thin','symmetric','nchains','progress','saveFileName'};
+dflts =  {[] [] [],[],[] 0,1,false,1,false,'tmpMHResults'};
+[pdf,logpdf,proppdf,logproppdf, proprnd,burnin,thin,sym,nchain,progress,saveFileName] = ...
        internal.stats.parseArgs(pnames, dflts, varargin{:});
- 
+
+if exist(saveFileName,'file')||exist([saveFileName,'.mat'],'file')
+    load(saveFileName,'value','smpl','bestfound'); 
+    k = find(value~=0,1,'last');
+    start = smpl(k,:);
+    burnin=0;
+    iStart = k*thin+1;
+    disp(['Found an interrupted MH run -- resuming from broken chain at step ',num2str(iStart)])
+else
+    iStart = 1-burnin;
+end
+
 % pdf or logpdf for target distribution has to be provided.
 if isempty(pdf)&& isempty(logpdf)
     error(message('stats:mhsample:BadTarget'));
@@ -152,8 +163,13 @@ outclass = superiorfloat(start); % single or double
 
 % Put the replicates dimension second.
 distnDims = size(start,2);
-smpl = zeros([nsamples,nchain,distnDims],outclass);
-value = zeros([nsamples,nchain,1],outclass);
+if ~exist('smpl','var')
+    smpl = zeros([nsamples,nchain,distnDims],outclass);
+end
+
+if ~exist('value','var')
+    value = zeros([nsamples,nchain,1],outclass);
+end
  
 x0 = start;  %x0  is the place holder for the current value
 accept =zeros(nchain,1,outclass);    
@@ -162,14 +178,18 @@ U = log(rand(nchain,nsamples*thin+burnin));
 
 logpdf_x0 = logpdf(x0);   %Brian -- Do not recompute OBJ.
 
-bestObjToNow = logpdf_x0;
-bestfound = x0;
+if ~exist('bestfound','var')
+    bestfound = x0;
+    bestObjToNow = logpdf_x0;
+else
+    bestObjToNow = logpdf(bestfound);
+end  
 
 if progress
     D = waitbar(0,'Metropolis Hastings Progress');
 end
 
-for i = 1-burnin:nsamples*thin
+for i = iStart:nsamples*thin
     y = proprnd(x0); % sample from proposal dist'n
     if ~sym
         q1 = logproppdf(x0,y);
@@ -214,8 +234,9 @@ for i = 1-burnin:nsamples*thin
             ['Running MetHast, Acceptance = ',num2str(accept/(i+burnin))]);
     end
 
-    if mod(i,1000)
-        save TMPMetHast value smpl
+    if mod(i,100)==0
+        save(saveFileName,'value','smpl','bestfound')
+        disp(['n=',num2str(i),'; acc=',num2str(accept/(i+burnin))])
     end
 end
 if progress

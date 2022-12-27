@@ -3,3 +3,6 @@
 *.asv
 *.asv
 *.asv
+CommandLine/OldProablyTrash/*
+CommandLine/OldProablyTrash/*/*
+BackgroundFitsResults*

@@ -7,7 +7,7 @@ classdef SSIT
         propensityFunctions = {'k'; 'g*x1'} % List of proensity functions
         inputExpressions = {}; % List of time varying input signals (I1,I2,...)
         customConstraintFuns = {}; % User suppled constraint functions for FSP.
-        fspOptions = struct('fspTol',0.001,'fspIntegratorRelTol',1e-2, 'fspIntegratorAbsTol',1e-4, 'odeSolver','auto', 'verbose',false,'bounds',[]); % Options for FSP solver.
+        fspOptions = struct('fspTol',0.001,'fspIntegratorRelTol',1e-2, 'fspIntegratorAbsTol',1e-4, 'odeSolver','auto', 'verbose',false,'bounds',[],'usePiecewiseFSP',false,'initApproxSS',false); % Options for FSP solver.
         sensOptions = struct('solutionMethod','forward'); % Options for FSP-Sensitivity solver.
         ssaOptions = struct('Nexp',1,'nSimsPerExpt',100,'useTimeVar',false, 'signalUpdateRate',[]); % Options for SSA solver
         pdoOptions = struct('unobservedSpecies',[],'PDO',[]); % Options for FIM analyses
@@ -339,7 +339,9 @@ classdef SSIT
                         obj.fspOptions.verbose, ...
                         obj.fspOptions.fspIntegratorRelTol, ...
                         obj.fspOptions.fspIntegratorAbsTol, ...
-                        obj.fspOptions.odeSolver,stateSpace);
+                        obj.fspOptions.odeSolver,stateSpace,...
+                        obj.fspOptions.usePiecewiseFSP,...
+                        obj.fspOptions.initApproxSS);
                 case 'SSA'
                     Solution.T_array = obj.tSpan;
                     Nt = length(Solution.T_array);
@@ -356,40 +358,44 @@ classdef SSIT
                             obj.ssaOptions.signalUpdateRate);
                     end
                     disp([num2str(nSims),' SSA Runs Completed'])
-                    if ~isempty(obj.pdoOptions.PDO)
-                        Solution.trajsDistorted = zeros(length(obj.species),...
-                            length(obj.tSpan),nSims);% Creates an empty Trajectories matrix from the size of the time array and number of simulations
-                        for iS = 1:length(obj.species)
-                            PDO = obj.pdoOptions.PDO.conditionalPmfs{iS};
-                            nDpossible = size(PDO,1);
-                            Q = Solution.trajs(iS,:,:);
-                            for iD = 1:length(Q(:))
-                                Q(iD) = randsample([0:nDpossible-1],1,true,PDO(:,Q(iD)+1));
+                    try
+                        if ~isempty(obj.pdoOptions.PDO)
+                            Solution.trajsDistorted = zeros(length(obj.species),...
+                                length(obj.tSpan),nSims);% Creates an empty Trajectories matrix from the size of the time array and number of simulations
+                            for iS = 1:length(obj.species)
+                                PDO = obj.pdoOptions.PDO.conditionalPmfs{iS};
+                                nDpossible = size(PDO,1);
+                                Q = Solution.trajs(iS,:,:);
+                                for iD = 1:length(Q(:))
+                                    Q(iD) = randsample([0:nDpossible-1],1,true,PDO(:,Q(iD)+1));
+                                end
+                                Solution.trajsDistorted(iS,:,:) = Q;
                             end
-                            Solution.trajsDistorted(iS,:,:) = Q;
+                            disp('PDO applied to SSA results')
                         end
-                        disp('PDO applied to SSA results')
-                    end
-                    if ~isempty(saveFile)
-                        A = table;
-                        for j=1:Nt
-                            A.time((j-1)*obj.ssaOptions.nSimsPerExpt+1:j*obj.ssaOptions.nSimsPerExpt) = obj.tSpan(j);
-                            for i = 1:obj.ssaOptions.Nexp
-                                for k=1:obj.ssaOptions.nSimsPerExpt
-                                    for s = 1:size(Solution.trajs,1)
-                                        warning('off')
-                                        A.(['exp',num2str(i),'_s',num2str(s)])((j-1)*obj.ssaOptions.nSimsPerExpt+k) = ...
-                                            Solution.trajs(s,j,(i-1)*Nt*obj.ssaOptions.nSimsPerExpt+(j-1)*obj.ssaOptions.nSimsPerExpt+k);
-                                        if ~isempty(obj.pdoOptions.PDO)
-                                            A.(['exp',num2str(i),'_s',num2str(s),'_Distorted'])((j-1)*obj.ssaOptions.nSimsPerExpt+k) = ...
-                                                Solution.trajsDistorted(s,j,(i-1)*Nt*obj.ssaOptions.nSimsPerExpt+(j-1)*obj.ssaOptions.nSimsPerExpt+k);
+                        if ~isempty(saveFile)
+                            A = table;
+                            for j=1:Nt
+                                A.time((j-1)*obj.ssaOptions.nSimsPerExpt+1:j*obj.ssaOptions.nSimsPerExpt) = obj.tSpan(j);
+                                for i = 1:obj.ssaOptions.Nexp
+                                    for k=1:obj.ssaOptions.nSimsPerExpt
+                                        for s = 1:size(Solution.trajs,1)
+                                            warning('off')
+                                            A.(['exp',num2str(i),'_s',num2str(s)])((j-1)*obj.ssaOptions.nSimsPerExpt+k) = ...
+                                                Solution.trajs(s,j,(i-1)*Nt*obj.ssaOptions.nSimsPerExpt+(j-1)*obj.ssaOptions.nSimsPerExpt+k);
+                                            if ~isempty(obj.pdoOptions.PDO)
+                                                A.(['exp',num2str(i),'_s',num2str(s),'_Distorted'])((j-1)*obj.ssaOptions.nSimsPerExpt+k) = ...
+                                                    Solution.trajsDistorted(s,j,(i-1)*Nt*obj.ssaOptions.nSimsPerExpt+(j-1)*obj.ssaOptions.nSimsPerExpt+k);
+                                            end
                                         end
                                     end
                                 end
                             end
+                            writetable(A,saveFile)
+                            disp(['SSA Results saved to ',saveFile])
                         end
-                        writetable(A,saveFile)
-                        disp(['SSA Results saved to ',saveFile])
+                    catch
+                        pause;
                     end
                 case 'fspSens'
                     if ~isempty(obj.parameters)
@@ -417,7 +423,9 @@ classdef SSIT
                         obj.fspConstraints.b,...
                         [], obj.fspOptions.verbose, 0,...
                         obj.sensOptions.solutionMethod,...
-                        app,stateSpace);
+                        app,stateSpace,...
+                        obj.fspOptions.usePiecewiseFSP,...
+                        obj.fspOptions.initApproxSS);
                     %                     app.SensFspTabOutputs.solutions = Solution.sens;
                     %                     app.SensPrintTimesEditField.Value = mat2str(obj.tSpan);
                     %                     Solution.plotable = exportSensResults(app);
@@ -551,6 +559,7 @@ classdef SSIT
                 linkedSpecies
                 conditions = {};
             end
+            obj.dataSet =[];
             Tab = readtable(dataFileName);
             obj.dataSet.dataNames = Tab.Properties.VariableNames;
             obj.dataSet.DATA = table2cell(Tab);
@@ -607,6 +616,7 @@ classdef SSIT
             obj.dataSet.app.SpeciesForFitPlot.Items = obj.species;
             obj.dataSet.app = filterAndMarginalize([],[],obj.dataSet.app);
 
+            obj.dataSet.nCells=[];
             for i = 1:size(obj.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor,1)
                 obj.dataSet.nCells(i) = sum(double(obj.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor(i,:)),'all');
             end
@@ -646,7 +656,7 @@ classdef SSIT
             nPdoPars = length(indsPdoParsToFit);
 
             if isempty(pars)
-                pars = [obj.parameters{:,2}];
+                pars = [obj.parameters{indsParsToFit,2}];
                 
             end
 
@@ -657,7 +667,8 @@ classdef SSIT
             end
 
             originalPars = obj.parameters;
-            obj.tSpan = unique([obj.initialTime,obj.dataSet.times]);
+%             obj.tSpan = unique([obj.initialTime,obj.dataSet.times]);
+            obj.tSpan = unique([obj.initialTime,obj.tSpan]);
 
             % Update Model and PDO parameters using supplied guess
             obj.parameters(indsParsToFit,2) =  num2cell(pars(1:nModelPars));
@@ -752,7 +763,8 @@ classdef SSIT
 
             %% Padd P or Data to match sizes of tensors.
             NP = size(P);
-            NDat = size(obj.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor);
+            PD = obj.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor;
+            NDat = size(PD);
             if length(NP)<Nd; NP(end+1:Nd)=1; end
             if max(NDat(2:end)-NP(2:length(NDat)))>0   % Pad if data longer than model
                 NP(2:length(NDat)) = max(NP(2:length(NDat)),NDat(2:end));
@@ -769,41 +781,61 @@ classdef SSIT
                     end
                 end
             end
-            if max(NP(2:length(NDat))-NDat(2:end))>0   % truncate if model longer than data
-                tmp = 'P = P(:';
+            if max(NP(2:length(NDat))-NDat(2:end))>0   % Pad if model longer than data
+                NDat(2:length(NDat)) = max(NP(2:length(NDat)),NDat(2:end));
+                tmp = 'PD(end';
                 for j = 2:length(NDat)
-                    tmp = [tmp,',1:',num2str(NDat(j))];
+                    tmp = [tmp,',NDat(',num2str(j),')'];
                 end
-                for j = (length(NDat)+1):4
-                    tmp = [tmp,',1'];
-                end
-                tmp = [tmp,');'];
-                eval(tmp)
-                if computeSensitivity&&nargout>=2
-                    for iPar = 1:parCount
-                        tmp2 = strrep(tmp,'P = P',['S{',num2str(iPar),'} = S{',num2str(iPar),'}']);
-                        eval(tmp2);
-                    end
-                end
+                tmp = [tmp,')=0;'];
+                eval(tmp);
+%                 if computeSensitivity&&nargout>=2
+%                     for iPar = 1:parCount
+%                         tmp2 = strrep(tmp,'P(end',['S{',num2str(iPar),'}(end']);
+%                         eval(tmp2);
+%                     end
+%                 end
             end
+            obj.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor=PD;
+           
+%             if max(NP(2:length(NDat))-NDat(2:end))>0   % truncate if model longer than data
+%                 tmp = 'P = P(:';
+%                 for j = 2:length(NDat)
+%                     tmp = [tmp,',1:',num2str(NDat(j))];
+%                 end
+%                 for j = (length(NDat)+1):4
+%                     tmp = [tmp,',1'];
+%                 end
+%                 tmp = [tmp,');'];
+%                 eval(tmp)
+%                 if computeSensitivity&&nargout>=2
+%                     for iPar = 1:parCount
+%                         tmp2 = strrep(tmp,'P = P',['S{',num2str(iPar),'} = S{',num2str(iPar),'}']);
+%                         eval(tmp2);
+%                     end
+%                 end
+%             end
             P = max(P,1e-10);
 
             %% Data times for fitting
             if strcmp(obj.fittingOptions.timesToFit,'all')
                 times = obj.dataSet.times;
+                fitSolutions.ParEstFitTimesList = obj.dataSet.app.ParEstFitTimesList;
             else
                 times = obj.dataSet.times(obj.fittingOptions.timesToFit);
+                fitSolutions.ParEstFitTimesList = obj.dataSet.app.ParEstFitTimesList;
+                fitSolutions.ParEstFitTimesList.Value = obj.dataSet.app.ParEstFitTimesList.Value(obj.fittingOptions.timesToFit);
+                PD = PD(find(obj.fittingOptions.timesToFit),:);
             end
             %% Compute log likelihood using equal sized P and Data tensors.
             if nargout>=3
                 sz = size(P);
                 fitSolutions.DataLoadingAndFittingTabOutputs.fitResults.current = zeros([length(times),sz(2:end)]);
                 fitSolutions.DataLoadingAndFittingTabOutputs.fitResults.currentData = zeros([length(times),sz(2:end)]);
-                fitSolutions.ParEstFitTimesList = obj.dataSet.app.ParEstFitTimesList;
                 fitSolutions.NameTable.Data = [obj.species,obj.species];
                 fitSolutions.SpeciesForFitPlot.Value = obj.species(indsPlots);
                 fitSolutions.SpeciesForFitPlot.Items = obj.species;
-                fitSolutions.DataLoadingAndFittingTabOutputs.dataTensor = obj.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor;
+                fitSolutions.DataLoadingAndFittingTabOutputs.dataTensor = PD;
                 fitSolutions.FspPrintTimesField.Value = ['[',num2str(obj.tSpan),']'];
                 if ~computeSensitivity
                     fitSolutions.FspTabOutputs.solutions = solutions.fsp;
@@ -811,7 +843,7 @@ classdef SSIT
                     fitSolutions.FspTabOutputs.solutions = solutions;
                 end
                 fitSolutions.FIMTabOutputs.distortionOperator = obj.pdoOptions.PDO;
-                fitSolutions.DataLoadingAndFittingTabOutputs.fittingOptions.dataTimes = obj.dataSet.times;
+                fitSolutions.DataLoadingAndFittingTabOutputs.fittingOptions.dataTimes = obj.dataSet.times(obj.fittingOptions.timesToFit);
                 fitSolutions.DataLoadingAndFittingTabOutputs.fittingOptions.fit_times = times;
             end
 
@@ -824,9 +856,14 @@ classdef SSIT
             perfectModSmoothed = zeros(1,length(times));
             for i=1:length(times)
                 [~,j] = min(abs(obj.tSpan-times(i)));
-                Jind = obj.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor.subs(:,1) == i;
-                SpInds = obj.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor.subs(Jind,:);
-                SpVals = obj.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor.vals(Jind);
+                if length(times)>1
+                    Jind = PD.subs(:,1) == i;
+                    SpInds = PD.subs(Jind,:);
+                else
+                    Jind = ones(size(PD.subs),'logical');
+                    SpInds = [ones(length(Jind),1),PD.subs(Jind,:)];
+                end
+                SpVals = PD.vals(Jind);
                 H = sptensor([ones(length(SpVals),1),SpInds(:,2:end)],SpVals,[1,NDat(2:end)]);
                 H = double(H);
                 Pt = P(j,:,:,:,:,:,:,:,:,:);
@@ -952,6 +989,11 @@ end
                     allFitOptions.progress=true;
                     allFitOptions.proposalDistribution=@(x)x+0.01*randn(size(x));
                     allFitOptions.numChains = 1;
+                    j=1;
+                    while exist(['TMPmh_',num2str(j),'.mat'],'file')
+                        j=j+1;
+                    end                    
+                    allFitOptions.saveFile = ['TMPmh_',num2str(j),'.mat'];
                     fNames = fieldnames(fitOptions);
                     for i=1:length(fNames)
                         allFitOptions.(fNames{i}) = fitOptions.(fNames{i});
@@ -964,7 +1006,8 @@ end
                             'logpdf',OBJmh,'proprnd',allFitOptions.proposalDistribution,...
                             'symmetric',allFitOptions.isPropDistSymmetric,...
                             'thin',allFitOptions.thin,'nchain',1,'burnin',allFitOptions.burnIn,...
-                            'progress',allFitOptions.progress);
+                            'progress',allFitOptions.progress,...
+                            'saveFileName',allFitOptions.saveFile);
                     else
                         try
                             parpool
@@ -1186,17 +1229,18 @@ end
             end
         end
 
-        function makeFitPlot(obj,fitSolution,smoothWindow)
+        function makeFitPlot(obj,fitSolution,smoothWindow,fignums)
             % Produces plots to compare model to experimental data.
             arguments
                 obj
                 fitSolution =[];
                 smoothWindow = 5;
+                fignums = [];
             end
             if isempty(fitSolution)
                [~,~,fitSolution] = obj.computeLikelihood;
             end
-            makeSeparatePlotOfData(fitSolution,smoothWindow)
+            makeSeparatePlotOfData(fitSolution,smoothWindow,fignums)
         end
 
         function makeMleFimPlot(obj,MLE,FIM,indPars,CI,figNum,par0)
@@ -1235,7 +1279,7 @@ end
                 legs(end+1) = {[num2str(CIp),'% CI (FIM)']};
             end
             set(gca,'fontsize',15)
-                legend(legs)
+            legend(legs)
 
         end
 

@@ -148,7 +148,14 @@ k1 = 2; xm = 1/m; normv = norm(v); beta = normv;
 fact = (((m+1)/exp(1))^(m+1))*sqrt(2*pi*(m+1));
 t_new = (1/anorm)*((fact*tol)/(4*beta*anorm))^xm;
 s = 10^(floor(log10(t_new))-1); t_new = ceil(t_new/s)*s;
-sgn = sign(t); istep = 0;
+
+if t==0
+    sgn = 1;
+else
+    sgn = sign(t); 
+end
+
+istep = 0;
 
 w = v; ye = w'; te = tNow;
 hump = normv;

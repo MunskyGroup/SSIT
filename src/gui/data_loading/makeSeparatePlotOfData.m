@@ -1,16 +1,22 @@
-function makeSeparatePlotOfData(app,smoothWindow)
+function makeSeparatePlotOfData(app,smoothWindow,fignums,usePanels)
 arguments
     app
     smoothWindow = 5;
+    fignums = [];
+    usePanels=true;
 end
 
 %% This function creates a histogram from the loaded data.
 NT = length(app.ParEstFitTimesList.Value);
-NdMod = length(size(app.DataLoadingAndFittingTabOutputs.fitResults.current))-1;
+NdMod = max(1,length(size(app.DataLoadingAndFittingTabOutputs.fitResults.current))-1);
 NdDat = length(app.SpeciesForFitPlot.Value);
 
 for DistType = 0:1
-    figure
+    if isempty(fignums)
+        figure
+    else
+        figure(fignums(DistType+1))
+    end
     if NT<=4
         subPlotSize = [1,NT];
     else
@@ -20,9 +26,11 @@ for DistType = 0:1
     
     for iTime = 1:NT
         it = find(strcmp(app.ParEstFitTimesList.Value,app.ParEstFitTimesList.Value{iTime}));
-        subplot(subPlotSize(1),subPlotSize(2),iTime)
+        if usePanels
+            subplot(subPlotSize(1),subPlotSize(2),iTime)
+        end
         FNHists = gca;
-        hold off
+%         hold off
         
         L = {};
         xm = 0; ym = 0;
@@ -39,14 +47,18 @@ for DistType = 0:1
             
 %             if cb
                 matTensor = double(app.DataLoadingAndFittingTabOutputs.dataTensor);
-                H1 = squeeze(matTensor(it,:,:,:,:,:,:,:,:,:));
+                if length(size(app.DataLoadingAndFittingTabOutputs.dataTensor))==1
+                    H1 = matTensor;
+                else
+                    H1 = squeeze(matTensor(it,:,:,:,:,:,:,:,:,:));
+                end
                 if ~isempty(soDat)
                     H1 = sum(H1,soDat);
                 end
                 H1 = H1/sum(H1(:));  % Normalize data before plotting.
                 
                 if DistType
-                    stairs(FNHists,[0:length(H1)-1],smoothBins(H1,smoothWindow)); hold on
+%                     stairs(FNHists,[0:length(H1)-1],smoothBins(H1,smoothWindow)); hold on
                     stairs(FNHists,[0:length(H1)-1],smoothBins(H1,smoothWindow),'linewidth',3);
                     
                     ym = max(ym,max(H1));
@@ -96,7 +108,12 @@ end
 
 %% Make a trajectory plot for model.
 NdMod = size(app.NameTable.Data,1);
-figure; FNTraj = gca;
+if isempty(fignums)
+    figure
+else
+    figure(fignums(3))
+end
+FNTraj = gca;
 T_array = eval(app.FspPrintTimesField.Value);
 for it = 1:length(T_array)
     if ~isempty(app.FspTabOutputs.solutions{it})
@@ -159,10 +176,16 @@ legend(FNTraj,LG)
 xlabel('Time')
 ylabel('Response')
 set(FNTraj,'fontsize',15)
-set(FNTraj,'xlim',[0,max(T_array)])
+if max(T_array)>0
+    set(FNTraj,'xlim',[0,max(T_array)])
+end
 %%
 
-figure;
+if isempty(fignums)
+    figure
+else
+    figure(fignums(4))
+end
 subplot(3,1,1)
 plot(app.DataLoadingAndFittingTabOutputs.fittingOptions.fit_times,app.DataLoadingAndFittingTabOutputs.V_LogLk,'linewidth',2)
 hold on

@@ -7,7 +7,7 @@ function [solutions, constraintBoundsFinal,stateSpace] = adaptiveFspSolve(...
     constraintFunctions, initialConstraintBounds,...
     verbose,...
     relTol,absTol,odeSolver,...
-    stateSpace)
+    stateSpace,usePiecewiseFSP,initApproxSS)
 % Approximate the transient solution of the chemical master equation using
 % an adaptively expanding finite state projection (FSP).
 %
@@ -56,6 +56,19 @@ function [solutions, constraintBoundsFinal,stateSpace] = adaptiveFspSolve(...
 %    choice of ODE solver for the truncated problem. Must be one of the three
 %    options "sundials", "expokit", "matlab", "auto". Default: "auto".
 %
+%   stateSpace: ssit.FiniteStateSet  
+%    State space for FSP projection 
+%    (using class ssit.FiniteStateSet)
+%
+%   usePiecewiseFSP: logical(false) 
+%    Option to use piecewise constant FSP for time
+%    varying problems (allows use of expokit).
+%
+%   initApproxSS: logical(false)
+%    option to use reflecting boundary condition to
+%    estimate the steady state distribution and use that as the initial
+%    condiiton.
+%
 % Returns
 % -------
 %
@@ -93,6 +106,8 @@ arguments
     absTol double=1.0e-8
     odeSolver string="auto"
     stateSpace =[];
+    usePiecewiseFSP=false;
+    initApproxSS=false;
 end
 
 maxOutputTime = max(outputTimes);
@@ -129,8 +144,30 @@ for i = 1:length(propensities)
     end
 end
 
-solVec = zeros(stateCount + constraintCount, 1);
-solVec(1:size(initStates,2)) = initProbs;
+% Use Approximate steady state as initial distribution if requested.
+if initApproxSS
+    jac = Afsp.createSingleMatrix(-1);
+    jac =jac(1:end-constraintCount,1:end-constraintCount);
+    jac =jac+diag(sum(jac));
+    try
+        [eigVec,~] = eigs(jac,1,'smallestabs');
+    catch
+        try
+            [eigVec,~] = eigs(jac,0);
+        catch
+            try 
+                eigVec = null(full(jac));
+            catch
+                disp('Could not find null space. Using uniform.')
+                eigVec = ones(size(jac,1),1);
+            end
+        end
+    end
+    solVec = [eigVec/sum(eigVec);zeros(constraintCount,1)];
+else % otherwise use user supplied IC.
+    solVec = zeros(stateCount + constraintCount, 1);
+    solVec(1:size(initStates,2)) = initProbs;
+end
 
 tInit =min(outputTimes);
 tNow = tInit;
@@ -145,8 +182,10 @@ end
 
 % Determine ODE solver
 if odeSolver == "auto"
-    if isTimeInvariant
+    if isTimeInvariant 
         odeSolver = "expokit";
+    elseif usePiecewiseFSP
+        odeSolver = "expokitPiecewise";
     else
         if (exist('FspCVodeMex')~=3)
             odeSolver = "matlab";
@@ -173,13 +212,19 @@ while (tNow < maxOutputTime)
         if isTimeInvariant==1 % If no parameters are functions of time.
             jac = Afsp.createSingleMatrix(tNow);
             matvec = @(~,p) jac*p;            
+        elseif usePiecewiseFSP
+            jac = @(t)Afsp.createSingleMatrix(t);
+            matvec = [];            
         else
             % If time varrying
             matvec = @(t, p) Afsp.multiply(t, p);
             jac = @(t,~)Afsp.createSingleMatrix(t);            
         end
+
         if odeSolver == "expokit"
             solver = ssit.fsp_ode_solvers.Expokit();
+        elseif odeSolver == "expokitPiecewise"
+            solver = ssit.fsp_ode_solvers.ExpokitPiecewise();
         else
             solver = ssit.fsp_ode_solvers.OdeSuite(relTol, absTol);
         end
