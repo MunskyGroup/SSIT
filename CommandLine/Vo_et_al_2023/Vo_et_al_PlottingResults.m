@@ -1,3 +1,4 @@
+clear all
 addpath('../')
 TMP = SSIT(); % Load definition of the SSIT class for later use.
 clear TMP
@@ -5,7 +6,7 @@ clear TMP
 vars.doFit = 0;
 vars.modelVarsToFit = [1,2,3,4];
 vars.pdoTimes = [0,300];
-FN = 'FixedOnRate_PDOon0_300_Prior1x';
+FN = 'FinalFit';
 FittingFunctionsCoLocalized(1,[FN],vars)
 
 %%     Reformat for manuscript

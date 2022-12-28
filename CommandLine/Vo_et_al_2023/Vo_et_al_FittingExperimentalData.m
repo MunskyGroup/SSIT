@@ -1,4 +1,5 @@
-addpath('../')
+% Vo_et_al_FittingExperimentalData.m
+% addpath('../')
 TMP = SSIT(); % Load definition of the SSIT class for later use.
 clear TMP
 
@@ -11,8 +12,8 @@ FittingFunctionsCoLocalized(1,fileStr,vars)
 
 %% Step 2 - Fit the Data (fminsearch)
 vars.modelVarsToFit = [2:5]; % Variables allowed to change in fit.
-vars.iter = 400; % Number of iterations in fminsearch
-vars.display = 'final'; % Display type for fminsearch
+vars.iter = 100; % Number of iterations in fminsearch
+vars.display = 'iter'; % Display type for fminsearch
 switch vars.timeSet
     case '0'
         FittingFunctionsCoLocalized(2,fileStr,vars); %Fitting the data at t=0;
