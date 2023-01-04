@@ -6,7 +6,7 @@ clear TMP
 fileStr = 'Name_for_fitting_case'; % name for saving the fitting results
 vars.timeSet = [0,300]; %Data to fit: {'0','0_18','0_300','0_18_300'}
 vars.doFit = 1;
-%% Step 1 - Find the PDOs.
+%% Step 1 - Find the PDO parameters.
 vars.pdoTimes = [0,300]; % Times to use in fitting the PDO
 FittingFunctionsCoLocalized(1,fileStr,vars)
 
@@ -28,9 +28,12 @@ FittingFunctionsCoLocalized(32,fileStr,vars); % Fitting the data at chosen time 
 %% Step 3 - Compute Fisher Information Matrix (current experiment design)
 FittingFunctionsCoLocalized(3,fileStr,vars)
 %% Step 4 - Quantify Uncertainty (Met. Hast.)
-vars.nMH = 100;
+vars.nMH = 3000;
+vars.mhScaling = 0.6;
 FittingFunctionsCoLocalized(4,fileStr,vars)
-
+% It is often helpful to run a few short chains and adjust the proposal
+% scaling until you get an acceptance rate of about 0.2-0.4.  This will
+% lead to better mixing of the chain.
 %% Step 5 - Compute FIM for subsequent experiment designs
-vars.nFIMsamples = 2;
+vars.nFIMsamples = 4;
 FittingFunctionsCoLocalized(5,fileStr,vars)

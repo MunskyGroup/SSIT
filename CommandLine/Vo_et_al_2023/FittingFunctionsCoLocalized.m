@@ -32,7 +32,7 @@ sigLog10Prior = [1,1,.5,.5,.5]'*vars.priorScale;
 
 %%
 switch iStep
-    case 1
+    case 1 % Fit the PDO parameters to real and distorted data.
         try
             load(fileName,'lTrue2FISH','lTrue2MCP')
         catch
@@ -43,9 +43,9 @@ switch iStep
         DATA = importdata(vars.dataFile);        
         % 0 = MCP-GFP
         % 1 = smiFISH
-        J = find(strcmp(DATA.colheaders,'number_spots_type_1'));
-        K = find(strcmp(DATA.colheaders,'number_spots_type_0'));
-        I = find(strcmp(DATA.colheaders,'total_spots'));
+        J = find(strcmp(DATA.colheaders,'number_spots_type_1')); % Column with 'smiFISH' data
+        K = find(strcmp(DATA.colheaders,'number_spots_type_0')); % Column with 'MCP-GFP' data
+        I = find(strcmp(DATA.colheaders,'total_spots'));  % Column with 'true' data
         jT = find(strcmp(DATA.colheaders,'time'));
 
         jCells = DATA.data(:,jT)==vars.pdoTimes(1);
@@ -378,7 +378,7 @@ switch iStep
 
     case 3 % Compute FIM for best parameter fit
         load(fileName,'ModelZero','lTrue2FISH','lTrue2MCP')
-        for iPDO = 1:5
+        parfor iPDO = 1:5
             ModelZero{iPDO}.fspOptions.fspTol = 1e-6;  % Set FSP error tolerance.
             ModelZero{iPDO}.solutionScheme = 'FSP'; % Set solutions scheme to FSP
             [FSPsoln,ModelZero{iPDO}.fspOptions.bounds] = ModelZero{iPDO}.solve;  % Solve the problem
@@ -429,7 +429,7 @@ switch iStep
                 indsPars = ModelZero{iPDO}.fittingOptions.modelVarsToFit;
                 ModelZero{iPDO}.fittingOptions.logPrior = @(p)-(log10(p(:))-muLog10Prior(indsPars)).^2./(2*sigLog10Prior(indsPars).^2);
             end
-            for iPDO = 1:5
+            parfor iPDO = 1:5
                 % Add a small perturbation to log-FIM to make sure that it will
                 % be invertible.
                 if cond(FIMZeroLog{iPDO})>1e7
