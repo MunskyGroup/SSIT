@@ -6,7 +6,7 @@ clear TMP
 vars.doFit = 0;
 vars.modelVarsToFit = [1,2,3,4];
 vars.pdoTimes = [0,300];
-FN = 'Name_for_fitting_case';
+FN = 'FinalFit';
 FittingFunctionsCoLocalized(1,[FN],vars)
 
 %%     Reformat for manuscript
@@ -47,8 +47,7 @@ close all force
 vars.doFit = 0;
 vars.modelVarsToFit = [2:5];
 vars.timeSet = [0,18,300];
-FittingFunctionsCoLocalized(32,FN,vars)
-% FittingFunctionsCoLocalized(32,[FN,'_0_300'],vars)
+FittingFunctionsCoLocalized(32,[FN,'_0_300'],vars)
 close(4);close(3)
 
 clear h1 h2 h20 h10

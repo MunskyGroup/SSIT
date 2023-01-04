@@ -793,16 +793,15 @@ Model.solutionScheme = 'FSP';    % Set solutions scheme to FSP.
 Model.initialTime = -1e-6;
 Model.fspOptions.usePiecewiseFSP = false;  % Set FSP error tolerance.
 Model.fspOptions.initApproxSS = true;  % Set FSP to use SS approximation for IC.
+Model.fspOptions.fspTol = 0.00001;  % Set strict FSP error tolerance for current best parameters.
+[FSPsoln,Model.fspOptions.bounds] = Model.solve;  % Solve the FSP analysis
+Model = associateData(Model,vars,iPDO,lTrue2FISH,lTrue2MCP,FSPsoln);
 Model.tSpan = sort(unique([Model.initialTime,5,Model.dataSet.times(Model.fittingOptions.timesToFit)]));
 Model.fittingOptions.pdoVarsToFit = [];
 
 % Here we use the current parameters as our initial guess:
 % Here we call the search process with some fitting options.
 for ifit=1:3
-    % Refresh FSP Bounds and PDO for current parameter set.
-    Model.fspOptions.fspTol = 0.00001;  % Set strict FSP error tolerance for current best parameters.
-    [FSPsoln,Model.fspOptions.bounds] = Model.solve;  % Solve the FSP analysis
-    Model = associateData(Model,vars,iPDO,lTrue2FISH,lTrue2MCP,FSPsoln);
     Model.fspOptions.fspTol = inf;  % Set high FSP error tolerance during search
     
     x0 = [Model.parameters{Model.fittingOptions.modelVarsToFit,2}]';
@@ -832,17 +831,22 @@ for ifit=1:3
             ir = randi(size(chainResults.mhSamples,1));
         end
         x0 = exp(chainResults.mhSamples(ir,:));
-        [parsMH,mlikelihoodMH] = Model.maximizeLikelihood(x0,fitOptions)
+        [parsMH,mlikelihoodMH] = Model.maximizeLikelihood(x0,fitOptions);
         if mlikelihoodMH<=mlikelihood
-            pars = parsMH;
-            disp('improved fit found')
+            disp(['improved fit found for iPDO = ',num2str(iPDO)])
+            mlikelihood = mlikelihoodMH
+            pars = parsMH
         end
 
     catch
     end
 
-    % Update Model and Make Plots of Results
+    % Update Model Parameters
     Model.parameters(Model.fittingOptions.modelVarsToFit,2) = num2cell(pars);
+    % Refresh FSP Bounds and PDO for current parameter set.
+    Model.fspOptions.fspTol = 0.00001;  % Set strict FSP error tolerance for current best parameters.
+    [FSPsoln,Model.fspOptions.bounds] = Model.solve;  % Solve the FSP analysis
+    Model = associateData(Model,vars,iPDO,lTrue2FISH,lTrue2MCP,FSPsoln);
 end
 Model.fspOptions.fspTol = 0.001;  % Set FSP error tolerance.
 end
