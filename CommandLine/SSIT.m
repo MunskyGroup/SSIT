@@ -657,7 +657,6 @@ classdef SSIT
 
             if isempty(pars)
                 pars = [obj.parameters{indsParsToFit,2}];
-                
             end
 
             if ~isempty(obj.fittingOptions.logPrior)
