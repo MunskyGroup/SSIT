@@ -31,7 +31,7 @@ FittingFunctionsCoLocalized(3,fileStr,vars)
 vars.nMH = 3000;
 vars.mhScaling = 0.6;
 FittingFunctionsCoLocalized(4,fileStr,vars)
-% It is often helpful to run a few short chains and adjust the proposal
+% It is often helpful to run a few short chains (e.g., ~100) and adjust the proposal
 % scaling until you get an acceptance rate of about 0.2-0.4.  This will
 % lead to better mixing of the chain.
 %% Step 5 - Compute FIM for subsequent experiment designs

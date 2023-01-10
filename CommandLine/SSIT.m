@@ -272,13 +272,122 @@ classdef SSIT
             obj.stoichiometry =  [obj.stoichiometry,newStoichVector];
         end
 
-        function [pdo] = generatePDO(obj,pdoOptions,paramsPDO,fspSoln,variablePDO)
+        function [obj] = calibratePDO(obj,dataFileName,measuredSpecies,...
+                trueColumns,measuredColumns,pdoType,showPlot)
+            % This function calibrates the PDO to match some provided data
+            % for 'true' and 'observed' spot numbers.
+            arguments
+                obj
+                dataFileName
+                measuredSpecies
+                trueColumns
+                measuredColumns
+                pdoType = 'AffinePoiss'
+                showPlot = false
+            end
+
+            obj.pdoOptions.type = pdoType;
+            app.DistortionTypeDropDown.Value = obj.pdoOptions.type;
+            app.FIMTabOutputs.PDOProperties.props = obj.pdoOptions.props;
+
+            Tab = readtable(dataFileName);
+            dataNames = Tab.Properties.VariableNames;
+            DATA = table2cell(Tab);
+
+            lambdaTemplate = obj.findPdoError(pdoType);
+
+            lambda = [];
+            maxSize = zeros(1,length(obj.species));
+            options = optimset('display','none');
+            for i=1:length(obj.species)
+                if sum(strcmp(measuredSpecies,obj.species{i}))==1
+                    k = find(strcmp(measuredSpecies,obj.species{i}));
+                    jTrue = find(strcmp(dataNames,trueColumns{k}));
+                    jObsv = find(strcmp(dataNames,measuredColumns{k}));
+                    xTrue = [DATA{:,jTrue}]';
+                    xObsv = [DATA{:,jObsv}]';
+                    maxSize(i)=max(xTrue);
+                    objPDO = @(x)-obj.findPdoError(pdoType,x,xTrue,xObsv);
+                    lambdaNew = fminsearch(objPDO,lambdaTemplate,options);
+                    if showPlot
+                        [~,PDO] = obj.findPdoError(pdoType,lambdaNew,xTrue,xObsv);
+                        Z = max(-200,log10(PDO));
+                        figure
+                        contourf([0:size(PDO,2)-1],[0:size(PDO,1)-1],Z);
+                        colorbar
+                        hold on
+                        scatter(xTrue,xObsv,100,'sk','filled')
+                        set(gca,'fontsize',15)
+                        legend('PDO','Data')
+                    end
+                else
+                    maxSize(i)=0;
+                    lambdaNew = 0*lambdaTemplate;
+                end
+                lambda = [lambda,lambdaNew];
+            end
+            obj.pdoOptions.PDO = obj.generatePDO(obj.pdoOptions,lambda,[],[],maxSize);
+        end
+
+        function [logL,P] = findPdoError(obj,pdoType,lambda,True,Distorted)
+            % This function calculates the likelihood of observed data
+            % given true data and an assumed PDO model.
+            arguments
+                obj
+                pdoType = 'AffinePoiss';
+                lambda = [];
+                True = [];
+                Distorted =[];
+            end
+
+            if nargin<=2
+                switch pdoType
+                    case 'AffinePoiss'
+                        logL = [1 5 0.5];
+                end
+                return
+            end
+      
+            % Computes likelihood of observed data given the model of affine poisson
+            % extra spot counting and probability of measurmeent failure.
+            NmaxTrue = max(True);
+            NmaxObs = max(Distorted);
+
+            switch pdoType
+                case 'AffinePoiss'
+                    Np = ceil(max(NmaxObs,lambda(2)+lambda(3)*NmaxTrue));
+            end
+            P = zeros(Np+1,NmaxTrue+1);
+
+            for xi = 0:NmaxTrue
+                switch pdoType
+                    case 'AffinePoiss'
+                        P(1:Np+1,xi+1) = pdf('poiss',[0:Np]',max(lambda(1),lambda(2)+lambda(3)*xi));
+                end
+            end
+
+            % compute likelihood of observed given true
+            logP = max(log(P),-100);
+            logL = 0;
+            for i = 1:length(True)
+                logL = logL + logP(Distorted(i)+1,True(i)+1);
+            end
+
+            % apply constraints
+            switch pdoType
+                case 'AffinePoiss'
+                    logL = logL-1e4*(lambda(1)<0);
+            end
+        end  
+
+        function [pdo] = generatePDO(obj,pdoOptions,paramsPDO,fspSoln,variablePDO,maxSize)
             arguments
                 obj
                 pdoOptions
                 paramsPDO = []
                 fspSoln = []
                 variablePDO =[]
+                maxSize=[];
             end
             app.DistortionTypeDropDown.Value = pdoOptions.type;
             app.FIMTabOutputs.PDOProperties.props = pdoOptions.props;
@@ -293,7 +402,7 @@ classdef SSIT
                     indsObserved=[indsObserved,i];
                 end
             end
-            [~,pdo] = ssit.pdo.generatePDO(app,paramsPDO,fspSoln,indsObserved,variablePDO);
+            [~,pdo] = ssit.pdo.generatePDO(app,paramsPDO,fspSoln,indsObserved,variablePDO,maxSize);
         end
 
         %% Model Analysis Functions
@@ -505,6 +614,20 @@ classdef SSIT
         end
 
         function [Nc] = optimizeCellCounts(obj,fims,nCellsTotal,FIMMetric,Nc)
+           % This function optimizes the number of cells per time point
+           % according to the user-provide metric.  
+           % Allowable metric are:
+           %   'Determinant' - maximize the determinant of the FIM
+           %   'Smallest Eigenvalue' - maximize the smallest e.val of the
+           %       FIM
+           %   'Trace' - maximize the trace of the FIM
+           %   '[<i1>,<i2>,...]' - minimize the determinant of the inverse
+           %       FIM for the specified indices. All other parameters are
+           %       assumed to be free.
+           %   'TR[<i1>,<i2>,...]' - maximize the determinant of the  FIM 
+           %       for the specified indices. Only the parameters in
+           %       obj.fittingOptions.modelVarsToFit are assumed to be
+           %       free.
             arguments
                 obj
                 fims
@@ -520,10 +643,15 @@ classdef SSIT
                 case 'Trace'
                     met = @(A)-trace(A);
                 otherwise
-                    k = eval(FIMMetric);
-                    ek = zeros(length(k),length(fims{1})); 
-                    ek(1:length(k),k) = eye(length(k));
-                    met = @(A)det(ek*inv(A)*ek');
+                    if strcmp(FIMMetric(1:2),'TR')
+                        k = eval(FIMMetric(3:end));
+                        met = @(A)det(inv(A(k,k)));                        
+                    else  % all parameters are free.
+                        k = eval(FIMMetric);
+                        ek = zeros(length(k),length(fims{1}));
+                        ek(1:length(k),k) = eye(length(k));
+                        met = @(A)det(ek*inv(A)*ek');
+                    end
             end
             NT = size(fims(:,1),1);
             
@@ -620,6 +748,8 @@ classdef SSIT
             for i = 1:size(obj.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor,1)
                 obj.dataSet.nCells(i) = sum(double(obj.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor(i,:)),'all');
             end
+
+            obj.tSpan = unique([obj.initialTime,obj.dataSet.times]);            
 
         end
 
@@ -820,6 +950,7 @@ classdef SSIT
             if strcmp(obj.fittingOptions.timesToFit,'all')
                 times = obj.dataSet.times;
                 fitSolutions.ParEstFitTimesList = obj.dataSet.app.ParEstFitTimesList;
+                obj.fittingOptions.timesToFit = ones(1,length(obj.dataSet.app.ParEstFitTimesList.Value),'logical');
             else
                 times = obj.dataSet.times(obj.fittingOptions.timesToFit);
                 fitSolutions.ParEstFitTimesList = obj.dataSet.app.ParEstFitTimesList;
@@ -944,12 +1075,12 @@ end
         function [pars,likelihood,otherResults] = maximizeLikelihood(obj,parGuess,fitOptions,fitAlgorithm)
             arguments
                 obj
-                parGuess =[];
+                parGuess = [];
                 fitOptions = optimset('Display','iter','MaxIter',10);
                 fitAlgorithm = 'fminsearch';
             end
             if isempty(parGuess)
-                parGuess = [obj.parameters{:,2}]';
+                parGuess = [obj.parameters{obj.fittingOptions.modelVarsToFit,2}]';
             end
             obj.solutionScheme = 'FSP';   % Set solution scheme to FSP.
             [FSPsoln,bounds] = obj.solve;  % Solve the FSP analysis
@@ -979,6 +1110,7 @@ end
                     [x0,likelihood] = particleswarm(OBJps,length(x0),LB,UB,fitOptions);
 
                 case 'MetropolisHastings'
+
                     OBJmh = @(x)obj.computeLikelihood(exp(x),FSPsoln.stateSpace);  % We want to MAXIMIZE the likelihood.
                     x0 = log(parGuess);
                     allFitOptions.isPropDistSymmetric=true;
@@ -988,6 +1120,10 @@ end
                     allFitOptions.progress=true;
                     allFitOptions.proposalDistribution=@(x)x+0.01*randn(size(x));
                     allFitOptions.numChains = 1;
+                    allFitOptions.useFIMforMH = false;
+                    allFitOptions.CovFIMscale = 0.6;
+                    allFitOptions.suppressFSPExpansion = true;
+                    
                     j=1;
                     while exist(['TMPmh_',num2str(j),'.mat'],'file')
                         j=j+1;
@@ -996,6 +1132,26 @@ end
                     fNames = fieldnames(fitOptions);
                     for i=1:length(fNames)
                         allFitOptions.(fNames{i}) = fitOptions.(fNames{i});
+                    end
+
+                    if allFitOptions.useFIMforMetHast
+                        TMP = obj;
+                        TMP.solutionScheme = 'fspSens'; % Set solutions scheme to FSP Sensitivity
+                        [sensSoln] = TMP.solve;  % Solve the sensitivity problem
+
+                        fimResults = TMP.computeFIM(sensSoln.sens);
+                        [FIM] = TMP.evaluateExperiment(fimResults,TMP.dataSet.nCells);
+
+                        FIMlog = diag([TMP.parameters{obj.fittingOptions.modelVarsToFit,2}])*...
+                            FIM(obj.fittingOptions.modelVarsToFit,obj.fittingOptions.modelVarsToFit)*...
+                                diag([TMP.parameters{obj.fittingOptions.modelVarsToFit,2}]);
+                        covLog = FIMlog^-1;
+                        covLog = allFitOptions.CovFIMscale*(covLog+covLog)/2;
+                        allFitOptions.proposalDistribution=@(x)mvnrnd(x,covLog);                       
+                    end
+                    
+                    if allFitOptions.suppressFSPExpansion
+                        obj.fspOptions.fspTol = inf;
                     end
 
                     rng('shuffle')
@@ -1242,6 +1398,73 @@ end
             makeSeparatePlotOfData(fitSolution,smoothWindow,fignums)
         end
 
+        function plotMHResults(obj,mhResults,FIM)
+            arguments
+                obj
+                mhResults 
+                FIM =[];
+            end
+
+            if ~isempty(FIM)
+                pars = [obj.parameters{obj.fittingOptions.modelVarsToFit,2}];
+                parsLog = log10(pars);
+                
+                if ~iscell(FIM)
+                    FIM = diag(pars)*...
+                        FIM(obj.fittingOptions.modelVarsToFit,obj.fittingOptions.modelVarsToFit)*...
+                        diag(pars);
+                    covFIM{1} = FIM^(-1)/log(10)^2;
+                else
+                    for i=1:length(FIM)
+                        FIMi = diag(pars)*...
+                            FIM{i}(obj.fittingOptions.modelVarsToFit,obj.fittingOptions.modelVarsToFit)*...
+                            diag(pars);
+                        covFIM{i} = FIMi^(-1)/log(10)^2;
+                    end
+                end
+            end
+
+
+            figure
+            plot(mhResults.mhValue); 
+            xlabel('Iteration number');
+            ylabel('log-likelihood')
+            title('MH Convergence')
+
+            figure
+            ac = xcorr(mhResults.mhValue-mean(mhResults.mhValue),'normalized');
+            ac = ac(size(mhResults.mhValue,1):end);
+            plot(ac,'LineWidth',3); hold on
+            N = size(mhResults.mhValue,1);
+            tau = 1+2*sum((ac(2:N/100)));
+            Neff = N/tau;
+            xlabel('Lag');
+            ylabel('Auto-correlation')
+            title('MH Convergence')
+                       
+            figure
+            [valDoneSorted,J] = sort(mhResults.mhValue);
+            smplDone = mhResults.mhSamples(J,:);
+            Np = size(mhResults.mhSamples,2);
+
+            fimCols = {'k','c','b'};
+            
+            for i=1:Np-1
+                for j = i+1:Np
+                    subplot(Np-1,Np-1,(i-1)*(Np-1)+j-1);
+                    scatter(smplDone(:,j)/log(10),smplDone(:,i)/log(10),20,valDoneSorted,'filled'); hold on;
+                    if ~isempty(FIM)
+                        for iFIM = 1:length(covFIM)
+                            ssit.parest.ellipse(parsLog([j,i]),icdf('chi2',0.9,2)*covFIM{iFIM}([j,i],[j,i]),fimCols{iFIM},'linewidth',2)
+                        end
+                    end
+                    par0 = mean(smplDone(:,[j,i])/log(10));
+                    cov12 = cov(smplDone(:,j)/log(10),smplDone(:,i)/log(10));
+                    ssit.parest.ellipse(par0,icdf('chi2',0.9,2)*cov12,'m--','linewidth',2)
+                end
+            end
+        end
+
         function makeMleFimPlot(obj,MLE,FIM,indPars,CI,figNum,par0)
             arguments
                 obj
@@ -1253,7 +1476,7 @@ end
                 par0 = []
             end
             if isempty(figNum)                
-                figure
+                gcf;
             end
 
             CIp = round(CI*100);

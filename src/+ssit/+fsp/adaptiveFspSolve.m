@@ -146,7 +146,7 @@ end
 
 % Use Approximate steady state as initial distribution if requested.
 if initApproxSS
-    jac = Afsp.createSingleMatrix(-1);
+    jac = Afsp.createSingleMatrix(outputTimes(1));
     jac =jac(1:end-constraintCount,1:end-constraintCount);
     jac =jac+diag(sum(jac));
     try
