@@ -287,8 +287,8 @@ classdef SSIT
             end
 
             obj.pdoOptions.type = pdoType;
-            app.DistortionTypeDropDown.Value = obj.pdoOptions.type;
-            app.FIMTabOutputs.PDOProperties.props = obj.pdoOptions.props;
+%             app.DistortionTypeDropDown.Value = obj.pdoOptions.type;
+%             app.FIMTabOutputs.PDOProperties.props = obj.pdoOptions.props;
 
             Tab = readtable(dataFileName);
             dataNames = Tab.Properties.VariableNames;
