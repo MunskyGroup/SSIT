@@ -29,9 +29,9 @@
       % Load and Fit smFISH Data
       %   Model = Model.loadData('../ExampleData/DUSP1_Dex_100nM_Rep1_Rep2.csv',{'x3','RNA_nuc'});
       Model.fspOptions.fspTol = inf;
-      Model.fittingOptions.modelVarsToFit = 1:7;
+      Model.fittingOptions.modelVarsToFit = 1:8;
       fitOptions = optimset('Display','iter','MaxIter',400);
-      Model.parameters(1:7,2) = num2cell(Model.maximizeLikelihood([],fitOptions));
+      Model.parameters(1:8,2) = num2cell(Model.maximizeLikelihood([],fitOptions));
       Model.makeFitPlot;
   end
 
