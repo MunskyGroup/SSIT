@@ -8,16 +8,16 @@
   Model = SSIT;
   Model.species = {'x1';'x2';'x3'};  % GRnuc, geneOn, dusp1
   Model.initialCondition = [0;0;0];
-%   Model.propensityFunctions = {'(kcn0+kcn1*IDex)*(20-x1)';'knc*x1';...
-%       'kon*x1*(2-x2)';'koff*x2';'kr*x2';'gr*x3'};
+  %   Model.propensityFunctions = {'(kcn0+kcn1*IDex)*(20-x1)';'knc*x1';...
+  %       'kon*x1*(2-x2)';'koff*x2';'kr*x2';'gr*x3'};
   Model.propensityFunctions = {'(kcn0+kcn1*IDex)';'knc*x1';...
       'kon*x1*(2-x2)';'koff*x2';'kr*x2';'gr*x3'};
-  Model.stoichiometry = [ 1,-1, 0, 0, 0, 0;...
-                          0, 0, 1,-1, 0, 0;...
-                          0, 0, 0, 0, 1,-1];
   Model.inputExpressions = {'IDex','(t>0)*exp(-r1*t)'};
   Model.parameters = ({'koff',0.14;'kon',0.01;'kr',1;'gr',0.01;...
-                       'kcn0',0.01;'kcn1',0.1;'knc',1;'r1',0.01});
+      'kcn0',0.01;'kcn1',0.1;'knc',1;'r1',0.01});
+  Model.stoichiometry = [ 1,-1, 0, 0, 0, 0;...
+      0, 0, 1,-1, 0, 0;...
+      0, 0, 0, 0, 1,-1];
   Model.fspOptions.initApproxSS = true;
 
   %% Solve the model using the FSP
@@ -73,4 +73,24 @@
   bar([1:12]+0.45,AAA(2,:),.45,'c'); hold on
   set(gca,'xtick',[1:12]+0.225,'XTickLabel',Model.tSpan,'fontsize',15)
   legend('Intuitive Design','Optimized Design')
+
+%% Tryptolide Experiment
+ModelTrypt = Model;
+ModelTrypt.propensityFunctions(5) = {'kr*x2*Itrypt'};
+ModelTrypt.inputExpressions(2,:) = {'Itrypt','(t<tpt)'};
+tpt_array = 20:20:180;
+ModelTrypt.sensOptions.solutionMethod = 'finiteDifference';
+ModelTrypt.solutionScheme = 'fspSens';
+ModelTrypt.fspOptions.fspTol = 1e-6;
+for itpt = 1:length(tpt_array)
+  ModelTrypt.parameters(8,:) = {'tpt',tpt_array(itpt)};
+  [sensSoln,ModelTrypt.fspOptions.bounds] = ModelTrypt.solve;
+  ModelTrypt.pdoOptions.unobservedSpecies = {'x1'};
+  fims = ModelTrypt.computeFIM(sensSoln.sens);
+  FIM = ModelTrypt.evaluateExperiment(fims,ModelTrypt.dataSet.nCells);
+  fimChosenPars = FIM(ModelTrypt.fittingOptions.modelVarsToFit,...
+      ModelTrypt.fittingOptions.modelVarsToFit);
+  exptValue(itpt) = det(fimChosenPars);
+end
+
  
