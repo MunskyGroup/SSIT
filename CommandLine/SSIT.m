@@ -564,7 +564,7 @@ classdef SSIT
             indsUnobserved=[];
             indsObserved=[];
             for i=1:Nd
-                if ~isempty(obj.pdoOptions.unobservedSpecies)&&contains(obj.pdoOptions.unobservedSpecies,obj.species{i})
+                if ~isempty(obj.pdoOptions.unobservedSpecies)&&max(contains(obj.pdoOptions.unobservedSpecies,obj.species{i}))
                     indsUnobserved=[indsUnobserved,i];
                 else
                     indsObserved=[indsObserved,i];

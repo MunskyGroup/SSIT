@@ -80,8 +80,16 @@ ModelTrypt.propensityFunctions(5) = {'kr*x2*Itrypt'};
 ModelTrypt.inputExpressions(2,:) = {'Itrypt','(t<tpt)'};
 tpt_array = 20:20:180;
 ModelTrypt.sensOptions.solutionMethod = 'finiteDifference';
-ModelTrypt.solutionScheme = 'fspSens';
+
+ModelTrypt.solutionScheme = 'FSP';
 ModelTrypt.fspOptions.fspTol = 1e-6;
+ModelTrypt.parameters(9,:) = {'tpt',180};
+ModelTrypt.fspOptions.bounds=[];
+[fspSoln,ModelTrypt.fspOptions.bounds] = ModelTrypt.solve;
+ModelTrypt.fspOptions.bounds
+
+ModelTrypt.solutionScheme = 'fspSens';
+ModelTrypt.fspOptions.fspTol = 9e-5;
 ModelTrypt.pdoOptions.unobservedSpecies = {'x1','x2'};
 for itpt = 1:length(tpt_array)
   ModelTrypt.parameters(9,:) = {'tpt',tpt_array(itpt)};
