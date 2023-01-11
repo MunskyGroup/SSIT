@@ -145,6 +145,9 @@ classdef FspMatrixTerm
             if (size(prop_val, 2) > 1)
                 prop_val = prop_val';
             end
+            if size(prop_val,1)==1&&size(state_set.states,2)>1
+                prop_val = prop_val*ones(size(state_set.states,2),1);
+            end
 
             % Filling in values for MATLAB's sparse matrix format (which is coo)
             i = zeros(n_states*2, 1);

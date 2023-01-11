@@ -8,7 +8,9 @@
   Model = SSIT;
   Model.species = {'x1';'x2';'x3'};  % GRnuc, geneOn, dusp1
   Model.initialCondition = [0;0;0];
-  Model.propensityFunctions = {'(kcn0+kcn1*IDex)*(20-x1)';'knc*x1';...
+%   Model.propensityFunctions = {'(kcn0+kcn1*IDex)*(20-x1)';'knc*x1';...
+%       'kon*x1*(2-x2)';'koff*x2';'kr*x2';'gr*x3'};
+  Model.propensityFunctions = {'(kcn0+kcn1*IDex)';'knc*x1';...
       'kon*x1*(2-x2)';'koff*x2';'kr*x2';'gr*x3'};
   Model.stoichiometry = [ 1,-1, 0, 0, 0, 0;...
                           0, 0, 1,-1, 0, 0;...
@@ -19,15 +21,16 @@
   Model.fspOptions.initApproxSS = true;
 
   %% Solve the model using the FSP
+  Model = Model.loadData('../ExampleData/DUSP1_Dex_100nM_Rep1_Rep2.csv',{'x3','RNA_nuc'});
   for i=1:10
       Model.solutionScheme = 'FSP';
       Model.fspOptions.fspTol = 1e-4;
       Model.fspOptions.verbose = 0;
       Model.fspOptions.bounds=[];
       [fspSoln,Model.fspOptions.bounds] = Model.solve;
+      Model.fspOptions.bounds
 
       % Load and Fit smFISH Data
-      %   Model = Model.loadData('../ExampleData/DUSP1_Dex_100nM_Rep1_Rep2.csv',{'x3','RNA_nuc'});
       Model.fspOptions.fspTol = inf;
       Model.fittingOptions.modelVarsToFit = 1:8;
       fitOptions = optimset('Display','iter','MaxIter',400);
