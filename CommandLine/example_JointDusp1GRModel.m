@@ -57,7 +57,7 @@
   [sensSoln,Model.fspOptions.bounds] = Model.solve;
 
 %% Solve for Fisher Information Matrix at all Time Points
-  Model.pdoOptions.unobservedSpecies = {'x1'};
+  Model.pdoOptions.unobservedSpecies = {'x1','x2'};
   fims = Model.computeFIM(sensSoln.sens);
   FIM = Model.evaluateExperiment(fims,Model.dataSet.nCells);
   Model.plotMHResults(mhResults,FIM);
@@ -82,15 +82,15 @@ tpt_array = 20:20:180;
 ModelTrypt.sensOptions.solutionMethod = 'finiteDifference';
 ModelTrypt.solutionScheme = 'fspSens';
 ModelTrypt.fspOptions.fspTol = 1e-6;
+ModelTrypt.pdoOptions.unobservedSpecies = {'x1','x2'};
 for itpt = 1:length(tpt_array)
-  ModelTrypt.parameters(8,:) = {'tpt',tpt_array(itpt)};
-  [sensSoln,ModelTrypt.fspOptions.bounds] = ModelTrypt.solve;
-  ModelTrypt.pdoOptions.unobservedSpecies = {'x1'};
+  ModelTrypt.parameters(9,:) = {'tpt',tpt_array(itpt)};
+  [sensSoln,ModelTrypt.fspOptions.bounds] = ModelTrypt.solve(fspSoln.stateSpace);
   fims = ModelTrypt.computeFIM(sensSoln.sens);
   FIM = ModelTrypt.evaluateExperiment(fims,ModelTrypt.dataSet.nCells);
   fimChosenPars = FIM(ModelTrypt.fittingOptions.modelVarsToFit,...
       ModelTrypt.fittingOptions.modelVarsToFit);
-  exptValue(itpt) = det(fimChosenPars);
+  exptValue(itpt) = det(fimChosenPars)
 end
 
  
