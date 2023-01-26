@@ -273,7 +273,7 @@ classdef SSIT
         end
 
         function [obj] = calibratePDO(obj,dataFileName,measuredSpecies,...
-                trueColumns,measuredColumns,pdoType,showPlot)
+                trueColumns,measuredColumns,pdoType,showPlot,parGuess)
             % This function calibrates the PDO to match some provided data
             % for 'true' and 'observed' spot numbers.
             arguments
@@ -284,6 +284,7 @@ classdef SSIT
                 measuredColumns
                 pdoType = 'AffinePoiss'
                 showPlot = false
+                parGuess=[];
             end
 
             obj.pdoOptions.type = pdoType;
@@ -294,11 +295,15 @@ classdef SSIT
             dataNames = Tab.Properties.VariableNames;
             DATA = table2cell(Tab);
 
-            lambdaTemplate = obj.findPdoError(pdoType);
+            if isempty(parGuess)
+                lambdaTemplate = obj.findPdoError(pdoType);
+            else
+                lambdaTemplate=parGuess;
+            end
 
             lambda = [];
             maxSize = zeros(1,length(obj.species));
-            options = optimset('display','none');
+            options = optimset('display','iter');
             for i=1:length(obj.species)
                 if sum(strcmp(measuredSpecies,obj.species{i}))==1
                     k = find(strcmp(measuredSpecies,obj.species{i}));
@@ -326,6 +331,7 @@ classdef SSIT
                 end
                 lambda = [lambda,lambdaNew];
             end
+            obj.pdoOptions.props.PDOpars = lambda;
             obj.pdoOptions.PDO = obj.generatePDO(obj.pdoOptions,lambda,[],[],maxSize);
         end
 
@@ -1447,7 +1453,7 @@ end
             smplDone = mhResults.mhSamples(J,:);
             Np = size(mhResults.mhSamples,2);
 
-            fimCols = {'k','c','b'};
+            fimCols = {'k','c','b','g','r'};
             
             for i=1:Np-1
                 for j = i+1:Np

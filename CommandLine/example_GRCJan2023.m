@@ -25,20 +25,18 @@
   Model.fspOptions.fspTol = inf;
   Model.fittingOptions.modelVarsToFit = 1:7;
   fitOptions = optimset('Display','iter','MaxIter',4000);
-  Model.parameters(1:7,2) = num2cell(Model.maximizeLikelihood([],fitOptions));
+  %%
+  Model.parameters(Model.fittingOptions.modelVarsToFit,2) = num2cell(Model.maximizeLikelihood([],fitOptions));
   Model.makeFitPlot;
 
 %% Metropolis Hastings to Quantify Parameter Uncertainty
   Model.fittingOptions.modelVarsToFit = 1:4;
+  Model.sensOptions.solutionMethod = 'finiteDifference';
   MHOptions = struct('numberOfSamples',1000,'burnin',500,'thin',3,...
                    'useFIMforMetHast',true,'suppressFSPExpansion',true);
   [~,~,mhResults] = Model.maximizeLikelihood([Model.parameters{1:4,2}]',...
                    MHOptions,'MetropolisHastings');
   Model.plotMHResults(mhResults);
-
-%% Calibrate PDO from Multi-Modal Experimental Data
-  ModelPDO = Model.calibratePDO('pdoCalibrationData.csv',...
-    {'x2'},{'nTotal'},{'nType1'},'AffinePoiss',true);
 
 %% Calculate CME Sensitivity to Parameter Variations
   Model.sensOptions.solutionMethod = 'finiteDifference';
@@ -57,10 +55,40 @@
   nCellsOpt = Model.optimizeCellCounts(fims,nTotal,'TR[1:4]');
   fimOpt = Model.evaluateExperiment(fims,nCellsOpt);
   Model.plotMHResults(mhResults,{FIM,fimOpt});
+%   
+%   nCellsSimp = Model.dataSet.nCells;
+%   nCellsSimp([2,3,5,7:11])=0;
+%   fimSimple = Model.evaluateExperiment(fims,nCellsSimp);
+%   Model.plotMHResults(mhResults,{FIM,fimOpt,fimSimple});
 %%
+  close all
+  AAA = [Model.dataSet.nCells;nCellsOpt;nCellsSimp]
+
   close all
   bar([1:12],AAA(1,:),.45,'k'); hold on
   bar([1:12]+0.45,AAA(2,:),.45,'c'); hold on
   set(gca,'xtick',[1:12]+0.225,'XTickLabel',Model.tSpan,'fontsize',15)
   legend('Intuitive Design','Optimized Design')
  
+%% Calibrate PDO from Multi-Modal Experimental Data
+  ModelPDOSpots = Model.calibratePDO('pdoCalibrationData.csv',...
+    {'x2'},{'nTotal'},{'nSpots0'},'AffinePoiss',true);
+
+  ModelPDOIntens = Model.calibratePDO('pdoCalibrationData.csv',...
+    {'x2'},{'nTotal'},{'intens1'},'AffinePoiss',true,[1,1000,1]);
+
+%%
+fimsPDOSpot = ModelPDOSpots.computeFIM(sensSoln.sens);
+fimPDOSpots = ModelPDOSpots.evaluateExperiment(fimsPDOSpot,nCellsOpt);
+Model.plotMHResults(mhResults,{FIM,fimOpt,fimPDOSpots});
+
+fimsPDOIntens = ModelPDOIntens.computeFIM(sensSoln.sens);
+fimPDOIntens = ModelPDOIntens.evaluateExperiment(fimsPDOIntens,nCellsOpt);
+Model.plotMHResults(mhResults,{FIM,fimOpt,fimPDOSpots,fimPDOIntens});
+
+fimsPDOIntens = ModelPDOIntens.computeFIM(sensSoln.sens);
+fimPDOIntens2x = ModelPDOIntens.evaluateExperiment(fimsPDOIntens,2.218*nCellsOpt);
+Model.plotMHResults(mhResults,{FIM,fimOpt,fimPDOSpots,fimPDOIntens,fimPDOIntens2x});
+
+
+
