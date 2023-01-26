@@ -33,7 +33,7 @@
   Model.fittingOptions.modelVarsToFit = 1:4;
   Model.sensOptions.solutionMethod = 'finiteDifference';
   MHOptions = struct('numberOfSamples',1000,'burnin',500,'thin',3,...
-                   'useFIMforMetHast',true,'suppressFSPExpansion',true);
+                   'useFIMforMetHast',true,'suppressFSPExpansion',true,'CovFIMscale',.6);
   [~,~,mhResults] = Model.maximizeLikelihood([Model.parameters{1:4,2}]',...
                    MHOptions,'MetropolisHastings');
   Model.plotMHResults(mhResults);
