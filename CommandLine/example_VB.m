@@ -250,3 +250,24 @@ ModelSim = ModelSim.loadData('HogSSAData.csv',{'x3','exp1_s3'});
 [FSPsoln,ModelSim.fspOptions.bounds] = ModelSim.solve;  % Solve the FSP analysis
 ModelSim.makeFitPlot
 
+%% Optimize an experiment
+Model.parameters = ({'k21',30;'kr',100;'g',0.005; ...
+    'a0',0.01;'a1',1;'r1',0.4;'r2',.1});
+cellCounts = Model.dataSet.nCells;
+nCellsTotal = sum(cellCounts);
+% Compute FIM with all parameters free to vary
+Model.fittingOptions.pdoVarsToFit = [];
+Model.tSpan = [0:1:60]; 
+Model.solutionScheme = 'fspSens'; % Set solutions scheme to FSP Sensitivity
+Model.sensOptions.solutionMethod = 'finiteDifference';
+[sensSoln] = Model.solve;  % Solve the sensitivity problem
+
+fimResults = Model.computeFIM(sensSoln.sens); 
+% FIMintuit = Model.evaluateExperiment(fimResults,cellCounts);
+% Optimize cell counts for different objectives
+nCellsOptDetA = Model.optimizeCellCounts(fimResults,nCellsTotal,'Determinant');
+nCellsOptDetB = Model.optimizeCellCounts(fimResults,nCellsTotal,'[1:3]');
+FIMOptA = Model.evaluateExperiment(fimResults,nCellsOptDetA);
+FIMOptB = Model.evaluateExperiment(fimResults,nCellsOptDetB);
+[diag(FIMOptA^-1),diag(FIMOptB^-1)]
+

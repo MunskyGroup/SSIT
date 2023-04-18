@@ -13,6 +13,7 @@ classdef SSIT
         pdoOptions = struct('unobservedSpecies',[],'PDO',[]); % Options for FIM analyses
         fittingOptions = struct('modelVarsToFit','all','pdoVarsToFit',[],'timesToFit','all','logPrior',[])
         initialCondition = [0]; % Initial condition for species [x1;x2;...]
+        initialProbs = 1; % Probability mass of states given in initial condition.
         initialTime = 0;
         tSpan = linspace(0,10,21); % Times at which to find solutions
         solutionScheme = 'FSP' % Chosen solutuon scheme ('FSP','SSA')
@@ -89,8 +90,10 @@ classdef SSIT
             nSpecies = length(obj.species);
             Data = cell(nSpecies*2,3);
             for i = 1:nSpecies
-                Data(i,:) = {['-',obj.species{i}],'<',0};
-                Data(nSpecies+i,:) = {obj.species{i},'<',1};
+%                 Data(i,:) = {['-',obj.species{i}],'<',0};
+%                 Data(nSpecies+i,:) = {obj.species{i},'<',1};
+                Data(i,:) = {['-x',num2str(i)],'<',0};
+                Data(nSpecies+i,:) = {['x',num2str(i)],'<',1};
             end
             for i = 1:length(obj.customConstraintFuns)
                 Data(2*nSpecies+i,:) = {obj.customConstraintFuns{i},'<',1};
@@ -402,7 +405,7 @@ classdef SSIT
             indsUnobserved=[];
             indsObserved=[];
             for i=1:Nd
-                if ~isempty(obj.pdoOptions.unobservedSpecies)&&contains(obj.pdoOptions.unobservedSpecies,obj.species{i})
+                if ~isempty(obj.pdoOptions.unobservedSpecies)&&max(contains(obj.pdoOptions.unobservedSpecies,obj.species{i}))
                     indsUnobserved=[indsUnobserved,i];
                 else
                     indsObserved=[indsObserved,i];
@@ -445,7 +448,7 @@ classdef SSIT
 
                     [Solution.fsp, bConstraints,Solution.stateSpace] = ssit.fsp.adaptiveFspSolve(obj.tSpan,...
                         obj.initialCondition,...
-                        1.0, ...
+                        obj.initialProbs,...
                         obj.stoichiometry, ...
                         obj.propensities, ...
                         obj.fspOptions.fspTol, ...
@@ -456,7 +459,8 @@ classdef SSIT
                         obj.fspOptions.fspIntegratorAbsTol, ...
                         obj.fspOptions.odeSolver,stateSpace,...
                         obj.fspOptions.usePiecewiseFSP,...
-                        obj.fspOptions.initApproxSS);
+                        obj.fspOptions.initApproxSS,...
+                        obj.species);
                 case 'SSA'
                     Solution.T_array = obj.tSpan;
                     Nt = length(Solution.T_array);
@@ -540,7 +544,8 @@ classdef SSIT
                         obj.sensOptions.solutionMethod,...
                         app,stateSpace,...
                         obj.fspOptions.usePiecewiseFSP,...
-                        obj.fspOptions.initApproxSS);
+                        obj.fspOptions.initApproxSS,...
+                        obj.species);
                     %                     app.SensFspTabOutputs.solutions = Solution.sens;
                     %                     app.SensPrintTimesEditField.Value = mat2str(obj.tSpan);
                     %                     Solution.plotable = exportSensResults(app);
@@ -950,7 +955,12 @@ classdef SSIT
 %                     end
 %                 end
 %             end
+
             P = max(P,1e-10);
+            if ~isreal(P)
+                P = real(P);
+                disp('removed imagionary elements of FSP solution')
+            end
 
             %% Data times for fitting
             if strcmp(obj.fittingOptions.timesToFit,'all')
@@ -987,6 +997,7 @@ classdef SSIT
                 dlogL_dPar = zeros(parCount,length(times));
             end
             LogLk = zeros(1,length(times));
+            KS = zeros(1,length(times));
             numCells = zeros(1,length(times));
             perfectMod = zeros(1,length(times));
             perfectModSmoothed = zeros(1,length(times));
@@ -1003,6 +1014,7 @@ classdef SSIT
                 H = sptensor([ones(length(SpVals),1),SpInds(:,2:end)],SpVals,[1,NDat(2:end)]);
                 H = double(H);
                 Pt = P(j,:,:,:,:,:,:,:,:,:);
+                Pt = Pt/max(1,sum(Pt,'all'));
                 LogLk(i) = sum(H(:).*log(Pt(:)));
                 numCells(i) = sum(H(:));
                 if computeSensitivity&&nargout>=2
@@ -1013,6 +1025,7 @@ classdef SSIT
                 end
                 if nargout>=3
                     Q = H(:)/sum(H(:));
+                    KS(i) = max(abs(cumsum(Q(:))-cumsum(Pt(:))));
                     smQ = smooth(Q);
                     logQ = log(Q); logQ(H==0)=1;
                     logSmQ = log(smQ); logSmQ(H==0)=1;
@@ -1024,11 +1037,16 @@ classdef SSIT
                 end
             end
             logL = sum(LogLk) + logPrior;
+            if imag(logL)~=0
+                disp('Imaginary likelihood set to -inf.')
+                logL = -inf;
+            end
             if nargout>=3
                 fitSolutions.DataLoadingAndFittingTabOutputs.V_LogLk = LogLk;
                 fitSolutions.DataLoadingAndFittingTabOutputs.numCells = numCells;
                 fitSolutions.DataLoadingAndFittingTabOutputs.perfectMod = perfectMod;
                 fitSolutions.DataLoadingAndFittingTabOutputs.perfectModSmoothed = perfectModSmoothed;
+                fitSolutions.DataLoadingAndFittingTabOutputs.V_KS = KS;
             end
             if computeSensitivity&&nargout>=2
                 gradient = sum(dlogL_dPar,2); % need to also add gradient wrt prior!!
@@ -1152,7 +1170,7 @@ end
                             FIM(obj.fittingOptions.modelVarsToFit,obj.fittingOptions.modelVarsToFit)*...
                                 diag([TMP.parameters{obj.fittingOptions.modelVarsToFit,2}]);
                         covLog = FIMlog^-1;
-                        covLog = allFitOptions.CovFIMscale*(covLog+covLog)/2;
+                        covLog = allFitOptions.CovFIMscale*(covLog+covLog')/2;
                         allFitOptions.proposalDistribution=@(x)mvnrnd(x,covLog);                       
                     end
                     
