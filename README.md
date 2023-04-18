@@ -30,8 +30,6 @@ For all basic functionalities:
 - Parallel Computing Toolbox.
 - [Tensor Toolbox for MATLAB](https://www.tensortoolbox.org/).  You will need to make sure to add the TTB to the Matlab path before running the SSIT.
 
-Optionally, Sundial's CVODE and CVODES can be used to solve the reduced CME (optional). This requires that [Sundials](https://computing.llnl.gov/projects/sundials) library is installed and is in the computer's search path.
-
 # Installation
 Clone this package to a local folder on your computer. Then add the path to that folder (with subfolders) into MATLAB's search path. You can then call all functions from MATLAB. 
 
