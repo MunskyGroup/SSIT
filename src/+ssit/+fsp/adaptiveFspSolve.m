@@ -7,7 +7,7 @@ function [solutions, constraintBoundsFinal,stateSpace] = adaptiveFspSolve(...
     constraintFunctions, initialConstraintBounds,...
     verbose,...
     relTol,absTol,odeSolver,...
-    stateSpace,usePiecewiseFSP,initApproxSS)
+    stateSpace,usePiecewiseFSP,initApproxSS,varNames)
 % Approximate the transient solution of the chemical master equation using
 % an adaptively expanding finite state projection (FSP).
 %
@@ -108,6 +108,7 @@ arguments
     stateSpace =[];
     usePiecewiseFSP=false;
     initApproxSS=false;
+    varNames=[];
 end
 
 maxOutputTime = max(outputTimes);
@@ -122,7 +123,7 @@ constraintBoundsFinal = initialConstraintBounds;
 solutions = cell(outputTimeCount, 1);
 
 % First guess of FSP should include the initial condition.
-constraintBoundsFinal = max(constraintBoundsFinal,constraintFunctions(initStates));
+constraintBoundsFinal = max([constraintBoundsFinal,constraintFunctions(initStates)],[],2);
 
 % Set up the initial state subset
 if isempty(stateSpace)
@@ -132,7 +133,7 @@ end
 
 % Generate the FSP matrix
 stateCount = stateSpace.getNumStates();
-Afsp = ssit.FspMatrix(propensities, stateSpace, constraintCount);
+Afsp = ssit.FspMatrix(propensities, stateSpace, constraintCount, varNames);
 
 % Check that the model propensities are time-invariant
 isTimeInvariant = true;
@@ -265,7 +266,7 @@ while (tNow < maxOutputTime)
             fspStopStatus.error_bound);
         constraintBoundsFinal(constraintsToRelax) = 1.2*constraintBoundsFinal(constraintsToRelax);
 
-        if min(constraintsToRelax)<=2
+        if min(constraintsToRelax)<=size(stoichMatrix,1)
             stateSpace = ssit.FiniteStateSet(initStates, stoichMatrix);
             stateSpace = stateSpace.expand(constraintFunctions, constraintBoundsFinal);
             warning('Regenerate State Space')
@@ -279,11 +280,11 @@ while (tNow < maxOutputTime)
         end
 
         try
-            Afsp = Afsp.regenerate(propensities, stateSpace, constraintCount);
+            Afsp = Afsp.regenerate(propensities, stateSpace, constraintCount,varNames);
         catch
             stateSpace = ssit.FiniteStateSet(initStates, stoichMatrix);
             stateSpace = stateSpace.expand(constraintFunctions, constraintBoundsFinal);
-            Afsp = Afsp.regenerate(propensities, stateSpace, constraintCount);
+            Afsp = Afsp.regenerate(propensities, stateSpace, constraintCount,varNames);
         end
 
         stateCountOld = stateCount;

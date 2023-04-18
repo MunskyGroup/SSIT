@@ -83,36 +83,58 @@ classdef Propensity
 %                         disp('trying with piecewise funtions');
                         TMP = func2str(obj.jointDependentFactor);
                         TMP = strrep(TMP,'t','tt');
+                        TMP = strrep(TMP,'omittnan','omitnan');                        
                         TMP = strrep(TMP,'x(1,:)','x1');
                         TMP = strrep(TMP,'x(2,:)','x2');
                         TMP = strrep(TMP,'x(3,:)','x3');
                         syms tt
                         syms x1 x2 x3 positive
                         eval(['Q=',TMP(8:end),';'])
-                        y = eval(subs(Q,{tt,x1,x2,x3},{t*ones(1,size(x,2)),x(1,:),x(2,:),x(3,:)}));
+                        switch size(x,1)-1
+                            case 1
+                                y = eval(subs(Q,{tt,x1},{t*ones(1,size(x,2)),x(1,:)}));
+                            case 2
+                                y = eval(subs(Q,{tt,x1,x2},{t*ones(1,size(x,2)),x(1,:),x(2,:)}));
+                            case 3
+                                y = eval(subs(Q,{tt,x1,x2,x3},{t*ones(1,size(x,2)),x(1,:),x(2,:),x(3,:)}));
+                        end
                     end
                     
                 end
             end
         end
 
-        function y = evaluateStateFactor(obj, x)
+        function y = evaluateStateFactor(obj, x, varNames)
+            arguments
+                obj
+                x
+                varNames=[];
+            end
+            if isempty(varNames)
+                varNames={'x1','x2','x3','x4'};
+            end
             if (size(x, 1) ~= size(obj.stoichVector, 1))
                 error('Propensity.evalAt : input state dimension is not consistent with the stoichiometry vector in the object''s record');
             end
-             try
+            try
                 y = obj.stateDependentFactor(x);
             catch
+                % This section was very inefficient.  I sped it up for one
+                % case, but need to check that that it keeps working for
+                % others.
                 TMP = func2str(obj.stateDependentFactor);
                 TMP = strrep(TMP,'t','tt');
-                TMP = strrep(TMP,'x(1,:)','x1');
-                TMP = strrep(TMP,'x(2,:)','x2');
-                TMP = strrep(TMP,'x(3,:)','x3');
-                TMP = strrep(TMP,'x(4,:)','x4');
-                syms tt
-                syms x1 x2 x3 x4 positive
-                eval(['Q=',TMP(5:end),';'])
-                y = eval(subs(Q,{x1,x2,x3,x4},{x(1,:),x(2,:),x(3,:),x(4,:)}));
+%                 varVecs = cell(1,length(varNames));
+                for i=1:length(varNames)
+                    eval([varNames{i},'=x(i,:);']);
+                    TMP = strrep(TMP,['x(',num2str(i),',:)'],varNames{i});
+%                     varVecs{i} = x(i,:);
+                end
+                eval(['y=',TMP(5:end),';'])
+%                 syms tt
+%                 syms(varNames,'positive')
+%                 eval(['Q=',TMP(5:end),';'])
+%                 y2 = eval(subs(Q,varNames',varVecs));
             end
   
         end

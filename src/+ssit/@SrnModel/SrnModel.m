@@ -257,6 +257,13 @@ classdef (HandleCompatible) SrnModel
                 if ~isempty(parDict)
                     parameterCount = length(parDict.keys);
                     parameterNames = parDict.keys;
+
+                    for ipar = length(parameterNames):-1:1
+                        lns(ipar) = length(parameterNames{ipar});
+                    end
+                    [~,Jsort] = sort(lns,'descend');
+                    parameterNames = parameterNames(Jsort);
+
                     % Substitute the parameters for the values in the propensity
                     % expression
                     if ~hasLogical

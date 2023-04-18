@@ -301,6 +301,62 @@ switch app.DistortionTypeDropDown.Value
             end
         end
 
+    case 'DiscretizedNormal'
+        for ispec = 1:nSpecies
+            if maxSize(ispec)>1
+                lambda = app.FIMTabOutputs.PDOProperties.props.PDOpars((ispec-1)*4+[1:4]);
+                for j = maxSize(ispec):-1:1
+                    mu = lambda(1)+lambda(3)*(j-1);
+                    sig = lambda(2)+lambda(4)*(j-1)+1e-5;
+                    if isfield(app.FIMTabOutputs.PDOProperties.props,'pdoOutputRange')
+                        Np = app.FIMTabOutputs.PDOProperties.props.pdoOutputRange(ispec);
+                    else
+                        Np = ceil(mu+10*sqrt(sig))+50;
+                    end
+                    P2 = cdf("Normal",[0:Np]+.5,mu,sqrt(sig))-cdf("Normal",[0:Np]-.5,mu,sqrt(sig));
+%                     P2 = pdf('normal',[0:Np],mu,sqrt(sig2));
+                    conditionalPmfs{ispec}(1:Np+1,j) = P2;
+                end
+            else
+                conditionalPmfs{ispec} = 1;
+            end
+        end
+
+    case 'GaussSpurrious'
+        NFail = 10;
+        for ispec = 1:nSpecies
+            if maxSize(ispec)>1
+                lambda = app.FIMTabOutputs.PDOProperties.props.PDOpars((ispec-1)*7+[1:7]);
+                for j = maxSize(ispec):-1:1
+                    mu = lambda(1)+lambda(3)*(j-1);
+                    sig = sqrt(lambda(2)+lambda(4)*(j-1));
+                    muFail = lambda(6);
+                    sigFail = sqrt(lambda(7));
+                    if isfield(app.FIMTabOutputs.PDOProperties.props,'pdoOutputRange')
+                        Np = app.FIMTabOutputs.PDOProperties.props.pdoOutputRange(ispec);
+                    else
+                        Np = ceil(mu+10*sqrt(sig))+50;
+                    end
+                    P = zeros(Np+1,1);
+                    edges = [0:max(9,Np)];
+                    if j<=NFail
+                        P(1) = (1-lambda(5))*(cdf('norm',.5,mu,sig))+...
+                            lambda(5)*(cdf('norm',.5,muFail,sigFail));
+                        P(2:9) = (1-lambda(5))*(cdf('norm',edges(2:9)+.5,mu,sig)-cdf('norm',edges(2:9)-.5,mu,sig))+...
+                            lambda(5)*(cdf('norm',edges(2:9)+.5,muFail,sigFail)-cdf('norm',edges(2:9)-.5,muFail,sigFail));
+                        P(10:end) = (1-lambda(5))*pdf('norm',edges(10:end),mu,sig)+...
+                            lambda(5)*pdf('norm',edges(10:end),muFail,sigFail);
+                    else
+                        P(1) = cdf('norm',.5,mu,sig);
+                        P(2:9) = cdf('norm',edges(2:9)+.5,mu,sig)-cdf('norm',edges(2:9)-.5,mu,sig);
+                        P(10:end) = pdf('norm',edges(10:end),mu,sig);
+                    end
+                    conditionalPmfs{ispec}(1:Np+1,j) = P(1:Np+1);
+                end
+            else
+                conditionalPmfs{ispec} = 1;
+            end
+        end
 
     case 'AffinePoiss'
         for ispec = 1:nSpecies
@@ -309,7 +365,11 @@ switch app.DistortionTypeDropDown.Value
                     lamb = max(app.FIMTabOutputs.PDOProperties.props.PDOpars((ispec-1)*3+1),...
                         app.FIMTabOutputs.PDOProperties.props.PDOpars((ispec-1)*3+2)+...
                         app.FIMTabOutputs.PDOProperties.props.PDOpars((ispec-1)*3+3)*(j-1));
-                    Np = ceil(lamb+10*sqrt(lamb))+50;
+                    if isfield(app.FIMTabOutputs.PDOProperties.props,'pdoOutputRange')
+                        Np = app.FIMTabOutputs.PDOProperties.props.pdoOutputRange(ispec);
+                    else
+                        Np = ceil(lamb+10*sqrt(lamb))+50;
+                    end
                     P2 = pdf('poiss',[0:Np],lamb);
                     conditionalPmfs{ispec}(1:Np+1,j) = P2;
                 end

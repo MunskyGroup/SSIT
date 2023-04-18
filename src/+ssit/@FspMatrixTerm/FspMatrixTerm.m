@@ -31,7 +31,13 @@ classdef FspMatrixTerm
     end
 
     methods
-        function obj = FspMatrixTerm(propensity, stateSet, numConstraints)
+        function obj = FspMatrixTerm(propensity, stateSet, numConstraints, varNames)
+            arguments
+                propensity
+                stateSet
+                numConstraints
+                varNames=[]
+            end
             % Construct a `FspMatrixTerm` object from a propensity
             % function, a FSP-truncated state space, and number of
             % constraints..
@@ -53,7 +59,7 @@ classdef FspMatrixTerm
             obj.numConstraints = numConstraints;
 
             if ((~obj.isTimeDependent) || (obj.isFactorizable))
-                obj.matrix = ssit.FspMatrixTerm.GenerateMatrixTermTimeInvariant(propensity, stateSet, numConstraints); % The matrix data is generated only once
+                obj.matrix = ssit.FspMatrixTerm.GenerateMatrixTermTimeInvariant(propensity, stateSet, numConstraints, varNames); % The matrix data is generated only once
             else
                 obj.matrix = stateSet; % The data has to be generated with every matrix-vector multiplication
             end
@@ -78,14 +84,26 @@ classdef FspMatrixTerm
     end
 
     methods (Static)
-        function A_fsp = GenerateMatrixTermTimeInvariant(propensity, state_set, numConstraints)
-
+        function A_fsp = GenerateMatrixTermTimeInvariant(propensity, state_set, numConstraints, varNames)
+            arguments
+                propensity
+                state_set
+                numConstraints =[];
+                varNames = [];
+            end
             numConstraints = state_set.numConstraints;
             n_states = size(state_set.states, 2);
             reachableIndices = state_set.reachableIndices(:, propensity.reactionIndex);
 
-            prop_val = propensity.evaluateStateFactor(state_set.states)...
+            prop_val = propensity.evaluateStateFactor(state_set.states,varNames)...
                 +0*zeros(1,size(state_set.states,2));
+            
+            if min(prop_val)<0
+                warning('PropFun:negProp','Negative propensity function detected');
+                warning('OFF','PropFun:negProp')
+                prop_val(prop_val<0) = 0;
+            end
+
             if (size(prop_val, 2) > 1)
                 prop_val = prop_val';
             end

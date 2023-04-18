@@ -7,7 +7,23 @@ function [outputs,constraintBounds] = adaptiveFspFiniteDiff(...
     initialProbabilities,...
     fspTol,...
     constraintFunctions, constraintBounds,...
-    verbose,usePiecewiseFSP,initApproxSS)
+    verbose,usePiecewiseFSP,initApproxSS,stateSpace,varNames)
+arguments
+    srnModel
+    parameters
+    perturbationFactor
+    outputTimes
+    initialStates
+    initialProbabilities
+    fspTol
+    constraintFunctions
+    constraintBounds
+    verbose=false;
+    usePiecewiseFSP=false;
+    initApproxSS=false;
+    stateSpace=[];
+    varNames=[];
+end
 %
 % Approximate the partial derivatives of the transient solution of the 
 % chemical master equation using finite difference. 
@@ -61,12 +77,16 @@ function [outputs,constraintBounds] = adaptiveFspFiniteDiff(...
 stoichMatrix = srnModel.stoichiometry;
 
 % Obtain CME solution at paramter_values
-propensities = srnModel.createPropensities(parameters);
+if ~isempty(varNames)
+    propensities = srnModel.createPropensities(parameters,varNames);
+else
+    propensities = srnModel.createPropensities(parameters);
+end
 
 % Find solution to FSP
-[solutions,constraintBounds] = ssit.fsp.adaptiveFspSolve(outputTimes, initialStates,...
+[solutions,constraintBounds,stateSpace] = ssit.fsp.adaptiveFspSolve(outputTimes, initialStates,...
     initialProbabilities, stoichMatrix, propensities, fspTol, constraintFunctions, constraintBounds,...
-    verbose,1.0e-4,1.0e-8,'auto',[],usePiecewiseFSP,initApproxSS);
+    verbose,1.0e-4,1.0e-8,'auto',[],usePiecewiseFSP,initApproxSS,varNames);
 
 dsolutions = cell(length(outputTimes), 1);
 for i = 1:length(outputTimes)
@@ -86,18 +106,18 @@ for i = 1:size(parameters,1)
     while max(abs(cstBnd2-constraintBounds))~=0
         %Find FSP solution at upper bound
         cstBnd2 = constraintBounds;
-        [solsPlus,constraintBounds] = ssit.fsp.adaptiveFspSolve(outputTimes, initialStates,...
+        [solsPlus,constraintBounds,stateSpace] = ssit.fsp.adaptiveFspSolve(outputTimes, initialStates,...
             initialProbabilities, stoichMatrix,...
             propensitiesPlus, fspTol, ...
             constraintFunctions, constraintBounds,...
-            verbose,1.0e-4,1.0e-8,'auto',[],usePiecewiseFSP,initApproxSS);
+            verbose,1.0e-4,1.0e-8,'auto',stateSpace,usePiecewiseFSP,initApproxSS,varNames);
 
         %Find FSP solution at lower bound
-        [solsMinus,constraintBounds] = ssit.fsp.adaptiveFspSolve(outputTimes, initialStates,...
+        [solsMinus,constraintBounds,stateSpace] = ssit.fsp.adaptiveFspSolve(outputTimes, initialStates,...
             initialProbabilities, stoichMatrix,...
             propensitiesMinus, fspTol,...
             constraintFunctions, constraintBounds,...
-            verbose,1.0e-4,1.0e-8,'auto',[],usePiecewiseFSP,initApproxSS);
+            verbose,1.0e-4,1.0e-8,'auto',stateSpace,usePiecewiseFSP,initApproxSS,varNames);
     end
 
 %     if max(abs(cstBnd2-constraintBounds))>0

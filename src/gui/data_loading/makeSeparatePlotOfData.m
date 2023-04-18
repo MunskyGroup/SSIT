@@ -125,7 +125,11 @@ for it = 1:length(T_array)
             if ~isempty(app.FIMTabOutputs.distortionOperator)
                 px = app.FIMTabOutputs.distortionOperator.computeObservationDist(px);
             end
-            mdist{i} = double(px.sumOver(INDS).data);
+            if ~isempty(INDS)
+                mdist{i} = double(px.sumOver(INDS).data);
+            else
+                mdist{i} = double(px.data);
+            end
         end
         for j=1:NdMod
             mns(it,j) = [0:length(mdist{j})-1]*mdist{j};

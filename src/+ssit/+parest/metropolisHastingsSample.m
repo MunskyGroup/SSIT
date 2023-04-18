@@ -236,7 +236,7 @@ for i = iStart:nsamples*thin
 
     if mod(i,100)==0
         save(saveFileName,'value','smpl','bestfound')
-        disp(['n=',num2str(i),'; acc=',num2str(accept/(i+burnin))])
+        disp(['n=',num2str(i),'; acc=',num2str(accept/(i+burnin)),'. ',saveFileName])
     end
 end
 if progress
