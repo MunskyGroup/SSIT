@@ -21,7 +21,7 @@
   [fspSoln,Model.fspOptions.bounds] = Model.solve;
 
 %% Load and Fit smFISH Data
-  Model = Model.loadData('../ExampleData/DUSP1_Dex_100nM_Rep1_Rep2.csv',{'x2','RNA_nuc'});
+  Model = Model.loadData('../../ExampleData/DUSP1_Dex_100nM_Rep1_Rep2.csv',{'x2','RNA_nuc'});
   Model.fspOptions.fspTol = inf;
   Model.fittingOptions.modelVarsToFit = 1:7;
   fitOptions = optimset('Display','iter','MaxIter',4000);
@@ -55,20 +55,6 @@
   nCellsOpt = Model.optimizeCellCounts(fims,nTotal,'TR[1:4]');
   fimOpt = Model.evaluateExperiment(fims,nCellsOpt);
   Model.plotMHResults(mhResults,{FIM,fimOpt});
-%   
-%   nCellsSimp = Model.dataSet.nCells;
-%   nCellsSimp([2,3,5,7:11])=0;
-%   fimSimple = Model.evaluateExperiment(fims,nCellsSimp);
-%   Model.plotMHResults(mhResults,{FIM,fimOpt,fimSimple});
-%%
-  close all
-  AAA = [Model.dataSet.nCells;nCellsOpt;nCellsSimp]
-
-  close all
-  bar([1:12],AAA(1,:),.45,'k'); hold on
-  bar([1:12]+0.45,AAA(2,:),.45,'c'); hold on
-  set(gca,'xtick',[1:12]+0.225,'XTickLabel',Model.tSpan,'fontsize',15)
-  legend('Intuitive Design','Optimized Design')
  
 %% Calibrate PDO from Multi-Modal Experimental Data
   ModelPDOSpots = Model.calibratePDO('ExampleDataSets/pdoCalibrationData.csv',...
@@ -89,6 +75,3 @@ Model.plotMHResults(mhResults,{FIM,fimOpt,fimPDOSpots,fimPDOIntens});
 fimsPDOIntens = ModelPDOIntens.computeFIM(sensSoln.sens);
 fimPDOIntens2x = ModelPDOIntens.evaluateExperiment(fimsPDOIntens,2.218*nCellsOpt);
 Model.plotMHResults(mhResults,{FIM,fimOpt,fimPDOSpots,fimPDOIntens,fimPDOIntens2x});
-
-
-

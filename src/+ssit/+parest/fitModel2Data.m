@@ -208,6 +208,11 @@ switch Loc_app_str.FittingAlgorithmDropDown.Value
         OBJmh = @(x)-OBJ(x');
         options = Loc_app_str.DataLoadingAndFittingTabOutputs.fitOptions.props;
         if options.numChains==1
+
+            if isstring(options.proposalDistribution)||ischar(options.proposalDistribution)
+                options.proposalDistribution=eval(options.proposalDistribution);
+            end
+
             [Loc_app_str.DataLoadingAndFittingTabOutputs.mhSamples,...
                 Loc_app_str.DataLoadingAndFittingTabOutputs.mhAcceptance,...
                 Loc_app_str.DataLoadingAndFittingTabOutputs.mhValue,xbest] = ...

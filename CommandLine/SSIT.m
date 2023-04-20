@@ -568,6 +568,7 @@ classdef SSIT
                 disp({'Running Sensitivity Calculation';'You can skip this step by providing sensSoln.'})
                 obj.solutionScheme = 'fspSens';
                 [sensSoln] = obj.solve;
+                sensSoln = sensSoln.sens;
             end
 
             % Separate into observed and unobserved species.
@@ -1135,8 +1136,6 @@ end
 
                 case 'MetropolisHastings'
 
-                    OBJmh = @(x)obj.computeLikelihood(exp(x),FSPsoln.stateSpace);  % We want to MAXIMIZE the likelihood.
-                    x0 = log(parGuess);
                     allFitOptions.isPropDistSymmetric=true;
                     allFitOptions.thin=1;
                     allFitOptions.numberOfSamples=1000;
@@ -1147,6 +1146,7 @@ end
                     allFitOptions.useFIMforMH = false;
                     allFitOptions.CovFIMscale = 0.6;
                     allFitOptions.suppressFSPExpansion = true;
+                    allFitOptions.logForm = true;
                     
                     j=1;
                     while exist(['TMPmh_',num2str(j),'.mat'],'file')
@@ -1158,6 +1158,14 @@ end
                         allFitOptions.(fNames{i}) = fitOptions.(fNames{i});
                     end
 
+                    if allFitOptions.logForm
+                        OBJmh = @(x)obj.computeLikelihood(exp(x),FSPsoln.stateSpace);  % We want to MAXIMIZE the likelihood.
+                        x0 = log(parGuess);
+                    else
+                        OBJmh = @(x)obj.computeLikelihood(x,FSPsoln.stateSpace);  % We want to MAXIMIZE the likelihood.
+                        x0 = (parGuess);
+                    end
+
                     if allFitOptions.useFIMforMetHast
                         TMP = obj;
                         TMP.solutionScheme = 'fspSens'; % Set solutions scheme to FSP Sensitivity
@@ -1166,9 +1174,14 @@ end
                         fimResults = TMP.computeFIM(sensSoln.sens);
                         [FIM] = TMP.evaluateExperiment(fimResults,TMP.dataSet.nCells);
 
-                        FIMlog = diag([TMP.parameters{obj.fittingOptions.modelVarsToFit,2}])*...
-                            FIM(obj.fittingOptions.modelVarsToFit,obj.fittingOptions.modelVarsToFit)*...
+                        if allFitOptions.logForm
+                            FIMlog = diag([TMP.parameters{obj.fittingOptions.modelVarsToFit,2}])*...
+                                FIM(obj.fittingOptions.modelVarsToFit,obj.fittingOptions.modelVarsToFit)*...
                                 diag([TMP.parameters{obj.fittingOptions.modelVarsToFit,2}]);
+                        else
+                            FIMlog = FIM(obj.fittingOptions.modelVarsToFit,obj.fittingOptions.modelVarsToFit);
+                        end
+                        
                         covLog = FIMlog^-1;
                         covLog = allFitOptions.CovFIMscale*(covLog+covLog')/2;
                         allFitOptions.proposalDistribution=@(x)mvnrnd(x,covLog);                       
@@ -1215,7 +1228,12 @@ end
                         clear tmpMH*
                     end
             end
-            pars = exp(x0);
+
+            if allFitOptions.logForm
+                pars = exp(x0);
+            else
+                pars = (x0);
+            end
         end
 
         %% Plotting/Visualization Functions

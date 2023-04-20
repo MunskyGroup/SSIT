@@ -262,8 +262,12 @@ while (tNow < maxOutputTime)
                 fspStopStatus.t_break, stateSpace.getNumStates);
         end
 
-        constraintsToRelax = find(fspStopStatus.sinks*fspErrorCondition.nSinks >=...
-            fspStopStatus.error_bound);
+        if fspStopStatus.error_bound>0
+            constraintsToRelax = find(fspStopStatus.sinks*fspErrorCondition.nSinks >=...
+                fspStopStatus.error_bound);
+        else
+            constraintsToRelax = find(fspStopStatus.sinks*fspErrorCondition.nSinks > 0);
+        end
         constraintBoundsFinal(constraintsToRelax) = 1.2*constraintBoundsFinal(constraintsToRelax);
 
         if min(constraintsToRelax)<=size(stoichMatrix,1)

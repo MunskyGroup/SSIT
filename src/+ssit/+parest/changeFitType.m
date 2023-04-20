@@ -38,7 +38,7 @@ switch app.FittingAlgorithmDropDown.Value
         app.DataLoadingAndFittingTabOutputs.fitOptions.props.numberOfSamples=1000;
         app.DataLoadingAndFittingTabOutputs.fitOptions.props.burnIn=100;
         app.DataLoadingAndFittingTabOutputs.fitOptions.props.progress=true;
-        app.DataLoadingAndFittingTabOutputs.fitOptions.props.proposalDistribution=@(x)x+0.01*randn(size(x));
+        app.DataLoadingAndFittingTabOutputs.fitOptions.props.proposalDistribution='@(x)x+0.01*randn(size(x))';
         app.DataLoadingAndFittingTabOutputs.fitOptions.props.numChains = 1;
         
 end
