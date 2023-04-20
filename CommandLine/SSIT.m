@@ -1227,13 +1227,15 @@ end
                         otherResults.mhValue = tmpMHValue;
                         clear tmpMH*
                     end
+                    % If fit was in linear space, need to convert to log
+                    % space before returning parameters.
+                    if ~allFitOptions.logForm
+                        pars = log(x0);
+                    end
+
             end
 
-            if allFitOptions.logForm
-                pars = exp(x0);
-            else
-                pars = (x0);
-            end
+            pars = exp(x0);
         end
 
         %% Plotting/Visualization Functions
