@@ -9,7 +9,7 @@ classdef SSIT
         customConstraintFuns = {}; % User suppled constraint functions for FSP.
         fspOptions = struct('fspTol',0.001,'fspIntegratorRelTol',1e-2, 'fspIntegratorAbsTol',1e-4, 'odeSolver','auto', 'verbose',false,'bounds',[],'usePiecewiseFSP',false,'initApproxSS',false); % Options for FSP solver.
         sensOptions = struct('solutionMethod','forward'); % Options for FSP-Sensitivity solver.
-        ssaOptions = struct('Nexp',1,'nSimsPerExpt',100,'useTimeVar',false, 'signalUpdateRate',[]); % Options for SSA solver
+        ssaOptions = struct('Nexp',1,'nSimsPerExpt',100,'useTimeVar',false, 'signalUpdateRate',[],'useParalel',false,'verbose',false); % Options for SSA solver
         pdoOptions = struct('unobservedSpecies',[],'PDO',[]); % Options for FIM analyses
         fittingOptions = struct('modelVarsToFit','all','pdoVarsToFit',[],'timesToFit','all','logPrior',[])
         initialCondition = [0]; % Initial condition for species [x1;x2;...]
@@ -465,16 +465,33 @@ classdef SSIT
                     Solution.T_array = obj.tSpan;
                     Nt = length(Solution.T_array);
                     nSims = obj.ssaOptions.Nexp*obj.ssaOptions.nSimsPerExpt*Nt;
-                    Solution.trajs = zeros(length(obj.species),...
-                        length(obj.tSpan),nSims);% Creates an empty Trajectories matrix from the size of the time array and number of simulations
                     W = obj.propensities;
-                    for isim = 1:nSims
-                        Solution.trajs(:,:,isim) = ssit.ssa.runSingleSsa(obj.initialCondition,...
-                            obj.stoichiometry,...
-                            W,...
-                            obj.tSpan,...
-                            obj.ssaOptions.useTimeVar,...
-                            obj.ssaOptions.signalUpdateRate);
+                    if obj.ssaOptions.useParalel
+                        trajs = zeros(length(obj.species),...
+                            length(obj.tSpan),nSims);% Creates an empty Trajectories matrix from the size of the time array and number of simulations
+                        parfor isim = 1:nSims
+                            if obj.ssaOptions.verbose
+                                disp(['completed sim number: ',num2str(isim)])
+                            end
+                            trajs(:,:,isim) = ssit.ssa.runSingleSsa(obj.initialCondition,...
+                                obj.stoichiometry,...
+                                W,...
+                                obj.tSpan,...
+                                obj.ssaOptions.useTimeVar,...
+                                obj.ssaOptions.signalUpdateRate)
+                        end
+                        Solution.trajs = trajs;
+                    else
+                        Solution.trajs = zeros(length(obj.species),...
+                            length(obj.tSpan),nSims);% Creates an empty Trajectories matrix from the size of the time array and number of simulations
+                        for isim = 1:nSims
+                            Solution.trajs(:,:,isim) = ssit.ssa.runSingleSsa(obj.initialCondition,...
+                                obj.stoichiometry,...
+                                W,...
+                                obj.tSpan,...
+                                obj.ssaOptions.useTimeVar,...
+                                obj.ssaOptions.signalUpdateRate);
+                        end
                     end
                     disp([num2str(nSims),' SSA Runs Completed'])
                     try
@@ -757,8 +774,14 @@ classdef SSIT
             obj.dataSet.app = filterAndMarginalize([],[],obj.dataSet.app);
 
             obj.dataSet.nCells=[];
-            for i = 1:size(obj.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor,1)
+            if length(size(obj.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor))==2
                 obj.dataSet.nCells(i) = sum(double(obj.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor(i,:)),'all');
+            elseif length(size(obj.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor))==3
+                obj.dataSet.nCells(i) = sum(double(obj.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor(i,:,:)),'all');
+            elseif length(size(obj.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor))==4
+                obj.dataSet.nCells(i) = sum(double(obj.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor(i,:,:,:)),'all');
+            elseif length(size(obj.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor))==5
+                obj.dataSet.nCells(i) = sum(double(obj.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor(i,:,:,:,:)),'all');
             end
 
             obj.tSpan = unique([obj.initialTime,obj.dataSet.times]);            
@@ -972,7 +995,14 @@ classdef SSIT
                 times = obj.dataSet.times(obj.fittingOptions.timesToFit);
                 fitSolutions.ParEstFitTimesList = obj.dataSet.app.ParEstFitTimesList;
                 fitSolutions.ParEstFitTimesList.Value = obj.dataSet.app.ParEstFitTimesList.Value(obj.fittingOptions.timesToFit);
-                PD = PD(find(obj.fittingOptions.timesToFit),:);
+                if ndims(PD)==2
+                    PD = PD(find(obj.fittingOptions.timesToFit),:);
+                elseif ndims(PD)==3
+                    PD = PD(find(obj.fittingOptions.timesToFit),:,:);
+                elseif ndims(PD)==4
+                    PD = PD(find(obj.fittingOptions.timesToFit),:,:,:);
+                end
+
             end
             %% Compute log likelihood using equal sized P and Data tensors.
             if nargout>=3
@@ -1115,7 +1145,7 @@ end
 
             switch fitAlgorithm
                 case 'fminsearch'
-                    [x0,likelihood]  = fminsearch(objFun,x0,fitOptions);
+                    [x0,likelihood,~,otherResults]  = fminsearch(objFun,x0,fitOptions);
 
                 case 'fminunc'
                     obj.fspOptions.fspTol = inf;
@@ -1134,6 +1164,35 @@ end
                     fitOptions.InitialSwarmMatrix = initSwarm;
                     [x0,likelihood] = particleswarm(OBJps,length(x0),LB,UB,fitOptions);
 
+                case 'mlSearch'
+                    % Not yet working efficiently.
+                    allFitOptions.maxIter=1000;
+                    allFitOptions.burnIn=30;
+                    allFitOptions.updateRate=10;                    
+                    allFitOptions.guessRate=1000;  
+                    allFitOptions.proposalDistribution=@(x)x+0.01*randn(size(x));
+                    allFitOptions.useFIMforSearch = false;
+                    allFitOptions.CovFIMscale = 0.6;
+                    allFitOptions.suppressFSPExpansion = true;
+                    allFitOptions.logForm = true;
+                    allFitOptions.plotFunVals = false;
+                    allFitOptions.proposalDistributionWide=@(x)x+randn(size(x));
+
+                    fNames = fieldnames(fitOptions);
+                    for i=1:length(fNames)
+                        allFitOptions.(fNames{i}) = fitOptions.(fNames{i});
+                    end
+
+                    if allFitOptions.logForm
+                        objFun = @(x)obj.computeLikelihood(exp(x),FSPsoln.stateSpace);  % We want to MAXIMIZE the likelihood.
+                        x0 = log(parGuess);
+                    else
+                        objFun = @(x)obj.computeLikelihood(x,FSPsoln.stateSpace);  % We want to MAXIMIZE the likelihood.
+                        x0 = (parGuess);
+                    end
+                    
+                    [x0,likelihood]  = mlSearch(objFun,x0,allFitOptions);
+
                 case 'MetropolisHastings'
 
                     allFitOptions.isPropDistSymmetric=true;
@@ -1141,13 +1200,13 @@ end
                     allFitOptions.numberOfSamples=1000;
                     allFitOptions.burnIn=100;
                     allFitOptions.progress=true;
-                    allFitOptions.proposalDistribution=@(x)x+0.01*randn(size(x));
+                    allFitOptions.proposalDistribution=@(x)x+0.1*randn(size(x));
                     allFitOptions.numChains = 1;
                     allFitOptions.useFIMforMH = false;
                     allFitOptions.CovFIMscale = 0.6;
                     allFitOptions.suppressFSPExpansion = true;
                     allFitOptions.logForm = true;
-                    
+                                        
                     j=1;
                     while exist(['TMPmh_',num2str(j),'.mat'],'file')
                         j=j+1;

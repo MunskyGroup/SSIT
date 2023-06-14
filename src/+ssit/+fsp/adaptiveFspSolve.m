@@ -151,6 +151,7 @@ if initApproxSS
     jac =jac(1:end-constraintCount,1:end-constraintCount);
     jac =jac+diag(sum(jac));
     try
+        warning('off')
         [eigVec,~] = eigs(jac,1,'smallestabs');
     catch
         try
