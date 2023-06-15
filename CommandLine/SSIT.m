@@ -7,13 +7,21 @@ classdef SSIT
         propensityFunctions = {'k'; 'g*x1'} % List of proensity functions
         inputExpressions = {}; % List of time varying input signals (I1,I2,...)
         customConstraintFuns = {}; % User suppled constraint functions for FSP.
-        fspOptions = struct('fspTol',0.001,'fspIntegratorRelTol',1e-2, 'fspIntegratorAbsTol',1e-4, 'odeSolver','auto', 'verbose',false,'bounds',[],'usePiecewiseFSP',false,'initApproxSS',false); % Options for FSP solver.
-        sensOptions = struct('solutionMethod','forward'); % Options for FSP-Sensitivity solver.
-        ssaOptions = struct('Nexp',1,'nSimsPerExpt',100,'useTimeVar',false, 'signalUpdateRate',[],'useParalel',false,'verbose',false); % Options for SSA solver
-        pdoOptions = struct('unobservedSpecies',[],'PDO',[]); % Options for FIM analyses
-        fittingOptions = struct('modelVarsToFit','all','pdoVarsToFit',[],'timesToFit','all','logPrior',[])
+        fspOptions = struct('fspTol',0.001,'fspIntegratorRelTol',1e-2,...
+            'fspIntegratorAbsTol',1e-4, 'odeSolver','auto', 'verbose',false,...
+            'bounds',[],'usePiecewiseFSP',false,...
+            'initApproxSS',false); % Options for FSP solver.
+        sensOptions = struct('solutionMethod','forward'); 
+            % Options for FSP-Sensitivity solver.
+        ssaOptions = struct('Nexp',1,'nSimsPerExpt',100,'useTimeVar',false,...
+            'signalUpdateRate',[],'useParalel',false,...
+            'verbose',false); % Options for SSA solver
+        pdoOptions = struct('unobservedSpecies',[],'PDO',[]); 
+            % Options for FIM analyses
+        fittingOptions = struct('modelVarsToFit','all','pdoVarsToFit',[],...
+            'timesToFit','all','logPrior',[])
         initialCondition = [0]; % Initial condition for species [x1;x2;...]
-        initialProbs = 1; % Probability mass of states given in initial condition.
+        initialProbs = 1; % Probability mass of states given in init. cond.
         initialTime = 0;
         tSpan = linspace(0,10,21); % Times at which to find solutions
         solutionScheme = 'FSP' % Chosen solutuon scheme ('FSP','SSA')
@@ -388,32 +396,7 @@ classdef SSIT
                     logL = logL-1e4*(lambda(1)<0);
             end
         end  
-
-        function [pdo] = generatePDO(obj,pdoOptions,paramsPDO,fspSoln,variablePDO,maxSize)
-            arguments
-                obj
-                pdoOptions
-                paramsPDO = []
-                fspSoln = []
-                variablePDO =[]
-                maxSize=[];
-            end
-            app.DistortionTypeDropDown.Value = pdoOptions.type;
-            app.FIMTabOutputs.PDOProperties.props = pdoOptions.props;
-            % Separate into observed and unobserved species.
-            Nd = length(obj.species);
-            indsUnobserved=[];
-            indsObserved=[];
-            for i=1:Nd
-                if ~isempty(obj.pdoOptions.unobservedSpecies)&&max(contains(obj.pdoOptions.unobservedSpecies,obj.species{i}))
-                    indsUnobserved=[indsUnobserved,i];
-                else
-                    indsObserved=[indsObserved,i];
-                end
-            end
-            [~,pdo] = ssit.pdo.generatePDO(app,paramsPDO,fspSoln,indsObserved,variablePDO,maxSize);
-        end
-
+        
         %% Model Analysis Functions
         function [Solution, bConstraints] = solve(obj,stateSpace,saveFile)
             arguments
@@ -569,6 +552,74 @@ classdef SSIT
             end
         end
 
+        function sampleDataFromFSP(obj,fspSoln,saveFile)
+             Solution.T_array = obj.tSpan;
+             Nt = length(Solution.T_array);
+             nSims = obj.ssaOptions.Nexp*obj.ssaOptions.nSimsPerExpt*Nt;
+             Solution.trajs = zeros(length(obj.species),...
+                 length(obj.tSpan),nSims);% Creates an empty Trajectories matrix
+             % from the size of the time array and number of simulations
+             for it = 1:length(obj.tSpan)
+                 clear PP
+                 PP = double(fspSoln.fsp{it}.p.data);
+                 clear w
+                 w(:) = PP(:); w(w<0)=0;
+
+                 %                  switch ndims(PP)
+                 %                      case 1
+                 %                          [I1] =  ind2sub(size(PP),randsample(length(w), nSims, true, w ));
+                 %                      case 2
+                 %                          [I1,I2] =  ind2sub(size(PP),randsample(length(w), nSims, true, w ));
+                 %                      case 3
+                 %                          [I1,I2,I3] =  ind2sub(size(PP),randsample(length(w), nSims, true, w ));
+                 %                      case 4
+                 %                          [I1] =  ind2sub(size(PP),randsample(length(w), nSims, true, w ));
+                 %                      case 5
+                 [I1,I2,I3,I4,I5] =  ind2sub(size(PP),randsample(length(w), nSims, true, w ));
+                 %                  end
+
+                 %                  jsample =  ind2sub(size(PP),randsample(length(w), nSims, true, w ));
+                 for iSp = 1:length(obj.species)
+                     eval(['Solution.trajs(iSp,it,:) = I',num2str(iSp),';']);
+                 end
+             end
+             if ~isempty(obj.pdoOptions.PDO)
+                 Solution.trajsDistorted = zeros(length(obj.species),...
+                     length(obj.tSpan),nSims);% Creates an empty Trajectories matrix from the size of the time array and number of simulations
+                 for iS = 1:length(obj.species)
+                     PDO = obj.pdoOptions.PDO.conditionalPmfs{iS};
+                     nDpossible = size(PDO,1);
+                     Q = Solution.trajs(iS,:,:);
+                     for iD = 1:length(Q(:))
+                         Q(iD) = randsample([0:nDpossible-1],1,true,PDO(:,Q(iD)+1));
+                     end
+                     Solution.trajsDistorted(iS,:,:) = Q;
+                 end
+                 disp('PDO applied to FSP - SSA results')
+             end
+             if ~isempty(saveFile)
+                 A = table;
+                 for j=1:Nt
+                     A.time((j-1)*obj.ssaOptions.nSimsPerExpt+1:j*obj.ssaOptions.nSimsPerExpt) = obj.tSpan(j);
+                     for i = 1:obj.ssaOptions.Nexp
+                         for k=1:obj.ssaOptions.nSimsPerExpt
+                             for s = 1:size(Solution.trajs,1)
+                                 warning('off')
+                                 A.(['exp',num2str(i),'_s',num2str(s)])((j-1)*obj.ssaOptions.nSimsPerExpt+k) = ...
+                                     Solution.trajs(s,j,(i-1)*Nt*obj.ssaOptions.nSimsPerExpt+(j-1)*obj.ssaOptions.nSimsPerExpt+k);
+                                 if ~isempty(obj.pdoOptions.PDO)
+                                     A.(['exp',num2str(i),'_s',num2str(s),'_Distorted'])((j-1)*obj.ssaOptions.nSimsPerExpt+k) = ...
+                                         Solution.trajsDistorted(s,j,(i-1)*Nt*obj.ssaOptions.nSimsPerExpt+(j-1)*obj.ssaOptions.nSimsPerExpt+k);
+                                 end
+                             end
+                         end
+                     end
+                 end
+                 writetable(A,saveFile)
+                 disp(['FSP - SSA Results saved to ',saveFile])
+             end
+        end
+
         function [fimResults,sensSoln] = computeFIM(obj,sensSoln)
             % computeFIM - computes FIM at all time points.
             % Arguments:
@@ -617,7 +668,8 @@ classdef SSIT
             end
         end
 
-        function [fimTotal,mleCovEstimate,fimMetrics] = evaluateExperiment(obj,fimResults,cellCounts)
+        function [fimTotal,mleCovEstimate,fimMetrics] = evaluateExperiment(obj,...
+                fimResults,cellCounts)
             fimTotal = 0*fimResults{1};
             Np = size(fimTotal,1);
             for i=1:length(cellCounts)
@@ -773,15 +825,18 @@ classdef SSIT
             obj.dataSet.app.SpeciesForFitPlot.Items = obj.species;
             obj.dataSet.app = filterAndMarginalize([],[],obj.dataSet.app);
 
-            obj.dataSet.nCells=[];
-            if length(size(obj.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor))==2
-                obj.dataSet.nCells(i) = sum(double(obj.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor(i,:)),'all');
-            elseif length(size(obj.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor))==3
-                obj.dataSet.nCells(i) = sum(double(obj.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor(i,:,:)),'all');
-            elseif length(size(obj.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor))==4
-                obj.dataSet.nCells(i) = sum(double(obj.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor(i,:,:,:)),'all');
-            elseif length(size(obj.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor))==5
-                obj.dataSet.nCells(i) = sum(double(obj.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor(i,:,:,:,:)),'all');
+            sz = size(obj.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor);
+            obj.dataSet.nCells=zeros(sz(1),1);
+            for i=1:sz(1)
+                if length(sz)==2
+                    obj.dataSet.nCells(i) = sum(double(obj.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor(i,:)),'all');
+                elseif length(sz)==3
+                    obj.dataSet.nCells(i) = sum(double(obj.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor(i,:,:)),'all');
+                elseif length(sz)==4
+                    obj.dataSet.nCells(i) = sum(double(obj.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor(i,:,:,:)),'all');
+                elseif length(sz)==5
+                    obj.dataSet.nCells(i) = sum(double(obj.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor(i,:,:,:,:)),'all');
+                end
             end
 
             obj.tSpan = unique([obj.initialTime,obj.dataSet.times]);            
@@ -1296,7 +1351,6 @@ end
 
             pars = exp(x0);
         end
-
         %% Plotting/Visualization Functions
         function makePlot(obj,solution,plotType,indTimes,includePDO,figureNums)
             % SSIT.makePlot -- tool to make plot of the FSP or SSA results.
