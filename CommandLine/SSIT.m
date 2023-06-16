@@ -555,7 +555,7 @@ classdef SSIT
         function sampleDataFromFSP(obj,fspSoln,saveFile)
              Solution.T_array = obj.tSpan;
              Nt = length(Solution.T_array);
-             nSims = obj.ssaOptions.nSimsPerExpt;
+             nSims = obj.ssaOptions.nSimsPerExpt*obj.ssaOptions.Nexp;
              Solution.trajs = zeros(length(obj.species),...
                  length(obj.tSpan),nSims);% Creates an empty Trajectories matrix
              % from the size of the time array and number of simulations
@@ -585,20 +585,20 @@ classdef SSIT
              end
              if ~isempty(saveFile)
                  A = table;
-                 for j=1:Nt
-                     A.time((j-1)*obj.ssaOptions.nSimsPerExpt+1:j*obj.ssaOptions.nSimsPerExpt) = obj.tSpan(j);
-                     for i = 1:obj.ssaOptions.Nexp
-                         for k=1:obj.ssaOptions.nSimsPerExpt
+                 for it=1:Nt
+                     A.time((it-1)*obj.ssaOptions.nSimsPerExpt+1:it*obj.ssaOptions.nSimsPerExpt) = obj.tSpan(it);
+                     for ie = 1:obj.ssaOptions.Nexp
+%                          for is=1:obj.ssaOptions.nSimsPerExpt
                              for s = 1:size(Solution.trajs,1)
                                  warning('off')
-                                 A.(['exp',num2str(i),'_s',num2str(s)])((j-1)*obj.ssaOptions.nSimsPerExpt+k) = ...
-                                     Solution.trajs(s,j,k);
+                                 A.(['exp',num2str(ie),'_s',num2str(s)])((it-1)*obj.ssaOptions.nSimsPerExpt+(1:obj.ssaOptions.nSimsPerExpt)) = ...
+                                     Solution.trajs(s,it,(ie-1)*obj.ssaOptions.nSimsPerExpt+(1:obj.ssaOptions.nSimsPerExpt));
                                  if ~isempty(obj.pdoOptions.PDO)
-                                     A.(['exp',num2str(i),'_s',num2str(s),'_Distorted'])((j-1)*obj.ssaOptions.nSimsPerExpt+k) = ...
-                                         Solution.trajsDistorted(s,j,k);
+                                     A.(['exp',num2str(ie),'_s',num2str(s),'_Distorted'])((it-1)*obj.ssaOptions.nSimsPerExpt+1:obj.ssaOptions.nSimsPerExpt) = ...
+                                         Solution.trajsDistorted(s,it,(ie-1)*obj.ssaOptions.nSimsPerExpt+1:obj.ssaOptions.nSimsPerExpt);
                                  end
                              end
-                         end
+%                          end
                      end
                  end
                  writetable(A,saveFile)
