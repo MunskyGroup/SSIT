@@ -17,6 +17,13 @@ EGRNT.initialTime = 0;
 EGRNT.fittingOptions.timesToFit = ones(1,length(EGRNT.tSpan),'logical');
 EGRNT.makeFitPlot
 
+tic
+for i=1:5
+[EGRNTsoln,EGRNT.fspOptions.bounds] = EGRNT.solve;  % Solve the FSP analysis
+end
+complexComputeTime = toc;
+complexComputeTime/5
+
 %% Reduced model (SGRS)
 clc
 SGRS = SSIT;
@@ -33,9 +40,20 @@ SGRS.solutionScheme = 'FSP';    % Set solutions scheme to FSP.
 SGRS.fspOptions.fspTol = 1e-8;  % Set FSP error tolerance.
 [SGRSsoln,SGRS.fspOptions.bounds] = SGRS.solve;  % Solve the FSP analysis
 [SGRSsoln,SGRS.fspOptions.bounds] = SGRS.solve;  % Solve the FSP analysis
+
+tic
+for i=1:5
+[SGRSsoln,SGRS.fspOptions.bounds] = SGRS.solve;  % Solve the FSP analysis
+end
+simpleComputeTime = toc;
+simpleComputeTime/5
+
 %% Plot Comparison of Full and Reduce Model
 SGRS.solutionScheme = 'FSP';  % Set solution scheme back to FSP.
 SGRS = SGRS.loadData('full_dusp1_model_testC.csv',{'x2','exp1_s3'});
 SGRS.initialTime = 0;
 SGRS.fittingOptions.timesToFit = ones(1,length(SGRS.tSpan),'logical');
 SGRS.makeFitPlot
+
+% to get the likelihood for the loaded data:
+SGRS.computeLikelihood
