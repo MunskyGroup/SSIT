@@ -25,7 +25,7 @@ Model.parameters=simple_Model.parameters;
 
 %%
 Model.ssaOptions.nSimsPerExpt = 100;
-Model.ssaOptions.Nexp = 50; 
+Model.ssaOptions.Nexp = 200; 
 Model.fspOptions.fspTol = 1e-8;  % Set FSP error tolerance.
 Model.sampleDataFromFSP(FSPsoln,'simple_dusp1_model_testC.csv'); 
 
