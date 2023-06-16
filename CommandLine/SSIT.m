@@ -555,7 +555,7 @@ classdef SSIT
         function sampleDataFromFSP(obj,fspSoln,saveFile)
              Solution.T_array = obj.tSpan;
              Nt = length(Solution.T_array);
-             nSims = obj.ssaOptions.Nexp*obj.ssaOptions.nSimsPerExpt*Nt;
+             nSims = obj.ssaOptions.nSimsPerExpt;
              Solution.trajs = zeros(length(obj.species),...
                  length(obj.tSpan),nSims);% Creates an empty Trajectories matrix
              % from the size of the time array and number of simulations
@@ -563,24 +563,10 @@ classdef SSIT
                  clear PP
                  PP = double(fspSoln.fsp{it}.p.data);
                  clear w
-                 w(:) = PP(:); w(w<0)=0;
-
-                 %                  switch ndims(PP)
-                 %                      case 1
-                 %                          [I1] =  ind2sub(size(PP),randsample(length(w), nSims, true, w ));
-                 %                      case 2
-                 %                          [I1,I2] =  ind2sub(size(PP),randsample(length(w), nSims, true, w ));
-                 %                      case 3
-                 %                          [I1,I2,I3] =  ind2sub(size(PP),randsample(length(w), nSims, true, w ));
-                 %                      case 4
-                 %                          [I1] =  ind2sub(size(PP),randsample(length(w), nSims, true, w ));
-                 %                      case 5
+                 w(:) = PP(:); w(w<0)=0;                 
                  [I1,I2,I3,I4,I5] =  ind2sub(size(PP),randsample(length(w), nSims, true, w ));
-                 %                  end
-
-                 %                  jsample =  ind2sub(size(PP),randsample(length(w), nSims, true, w ));
                  for iSp = 1:length(obj.species)
-                     eval(['Solution.trajs(iSp,it,:) = I',num2str(iSp),';']);
+                     eval(['Solution.trajs(iSp,it,:) = I',num2str(iSp),'-1;']);
                  end
              end
              if ~isempty(obj.pdoOptions.PDO)
@@ -595,7 +581,7 @@ classdef SSIT
                      end
                      Solution.trajsDistorted(iS,:,:) = Q;
                  end
-                 disp('PDO applied to FSP - SSA results')
+                 disp('PDO applied to FSP Samples')
              end
              if ~isempty(saveFile)
                  A = table;
@@ -606,17 +592,17 @@ classdef SSIT
                              for s = 1:size(Solution.trajs,1)
                                  warning('off')
                                  A.(['exp',num2str(i),'_s',num2str(s)])((j-1)*obj.ssaOptions.nSimsPerExpt+k) = ...
-                                     Solution.trajs(s,j,(i-1)*Nt*obj.ssaOptions.nSimsPerExpt+(j-1)*obj.ssaOptions.nSimsPerExpt+k);
+                                     Solution.trajs(s,j,k);
                                  if ~isempty(obj.pdoOptions.PDO)
                                      A.(['exp',num2str(i),'_s',num2str(s),'_Distorted'])((j-1)*obj.ssaOptions.nSimsPerExpt+k) = ...
-                                         Solution.trajsDistorted(s,j,(i-1)*Nt*obj.ssaOptions.nSimsPerExpt+(j-1)*obj.ssaOptions.nSimsPerExpt+k);
+                                         Solution.trajsDistorted(s,j,k);
                                  end
                              end
                          end
                      end
                  end
                  writetable(A,saveFile)
-                 disp(['FSP - SSA Results saved to ',saveFile])
+                 disp(['FSP Samples saved to ',saveFile])
              end
         end
 

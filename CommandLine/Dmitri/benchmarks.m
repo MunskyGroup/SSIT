@@ -36,7 +36,8 @@ for n = length(Nar):-1:1
         fspErrorCondition.tInit = 0;
         tic
         while tryAgain==1
-            [~, ~, ~, tExport, solutionsNow, ~, tryAgain, te, PfExpokit] = ssit.fsp_ode_solvers.mexpv_modified_2(t, A, P0, 1e-8, m,...
+            [~, ~, ~, tExport, solutionsNow, ~, tryAgain, te, PfExpokit] = ssit.fsp_ode_solvers.mexpv_modified_2(t, ...
+                A, P0, 1e-8, m,...
                 [], [0,t], 1e-3,[], 0, fspErrorCondition);
             if tryAgain==0;break;end
             if m>300
@@ -52,7 +53,7 @@ for n = length(Nar):-1:1
         ode_opts = odeset('Jacobian', A, 'Vectorized','on','JPattern',A~=0,'relTol',1e-8, 'absTol', 1e-10);
         rhs = @(t,x)A*x;
         tic
-        [tExport, yout] =  ode23s(rhs, [0,t/2,t], P0);
+        [tExport, yout] =  ode15s(rhs, [0,t/2,t], P0);
         timeODE23s(j,n) = toc;
 
         diff_expm_expokit(j,n) = sum(abs(PfExpokit-expAt_P));
@@ -61,6 +62,7 @@ for n = length(Nar):-1:1
     end
     %% Comparisons
     % Compare time
+    figure(2)
     subplot(2,1,1);
     loglog(Nar,mean(timeExpm),'-s',Nar,mean(timeExpokit),'-o',Nar,mean(timeODE23s),'-^');
     legend('expm','expokit','ode23s')
