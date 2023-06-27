@@ -11,7 +11,7 @@ classdef SSIT
             'fspIntegratorAbsTol',1e-4, 'odeSolver','auto', 'verbose',false,...
             'bounds',[],'usePiecewiseFSP',false,...
             'initApproxSS',false); % Options for FSP solver.
-        sensOptions = struct('solutionMethod','forward'); 
+        sensOptions = struct('solutionMethod','forward','useParallel',true); 
             % Options for FSP-Sensitivity solver.
         ssaOptions = struct('Nexp',1,'nSimsPerExpt',100,'useTimeVar',false,...
             'signalUpdateRate',[],'useParalel',false,...
@@ -398,11 +398,12 @@ classdef SSIT
         end  
         
         %% Model Analysis Functions
-        function [Solution, bConstraints] = solve(obj,stateSpace,saveFile)
+        function [Solution, bConstraints] = solve(obj,stateSpace,saveFile,fspSoln)
             arguments
                 obj
                 stateSpace = [];
                 saveFile=[];
+                fspSoln=[];
             end
             % solve - solve the model using the specified method in
             %    obj.solutionScheme
@@ -545,7 +546,9 @@ classdef SSIT
                         app,stateSpace,...
                         obj.fspOptions.usePiecewiseFSP,...
                         obj.fspOptions.initApproxSS,...
-                        obj.species);
+                        obj.species,...
+                        obj.sensOptions.useParallel,...
+                        fspSoln);
                     %                     app.SensFspTabOutputs.solutions = Solution.sens;
                     %                     app.SensPrintTimesEditField.Value = mat2str(obj.tSpan);
                     %                     Solution.plotable = exportSensResults(app);
@@ -752,7 +755,13 @@ classdef SSIT
                 obj
                 dataFileName
                 linkedSpecies
-                conditions = {};
+                conditions = {}; 
+                % Data conditions that can be used to filter out data that
+                % do not meet specifications.
+                % Example:  
+                %     conditions = {'Rep_num','1'}  : Only the data in the
+                %     'Rep_num' column that is exactly equal to '1' will be
+                %     kept in the data set.
             end
             obj.dataSet =[];
             Tab = readtable(dataFileName);
