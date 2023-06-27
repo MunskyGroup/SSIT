@@ -27,8 +27,11 @@ end
 
 %% Filter on Specified Conditions
 % This should remove rows of the data that do not correspond to the logical
-% conditions required by the user.  I am not sure if this section is
-% working or not -- will require future testing.
+% conditions required by the user.  
+% This seems to be working for equality conditions (e.g., nRep = '0'), but 
+% not yet for more complicated conditions -- will require future testing.
+
+% this part determines which variables are conditioned over
 histDataStr = cellfun(@num2str,histDataRaw,'un',0);                     % convert double in cell to str
 if ~isa(app.DataLoadingAndFittingTabOutputs.conditionOnArray,'double')                                      % Check if user wants to filter for specified conditions
     loopCond = cellfun(@(s) ~contains('0',s),app.DataLoadingAndFittingTabOutputs.conditionOnArray);
@@ -36,14 +39,14 @@ if ~isa(app.DataLoadingAndFittingTabOutputs.conditionOnArray,'double')          
 else
     loopCond = 0;
 end
+
+% this part finds the data that obeys all conditions and removes the rest
+% from the data set.
 if loopCond
     for iC = 1:length(loopCond)
         condStr = app.DataLoadingAndFittingTabOutputs.conditionOnArray(loopCond(iC));                       % find string to condition on
         condCell = cellstr(condStr);                                    % convert string to cell
-        for iM = 1:rowNum
-            [~,condInd(iM)] = ismember(condCell,histDataStr(iM,loopCond(iC)));   % find row idx where condition=cell
-        end
-        condIndLoc = condInd >= 1;                                      % turn into idx to keep into logical array
+        condIndLoc = ismember(histDataStr(:,loopCond(iC)),condCell)';
         histDataStr = histDataStr(condIndLoc,:);                        % only keep idx rows
         clearvars condInd rowNum
         [rowNum,~] = size(histDataStr);
