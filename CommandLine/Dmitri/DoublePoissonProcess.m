@@ -39,7 +39,16 @@ P0 = zeros(prod(N+1),1);
 P0(1) = 1;
 
 t = 2.4;
+
+tic
 Pt = expm(A*t)*P0;
+denseTime = toc
+
+A = sparse(A);
+tic
+Pt = expm(A*t)*P0;
+sparseTime = toc
+
 
 P1t = C1*Pt;
 P2t = C2*Pt;
