@@ -83,6 +83,7 @@
         SsaHistAxes                     matlab.ui.control.UIAxes
         SsaTrajAxes                     matlab.ui.control.UIAxes
         FSPTab                          matlab.ui.container.Tab
+        initApproxSS                    matlab.ui.control.CheckBox
         SpeciestoShowListBox_2          matlab.ui.control.ListBox
         SpeciestoShowListBox_2Label     matlab.ui.control.Label
         ExportFSPDatatoWorkspaceForManualPlotsButton  matlab.ui.control.Button
@@ -2327,7 +2328,7 @@
             % Create FspAutoExpandCheckBox
             app.FspAutoExpandCheckBox = uicheckbox(app.FSPTab);
             app.FspAutoExpandCheckBox.Text = 'Automatically Expand FSP';
-            app.FspAutoExpandCheckBox.Position = [18 98 249 36];
+            app.FspAutoExpandCheckBox.Position = [18 111 249 36];
             app.FspAutoExpandCheckBox.Value = true;
 
             % Create FspApproximateSteadyStateButton
@@ -2335,7 +2336,7 @@
             app.FspApproximateSteadyStateButton.ButtonPushedFcn = createCallbackFcn(app, @FspApproximateSteadyStateButtonPushed, true);
             app.FspApproximateSteadyStateButton.BackgroundColor = [0 1 0];
             app.FspApproximateSteadyStateButton.Tooltip = {'Run FSP calculation with current constraints. If no constraints'; ' runs with default constraints.'};
-            app.FspApproximateSteadyStateButton.Position = [18 63 186 28];
+            app.FspApproximateSteadyStateButton.Position = [18 48 186 28];
             app.FspApproximateSteadyStateButton.Text = 'Approximate Steady State';
 
             % Create FspPiecewiseCheckBox
@@ -2381,7 +2382,7 @@
             app.LaunchFSPModelReductionToolButton.ButtonPushedFcn = createCallbackFcn(app, @LaunchFSPModelReductionToolButtonPushed, true);
             app.LaunchFSPModelReductionToolButton.BackgroundColor = [0.9294 0.6941 0.1255];
             app.LaunchFSPModelReductionToolButton.FontWeight = 'bold';
-            app.LaunchFSPModelReductionToolButton.Position = [15 30 213 22];
+            app.LaunchFSPModelReductionToolButton.Position = [15 15 213 22];
             app.LaunchFSPModelReductionToolButton.Text = 'Launch FSP Model Reduction Tool';
 
             % Create ExportFSPDatatoWorkspaceForManualPlotsButton
@@ -2405,6 +2406,11 @@
             app.SpeciestoShowListBox_2.ValueChangedFcn = createCallbackFcn(app, @UpdatePlotsButton_2Pushed, true);
             app.SpeciestoShowListBox_2.Position = [528 147 100 74];
             app.SpeciestoShowListBox_2.Value = {'x1'};
+
+            % Create initApproxSS
+            app.initApproxSS = uicheckbox(app.FSPTab);
+            app.initApproxSS.Text = 'Start at Steady State';
+            app.initApproxSS.Position = [18 81 249 36];
 
             % Create SensitivityTab
             app.SensitivityTab = uitab(app.TabGroup);
