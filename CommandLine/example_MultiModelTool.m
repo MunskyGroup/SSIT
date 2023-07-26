@@ -1,11 +1,17 @@
-%% Using the SSIT to fit and Design Single-Cell Experiments
-% In this script, we show how the SSIT can be used to identify a
-% time-inhomogeneous model for the activation of Dusp1 mRNA expression
-% under Dexamethasome stimulation of Glucocorticoid Receptors.
+%% Using the SSIT to fit Multiple Models and Data sets with Shared Parameters
+% In this script, we show how multiple SSIT models and data sets can be fit
+% simultaneously.  This is most useful in situations where:
+%   1) the analysis considers different experimental conditions (e.g.,
+%   different time points, different inducer concentrations, different
+%   genetic mutations).
+%   2) replica to replica variations are expected that would result in
+%   slightly different parameter combinations
+
 clear all
 clc
 
 %% Define SSIT Model
+% SSIT models are defined as usual:
 Model1 = SSIT;
 Model1.species = {'x1';'x2'};
 Model1.initialCondition = [0;0];
@@ -17,6 +23,7 @@ Model1.parameters = ({'koff',0.14;'kon',0.14;'kr',25;'gr',0.01;...
 Model1.fspOptions.initApproxSS = true;
 
 %% Load and Associate smFISH Data
+% Each model is associated with its data as usual:
 Model1 = Model1.loadData('../../ExampleData/DUSP1_Dex_100nM_Rep1_Rep2.csv',{'x2','RNA_nuc'},...
     {'Rep_num','1'}); % This would load the data assign x1 and x2 and condition on Rep_num = 1;
 
@@ -49,6 +56,9 @@ allParsSingle = singleModel.maximizeLikelihood(...
 singleModel.updateModels(allParsSingle);
 
 %%      Example 1 -- Adding new Model+Data to an existing multimodel
+% This is how one adds a second model/data combination.  In this case the
+% parameters of the new model are completely independent of the parameteer
+% set for the first model.
 combinedModel = singleModel.addModel({Model2},{[8:14]});
 combinedModel = combinedModel.initializeStateSpaces;
 allParsCombined = ([Model1.parameters{:,2},[Model2.parameters{:,2}]]);
@@ -57,6 +67,7 @@ allParsCombined = combinedModel.maximizeLikelihood(...
 combinedModel.updateModels(allParsCombined);
 
 %%      Example 2 -- completely independent parameters.
+% Here is how we can create the combined model in one shot.
 combinedModelIndependent = SSITMultiModel({Model1,Model2},{[1:7],[8:14]});
 combinedModelIndependent = combinedModelIndependent.initializeStateSpaces;
 allParsIndepdendent = ([Model1.parameters{:,2},[Model2.parameters{:,2}]]);
@@ -65,6 +76,8 @@ allParsIndepdendent = combinedModelIndependent.maximizeLikelihood(...
 combinedModelIndependent.updateModels(allParsIndepdendent);
 
 %%      Example 3 -- completely dependent parameters.
+% Here is an example of how a single set of parameters can be used for both
+% models and data sets.
 combinedModelDependent = SSITMultiModel({Model1,Model2},{[1:7],[1:7]});
 combinedModelDependent = combinedModelDependent.initializeStateSpaces;
 allParsDependent = ([Model1.parameters{:,2}]);
@@ -73,6 +86,8 @@ allParsDependent = combinedModelDependent.maximizeLikelihood(...
 combinedModelDependent.updateModels(allParsDependent);
 
 %%      Example 4 -- mixed parameters.
+% Sometimes it is desirable to only let some parameters change from
+% condition to condition.
 combinedModelMixed= SSITMultiModel({Model1,Model2},{[1:7],[1:4,8:10]});
 combinedModelMixed = combinedModelMixed.initializeStateSpaces;
 allParsMixed = ([Model1.parameters{:,2},Model2.parameters{5:7,2}]);
@@ -80,6 +95,9 @@ allParsMixed = combinedModelMixed.maximizeLikelihood(...
     allParsMixed, fitOptions, fitAlgorithm);
 
 %%      Example 5 -- constrained parameters.
+% it is also often helpful to place constraints on parameters since it can
+% be expectd that cartain parameters should not change that much from one
+% experiment to another.
 constraint = @(x)sum((x(5:7)-x(8:10)).^2);
 combinedModelConstrained = SSITMultiModel({Model1,Model2},{[1:7],[1:4,8:10]},constraint);
 combinedModelConstrained = combinedModelConstrained.initializeStateSpaces;
