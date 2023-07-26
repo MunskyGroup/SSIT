@@ -39,16 +39,24 @@ Model2 = Model2.loadData('../../ExampleData/DUSP1_Dex_100nM_Rep1_Rep2.csv',{'x2'
 fitOptions = optimset('Display','iter','MaxIter',100);
 fitAlgorithm = 'fminsearch';
 
-%% Create combined models
+%% Create and estimate parameters for combined models
 %%      Example 0 -- single model.
-combinedModelSingle = SSITMultiModel({Model1},{[1:7]});
-combinedModelSingle = combinedModelSingle.initializeStateSpaces;
+singleModel = SSITMultiModel({Model1},{[1:7]});
+singleModel = singleModel.initializeStateSpaces;
 allParsSingle = ([Model1.parameters{:,2}]);
-allParsSingle = combinedModelSingle.maximizeLikelihood(...
+allParsSingle = singleModel.maximizeLikelihood(...
     allParsSingle, fitOptions, fitAlgorithm);
-combinedModelSingle.updateModels(allParsSingle);
+singleModel.updateModels(allParsSingle);
 
-%%      Example 1 -- completely independent parameters.
+%%      Example 1 -- Adding new Model+Data to an existing multimodel
+combinedModel = singleModel.addModel({Model2},{[8:14]});
+combinedModel = combinedModel.initializeStateSpaces;
+allParsCombined = ([Model1.parameters{:,2},[Model2.parameters{:,2}]]);
+allParsCombined = combinedModel.maximizeLikelihood(...
+    allParsCombined, fitOptions, fitAlgorithm);
+combinedModel.updateModels(allParsCombined);
+
+%%      Example 2 -- completely independent parameters.
 combinedModelIndependent = SSITMultiModel({Model1,Model2},{[1:7],[8:14]});
 combinedModelIndependent = combinedModelIndependent.initializeStateSpaces;
 allParsIndepdendent = ([Model1.parameters{:,2},[Model2.parameters{:,2}]]);
@@ -56,7 +64,7 @@ allParsIndepdendent = combinedModelIndependent.maximizeLikelihood(...
     allParsIndepdendent, fitOptions, fitAlgorithm);
 combinedModelIndependent.updateModels(allParsIndepdendent);
 
-%%      Example 2 -- completely dependent parameters.
+%%      Example 3 -- completely dependent parameters.
 combinedModelDependent = SSITMultiModel({Model1,Model2},{[1:7],[1:7]});
 combinedModelDependent = combinedModelDependent.initializeStateSpaces;
 allParsDependent = ([Model1.parameters{:,2}]);
@@ -64,14 +72,14 @@ allParsDependent = combinedModelDependent.maximizeLikelihood(...
     allParsDependent, fitOptions, fitAlgorithm);
 combinedModelDependent.updateModels(allParsDependent);
 
-%%      Example 3 -- mixed parameters.
+%%      Example 4 -- mixed parameters.
 combinedModelMixed= SSITMultiModel({Model1,Model2},{[1:7],[1:4,8:10]});
 combinedModelMixed = combinedModelMixed.initializeStateSpaces;
 allParsMixed = ([Model1.parameters{:,2},Model2.parameters{5:7,2}]);
 allParsMixed = combinedModelMixed.maximizeLikelihood(...
     allParsMixed, fitOptions, fitAlgorithm);
 
-%%      Example 4 -- constrained parameters.
+%%      Example 5 -- constrained parameters.
 constraint = @(x)sum((x(5:7)-x(8:10)).^2);
 combinedModelConstrained = SSITMultiModel({Model1,Model2},{[1:7],[1:4,8:10]},constraint);
 combinedModelConstrained = combinedModelConstrained.initializeStateSpaces;
