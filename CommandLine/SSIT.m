@@ -25,6 +25,8 @@ classdef SSIT
         initialTime = 0;
         tSpan = linspace(0,10,21); % Times at which to find solutions
         solutionScheme = 'FSP' % Chosen solutuon scheme ('FSP','SSA')
+        modelReductionOptions = struct('useModReduction',false,'reductionType','None') % Settings for
+                            % model reduction tools.
         dataSet = [];
     end
 
@@ -430,6 +432,17 @@ classdef SSIT
                         error('HERE')
                     end
 
+                    if obj.modelReductionOptions.useModReduction
+                        if ~isfield(obj.modelReductionOptions,'phi')
+                            error('Model Reduction Matrices have not yet been Defined.')
+                        end
+                         useReducedModel = true;
+                         modRedTransformMatrices.phi = obj.modelReductionOptions.phi;
+                         modRedTransformMatrices.phi_inv = obj.modelReductionOptions.phi_inv;
+                    else
+                        useReducedModel = false;
+                         modRedTransformMatrices = [];
+                    end
                     [Solution.fsp, bConstraints,Solution.stateSpace] = ssit.fsp.adaptiveFspSolve(obj.tSpan,...
                         obj.initialCondition,...
                         obj.initialProbs,...
@@ -444,7 +457,9 @@ classdef SSIT
                         obj.fspOptions.odeSolver,stateSpace,...
                         obj.fspOptions.usePiecewiseFSP,...
                         obj.fspOptions.initApproxSS,...
-                        obj.species);
+                        obj.species,...
+                        useReducedModel,modRedTransformMatrices);
+                    
                 case 'SSA'
                     Solution.T_array = obj.tSpan;
                     Nt = length(Solution.T_array);
@@ -1346,6 +1361,115 @@ end
 
             pars = exp(x0);
         end
+
+        %% Model Reduction Functions
+        function [obj,fspSoln] = computeModelReductionTransformMatrices(obj,fspSoln)
+            % This function computes linear transformation matrices (PHI
+            % and PHIinv) that can be used to switch between the reduced
+            % and origional FSP bases.
+            arguments
+                obj
+                fspSoln = []
+            end
+
+            numConstraints = length(obj.fspOptions.bounds);
+
+            % Assemble for generator matrix for original FSP problem.
+            if ~isfield(fspSoln,'A_total')
+                fspSoln.Afsp = ssit.FspMatrix(obj.propensities, fspSoln.stateSpace, numConstraints);
+                fspSoln.A_total = fspSoln.Afsp.createSingleMatrix(obj.tSpan(1));
+            end
+
+            % Remove FSP Sinks
+            fspSoln.A_total = fspSoln.A_total(1:end-numConstraints,1:end-numConstraints);
+
+            % Call function to compute transformation matrices.
+            [obj.modelReductionOptions.phi,...
+                obj.modelReductionOptions.phi_inv,...
+                obj.modelReductionOptions.redOutputs] = ...
+                    ssit.fsp_model_reduction.getTransformMatrices(...
+                        obj.modelReductionOptions.reductionType,...
+                        obj.modelReductionOptions.reductionOrder,...
+                        fspSoln); 
+
+            fspSoln.tOut = obj.tSpan;
+            obj.modelReductionOptions.fspSoln=fspSoln;
+
+        end
+
+        function redSolutions = solveReducedFSP(obj)
+            arguments 
+                obj
+            end
+
+            numConstraints = length(obj.fspOptions.bounds);
+            stateCount = obj.modelReductionOptions.fspSoln.stateSpace.getNumStates();
+            % Use Approximate steady state as initial distribution if requested.
+            if obj.fspOptions.initApproxSS
+                jac = obj.modelReductionOptions.fspSoln.A_total;
+                jac = jac(1:end-numConstraints,1:end-numConstraints);
+                jac = jac+diag(sum(jac));
+                try
+                    warning('off')
+                    [eigVec,~] = eigs(jac,1,'smallestabs');
+                catch
+                    try
+                        [eigVec,~] = eigs(jac,0);
+                    catch
+                        try
+                            eigVec = null(full(jac));
+                        catch
+                            disp('Could not find null space. Using uniform.')
+                            eigVec = ones(size(jac,1),1);
+                        end
+                    end
+                end
+                obj.modelReductionOptions.fspSoln.P0 = [eigVec/sum(eigVec);zeros(numConstraints,1)];
+            else % otherwise use user supplied IC.
+                obj.modelReductionOptions.fspSoln.P0  = zeros(stateCount + numConstraints, 1);
+                obj.modelReductionOptions.fspSoln.P0(1:size(obj.initialCondition,2)) = obj.initialProbs;
+            end
+
+            if strcmp(obj.modelReductionOptions.reductionType,'Balanced Model Truncation (HSV)')
+%                 sys = ss(fspSoln.A_total,fspSoln.P0,eye(nStates),[]);
+%                 sysred = balred(sys,n,redOutputs.info);
+%                 A_red = sysred.A;
+%                 q0 = sysred.B;
+%                 OutPutC = sysred.C;
+            else
+                q0 = obj.modelReductionOptions.phi_inv*obj.modelReductionOptions.fspSoln.P0;
+                A_red = obj.modelReductionOptions.phi_inv*...
+                    obj.modelReductionOptions.fspSoln.A_total*...
+                    obj.modelReductionOptions.phi;
+            end
+
+            fspErrorCondition.tInit = obj.modelReductionOptions.fspSoln.tOut(1);
+            [~, ~, ~, ~, solutionsNow] = ssit.fsp_ode_solvers.expv_modified(...
+                obj.modelReductionOptions.fspSoln.tOut(end), A_red, q0,...
+                1e-8, 30,...
+                [],...
+                obj.modelReductionOptions.fspSoln.tOut,...
+                1e-3, [],...
+                obj.modelReductionOptions.fspSoln.tOut(1),...
+                fspErrorCondition);
+
+            if strcmp(obj.modelReductionOptions.reductionType,'Balanced Model Truncation (HSV)')
+%                 redSolutionsNow = solutionsNow*OutPutC';
+            else
+                redSolutionsNow = solutionsNow*obj.modelReductionOptions.phi';
+                redSolutionsNow = diag(1./sum(redSolutionsNow,2))*redSolutionsNow;
+            end
+
+            for j=size(redSolutionsNow,1):-1:1
+                redSolutions.fsp{j} = struct(time=obj.modelReductionOptions.fspSoln.tOut(j),...
+                    p=ssit.FspVector(obj.modelReductionOptions.fspSoln.stateSpace.states,...
+                    redSolutionsNow(j,1:stateCount)),...
+                    sinks=[]);
+            end
+            redSolutions.stateSpace = obj.modelReductionOptions.fspSoln.stateSpace.states;
+        end
+
+
         %% Plotting/Visualization Functions
         function makePlot(obj,solution,plotType,indTimes,includePDO,figureNums)
             % SSIT.makePlot -- tool to make plot of the FSP or SSA results.

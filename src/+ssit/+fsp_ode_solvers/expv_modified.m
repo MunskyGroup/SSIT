@@ -42,7 +42,19 @@
 %  ACM - Transactions On Mathematical Software, 24(1):130-156, 1998
 
 function [w, err, hump, Time_array_out, P_array, P_lost, tryagain, te, ye] = expv_modified( t, A, v, tol, m, N_prt, Time_array,fspTol,SINKS,tNow,fspErrorCondition)
-
+arguments
+    t
+    A
+    v
+    tol = 1e-7
+    m = 30
+    N_prt = []
+    Time_array = []
+    fspTol = 1e-4
+    SINKS = []
+    tNow = 0
+    fspErrorCondition = struct('tInit',0);
+end
 n = size(A,1);
 % if nargin == 3
 %   tol = 1.0e-7;

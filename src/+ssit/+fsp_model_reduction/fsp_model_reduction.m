@@ -80,7 +80,7 @@ for iPar = 1:nParVals
         disp(redType{ired})
 
         switch redType{ired}
-            case {'Eigen Decomposition','Proper Orthogonal Decomposition'...
+            case {'Eigen Decomposition','Eigen Decomposition Initial','Proper Orthogonal Decomposition'...
                     'Balanced Model Truncation (HSV)','Dynamic Mode Decomposition',...
                     'Radial Basis Functions'}
                 n = app.NumberofBasisVectorsEditField.Value;
@@ -88,7 +88,7 @@ for iPar = 1:nParVals
                 n = app.GridSizeEditField.Value;
         end
 
-        try
+%         try
             tic
             if isempty(phi)||~strcmp(lastRed,redType{ired})
                 [phi,phi_inv,redOutputs] = ssit.fsp_model_reduction.getTransformMatrices(redType{ired},n,fspSoln);
@@ -134,13 +134,13 @@ for iPar = 1:nParVals
                     semilogy(app.errorVsTime,fspSoln.tOut(2:end),squeeze(ErrorVsTime(ired,1,2:end)),'linewidth',2)
             end
             lastRed = redType{ired};
-        catch ME
-            disp(['Error Encountered - Skipping to next Method']);
-            ME.message
-            reductionTime(ired) = inf;
-            solutionTime(ired) = inf;
-            ErrorVsTime(ired,iPar,:) = inf*ones(size(fspSoln.tOut));
-        end
+%         catch ME
+%             disp(['Error Encountered - Skipping to next Method']);
+%             ME.message
+%             reductionTime(ired) = inf;
+%             solutionTime(ired) = inf;
+%             ErrorVsTime(ired,iPar,:) = inf*ones(size(fspSoln.tOut));
+%         end
 
     end
 end

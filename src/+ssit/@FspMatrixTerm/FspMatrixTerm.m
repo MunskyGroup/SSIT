@@ -28,15 +28,17 @@ classdef FspMatrixTerm
         propensity ssit.Propensity
         matrix
         numConstraints {mustBeInteger(numConstraints)}
+        modRedTransformMatrices
     end
 
     methods
-        function obj = FspMatrixTerm(propensity, stateSet, numConstraints, varNames)
+        function obj = FspMatrixTerm(propensity, stateSet, numConstraints, varNames, modRedTransformMatrices)
             arguments
                 propensity
                 stateSet
                 numConstraints
-                varNames=[]
+                varNames = []
+                modRedTransformMatrices = []
             end
             % Construct a `FspMatrixTerm` object from a propensity
             % function, a FSP-truncated state space, and number of
@@ -57,9 +59,15 @@ classdef FspMatrixTerm
             obj.isTimeDependent = propensity.isTimeDependent;
             obj.isFactorizable = propensity.isFactorizable;
             obj.numConstraints = numConstraints;
+            obj.modRedTransformMatrices = modRedTransformMatrices;
 
             if ((~obj.isTimeDependent) || (obj.isFactorizable))
                 obj.matrix = ssit.FspMatrixTerm.GenerateMatrixTermTimeInvariant(propensity, stateSet, numConstraints, varNames); % The matrix data is generated only once
+                if ~isempty(modRedTransformMatrices)
+                    obj.matrix = modRedTransformMatrices.phi_inv*...
+                        obj.matrix(1:end-numConstraints,1:end-numConstraints)*...
+                        modRedTransformMatrices.phi;
+                end
             else
                 obj.matrix = stateSet; % The data has to be generated with every matrix-vector multiplication
             end
@@ -75,9 +83,15 @@ classdef FspMatrixTerm
             else
 %                 try
                     A = ssit.FspMatrixTerm.generateTimeVaryingMatrixTerm(t, obj.propensity, obj.matrix, obj.numConstraints);
+                    if ~isempty(obj.modRedTransformMatrices)
+                        A = obj.modRedTransformMatrices.phi_inv*...
+                            A(1:end-obj.numConstraints,1:end-obj.numConstraints)*...
+                            obj.modRedTransformMatrices.phi;
+                    end
 %                 catch
 %                     1+1
 %                 end
+
                 w = A*v;
             end
         end

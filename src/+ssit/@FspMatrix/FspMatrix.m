@@ -23,12 +23,13 @@ classdef FspMatrix
     end
 
     methods
-        function obj = FspMatrix(propensities, stateSet, numConstraints, varNames)
+        function obj = FspMatrix(propensities, stateSet, numConstraints, varNames, modRedTransformMatrices)
             arguments
                 propensities
                 stateSet
                 numConstraints
                 varNames =[]
+                modRedTransformMatrices =[];
             end
             % Construct an instance of FspMatrix.
             %
@@ -51,21 +52,22 @@ classdef FspMatrix
             %
             %   obj: an instance of this class.
             %
-            obj = obj.regenerate(propensities, stateSet, numConstraints, varNames);
+            obj = obj.regenerate(propensities, stateSet, numConstraints, varNames, modRedTransformMatrices);
         end
 
-        function obj = regenerate(obj, propensities, stateSet, numConstraints, varNames)
+        function obj = regenerate(obj, propensities, stateSet, numConstraints, varNames, modRedTransformMatrices)
             arguments
                 obj
                 propensities
                 stateSet
                 numConstraints
-                varNames =[]
+                varNames = []
+                modRedTransformMatrices = []
             end
             n_reactions = length(propensities);
             obj.terms = cell(n_reactions, 1);
             for i = 1:n_reactions
-                obj.terms{i} = ssit.FspMatrixTerm(propensities{i}, stateSet, numConstraints, varNames);
+                obj.terms{i} = ssit.FspMatrixTerm(propensities{i}, stateSet, numConstraints, varNames, modRedTransformMatrices);
             end
         end
 

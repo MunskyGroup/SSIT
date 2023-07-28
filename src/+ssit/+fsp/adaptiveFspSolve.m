@@ -1,4 +1,4 @@
-function [solutions, constraintBoundsFinal,stateSpace] = adaptiveFspSolve(...
+function [solutions, constraintBoundsFinal, stateSpace] = adaptiveFspSolve(...
     outputTimes, ...
     initStates,...
     initProbs,...
@@ -7,7 +7,8 @@ function [solutions, constraintBoundsFinal,stateSpace] = adaptiveFspSolve(...
     constraintFunctions, initialConstraintBounds,...
     verbose,...
     relTol,absTol,odeSolver,...
-    stateSpace,usePiecewiseFSP,initApproxSS,varNames)
+    stateSpace,usePiecewiseFSP,initApproxSS,varNames,...
+    useReducedModel,modRedTransformMatrices)
 % Approximate the transient solution of the chemical master equation using
 % an adaptively expanding finite state projection (FSP).
 %
@@ -109,6 +110,8 @@ arguments
     usePiecewiseFSP=false;
     initApproxSS=false;
     varNames=[];
+    useReducedModel=false;
+    modRedTransformMatrices=[];
 end
 
 maxOutputTime = max(outputTimes);
@@ -133,7 +136,11 @@ end
 
 % Generate the FSP matrix
 stateCount = stateSpace.getNumStates();
-Afsp = ssit.FspMatrix(propensities, stateSpace, constraintCount, varNames);
+if useReducedModel
+    Afsp = ssit.FspMatrix(propensities, stateSpace, constraintCount, varNames, modRedTransformMatrices);
+else
+    Afsp = ssit.FspMatrix(propensities, stateSpace, constraintCount, varNames);
+end
 
 % Check that the model propensities are time-invariant
 isTimeInvariant = true;
@@ -148,8 +155,10 @@ end
 % Use Approximate steady state as initial distribution if requested.
 if initApproxSS
     jac = Afsp.createSingleMatrix(outputTimes(1));
-    jac =jac(1:end-constraintCount,1:end-constraintCount);
-    jac =jac+diag(sum(jac));
+    if ~useReducedModel
+        jac = jac(1:end-constraintCount,1:end-constraintCount);
+    end
+    jac = jac+diag(sum(jac));
     try
         warning('off')
         [eigVec,~] = eigs(jac,1,'smallestabs');
@@ -165,19 +174,38 @@ if initApproxSS
             end
         end
     end
-    solVec = [eigVec/sum(eigVec);zeros(constraintCount,1)];
+    if useReducedModel
+        solVec = eigVec/sum(eigVec);
+    else
+        solVec = [eigVec/sum(eigVec);zeros(constraintCount,1)];
+    end
 else % otherwise use user supplied IC.
-    solVec = zeros(stateCount + constraintCount, 1);
-    solVec(1:size(initStates,2)) = initProbs;
+    if useReducedModel
+        solVec = zeros(stateCount, 1);
+        solVec(1:size(initStates,2)) = initProbs;
+        solVec = modRedTransformMatrices.phi_inv*solVec;
+    else
+        solVec = zeros(stateCount + constraintCount, 1);
+        solVec(1:size(initStates,2)) = initProbs;
+    end
+
 end
 
 tInit =min(outputTimes);
 tNow = tInit;
 iout = find(outputTimes == tNow, 1, 'first');
 if (~isempty(iout))
-    solutions{iout} = struct(time=0, ...
-        p=packFspSolution(stateSpace.states, solVec(1:stateCount)), ...
-        sinks=solVec(stateCount+1:end));
+    if useReducedModel
+        p = real(modRedTransformMatrices.phi*solVec);
+        p = max(p,0);
+        solutions{iout} = struct(time=0, ...
+            p=packFspSolution(stateSpace.states, p(1:stateCount)), ...
+            sinks=[]);
+    else
+        solutions{iout} = struct(time=0, ...
+            p=packFspSolution(stateSpace.states, solVec(1:stateCount)), ...
+            sinks=solVec(stateCount+1:end));
+    end
 else
     iout = 0;
 end
@@ -211,24 +239,49 @@ while (tNow < maxOutputTime)
         matvec = @(t, p) Afsp.multiply(t, p);
         solver = ssit.fsp_ode_solvers.MexSundials();        
     else
-        if isTimeInvariant==1 % If no parameters are functions of time.
-            jac = Afsp.createSingleMatrix(tNow);
-            matvec = @(~,p) jac*p;            
-        elseif usePiecewiseFSP
-            jac = @(t)Afsp.createSingleMatrix(t);
-            matvec = [];            
-        else
-            % If time varrying
-            matvec = @(t, p) Afsp.multiply(t, p);
-            jac = @(t,~)Afsp.createSingleMatrix(t);            
-        end
+        if useReducedModel
+            % This section is under construction for FSP solutions using
+            % the model reductions.
+            fspErrorCondition.fspTol = inf;
+            if isTimeInvariant==1 % If no parameters are functions of time.
+                jac = Afsp.createSingleMatrix(tNow);
+                matvec = @(~,p) jac*p;
+            elseif usePiecewiseFSP
+                jac = @(t)Afsp.createSingleMatrix(t);
+                matvec = [];
+            else
+                % If time varrying
+                matvec = @(t, p) Afsp.multiply(t, p);
+                jac = @(t,~)Afsp.createSingleMatrix(t);
+            end
 
-        if odeSolver == "expokit"
-            solver = ssit.fsp_ode_solvers.Expokit();
-        elseif odeSolver == "expokitPiecewise"
-            solver = ssit.fsp_ode_solvers.ExpokitPiecewise();
+            if odeSolver == "expokit"
+                solver = ssit.fsp_ode_solvers.Expokit(30,1e-8,'expv_modified');
+            elseif odeSolver == "expokitPiecewise"
+                solver = ssit.fsp_ode_solvers.ExpokitPiecewise();
+            else
+                solver = ssit.fsp_ode_solvers.OdeSuite(relTol, absTol);
+            end
         else
-            solver = ssit.fsp_ode_solvers.OdeSuite(relTol, absTol);
+            if isTimeInvariant==1 % If no parameters are functions of time.
+                jac = Afsp.createSingleMatrix(tNow);
+                matvec = @(~,p) jac*p;
+            elseif usePiecewiseFSP
+                jac = @(t)Afsp.createSingleMatrix(t);
+                matvec = [];
+            else
+                % If time varrying
+                matvec = @(t, p) Afsp.multiply(t, p);
+                jac = @(t,~)Afsp.createSingleMatrix(t);
+            end
+
+            if odeSolver == "expokit"
+                solver = ssit.fsp_ode_solvers.Expokit();
+            elseif odeSolver == "expokitPiecewise"
+                solver = ssit.fsp_ode_solvers.ExpokitPiecewise();
+            else
+                solver = ssit.fsp_ode_solvers.OdeSuite(relTol, absTol);
+            end
         end
     end
 
@@ -245,9 +298,20 @@ while (tNow < maxOutputTime)
         end
         j = j +1;
         iout = iout+1;
-        solutions{iout} = struct(time=outputTimes(iout),...
-            p=packFspSolution(stateSpace.states, solutionsNow{j}(1:stateCount)),...
-            sinks=solutionsNow{j}(stateCount+1:end));
+        if useReducedModel
+            p = real(modRedTransformMatrices.phi*solutionsNow{j});
+            p = max(p,0);
+            p = p/sum(p);
+%             p = max(p,0)
+            solutions{iout} = struct(time=outputTimes(iout), ...
+                p=packFspSolution(stateSpace.states, p(1:stateCount)), ...
+                sinks=[]);
+        else
+            solutions{iout} = struct(time=outputTimes(iout),...
+                p=packFspSolution(stateSpace.states, solutionsNow{j}(1:stateCount)),...
+                sinks=solutionsNow{j}(stateCount+1:end));
+        end
+    
     end
 
     if (j > 0)
