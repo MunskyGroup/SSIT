@@ -3,10 +3,11 @@ classdef OdeSuite < ssit.fsp_ode_solvers.OdeSolver
     properties
         relTol (1,1) double {mustBePositive} = 1.0e-4
         absTol (1,1) double {mustBePositive} = 1.0e-8    
+        numODEs = 0
     end
     
     methods
-        function obj = OdeSuite(relTol, absTol)
+        function obj = OdeSuite(relTol, absTol, numODEs)
         % Construct an instance of MexSundials.
         % 
         % Parameters
@@ -18,13 +19,18 @@ classdef OdeSuite < ssit.fsp_ode_solvers.OdeSolver
         % absTol: double
         %   absolute tolerance for the solver.
         %
+        % numODEs: int
+        %   numer of upstream ODEs at the end of the state vector (for
+        %   hybrid models.
         arguments
             relTol (1,1) double {mustBePositive} = 1.0e-4
             absTol (1,1) double {mustBePositive} = 1.0e-8
+            numODEs = 0
         end
         
         obj.relTol = relTol;
         obj.absTol = absTol;
+        obj.numODEs = numODEs;
         end
         
         function [tExport, solutionsNow, fspStopStatus] = solve(obj, tStart, tOut, initSolution, rhs, jac, fspErrorCondition)
@@ -79,8 +85,12 @@ classdef OdeSuite < ssit.fsp_ode_solvers.OdeSolver
         %   - errorBound: the error bound at ``tExit``. 
         %
         %
-        odeEvent = @(t,p) fspOdesuiteEvent(t, p, fspErrorCondition);            
-        ode_opts = odeset('Events', odeEvent, 'Jacobian', jac, 'relTol',obj.relTol, 'absTol', obj.absTol,'Vectorized','on');
+        odeEvent = @(t,p) fspOdesuiteEvent(t, p, fspErrorCondition, obj.numODEs);            
+        if ~isempty(jac)
+            ode_opts = odeset('Events', odeEvent, 'Jacobian', jac, 'relTol',obj.relTol, 'absTol', obj.absTol,'Vectorized','on');
+        else
+            ode_opts = odeset('Events', odeEvent, 'relTol',obj.relTol, 'absTol', obj.absTol,'Vectorized','off');
+        end
         tSpan = sort(unique([tStart; tOut]));
         [tExport, solutionsNow, te, ye, ~] =  ode23s(rhs, tSpan, initSolution, ode_opts);
         
@@ -94,7 +104,7 @@ classdef OdeSuite < ssit.fsp_ode_solvers.OdeSolver
         solutionsNow = mat2cell(solutionsNow, size(solutionsNow,1), ones(1, size(solutionsNow,2)));
         
         if (~isempty(te))
-            sinks = max(0,ye(end+1-fspErrorCondition.nSinks:end));
+            sinks = max(0,ye(end-fspErrorCondition.nSinks-obj.numODEs+1:end-obj.numODEs));
             errorBound = fspErrorCondition.fspTol*...
                 (te-fspErrorCondition.tInit)/(fspErrorCondition.tFinal-fspErrorCondition.tInit);
             if sum(sinks*fspErrorCondition.nSinks)>=errorBound
@@ -120,8 +130,14 @@ classdef OdeSuite < ssit.fsp_ode_solvers.OdeSolver
 end
 
 
-function [val, terminal, direction] = fspOdesuiteEvent(t, p, fspErrorCheck)
-sinks = p(end+1-fspErrorCheck.nSinks:end);
+function [val, terminal, direction] = fspOdesuiteEvent(t, p, fspErrorCheck, numODEs)
+arguments
+    t
+    p
+    fspErrorCheck
+    numODEs = 0;
+end
+sinks = p(end-fspErrorCheck.nSinks-numODEs+1:end-numODEs);
 error_bound = fspErrorCheck.fspTol*(t-fspErrorCheck.tInit)/(fspErrorCheck.tFinal-fspErrorCheck.tInit);
 
 val = max(sinks)*fspErrorCheck.nSinks - error_bound;

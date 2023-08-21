@@ -73,7 +73,7 @@ classdef Expokit
         %   - errorBound: the error bound at ``tExit``. 
         %
         %
-        m = obj.m;
+        m = min(ceil(size(jac,1)/2),obj.m);
         tryAgain=1;
         if ~exist('m','var'); m=15; end
         fspTol = fspErrorCondition.fspTol;

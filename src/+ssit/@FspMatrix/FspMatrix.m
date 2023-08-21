@@ -24,13 +24,6 @@ classdef FspMatrix
 
     methods
         function obj = FspMatrix(propensities, stateSet, numConstraints, varNames, modRedTransformMatrices)
-            arguments
-                propensities
-                stateSet
-                numConstraints
-                varNames =[]
-                modRedTransformMatrices =[];
-            end
             % Construct an instance of FspMatrix.
             %
             % Parameters
@@ -47,15 +40,57 @@ classdef FspMatrix
             %   numConstraints: integer
             %       number of FSP constraints.
             %
+            %   varNames: cell of strings
+            %       names of the species considered in the model
+            %
+            %   modRedTransformMatrices: structure
+            %       optional structure containing the projection
+            %       transformation matrices PHI and PHIinv to be use for
+            %       model reduction.
+            %
             % Returns
             % -------
             %
             %   obj: an instance of this class.
             %
+            arguments
+                propensities
+                stateSet
+                numConstraints
+                varNames = []
+                modRedTransformMatrices =[];
+            end
             obj = obj.regenerate(propensities, stateSet, numConstraints, varNames, modRedTransformMatrices);
         end
 
         function obj = regenerate(obj, propensities, stateSet, numConstraints, varNames, modRedTransformMatrices)
+            % Regenerate the state space for the current contraints.
+            % Parameters
+            % ----------
+            %
+            %   propensities: cell of :mat:class:`~+ssit.@Propensity.Propensity` objects
+            %       cell of propensities that define the stochastic reaction network
+            %       model.
+            %
+            %   stateSet: an instance of class :mat:class:`~+ssit.@FiniteStateSet.FiniteStateSet`.
+            %       the states based on which this transition rate matrix is
+            %       built.
+            %
+            %   numConstraints: integer
+            %       number of FSP constraints.
+            %
+            %   varNames: cell of strings
+            %       names of the species considered in the model
+            %
+            %   modRedTransformMatrices: structure
+            %       optional structure containing the projection
+            %       transformation matrices PHI and PHIinv to be use for
+            %       model reduction.
+            %
+            % Returns
+            % -------
+            %
+            %   obj: an instance of this class.
             arguments
                 obj
                 propensities
@@ -95,19 +130,57 @@ classdef FspMatrix
             end
         end
 
-        function A = createSingleMatrix(obj, t)
+        function w = hybridRHS(obj,t,v,upstreamODEs)
+            % Compute the action of the time-dependent FSP matrix.
+            %
+            % Parameters
+            % ----------
+            %
+            %   t: double
+            %       time to evaluate the matrix-vector product.
+            %
+            %   v: column vector
+            %       the input vector.
+            %
+            %   upstreamODEs: cell of strings
+            %       names of the upstream species that will be treated as
+            %       ODES. 
+            %
+            % Returns
+            % -------
+            %
+            %   w: column vector.
+            %       the output vector.
+
+            w = obj.terms{1}.multiplyHybrid(t,v(1:end-length(upstreamODEs)),v(end-length(upstreamODEs)+1:end));
+            for i = 2:length(obj.terms)
+                w = w + obj.terms{i}.multiplyHybrid(t,v(1:end-length(upstreamODEs)),v(end-length(upstreamODEs)+1:end));
+            end
+        end
+
+        function A = createSingleMatrix(obj, t, modRedTransformMatrices)
             % Generate a single MATLAB sparse matrix from the current time
             % `t`. This matrix's left multiplication on a vector `v` of
             % appropriate size will return the same output as when calling
             % `multiply(obj,t, v)`.
+            % if modRedTransformMatrices is provided, then the model
+            % reduction transofrmation will be carried out to return the
+            % reduce system.
+            arguments
+                obj
+                t
+                modRedTransformMatrices =[];
+            end
+
             if obj.terms{1}.isFactorizable
                 if (obj.terms{1}.isTimeDependent)
                     A = obj.terms{1}.propensity.timeDependentFactor(t)*obj.terms{1}.matrix;
                 else
-                    A = obj.terms{1}.matrix;
+%                     A = obj.terms{1}.matrix;
+                    A = obj.terms{1}.propensity.timeDependentFactor(0)*obj.terms{1}.matrix;
                 end
             else
-                A = ssit.FspMatrixTerm.generateTimeVaryingMatrixTerm(t, obj.terms{1}.propensity, obj.terms{1}.matrix, obj.terms{1}.numConstraints);
+                A = ssit.FspMatrixTerm.generateTimeVaryingMatrixTerm(t, obj.terms{1}.propensity, obj.terms{1}.matrix, obj.terms{1}.numConstraints, modRedTransformMatrices);
             end
 
             for i = 2:length(obj.terms)
@@ -115,10 +188,11 @@ classdef FspMatrix
                     if obj.terms{i}.isTimeDependent
                         A = A + obj.terms{i}.propensity.timeDependentFactor(t)*obj.terms{i}.matrix;
                     else
-                        A = A + obj.terms{i}.matrix;
+                        A = A + obj.terms{i}.propensity.timeDependentFactor(0)*obj.terms{i}.matrix;
+%                         A = A + obj.terms{i}.matrix;
                     end
                 else
-                    A = A + ssit.FspMatrixTerm.generateTimeVaryingMatrixTerm(t, obj.terms{i}.propensity, obj.terms{i}.matrix, obj.terms{i}.numConstraints);
+                    A = A + ssit.FspMatrixTerm.generateTimeVaryingMatrixTerm(t, obj.terms{i}.propensity, obj.terms{i}.matrix, obj.terms{i}.numConstraints, modRedTransformMatrices);
                 end
             end
             

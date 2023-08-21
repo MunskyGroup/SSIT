@@ -28,6 +28,8 @@ classdef SSIT
         modelReductionOptions = struct('useModReduction',false,'reductionType','None') % Settings for
                             % model reduction tools.
         dataSet = [];
+        useHybrid = false
+        hybridOptions = struct('upstreamODEs',[]);
     end
 
     properties (Dependent)
@@ -71,45 +73,96 @@ classdef SSIT
         end
 
         function Propensities = get.propensities(obj)
-            switch obj.solutionScheme
-                case 'FSP'
-                    propenType = "str";
-                case 'SSA'
-                    propenType = "fun";
-            end
-            propstrings = ssit.SrnModel.processPropensityStrings(obj.propensityFunctions,...
-                obj.inputExpressions,...
-                obj.pars_container,...
-                propenType,...
-                obj.species);
+%             switch obj.solutionScheme
+%                 case 'FSP'
+%                     propenType = "str";
+%                 case 'SSA'
+%                     propenType = "fun";
+%             end
+%             propstrings = ssit.SrnModel.processPropensityStrings(obj.propensityFunctions,...
+%                 obj.inputExpressions,...
+%                 obj.pars_container,...
+%                 propenType,...
+%                 obj.species);
 
             if strcmp(obj.solutionScheme,'FSP')
                 n_reactions = length(obj.propensityFunctions);
                 Propensities = cell(n_reactions, 1);
                 for i = 1:n_reactions
-                    Propensities{i} = ssit.Propensity.createFromString(propstrings{i}, obj.stoichiometry(:,i), i);
+                        st = obj.propensityFunctions{i};
+                        for jI = 1:size(obj.inputExpressions,1)
+                            st = strrep(st,obj.inputExpressions{jI,1},obj.inputExpressions{jI,2});
+                        end
+                        sm = str2sym(st);
+                        
+                        if obj.useHybrid
+                            % Propensity for hybrid models will include
+                            % solutions from the upstream ODEs.
+                            Propensities{i} = ssit.Propensity.createAsHybrid(sm, obj.stoichiometry(:,i), i, obj.parameters(:,1), obj.species, obj.hybridOptions.upstreamODEs);
+                            if ~isempty(Propensities{i}.hybridFactor)
+                                Propensities{i}.hybridFactor = ...
+                                    @(t,v)Propensities{i}.hybridFactor(t,obj.parameters{:,2},v);
+                            end
+                            if ~isempty(Propensities{i}.hybridJointFactor)
+                                Propensities{i}.hybridJointFactor = ...
+                                    @(t,x,v)Propensities{i}.hybridJointFactor(t,x,obj.parameters{:,2},v);
+                            end
+
+                        else
+                            Propensities{i} = ssit.Propensity.createFromSym(sm, obj.stoichiometry(:,i), i, obj.parameters(:,1), obj.species);
+
+                            if ~isempty(Propensities{i}.timeDependentFactor)
+                                Propensities{i}.timeDependentFactor = ...
+                                    @(t)Propensities{i}.timeDependentFactor(t,obj.parameters{:,2});
+
+                                % The time dependent signal must always be non-negative.
+                                if sign(Propensities{i}.timeDependentFactor(0))==-1
+                                    sgT = -1;
+                                    Propensities{i}.timeDependentFactor = ...
+                                        @(t)(sgT*Propensities{i}.timeDependentFactor(t));
+                                else
+                                    sgT = 1;
+                                end
+
+                            end
+                            if ~isempty(Propensities{i}.stateDependentFactor)
+                                Propensities{i}.stateDependentFactor = ...
+                                    @(x)sgT*Propensities{i}.stateDependentFactor(x,obj.parameters{:,2});
+                            end
+                            if ~isempty(Propensities{i}.jointDependentFactor)
+                                Propensities{i}.jointDependentFactor = ...
+                                    @(t,x)Propensities{i}.jointDependentFactor(t,x,obj.parameters{:,2});
+                            end
+                        end
                 end
             elseif strcmp(obj.solutionScheme,'SSA')
-                Propensities = propstrings;
+                Propensities = ssit.SrnModel.processPropensityStrings(obj.propensityFunctions,...
+                obj.inputExpressions,...
+                obj.pars_container,...
+                propenType,...
+                obj.species);
             end
         end
 
         function constraints = get.fspConstraints(obj)
             % Makes a list of FSP constraints that can be used by the FSP
             % solver.
-            nSpecies = length(obj.species);
+            if obj.useHybrid
+                stochasticSpecies = setdiff(obj.species,obj.hybridOptions.upstreamODEs);
+            else
+                stochasticSpecies = obj.species;
+            end
+            nSpecies = length(stochasticSpecies);
             Data = cell(nSpecies*2,3);
             for i = 1:nSpecies
-%                 Data(i,:) = {['-',obj.species{i}],'<',0};
-%                 Data(nSpecies+i,:) = {obj.species{i},'<',1};
                 Data(i,:) = {['-x',num2str(i)],'<',0};
                 Data(nSpecies+i,:) = {['x',num2str(i)],'<',1};
             end
             for i = 1:length(obj.customConstraintFuns)
                 Data(2*nSpecies+i,:) = {obj.customConstraintFuns{i},'<',1};
             end
-            constraints.f = readConstraintsForAdaptiveFsp([], obj.species, Data);
-            if isempty(obj.fspOptions.bounds)
+            constraints.f = readConstraintsForAdaptiveFsp([], stochasticSpecies, Data);
+            if isempty(obj.fspOptions.bounds)||size(Data,1)~=length(obj.fspOptions.bounds)
                 constraints.b = [Data{:,3}]';
             else
                 constraints.b = obj.fspOptions.bounds;
@@ -439,6 +492,8 @@ classdef SSIT
                          useReducedModel = true;
                          modRedTransformMatrices.phi = obj.modelReductionOptions.phi;
                          modRedTransformMatrices.phi_inv = obj.modelReductionOptions.phi_inv;
+                         modRedTransformMatrices.phiScale = obj.modelReductionOptions.phiScale;
+                         modRedTransformMatrices.phiPlot = obj.modelReductionOptions.phiPlot;
                     else
                         useReducedModel = false;
                          modRedTransformMatrices = [];
@@ -458,7 +513,8 @@ classdef SSIT
                         obj.fspOptions.usePiecewiseFSP,...
                         obj.fspOptions.initApproxSS,...
                         obj.species,...
-                        useReducedModel,modRedTransformMatrices);
+                        useReducedModel,modRedTransformMatrices, ...
+                        obj.useHybrid,obj.hybridOptions);
                     
                 case 'SSA'
                     Solution.T_array = obj.tSpan;
@@ -1363,13 +1419,14 @@ end
         end
 
         %% Model Reduction Functions
-        function [obj,fspSoln] = computeModelReductionTransformMatrices(obj,fspSoln)
+        function [obj,fspSoln] = computeModelReductionTransformMatrices(obj,fspSoln,phi)
             % This function computes linear transformation matrices (PHI
             % and PHIinv) that can be used to switch between the reduced
             % and origional FSP bases.
             arguments
                 obj
                 fspSoln = []
+                phi = []
             end
 
             numConstraints = length(obj.fspOptions.bounds);
@@ -1386,6 +1443,8 @@ end
             % Call function to compute transformation matrices.
             [obj.modelReductionOptions.phi,...
                 obj.modelReductionOptions.phi_inv,...
+                obj.modelReductionOptions.phiScale,...
+                obj.modelReductionOptions.phiPlot,...
                 obj.modelReductionOptions.redOutputs] = ...
                     ssit.fsp_model_reduction.getTransformMatrices(...
                         obj.modelReductionOptions.reductionType,...
@@ -1568,7 +1627,7 @@ end
                                         for i = 1:Nt
                                             i2 = indTimes(i);
                                             subplot(Nr,Nc,i);
-                                            contourf(log10(solution.Joints{i2}{j1,j2}));
+                                            contourf(log10(max(1e-16,solution.Joints{i2}{j1,j2})));
                                             colorbar
                                             title(['t = ',num2str(solution.T_array(i2),2)])
                                             %                                             if mod(i-1,Nc)==0;

@@ -94,6 +94,7 @@ n = size(A,1);
 % if nargin ==9
 %     tol=min(tol,fspTol/10);
 % end
+m = min(m,n-1);
 
 tryagain=0;
 anorm = norm(A,'inf'); 

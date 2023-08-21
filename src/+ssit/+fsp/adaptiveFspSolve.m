@@ -7,8 +7,9 @@ function [solutions, constraintBoundsFinal, stateSpace] = adaptiveFspSolve(...
     constraintFunctions, initialConstraintBounds,...
     verbose,...
     relTol,absTol,odeSolver,...
-    stateSpace,usePiecewiseFSP,initApproxSS,varNames,...
-    useReducedModel,modRedTransformMatrices)
+    stateSpace,usePiecewiseFSP,initApproxSS,speciesNames,...
+    useReducedModel,modRedTransformMatrices,...
+    useHybrid,hybridOptions)
 % Approximate the transient solution of the chemical master equation using
 % an adaptively expanding finite state projection (FSP).
 %
@@ -70,6 +71,23 @@ function [solutions, constraintBoundsFinal, stateSpace] = adaptiveFspSolve(...
 %    estimate the steady state distribution and use that as the initial
 %    condiiton.
 %
+%   speciesNames: cell vector
+%    list of names of species
+%
+%   useReducedModel: logical(false)
+%    option to use a projection-based model reduction scheme
+%
+%   modRedTransformMatrices: structure(optional)
+%    model reduction transformation matrices.
+%
+%   useHybrid: logical(false)
+%    option to use a hybrid model where some upstrame species are treated
+%    as ODEs
+%
+%   hybridOptions: structure
+%    structure containing the field 'upstreamODEs' which specifies the
+%    names of all species that are treated as upstream ODEs.
+%
 % Returns
 % -------
 %
@@ -109,9 +127,11 @@ arguments
     stateSpace =[];
     usePiecewiseFSP=false;
     initApproxSS=false;
-    varNames=[];
+    speciesNames=[];
     useReducedModel=false;
     modRedTransformMatrices=[];
+    useHybrid = false;
+    hybridOptions = [];
 end
 
 maxOutputTime = max(outputTimes);
@@ -121,6 +141,19 @@ if (outputTimeCount ~= length(outputTimes))
     disp('Warning: input tspan contains repeated elements. Converted tspan to vector of unique values');
     outputTimeCount = length(outputTimes);
 end
+
+% If it is a hybrid model, construct the deterministic and stochastic
+% stoichiometry vectors.
+if useHybrid
+    jStochastic = find(~contains(speciesNames,hybridOptions.upstreamODEs));
+    jUpstreamODE = find(contains(speciesNames,hybridOptions.upstreamODEs));
+    odeStoichs = stoichMatrix(jUpstreamODE,:);
+    stoichMatrix = stoichMatrix(jStochastic,:);
+    initODEs = initStates(jUpstreamODE);
+    initStates = initStates(jStochastic);
+    speciesNames = speciesNames(jStochastic);
+end
+
 constraintCount = size(initialConstraintBounds, 1);
 constraintBoundsFinal = initialConstraintBounds;
 solutions = cell(outputTimeCount, 1);
@@ -136,10 +169,12 @@ end
 
 % Generate the FSP matrix
 stateCount = stateSpace.getNumStates();
-if useReducedModel
-    Afsp = ssit.FspMatrix(propensities, stateSpace, constraintCount, varNames, modRedTransformMatrices);
+if useHybrid
+    AfspFull = ssit.FspMatrix(propensities, stateSpace, constraintCount, speciesNames, modRedTransformMatrices);    
+elseif useReducedModel
+    AfspRed = ssit.FspMatrix(propensities, stateSpace, constraintCount, speciesNames, modRedTransformMatrices);
 else
-    Afsp = ssit.FspMatrix(propensities, stateSpace, constraintCount, varNames);
+    AfspFull = ssit.FspMatrix(propensities, stateSpace, constraintCount, speciesNames);
 end
 
 % Check that the model propensities are time-invariant
@@ -152,13 +187,18 @@ for i = 1:length(propensities)
     end
 end
 
+if useHybrid&&initApproxSS
+    error('Approximate SS initiation not yet supported for hybrid models.')
+end
+
 % Use Approximate steady state as initial distribution if requested.
 if initApproxSS
-    jac = Afsp.createSingleMatrix(outputTimes(1));
-    if ~useReducedModel
-        jac = jac(1:end-constraintCount,1:end-constraintCount);
+    if useReducedModel
+        AfspFull = ssit.FspMatrix(propensities, stateSpace, constraintCount, speciesNames);
     end
-    jac = jac+diag(sum(jac));
+    jac = AfspFull.createSingleMatrix(outputTimes(1));
+    jac = jac(1:end-constraintCount,1:end-constraintCount);
+
     try
         warning('off')
         [eigVec,~] = eigs(jac,1,'smallestabs');
@@ -176,6 +216,7 @@ if initApproxSS
     end
     if useReducedModel
         solVec = eigVec/sum(eigVec);
+        solVec = modRedTransformMatrices.phi_inv*solVec;
     else
         solVec = [eigVec/sum(eigVec);zeros(constraintCount,1)];
     end
@@ -188,19 +229,32 @@ else % otherwise use user supplied IC.
         solVec = zeros(stateCount + constraintCount, 1);
         solVec(1:size(initStates,2)) = initProbs;
     end
-
+    if useHybrid
+        solVec = [solVec;initODEs];
+    end
 end
 
+% Write initial condition into results structure
 tInit =min(outputTimes);
 tNow = tInit;
 iout = find(outputTimes == tNow, 1, 'first');
 if (~isempty(iout))
     if useReducedModel
-        p = real(modRedTransformMatrices.phi*solVec);
+        if ~isempty(modRedTransformMatrices.phiPlot)
+            p = real(modRedTransformMatrices.phiPlot*solVec);
+        else
+            p = real(modRedTransformMatrices.phi*solVec);
+        end
+        p = p/sum(p);
         p = max(p,0);
         solutions{iout} = struct(time=0, ...
             p=packFspSolution(stateSpace.states, p(1:stateCount)), ...
             sinks=[]);
+    elseif useHybrid
+        solutions{iout} = struct(time=0, ...
+            p=packFspSolution(stateSpace.states, solVec(1:stateCount)), ...
+            sinks=solVec(stateCount+1:end-length(jUpstreamODE)),...
+            upstreamODEs=solVec(end-length(jUpstreamODE)+1:end));
     else
         solutions{iout} = struct(time=0, ...
             p=packFspSolution(stateSpace.states, solVec(1:stateCount)), ...
@@ -225,6 +279,7 @@ if odeSolver == "auto"
     end       
 end
 
+% While loop for solving the FSP over each time step.
 while (tNow < maxOutputTime)
     fspErrorCondition = struct('tStart', tNow,...
         'tFinal', maxOutputTime,...
@@ -235,28 +290,27 @@ while (tNow < maxOutputTime)
     tOut = outputTimes(outputTimes >= tNow);
     % Set up ODE solver data structure for the truncated problem
     if (odeSolver=="sundials")
-        jac = [];
-        matvec = @(t, p) Afsp.multiply(t, p);
-        solver = ssit.fsp_ode_solvers.MexSundials();        
+        error('Sundials not implemented.')
+%         jac = [];
+%         matvec = @(t, p) Afsp.multiply(t, p);
+%         solver = ssit.fsp_ode_solvers.MexSundials();        
     else
         if useReducedModel
-            % This section is under construction for FSP solutions using
-            % the model reductions.
             fspErrorCondition.fspTol = inf;
             if isTimeInvariant==1 % If no parameters are functions of time.
-                jac = Afsp.createSingleMatrix(tNow);
+                jac = AfspRed.createSingleMatrix(tNow,modRedTransformMatrices);
                 matvec = @(~,p) jac*p;
             elseif usePiecewiseFSP
-                jac = @(t)Afsp.createSingleMatrix(t);
+                jac = @(t)AfspRed.createSingleMatrix(t,modRedTransformMatrices);
                 matvec = [];
             else
                 % If time varrying
-                matvec = @(t, p) Afsp.multiply(t, p);
-                jac = @(t,~)Afsp.createSingleMatrix(t);
+                matvec = @(t, p) AfspRed.multiply(t, p);
+                jac = @(t,~)AfspRed.createSingleMatrix(t,modRedTransformMatrices);
             end
 
             if odeSolver == "expokit"
-                solver = ssit.fsp_ode_solvers.Expokit(30,1e-8,'expv_modified');
+                solver = ssit.fsp_ode_solvers.Expokit(20,1e-8,'expv_modified');
             elseif odeSolver == "expokitPiecewise"
                 solver = ssit.fsp_ode_solvers.ExpokitPiecewise();
             else
@@ -264,15 +318,19 @@ while (tNow < maxOutputTime)
             end
         else
             if isTimeInvariant==1 % If no parameters are functions of time.
-                jac = Afsp.createSingleMatrix(tNow);
+                jac = AfspFull.createSingleMatrix(tNow);
                 matvec = @(~,p) jac*p;
             elseif usePiecewiseFSP
-                jac = @(t)Afsp.createSingleMatrix(t);
+                jac = @(t)AfspFull.createSingleMatrix(t);
                 matvec = [];
+            elseif useHybrid
+                matvec = @(t, p) AfspFull.hybridRHS(t, p, hybridOptions.upstreamODEs);
+                jac = [];  % Jacobian calculation is not currently available for hybrid models.
+%                 jac = @(t,~)AfspFull.createSingleMatrix(t);                
             else
                 % If time varrying
-                matvec = @(t, p) Afsp.multiply(t, p);
-                jac = @(t,~)Afsp.createSingleMatrix(t);
+                matvec = @(t, p) AfspFull.multiply(t, p);
+                jac = @(t,~)AfspFull.createSingleMatrix(t);
             end
 
             if odeSolver == "expokit"
@@ -280,7 +338,11 @@ while (tNow < maxOutputTime)
             elseif odeSolver == "expokitPiecewise"
                 solver = ssit.fsp_ode_solvers.ExpokitPiecewise();
             else
-                solver = ssit.fsp_ode_solvers.OdeSuite(relTol, absTol);
+                if ~isempty(hybridOptions)
+                    solver = ssit.fsp_ode_solvers.OdeSuite(relTol, absTol, length(hybridOptions.upstreamODEs));
+                else
+                    solver = ssit.fsp_ode_solvers.OdeSuite(relTol, absTol);
+                end
             end
         end
     end
@@ -299,13 +361,21 @@ while (tNow < maxOutputTime)
         j = j +1;
         iout = iout+1;
         if useReducedModel
-            p = real(modRedTransformMatrices.phi*solutionsNow{j});
-            p = max(p,0);
+            if ~isempty(modRedTransformMatrices.phiPlot)
+                p = real(modRedTransformMatrices.phiPlot*solutionsNow{j});
+            else
+                p = real(modRedTransformMatrices.phi*solutionsNow{j});
+            end
             p = p/sum(p);
-%             p = max(p,0)
+            p = max(p,0);
             solutions{iout} = struct(time=outputTimes(iout), ...
                 p=packFspSolution(stateSpace.states, p(1:stateCount)), ...
                 sinks=[]);
+        elseif useHybrid
+            solutions{iout} = struct(time=outputTimes(iout),...
+                p=packFspSolution(stateSpace.states, solutionsNow{j}(1:stateCount)),...
+                sinks=solutionsNow{j}(stateCount+1:end-length(jUpstreamODE)), ...
+                upstreamODEs=solutionsNow{j}(end-length(jUpstreamODE)+1:end));
         else
             solutions{iout} = struct(time=outputTimes(iout),...
                 p=packFspSolution(stateSpace.states, solutionsNow{j}(1:stateCount)),...
@@ -329,7 +399,7 @@ while (tNow < maxOutputTime)
 
         if fspStopStatus.error_bound>0
             constraintsToRelax = find(fspStopStatus.sinks*fspErrorCondition.nSinks >=...
-                fspStopStatus.error_bound);
+                fspStopStatus.error_bound(end));
         else
             constraintsToRelax = find(fspStopStatus.sinks*fspErrorCondition.nSinks > 0);
         end
@@ -349,18 +419,23 @@ while (tNow < maxOutputTime)
         end
 
         try
-            Afsp = Afsp.regenerate(propensities, stateSpace, constraintCount,varNames);
+            AfspFull = AfspFull.regenerate(propensities, stateSpace, constraintCount,speciesNames);
         catch
             stateSpace = ssit.FiniteStateSet(initStates, stoichMatrix);
             stateSpace = stateSpace.expand(constraintFunctions, constraintBoundsFinal);
-            Afsp = Afsp.regenerate(propensities, stateSpace, constraintCount,varNames);
+            AfspFull = AfspFull.regenerate(propensities, stateSpace, constraintCount,speciesNames);
         end
 
         stateCountOld = stateCount;
         stateCount = stateSpace.getNumStates;
-        solVec = zeros(stateCount + constraintCount, 1);
+        if useHybrid
+            solVec = zeros(stateCount + constraintCount + length(jUpstreamODE), 1);
+        else
+            solVec = zeros(stateCount + constraintCount, 1);
+        end
+
         solVec(1:stateCountOld) = solVecOld(1:stateCountOld);
-        solVec(stateCount +1: end) = solVecOld(stateCountOld+1:end);
+        solVec(stateCount+1:end) = solVecOld(stateCountOld+1:end);
     else
         solVec = solVecOld;
     end

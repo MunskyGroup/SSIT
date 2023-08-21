@@ -1,4 +1,4 @@
-function fsp_model_reduction(app,redType,sweepPar,sweepMin,sweepMax)
+function [redSolutionsNow] = fsp_model_reduction(app,redType,sweepPar,sweepMin,sweepMax)
 arguments
     app
     redType
@@ -84,14 +84,14 @@ for iPar = 1:nParVals
                     'Balanced Model Truncation (HSV)','Dynamic Mode Decomposition',...
                     'Radial Basis Functions'}
                 n = app.NumberofBasisVectorsEditField.Value;
-            case {'Linear State Lumping','Logarithmic State Lumping'}
+            case {'Linear State Lumping','Logarithmic State Lumping','Log Lump QSSA'}
                 n = app.GridSizeEditField.Value;
         end
 
 %         try
             tic
             if isempty(phi)||~strcmp(lastRed,redType{ired})
-                [phi,phi_inv,redOutputs] = ssit.fsp_model_reduction.getTransformMatrices(redType{ired},n,fspSoln);
+                [phi,phi_inv,phiScale,phiPlot,redOutputs] = ssit.fsp_model_reduction.getTransformMatrices(redType{ired},n,fspSoln);
             end
             reductionTime(ired) = toc;
             %% Solve the reduced model
@@ -105,16 +105,26 @@ for iPar = 1:nParVals
             else
                 q0 = phi_inv*fspSoln.P0;
                 A_red = phi_inv*fspSoln.A_total*phi;
+                if ~isempty(phiScale)
+                    A_red = A_red.*phiScale;
+                    A_red = A_red - diag(sum(A_red));
+                end
             end
-            [~, ~, ~, ~, solutionsNow] = ssit.fsp_ode_solvers.expv_modified(fspSoln.tOut(end), A_red, q0, 1e-8, 30,...
+            m = floor(size(A_red,1)*2/3);
+            [~, ~, ~, ~, solutionsNow] = ssit.fsp_ode_solvers.expv_modified(fspSoln.tOut(end), A_red, q0, 1e-8, m,...
                 [], fspSoln.tOut, 1e-3, [], fspSoln.tOut(1));
 
             if strcmp(redType{ired},'Balanced Model Truncation (HSV)')
                 redSolutionsNow = solutionsNow*OutPutC';
             else
-                redSolutionsNow = solutionsNow*phi';
+                if ~isempty(phiPlot)
+                    redSolutionsNow = solutionsNow*phiPlot';
+                else
+                    redSolutionsNow = solutionsNow*phi';
+                end
                 redSolutionsNow = diag(1./sum(redSolutionsNow,2))*redSolutionsNow;
             end
+            
             solutionTime(ired) = toc;
 
             % Plot the difference over time
