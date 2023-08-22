@@ -5,7 +5,7 @@ clc
 testModel = 3;
 % redType = {'POD 2nd',100};
 % redType = {'Log Lump QSSA',40};
-redType = {'QSSA', 1};
+redType = {'QSSA', 2};
 % redType = {'No Transform',40};
 %  redType = {'Proper Orthogonal Decomposition',20};
 % redType = {'Eigen Decomposition Initial',30};
