@@ -1,10 +1,12 @@
-function [phi,phi_inv,phiScale,phiPlot,redOutputs] = getTransformMatrices(redType,n,fspSoln,phi)
+function [phi,phi_inv,phiScale,phiPlot,redOutputs] = getTransformMatrices(redOptions,fspSoln,phi)
 arguments
-    redType
-    n 
+    redOptions
     fspSoln
     phi =[];
 end
+redType = redOptions.reductionType;
+n = redOptions.reductionOrder;
+
 redOutputs=[];
 phiScale = [];
 phiPlot = [];
@@ -181,7 +183,6 @@ switch redType
         phi_inv = phi';
 
     case 'POD Update'
-
         [phi,~,~] = svds([phi,Solns],n,"largest","Tolerance",1e-18);
         %         [phi,D,~] = svds(Solns,n,0);
         %         [~,I] = sort(real(diag(D)),'descend');
@@ -189,6 +190,54 @@ switch redType
         %         [phi,~,~] = svds(fspSoln.fullSolutionsNow',n);
         phi = orth([Solns(:,1),phi]);
         phi_inv = phi';
+
+    case 'QSSA'
+        nStates = size(fspSoln.stateSpace.states,2);
+        spmax=max(fspSoln.stateSpace.states,[],2);
+        nSpecies = size(fspSoln.stateSpace.states,1);
+
+        qssaSpecies = redOptions.qssaSpecies;
+
+        % define bins
+        for i = nSpecies:-1:1
+            if ismember(qssaSpecies,i)
+                bins{i} = [0,spmax(i)+1];
+            else
+                bins{i} = [0:spmax(i)];
+            end
+        end
+
+        % create map from state to corresponding bins
+        phi_map = zeros(nStates,nSpecies);
+        for j=1:nStates
+            for i=1:nSpecies
+                phi_map(j,i) = find(fspSoln.stateSpace.states(i,j)<=bins{i},1,"first");
+            end
+        end
+        binns = max(phi_map);
+        cprod = [1,cumprod(binns(1:end-1))]';
+        phi_inds = (phi_map-1)*cprod+1;
+
+        % find shape function assuming QSS within each bin
+        phiVals = 0*phi_inds;
+        nLump = max(phi_inds);
+        for iLump = 1:nLump
+            J = phi_inds==iLump;
+            Alump = fspSoln.A_total(J,J);
+            if size(Alump,2)>=2
+                Alump = Alump - diag(sum(Alump));
+                [qssa,~] = eigs(Alump,1,'largestreal');
+                qssa = max(1e-6,qssa/sum(qssa));
+            else
+                qssa = 1;
+            end
+            phiVals(phi_inds==iLump) = qssa;
+        end
+        phi = sparse((1:length(phi_inds)),phi_inds,phiVals,length(phi_inds),max(phi_inds));
+        phi_inv = 1.0*(phi'>=1e-12);
+
+        % plotting shape 
+        phiPlot = phi;
 
     case 'POD 2nd'
 

@@ -2,9 +2,10 @@ clear all
 close all
 clc
 
-testModel = 5;
+testModel = 3;
 % redType = {'POD 2nd',100};
-redType = {'Log Lump QSSA',40};
+% redType = {'Log Lump QSSA',40};
+redType = {'QSSA', 1};
 % redType = {'No Transform',40};
 %  redType = {'Proper Orthogonal Decomposition',20};
 % redType = {'Eigen Decomposition Initial',30};
@@ -36,7 +37,7 @@ switch testModel
         Model1.propensityFunctions = {'kr';'gr*x1';'kp';'gp*x2'};
         Model1.stoichiometry = [1,-1,0,0;0,0,1,-1];
         Model1.parameters = ({'kr',40;'gr',1;'kp',20;'gp',1});
-        Model1.fspOptions.initApproxSS = true;
+        Model1.fspOptions.initApproxSS = false;
         Model1.tSpan = linspace(0,5,12);
     
     case 4 % Time varying model (DUSP1)
@@ -88,6 +89,11 @@ for iMR = 1:size(redType,1)
     Model2{iMR}.fspOptions.fspTol = inf;
     Model2{iMR}.modelReductionOptions.reductionType = redType{iMR,1};
     Model2{iMR}.modelReductionOptions.reductionOrder = redType{iMR,2};
+
+    if strcmp(redType{1},'QSSA')
+        Model2{iMR}.modelReductionOptions.qssaSpecies = redType{iMR,2};
+    end
+
     Model2{iMR} = Model2{iMR}.computeModelReductionTransformMatrices(fspSoln);
 
     Model2{iMR}.modelReductionOptions.useModReduction = true;
