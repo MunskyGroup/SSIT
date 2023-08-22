@@ -301,13 +301,17 @@ classdef SSIT
             end
         end
 
-        function [obj] = createModelFromSBML(obj,sbmlFile)
+        function [obj] = createModelFromSBML(obj,sbmlFile,scaleVolume)
+            arguments
+                obj
+                sbmlFile
+                scaleVolume = true
+            end
             % This function allows one to create a model directly from an
             % SBML file.
             % Example:
-            %      Model = SSIT();
-            %      Model =
-            %      Model.createModelFromSBML('../SBML_test_cases/00013/00013-sbml-l1v2.xml');
+            %      Model = SSIT();              
+            %      Model = Model.createModelFromSBML('../SBML_test_cases/00010/00010-sbml-l1v2.xml');       
             %      [fspSoln] = Model.solve;
             %      Model.makePlot(fspSoln,'meansAndDevs')
             sbmlobj = sbmlimport(sbmlFile);
@@ -325,42 +329,47 @@ classdef SSIT
                 obj.parameters{i,2} = sbmlobj.Parameter(i).Value;
             end
 
-            % If one compartments are listed, then its volume is a
-            % parameter.
-            if length(sbmlobj.Compartments)==1
-%                 obj.parameters{end+1,1} = 'volume';
-%                 obj.parameters{end,2} = sbmlobj.Compartments(1).Value;
-            elseif length(sbmlobj.Compartments)>1
+            if length(sbmlobj.Compartments)>1
                 error('SSIT Tools not yet set up to support multi-compartment models.')
             end
 
             obj.propensityFunctions={};
             for i = 1:nR
                 reactRate = sbmlobj.Reactions(i).ReactionRate;
-                obj.propensityFunctions{i} = strrep(reactRate,'compartment*','');
+                obj.propensityFunctions{i,1} = strrep(reactRate,'compartment*','');
             end
 
-            IC = zeros(nS,1);
-
-            frac = false;
-            scl = 0;
-            for i = 1:nS
-                if rem(sbmlobj.Species(i).Value,1)~=0
-                    frac = true;
+            if scaleVolume
+                % Replace species numbers (Xi) with concentrations (Xi/Volume).
+                for i = 1:nR
+                    for j = 1:nS
+                        obj.propensityFunctions{i,1} = strrep(obj.propensityFunctions{i,1},...
+                            obj.species{j},['(',obj.species{j},'/Volume)']);
+                    end
+                    obj.propensityFunctions{i,1} = [obj.propensityFunctions{i,1},'*Volume'];
                 end
-                scl = max(scl,sbmlobj.Species(i).Value);
-            end
-                
-            if frac
-                scl = round(100/scl);
-                disp(['Warning: Fractional species values detected.  Scaling by ',num2str(scl),' and rounding.'])
-                disp(' ')
-                IC(1:nS) = round(scl*[sbmlobj.Species.Value]);
+
+                % Scale Initial Condition and Volume to remove fractional
+                % concentrations.
+                frac = false;
+                scl = 0;
+                for i = 1:nS
+                    if rem(sbmlobj.Species(i).Value,1)~=0
+                        frac = true;
+                    end
+                    scl = max(scl,sbmlobj.Species(i).Value);
+                end
+                if frac
+                    scl = round(100/scl);
+                    disp(['Fractional species values detected.  Scaling by ',num2str(scl),' and rounding.'])
+                    disp(' ')
+                    IC(1:nS,1) = round(scl*[sbmlobj.Species.Value]);
+                end
+                obj.parameters(end+1,:) = {'Volume',scl};
             else
-                IC(1:nS) = [sbmlobj.Species.Value];
+                IC(1:nS,1) = [sbmlobj.Species.Value];
             end
             obj.initialCondition = IC;
-            
             obj.summarizeModel;
 
         end
@@ -553,7 +562,7 @@ classdef SSIT
                 else
                     prodTxt = [num2str(s(jProd(1))),'*',obj.species{jProd(1)}];
                     for i = 2:length(jProd)
-                        prodTxt = [prodTxt,' + ',num2str(s(jProd(i))),'x',jProd(i)];
+                        prodTxt = [prodTxt,' + ',num2str(s(jProd(i))),'*',obj.species{jProd(i)}];
                     end
                 end 
                 disp(['     s',num2str(iR),': ',reactTxt, ' --> ', prodTxt])
