@@ -452,6 +452,56 @@ classdef SSIT
             end
         end  
         
+        function summarizeModel(obj)
+            arguments
+                obj;
+            end
+            % Show the model species
+            nS = size(obj.stoichiometry,1);
+            disp('Species:')
+            for i = 1:nS
+                if ~isempty(obj.hybridOptions)&&contains(obj.hybridOptions.upstreamODEs,obj.species{i})
+                    disp(['     ',obj.species{i},',  upstream ODE']);
+                else
+                    disp(['     ',obj.species{i},',  discrete stochastic']);
+                end
+            end
+            disp(' ')
+
+            % Show the model stoichiometries and propensity functions
+            disp('Reactions:')
+            nR = size(obj.stoichiometry,2);
+            for iR = 1:nR
+                s = obj.stoichiometry(:,iR);
+                disp(['  Reaction ',num2str(iR),':'])
+                jReactant = find(s<0);
+                jProd = find(s>0);
+                if isempty(jReactant)
+                    reactTxt = 'NULL';
+                else
+                    reactTxt = [num2str(-s(jReactant(1))),'*',obj.species{jReactant(1)}];
+                    for i = 2:length(jReactant)
+                        reactTxt = [reactTxt,' + ',num2str(-s(jReactant(i))),'x',jReactant(i)];
+                    end
+                end
+                if isempty(jProd)
+                    prodTxt = 'NULL';
+                else
+                    prodTxt = [num2str(s(jProd(1))),'*',obj.species{jProd(1)}];
+                    for i = 2:length(jProd)
+                        prodTxt = [prodTxt,' + ',num2str(s(jProd(i))),'x',jProd(i)];
+                    end
+                end 
+                disp(['     s',num2str(iR),': ',reactTxt, ' --> ', prodTxt])
+                
+                disp(['     w',num2str(iR),': ',obj.propensityFunctions{iR}])
+
+            end
+                disp(' ')
+                disp('Model Parameters:')
+                disp(obj.parameters)
+                
+        end
         %% Model Analysis Functions
         function [Solution, bConstraints] = solve(obj,stateSpace,saveFile,fspSoln)
             arguments

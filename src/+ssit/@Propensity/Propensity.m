@@ -308,7 +308,7 @@ classdef Propensity
         obj = ssit.Propensity(stoichVector(jStochastic), reactionIndex);
         obj.ODEstoichVector = stoichVector(jODE);
         if max(abs(obj.stoichVector))~=0&&max(abs(obj.ODEstoichVector))~=0
-            warning('Reaction changes both ODE and stochastic species. Removing effect on upstream species.')
+            warning(['Reaction ',num2str(reactionIndex),' changes both ODE and stochastic species. Removing effect on upstream species.'])
             obj.ODEstoichVector = 0*obj.ODEstoichVector;
         end
         prop_vars = symvar(symbolicExpression);

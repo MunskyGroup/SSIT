@@ -54,7 +54,13 @@ Model4.hybridOptions.upstreamODEs = {'mapkCyt','mapkNuc','geneInactive','geneAct
 [fspSoln4, Model4.fspOptions.bounds] = Model4.solve;
 Model4.makePlot(fspSoln4,'marginals',[],[],15)
 
-%% Reduced model where only the gene and RNA species are stochastic
+%% Reduced model where only the gene and RNA species are stochastic.
+% In this example, you will recieve a warning telling you that one of the
+% reactions changes both the upstream and downstream species.  This is not
+% allowed, and the code will then automatically delete the upstream effect
+% (in this case the change of active MAPK) from the stoichiometry for the
+% downstream reaction. This will introduce an additional approximation
+% error.
 Model5 = Model3;
 Model5.useHybrid = true;
 Model5.hybridOptions.upstreamODEs = {'mapkCyt','mapkNuc'};
