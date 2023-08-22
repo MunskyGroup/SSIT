@@ -41,13 +41,13 @@ switch testModel
     
     case 4 % Time varying model (DUSP1)
         Model1 = SSIT;
-        Model1.species = {'x1';'x2'};
+        Model1.species = {'ActiveGene';'mRNA'};
         Model1.initialCondition = [0;0];
 %         Model1.propensityFunctions = {'kon*(2-x1)';'kon*IGR*(2-x1)';'koff*x1';'kr*x1';'gr*x2'};
 %         Model1.stoichiometry = [1,1,-1,0,0;0,0,0,1,-1];
 %         Model1.inputExpressions = {'IGR','a1*exp(-r1*t)*(1-exp(-r2*t))'};
 
-        Model1.propensityFunctions = {'kon*(1+IGR)*(2-x1)';'koff*x1';'kr*x1';'gr*x2'};
+        Model1.propensityFunctions = {'kon*(1+IGR)*(2-ActiveGene)';'koff*ActiveGene';'kr*ActiveGene';'gr*mRNA'};
         Model1.stoichiometry = [1,-1,0,0;0,0,1,-1];
         Model1.inputExpressions = {'IGR','a1*exp(-r1*t)*(1-exp(-r2*t))'};
 

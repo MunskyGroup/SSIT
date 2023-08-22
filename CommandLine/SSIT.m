@@ -301,6 +301,70 @@ classdef SSIT
             end
         end
 
+        function [obj] = createModelFromSBML(obj,sbmlFile)
+            % This function allows one to create a model directly from an
+            % SBML file.
+            % Example:
+            %      Model = SSIT();
+            %      Model =
+            %      Model.createModelFromSBML('../SBML_test_cases/00013/00013-sbml-l1v2.xml');
+            %      [fspSoln] = Model.solve;
+            %      Model.makePlot(fspSoln,'meansAndDevs')
+            sbmlobj = sbmlimport(sbmlFile);
+            nR = length(sbmlobj.Reactions);
+            nS = length(sbmlobj.Species);
+
+            % Extract species names and stoichiometry
+            [obj.stoichiometry, obj.species] = getstoichmatrix(sbmlobj);
+
+            % Extract parameter names
+            nP = length(sbmlobj.Parameter);
+            obj.parameters = {};
+            for i = 1:nP
+                obj.parameters{i,1} = sbmlobj.Parameter(i).Name;
+                obj.parameters{i,2} = sbmlobj.Parameter(i).Value;
+            end
+
+            % If one compartments are listed, then its volume is a
+            % parameter.
+            if length(sbmlobj.Compartments)==1
+%                 obj.parameters{end+1,1} = 'volume';
+%                 obj.parameters{end,2} = sbmlobj.Compartments(1).Value;
+            elseif length(sbmlobj.Compartments)>1
+                error('SSIT Tools not yet set up to support multi-compartment models.')
+            end
+
+            obj.propensityFunctions={};
+            for i = 1:nR
+                reactRate = sbmlobj.Reactions(i).ReactionRate;
+                obj.propensityFunctions{i} = strrep(reactRate,'compartment*','');
+            end
+
+            IC = zeros(nS,1);
+
+            frac = false;
+            scl = 0;
+            for i = 1:nS
+                if rem(sbmlobj.Species(i).Value,1)~=0
+                    frac = true;
+                end
+                scl = max(scl,sbmlobj.Species(i).Value);
+            end
+                
+            if frac
+                scl = round(100/scl);
+                disp(['Warning: Fractional species values detected.  Scaling by ',num2str(scl),' and rounding.'])
+                disp(' ')
+                IC(1:nS) = round(scl*[sbmlobj.Species.Value]);
+            else
+                IC(1:nS) = [sbmlobj.Species.Value];
+            end
+            obj.initialCondition = IC;
+            
+            obj.summarizeModel;
+
+        end
+
         function [obj] = addSpecies(obj,newSpecies,initialCond)
             % addSpecies - add new species to reaction model.
             % example:
@@ -460,10 +524,10 @@ classdef SSIT
             nS = size(obj.stoichiometry,1);
             disp('Species:')
             for i = 1:nS
-                if ~isempty(obj.hybridOptions)&&contains(obj.hybridOptions.upstreamODEs,obj.species{i})
-                    disp(['     ',obj.species{i},',  upstream ODE']);
+                if ~isempty(obj.hybridOptions.upstreamODEs)&&contains(obj.hybridOptions.upstreamODEs,obj.species{i})
+                    disp(['     ',obj.species{i},'; IC = ',num2str(obj.initialCondition(i)),';  upstream ODE']);
                 else
-                    disp(['     ',obj.species{i},',  discrete stochastic']);
+                    disp(['     ',obj.species{i},'; IC = ',num2str(obj.initialCondition(i)),';  discrete stochastic']);
                 end
             end
             disp(' ')
@@ -481,7 +545,7 @@ classdef SSIT
                 else
                     reactTxt = [num2str(-s(jReactant(1))),'*',obj.species{jReactant(1)}];
                     for i = 2:length(jReactant)
-                        reactTxt = [reactTxt,' + ',num2str(-s(jReactant(i))),'x',jReactant(i)];
+                        reactTxt = [reactTxt,' + ',num2str(-s(jReactant(i))),'*',obj.species{jReactant(i)}];
                     end
                 end
                 if isempty(jProd)
@@ -497,10 +561,20 @@ classdef SSIT
                 disp(['     w',num2str(iR),': ',obj.propensityFunctions{iR}])
 
             end
+
+            if ~isempty(obj.inputExpressions)
                 disp(' ')
-                disp('Model Parameters:')
-                disp(obj.parameters)
-                
+                disp('Input Signals:')
+                nI = size(obj.inputExpressions,1);
+                for i = 1:nI
+                    disp(['     ',obj.inputExpressions{i,1},'(t) = ',obj.inputExpressions{i,2}])
+                end
+            end
+
+            disp(' ')
+            disp('Model Parameters:')
+            disp(obj.parameters)
+
         end
         %% Model Analysis Functions
         function [Solution, bConstraints] = solve(obj,stateSpace,saveFile,fspSoln)
