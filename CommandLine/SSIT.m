@@ -361,7 +361,7 @@ classdef SSIT
                 end
                 if frac
                     scl = round(100/scl);
-                    disp(['Fractional species values detected.  Scaling by ',num2str(scl),' and rounding.'])
+                    disp(['Fractional species values detected.  Scaling by Vol=',num2str(scl),' and rounding.'])
                     disp(' ')
                     IC(1:nS,1) = round(scl*[sbmlobj.Species.Value]);
                 end

@@ -325,8 +325,8 @@ while (tNow < maxOutputTime)
                 matvec = [];
             elseif useHybrid
                 matvec = @(t, p) AfspFull.hybridRHS(t, p, hybridOptions.upstreamODEs);
-                jac = [];  % Jacobian calculation is not currently available for hybrid models.
-%                 jac = @(t,~)AfspFull.createSingleMatrix(t);                
+%                 jac = [];  % Jacobian calculation is not currently available for hybrid models.
+                jac = @(t, p)AfspFull.createJacHybridMatrix(t, p, length(hybridOptions.upstreamODEs));                
             else
                 % If time varrying
                 matvec = @(t, p) AfspFull.multiply(t, p);

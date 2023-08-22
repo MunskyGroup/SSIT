@@ -203,5 +203,62 @@ classdef FspMatrix
             end
             
         end
+    
+        function A = createJacHybridMatrix(obj, t, v, nUpstream)
+            % Generate a single MATLAB sparse matrix from the current time
+            % `t`. This matrix's left multiplication on a vector `v` of
+            % appropriate size will return the same output as when calling
+            % `multiply(obj,t, v)`.
+            arguments
+                obj
+                t
+                v
+                nUpstream
+            end
+
+            v1 = v(1:end-nUpstream);
+            v2 = v(end-nUpstream+1:end);
+            
+            gA = hybridMatrix(obj,t,v2);
+
+            gB = zeros(length(v1),length(v2));
+            gC = zeros(length(v2),length(v1));
+            gD = zeros(length(v2),length(v2));
+            for i = 1:length(v2)
+                delt = max(1e-6,abs(v2(i))/1000);
+                v2p = v2+delt;
+                gB(:,i) = (hybridMatrix(obj,t,v2p)-gA)*v1/delt;
+
+                for k = 1:length(obj.terms)
+                    gD(:,i) =  gD(:,i) + obj.terms{k}.propensity.ODEstoichVector*...
+                        (obj.terms{k}.propensity.hybridFactor(t,v2p)-...
+                        obj.terms{k}.propensity.hybridFactor(t,v2))/delt;
+                end
+            end
+            A = [gA,gB;gC,gD];
+            ANaN = isnan(A);
+            if sum(ANaN(:))>0
+                warning('NaNs detected and set to zero. Errors may be present.')
+                A(ANaN) = 0;
+            end
+
+        end
+        function A = hybridMatrix(obj,t,v2)
+            % Form the infinitesimal generator matrix A
+            if obj.terms{1}.isFactorizable
+                A = obj.terms{1}.propensity.hybridFactor(t,v2)*obj.terms{1}.matrix;
+            else
+                A = ssit.FspMatrixTerm.generateHybridgMatrixTerm(t, obj.terms{1}.propensity, obj.terms{1}.matrix, obj.terms{1}.numConstraints, v2);
+            end
+
+            for i = 2:length(obj.terms)
+                if obj.terms{i}.isFactorizable
+                    A = A + obj.terms{i}.propensity.hybridFactor(t,v2)*obj.terms{i}.matrix;
+                else
+                    A = A + ssit.FspMatrixTerm.generateHybridgMatrixTerm(t, obj.terms{i}.propensity, obj.terms{i}.matrix, obj.terms{i}.numConstraints, v2);
+                end
+            end
+
+        end
     end
 end
