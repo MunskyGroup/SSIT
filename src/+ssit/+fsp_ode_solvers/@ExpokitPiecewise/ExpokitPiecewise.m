@@ -75,6 +75,7 @@ classdef ExpokitPiecewise
         if ~exist('m','var'); m=15; end
         fspTol = fspErrorCondition.fspTol;
         nSinks = fspErrorCondition.nSinks;
+%         nEscapeSinks = fspErrorCondition.nEscapeSinks;
         
         solutionsNow = zeros(size(initSolution,1),length(tOut)-1);
         for iStep = 1:length(tOut)-1

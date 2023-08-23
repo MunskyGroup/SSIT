@@ -102,8 +102,10 @@ classdef FspMatrixTerm
         function w = multiply(obj, t, v)
             % Compute the action of the term matrix at time `t` on a vector
             % `v`.
-            if (~obj.isTimeDependent)
+            if (~obj.isTimeDependent)&&isempty(obj.propensity.timeDependentFactor)
                 w = obj.matrix*v;
+            elseif (~obj.isTimeDependent)&&~isempty(obj.propensity.timeDependentFactor)
+                w = obj.propensity.timeDependentFactor(t)*(obj.matrix*v);
             elseif (obj.isFactorizable)
                 w = obj.propensity.timeDependentFactor(t)*(obj.matrix*v);
             else
@@ -166,8 +168,16 @@ methods (Static)
         n_states = size(state_set.states, 2);
         reachableIndices = state_set.reachableIndices(:, propensity.reactionIndex);
 
-        prop_val = propensity.evaluateStateFactor(state_set.states,varNames)...
-            +0*zeros(1,size(state_set.states,2));
+%         if propensity.isTimeDependent&&~isempty(propensity.timeDependentFactor)
+%             % Constants are sometimes lumped into a constant time dependent
+%             % term for later convenience.
+%             prop_val = propensity.timeDependentFactor(0).*...
+%                 propensity.evaluateStateFactor(state_set.states,varNames)...
+%                 +0*zeros(1,size(state_set.states,2));
+%         else
+            prop_val = propensity.evaluateStateFactor(state_set.states,varNames)...
+                +0*zeros(1,size(state_set.states,2));
+%         end
 
         if min(prop_val)<0
             warning('PropFun:negProp','Negative propensity function detected. Results may be incorrect.');

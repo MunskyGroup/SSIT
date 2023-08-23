@@ -81,13 +81,16 @@ classdef Expokit
         
         if strcmp(obj.version,'mexpv_modified_2')
             while tryAgain==1
+                SINKS = [length(initSolution)-nSinks+1:length(initSolution)-fspErrorCondition.nEscapeSinks];
+                fspSINKS = [length(initSolution)-nSinks+1 : length(initSolution)];
                 [~, ~, ~, tExport, solutionsNow, ~, tryAgain, te, ye] = ssit.fsp_ode_solvers.mexpv_modified_2(tOut(end), jac, initSolution, fspTol/1e5, m,...
-                    [], tOut, fspTol, [length(initSolution)-nSinks+1:length(initSolution)], tStart, fspErrorCondition);
+                    [], tOut, fspTol, SINKS, tStart, fspErrorCondition);
                 if tryAgain==0;break;end
                 if m>300
+                SINKS = [length(initSolution)-nSinks+1:length(initSolution)-fspErrorCondition.nEscapeSinks];
                     warning('Expokit expansion truncated at 300');
                     [~, ~, ~, tExport, solutionsNow, ~, tryAgain, te, ye] = ssit.fsp_ode_solvers.mexpv_modified_2(tOut(end), jac, initSolution, fspTol/1e5, m,...
-                        [], tOut, fspTol, [length(initSolution)-nSinks+1:length(initSolution)], tStart, fspErrorCondition);
+                        [], tOut, fspTol, SINKS, tStart, fspErrorCondition);
                 end
                 m=m+5;
             end
@@ -112,17 +115,17 @@ classdef Expokit
         solutionsNow = mat2cell(solutionsNow, size(solutionsNow,1), ones(1, size(solutionsNow,2)));
         
         if (~isempty(te))
-            sinks = ye(end+1-fspErrorCondition.nSinks:end);
+            sinks = ye(SINKS);
             errorBound = fspErrorCondition.fspTol*(te-fspErrorCondition.tInit)/(fspErrorCondition.tFinal-fspErrorCondition.tInit);
             if te==max(tOut)
                 err = sum(sinks);
             else
-                err = sum(sinks*fspErrorCondition.nSinks);
+                err = sum(sinks*(fspErrorCondition.nSinks-fspErrorCondition.nEscapeSinks));
             end
             if err>=errorBound
                 fspStopStatus = struct('i_expand', true, ...
                     't_break', te, ...
-                    'sinks', sinks, ...
+                    'sinks', ye(fspSINKS), ...
                     'error_bound', errorBound);
             else
                 fspStopStatus = struct('i_expand', false,...

@@ -28,6 +28,7 @@ Nd = app.FspTabOutputs.solutions{end}.p.dim;
 FSPResults.T_array = eval(app.FspPrintTimesField.Value);
 FSPResults.Means = zeros(length(FSPResults.T_array),Nd);
 FSPResults.Var = zeros(length(FSPResults.T_array),Nd);
+FSPResults.EscapeCDF = zeros(length(FSPResults.T_array),length(app.FspTabOutputs.solutions{1}.escapeProbs));
 for it = length(FSPResults.T_array):-1:1
     for i=1:Nd
         if Nd>1
@@ -51,6 +52,9 @@ for it = length(FSPResults.T_array):-1:1
     end
     FSPResults.Joints{it} = joints;
     FSPResults.Marginals{it} = marginals;
+
+    %% Escape Times
+    FSPResults.EscapeCDF(it,:) =  app.FspTabOutputs.solutions{it}.escapeProbs;
 end
 if nargout==0
     help exportFSPResults

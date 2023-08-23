@@ -9,7 +9,8 @@ function [solutions, constraintBoundsFinal, stateSpace] = adaptiveFspSolve(...
     relTol,absTol,odeSolver,...
     stateSpace,usePiecewiseFSP,initApproxSS,speciesNames,...
     useReducedModel,modRedTransformMatrices,...
-    useHybrid,hybridOptions)
+    useHybrid,hybridOptions,...
+    fEscape,bEscape)
 % Approximate the transient solution of the chemical master equation using
 % an adaptively expanding finite state projection (FSP).
 %
@@ -132,6 +133,8 @@ arguments
     modRedTransformMatrices=[];
     useHybrid = false;
     hybridOptions = [];
+    fEscape = []
+    bEscape = []
 end
 
 maxOutputTime = max(outputTimes);
@@ -154,8 +157,16 @@ if useHybrid
     speciesNames = speciesNames(jStochastic);
 end
 
+if ~isempty(fEscape)
+    initialConstraintBounds = [initialConstraintBounds;bEscape];
+    constraintFunctions = @(x)[constraintFunctions(x);fEscape(x)];
+    nEscapeSinks = length(bEscape);
+else
+    nEscapeSinks = 0;
+end
 constraintCount = size(initialConstraintBounds, 1);
 constraintBoundsFinal = initialConstraintBounds;
+    
 solutions = cell(outputTimeCount, 1);
 
 % First guess of FSP should include the initial condition.
@@ -253,12 +264,14 @@ if (~isempty(iout))
     elseif useHybrid
         solutions{iout} = struct(time=0, ...
             p=packFspSolution(stateSpace.states, solVec(1:stateCount)), ...
-            sinks=solVec(stateCount+1:end-length(jUpstreamODE)),...
+            sinks=solVec(stateCount+1:end-nEscapeSinks-length(jUpstreamODE)),...
+            escapeProbs=solVec(end-nEscapeSinks-length(jUpstreamODE)+1:end-length(jUpstreamODE)),...
             upstreamODEs=solVec(end-length(jUpstreamODE)+1:end));
     else
         solutions{iout} = struct(time=0, ...
             p=packFspSolution(stateSpace.states, solVec(1:stateCount)), ...
-            sinks=solVec(stateCount+1:end));
+            sinks=solVec(stateCount+1:end-nEscapeSinks), ...
+            escapeProbs=solVec(end-nEscapeSinks+1:end));
     end
 else
     iout = 0;
@@ -285,7 +298,8 @@ while (tNow < maxOutputTime)
         'tFinal', maxOutputTime,...
         'tInit', tInit,...
         'fspTol', fspTol,...
-        'nSinks', constraintCount);
+        'nSinks', constraintCount, ...
+        'nEscapeSinks', nEscapeSinks);
 
     tOut = outputTimes(outputTimes >= tNow);
     % Set up ODE solver data structure for the truncated problem
@@ -370,16 +384,19 @@ while (tNow < maxOutputTime)
             p = max(p,0);
             solutions{iout} = struct(time=outputTimes(iout), ...
                 p=packFspSolution(stateSpace.states, p(1:stateCount)), ...
-                sinks=[]);
+                sinks=[],...
+                escapeProbs=[]);
         elseif useHybrid
             solutions{iout} = struct(time=outputTimes(iout),...
                 p=packFspSolution(stateSpace.states, solutionsNow{j}(1:stateCount)),...
-                sinks=solutionsNow{j}(stateCount+1:end-length(jUpstreamODE)), ...
+                sinks=solutionsNow{j}(stateCount+1:end-nEscapeSinks-length(jUpstreamODE)), ...
+                escapeProbs=solutionsNow{j}(end-nEscapeSinks-length(jUpstreamODE)+1:end-length(jUpstreamODE)),...
                 upstreamODEs=solutionsNow{j}(end-length(jUpstreamODE)+1:end));
         else
             solutions{iout} = struct(time=outputTimes(iout),...
                 p=packFspSolution(stateSpace.states, solutionsNow{j}(1:stateCount)),...
-                sinks=solutionsNow{j}(stateCount+1:end));
+                escapeProbs=solutionsNow{j}(end-nEscapeSinks+1:end),...
+                sinks=solutionsNow{j}(stateCount+1:end-nEscapeSinks));
         end
     
     end
@@ -398,10 +415,12 @@ while (tNow < maxOutputTime)
         end
 
         if fspStopStatus.error_bound>0
-            constraintsToRelax = find(fspStopStatus.sinks*fspErrorCondition.nSinks >=...
+            constraintsToRelax = find(fspStopStatus.sinks(1:end-fspErrorCondition.nEscapeSinks)*...
+                (fspErrorCondition.nSinks-fspErrorCondition.nEscapeSinks) >=...
                 fspStopStatus.error_bound(end));
         else
-            constraintsToRelax = find(fspStopStatus.sinks*fspErrorCondition.nSinks > 0);
+            constraintsToRelax = find(fspStopStatus.sinks(1:end-fspErrorCondition.nEscapeSinks)*...
+                (fspErrorCondition.nSinks-fspErrorCondition.nEscapeSinks) > 0);
         end
         constraintBoundsFinal(constraintsToRelax) = 1.2*constraintBoundsFinal(constraintsToRelax);
 
@@ -440,6 +459,9 @@ while (tNow < maxOutputTime)
         solVec = solVecOld;
     end
 end
+
+constraintBoundsFinal = constraintBoundsFinal(1:end-nEscapeSinks);
+
 end
 
 function f = packFspSolution(states, p)

@@ -85,7 +85,7 @@ classdef OdeSuite < ssit.fsp_ode_solvers.OdeSolver
         %   - errorBound: the error bound at ``tExit``. 
         %
         %
-        odeEvent = @(t,p) fspOdesuiteEvent(t, p, fspErrorCondition, obj.numODEs);            
+        odeEvent = @(t,p) fspOdesuiteEvent(t, p, fspErrorCondition);            
         if ~isempty(jac)
             ode_opts = odeset('Events', odeEvent, 'Jacobian', jac, 'relTol',obj.relTol, 'absTol', obj.absTol,'Vectorized','on');
         else
@@ -104,13 +104,15 @@ classdef OdeSuite < ssit.fsp_ode_solvers.OdeSolver
         solutionsNow = mat2cell(solutionsNow, size(solutionsNow,1), ones(1, size(solutionsNow,2)));
         
         if (~isempty(te))
-            sinks = max(0,ye(end-fspErrorCondition.nSinks-obj.numODEs+1:end-obj.numODEs));
+            SINKS = length(initSolution)-fspErrorCondition.nSinks+1:length(initSolution)-fspErrorCondition.nEscapeSinks;
+            fspSINKS = length(initSolution)-fspErrorCondition.nSinks+1 : length(initSolution);
+            sinks = max(0,ye(SINKS));
             errorBound = fspErrorCondition.fspTol*...
                 (te-fspErrorCondition.tInit)/(fspErrorCondition.tFinal-fspErrorCondition.tInit);
-            if sum(sinks*fspErrorCondition.nSinks)>=errorBound
+            if sum(sinks*(fspErrorCondition.nSinks-fspErrorCondition.nEscapeSinks))>=errorBound
                 fspStopStatus = struct('i_expand', true, ...
                     't_break', te, ...
-                    'sinks', sinks, ...
+                    'sinks', max(0,ye(fspSINKS)), ...
                     'error_bound', errorBound);
             else
                 fspStopStatus = struct('i_expand', false,...
@@ -137,10 +139,10 @@ arguments
     fspErrorCheck
     numODEs = 0;
 end
-sinks = p(end-fspErrorCheck.nSinks-numODEs+1:end-numODEs);
+sinks = p(end-fspErrorCheck.nSinks-numODEs+1:end-numODEs-fspErrorCheck.nEscapeSinks);
 error_bound = fspErrorCheck.fspTol*(t-fspErrorCheck.tInit)/(fspErrorCheck.tFinal-fspErrorCheck.tInit);
 
-val = max(sinks)*fspErrorCheck.nSinks - error_bound;
+val = max(sinks)*(fspErrorCheck.nSinks-fspErrorCheck.nEscapeSinks) - error_bound;
 terminal = 1;
 direction = 1;
 end

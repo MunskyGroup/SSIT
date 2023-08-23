@@ -10,7 +10,8 @@ classdef SSIT
         fspOptions = struct('fspTol',0.001,'fspIntegratorRelTol',1e-2,...
             'fspIntegratorAbsTol',1e-4, 'odeSolver','auto', 'verbose',false,...
             'bounds',[],'usePiecewiseFSP',false,...
-            'initApproxSS',false); % Options for FSP solver.
+            'initApproxSS',false,...
+            'escapeSinks',[]); % Options for FSP solver.
         sensOptions = struct('solutionMethod','forward','useParallel',true); 
             % Options for FSP-Sensitivity solver.
         ssaOptions = struct('Nexp',1,'nSimsPerExpt',100,'useTimeVar',false,...
@@ -152,6 +153,7 @@ classdef SSIT
             else
                 stochasticSpecies = obj.species;
             end
+            
             nSpecies = length(stochasticSpecies);
             Data = cell(nSpecies*2,3);
             for i = 1:nSpecies
@@ -167,6 +169,19 @@ classdef SSIT
             else
                 constraints.b = obj.fspOptions.bounds;
             end
+            
+            if ~isempty(obj.fspOptions.escapeSinks)
+                nEscape = length(obj.fspOptions.escapeSinks.f);
+                escapeData = cell(nEscape,3);
+                for i = 1:nEscape
+                    escapeData(i,:) = {obj.fspOptions.escapeSinks.f{i},'<',1};
+                end
+                constraints.fEscape = readConstraintsForAdaptiveFsp([], stochasticSpecies, escapeData);
+                constraints.bEscape = obj.fspOptions.escapeSinks.b;
+            else
+                constraints.fEscape = [];
+                constraints.bEscape = [];
+            end                
         end
 
         %% Model Building Functions
@@ -648,7 +663,8 @@ classdef SSIT
                         obj.fspOptions.initApproxSS,...
                         obj.species,...
                         useReducedModel,modRedTransformMatrices, ...
-                        obj.useHybrid,obj.hybridOptions);
+                        obj.useHybrid,obj.hybridOptions,...
+                        obj.fspConstraints.fEscape,obj.fspConstraints.bEscape);
                     
                 case 'SSA'
                     Solution.T_array = obj.tSpan;
@@ -1661,7 +1677,6 @@ end
             redSolutions.stateSpace = obj.modelReductionOptions.fspSoln.stateSpace.states;
         end
 
-
         %% Plotting/Visualization Functions
         function makePlot(obj,solution,plotType,indTimes,includePDO,figureNums)
             % SSIT.makePlot -- tool to make plot of the FSP or SSA results.
@@ -1774,7 +1789,23 @@ end
                                     end
                                 end
                             end
-                    end
+                        case 'escapeTimes'
+                            f = figure(figureNums(kfig)); kfig=kfig+1;
+                            subplot(2,1,1)
+                            z = solution.EscapeCDF(indTimes,:);
+                            t = solution.T_array(indTimes);
+                            plot(t,z,'linewidth',3); hold on
+                            set(gca,'fontsize',16)
+                            ylabel('Escape CDF')
+                            
+                            subplot(2,1,2)
+                            zp = (z(2:end,:)-z(1:end-1,:))./(t(2:end)-t(1:end-1))';
+                            tp = (t(2:end)+t(1:end-1))/2;
+                            plot(tp',zp,'linewidth',3); hold on
+                            set(gca,'fontsize',16)
+                            ylabel('Escape PDF')
+                            xlabel('time')
+                   end
                 case 'SSA'
                     Nd = size(solution.trajs,1);
                     if isempty(indTimes)
