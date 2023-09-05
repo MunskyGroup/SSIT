@@ -3,8 +3,9 @@
 % species (i.e., upstream reactions) using an ODE formulation, while having
 % other species (i.e., downstream species) evolving in a discrete
 % stochastic manner. 
-close all
+close all 
 clear all
+addpath('../CommandLine');
 
 %% Example 1 - transcription and translation
 % First create a full model (e.g., for mRNA and protein)
@@ -24,6 +25,7 @@ Model1.makePlot(fspSoln1,'marginals',[],[],[2,3])
 Model2 = Model1;
 Model2.useHybrid = true;
 Model2.hybridOptions.upstreamODEs = {'rna'};
+Model2.fspOptions.verbose = 0;
 [fspSoln2, Model2.fspOptions.bounds] = Model2.solve;
 Model2.makePlot(fspSoln2,'marginals',[],[],3)
 

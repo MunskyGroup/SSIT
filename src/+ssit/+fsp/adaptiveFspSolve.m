@@ -155,6 +155,9 @@ if useHybrid
     initODEs = initStates(jUpstreamODE);
     initStates = initStates(jStochastic);
     speciesNames = speciesNames(jStochastic);
+    numODEs = length(jUpstreamODE);
+else
+    numODEs = 0;
 end
 
 if ~isempty(fEscape)
@@ -215,7 +218,7 @@ if initApproxSS
         [eigVec,~] = eigs(jac,1,'smallestabs');
     catch
         try
-            [eigVec,~] = eigs(jac,0);
+            [eigVec,~] = eigs(jac,1);
         catch
             try 
                 eigVec = null(full(jac));
@@ -260,13 +263,14 @@ if (~isempty(iout))
         p = max(p,0);
         solutions{iout} = struct(time=0, ...
             p=packFspSolution(stateSpace.states, p(1:stateCount)), ...
+            escapeProbs=[], ...
             sinks=[]);
     elseif useHybrid
         solutions{iout} = struct(time=0, ...
             p=packFspSolution(stateSpace.states, solVec(1:stateCount)), ...
-            sinks=solVec(stateCount+1:end-nEscapeSinks-length(jUpstreamODE)),...
-            escapeProbs=solVec(end-nEscapeSinks-length(jUpstreamODE)+1:end-length(jUpstreamODE)),...
-            upstreamODEs=solVec(end-length(jUpstreamODE)+1:end));
+            sinks=solVec(stateCount+1:end-nEscapeSinks-numODEs),...
+            escapeProbs=solVec(end-nEscapeSinks-numODEs+1:end-numODEs),...
+            upstreamODEs=solVec(end-numODEs+1:end));
     else
         solutions{iout} = struct(time=0, ...
             p=packFspSolution(stateSpace.states, solVec(1:stateCount)), ...
@@ -299,7 +303,8 @@ while (tNow < maxOutputTime)
         'tInit', tInit,...
         'fspTol', fspTol,...
         'nSinks', constraintCount, ...
-        'nEscapeSinks', nEscapeSinks);
+        'nEscapeSinks', nEscapeSinks,...
+        'numODEs', numODEs);
 
     tOut = outputTimes(outputTimes >= tNow);
     % Set up ODE solver data structure for the truncated problem
@@ -352,11 +357,11 @@ while (tNow < maxOutputTime)
             elseif odeSolver == "expokitPiecewise"
                 solver = ssit.fsp_ode_solvers.ExpokitPiecewise();
             else
-                if ~isempty(hybridOptions)
-                    solver = ssit.fsp_ode_solvers.OdeSuite(relTol, absTol, length(hybridOptions.upstreamODEs));
-                else
+%                 if ~isempty(hybridOptions)
+%                     solver = ssit.fsp_ode_solvers.OdeSuite(relTol, absTol);
+%                 else
                     solver = ssit.fsp_ode_solvers.OdeSuite(relTol, absTol);
-                end
+%                 end
             end
         end
     end
@@ -389,9 +394,9 @@ while (tNow < maxOutputTime)
         elseif useHybrid
             solutions{iout} = struct(time=outputTimes(iout),...
                 p=packFspSolution(stateSpace.states, solutionsNow{j}(1:stateCount)),...
-                sinks=solutionsNow{j}(stateCount+1:end-nEscapeSinks-length(jUpstreamODE)), ...
-                escapeProbs=solutionsNow{j}(end-nEscapeSinks-length(jUpstreamODE)+1:end-length(jUpstreamODE)),...
-                upstreamODEs=solutionsNow{j}(end-length(jUpstreamODE)+1:end));
+                sinks=solutionsNow{j}(stateCount+1:end-nEscapeSinks-numODEs), ...
+                escapeProbs=solutionsNow{j}(end-nEscapeSinks-numODEs+1:end-numODEs),...
+                upstreamODEs=solutionsNow{j}(end-numODEs+1:end));
         else
             solutions{iout} = struct(time=outputTimes(iout),...
                 p=packFspSolution(stateSpace.states, solutionsNow{j}(1:stateCount)),...
@@ -448,7 +453,7 @@ while (tNow < maxOutputTime)
         stateCountOld = stateCount;
         stateCount = stateSpace.getNumStates;
         if useHybrid
-            solVec = zeros(stateCount + constraintCount + length(jUpstreamODE), 1);
+            solVec = zeros(stateCount + constraintCount + numODEs, 1);
         else
             solVec = zeros(stateCount + constraintCount, 1);
         end

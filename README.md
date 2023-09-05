@@ -27,11 +27,21 @@ For all basic functionalities:
 - MATLAB R2021b or later.
 - Symbolic Computing Toolbox.
 - Global Optimization Toolbox.
-- Parallel Computing Toolbox.
+- Parallel Computing Toolbox. 
 - [Tensor Toolbox for MATLAB](https://www.tensortoolbox.org/).  You will need to make sure to add the TTB to the Matlab path before running the SSIT.
 
 # Installation
 Clone this package to a local folder on your computer. Then add the path to that folder (with subfolders) into MATLAB's search path. You can then call all functions from MATLAB. 
+
+# Acknowledgements
+
+The SSIT tools in this repository make use of sparse tensors using the Tensor Toolbox for MATLAB (version 3.2.1) provided by Brett W. Bader, Tamara G. Kolda and others at www.tensortoolbox.org under   Users of this software should cite the TTM creators at:
+
+* B. W. Bader and T. G. Kolda, Efficient MATLAB Computations with Sparse and Factored Tensors, SIAM J. Scientific Computing, 30(1):205-231, 2007, http://dx.doi.org/10.1137/060676489. 
+
+The provided SSIT tools also make use a modified version of Expokit for the solution of time-invariant master equations (although these codes are not used for the current publication). Users of this software should cite the creators at:
+
+* Sidje, R. B., Expokit Software Package for Computing Matrix Exponentials, ACM Trans. Math. Softw., 24:1, 1998.
 
 # Getting Started
 The SSIT provides two basic interaction options: (1) command line tools and (2) a graphical user interface.

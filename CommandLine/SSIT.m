@@ -92,17 +92,31 @@ classdef SSIT
                 for i = 1:n_reactions
                         st = obj.propensityFunctions{i};
                         for jI = 1:size(obj.inputExpressions,1)
-                            st = strrep(st,obj.inputExpressions{jI,1},obj.inputExpressions{jI,2});
+                            st = strrep(st,obj.inputExpressions{jI,1},['(',obj.inputExpressions{jI,2},')']);
                         end
+
+                        [st,logicTerms] = ssit.Propensity.stripLogicals(st,obj.species);
+
                         sm = str2sym(st);
                         
                         if obj.useHybrid
                             % Propensity for hybrid models will include
                             % solutions from the upstream ODEs.
-                            Propensities{i} = ssit.Propensity.createAsHybrid(sm, obj.stoichiometry(:,i), i, obj.parameters(:,1), obj.species, obj.hybridOptions.upstreamODEs);
+                            Propensities{i} = ssit.Propensity.createAsHybrid(sm, obj.stoichiometry(:,i), i,...
+                                obj.parameters(:,1), obj.species, obj.hybridOptions.upstreamODEs, logicTerms);
                             if ~isempty(Propensities{i}.hybridFactor)
                                 Propensities{i}.hybridFactor = ...
                                     @(t,v)Propensities{i}.hybridFactor(t,obj.parameters{:,2},v);
+                                % The time dependent signal must always be non-negative.
+                                if sign(Propensities{i}.hybridFactor(0,rand(1,length(obj.hybridOptions.upstreamODEs))))==-1
+                                    sgT = -1;
+                                    Propensities{i}.hybridFactor = ...
+                                        @(t,v)(sgT*Propensities{i}.hybridFactor(t,v));
+                                    Propensities{i}.stateDependentFactor = ...
+                                        @(x)sgT*Propensities{i}.stateDependentFactor(x,obj.parameters{:,2});
+                                else
+                                    sgT = 1;
+                                end
                             end
                             if ~isempty(Propensities{i}.hybridJointFactor)
                                 Propensities{i}.hybridJointFactor = ...
@@ -110,7 +124,8 @@ classdef SSIT
                             end
 
                         else
-                            Propensities{i} = ssit.Propensity.createFromSym(sm, obj.stoichiometry(:,i), i, obj.parameters(:,1), obj.species);
+                            Propensities{i} = ssit.Propensity.createFromSym(sm, obj.stoichiometry(:,i), i, ...
+                                obj.parameters(:,1), obj.species, logicTerms);
 
                             if ~isempty(Propensities{i}.timeDependentFactor)
                                 Propensities{i}.timeDependentFactor = ...
@@ -548,7 +563,7 @@ classdef SSIT
             nS = size(obj.stoichiometry,1);
             disp('Species:')
             for i = 1:nS
-                if ~isempty(obj.hybridOptions.upstreamODEs)&&contains(obj.hybridOptions.upstreamODEs,obj.species{i})
+                if ~isempty(obj.hybridOptions.upstreamODEs)&&max(contains(obj.hybridOptions.upstreamODEs,obj.species{i}))
                     disp(['     ',obj.species{i},'; IC = ',num2str(obj.initialCondition(i)),';  upstream ODE']);
                 else
                     disp(['     ',obj.species{i},'; IC = ',num2str(obj.initialCondition(i)),';  discrete stochastic']);
@@ -628,25 +643,26 @@ classdef SSIT
                 obj.tSpan = unique([obj.initialTime,obj.tSpan]);
             end
 
+            if obj.modelReductionOptions.useModReduction
+                if ~isfield(obj.modelReductionOptions,'phi')
+                    error('Model Reduction Matrices have not yet been Defined.')
+                end
+                useReducedModel = true;
+                modRedTransformMatrices.phi = obj.modelReductionOptions.phi;
+                modRedTransformMatrices.phi_inv = obj.modelReductionOptions.phi_inv;
+                modRedTransformMatrices.phiScale = obj.modelReductionOptions.phiScale;
+                modRedTransformMatrices.phiPlot = obj.modelReductionOptions.phiPlot;
+            else
+                useReducedModel = false;
+                modRedTransformMatrices = [];
+            end
+            
             switch obj.solutionScheme
                 case 'FSP'
                     if ~isempty(stateSpace)&&size(stateSpace.states,2)~=stateSpace.state2indMap.Count
                         error('HERE')
                     end
 
-                    if obj.modelReductionOptions.useModReduction
-                        if ~isfield(obj.modelReductionOptions,'phi')
-                            error('Model Reduction Matrices have not yet been Defined.')
-                        end
-                         useReducedModel = true;
-                         modRedTransformMatrices.phi = obj.modelReductionOptions.phi;
-                         modRedTransformMatrices.phi_inv = obj.modelReductionOptions.phi_inv;
-                         modRedTransformMatrices.phiScale = obj.modelReductionOptions.phiScale;
-                         modRedTransformMatrices.phiPlot = obj.modelReductionOptions.phiPlot;
-                    else
-                        useReducedModel = false;
-                         modRedTransformMatrices = [];
-                    end
                     [Solution.fsp, bConstraints,Solution.stateSpace] = ssit.fsp.adaptiveFspSolve(obj.tSpan,...
                         obj.initialCondition,...
                         obj.initialProbs,...
@@ -769,7 +785,10 @@ classdef SSIT
                         obj.fspOptions.initApproxSS,...
                         obj.species,...
                         obj.sensOptions.useParallel,...
-                        fspSoln);
+                        fspSoln,...
+                        useReducedModel,modRedTransformMatrices, ...
+                        obj.useHybrid,obj.hybridOptions,...
+                        obj.fspConstraints.fEscape,obj.fspConstraints.bEscape);
                     %                     app.SensFspTabOutputs.solutions = Solution.sens;
                     %                     app.SensPrintTimesEditField.Value = mat2str(obj.tSpan);
                     %                     Solution.plotable = exportSensResults(app);
@@ -830,7 +849,7 @@ classdef SSIT
              end
         end
 
-        function [fimResults,sensSoln] = computeFIM(obj,sensSoln)
+        function [fimResults,sensSoln] = computeFIM(obj,sensSoln,scale)
             % computeFIM - computes FIM at all time points.
             % Arguments:
             %   sensSoln - (optional) previously compute FSP Sensitivity.
@@ -841,6 +860,7 @@ classdef SSIT
             arguments
                 obj
                 sensSoln = [];
+                scale = 'lin';
             end
             if isempty(sensSoln)
                 disp({'Running Sensitivity Calculation';'You can skip this step by providing sensSoln.'})
@@ -875,6 +895,14 @@ classdef SSIT
                     F = ssit.fim.computeSingleCellFim(sensSoln.data{it}.p.sumOver(indsUnobserved), redS, obj.pdoOptions.PDO);
                 end
                 fimResults{it,1} = F;
+            end
+
+            if strcmp(scale,'log')
+                for it=length(sensSoln.data):-1:1
+                    fimResults{it,1} = diag([obj.parameters{:,2}])*...
+                        fimResults{it,1}*...
+                        diag([obj.parameters{:,2}]);
+                end
             end
         end
 
@@ -1408,15 +1436,28 @@ end
             if isempty(parGuess)
                 parGuess = [obj.parameters{obj.fittingOptions.modelVarsToFit,2}]';
             end
+
             obj.solutionScheme = 'FSP';   % Set solution scheme to FSP.
             [FSPsoln,bounds] = obj.solve;  % Solve the FSP analysis
             obj.fspOptions.bounds = bounds;% Save bound for faster analyses
             objFun = @(x)-obj.computeLikelihood(exp(x),FSPsoln.stateSpace);  % We want to MAXIMIZE the likelihood.
             x0 = log(parGuess);
 
+
+            if isfield(fitOptions,'suppressFSPExpansion')&&fitOptions.suppressFSPExpansion
+                tmpFSPtol = obj.fspOptions.fspTol;
+                obj.fspOptions.fspTol = inf;
+            end
+
             switch fitAlgorithm
                 case 'fminsearch'
-                    [x0,likelihood,~,otherResults]  = fminsearch(objFun,x0,fitOptions);
+                    allFitOptions.suppressFSPExpansion = true;
+                    fNames = fieldnames(fitOptions);
+                    for i=1:length(fNames)
+                        allFitOptions.(fNames{i}) = fitOptions.(fNames{i});
+                    end
+
+                    [x0,likelihood,~,otherResults]  = fminsearch(objFun,x0,allFitOptions);
 
                 case 'fminunc'
                     obj.fspOptions.fspTol = inf;
@@ -1501,20 +1542,23 @@ end
                         TMP.solutionScheme = 'fspSens'; % Set solutions scheme to FSP Sensitivity
                         [sensSoln] = TMP.solve;  % Solve the sensitivity problem
 
-                        fimResults = TMP.computeFIM(sensSoln.sens);
-                        [FIM] = TMP.evaluateExperiment(fimResults,TMP.dataSet.nCells);
-
                         if allFitOptions.logForm
-                            FIMlog = diag([TMP.parameters{obj.fittingOptions.modelVarsToFit,2}])*...
-                                FIM(obj.fittingOptions.modelVarsToFit,obj.fittingOptions.modelVarsToFit)*...
-                                diag([TMP.parameters{obj.fittingOptions.modelVarsToFit,2}]);
+                            fimResults = TMP.computeFIM(sensSoln.sens,'log');
                         else
-                            FIMlog = FIM(obj.fittingOptions.modelVarsToFit,obj.fittingOptions.modelVarsToFit);
+                            fimResults = TMP.computeFIM(sensSoln.sens);
+                        end
+                        FIM = TMP.evaluateExperiment(fimResults,TMP.dataSet.nCells);
+
+                        FIMfree = FIM(obj.fittingOptions.modelVarsToFit,obj.fittingOptions.modelVarsToFit);
+
+                        if allFitOptions.logForm&&min(eig(FIMfree))<1
+                            disp('Warning -- FIM has one or more small eigenvalues.  Reducing proposal width to 10x in those directions. MH Convergence may be slow.')
+                            FIMfree = FIMfree + 1*eye(length(FIMfree));
                         end
                         
-                        covLog = FIMlog^-1;
-                        covLog = allFitOptions.CovFIMscale*(covLog+covLog')/2;
-                        allFitOptions.proposalDistribution=@(x)mvnrnd(x,covLog);                       
+                        covFree = FIMfree^-1;
+                        covFree = allFitOptions.CovFIMscale*(covFree+covFree')/2;
+                        allFitOptions.proposalDistribution=@(x)mvnrnd(x,covFree);                       
                     end
                     
                     if allFitOptions.suppressFSPExpansion
@@ -1566,6 +1610,11 @@ end
             end
 
             pars = exp(x0);
+
+            if isfield(fitOptions,'suppressFSPExpansion')
+                obj.fspOptions.fspTol = tmpFSPtol;
+            end
+
         end
 
         %% Model Reduction Functions
@@ -1747,11 +1796,13 @@ end
                             for i = 1:Nd
                                 subplot(Nd,1,i); hold on
                                 errorbar(solution.T_array(indTimes),solution.Means(indTimes,i),sqrt(solution.Var(indTimes,i)),'linewidth',2);
+                                ylabel(obj.species{i})
                             end
+                            xlabel('time')
                         case 'marginals'
                             for j = 1:Nd
                                 f = figure(figureNums(kfig)); kfig=kfig+1;
-                                f.Name = ['Marginal Distributions of x',num2str(j)];
+                                f.Name = ['Marginal Distributions of ',obj.species{j}];
                                 Nr = ceil(sqrt(Nt));
                                 Nc = ceil(Nt/Nr);
                                 for i = 1:Nt
@@ -1769,7 +1820,7 @@ end
                                 for j1 = 1:Nd
                                     for j2 = j1+1:Nd
                                         h = figure(figureNums(kfig)); kfig=kfig+1;
-                                        h.Name = ['Joint Distribution of x',num2str(j1),' and x',num2str(j2)];
+                                        h.Name = ['Joint Distribution of ',obj.species{j1},' and ',obj.species{j2}];
                                         Nr = ceil(sqrt(Nt));
                                         Nc = ceil(Nt/Nr);
                                         for i = 1:Nt

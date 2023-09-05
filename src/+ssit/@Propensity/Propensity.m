@@ -162,13 +162,14 @@ classdef Propensity
         end
     end
     methods (Access = public, Static)
-        function obj = createFromSym(symbolicExpression, stoichVector, reactionIndex, nonXTpars, species)
+        function obj = createFromSym(symbolicExpression, stoichVector, reactionIndex, nonXTpars, species, logicTerms)
             arguments
                 symbolicExpression
                 stoichVector
                 reactionIndex
                 nonXTpars ={};
                 species = {};
+                logicTerms = {};
             end
 
             % Construct an instance of Propensity from a symbolic expression.
@@ -204,10 +205,15 @@ classdef Propensity
             % Now determine time-dependency
             prop_vars = symvar(symbolicExpression);
             str_tmp = string(prop_vars);
-            for i = 1:length(str_tmp)
-                if (strcmp(str_tmp(i), "t"))&&~(strcmp(str_tmp(i), "@(t)1"))
-                    obj.isTimeDependent = true;
-                    break;
+            
+            if ~isempty(logicTerms)&&isfield(logicTerms,'logT')
+                obj.isTimeDependent = true;
+            else
+                for i = 1:length(str_tmp)
+                    if (strcmp(str_tmp(i), "t"))&&~(strcmp(str_tmp(i), "@(t)1"))
+                        obj.isTimeDependent = true;
+                        break;
+                    end
                 end
             end
 
@@ -229,14 +235,15 @@ classdef Propensity
 
                 if (ismember(t, symvar(factors(1))))
                     obj.isFactorizable = false;
-                end
-                for i = 2:length(factors)
-                    fvars = symvar(factors(i));
-                    TMP = string(fvars);
-                    Jx = contains(TMP,species);
-                    if (sum(Jx) > 1)
-                        obj.isFactorizable = false;
-                        break;
+                else
+                    for i = 2:length(factors)
+                        fvars = symvar(factors(i));
+                        TMP = string(fvars);
+                        Jx = contains(TMP,species);
+                        if (sum(Jx) > 1)
+                            obj.isFactorizable = false;
+                            break;
+                        end
                     end
                 end
             end
@@ -248,19 +255,19 @@ classdef Propensity
                 expr_x = factors(1);
                 % Convert these symbolic expressions to anonymous
                 % functions
-                obj.timeDependentFactor = sym2propfun(expr_t, true, false, nonXTpars, species);
-                obj.stateDependentFactor = sym2propfun(expr_x, false, true, nonXTpars, species);
+                obj.timeDependentFactor = sym2propfun(expr_t, true, false, nonXTpars, species, [], logicTerms);
+                obj.stateDependentFactor = sym2propfun(expr_x, false, true, nonXTpars, species, [], logicTerms);
             else
 
                 % If it is not factorizable, collect everything into a
                 % single function handle
                 expr_tx = symbolicExpression;
                 % Convert to anonymous function
-                obj.jointDependentFactor = sym2propfun(expr_tx, true, true, nonXTpars, species);
+                obj.jointDependentFactor = sym2propfun(expr_tx, true, true, nonXTpars, species, [], logicTerms);
             end
         end
 
-        function obj = createAsHybrid(symbolicExpression, stoichVector, reactionIndex, nonXTpars, species, upstreamODEs)
+        function obj = createAsHybrid(symbolicExpression, stoichVector, reactionIndex, nonXTpars, species, upstreamODEs, logicTerms)
             arguments
                 symbolicExpression
                 stoichVector
@@ -268,6 +275,7 @@ classdef Propensity
                 nonXTpars
                 species
                 upstreamODEs
+                logicTerms = {};
             end
 
         % Construct an instance of Hybrid Propensity from a symbolic expression.
@@ -358,14 +366,14 @@ classdef Propensity
             for i=1:length(upstreamODEs)
                 expr_t = subs(expr_t,upstreamODEs{i},varODEs(i));
             end
-            obj.hybridFactor = sym2propfun(expr_t, true, false, nonXTpars, speciesStoch, varODEs);
-            obj.stateDependentFactor = sym2propfun(expr_x, false, true, nonXTpars, speciesStoch);
+            obj.hybridFactor = sym2propfun(expr_t, true, false, nonXTpars, speciesStoch, varODEs, logicTerms);
+            obj.stateDependentFactor = sym2propfun(expr_x, false, true, nonXTpars, speciesStoch, [], logicTerms);
             obj.isTimeDependent = true;
         else
             for i=1:length(upstreamODEs)
                 expr_tx = subs(expr_tx,upstreamODEs{i},varODEs(i));
             end
-            obj.hybridJointFactor = sym2propfun(expr_tx, true, true, nonXTpars, speciesStoch, varODEs);
+            obj.hybridJointFactor = sym2propfun(expr_tx, true, true, nonXTpars, speciesStoch, varODEs, logicTerms);
             obj.isTimeDependent = true;
         end
 
@@ -498,6 +506,41 @@ classdef Propensity
             obj.jointDependentFactor = ftxhandle;
         end
     end
+
+    methods (Static)
+        function [stNew,logicTerms] = stripLogicals(st,species)
+            logTypes = {'=','>','<'};
+            logicTerms = [];
+            n = [0,0,0];
+            stNew = st;
+            for i=1:3
+                J = strfind(st,logTypes{i});
+                for j = 1:length(J)
+                    K = strfind(st,'(');
+                    k1 = max(K(K<J(j)));
+                    K = strfind(st,')');
+                    k2 = min(K(K>J(j)));
+                    logE = st(k1:k2);
+                    if contains(logE,'t')&&max(contains(logE,species))
+                        n(1)=n(1)+1;
+                        logicTerms.logJ{n(1),1} = logE;
+                        logicTerms.logJ{n(1),2} = ['logJ',num2str(n(1))];
+                        stNew = strrep(stNew,logE,['(',logicTerms.logJ{n(1),2},')']);
+                    elseif contains(logE,'t')
+                        n(2)=n(2)+1;
+                        logicTerms.logT{n(2),1} = logE;
+                        logicTerms.logT{n(2),2} = ['logT',num2str(n(2))];
+                        stNew = strrep(stNew,logE,['(',logicTerms.logT{n(2),2},')']);
+                    elseif max(contains(logE,species))
+                        n(3)=n(3)+1;
+                        logicTerms.logX{n(3),1} = logE;
+                        logicTerms.logX{n(3),2} = ['logE',num2str(n(3))];
+                        stNew = strrep(stNew,logE,['(',logicTerms.logX{n(3),2},')']);
+                    end
+                end
+            end
+        end
+    end
 end
 
 function [ft, fx, isFactorizable] = separateExpression(expr)
@@ -558,7 +601,7 @@ function [ft, fx, isFactorizable] = separateExpression(expr)
     %     fx = strip(fx, 'right', '}');
 end
 
-function y = sym2propfun(symbolicExpression, time_dep, state_dep, nonXTpars, species, varODEs)
+function y = sym2propfun(symbolicExpression, time_dep, state_dep, nonXTpars, species, varODEs, logicTerms)
 arguments
     symbolicExpression
     time_dep
@@ -566,6 +609,7 @@ arguments
     nonXTpars
     species
     varODEs = [];
+    logicTerms = {};
 end
     % Convert a symbolic expression into usable anonoymous function
     % handle.
@@ -603,6 +647,28 @@ end
         end
     end
 
+    if ~isempty(logicTerms)
+        if isfield(logicTerms,'logT')
+%             time_dep = true;
+            for i=1:size(logicTerms.logT,1)
+                exprStr=strrep(exprStr,logicTerms.logT{i,2},logicTerms.logT{i,1});
+            end
+        end
+        if isfield(logicTerms,'logX')
+%             state_dep = true;
+            for i=1:size(logicTerms.logX,1)
+                exprStr=strrep(exprStr,logicTerms.logX{i,2},logicTerms.logX{i,1});
+            end
+        end
+        if isfield(logicTerms,'logE')
+%             time_dep = true;
+%             state_dep = true;
+            for i=1:size(logicTerms.logX,1)
+                exprStr=strrep(exprStr,logicTerms.logX{i,2},logicTerms.logX{i,1});
+            end
+        end
+    end
+
     if (time_dep && state_dep)
         fhandle_var = ['@(t, x',parStr,')'];
         for i = 1:length(varNames)
@@ -634,3 +700,4 @@ end
         y = str2func([fhandle_var exprStr]);
     end
 end
+

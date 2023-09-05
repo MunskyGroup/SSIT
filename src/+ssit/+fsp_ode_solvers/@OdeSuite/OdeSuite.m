@@ -3,11 +3,11 @@ classdef OdeSuite < ssit.fsp_ode_solvers.OdeSolver
     properties
         relTol (1,1) double {mustBePositive} = 1.0e-4
         absTol (1,1) double {mustBePositive} = 1.0e-8    
-        numODEs = 0
+%         numODEs = 0
     end
     
     methods
-        function obj = OdeSuite(relTol, absTol, numODEs)
+        function obj = OdeSuite(relTol, absTol)
         % Construct an instance of MexSundials.
         % 
         % Parameters
@@ -25,12 +25,12 @@ classdef OdeSuite < ssit.fsp_ode_solvers.OdeSolver
         arguments
             relTol (1,1) double {mustBePositive} = 1.0e-4
             absTol (1,1) double {mustBePositive} = 1.0e-8
-            numODEs = 0
+%             numODEs = 0
         end
         
         obj.relTol = relTol;
         obj.absTol = absTol;
-        obj.numODEs = numODEs;
+%         obj.numODEs = numODEs;
         end
         
         function [tExport, solutionsNow, fspStopStatus] = solve(obj, tStart, tOut, initSolution, rhs, jac, fspErrorCondition)
@@ -104,8 +104,10 @@ classdef OdeSuite < ssit.fsp_ode_solvers.OdeSolver
         solutionsNow = mat2cell(solutionsNow, size(solutionsNow,1), ones(1, size(solutionsNow,2)));
         
         if (~isempty(te))
-            SINKS = length(initSolution)-fspErrorCondition.nSinks+1:length(initSolution)-fspErrorCondition.nEscapeSinks;
-            fspSINKS = length(initSolution)-fspErrorCondition.nSinks+1 : length(initSolution);
+            SINKS = length(initSolution)-fspErrorCondition.nSinks-fspErrorCondition.numODEs+1:...
+                length(initSolution)-fspErrorCondition.nEscapeSinks-fspErrorCondition.numODEs;
+            fspSINKS = length(initSolution)-fspErrorCondition.nSinks-fspErrorCondition.numODEs+1 : ...
+                length(initSolution)-fspErrorCondition.numODEs;
             sinks = max(0,ye(SINKS));
             errorBound = fspErrorCondition.fspTol*...
                 (te-fspErrorCondition.tInit)/(fspErrorCondition.tFinal-fspErrorCondition.tInit);
@@ -132,14 +134,13 @@ classdef OdeSuite < ssit.fsp_ode_solvers.OdeSolver
 end
 
 
-function [val, terminal, direction] = fspOdesuiteEvent(t, p, fspErrorCheck, numODEs)
+function [val, terminal, direction] = fspOdesuiteEvent(t, p, fspErrorCheck)
 arguments
     t
     p
     fspErrorCheck
-    numODEs = 0;
 end
-sinks = p(end-fspErrorCheck.nSinks-numODEs+1:end-numODEs-fspErrorCheck.nEscapeSinks);
+sinks = p(end-fspErrorCheck.nSinks-fspErrorCheck.numODEs+1:end-fspErrorCheck.numODEs-fspErrorCheck.nEscapeSinks);
 error_bound = fspErrorCheck.fspTol*(t-fspErrorCheck.tInit)/(fspErrorCheck.tFinal-fspErrorCheck.tInit);
 
 val = max(sinks)*(fspErrorCheck.nSinks-fspErrorCheck.nEscapeSinks) - error_bound;

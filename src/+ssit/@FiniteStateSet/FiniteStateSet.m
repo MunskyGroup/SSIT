@@ -76,7 +76,12 @@ classdef FiniteStateSet
             obj.states = states;
             obj.stoichMatrix = stoichMatrix;
             obj.reachableIndices = zeros(size(states,2), size(stoichMatrix, 2));
-            key_set = state2key(states);
+            key_set = state2key(uint64(states));
+
+            if max([key_set{:}])>1e19
+                disp({'WARNING - State index is above machine precision.';'Results may be inaccurate';'Try re-ordering species from low to high expected values'});
+            end
+            
             obj.state2indMap = containers.Map(key_set, 1:size(states,2));
             if size(obj.states,2)~=obj.state2indMap.Count
                 error('HERE')

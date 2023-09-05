@@ -96,9 +96,10 @@ classdef Expokit
             end
         elseif strcmp(obj.version,'expv_modified')
             while tryAgain==1
+                SINKS = [];
                 [~, ~, ~, tExport, solutionsNow, ~, tryAgain, te, ye] = ...
                     ssit.fsp_ode_solvers.expv_modified(tOut(end), jac, initSolution, 1e-16, m,...
-                    [], tOut,fspTol,[],tStart,fspErrorCondition);
+                    [], tOut,fspTol,SINKS,tStart,fspErrorCondition);
                 if tryAgain==0;break;end
                 if m>300
                     warning('Expokit expansion truncated at 300');
