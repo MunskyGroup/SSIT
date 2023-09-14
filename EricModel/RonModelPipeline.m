@@ -31,8 +31,8 @@ ModelGR.inputExpressions = {'IDex','100*exp(-gDex*t)*(t>0)'};
 [~,ModelGR.fspOptions.bounds] = ModelGR.solve;
 
 %%    Load previously fit parameter values (optional)
-load('EricModelDataSep14','GRpars','Dusp1FitParameters')
-ModelGR.parameters(:,2) = num2cell([Dusp1FitParameters;GRpars']);
+load('EricModelDataSep14','GRpars','DUSP1pars')
+ModelGR.parameters(:,2) = num2cell([DUSP1pars,GRpars]);
 
 %%    Associate Data with Different Instances of Model (10,100nm Dex)
 GRfitCases = {'1','1',101,'GR Fit (1nM Dex)';...
@@ -50,7 +50,7 @@ for i=1:size(GRfitCases,1)
 end
 
 %%    Combine all three GR models and fit using a single parameter set.
-fitOptions = optimset('Display','iter','MaxIter',1000);
+fitOptions = optimset('Display','iter','MaxIter',10);
 combinedGRModel = SSITMultiModel(ModelGRfit,ModelGRparameterMap);
 combinedGRModel = combinedGRModel.initializeStateSpaces;
 GRpars = combinedGRModel.maximizeLikelihood(...
@@ -101,7 +101,7 @@ end
 DUSP1pars = [ModelDusp1Fit{i}.parameters{ModelGRDusp.fittingOptions.modelVarsToFit,2}];
 
 %%    Fit DUSP1 model(s) with single parameter set.
-fitOptions = optimset('Display','iter','MaxIter',100);
+fitOptions = optimset('Display','iter','MaxIter',10);
 fitOptions.suppressFSPExpansion = true; 
 combinedDusp1Model = SSITMultiModel(ModelDusp1Fit,ModelDusp1parameterMap);
 combinedDusp1Model = combinedDusp1Model.initializeStateSpaces;
@@ -140,13 +140,13 @@ for i=1:size(PredictionCases,1)
     ModelPred{i}.makeFitPlot([],5,fignums(i,:))
     
     figure(fignums(i,3)); 
-    set(gca,'ylim',[0,120])
+    set(gca,'ylim',[0,150])
     title(PredictionCases{i,4})
     ylabel('DUSP1 mRNA')
     xlabel('Time (min)')
 end
 
-%%  Predict DUSP1 Distributions under Dex Titration
+%%  Predict DUSP1 Distributions at 75 min under Dex Titration
 DexConc = 10.^[-3,-2,-1,0,1,3,4];
 DecConcStr = {'0.001','0.01','0.1','1','10','1000','10000'};
 
@@ -181,7 +181,7 @@ plot(DexConc,MeanModel,'k','LineWidth',3); hold on;
 errorbar(DexConc,MeanData,SigDat,'LineWidth',3,'LineStyle','none'); hold on;
 plot(DexConc,MeanData,'s','MarkerSize',18,'MarkerFaceColor','b');
 
-set(gca,'xscale','log','FontSize',16,'xlim',[9e-4,1.1e4])
+set(gca,'xscale','log','FontSize',16,'xlim',[9e-4,1.1e4],'ylim',[0,150])
 title('Prediction of DUSP1 Expression')
 xlabel('Dex Concentration at 75 min')
 ylabel('DUSP1 Expression (nM)')
@@ -189,14 +189,16 @@ ylabel('DUSP1 Expression (nM)')
 %%  Predict DUSP1 Distributions After Tryptolide
 fignums = [511,521,501,531;...
     512,522,502,532;...
-    513,523,503,533];
+    513,523,503,533;...
+    514,524,504,534];
 
-PredictionCases = {'20',502,'DUSP1 Prediction (t_{TPL} = 20 min)';...
+PredictionCases = {'0',501,'DUSP1 Prediction (t_{TPL} = 0 min)';...
+                '20',502,'DUSP1 Prediction (t_{TPL} = 20 min)';...
                     '75',503,'DUSP1 Prediction (t_{TPL} = 75 min)';...
                     '180',504,'DUSP1 Prediction (t_{TPL} = 180 min)'};
 
-ModelPredDexTpl = cell(length(tTPL),1);
-ModelPredDexTplSoln = cell(length(tTPL),1);
+ModelPredDexTpl = cell(size(PredictionCases,1),1);
+ModelPredDexTplSoln = cell(size(PredictionCases,1),1);
 for i=1:size(PredictionCases,1)
     ModelPredDexTpl{i} = ModelGRDusp.loadData('DUSP1_GR_dataframes/DUSP1_100nM_Dex_5uM_TPL_R1.csv',...
         {'rna','RNA_nuc'},...
@@ -214,9 +216,31 @@ for i=1:size(PredictionCases,1)
     ModelPredDexTpl{i}.makeFitPlot([],5,fignums(i,:))
     
     figure(fignums(i,3)); 
-    set(gca,'ylim',[0,120])
+    set(gca,'ylim',[0,150])
     title(PredictionCases{i,3})
     ylabel('DUSP1 mRNA')
     xlabel('Time (min)')
 end
+
+
+%% Sandbox for Predicting Other Behaviors
+SBModel = ModelGRDusp;
+SBModel.tSpan = linspace(0,300,50);
+SBModel.inputExpressions = {'IDex','10*exp(-gDex*t)*(t>0)-10*exp(-gDex*(t))*(t>10)'};
+[fspSoln] = SBModel.solve;
+SBModel.makePlot(fspSoln,'meansAndDevs',[],[],[4])
+
+SBModel2 = ModelGRDusp;
+SBModel2.tSpan = linspace(0,300,50);
+SBModel2.inputExpressions = {'IDex','10*exp(-gDex*t)*(t>0)'};
+[fspSoln2] = SBModel2.solve;
+SBModel2.makePlot(fspSoln2,'meansAndDevs',[],[],[4])
+
+%%
+SBModelJoint = ModelGRDusp;
+SBModelJoint.useHybrid = false;
+SBModelJoint.fspOptions.verbose = true;
+[fspSoln3] = SBModelJoint.solve;
+SBModelJoint.makePlot(fspSoln3,'joints',[],[],[5])
+
 
