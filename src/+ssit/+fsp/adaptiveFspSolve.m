@@ -201,16 +201,26 @@ for i = 1:length(propensities)
     end
 end
 
-if useHybrid&&initApproxSS
-    error('Approximate SS initiation not yet supported for hybrid models.')
-end
-
 % Use Approximate steady state as initial distribution if requested.
 if initApproxSS
-    if useReducedModel
-        AfspFull = ssit.FspMatrix(propensities, stateSpace, constraintCount, speciesNames);
+    if useHybrid
+        FUN = @(v)odeStoichs*generate_propensity_vector(0, v, zeros(length(jStochastic),1), propensities);
+        OPTIONS = optimoptions('fsolve','display','none',...
+            'OptimalityTolerance',1e-8,'MaxIterations',2000);
+        x0b = fsolve(FUN,initODEs,OPTIONS);
+        FUN = @(t,v)odeStoichs*generate_propensity_vector(0, v, zeros(length(jStochastic),1), propensities);
+        [~,ode_solutions] = ode45(FUN,max(outputTimes)*[0,500,1000],x0b);
+        initODEs = ode_solutions(end,:)';
+
+        jac = AfspFull.createJacHybridMatrix(0, initODEs, length(hybridOptions.upstreamODEs), true);
+
+    else
+        if useReducedModel
+            AfspFull = ssit.FspMatrix(propensities, stateSpace, constraintCount, speciesNames);
+        end
+
+        jac = AfspFull.createSingleMatrix(outputTimes(1));
     end
-    jac = AfspFull.createSingleMatrix(outputTimes(1));
     jac = jac(1:end-constraintCount,1:end-constraintCount);
 
     try
@@ -220,7 +230,7 @@ if initApproxSS
         try
             [eigVec,~] = eigs(jac,1);
         catch
-            try 
+            try
                 eigVec = null(full(jac));
             catch
                 disp('Could not find null space. Using uniform.')
@@ -234,6 +244,7 @@ if initApproxSS
     else
         solVec = [eigVec/sum(eigVec);zeros(constraintCount,1)];
     end
+    
 else % otherwise use user supplied IC.
     if useReducedModel
         solVec = zeros(stateCount, 1);
@@ -243,9 +254,9 @@ else % otherwise use user supplied IC.
         solVec = zeros(stateCount + constraintCount, 1);
         solVec(1:size(initStates,2)) = initProbs;
     end
-    if useHybrid
-        solVec = [solVec;initODEs];
-    end
+end
+if useHybrid
+    solVec = [solVec;initODEs];
 end
 
 % Write initial condition into results structure
@@ -472,4 +483,16 @@ end
 function f = packFspSolution(states, p)
 f = ssit.FspVector(states, p);
 end
+
+function y = generate_propensity_vector(t, v, x, propensities)
+y = zeros(length(propensities), 1);
+for i = 1:length(propensities)
+    if propensities{i}.isFactorizable
+        y(i) = propensities{i}.hybridFactor(t,v).*propensities{i}.stateDependentFactor(x);
+    else
+        y(i) = propensities{i}.hybridJointFactor(t,[]);
+    end
+end
+end
+
 

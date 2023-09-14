@@ -1,4 +1,4 @@
-function app = filterAndMarginalize(~,~,app)
+function [app,times] = filterAndMarginalize(~,~,app)
 %This function applies the marginalization and filtering to the data
 %structure defined by the user and stores the edited data to be plotted.
 
@@ -82,6 +82,10 @@ histDataStr = cellfun(@str2num,histDataStr,'un',0); % convert data back to numer
 for i = 1:length(loopVec)
     vecData = [histDataStr{:,loopVec(i)}];
     uniqueVals = unique(vecData);
+    if i==1
+        times = uniqueVals;
+    end
+
     if i==1||~isnumeric(uniqueVals)||~min(floor(uniqueVals)==uniqueVals)||min(uniqueVals)<0
         margKeySet = [0:length(uniqueVals)-1];
     else
@@ -108,5 +112,12 @@ subsHistData = subsHistData+1;            % bump up species counts so ind starts
 app.DataLoadingAndFittingTabOutputs.dataTensor = sptensor(subsHistData, valsHistData);                     % Create Sparse Tensor
 % lrgInd = find(app.DataLoadingAndFittingTabOutputs.collapseInd>valsHistDataInd);
 % app.DataLoadingAndFittingTabOutputs.collapseInd(lrgInd) = app.DataLoadingAndFittingTabOutputs.collapseInd(lrgInd) - 1;
-close(gcf)
+% close(gcf)
+
+app.ParEstFitTimesList.Items = cell(1,length(times));
+for i = 1:length(times)
+    app.ParEstFitTimesList.Items{1,i} = num2str(times(i));
+end
+app.ParEstFitTimesList.Value = app.ParEstFitTimesList.Items;
+
 end

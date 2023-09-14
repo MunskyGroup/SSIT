@@ -376,5 +376,83 @@ classdef ssitTests < matlab.unittest.TestCase
 
         end
 
+        function ODEsolutionTV(testCase)
+            % In this test, we check that the ODE Solution matches the
+            % exact solution for the 1D Time Varying Poisson model and the
+            % 2D Poisson Model.
+            t = testCase.TvPoiss.tSpan;
+            tp = max(0,t-1);
+            
+            mn = testCase.TvPoiss.parameters{1,2}/testCase.TvPoiss.parameters{2,2}*...
+                (1-exp(-testCase.TvPoiss.parameters{2,2}*tp));
+            
+            Model = testCase.TvPoiss;
+            Model.solutionScheme = 'ode';
+            odeSoln = Model.solve;
+
+            diff = abs(odeSoln.ode-mn');
+            relDiff = sum(diff(mn>0)./mn(mn>0)')/length(odeSoln.ode);
+
+            % Compare to 2D Poisson starting at SS.
+
+            mn1 = testCase.TwoDPoiss.parameters{1,2}/testCase.TwoDPoiss.parameters{2,2};
+            mn2 = testCase.TwoDPoiss.parameters{3,2}/testCase.TwoDPoiss.parameters{4,2};
+            
+            Model = testCase.TwoDPoiss;
+            Model.solutionScheme = 'ode';
+            Model.fspOptions.initApproxSS = true;
+            odeSoln = Model.solve;
+
+            diff1 = abs(odeSoln.ode(:,1)-mn1);
+            diff2 = abs(odeSoln.ode(:,2)-mn2);
+
+            relDiff1 = sum(diff1(diff1>0)./mn1)/length(diff1);
+            relDiff2 = sum(diff2(diff2>0)./mn2)/length(diff2);
+
+            testCase.verifyEqual(max([relDiff,relDiff1,relDiff2])<0.001, true, ...
+                'ODE Solution is not within 1% Tolerance');
+            
+        end
+   
+        function ComputeODELikelihood(testCase)
+            % In this test we compare the computed ODE approximation for
+            % the log-likelihood to the exact solution for the Poisson Model:
+            % lam(t) = k/g*(1-exp(-g*t));
+            % logL = prod_n [Poisson(n|lam(t))]
+            odeLogL = testCase.Poiss.computeLikelihoodODE;
+            
+            t = testCase.Poiss.tSpan;
+            mn = testCase.Poiss.parameters{1,2}/testCase.Poiss.parameters{2,2}*...
+                (1-exp(-testCase.Poiss.parameters{2,2}*t));
+
+            logLExact = -1/2*1000*sum((testCase.Poiss.dataSet.mean-mn').^2);
+
+            relDiff = abs((logLExact-odeLogL)/logLExact);
+
+            testCase.verifyEqual(relDiff<0.0001, true, ...
+                'ODE Likelihood Calculation is not within 0.01% Tolerance');            
+            
+        end
+
+        function FitODEModel(testCase)
+            Model = testCase.Poiss;
+            Model.solutionScheme = 'ode';
+            Model.parameters(:,2) = {10*rand;rand};
+            fitOptions = optimset('Display','none','MaxIter',1000);
+            fitOptions.SIG = [];
+            Model.fittingOptions.modelVarsToFit = [1,2];
+            for i=1:3
+                fitPars = Model.maximizeLikelihood([],fitOptions);
+                Model.parameters(:,2) = num2cell(fitPars);
+            end
+
+            relDiff = max(abs([testCase.Poiss.parameters{:,2}]-...
+                [Model.parameters{:,2}])./[testCase.Poiss.parameters{:,2}]);
+
+            testCase.verifyEqual(relDiff<0.05, true, ...
+                'ODE Fit of Poisson Model is not within 5% of true values');            
+
+
+        end            
     end
 end

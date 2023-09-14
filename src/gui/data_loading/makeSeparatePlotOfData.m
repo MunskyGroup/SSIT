@@ -50,7 +50,11 @@ for DistType = 0:1
                 if length(size(app.DataLoadingAndFittingTabOutputs.dataTensor))==1
                     H1 = matTensor;
                 else
+                    try
                     H1 = squeeze(matTensor(it,:,:,:,:,:,:,:,:,:));
+                    catch
+                        whos
+                    end
                 end
                 if ~isempty(soDat)
                     H1 = sum(H1,soDat);

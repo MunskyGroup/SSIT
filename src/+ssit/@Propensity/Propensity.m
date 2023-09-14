@@ -167,7 +167,7 @@ classdef Propensity
                 symbolicExpression
                 stoichVector
                 reactionIndex
-                nonXTpars ={};
+                nonXTpars = {};
                 species = {};
                 logicTerms = {};
             end

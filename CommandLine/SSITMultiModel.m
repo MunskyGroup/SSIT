@@ -71,24 +71,33 @@ classdef SSITMultiModel
                 else 
                     Model.fspOptions.bounds = [];
                 end
-                [fspSoln,SMM.SSITModels{i}.fspOptions.bounds] = Model.solve;
-                SMM.fspStateSpaces{i} = fspSoln.stateSpace;
+
+                if strcmp(Model.solutionScheme,'FSP')
+                    [fspSoln,SMM.SSITModels{i}.fspOptions.bounds] = Model.solve;
+                    SMM.fspStateSpaces{i} = fspSoln.stateSpace;
+                end
             end
         end
 
-        function SMM = updateModels(SMM,parameters,makeplot)
+        function SMM = updateModels(SMM,parameters,makeplot, fignums)
             % Updates parameters of the models to provided values and makes
             % plots of the results.
             arguments
                 SMM
                 parameters
                 makeplot = true
+                fignums = [];
             end
             Nmods = length(SMM.SSITModels);
             for i = 1:Nmods
-                SMM.SSITModels{i}.parameters(:,2) = num2cell(parameters(SMM.parameterIndices{i}));
+                SMM.SSITModels{i}.parameters(SMM.SSITModels{i}.fittingOptions.modelVarsToFit,2) = ...
+                    num2cell(parameters(SMM.parameterIndices{i}));
                 if makeplot
-                    SMM.SSITModels{i}.makeFitPlot([],5,100*i+[1:4]);
+                    if isempty(fignums)
+                        SMM.SSITModels{i}.makeFitPlot([],1,100*i+[1:4]);
+                    else
+                        SMM.SSITModels{i}.makeFitPlot([],1,fignums(i,1:4));
+                    end
                 end
             end
         end
@@ -100,9 +109,15 @@ classdef SSITMultiModel
             %     data given that model.
             Nmods = length(SMM.SSITModels);
             for i = Nmods:-1:1
-                objFuns{i} = @(x)SMM.SSITModels{i}.computeLikelihood(...
-                    x(SMM.parameterIndices{i}),...
-                    SMM.fspStateSpaces{i});
+                switch SMM.SSITModels{i}.solutionScheme
+                    case 'ode'
+                        objFuns{i} = @(x)SMM.SSITModels{i}.computeLikelihoodODE(...
+                            x(SMM.parameterIndices{i}));
+                    otherwise
+                        objFuns{i} = @(x)SMM.SSITModels{i}.computeLikelihood(...
+                            x(SMM.parameterIndices{i}),...
+                            SMM.fspStateSpaces{i});
+                end
             end
         end
 
