@@ -233,10 +233,15 @@ classdef FspMatrix
                     v2p = v2+delt;
                     gB(:,i) = (hybridMatrix(obj,t,v2p)-gA)*v1/delt;
 
+                    w = obj.terms{1}.propensity.hybridFactorVector(t,v2);
+                    w2 = obj.terms{1}.propensity.hybridFactorVector(t,v2p);
+                    wp = (w2-w)/delt;
+                    
                     for k = 1:length(obj.terms)
-                        gD(:,i) =  gD(:,i) + obj.terms{k}.propensity.ODEstoichVector*...
-                            (obj.terms{k}.propensity.hybridFactor(t,v2p)-...
-                            obj.terms{k}.propensity.hybridFactor(t,v2))/delt;
+                        % gD(:,i) =  gD(:,i) + obj.terms{k}.propensity.ODEstoichVector*...
+                        %     (obj.terms{k}.propensity.hybridFactor(t,v2p)-...
+                        %     obj.terms{k}.propensity.hybridFactor(t,v2))/delt;
+                        gD(:,i) =  gD(:,i) + obj.terms{k}.propensity.ODEstoichVector*wp(k);
                     end
                 end
                 A = [gA,gB;gC,gD];
@@ -250,15 +255,19 @@ classdef FspMatrix
         end
         function A = hybridMatrix(obj,t,v2)
             % Form the infinitesimal generator matrix A
+            
             if obj.terms{1}.isFactorizable
-                A = obj.terms{1}.propensity.hybridFactor(t,v2)*obj.terms{1}.matrix;
+                wt = obj.terms{1}.propensity.hybridFactorVector(t,v2);
+                % A = obj.terms{1}.propensity.hybridFactor(t,v2)*obj.terms{1}.matrix;
+                A = wt(1)*obj.terms{1}.matrix;
             else
                 A = ssit.FspMatrixTerm.generateHybridgMatrixTerm(t, obj.terms{1}.propensity, obj.terms{1}.matrix, obj.terms{1}.numConstraints, v2);
             end
 
             for i = 2:length(obj.terms)
                 if obj.terms{i}.isFactorizable
-                    A = A + obj.terms{i}.propensity.hybridFactor(t,v2)*obj.terms{i}.matrix;
+                    % A = A + obj.terms{i}.propensity.hybridFactor(t,v2)*obj.terms{i}.matrix;
+                    A = A + wt(i)*obj.terms{i}.matrix;
                 else
                     A = A + ssit.FspMatrixTerm.generateHybridgMatrixTerm(t, obj.terms{i}.propensity, obj.terms{i}.matrix, obj.terms{i}.numConstraints, v2);
                 end

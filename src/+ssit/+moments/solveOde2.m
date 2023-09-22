@@ -44,7 +44,9 @@ if useSSIC
 end
 
 %% Return your output to ode_solutions
-[t_ode,ode_solutions] = ode15s(ode_rhs,tspan,x0);
+maxstep = min(tspan(2:end)-tspan(1:end-1))/2;
+options = odeset(RelTol=1e-6,AbsTol=1e-10,MaxStep=maxstep);
+[t_ode,ode_solutions] = ode23s(ode_rhs,tspan,x0,options);
 end
 
 function y = generate_propensity_vector(t, x, propensities)

@@ -114,7 +114,7 @@ function [solutions, constraintBoundsFinal, stateSpace] = adaptiveFspSolve(...
 %
 arguments
     outputTimes (:,1) double
-    initStates (:,:) {mustBeInteger(initStates)}
+    initStates (:,:) %{mustBeInteger(initStates)}
     initProbs (:,1) double
     stoichMatrix (:,:) {mustBeInteger(stoichMatrix)}
     propensities (:, 1)

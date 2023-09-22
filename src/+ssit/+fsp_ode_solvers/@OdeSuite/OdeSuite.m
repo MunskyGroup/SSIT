@@ -85,11 +85,19 @@ classdef OdeSuite < ssit.fsp_ode_solvers.OdeSolver
         %   - errorBound: the error bound at ``tExit``. 
         %
         %
-        odeEvent = @(t,p) fspOdesuiteEvent(t, p, fspErrorCondition);            
-        if ~isempty(jac)
-            ode_opts = odeset('Events', odeEvent, 'Jacobian', jac, 'relTol',obj.relTol, 'absTol', obj.absTol,'Vectorized','on');
+        odeEvent = @(t,p) fspOdesuiteEvent(t, p, fspErrorCondition);  
+        if length(tOut)>1
+            maxStep = min(tOut(2:end)-tOut(1:end-1))/2;
         else
-            ode_opts = odeset('Events', odeEvent, 'relTol',obj.relTol, 'absTol', obj.absTol,'Vectorized','off');
+            maxStep = (tOut-tStart)/2;
+        end
+        if ~isempty(jac)
+            ode_opts = odeset('Events', odeEvent, 'Jacobian', jac, 'relTol',...
+                obj.relTol, 'absTol', obj.absTol,'Vectorized','on',...
+                'MaxStep',maxStep);
+        else
+            ode_opts = odeset('Events', odeEvent, 'relTol',obj.relTol,...
+                'absTol', obj.absTol,'Vectorized','off','MaxStep',maxStep);
         end
         tSpan = sort(unique([tStart; tOut]));
         [tExport, solutionsNow, te, ye, ~] =  ode23s(rhs, tSpan, initSolution, ode_opts);
