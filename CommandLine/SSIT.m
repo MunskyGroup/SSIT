@@ -11,7 +11,9 @@ classdef SSIT
             'fspIntegratorAbsTol',1e-4, 'odeSolver','auto', 'verbose',false,...
             'bounds',[],'usePiecewiseFSP',false,...
             'initApproxSS',false,...
-            'escapeSinks',[]); % Options for FSP solver.
+            'escapeSinks',[],...
+            'constantJacobian',false, ...
+            'constantJacobianTime',1.1); % Options for FSP solver.
         sensOptions = struct('solutionMethod','forward','useParallel',true);
         % Options for FSP-Sensitivity solver.
         ssaOptions = struct('Nexp',1,'nSimsPerExpt',100,'useTimeVar',false,...
@@ -32,6 +34,7 @@ classdef SSIT
         useHybrid = false
         hybridOptions = struct('upstreamODEs',[]);
         propensitiesGeneral = [];% Processed propensity functions for use in solvers
+
     end
 
     properties (Dependent)
@@ -73,112 +76,42 @@ classdef SSIT
             end
         end
 
-        function obj = formPropensitiesGeneral(obj)
-            %             switch obj.solutionScheme
-            %                 case 'FSP'
-            %                     propenType = "str";
-            %                 case 'SSA'
-            %                     propenType = "fun";
-            %             end
-            %             propstrings = ssit.SrnModel.processPropensityStrings(obj.propensityFunctions,...
-            %                 obj.inputExpressions,...
-            %                 obj.pars_container,...
-            %                 propenType,...
-            %                 obj.species);
-
-            if strcmp(obj.solutionScheme,'FSP')||strcmp(obj.solutionScheme,'ode')
+        function obj = formPropensitiesGeneral(obj,prefixName)
+            arguments
+                obj
+                prefixName = [];
+            end
+            % This function starts the process to write m-file for each
+            % propensity function. 
+            if ~strcmp(obj.solutionScheme,'SSA')
+                if strcmp(obj.solutionScheme,'ode')
+                    obj.useHybrid = true;
+                    obj.hybridOptions.upstreamODEs = obj.species;
+                end
                 n_reactions = length(obj.propensityFunctions);
                 % if obj.useHybrid
                     % Propensity for hybrid models will include
                     % solutions from the upstream ODEs.
                     sm = cell(1,n_reactions);
                     logicTerms = cell(1,n_reactions);
+                    logCounter = 0;
                     for i = 1:n_reactions
                         st = obj.propensityFunctions{i};
                         for jI = 1:size(obj.inputExpressions,1)
                             st = strrep(st,obj.inputExpressions{jI,1},['(',obj.inputExpressions{jI,2},')']);
                         end
-
-                        [st,logicTerms{i}] = ssit.Propensity.stripLogicals(st,obj.species);
+                        [st,logicTerms{i},logCounter] = ssit.Propensity.stripLogicals(st,obj.species,logCounter);
                         sm{i} = str2sym(st);
                     end
 
                     if obj.useHybrid
                         PropensitiesGeneral = ssit.Propensity.createAsHybridVec(sm, obj.stoichiometry,...
-                            obj.parameters, obj.species, obj.hybridOptions.upstreamODEs, logicTerms);
+                            obj.parameters, obj.species, obj.hybridOptions.upstreamODEs, logicTerms, prefixName);
                     else
-                        % WORK ON THIS - USE HYBRID AS EXAMPLE.
                         PropensitiesGeneral = ssit.Propensity.createAsHybridVec(sm, obj.stoichiometry,...
-                            obj.parameters, obj.species, [], logicTerms);
+                            obj.parameters, obj.species, [], logicTerms, prefixName);
                     end
-          %         PropensitiesGeneral{i} = ssit.Propensity.createFromSym(sm, obj.stoichiometry(:,i), i, ...
-                %             obj.parameters(:,1), obj.species, logicTerms);                   end
-
-                % else
-                % 
-                %     for i = 1:n_reactions
-                %         %
-                %         st = obj.propensityFunctions{i};
-                %         for jI = 1:size(obj.inputExpressions,1)
-                %             st = strrep(st,obj.inputExpressions{jI,1},['(',obj.inputExpressions{jI,2},')']);
-                %         end
-                % 
-                %         [st,logicTerms] = ssit.Propensity.stripLogicals(st,obj.species);
-                % 
-                %         sm = str2sym(st);
-                % 
-                %         % if obj.useHybrid
-                %         % % Propensity for hybrid models will include
-                %         % % solutions from the upstream ODEs.
-                %         % Propensities{i} = ssit.Propensity.createAsHybrid(sm, obj.stoichiometry(:,i), i,...
-                %         %     obj.parameters(:,1), obj.species, obj.hybridOptions.upstreamODEs, logicTerms);
-                %         % if ~isempty(Propensities{i}.hybridFactor)
-                %         %     Propensities{i}.hybridFactor = ...
-                %         %         @(t,v)Propensities{i}.hybridFactor(t,obj.parameters{:,2},v);
-                %         %     % The time dependent signal must always be non-negative.
-                %         %     if sign(Propensities{i}.hybridFactor(0,rand(1,length(obj.hybridOptions.upstreamODEs))))==-1
-                %         %         sgT = -1;
-                %         %         Propensities{i}.hybridFactor = ...
-                %         %             @(t,v)(sgT*Propensities{i}.hybridFactor(t,v));
-                %         %         Propensities{i}.stateDependentFactor = ...
-                %         %             @(x)sgT*Propensities{i}.stateDependentFactor(x,obj.parameters{:,2});
-                %         %     else
-                %         %         sgT = 1;
-                %         %     end
-                %         % end
-                %         % if ~isempty(Propensities{i}.hybridJointFactor)
-                %         %     Propensities{i}.hybridJointFactor = ...
-                %         %         @(t,x,v)Propensities{i}.hybridJointFactor(t,x,obj.parameters{:,2},v);
-                %         % end
-                % 
-                %         % else
-                %         PropensitiesGeneral{i} = ssit.Propensity.createFromSym(sm, obj.stoichiometry(:,i), i, ...
-                %             obj.parameters(:,1), obj.species, logicTerms);
-                % 
-                %         if ~isempty(PropensitiesGeneral{i}.timeDependentFactor)
-                %             PropensitiesGeneral{i}.timeDependentFactor = ...
-                %                 @(t)PropensitiesGeneral{i}.timeDependentFactor(t,obj.parameters{:,2});
-                % 
-                %             % The time dependent signal must always be non-negative.
-                %             if sign(PropensitiesGeneral{i}.timeDependentFactor(0))==-1
-                %                 sgT = -1;
-                %                 PropensitiesGeneral{i}.timeDependentFactor = ...
-                %                     @(t)(sgT*PropensitiesGeneral{i}.timeDependentFactor(t));
-                %             else
-                %                 sgT = 1;
-                %             end
-                % 
-                %         end
-                %         if ~isempty(PropensitiesGeneral{i}.stateDependentFactor)
-                %             PropensitiesGeneral{i}.stateDependentFactor = ...
-                %                 @(x)sgT*PropensitiesGeneral{i}.stateDependentFactor(x,obj.parameters{:,2});
-                %         end
-                %         if ~isempty(PropensitiesGeneral{i}.jointDependentFactor)
-                %             PropensitiesGeneral{i}.jointDependentFactor = ...
-                %                 @(t,x)PropensitiesGeneral{i}.jointDependentFactor(t,x,obj.parameters{:,2});
-                %         end
-                %     end
-                % end
+  
                 obj.propensitiesGeneral = PropensitiesGeneral;
 
             elseif strcmp(obj.solutionScheme,'SSA')
@@ -698,13 +631,14 @@ classdef SSIT
                         error('HERE')
                     end
 
-                    specificPropensities = SSIT.parameterizePropensities(obj.propensitiesGeneral,obj.parameters(:,2));
+                    % specificPropensities = SSIT.parameterizePropensities(obj.propensitiesGeneral,[obj.parameters{:,2}]');
 
                     [Solution.fsp, bConstraints,Solution.stateSpace] = ssit.fsp.adaptiveFspSolve(obj.tSpan,...
                         obj.initialCondition,...
                         obj.initialProbs,...
                         obj.stoichiometry, ...
-                        specificPropensities, ...
+                        obj.propensitiesGeneral, ...
+                        [obj.parameters{:,2}]', ...
                         obj.fspOptions.fspTol, ...
                         obj.fspConstraints.f, ...
                         obj.fspConstraints.b,...
@@ -717,7 +651,8 @@ classdef SSIT
                         obj.species,...
                         useReducedModel,modRedTransformMatrices, ...
                         obj.useHybrid,obj.hybridOptions,...
-                        obj.fspConstraints.fEscape,obj.fspConstraints.bEscape);
+                        obj.fspConstraints.fEscape,obj.fspConstraints.bEscape, ...
+                        obj.fspOptions.constantJacobian);
 
                 case 'SSA'
                     Solution.T_array = obj.tSpan;
@@ -809,6 +744,7 @@ classdef SSIT
                     [Solution.sens, bConstraints] = ...
                         ssit.sensitivity.computeSensitivity(model,...
                         obj.parameters,...
+                        obj.propensitiesGeneral,...
                         obj.tSpan,...
                         obj.fspOptions.fspTol,...
                         obj.initialCondition,...
@@ -832,10 +768,10 @@ classdef SSIT
 
                 case 'ode'
                     
-                    specificPropensities = SSIT.parameterizePropensities(obj.propensitiesGeneral,obj.parameters(:,2));
+                    % specificPropensities = SSIT.parameterizePropensities(obj.propensitiesGeneral,[obj.parameters{:,2}]');
                     
                     [~,Solution.ode] = ssit.moments.solveOde2(obj.initialCondition, obj.tSpan, ...
-                        obj.stoichiometry, specificPropensities, obj.fspOptions.initApproxSS);
+                        obj.stoichiometry, obj.propensitiesGeneral,  [obj.parameters{:,2}]', obj.fspOptions.initApproxSS);
             end
         end
 
@@ -1204,13 +1140,13 @@ classdef SSIT
             nc = repmat(obj.dataSet.nCells,nds);
 
             vm = zeros(nt*nds,1); 
-            tmp = solutions.ode(:,J);
+            tmp = solutions.ode(IA,J);
             vm(:) = tmp(:);
             
             vd = zeros(nt*nds,1); vd(:) = obj.dataSet.mean(:);
             
             logLode = -1/2*(sqrt(nc)'.*(vd-vm)')*SIG^(-1)*((vd-vm).*sqrt(nc));
-
+            logLode = logLode+logPrior;
         end
 
         function [logL,gradient,fitSolutions] = computeLikelihood(obj,pars,stateSpace,computeSensitivity)
@@ -2198,19 +2134,19 @@ classdef SSIT
             propensities = GenProps;
             for i=1:length(GenProps)
                 if ~isempty(propensities{i}.stateDependentFactor)
-                    propensities{i}.stateDependentFactor = @(x)GenProps{i}.stateDependentFactor(x,Parset{:});
+                    propensities{i}.stateDependentFactor = @(x)GenProps{i}.stateDependentFactor(x,Parset);
                 end
                 if ~isempty(propensities{i}.hybridFactor)
-                    propensities{i}.hybridFactor = @(t,v)GenProps{i}.hybridFactor(t,Parset{:},v);
+                    propensities{i}.hybridFactor = @(t,v)GenProps{i}.hybridFactor(t,Parset,v');
                 end
                 if ~isempty(propensities{i}.hybridFactorVector)
-                    propensities{i}.hybridFactorVector = @(t,v)GenProps{i}.hybridFactorVector(t,Parset{:},v);
+                    propensities{i}.hybridFactorVector = @(t,v)GenProps{i}.hybridFactorVector(t,Parset,v');
                 end
                 if ~isempty(propensities{i}.timeDependentFactor)
-                    propensities{i}.timeDependentFactor = @(t)GenProps{i}.timeDependentFactor(t,Parset{:});
+                    propensities{i}.timeDependentFactor = @(t)GenProps{i}.timeDependentFactor(t,Parset);
                 end
                 if ~isempty(propensities{i}.hybridJointFactor)
-                    propensities{i}.hybridJointFactor = @(t,x,v)GenProps{i}.hybridJointFactor(t,x,Parset{:},v);
+                    propensities{i}.hybridJointFactor = @(t,x,v)GenProps{i}.hybridJointFactor(t,x,Parset,v');
                 end
             end
         end

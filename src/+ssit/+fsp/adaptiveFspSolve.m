@@ -2,7 +2,9 @@ function [solutions, constraintBoundsFinal, stateSpace] = adaptiveFspSolve(...
     outputTimes, ...
     initStates,...
     initProbs,...
-    stoichMatrix, propensities, ...
+    stoichMatrix, ...
+    propensities, ...
+    parameters, ...
     fspTol,...
     constraintFunctions, initialConstraintBounds,...
     verbose,...
@@ -10,7 +12,8 @@ function [solutions, constraintBoundsFinal, stateSpace] = adaptiveFspSolve(...
     stateSpace,usePiecewiseFSP,initApproxSS,speciesNames,...
     useReducedModel,modRedTransformMatrices,...
     useHybrid,hybridOptions,...
-    fEscape,bEscape)
+    fEscape,bEscape,...
+    constantJacobian,constantJacobianTime)
 % Approximate the transient solution of the chemical master equation using
 % an adaptively expanding finite state projection (FSP).
 %
@@ -118,6 +121,7 @@ arguments
     initProbs (:,1) double
     stoichMatrix (:,:) {mustBeInteger(stoichMatrix)}
     propensities (:, 1)
+    parameters 
     fspTol (1,1) double
     constraintFunctions function_handle
     initialConstraintBounds (:,1) double    
@@ -135,6 +139,8 @@ arguments
     hybridOptions = [];
     fEscape = []
     bEscape = []
+    constantJacobian = false;
+    constantJacobianTime = NaN;
 end
 
 maxOutputTime = max(outputTimes);
@@ -184,11 +190,11 @@ end
 % Generate the FSP matrix
 stateCount = stateSpace.getNumStates();
 if useHybrid
-    AfspFull = ssit.FspMatrix(propensities, stateSpace, constraintCount, speciesNames, modRedTransformMatrices);    
+    AfspFull = ssit.FspMatrix(propensities, stateSpace, parameters, constraintCount, speciesNames, modRedTransformMatrices);    
 elseif useReducedModel
-    AfspRed = ssit.FspMatrix(propensities, stateSpace, constraintCount, speciesNames, modRedTransformMatrices);
+    AfspRed = ssit.FspMatrix(propensities, stateSpace, parameters, constraintCount, speciesNames, modRedTransformMatrices);
 else
-    AfspFull = ssit.FspMatrix(propensities, stateSpace, constraintCount, speciesNames);
+    AfspFull = ssit.FspMatrix(propensities, stateSpace, parameters, constraintCount, speciesNames);
 end
 
 % Check that the model propensities are time-invariant
@@ -204,22 +210,22 @@ end
 % Use Approximate steady state as initial distribution if requested.
 if initApproxSS
     if useHybrid
-        FUN = @(v)odeStoichs*generate_propensity_vector(0, v, zeros(length(jStochastic),1), propensities);
+        FUN = @(v)odeStoichs*generate_propensity_vector(0, v, zeros(length(jStochastic),1), propensities, parameters);
         OPTIONS = optimoptions('fsolve','display','none',...
             'OptimalityTolerance',1e-8,'MaxIterations',2000);
         x0b = fsolve(FUN,initODEs,OPTIONS);
-        FUN = @(t,v)odeStoichs*generate_propensity_vector(0, v, zeros(length(jStochastic),1), propensities);
+        FUN = @(t,v)odeStoichs*generate_propensity_vector(0, v, zeros(length(jStochastic),1), propensities, parameters);
         [~,ode_solutions] = ode45(FUN,max(outputTimes)*[0,500,1000],x0b);
         initODEs = ode_solutions(end,:)';
 
-        jac = AfspFull.createJacHybridMatrix(0, initODEs, length(hybridOptions.upstreamODEs), true);
+        jac = AfspFull.createJacHybridMatrix(0, initODEs, parameters, length(hybridOptions.upstreamODEs), true);
 
     else
         if useReducedModel
             AfspFull = ssit.FspMatrix(propensities, stateSpace, constraintCount, speciesNames);
         end
 
-        jac = AfspFull.createSingleMatrix(outputTimes(1));
+        jac = AfspFull.createSingleMatrix(outputTimes(1),parameters);
     end
     jac = jac(1:end-constraintCount,1:end-constraintCount);
 
@@ -328,15 +334,24 @@ while (tNow < maxOutputTime)
         if useReducedModel
             fspErrorCondition.fspTol = inf;
             if isTimeInvariant==1 % If no parameters are functions of time.
-                jac = AfspRed.createSingleMatrix(tNow,modRedTransformMatrices);
+                jac = sparse(AfspRed.createSingleMatrix(tNow, parameters,modRedTransformMatrices));
                 matvec = @(~,p) jac*p;
             elseif usePiecewiseFSP
-                jac = @(t)AfspRed.createSingleMatrix(t,modRedTransformMatrices);
+                if constantJacobian
+                    jac = sparse(AfspRed.createSingleMatrix(constantJacobianTime, parameters,modRedTransformMatrices));
+                else
+                    jac = @(t)AfspRed.createSingleMatrix(t, parameters,modRedTransformMatrices);
+                end
                 matvec = [];
             else
-                % If time varrying
-                matvec = @(t, p) AfspRed.multiply(t, p);
-                jac = @(t,~)AfspRed.createSingleMatrix(t,modRedTransformMatrices);
+                % If time varying
+                if constantJacobian
+                    jac = sparse(AfspRed.createSingleMatrix(constantJacobianTime, parameters,modRedTransformMatrices));
+                    matvec = @(~, p)jac*p;
+                else
+                    matvec = @(t, p) AfspRed.multiply(t, p, parameters);
+                    jac = @(t,~)AfspRed.createSingleMatrix(t, parameters,modRedTransformMatrices);
+                end
             end
 
             if odeSolver == "expokit"
@@ -348,19 +363,33 @@ while (tNow < maxOutputTime)
             end
         else
             if isTimeInvariant==1 % If no parameters are functions of time.
-                jac = AfspFull.createSingleMatrix(tNow);
+                % if ~isempty(parameters)
+                    jac = AfspFull.createSingleMatrix(tNow, parameters);
+                % else
+                    % jac = AfspFull.createSingleMatrix(tNow);
+                % end
                 matvec = @(~,p) jac*p;
             elseif usePiecewiseFSP
-                jac = @(t)AfspFull.createSingleMatrix(t);
-                matvec = [];
+                if constantJacobian
+                    jac = sparse(AfspFull.createSingleMatrix(constantJacobianTime, parameters));
+                    matvec = [];
+                else
+                    jac = @(t)AfspFull.createSingleMatrix(t, parameters);
+                    matvec = [];
+                end
+
             elseif useHybrid
-                matvec = @(t, p) AfspFull.hybridRHS(t, p, hybridOptions.upstreamODEs);
-%                 jac = [];  % Jacobian calculation is not currently available for hybrid models.
-                jac = @(t, p)AfspFull.createJacHybridMatrix(t, p, length(hybridOptions.upstreamODEs));                
+                matvec = @(t, p) AfspFull.hybridRHS(t, p, parameters, hybridOptions.upstreamODEs);
+                % jac = [];  % Jacobian calculation is not currently available for hybrid models.
+                jac = @(t, p)AfspFull.createJacHybridMatrix(t, p, parameters, length(hybridOptions.upstreamODEs));
             else
-                % If time varrying
-                matvec = @(t, p) AfspFull.multiply(t, p);
-                jac = @(t,~)AfspFull.createSingleMatrix(t);
+                if constantJacobian
+                    jac = sparse(AfspFull.createSingleMatrix(constantJacobianTime, parameters));
+                    matvec = @(~, p)jac*p;
+                else
+                    matvec = @(t, p) AfspFull.multiply(t, p, parameters);
+                    jac = @(t,~)AfspFull.createSingleMatrix(t, parameters);
+                end
             end
 
             if odeSolver == "expokit"
@@ -454,11 +483,11 @@ while (tNow < maxOutputTime)
         end
 
         try
-            AfspFull = AfspFull.regenerate(propensities, stateSpace, constraintCount,speciesNames);
+            AfspFull = AfspFull.regenerate(propensities, stateSpace, parameters, constraintCount,speciesNames);
         catch
             stateSpace = ssit.FiniteStateSet(initStates, stoichMatrix);
             stateSpace = stateSpace.expand(constraintFunctions, constraintBoundsFinal);
-            AfspFull = AfspFull.regenerate(propensities, stateSpace, constraintCount,speciesNames);
+            AfspFull = AfspFull.regenerate(propensities, stateSpace, parameters, constraintCount,speciesNames);
         end
 
         stateCountOld = stateCount;
@@ -484,11 +513,12 @@ function f = packFspSolution(states, p)
 f = ssit.FspVector(states, p);
 end
 
-function y = generate_propensity_vector(t, v, x, propensities)
+function y = generate_propensity_vector(t, v, x, propensities, parameters)
 y = zeros(length(propensities), 1);
+wt = propensities{1}.hybridFactorVector(t,parameters,v);
 for i = 1:length(propensities)
     if propensities{i}.isFactorizable
-        y(i) = propensities{i}.hybridFactor(t,v).*propensities{i}.stateDependentFactor(x);
+        y(i) = wt(i).*propensities{i}.stateDependentFactor(x);
     else
         y(i) = propensities{i}.hybridJointFactor(t,[]);
     end

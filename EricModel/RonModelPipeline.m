@@ -28,7 +28,9 @@ ModelGR.fspOptions.initApproxSS = true;
 ModelGR.fittingOptions.modelVarsToFit = (5:11);
 
 ModelGR.inputExpressions = {'IDex','100*exp(-gDex*t)*(t>0)'};
-[~,ModelGR.fspOptions.bounds] = ModelGR.solve;
+ModelGR = ModelGR.formPropensitiesGeneral('EricModGR');
+[FSPGrSoln,ModelGR.fspOptions.bounds] = ModelGR.solve;
+[FSPGrSoln,ModelGR.fspOptions.bounds] = ModelGR.solve(FSPGrSoln.stateSpace);
 
 %%    Load previously fit parameter values (optional)
 load('EricModelDataSep14','GRpars','DUSP1pars')
@@ -46,11 +48,12 @@ for i=1:size(GRfitCases,1)
         {'nucGR','GRNorm'},...
         {'conc',GRfitCases{i,2}}); 
     ModelGRfit{i}.inputExpressions = {'IDex',[GRfitCases{i,2},'*exp(-gDex*t)*(t>0)']};
+    ModelGRfit{i} = ModelGRfit{i}.formPropensitiesGeneral(['EricModGR_',num2str(i),'_FSP']);
     ModelGRparameterMap(i) = {(1:7)};
 end
 
 %%    Combine all three GR models and fit using a single parameter set.
-fitOptions = optimset('Display','iter','MaxIter',10);
+fitOptions = optimset('Display','iter','MaxIter',50);
 combinedGRModel = SSITMultiModel(ModelGRfit,ModelGRparameterMap);
 combinedGRModel = combinedGRModel.initializeStateSpaces;
 GRpars = combinedGRModel.maximizeLikelihood(...
@@ -87,6 +90,7 @@ ModelGRDusp.hybridOptions.upstreamODEs = {'cytGR','nucGR'};
 ModelGRDusp.solutionScheme = 'FSP';
 ModelGRDusp.fspOptions.bounds = [0;0;0;2;2;400];
 ModelGRDusp.fittingOptions.modelVarsToFit = 1:4;
+ModelGRDusp = ModelGRDusp.formPropensitiesGeneral('EricModDusp1');
 
 %%    Load and Associate with DUSP1 smFISH Data (100nM Dex Only)
 Dusp1FitCases = {'100','100',201,'DUSP1 Fit (100nM Dex)'};
@@ -97,6 +101,7 @@ for i = 1:size(Dusp1FitCases,1)
         {'rna','RNA_nuc'}); 
     ModelDusp1Fit{i}.inputExpressions = {'IDex',[Dusp1FitCases{i,2},'*exp(-gDex*t)*(t>0)']};    
     ModelDusp1parameterMap{i} = (1:4);
+    ModelDusp1Fit{i} = ModelDusp1Fit{i}.formPropensitiesGeneral(['EricModDusp1_',num2str(i),'_FSP']);
 end
 DUSP1pars = [ModelDusp1Fit{i}.parameters{ModelGRDusp.fittingOptions.modelVarsToFit,2}];
 
@@ -137,6 +142,7 @@ for i=1:size(PredictionCases,1)
         {'rna','RNA_nuc'},...
         {'conc',PredictionCases{i,2}}); 
     ModelPred{i}.inputExpressions = {'IDex',[PredictionCases{i,2},'*exp(-gDex*t)*(t>0)']};
+    ModelPred{i} = ModelPred{i}.formPropensitiesGeneral(['EricModDusp1_',num2str(i),'_FSPPred']);
     ModelPred{i}.makeFitPlot([],5,fignums(i,:))
     
     figure(fignums(i,3)); 
@@ -157,6 +163,7 @@ for i=1:length(DexConc)
         {'rna','RNA_nuc'},...
         {'conc',DecConcStr{i}}); 
     ModelPredDexTtr{i}.inputExpressions = {'IDex',[DecConcStr{i},'*exp(-gDex*t)*(t>0)']};
+    ModelPredDexTtr{i} = ModelPredDexTtr{i}.formPropensitiesGeneral(['EricModDusp1_',num2str(i),'_TtrPred']);
     ModelPredDexTtrSoln{i} = ModelPredDexTtr{i}.solve;
 
     DataHist = double(ModelPredDexTtr{i}.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor);
@@ -211,8 +218,10 @@ for i=1:size(PredictionCases,1)
         'kr*onGene*Itrpt';'gr*rna'};
 
     ModelPredDexTpl{i}.inputExpressions = {'IDex','100*exp(-gDex*t)*(t>0)';...
-        'Itrpt',['t<=',PredictionCases{i,1}]};
+        'Itrpt',['t<=',PredictionCases{i,1}]};   
     
+    ModelPredDexTpl{i} = ModelPredDexTpl{i}.formPropensitiesGeneral(['EricModDusp1_',num2str(i),'_TplPred']);
+
     ModelPredDexTpl{i}.makeFitPlot([],5,fignums(i,:))
     
     figure(fignums(i,3)); 
@@ -240,7 +249,8 @@ SBModel2.makePlot(fspSoln2,'meansAndDevs',[],[],[4])
 SBModelJoint = ModelGRDusp;
 SBModelJoint.useHybrid = false;
 SBModelJoint.fspOptions.verbose = true;
+SBModelJoint = SBModelJoint.formPropensitiesGeneral('EricGRDusp1Joint');
 [fspSoln3] = SBModelJoint.solve;
-SBModelJoint.makePlot(fspSoln3,'joints',[],[],[5])
+SBModelJoint.makePlot(fspSoln3,'joints',[],[])
 
 

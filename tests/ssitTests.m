@@ -21,6 +21,7 @@ classdef ssitTests < matlab.unittest.TestCase
             testCase1.Poiss.parameters = ({'kr',10;'gr',1});
             testCase1.Poiss.tSpan = linspace(0,2,21);
             testCase1.Poiss.fspOptions.fspTol = 1e-5;
+            testCase1.Poiss = testCase1.Poiss.formPropensitiesGeneral;
 
             [testCase1.PoissSolution,testCase1.Poiss.fspOptions.bounds] = testCase1.Poiss.solve;
             tic
@@ -29,35 +30,37 @@ classdef ssitTests < matlab.unittest.TestCase
 
             testCase1.Poiss = testCase1.Poiss.loadData('testData.csv',{'rna','exp1_s1'});
 
-        end
-
-        function createTestModel2(testCase2)
+        % end
+        % 
+        % function createTestModel2(testCase2)
             %% Test Case 2 - Poisson model with time-varying production
-            testCase2.TvPoiss = testCase2.Poiss;
-            testCase2.TvPoiss.propensitiesGeneral = []; % Processed propensity functions for use in solvers
-            testCase2.TvPoiss.propensityFunctions = {'kr*Ig';'gr*rna'};
-            testCase2.TvPoiss.inputExpressions = {'Ig','t>1'};
-            
-            [testCase2.TvPoissSolution,testCase2.TvPoiss.fspOptions.bounds] = testCase2.TvPoiss.solve;
-            tic
-            [testCase2.TvPoissSolution,testCase2.TvPoiss.fspOptions.bounds] = testCase2.TvPoiss.solve(testCase2.TvPoissSolution.stateSpace);
-            testCase2.TvPoissSolution.time = toc;
-        end
+            testCase1.TvPoiss = testCase1.Poiss;
+            testCase1.TvPoiss.propensitiesGeneral = []; % Processed propensity functions for use in solvers
+            testCase1.TvPoiss.propensityFunctions = {'kr*Ig';'gr*rna'};
+            testCase1.TvPoiss.inputExpressions = {'Ig','t>1'};
+            testCase1.TvPoiss = testCase1.TvPoiss.formPropensitiesGeneral;
 
-        function createTestModel3(testCase3)
+            [testCase1.TvPoissSolution,testCase1.TvPoiss.fspOptions.bounds] = testCase1.TvPoiss.solve;
+            tic
+            [testCase1.TvPoissSolution,testCase1.TvPoiss.fspOptions.bounds] = testCase1.TvPoiss.solve(testCase1.TvPoissSolution.stateSpace);
+            testCase1.TvPoissSolution.time = toc;
+        % end
+        % 
+        % function createTestModel3(testCase1)
             %% Test Case 3 - 2 Species Poisson Model
-            testCase3.TwoDPoiss = SSIT;
-            testCase3.TwoDPoiss.species = {'rna1','rna2'};
-            testCase3.TwoDPoiss.initialCondition = [0;0];
-            testCase3.TwoDPoiss.propensityFunctions = {'kr1';'gr1*rna1';'kr2';'gr2*rna2'};
-            testCase3.TwoDPoiss.stoichiometry = [1,-1,0,0;0,0,1,-1];
-            testCase3.TwoDPoiss.parameters = ({'kr1',10;'gr1',1;'kr2',5;'gr2',1});
-            testCase3.TwoDPoiss.tSpan = linspace(0,2,21);
+            testCase1.TwoDPoiss = SSIT;
+            testCase1.TwoDPoiss.species = {'rna1','rna2'};
+            testCase1.TwoDPoiss.initialCondition = [0;0];
+            testCase1.TwoDPoiss.propensityFunctions = {'kr1';'gr1*rna1';'kr2';'gr2*rna2'};
+            testCase1.TwoDPoiss.stoichiometry = [1,-1,0,0;0,0,1,-1];
+            testCase1.TwoDPoiss.parameters = ({'kr1',10;'gr1',1;'kr2',5;'gr2',1});
+            testCase1.TwoDPoiss.tSpan = linspace(0,2,21);
+            testCase1.TwoDPoiss = testCase1.TwoDPoiss.formPropensitiesGeneral;
 
-            [testCase3.TwoDPoissSolution,testCase3.TwoDPoiss.fspOptions.bounds] = testCase3.TwoDPoiss.solve;
+            [testCase1.TwoDPoissSolution,testCase1.TwoDPoiss.fspOptions.bounds] = testCase1.TwoDPoiss.solve;
             tic
-            [testCase3.TwoDPoissSolution,testCase3.TwoDPoiss.fspOptions.bounds] = testCase3.TwoDPoiss.solve(testCase3.TwoDPoissSolution.stateSpace);
-            testCase3.TwoDPoissSolution.time = toc;
+            [testCase1.TwoDPoissSolution,testCase1.TwoDPoiss.fspOptions.bounds] = testCase1.TwoDPoiss.solve(testCase1.TwoDPoissSolution.stateSpace);
+            testCase1.TwoDPoissSolution.time = toc;
 
          end  
     end
@@ -107,6 +110,7 @@ classdef ssitTests < matlab.unittest.TestCase
         end
 
         function PoissonSpeed(testCase)
+            disp(['Poiss time = ',num2str(testCase.PoissSolution.time)]);
             testCase.verifyEqual(testCase.PoissSolution.time<0.2, true, ...
                 'Possion Solution Time is Slow');
         end
@@ -137,6 +141,7 @@ classdef ssitTests < matlab.unittest.TestCase
         function TimeVaryingPoissonSpeedSuccess(testCase)
             % In this test, we check that the Time Varying 1D Poisson model
             % is solved in a reasonable amount of time.
+            disp(['TV Poiss time = ',num2str(testCase.TvPoissSolution.time)]);
             testCase.verifyEqual(testCase.TvPoissSolution.time<0.3, true, ...
                 'Time Varying Possion Solution Time is Slow');
         end
@@ -172,6 +177,7 @@ classdef ssitTests < matlab.unittest.TestCase
         function TwoDPoissonSpeedSuccess(testCase)
             % In this test, we check that the 2D Poisson model is solved in
             % a reasonable amount of time.
+            disp(['2D Poiss time = ',num2str(testCase.TwoDPoissSolution.time)]);
             testCase.verifyEqual(testCase.TwoDPoissSolution.time<0.3, true, ...
                 'TwoD Possion Solution Time is Slow');
         end
@@ -185,6 +191,7 @@ classdef ssitTests < matlab.unittest.TestCase
             HybridModel = testCase.TwoDPoiss;
             HybridModel.useHybrid = true;
             HybridModel.hybridOptions.upstreamODEs = {'rna1'};
+            HybridModel = HybridModel.formPropensitiesGeneral;
             [hybSoln, HybridModel.fspOptions.bounds] = HybridModel.solve;
 
             t = HybridModel.tSpan;
@@ -225,6 +232,7 @@ classdef ssitTests < matlab.unittest.TestCase
             n = 10;
             escapeModel.fspOptions.escapeSinks.f = {'x1'};
             escapeModel.fspOptions.escapeSinks.b = n-0.1;
+            escapeModel = escapeModel.formPropensitiesGeneral;
 
             [escapeSoln,escapeModel.fspOptions.bounds] = escapeModel.solve;
             
@@ -316,20 +324,27 @@ classdef ssitTests < matlab.unittest.TestCase
             % Sg(t) = dP(n|t)/dg = (-k/g^2*(1-exp(-g*t))+k*t/g*exp(-g*t)) * Poiss(n|lam(t)) * (n/lam - 1)
 
             Model = testCase.Poiss;
+            Model = Model.formPropensitiesGeneral;
+            Model.solutionScheme = 'FSP';
+            [~,Model.fspOptions.bounds] = Model.solve;
+
+            
             Model.solutionScheme = 'fspSens';
-            Model.fspOptions.fspTol = 1e-6;
+            Model.fspOptions.fspTol = 1e-6;            
+
             SensSoln = Model.solve;
-            t = testCase.Poiss.tSpan;
+            
+            t = Model.tSpan;
             k = Model.parameters{1,2};
             g = Model.parameters{2,2};
             lam = k/g*(1-exp(-g*t))';
 
             fspSensSoln = SensSoln.sens.data;
             for i = 2:length(fspSensSoln)
-                n = size(SensSoln.sens.data{i}.S(1).data);
+                n = size(fspSensSoln{i}.S(1).data);
                 analytical1 = pdf('poiss',(0:n-1),lam(i))'.*([0:n-1]'/lam(i) - 1).*...
                     (1/g)*(1-exp(-g*t(i)));
-                fspSens1 = double(SensSoln.sens.data{i}.S(1).data);
+                fspSens1 = double(fspSensSoln{i}.S(1).data);
                 diff1(i) = sum(abs(analytical1-fspSens1));
                 
                 analytical2 = pdf('poiss',(0:n-1),lam(i))'.*([0:n-1]'/lam(i) - 1).*...
@@ -392,6 +407,7 @@ classdef ssitTests < matlab.unittest.TestCase
             
             Model = testCase.TvPoiss;
             Model.solutionScheme = 'ode';
+            Model = Model.formPropensitiesGeneral;  
             odeSoln = Model.solve;
 
             diff = abs(odeSoln.ode-mn');
@@ -404,6 +420,7 @@ classdef ssitTests < matlab.unittest.TestCase
             
             Model = testCase.TwoDPoiss;
             Model.solutionScheme = 'ode';
+            Model = Model.formPropensitiesGeneral;
             Model.fspOptions.initApproxSS = true;
             odeSoln = Model.solve;
 
@@ -423,7 +440,10 @@ classdef ssitTests < matlab.unittest.TestCase
             % the log-likelihood to the exact solution for the Poisson Model:
             % lam(t) = k/g*(1-exp(-g*t));
             % logL = prod_n [Poisson(n|lam(t))]
-            odeLogL = testCase.Poiss.computeLikelihoodODE;
+            Model = testCase.Poiss;
+            Model.solutionScheme = 'ode';
+            Model = Model.formPropensitiesGeneral;            
+            odeLogL = Model.computeLikelihoodODE;
             
             t = testCase.Poiss.tSpan;
             mn = testCase.Poiss.parameters{1,2}/testCase.Poiss.parameters{2,2}*...
@@ -441,6 +461,7 @@ classdef ssitTests < matlab.unittest.TestCase
         function FitODEModel(testCase)
             Model = testCase.Poiss;
             Model.solutionScheme = 'ode';
+            Model = Model.formPropensitiesGeneral;
             Model.parameters(:,2) = {10*rand;rand};
             fitOptions = optimset('Display','none','MaxIter',1000);
             fitOptions.SIG = [];

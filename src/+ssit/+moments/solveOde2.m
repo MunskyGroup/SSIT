@@ -1,4 +1,4 @@
-function [t_ode,ode_solutions] = solveOde2(x0, tspan, stoichMatrix, propensities, useSSIC)
+function [t_ode,ode_solutions] = solveOde2(x0, tspan, stoichMatrix, propensities, parameters, useSSIC)
 % ode_solutions = solve_ode(x0, tspan, stoichMatrix, propens, pars,
 % inputs) solves the deterministic ODE model.
 % x0: initial state. This must be a column vector.
@@ -18,11 +18,15 @@ arguments
     tspan
     stoichMatrix
     propensities
+    parameters
     useSSIC = false
 end
 
 %% Define the right hand side of the ODE model
-ode_rhs = @(t, x) stoichMatrix*generate_propensity_vector(t, x, propensities);
+ode_rhs = @(t,x)stoichMatrix*propensities{1}.hybridFactorVector(t,parameters,x');
+% ode_rhs = @(t, x) stoichMatrix*generate_propensity_vector(t, x, propensities, parameters);
+% ode_jac = @(t,x)stoichMatrix*propensities{1}.DhybridFactorDodesVec(t,parameters,x');
+% ode_jac = @(t,x)stoichMatrix*generate_propensity_jacobian(t, x, propensities, parameters);
 
 if useSSIC
      OPTIONS = optimoptions('fsolve','display','none','OptimalityTolerance',1e-8,'MaxIterations',2000);
@@ -46,20 +50,43 @@ end
 %% Return your output to ode_solutions
 maxstep = min(tspan(2:end)-tspan(1:end-1))/2;
 options = odeset(RelTol=1e-6,AbsTol=1e-10,MaxStep=maxstep);
-[t_ode,ode_solutions] = ode23s(ode_rhs,tspan,x0,options);
+[t_ode,ode_solutions] = ode45(ode_rhs,tspan,x0,options);
+
 end
 
-function y = generate_propensity_vector(t, x, propensities)
+% function w = generate_propensity_vector(t, x, propensities, parameters)
 % Helper function to output a column vector of propensity values evaluated at the
 % state x at time t.
 
-y = zeros(length(propensities), 1);
+% w = zeros(length(propensities), 1);
+% if propensities{1}.isFactorizable
+    % w = propensities{1}.hybridFactorVector(t,parameters,x');
+    % wx = propensities{1}.xFactorVector(x,parameters);
+    % w = wt.*wx;
+% else
+    % for i = 1:length(propensities)
+        % if propensities{i}.isFactorizable
+        % w(i) = wt(i).*propensities{i}.stateDependentFactor(x,parameters);
+        % else
+        % w(i) = propensities{i}.jointDependentFactor(t,x);
+        % end
+    % end
+% end
+% end
+
+function dwdx = generate_propensity_jacobian(t, x, propensities, parameters)
+% Helper function to output a column vector of propensity values evaluated at the
+% state x at time t.
+
+dwdx = zeros(length(propensities), size(x,1));
+if propensities{1}.isFactorizable
+    wt = propensities{1}.hybridFactorVector(t,parameters);
+end
 for i = 1:length(propensities)    
-%     y(i) = propensities{i}.eval(t,x);
     if propensities{i}.isFactorizable
-        y(i) = propensities{i}.timeDependentFactor(t).*propensities{i}.stateDependentFactor(x);
+        dwdx(i,:) = wt(i).*propensities{i}.DstateFactorDstate(x,parameters);
     else
-        y(i) = propensities{i}.jointDependentFactor(t,x);
+        error('Missing Code')
     end
 end
 end

@@ -100,7 +100,16 @@ classdef OdeSuite < ssit.fsp_ode_solvers.OdeSolver
                 'absTol', obj.absTol,'Vectorized','off','MaxStep',maxStep);
         end
         tSpan = sort(unique([tStart; tOut]));
+        % tic
         [tExport, solutionsNow, te, ye, ~] =  ode23s(rhs, tSpan, initSolution, ode_opts);
+        % toc23 = toc
+        % tic
+        % [tExport, solutionsNow, te, ye, ~] =  ode15s(rhs, tSpan, initSolution, ode_opts);
+        % toc15 = toc
+        % tic
+        % [tExport, solutionsNow, te, ye, ~] =  ode45(rhs, tSpan, initSolution, ode_opts);
+        % toc45 = toc
+        % [tExport, solutionsNow, te, ye, ~] =  ode45(rhs, tSpan, initSolution, ode_opts);
         
         if ~isempty(te)&&(length(tExport)<2||te(end)<tExport(2))
             solutionsNow = solutionsNow(1);
