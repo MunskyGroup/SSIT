@@ -6,12 +6,14 @@ clear all
 close all
 clc
 addpath('../CommandLine');
-
+addpath('../EricModel/DUSP1_GR_dataframes');
+addpath(genpath('../src'));
+addpath('../tensor_toolbox-v3.2.1')
 %% Model Analysis Options
 % Use previous saved results
-useSavedModel = false;
+useSavedModel = true;
 useSavedModelMH = false;
-useSavedModelSensitivty = false;
+useSavedModelSensitivty = true;
 useSavedModelMLE = false; 
 
 useManualModelCreation = true; % Create model from scratch
@@ -60,8 +62,8 @@ end
 %% Load saved mHast and Sensitivity
 % Only run if the result mat files are already created
 if useSavedModel
-    Model = load('EGRNT_model.mat').Model;
-%     Model = load('complex_dusp1_model.mat').Model;
+%     Model = load('EGRNT_model.mat').Model;
+    Model = load('complex_dusp1_model.mat').Model;
 
 end
 
@@ -72,8 +74,8 @@ if useSavedModelMH
 end
 
 if useSavedModelSensitivty
-    sensSoln = load('EGRNT_sens.mat').sensSoln;
-%     sensSoln = load('complex_dusp1_sens.mat').sensSoln;
+%     sensSoln = load('EGRNT_sens.mat').sensSoln;
+    sensSoln = load('complex_dusp1_sens.mat').sensSoln;
 
 end
 

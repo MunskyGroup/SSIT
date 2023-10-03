@@ -1,4 +1,4 @@
-function [simData] = sampleExperimentSim(dataFileName,timeMatrix,NCells)
+function [simData,csvFile] = sampleExperimentSim(dataFileName,timeMatrix,NCells)
     
     % load data
     X = importdata(dataFileName);
@@ -29,5 +29,6 @@ function [simData] = sampleExperimentSim(dataFileName,timeMatrix,NCells)
     end
     Xnew=Xtable(simData,:);
     writetable(Xnew,['purposeExp','_v',num2str(n),'.csv']);
+    csvFile = ['purposeExp','_v',num2str(n),'.csv'];
 
 end

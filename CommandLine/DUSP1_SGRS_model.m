@@ -7,6 +7,8 @@ close all
 clc
 addpath('../CommandLine');
 addpath('../EricModel/DUSP1_GR_dataframes');
+addpath(genpath('../src'));
+addpath('../tensor_toolbox-v3.2.1')
 
 %% Model Analysis Options
 % Use previous saved results
@@ -16,8 +18,8 @@ useSavedModelSensitivty = false;
 useSavedModelMLE = false; 
 
 useManualModelCreation = true; % Create model from scratch
-fitModel = false; % Fit model with fminsearch
-runMetHast = false; % Calculation of Metropolis Hastings 
+fitModel = true; % Fit model with fminsearch
+runMetHast = true; % Calculation of Metropolis Hastings 
 
 calcMLE = true; % MLE calculation for FIM verification
 runOptTriptolideExp = false; % optimal triptolide application calc
@@ -26,9 +28,9 @@ showFigures = false;
 
 % Save Model, MHresults, sens, and MLE results
 % Previous results will not be overwritten
-saveMHOutput = false; 
-saveModelOutput = false; 
-saveSensOutput = false; 
+saveMHOutput = true; 
+saveModelOutput = true; 
+saveSensOutput = true; 
 saveMLEOutput = true; 
 saveTriptOutput = false;
 
@@ -68,10 +70,10 @@ if useSavedModel
     end
 
     if exist(['SGRS_model','_v',num2str(j-1),'.mat'],'file')
-        mhResults = load(['SGRS_model','_v',num2str(j-1),'.mat']).Model;
-%     Model = load('complex_dusp1_model.mat').Model;
+        SGRS_Model = load('simple_dusp1_model.mat').simple_Model;
+%         Model = load('simple_dusp1_model.mat').simple_Model;
     else
-        error(['No file named ','SGRS_model','_v',num2str(j-1),'.mat found')
+        error(['No file named ','SGRS_model','_v',num2str(j-1),'.mat found'])
     end
 
 end
@@ -115,7 +117,7 @@ if useSavedModelMLE
     end
 end
 %% Solve the model using the FSP
-SGRS_Model = SGRS_Model.loadData('../ExampleData/DUSP1_Dex_100nM_Rep1_Rep2.csv',{'x3','RNA_nuc'}); % Load experimental data set
+SGRS_Model = SGRS_Model.loadData('../ExampleData/DUSP1_Dex_100nM_Rep1_Rep2.csv',{'x2','RNA_nuc'}); % Load experimental data set
 if fitModel
     SGRS_Model.fittingOptions.modelVarsToFit = 1:8; % Picking parameters 1-8 for fitting
     
@@ -145,7 +147,7 @@ end
 if runMetHast
     SGRS_Model.fittingOptions.modelVarsToFit = 1:4; % Picking parameters 1-4 for fitting
     
-    allFitOptions.CovFIMscale = 0.3;
+    allFitOptions.CovFIMscale = 0.1;% make smaller for higher acceptance rate
     MHOptions = struct('numberOfSamples',15000,'burnin',100,'thin',1,...
       'useFIMforMetHast',true,'suppressFSPExpansion',true);
     [bestParsFound,~,mhResults] = SGRS_Model.maximizeLikelihood([SGRS_Model.parameters{SGRS_Model.fittingOptions.modelVarsToFit,2}]',...
@@ -153,7 +155,7 @@ if runMetHast
     SGRS_Model.parameters(SGRS_Model.fittingOptions.modelVarsToFit,2) = num2cell(bestParsFound);
     
     % figure slide 10
-    if figure
+    if showFigures
         SGRS_Model.plotMHResults(mhResults); 
     end
 end
@@ -174,8 +176,10 @@ FIM = SGRS_Model.evaluateExperiment(fims,SGRS_Model.dataSet.nCells);
 nTotal_dusp = sum(SGRS_Model.dataSet.nCells);
 nCellsOpt_dusp = SGRS_Model.optimizeCellCounts(fims,nTotal_dusp,'TR[1:4]');
 fimOpt_dusp = SGRS_Model.evaluateExperiment(fims,nCellsOpt_dusp); % Using the FIM to optimize the cell measuremet times
-SGRS_Model.plotMHResults(mhResults);
 
+if showFigures
+    SGRS_Model.plotMHResults(mhResults,fimOpt_dusp);
+end
 
 %% Maximum likelihood Estimator Verification
 if calcMLE
@@ -195,7 +199,7 @@ if calcMLE
     % Find MLE for simulated data set.
     
     SGRS_Model_check.fittingOptions.modelVarsToFit = 1:8;
-    nFrePars = length(SGRS_Model_check.fittingOptions.modelVarsToFit)
+    nFrePars = length(SGRS_Model_check.fittingOptions.modelVarsToFit);
     SGRS_MLE = zeros(1,nFrePars,SGRSssa.ssaOptions.Nexp);
     fMLE = inf(1,nFrePars,SGRSssa.ssaOptions.Nexp);
     B = SGRS_Model_check.loadData('SGRS_SSA.csv',{'x1','exp1_s1';'x2','exp1_s2'});
