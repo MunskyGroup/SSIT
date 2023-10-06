@@ -574,11 +574,11 @@ classdef Propensity
                             obj{iRxn}.isTimeDependent = true;
                             % TmpHybridFactor =  hybridFactor(rand,[nonXTpars{:,2}]',rand(1,length(upstreamODEs)));
                             TmpHybridFactor = subs(expr_t,t,rand);
-                            TmpHybridFactor = subs(TmpHybridFactor,nonXTpars(:,1),rand(size(nonXTpars(:,1))));
+                            TmpHybridFactor = subs(TmpHybridFactor,nonXTpars(:,1),rand(size(nonXTpars(:,2))));
                             TmpHybridFactor = eval(subs(TmpHybridFactor,varODEs,rand(size(varODEs))));
                         else
                             TmpHybridFactor = subs(expr_t,t,rand);
-                            TmpHybridFactor = eval(subs(TmpHybridFactor,nonXTpars(:,1),rand(size(nonXTpars(:,1)))));
+                            TmpHybridFactor = eval(subs(TmpHybridFactor,nonXTpars(:,1),rand(size(nonXTpars(:,2)))));
                             % TmpHybridFactor =  hybridFactor(rand,[nonXTpars{:,2}]');
                         end
                     end

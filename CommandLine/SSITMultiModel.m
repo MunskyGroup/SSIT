@@ -138,7 +138,7 @@ classdef SSITMultiModel
             end
         end
 
-        function [pars,likelihood] = maximizeLikelihood(SMM,parGuess,fitOptions,fitAlgorithm)
+        function [pars,likelihood,otherResults] = maximizeLikelihood(SMM,parGuess,fitOptions,fitAlgorithm)
             % Search parameter space to determine which sets maximize the
             % likelihood function.  
             arguments
@@ -191,11 +191,11 @@ classdef SSITMultiModel
                     end
 
                     if allFitOptions.logForm
-                        OBJmh = @(x)SMM.computeTotalLogLikelihood(exp(x));  % We want to MAXIMIZE the likelihood.
-                        x0 = log(parGuess);
+                        OBJmh = @(x)SMM.computeTotalLogLikelihood(exp(x'));  % We want to MAXIMIZE the likelihood.
+                        x0 = log(parGuess)';
                     else
-                        OBJmh = @(x)SMM.computeTotalLogLikelihood(x);  % We want to MAXIMIZE the likelihood.
-                        x0 = (parGuess);
+                        OBJmh = @(x)SMM.computeTotalLogLikelihood(x');  % We want to MAXIMIZE the likelihood.
+                        x0 = (parGuess)';
                     end
 
 % Need New Method for FIM with MultiModel

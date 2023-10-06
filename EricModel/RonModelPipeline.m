@@ -59,6 +59,17 @@ combinedGRModel = combinedGRModel.initializeStateSpaces;
 GRpars = combinedGRModel.maximizeLikelihood(...
     GRpars, fitOptions);
 
+%%    Run MH on GR Models.
+MHFitOptions.thin=1;
+MHFitOptions.numberOfSamples=100;
+MHFitOptions.burnIn=0;
+MHFitOptions.progress=true;
+MHFitOptions.proposalDistribution=@(x)x+0.01*randn(size(x));
+MHFitOptions.numChains = 1;
+MHFitOptions.saveFile = 'TMPEricMHGR.mat';
+[~,~,MHResultsGR] = combinedGRModel.maximizeLikelihood(...
+    GRpars, MHFitOptions, 'MetropolisHastings');
+
 %%    Make Plots of GR Fit Results
 fignums = [111,121,GRfitCases{1,3},131;112,122,GRfitCases{2,3},132;113,123,GRfitCases{3,3},133];
 combinedGRModel = combinedGRModel.updateModels(GRpars,true,fignums);
@@ -113,6 +124,17 @@ combinedDusp1Model = combinedDusp1Model.initializeStateSpaces;
 DUSP1pars = combinedDusp1Model.maximizeLikelihood(...
     DUSP1pars, fitOptions);
 ModelGRDusp.parameters(1:4,2) = num2cell(DUSP1pars);
+
+%% Sample uncertainty for Dusp1 Parameters
+MHFitOptions.thin=1;
+MHFitOptions.numberOfSamples=100;
+MHFitOptions.burnIn=0;
+MHFitOptions.progress=true;
+MHFitOptions.proposalDistribution=@(x)x+0.01*randn(size(x));
+MHFitOptions.numChains = 1;
+MHFitOptions.saveFile = 'TMPEricMHDusp1.mat';
+[~,~,MHResultsDusp1] = combinedDusp1Model.maximizeLikelihood(...
+    DUSP1pars, MHFitOptions, 'MetropolisHastings');
 
 %%    Make Plots of DUSP1 Fit Results
 fignums = [211,221,201,231];

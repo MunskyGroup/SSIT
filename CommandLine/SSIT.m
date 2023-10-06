@@ -1070,14 +1070,17 @@ classdef SSIT
             % Calculate the means
             obj.dataSet.mean = zeros(sz(1),length(sz)-1);
             for i=1:sz(1)
-                TMP = squeeze(double(obj.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor(i,:)));
+                for j=2:length(sz)
+                    tmpInt{j-1} = [1:sz(j)];
+                end
+                TMP = squeeze(double(obj.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor(i,tmpInt{:})));
                 for j = 1:length(sz)-1
                     if length(sz)>2
                         H = sum(TMP,[1:j-1,j+1:length(sz)-1]);
                     else
                         H = TMP;
                     end
-                    obj.dataSet.mean(i,j) = [0:length(H)-1]*H/sum(H);
+                    obj.dataSet.mean(i,j) = sum([0:length(H)-1]'.*H(:))/sum(H);
                 end
             end
 
@@ -1121,6 +1124,9 @@ classdef SSIT
             obj.parameters(indsParsToFit,2) =  num2cell(pars(1:nModelPars));
 
             obj.solutionScheme = 'ode'; % Chosen solutuon scheme
+            for i=1:size(obj.parameters,1)
+                obj.parameters{i,2} = round(obj.parameters{i,2},12);
+            end
             solutions = obj.solve;  % Solve the ODE analysis
 
             obj.parameters =  originalPars;
@@ -1137,7 +1143,7 @@ classdef SSIT
             if isempty(SIG)
                 SIG = eye(nt*nds);
             end
-            nc = repmat(obj.dataSet.nCells,nds);
+            nc = repmat(obj.dataSet.nCells,nds,1);
 
             vm = zeros(nt*nds,1); 
             tmp = solutions.ode(IA,J);
@@ -1145,6 +1151,8 @@ classdef SSIT
             
             vd = zeros(nt*nds,1); vd(:) = obj.dataSet.mean(:);
             
+            vm = real(vm);
+
             logLode = -1/2*(sqrt(nc)'.*(vd-vm)')*SIG^(-1)*((vd-vm).*sqrt(nc));
             logLode = logLode+logPrior;
         end
