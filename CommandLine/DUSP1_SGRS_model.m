@@ -12,19 +12,19 @@ addpath('../tensor_toolbox-v3.2.1')
 
 %% Model Analysis Options
 % Use previous saved results
-useSavedModel = false;
-useSavedModelMH = false;
-useSavedModelSensitivty = false;
+useSavedModel = true;
+useSavedModelMH = true;
+useSavedModelSensitivty = true;
 useSavedModelMLE = false; 
 
-useManualModelCreation = true; % Create model from scratch
-fitModel = true; % Fit model with fminsearch
-runMetHast = true; % Calculation of Metropolis Hastings 
+useManualModelCreation = false; % Create model from scratch
+fitModel = false; % Fit model with fminsearch
+runMetHast = false; % Calculation of Metropolis Hastings 
 
 calcMLE = true; % MLE calculation for FIM verification
 runOptTriptolideExp = false; % optimal triptolide application calc
 
-showFigures = false;
+showFigures = true;
 
 % Save Model, MHresults, sens, and MLE results
 % Previous results will not be overwritten
@@ -70,7 +70,7 @@ if useSavedModel
     end
 
     if exist(['SGRS_model','_v',num2str(j-1),'.mat'],'file')
-        SGRS_Model = load('simple_dusp1_model.mat').simple_Model;
+        SGRS_Model = load(['SGRS_model','_v',num2str(j-1),'.mat']).SGRS_Model;
 %         Model = load('simple_dusp1_model.mat').simple_Model;
     else
         error(['No file named ','SGRS_model','_v',num2str(j-1),'.mat found'])
@@ -84,7 +84,7 @@ if useSavedModelMH
         i=i+1;
     end
     if exist(['SGRS_mhast','_v',num2str(i-1),'.mat'],'file')
-        SGRS_Model = load(['SGRS_mhast','_v',num2str(i-1),'.mat']).mhResults;
+        mhResults = load(['SGRS_mhast','_v',num2str(i-1),'.mat']).mhResults;
         %     mhResults = load('complex_dusp1_mhast.mat').mhResults;
     else
         error(['No file named ','SGRS_mhast','_v',num2str(i),'.mat',' file found'])
@@ -111,7 +111,8 @@ if useSavedModelMLE
         n=n+1;
     end
     if exist(['SGRS_MLE','_v',num2str(n-1),'.mat'],'file')
-        SGRS_MLE = load(['SGRS_MLE','_v',num2str(n-1),'.mat']).sensSoln;
+        SGRS_MLE = load(['SGRS_MLE','_v',num2str(n-1),'.mat']).SGRS_MLE;
+        B = load(['B.mat']).B;
     else
         error(['No file named ','SGRS_MLE','_v',num2str(n),'.mat found'])
     end
@@ -185,35 +186,36 @@ end
 if calcMLE
     % Simmulate data with known parameters and re-fit simmulated data to get MLE 
     starttime=-1500;
-    SGRSssa=SGRS_Model;
-    SGRSssa.initialTime = starttime;
-    SGRSssa.tSpan = [starttime,SGRS_Model.tSpan];
-    SGRSssa.ssaOptions.useTimeVar=true;
-    SGRSssa.ssaOptions.signalUpdateRate=1;
-    SGRSssa.solutionScheme = 'SSA';  % Set solution scheme to SSA.
-    SGRSssa.ssaOptions.Nexp = 200; 
-    SGRSssa.ssaOptions.nSimsPerExpt = 200;
-    SGRSssa.ssaOptions.applyPDO = true; % Include the distortion in the SSA data.
-    SGRSssa.solve([],'SGRS_SSA.csv'); 
+    Modelssa=SGRS_Model;
+    Modelssa.initialTime = starttime;
+    Modelssa.tSpan = [starttime,SGRS_Model.tSpan];
+    Modelssa.ssaOptions.useTimeVar=true;
+    Modelssa.ssaOptions.signalUpdateRate=1;
+    Modelssa.solutionScheme = 'SSA';  % Set solution scheme to SSA.
+    Modelssa.ssaOptions.Nexp = 200; 
+    Modelssa.ssaOptions.nSimsPerExpt = 200;
+    Modelssa.ssaOptions.applyPDO = true; % Include the distortion in the SSA data.
+    Modelssa.solve([],'SGRS_SSA.csv'); 
     
     % Find MLE for simulated data set.
-    
+    SGRS_Model_check = SGRS_Model;  
     SGRS_Model_check.fittingOptions.modelVarsToFit = 1:8;
     nFrePars = length(SGRS_Model_check.fittingOptions.modelVarsToFit);
-    SGRS_MLE = zeros(1,nFrePars,SGRSssa.ssaOptions.Nexp);
-    fMLE = inf(1,nFrePars,SGRSssa.ssaOptions.Nexp);
-    B = SGRS_Model_check.loadData('SGRS_SSA.csv',{'x1','exp1_s1';'x2','exp1_s2'});
+    SGRS_MLE = zeros(1,nFrePars,Modelssa.ssaOptions.Nexp);
+    fMLE = inf(1,nFrePars,Modelssa.ssaOptions.Nexp);
+%     B = SGRS_Model_check.loadData('SGRS_SSA.csv',{'x1','exp1_s1';'x2','exp1_s2'});
+    B = SGRS_Model_check;
     
-    for iExp = 1:SGRSssa.ssaOptions.Nexp
+    for iExp = 1:Modelssa.ssaOptions.Nexp
         
         % Dusp1  observed
-        B = SGRS_Model_check.loadData('SGRS_SSA.csv',{'x2',['exp',num2str(iExp),'_s2']}); % Link non-distorted data.
+        B = B.loadData('SGRS_SSA.csv',{'x2',['exp',num2str(iExp),'_s2']}); % Link non-distorted data.
     
         fitOptions = optimset;
         fitOptions.MaxIter = 500;
         fitOptions.Display = 'iter';
         
-        B.fittingOptions.timesToFit = [false,ones(1,length(SGRS_Model_check.tSpan),'logical')];
+        B.fittingOptions.timesToFit = [false,ones(1,length(B.tSpan),'logical')];
         B.tSpan = B.tSpan(2:end);
     %     B.fittingOptions.modelVarsToFit = [2,3];
          if iExp==1
@@ -223,30 +225,33 @@ if calcMLE
          end
         [SGRS_MLE(1,:,iExp),fMLE(1,:,iExp)] = B.maximizeLikelihood(x0,fitOptions);
     end
-    
-    % Solve for Fisher Information Matrix at all Time Points
-    B.fittingOptions.modelVarsToFit = 1:8;
-    
-    B.solutionScheme = 'FSP';
-    B.fspOptions.fspTol = 1e-6;
-    B.fspOptions.bounds=[];
-    [fspSoln,B.fspOptions.bounds] = B.solve;
-    
-    B.fspOptions.fspTol = inf;
-    B.solutionScheme = 'fspSens';
-    sensSoln_B = B.solve(fspSoln.stateSpace);
-    
-    B.pdoOptions.unobservedSpecies = {'x1'};
-    fims_B = B.computeFIM(sensSoln_B.sens);
-    FIM_B = B.evaluateExperiment(fims_B,B.dataSet.nCells);
-    
-    
-    % Make Plots (figure slides 14 and 15)
-    fimFreePars = FIM_B(B.fittingOptions.modelVarsToFit,B.fittingOptions.modelVarsToFit);
-    if showFigures    
-        B.makeMleFimPlot(squeeze(SGRS_MLE(1,:,:)),fimFreePars,[4,3],0.95)
-    end
 end
+    
+% Solve for Fisher Information Matrix at all Time Points
+B.fittingOptions.modelVarsToFit = 1:8;
+
+B.solutionScheme = 'FSP';
+B.fspOptions.fspTol = 1e-6;
+B.fspOptions.bounds=[];
+[fspSoln,B.fspOptions.bounds] = B.solve;
+
+B.fspOptions.fspTol = inf;
+B.solutionScheme = 'fspSens';
+sensSoln_B = B.solve(fspSoln.stateSpace);
+
+B.pdoOptions.unobservedSpecies = {'x1'};
+fims_B = B.computeFIM(sensSoln_B.sens);
+FIM_B = B.evaluateExperiment(fims_B,B.dataSet.nCells(2:end));
+
+
+% Make Plots (figure slides 14 and 15)
+fimFreePars = FIM_B(B.fittingOptions.modelVarsToFit,B.fittingOptions.modelVarsToFit);
+if showFigures 
+    mlfeFig = figure;
+    B.makeMleFimPlot(squeeze(SGRS_MLE(1,:,:)),fimFreePars,[4,3],0.95)
+    saveas(mlfeFig,'SGRS_MLE_Fig','fig')
+end
+
 
 %%  Plot cell's per time stack
 timepoints = {'0min','10min','20min','30min','40min','50min','60min','75min','90min','120min','150min','180min'};
@@ -342,7 +347,7 @@ if saveMHOutput % Save mhResults
     save(['SGRS_mhast','_v',num2str(i),'.mat'],'mhResults');
 end
 
-if saveMHOutput % Save Model
+if saveModelOutput % Save Model
     j=1;
         while exist(['SGRS_model','_v',num2str(j),'.mat'],'file')
             j=j+1;
@@ -366,6 +371,7 @@ if saveMLEOutput   % Save MLE Results
             n=n+1;
         end
     save(['SGRS_MLE','_v',num2str(n),'.mat'],'SGRS_MLE');
+    save(['B.mat'],'B') % Save model that generated the MLE
 
 end
 

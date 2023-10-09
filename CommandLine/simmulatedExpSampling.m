@@ -38,15 +38,23 @@ Model.parameters = ({'koff',0.14;'kon',0.01;'kr',1;'gr',0.01;...
 
 Model.fspOptions.initApproxSS = true;
 
-tpt_array = [0,90,180];
+tpt_array = [0 10 20 30 40 50 60 75 90 120 150 180];
 Model.tSpan = tpt_array; % Define the time points
 
 %% Solve the model using the FSP
-Model = Model.loadData(csvFile,{'x2','RNA_nuc'}); % Load experimental data set
-
 Model.fittingOptions.modelVarsToFit = 1:8; % Picking parameters 1-8 for fitting
 
-for i=1:5
+% Priors for fitting
+muLog10Prior = [-1 -1 1 -2 -1 -2 -1 -1];
+sigLog10Prior = [2 2 1 1 2 2 2,2];
+
+muLog10Prior = muLog10Prior(Model.fittingOptions.modelVarsToFit);
+sigLog10Prior = sigLog10Prior(Model.fittingOptions.modelVarsToFit);
+Model.fittingOptions.logPrior = @(p)-(log10(p(:))-muLog10Prior').^2./(2*sigLog10Prior'.^2);
+
+Model = Model.loadData(csvFile,{'x2','RNA_nuc'}); % Load experimental data set
+
+for i=1
     Model.solutionScheme = 'FSP';
     Model.fspOptions.fspTol = 1e-4;
     Model.fspOptions.verbose = 0;
@@ -62,9 +70,17 @@ for i=1:5
       [Model.parameters{Model.fittingOptions.modelVarsToFit,2}],...
       fitOptions));
 end
+Model.tSpan
 Model.makeFitPlot
 %% Metropolis Hastings to Quantify Parameter Uncertainty
 Model.fittingOptions.modelVarsToFit = 1:4; % Picking parameters 1-4 for fitting
+muLog10Prior = [-1 -1 1 -2];
+sigLog10Prior = [2 2 1 1];
+
+muLog10Prior = muLog10Prior(Model.fittingOptions.modelVarsToFit);
+sigLog10Prior = sigLog10Prior(Model.fittingOptions.modelVarsToFit);
+Model.fittingOptions.logPrior = @(p)-(log10(p(:))-muLog10Prior').^2./(2*sigLog10Prior'.^2);
+Model.fittingOptions.logPrior = []; % Remove prior before fitting
 
 allFitOptions.CovFIMscale = 0.1;% make smaller for higher acceptance rate
 MHOptions = struct('numberOfSamples',5000,'burnin',100,'thin',1,...
@@ -72,32 +88,56 @@ MHOptions = struct('numberOfSamples',5000,'burnin',100,'thin',1,...
 [bestParsFound,~,mhResults] = Model.maximizeLikelihood([Model.parameters{Model.fittingOptions.modelVarsToFit,2}]',...
   MHOptions,'MetropolisHastings');
 Model.parameters(Model.fittingOptions.modelVarsToFit,2) = num2cell(bestParsFound);
-
+Model.tSpan
 %% Pick Samples
-mhSamplePar = mhResults.mhSamples;
+mhSamplePar = exp(mhResults.mhSamples);
 pickN = 20; % Number of samples to pick
-ki = randperm(length(mhSamplePar(1,:)),pickN);
-par_pick = mhSamplePar(ki,:);
+halfStack = length(mhSamplePar(:,1))/2;
+k1 = randperm(halfStack,pickN);
+k2 = halfStack + k1; % Picks random samples from second half of stack
+par_pick = mhSamplePar(k2,:);
+fims_sim = zeros(pickN,length(tpt_array,Model.parameters),length(Model.parameters));
 
 for i=1:pickN
     ModelSamplePar = Model;
     ModelSamplePar.parameters = par_pick(i,:);
+    ModelSamplePar.parameters = ({'koff',par_pick(i,1);'kon',par_pick(i,2);'kr',par_pick(i,3);'gr',par_pick(i,4);...
+                   'kcn0',Model.parameters{5,2};'kcn1',Model.parameters{6,2};'knc',Model.parameters{7,2};'r1',Model.parameters{8,2}});
 
-    Model.sensOptions.solutionMethod = 'finiteDifference';
-    Model.solutionScheme = 'fspSens'; % Choosing sensitivity solution method
-    Model.fspOptions.fspTol = 1e-6;
-    [sensSoln,Model.fspOptions.bounds] = Model.solve;
+%     ModelSamplePar.tSpan = [0,3,6,...]
+    ModelSamplePar.sensOptions.solutionMethod = 'finiteDifference';
+    ModelSamplePar.solutionScheme = 'fspSens'; % Choosing sensitivity solution method
+    ModelSamplePar.fspOptions.fspTol = 1e-6;
+    [sensSoln,ModelSamplePar.fspOptions.bounds] = ModelSamplePar.solve;
 
     SGRS_Model.pdoOptions.unobservedSpecies = {'x1'}; % PDO applied for the case where the Gene state is not observed
     
     % FIM calculation taking into account the number of cells measured at each time point
     fims_sim(i,:,:,:) = Model.computeFIM(sensSoln.sens);
-    FIM_sim(i,:,:) = Model.evaluateExperiment(fims_par(i,:,:,:),Model.dataSet.nCells);
+%     FIM_sim(i,:,:) = Model.evaluateExperiment(fims_sim(i,:,:,:),Model.dataSet.nCells);
 end
 
+fim_average = squeeze(mean(fims_sim,1));
+
+
+
 %% Average FIM of Samples
-FIM_Sum = zeros(size(FIM_sim(1,:,:,:)));
-for i = 1:length(FIM_sim(1,:,:,:))
-    FIM_Sum = FIM_Sum + FIM_sim(i,:,:,:)^(-1);
+FIM_Sum = zeros(length(Model.parameters(:,1)),length(Model.parameters(:,1)));
+for i = 1:length(FIM_sim(:,:,1))
+    FIM_Sum = FIM_Sum + squeeze(FIM_sim(i,:,:))^(-1);
 end
-FIM_inv_avg = FIM_Sum/length(FIM_sim(1,:,:,:));
+FIM_inv_avg = FIM_Sum/length(FIM_sim(:,:,1));
+COV = det(FIM_inv_avg);
+
+%% Suggested New Measurement time
+% addNewTime = [10:10:180];
+% for i = 1:length(addNewTime)
+%     newTimeMatrix = timeMatrix;
+%     newTimeMatrix = [newTimeMatrix, addNewTime(i)];
+%     newTimeMatrix = sort(newTimeMatrix);
+% 
+%     dataFileName =  'DUSP1_3hr_Dex_100nM_total.csv'; 
+%     [simData,csvFile2] = sampleExperimentSim(dataFileName,newTimeMatrix,NCells);
+%     Model.tSpan = newTimeMatrix;
+%     Model.loadData(csvFile2,{'x2','RNA_nuc'})
+% end
