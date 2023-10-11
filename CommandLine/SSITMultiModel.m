@@ -7,6 +7,8 @@ classdef SSITMultiModel
         parameterIndices       % Set of vectors that map full parameter set to corresponding model
         SSITModels             % Set of SSIT models and their associated data sets
         fspStateSpaces         % Set of FSP StateSpaces
+        FIM = [];              % FIM results
+        parameters  =[];       % Parameter Values
     end
      
     properties (Dependent)
@@ -31,6 +33,10 @@ classdef SSITMultiModel
                 nMod = length(SSITMods);
                 SMM.fspStateSpaces = cell(1,nMod);
             end
+            for i = 1:nMod
+                SMM.parameters(1,SMM.parameterIndices{i}) = ...
+                    [SMM.SSITModels{i}.parameters{SMM.SSITModels{i}.fittingOptions.modelVarsToFit,2}];
+            end
         end
 
         function SMM = addModel(SMM,SSITMods,parIndices,parConstraints,stateSpaces)
@@ -53,6 +59,11 @@ classdef SSITMultiModel
 
             if ~isempty(parConstraints)
                 SMM.parameterConstraints = parConstraints;
+            end
+
+            for i = 1:nMod
+                SMM.parameters(1,SMM.parameterIndices{i}) = ...
+                    [SMM.SSITModels{i}.parameters{SMM.SSITModels{i}.fittingOptions,2}];
             end
         end
 
@@ -138,9 +149,42 @@ classdef SSITMultiModel
             end
         end
 
-        % function computeFIM
-        % 
-        % end
+        function SMM = computeFIMs(SMM,sensSoln,scale,MHSamples)
+            arguments
+                SMM
+                sensSoln = [];
+                scale = 'lin';
+                MHSamples = [];
+            end
+            % This function will compute the individual FIM matrices for
+            % the time points in the current experiment design. 
+            Nmods = length(SMM.SSITModels);
+            FIMlocal.fims = cell(1,Nmods);
+            
+            uniquePars = [];
+            for i = 1:Nmods
+                uniquePars = sort(unique([uniquePars,SMM.parameterIndices{i}]));
+            end            
+            
+            FIMlocal.totalFIM = zeros(max(uniquePars));
+
+            for i = 1:Nmods
+                if ~isempty(MHSamples)
+                    MHSamplesMod =  MHSamples(:,SMM.parameterIndices{i});
+                else
+                    MHSamplesMod = MHSamples;
+                end
+                FIMlocal.fims{i} = SMM.SSITModels{i}.computeFIM(sensSoln,scale,MHSamplesMod);
+               
+                J = SMM.SSITModels{i}.fittingOptions.modelVarsToFit;
+                for iT = 1:length(SMM.SSITModels{i}.tSpan)
+                    FIMlocal.totalFIM(SMM.parameterIndices{i},SMM.parameterIndices{i}) = ...
+                        FIMlocal.totalFIM(SMM.parameterIndices{i},SMM.parameterIndices{i}) +...
+                        SMM.SSITModels{i}.dataSet.nCells(iT)*FIMlocal.fims{i}{iT}(J,J);
+                end
+            end
+            SMM.FIM = FIMlocal;
+        end
 
         function [pars,likelihood,otherResults] = maximizeLikelihood(SMM,parGuess,fitOptions,fitAlgorithm)
             % Search parameter space to determine which sets maximize the
@@ -180,8 +224,8 @@ classdef SSITMultiModel
                     allFitOptions.progress=true;
                     allFitOptions.proposalDistribution=@(x)x+0.01*randn(size(x));
                     allFitOptions.numChains = 1;
-%                     allFitOptions.useFIMforMH = false;
-%                     allFitOptions.CovFIMscale = 0.6;
+                    allFitOptions.useFIMforMetHast = false;
+                    allFitOptions.CovFIMscale = 0.6;
                     allFitOptions.logForm = true;
                     
 %                     j=1;
@@ -202,27 +246,30 @@ classdef SSITMultiModel
                         x0 = (parGuess)';
                     end
 
-% Need New Method for FIM with MultiModel
-%                   if allFitOptions.useFIMforMetHast
-%                         TMP = SMM;
-%                         TMP.solutionScheme = 'fspSens'; % Set solutions scheme to FSP Sensitivity
-%                         [sensSoln] = TMP.solve;  % Solve the sensitivity problem
-% 
-%                         fimResults = TMP.computeFIM(sensSoln.sens);
-%                         [FIM] = TMP.evaluateExperiment(fimResults,TMP.dataSet.nCells);
-% 
-%                         if allFitOptions.logForm
-%                             FIMlog = diag([TMP.parameters{SMM.fittingOptions.modelVarsToFit,2}])*...
-%                                 FIM(SMM.fittingOptions.modelVarsToFit,SMM.fittingOptions.modelVarsToFit)*...
-%                                 diag([TMP.parameters{SMM.fittingOptions.modelVarsToFit,2}]);
-%                         else
-%                             FIMlog = FIM(SMM.fittingOptions.modelVarsToFit,SMM.fittingOptions.modelVarsToFit);
-%                         end
-%                         
-%                         covLog = FIMlog^-1;
-%                         covLog = allFitOptions.CovFIMscale*(covLog+covLog')/2;
-%                         allFitOptions.proposalDistribution=@(x)mvnrnd(x,covLog);                       
-%                     end
+                    if allFitOptions.useFIMforMetHast
+                        TMP = SMM;
+                        if isempty(TMP.FIM)
+                            TMP = TMP.computeFIMs;
+                        end
+                        FIMLocal = TMP.FIM.totalFIM;
+
+                        if allFitOptions.logForm
+                            FIMlog = diag(TMP.parameters)*...
+                                FIMLocal*...
+                                diag(TMP.parameters);
+                        else
+                            FIMlog = FIMLocal(SMM.fittingOptions.modelVarsToFit,SMM.fittingOptions.modelVarsToFit);
+                        end
+
+                        if allFitOptions.logForm&&min(eig(FIMlog))<1
+                            disp('Warning -- FIM has one or more small eigenvalues.  Reducing proposal width to 10x in those directions. MH Convergence may be slow.')
+                            FIMlog = FIMlog + 1*eye(length(FIMlog));
+                        end
+
+                        covLog = FIMlog^-1;
+                        covLog = allFitOptions.CovFIMscale*(covLog+covLog')/2;
+                        allFitOptions.proposalDistribution=@(x)mvnrnd(x,covLog);
+                    end
                     
                     rng('shuffle')
                     if allFitOptions.numChains==1
@@ -233,6 +280,7 @@ classdef SSITMultiModel
                             'thin',allFitOptions.thin,'nchain',1,'burnin',allFitOptions.burnIn,...
                             'progress',allFitOptions.progress,...
                             'saveFileName',allFitOptions.saveFile);
+                        % delete(allFitOptions.saveFile);
                     else
                         try
                             parpool

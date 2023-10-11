@@ -59,13 +59,16 @@ combinedGRModel = combinedGRModel.initializeStateSpaces;
 GRpars = combinedGRModel.maximizeLikelihood(...
     GRpars, fitOptions);
 
+%% Compute FIM
+combinedGRModel = combinedGRModel.computeFIMs;
+
 %%    Run MH on GR Models.
 MHFitOptions.thin=1;
 MHFitOptions.numberOfSamples=100;
 MHFitOptions.burnIn=0;
 MHFitOptions.progress=true;
-MHFitOptions.proposalDistribution=@(x)x+0.01*randn(size(x));
 MHFitOptions.numChains = 1;
+MHFitOptions.useFIMforMetHast = true;
 MHFitOptions.saveFile = 'TMPEricMHGR.mat';
 [~,~,MHResultsGR] = combinedGRModel.maximizeLikelihood(...
     GRpars, MHFitOptions, 'MetropolisHastings');
