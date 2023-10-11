@@ -503,6 +503,7 @@ classdef ssitTests < matlab.unittest.TestCase
             Model.solutionScheme = 'FSP';
             Model = Model.formPropensitiesGeneral;
 
+            % run Metropolis Hastings
             MHFitOptions.thin=1;
             MHFitOptions.numberOfSamples=1000;
             MHFitOptions.burnIn=0;
@@ -512,22 +513,27 @@ classdef ssitTests < matlab.unittest.TestCase
             MHFitOptions.numChains = 1;
             MHFitOptions.saveFile = 'TMPMHChain.mat';
             Model.fittingOptions.modelVarsToFit = [1,2];
-            [~,~,MHResults] = Model.maximizeLikelihood(...
+            [newPars,~,MHResults] = Model.maximizeLikelihood(...
                 [], MHFitOptions, 'MetropolisHastings');
+            Model.parameters(Model.fittingOptions.modelVarsToFit,2) = num2cell(newPars);
             delete('TMPMHChain.mat')            
 
-            J = 500+randi(500,[10,1]);
+            % Compute FIM for subsampling of MH results.
+            J = floor(linspace(500,1000,10));
             MHSamplesForFIM = exp(MHResults.mhSamples(J,:));
             fimResults = Model.computeFIM([],'lin',MHSamplesForFIM);
 
+            % Find and plot total FIM for each parameter sample
             Nc = Model.dataSet.nCells;
             figure
-            FIM = cell(1,10);
-            for i=1:10
-                FIM{i} = Model.totalFim(fimResults{i},Nc);
-            end
+            FIM = Model.totalFim(fimResults,Nc);
             Model.plotMHResults(MHResults,FIM)
-        
+
+            % Find optimal experiment design given parameters sets
+            NcOptExperiment = Model.optimizeCellCounts(fimResults,sum(Nc),'Determinant');
+            FIMOptExpt = Model.totalFim(fimResults,NcOptExperiment);
+            Model.plotMHResults(MHResults,[FIM,FIMOptExpt])
+            
         end  
     end
 end

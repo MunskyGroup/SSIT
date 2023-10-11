@@ -138,6 +138,10 @@ classdef SSITMultiModel
             end
         end
 
+        % function computeFIM
+        % 
+        % end
+
         function [pars,likelihood,otherResults] = maximizeLikelihood(SMM,parGuess,fitOptions,fitAlgorithm)
             % Search parameter space to determine which sets maximize the
             % likelihood function.  

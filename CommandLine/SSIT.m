@@ -846,7 +846,8 @@ classdef SSIT
             if ~isempty(MHSamples)
                 % For FIM calculation 
                 nSamples = size(MHSamples,1);
-                fimResults = cell(1,nSamples);
+                Nt = length(obj.tSpan);
+                fimResults = cell(Nt,nSamples);
                 if isempty(sensSoln)||length(sensSoln)~=nSamples
                     sensSoln = cell(1,nSamples);
                 end
@@ -859,14 +860,14 @@ classdef SSIT
                     saveSens = false;
                 end
 
-                parfor i=1:nSamples
+                for i=1:nSamples
                     objTMP = obj;
                     objTMP.parameters(objTMP.fittingOptions.modelVarsToFit,2) = ...
                         num2cell(MHSamples(i,:));
                     if saveSens
-                        [fimResults{i},sensSoln{i}] = computeFIM(obj,sensSoln{i},scale);
+                        [fimResults(:,i),sensSoln{i}] = computeFIM(obj,sensSoln{i},scale);
                     else
-                        fimResults{i} = objTMP.computeFIM(sensSoln{i},scale);
+                        fimResults(:,i) = objTMP.computeFIM(sensSoln{i},scale);
                     end
                 end
             else
@@ -945,9 +946,22 @@ classdef SSIT
 
         function [Nc] = optimizeCellCounts(obj,fims,nCellsTotal,FIMMetric,Nc)
             % This function optimizes the number of cells per time point
-            % according to the user-provide metric.
-            % Allowable metric are:
-            %   'Determinant' - maximize the determinant of the FIM
+            % according to the user-provide metric. 
+            % 
+            % INPUTS:
+            %
+            % 'fims' is either [Nt x 1] cell array containing the FIM matrices
+            % for each of the Nt time points, or it is a [Nt x Ns] cell
+            % array containing the FIM for each combination of Nt time
+            % points and Ns different parameter sets.
+            %
+            % 'nCellsTotal' is the total number of cells the user wishes to
+            % measure, spead out among the Nt time points.
+            % 
+            % 'FIMmetric' is the type of optimization that the user
+            % desires. Allowable metrics are:
+            %   'Determinant' - maximize the expected determinant of the FIM
+            %   'DetCovariance' - minimize the expected determinant of MLE covariance. 
             %   'Smallest Eigenvalue' - maximize the smallest e.val of the
             %       FIM
             %   'Trace' - maximize the trace of the FIM
@@ -958,6 +972,13 @@ classdef SSIT
             %       for the specified indices. Only the parameters in
             %       obj.fittingOptions.modelVarsToFit are assumed to be
             %       free.
+            %
+            % 'Nc' is an optimal guess for the optimal experiment design.
+            %
+            % OUTPUTS:
+            % 'Nc' is the optimized experiment design (number of cells to
+            % measure at each point in time.
+            %
             arguments
                 obj
                 fims
@@ -968,6 +989,8 @@ classdef SSIT
             switch FIMMetric
                 case 'Determinant'
                     met = @(A)-det(A);
+                case 'DetCovariance'
+                    met = @(A)det(inv(A));
                 case 'Smallest Eigenvalue'
                     met = @(A)-min(eig(A));
                 case 'Trace'
@@ -983,7 +1006,8 @@ classdef SSIT
                         met = @(A)det(ek*inv(A)*ek');
                     end
             end
-            NT = size(fims(:,1),1);
+            NT = size(fims,1);
+            NS = size(fims,2);
 
             if isempty(Nc)
                 Nc = zeros(1,NT);
@@ -997,7 +1021,7 @@ classdef SSIT
                     while Nc(i)>0
                         Ncp = Nc;
                         Ncp(i) = Ncp(i)-1;
-                        k = SSIT.findBestMove(fims(:,1),Ncp,met);
+                        k = SSIT.findBestMove(fims,Ncp,met);
                         if k==i
                             break
                         end
@@ -2052,8 +2076,10 @@ classdef SSIT
                 FIM =[];
             end
 
+            parNames = obj.parameters(obj.fittingOptions.modelVarsToFit,1);
             if ~isempty(FIM)
                 pars = [obj.parameters{obj.fittingOptions.modelVarsToFit,2}];
+               
                 parsLog = log10(pars);
 
                 if ~iscell(FIM)
@@ -2073,7 +2099,8 @@ classdef SSIT
 
 
             if ~isempty(mhResults)
-                figure
+                % Make figures for MH convergence
+                figure;
                 plot(mhResults.mhValue);
                 xlabel('Iteration number');
                 ylabel('log-likelihood')
@@ -2096,7 +2123,7 @@ classdef SSIT
                 Np = size(mhResults.mhSamples,2);
             end
             
-            fimCols = {'k','c','b','g','r','k','c','b','g','r','k','c','b','g','r'};
+            fimCols = {'k','c','b','g','r'};
 
             for i=1:Np-1
                 for j = i+1:Np
@@ -2109,12 +2136,14 @@ classdef SSIT
                     end
                     if ~isempty(FIM)
                         for iFIM = 1:length(covFIM)
-                            ssit.parest.ellipse(parsLog([j,i]),icdf('chi2',0.9,2)*covFIM{iFIM}([j,i],[j,i]),fimCols{iFIM},'linewidth',2)
+                            ssit.parest.ellipse(parsLog([j,i]),icdf('chi2',0.9,2)*covFIM{iFIM}([j,i],[j,i]),fimCols{mod(iFIM,5)+1},'linewidth',2)
                         end
                     end
                     if ~isempty(mhResults)
                         ssit.parest.ellipse(par0,icdf('chi2',0.9,2)*cov12,'m--','linewidth',2)
                     end
+                    xlabel(parNames{j});
+                    ylabel(parNames{i});
                 end
             end
         end
@@ -2162,19 +2191,28 @@ classdef SSIT
     end
     methods (Static)
         function FIM = totalFim(fims,Nc)
-            FIM = 0*fims{1};
-            for i = 1:length(fims)
-                FIM = FIM+Nc(i)*fims{i};
+            Nt = size(fims,1);
+            Ns = size(fims,2);
+            FIM = cell(1,Ns);
+            for is = 1:Ns
+                FIM{is} = 0*fims{1};
+                for it = 1:Nt
+                    FIM{is} = FIM{is}+Nc(it)*fims{it,is};
+                end
             end
         end
         function k = findBestMove(fims,Ncp,met)
-            obj = zeros(1,length(Ncp));
+            Nt = size(fims,1);
+            Ns = size(fims,2);
+            obj = zeros(Nt,Ns);
             FIM0 = SSIT.totalFim(fims,Ncp);
-            for i = 1:length(Ncp)
-                FIM = FIM0+fims{i};
-                obj(i) = met(FIM);
+            for is = 1:Ns
+                for it = 1:Nt
+                    FIM = FIM0{is}+fims{it,is};
+                    obj(it,is) = met(FIM);
+                end
             end
-            [~,k] = min(obj);
+            [~,k] = min(mean(obj,2));
         end
         function propensities = parameterizePropensities(GenProps,Parset)
             propensities = GenProps;
