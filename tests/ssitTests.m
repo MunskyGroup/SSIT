@@ -476,8 +476,58 @@ classdef ssitTests < matlab.unittest.TestCase
 
             testCase.verifyEqual(relDiff<0.05, true, ...
                 'ODE Fit of Poisson Model is not within 5% of true values');            
+        end 
 
+        function FitUsingFSP(testCase)
+            Model = testCase.Poiss;
+            Model.solutionScheme = 'FSP';
+            Model = Model.formPropensitiesGeneral;
+            Model.parameters(:,2) = {10*rand;rand};
+            fitOptions = optimset('Display','none','MaxIter',1000);
+            fitOptions.SIG = [];
+            Model.fittingOptions.modelVarsToFit = [1,2];
+            for i=1:3
+                fitPars = Model.maximizeLikelihood([],fitOptions);
+                Model.parameters(:,2) = num2cell(fitPars);
+            end
 
-        end            
+            relDiff = max(abs([testCase.Poiss.parameters{:,2}]-...
+                [Model.parameters{:,2}])./[testCase.Poiss.parameters{:,2}]);
+
+            testCase.verifyEqual(relDiff<0.05, true, ...
+                'ODE Fit of Poisson Model is not within 5% of true values');            
+        end  
+        
+        function MetHastAndSampledFIM(testCase)
+            Model = testCase.Poiss;
+            Model.solutionScheme = 'FSP';
+            Model = Model.formPropensitiesGeneral;
+
+            MHFitOptions.thin=1;
+            MHFitOptions.numberOfSamples=1000;
+            MHFitOptions.burnIn=0;
+            MHFitOptions.progress=true;
+            MHFitOptions.useFIMforMetHast =true;
+            MHFitOptions.CovFIMscale = 1.0;
+            MHFitOptions.numChains = 1;
+            MHFitOptions.saveFile = 'TMPMHChain.mat';
+            Model.fittingOptions.modelVarsToFit = [1,2];
+            [~,~,MHResults] = Model.maximizeLikelihood(...
+                [], MHFitOptions, 'MetropolisHastings');
+            delete('TMPMHChain.mat')            
+
+            J = 500+randi(500,[10,1]);
+            MHSamplesForFIM = exp(MHResults.mhSamples(J,:));
+            fimResults = Model.computeFIM([],'lin',MHSamplesForFIM);
+
+            Nc = Model.dataSet.nCells;
+            figure
+            FIM = cell(1,10);
+            for i=1:10
+                FIM{i} = Model.totalFim(fimResults{i},Nc);
+            end
+            Model.plotMHResults(MHResults,FIM)
+        
+        end  
     end
 end

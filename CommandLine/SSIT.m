@@ -61,9 +61,7 @@ classdef SSIT
             end
             % SSIT Construct an instance of the SSIT class
             addpath(genpath('../src'));
-            if isempty(modelFile)
-                return
-            else
+            if ~isempty(modelFile)
                 obj = pregenModel(obj,modelFile);
             end
         end
@@ -76,42 +74,42 @@ classdef SSIT
             end
         end
 
+       
         function obj = formPropensitiesGeneral(obj,prefixName)
             arguments
                 obj
                 prefixName = [];
             end
             % This function starts the process to write m-file for each
-            % propensity function. 
+            % propensity function.
             if ~strcmp(obj.solutionScheme,'SSA')
                 if strcmp(obj.solutionScheme,'ode')
                     obj.useHybrid = true;
                     obj.hybridOptions.upstreamODEs = obj.species;
                 end
                 n_reactions = length(obj.propensityFunctions);
-                % if obj.useHybrid
-                    % Propensity for hybrid models will include
-                    % solutions from the upstream ODEs.
-                    sm = cell(1,n_reactions);
-                    logicTerms = cell(1,n_reactions);
-                    logCounter = 0;
-                    for i = 1:n_reactions
-                        st = obj.propensityFunctions{i};
-                        for jI = 1:size(obj.inputExpressions,1)
-                            st = strrep(st,obj.inputExpressions{jI,1},['(',obj.inputExpressions{jI,2},')']);
-                        end
-                        [st,logicTerms{i},logCounter] = ssit.Propensity.stripLogicals(st,obj.species,logCounter);
-                        sm{i} = str2sym(st);
+                % Propensity for hybrid models will include
+                % solutions from the upstream ODEs.
+                sm = cell(1,n_reactions);
+                logicTerms = cell(1,n_reactions);
+                logCounter = 0;
+                for i = 1:n_reactions
+                    st = obj.propensityFunctions{i};
+                    for jI = 1:size(obj.inputExpressions,1)
+                        st = strrep(st,obj.inputExpressions{jI,1},['(',obj.inputExpressions{jI,2},')']);
                     end
+                    [st,logicTerms{i},logCounter] = ssit.Propensity.stripLogicals(st,obj.species,logCounter);
+                    sm{i} = str2sym(st);
+                end
 
-                    if obj.useHybrid
-                        PropensitiesGeneral = ssit.Propensity.createAsHybridVec(sm, obj.stoichiometry,...
-                            obj.parameters, obj.species, obj.hybridOptions.upstreamODEs, logicTerms, prefixName);
-                    else
-                        PropensitiesGeneral = ssit.Propensity.createAsHybridVec(sm, obj.stoichiometry,...
-                            obj.parameters, obj.species, [], logicTerms, prefixName);
-                    end
-  
+                if obj.useHybrid
+                    PropensitiesGeneral = ssit.Propensity.createAsHybridVec(sm, obj.stoichiometry,...
+                        obj.parameters, obj.species, obj.hybridOptions.upstreamODEs, logicTerms, prefixName);
+                else
+                    PropensitiesGeneral = ssit.Propensity.createAsHybridVec(sm, obj.stoichiometry,...
+                        obj.parameters, obj.species, [], logicTerms, prefixName);
+                end
+
                 obj.propensitiesGeneral = PropensitiesGeneral;
 
             elseif strcmp(obj.solutionScheme,'SSA')
@@ -121,8 +119,9 @@ classdef SSIT
                     propenType,...
                     obj.species);
             end
-        end
 
+        end
+%%
         function constraints = get.fspConstraints(obj)
             % Makes a list of FSP constraints that can be used by the FSP
             % solver.
@@ -829,7 +828,7 @@ classdef SSIT
             end
         end
 
-        function [fimResults,sensSoln] = computeFIM(obj,sensSoln,scale)
+        function [fimResults,sensSoln] = computeFIM(obj,sensSoln,scale,MHSamples)
             % computeFIM - computes FIM at all time points.
             % Arguments:
             %   sensSoln - (optional) previously compute FSP Sensitivity.
@@ -841,48 +840,80 @@ classdef SSIT
                 obj
                 sensSoln = [];
                 scale = 'lin';
-            end
-            if isempty(sensSoln)
-                disp({'Running Sensitivity Calculation';'You can skip this step by providing sensSoln.'})
-                obj.solutionScheme = 'fspSens';
-                [sensSoln] = obj.solve;
-                sensSoln = sensSoln.sens;
+                MHSamples = [];
             end
 
-            % Separate into observed and unobserved species.
-            Nd = length(obj.species);
-            indsUnobserved=[];
-            indsObserved=[];
-            for i=1:Nd
-                if ~isempty(obj.pdoOptions.unobservedSpecies)&&max(contains(obj.pdoOptions.unobservedSpecies,obj.species{i}))
-                    indsUnobserved=[indsUnobserved,i];
-                else
-                    indsObserved=[indsObserved,i];
+            if ~isempty(MHSamples)
+                % For FIM calculation 
+                nSamples = size(MHSamples,1);
+                fimResults = cell(1,nSamples);
+                if isempty(sensSoln)||length(sensSoln)~=nSamples
+                    sensSoln = cell(1,nSamples);
                 end
-            end
-
-            % compute FIM for each time point
-            fimResults = {};
-            for it=length(sensSoln.data):-1:1
-                if isempty(indsUnobserved)
-                    F = ssit.fim.computeSingleCellFim(sensSoln.data{it}.p, sensSoln.data{it}.S, obj.pdoOptions.PDO);
+                if strcmp(obj.fittingOptions.modelVarsToFit,'all')
+                    obj.fittingOptions.modelVarsToFit = 1:size(obj.parameters,1);
+                end
+                if nargout == 2
+                    saveSens = true;
                 else
-                    % Remove unobservable species.
-                    redS = sensSoln.data{it}.S;
-                    for ir = 1:length(redS)
-                        redS(ir) = sensSoln.data{it}.S(ir).sumOver(indsUnobserved);
+                    saveSens = false;
+                end
+
+                parfor i=1:nSamples
+                    objTMP = obj;
+                    objTMP.parameters(objTMP.fittingOptions.modelVarsToFit,2) = ...
+                        num2cell(MHSamples(i,:));
+                    if saveSens
+                        [fimResults{i},sensSoln{i}] = computeFIM(obj,sensSoln{i},scale);
+                    else
+                        fimResults{i} = objTMP.computeFIM(sensSoln{i},scale);
                     end
-                    F = ssit.fim.computeSingleCellFim(sensSoln.data{it}.p.sumOver(indsUnobserved), redS, obj.pdoOptions.PDO);
                 end
-                fimResults{it,1} = F;
-            end
+            else
 
-            if strcmp(scale,'log')
-                for it=length(sensSoln.data):-1:1
-                    fimResults{it,1} = diag([obj.parameters{:,2}])*...
-                        fimResults{it,1}*...
-                        diag([obj.parameters{:,2}]);
+                if isempty(sensSoln)
+                    disp({'Running Sensitivity Calculation';'You can skip this step by providing sensSoln.'})
+                    obj.solutionScheme = 'fspSens';
+                    [sensSoln] = obj.solve;
+                    sensSoln = sensSoln.sens;
                 end
+
+                % Separate into observed and unobserved species.
+                Nd = length(obj.species);
+                indsUnobserved=[];
+                indsObserved=[];
+                for i=1:Nd
+                    if ~isempty(obj.pdoOptions.unobservedSpecies)&&max(contains(obj.pdoOptions.unobservedSpecies,obj.species{i}))
+                        indsUnobserved=[indsUnobserved,i];
+                    else
+                        indsObserved=[indsObserved,i];
+                    end
+                end
+
+                % compute FIM for each time point
+                fimResults = {};
+                for it=length(sensSoln.data):-1:1
+                    if isempty(indsUnobserved)
+                        F = ssit.fim.computeSingleCellFim(sensSoln.data{it}.p, sensSoln.data{it}.S, obj.pdoOptions.PDO);
+                    else
+                        % Remove unobservable species.
+                        redS = sensSoln.data{it}.S;
+                        for ir = 1:length(redS)
+                            redS(ir) = sensSoln.data{it}.S(ir).sumOver(indsUnobserved);
+                        end
+                        F = ssit.fim.computeSingleCellFim(sensSoln.data{it}.p.sumOver(indsUnobserved), redS, obj.pdoOptions.PDO);
+                    end
+                    fimResults{it,1} = F;
+                end
+
+                if strcmp(scale,'log')
+                    for it=length(sensSoln.data):-1:1
+                        fimResults{it,1} = diag([obj.parameters{:,2}])*...
+                            fimResults{it,1}*...
+                            diag([obj.parameters{:,2}]);
+                    end
+                end
+
             end
         end
 
@@ -1580,7 +1611,7 @@ classdef SSIT
                     allFitOptions.progress=true;
                     allFitOptions.proposalDistribution=@(x)x+0.1*randn(size(x));
                     allFitOptions.numChains = 1;
-                    allFitOptions.useFIMforMH = false;
+                    allFitOptions.useFIMforMetHast = false;
                     allFitOptions.CovFIMscale = 0.6;
                     allFitOptions.suppressFSPExpansion = true;
                     allFitOptions.logForm = true;
@@ -2017,7 +2048,7 @@ classdef SSIT
         function plotMHResults(obj,mhResults,FIM)
             arguments
                 obj
-                mhResults
+                mhResults = [];
                 FIM =[];
             end
 
@@ -2041,42 +2072,49 @@ classdef SSIT
             end
 
 
-            figure
-            plot(mhResults.mhValue);
-            xlabel('Iteration number');
-            ylabel('log-likelihood')
-            title('MH Convergence')
+            if ~isempty(mhResults)
+                figure
+                plot(mhResults.mhValue);
+                xlabel('Iteration number');
+                ylabel('log-likelihood')
+                title('MH Convergence')
 
-            figure
-            ac = xcorr(mhResults.mhValue-mean(mhResults.mhValue),'normalized');
-            ac = ac(size(mhResults.mhValue,1):end);
-            plot(ac,'LineWidth',3); hold on
-            N = size(mhResults.mhValue,1);
-            tau = 1+2*sum((ac(2:N/100)));
-            Neff = N/tau;
-            xlabel('Lag');
-            ylabel('Auto-correlation')
-            title('MH Convergence')
+                figure
+                ac = xcorr(mhResults.mhValue-mean(mhResults.mhValue),'normalized');
+                ac = ac(size(mhResults.mhValue,1):end);
+                plot(ac,'LineWidth',3); hold on
+                N = size(mhResults.mhValue,1);
+                tau = 1+2*sum((ac(2:N/100)));
+                Neff = N/tau;
+                xlabel('Lag');
+                ylabel('Auto-correlation')
+                title('MH Convergence')
 
-            figure
-            [valDoneSorted,J] = sort(mhResults.mhValue);
-            smplDone = mhResults.mhSamples(J,:);
-            Np = size(mhResults.mhSamples,2);
-
-            fimCols = {'k','c','b','g','r'};
+                figure
+                [valDoneSorted,J] = sort(mhResults.mhValue);
+                smplDone = mhResults.mhSamples(J,:);
+                Np = size(mhResults.mhSamples,2);
+            end
+            
+            fimCols = {'k','c','b','g','r','k','c','b','g','r','k','c','b','g','r'};
 
             for i=1:Np-1
                 for j = i+1:Np
                     subplot(Np-1,Np-1,(i-1)*(Np-1)+j-1);
-                    scatter(smplDone(:,j)/log(10),smplDone(:,i)/log(10),20,valDoneSorted,'filled'); hold on;
+
+                    if ~isempty(mhResults)
+                        scatter(smplDone(:,j)/log(10),smplDone(:,i)/log(10),20,valDoneSorted,'filled'); hold on;
+                        par0 = mean(smplDone(:,[j,i])/log(10));
+                        cov12 = cov(smplDone(:,j)/log(10),smplDone(:,i)/log(10));
+                    end
                     if ~isempty(FIM)
                         for iFIM = 1:length(covFIM)
                             ssit.parest.ellipse(parsLog([j,i]),icdf('chi2',0.9,2)*covFIM{iFIM}([j,i],[j,i]),fimCols{iFIM},'linewidth',2)
                         end
                     end
-                    par0 = mean(smplDone(:,[j,i])/log(10));
-                    cov12 = cov(smplDone(:,j)/log(10),smplDone(:,i)/log(10));
-                    ssit.parest.ellipse(par0,icdf('chi2',0.9,2)*cov12,'m--','linewidth',2)
+                    if ~isempty(mhResults)
+                        ssit.parest.ellipse(par0,icdf('chi2',0.9,2)*cov12,'m--','linewidth',2)
+                    end
                 end
             end
         end
