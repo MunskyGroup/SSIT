@@ -8,3 +8,5 @@ BackgroundFitsResults*
 CommandLine/Bomyi/*
 CommandLine/Josh/complex_dusp1.zip
 tests/tmp*/*
+tmp*s/*
+EricModel/tmp*/*
