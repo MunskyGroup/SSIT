@@ -1,5 +1,5 @@
 classdef SSIT
-
+  %% some other changes that are even dumber.
     properties
         parameters = {'k',10; 'g',0.2};   % List of parameters and their values.
         species = {'x1'}; % List of species to be used in model (x1,x2,...)
