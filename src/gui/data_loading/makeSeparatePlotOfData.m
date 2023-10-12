@@ -8,8 +8,11 @@ end
 
 %% This function creates a histogram from the loaded data.
 NT = length(app.ParEstFitTimesList.Value);
-NdMod = max(1,length(size(app.DataLoadingAndFittingTabOutputs.fitResults.current))-1);
+% NdMod = max(1,length(size(app.DataLoadingAndFittingTabOutputs.fitResults.current))-1);
+NdMod = size(app.NameTable.Data,1);
 NdDat = length(app.SpeciesForFitPlot.Value);
+
+Plts_to_make = zeros(1,NdMod);
 
 for DistType = 0:1
     if isempty(fignums)
@@ -23,6 +26,7 @@ for DistType = 0:1
         subPlotSize(2) = ceil(sqrt(NT));
         subPlotSize(1) = ceil(NT/subPlotSize(2));
     end
+
     
     for iTime = 1:NT
         it = find(strcmp(app.ParEstFitTimesList.Value,app.ParEstFitTimesList.Value{iTime}));

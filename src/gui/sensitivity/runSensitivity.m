@@ -39,10 +39,46 @@ constraintBounds = app.FspTabOutputs.bounds';
 
 parameters = app.SensParameterSelectionTable.Data(:,1:2);
 
+if isfield(app.FspTabOutputs,'PropensitiesGeneral')
+    PropensitiesGeneral = app.FspTabOutputs.PropensitiesGeneral;
+else
+
+    sm = cell(1,n_reactions);
+    logicTerms = cell(1,n_reactions);
+    logCounter = 0;
+    for i = 1:n_reactions
+        st = app.ReactionsTabOutputs.propensities{i};
+        for jI = 1:size(app.ReactionsTabOutputs.inputs,1)
+            st = strrep(st,app.ReactionsTabOutputs.inputs{jI,1},['(',app.ReactionsTabOutputs.inputs{jI,2},')']);
+        end
+        [st,logicTerms{i},logCounter] = ssit.Propensity.stripLogicals(st,app.ReactionsTabOutputs.varNames,logCounter);
+        sm{i} = str2sym(st);
+    end
+
+    % if obj.useHybrid
+    %     PropensitiesGeneral = ssit.Propensity.createAsHybridVec(sm, obj.stoichiometry,...
+    %         obj.parameters, obj.species, obj.hybridOptions.upstreamODEs, logicTerms, prefixName);
+    % else
+    PropensitiesGeneral = ssit.Propensity.createAsHybridVec(sm, ...
+        app.ReactionsTabOutputs.stoichMatrix,...
+        app.ReactionsTabOutputs.parameters, ...
+        app.ReactionsTabOutputs.varNames, ...
+        [], logicTerms, 'TEMPPropens');
+    app.FspTabOutputs.PropensitiesGeneral = PropensitiesGeneral;
+end
+
+if isfield(app.FspTabOutputs,'solutions')
+    fspSoln.fsp = app.FspTabOutputs.solutions;
+    fspSoln.stateSpace = app.FspTabOutputs.stateSpace;
+else
+    fspSoln.fsp = [];
+end
+
 %% Solve for probability sensitivities
 [app.SensFspTabOutputs.solutions,constraintBounds,app.FspTabOutputs.stateSpace] = ...
     ssit.sensitivity.computeSensitivity(model,...
     parameters,...
+    PropensitiesGeneral,...
     tspan,...
     fspTol,...
     initial_state,...
@@ -53,7 +89,8 @@ parameters = app.SensParameterSelectionTable.Data(:,1:2);
     app.FspTabOutputs.stateSpace,...
     app.FspPiecewiseCheckBox.Value,...
     app.initApproxSS.Value,...
-    app.ReactionsTabOutputs.varNames);
+    app.ReactionsTabOutputs.varNames,...
+    true,fspSoln,false,[],false,[],[],[]);
 
 app.FspTabOutputs.bounds = constraintBounds';
 app.FspConstraintTable.Data(:,3) = num2cell(app.FspTabOutputs.bounds');   % Sets the bounds from constraints to the ones found in the FSP analysis

@@ -487,27 +487,32 @@ classdef Propensity
                 end
                 prop_vars = symvar(symbolicExpression{iRxn});
 
-                syms(prop_vars);
-                syms t
+                syms(prop_vars,'real');
+                syms t real
                 expr_tx = symbolicExpression{iRxn};
 
                 % Convert to callable function
-                Jx = zeros(1,length(prop_vars),'logical');
+                Jx = zeros(1,length(prop_vars),'logical'); % List of variables corrresponding to species
+                Jt = zeros(1,length(prop_vars),'logical'); % List of variables corrresponding to time
                 if ~isempty(speciesStoch)
                     for j = 1:length(prop_vars)
-                    Jx(j) = max(strcmp(string(prop_vars(j)),speciesStoch));
+                        Jx(j) = max(strcmp(string(prop_vars(j)),speciesStoch));
+                        Jt(j) = max(strcmp(string(prop_vars(j)),'t'));
                     end
                 end
                 if sum(Jx)==0
                     % No x dependance
                     factors = [str2sym('1'),symbolicExpression{iRxn}];
+                elseif sum(Jt)==0
+                    % No t dependence
+                    factors = [symbolicExpression{iRxn},str2sym('1')];
                 else
                     % Determine if the symbolicExpression is isFactorizable
                     factors = factor(symbolicExpression{iRxn}, prop_vars(Jx));
                     factors = [prod(factors(2:end)),factors(1)];
 
                     if ~isempty(upstreamODEs)
-                        syms(upstreamODEs)
+                        syms(upstreamODEs,'positive')
                     end
 
                     if (ismember(t, symvar(factors(1))))||(~isempty(upstreamODEs)&&max(ismember(upstreamODEs,symvar(factors(1)))))
@@ -587,7 +592,7 @@ classdef Propensity
                     % non-negative, so we check the sign and multiple by -1
                     % if necessary. 
                     % First for the time varying factors.
-                    signHybridFactor = (TmpHybridFactor>=0)-(TmpHybridFactor<0);
+                    signHybridFactor = ((TmpHybridFactor>=0)-(TmpHybridFactor<0));
                     if obj{iRxn}.anonymousT
                         [obj{iRxn}.(timeFunName),expr_dt_vec_dodei] = ...
                             sym2propfun(signHybridFactor*expr_t, true, false, nonXTpars(:,1), speciesStoch, varODEs, logicTerms(iRxn), true);
@@ -1000,7 +1005,7 @@ arguments
 end
 % This function writes an executable m-file for the provided expression.
 varNames = string(symvar(symbolicExpression));
-states = sym("states",[length(species),1]);
+states = sym("states",[length(species),1],'positive');
 parameters = sym("parameters",[length(nonXTpars),1],'positive');
 syms t real
 for i = 1:length(varNames)
@@ -1041,7 +1046,7 @@ if writeFiles
         elseif time_dep
             exprHandle = matlabFunction(symbolicExpression,'Vars',{t,parameters},'File',fn,'Sparse',true);
         else
-            exprHandle = matlabFunction(symbolicExpression,'Vars',{states,parameters},'File',fn,'Sparse',true);
+            exprHandle = matlabFunction(symbolicExpression,'Vars',{states,parameters},'File',fn,'Sparse',false);
         end
     else
         if (time_dep && state_dep)

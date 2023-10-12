@@ -1,4 +1,4 @@
-function [X_array] = runSingleSsa(x0,S,W,T_array,isTimeVarying,signalUpdateRate)
+function [X_array] = runSingleSsa(x0,S,W,T_array,isTimeVarying,signalUpdateRate,parameters)
 % Start the simulation.
 t = min(T_array);   % initial time of simulation.
 x = x0;
@@ -14,16 +14,31 @@ if isTimeVarying
 else
     jt=0;
 end
-            
+
+isAFun = isa(W{1}, 'function_handle');
+    
 while t<max(T_array)
 
     %% Choose time of reaction
-    for i=length(W):-1:1
-        props(i+jt) = W{i}(x,t);     % evaluate the propensity functions at the current state.
+    if ~isAFun
+        %% Command Line Code Approach
+        WT = W{1}.hybridFactorVector(t,parameters);
+        for i=length(W):-1:1
+            if ~W{i}.isTimeDependent||W{i}.isFactorizable
+                props(i+jt) = WT(i)*W{i}.stateDependentFactor(x,parameters);     % evaluate the propensity functions at the current state.
+            else
+                props(i+jt) = W{i}.jointDependentFactor(t,x,parameters);     % evaluate the propensity functions at the current state.
+            end
+        end
+    else
+        %% GUI approach
+        for i=length(W):-1:1
+            props(i+jt) = W{i}(x,t);     % evaluate the propensity functions at the current state.
+        end
     end
     w0 = sum(props);  % sum the propensity functions (inverse of ave. waiting time).
     tau = -1/w0*log(rand); % The time until the next reaction.
-   
+
     %% update time
     t = t+tau;  % The time of the next reaction.
     

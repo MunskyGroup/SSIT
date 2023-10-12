@@ -1,14 +1,8 @@
-classdef ssitTests < matlab.unittest.TestCase
+classdef poissonTest < matlab.unittest.TestCase
     properties
         Poiss
         PoissSolution
         PoissODE
-        TvPoiss
-        TvPoissSolution
-        PoissTVODE
-        TwoDPoiss
-        TwoDPoissSolution
-        TwoDPoissODE
     end
 
     methods (TestClassSetup)
@@ -38,41 +32,6 @@ classdef ssitTests < matlab.unittest.TestCase
             testCase1.PoissODE = testCase1.Poiss;
             testCase1.PoissODE.solutionScheme = 'ode';
             testCase1.PoissODE = testCase1.PoissODE.formPropensitiesGeneral('PoissODE');  
-
-            %% Test Case 2 - Poisson model with time-varying production
-            testCase1.TvPoiss = testCase1.Poiss;
-            testCase1.TvPoiss.propensitiesGeneral = []; % Processed propensity functions for use in solvers
-            testCase1.TvPoiss.propensityFunctions = {'kr*Ig';'gr*rna'};
-            testCase1.TvPoiss.inputExpressions = {'Ig','t>1'};
-            testCase1.TvPoiss = testCase1.TvPoiss.formPropensitiesGeneral('PoissTV');
-
-            [testCase1.TvPoissSolution,testCase1.TvPoiss.fspOptions.bounds] = testCase1.TvPoiss.solve;
-            tic
-            [testCase1.TvPoissSolution,testCase1.TvPoiss.fspOptions.bounds] = testCase1.TvPoiss.solve(testCase1.TvPoissSolution.stateSpace);
-            testCase1.TvPoissSolution.time = toc;
-            %% ODE model for TV Poisson process
-            testCase1.PoissTVODE = testCase1.TvPoiss;
-            testCase1.PoissTVODE.solutionScheme = 'ode';
-            testCase1.PoissTVODE = testCase1.PoissTVODE.formPropensitiesGeneral('PoissTVODE');  
-
-            %% Test Case 3 - 2 Species Poisson Model
-            testCase1.TwoDPoiss = SSIT;
-            testCase1.TwoDPoiss.species = {'rna1','rna2'};
-            testCase1.TwoDPoiss.initialCondition = [0;0];
-            testCase1.TwoDPoiss.propensityFunctions = {'kr1';'gr1*rna1';'kr2';'gr2*rna2'};
-            testCase1.TwoDPoiss.stoichiometry = [1,-1,0,0;0,0,1,-1];
-            testCase1.TwoDPoiss.parameters = ({'kr1',10;'gr1',1;'kr2',5;'gr2',1});
-            testCase1.TwoDPoiss.tSpan = linspace(0,2,21);
-            testCase1.TwoDPoiss = testCase1.TwoDPoiss.formPropensitiesGeneral('TwoPoiss');
-
-            [testCase1.TwoDPoissSolution,testCase1.TwoDPoiss.fspOptions.bounds] = testCase1.TwoDPoiss.solve;
-            tic
-            [testCase1.TwoDPoissSolution,testCase1.TwoDPoiss.fspOptions.bounds] = testCase1.TwoDPoiss.solve(testCase1.TwoDPoissSolution.stateSpace);
-            testCase1.TwoDPoissSolution.time = toc;
-            %% ODE model for Two Poisson process
-            testCase1.TwoDPoissODE = testCase1.TwoDPoiss;
-            testCase1.TwoDPoissODE.solutionScheme = 'ode';
-            testCase1.TwoDPoissODE = testCase1.TwoDPoissODE.formPropensitiesGeneral('TwoDPoissODE');  
 
          end  
     end
@@ -127,110 +86,6 @@ classdef ssitTests < matlab.unittest.TestCase
                 'Possion Solution Time is Slow');
         end
 
-        function TimeVaryingPoissonMeansSuccess(testCase)
-            % In this test, we check that the 1D Time Varying Poisson model
-            % generates a solution with the correct mean versus time.
-            t = testCase.TvPoiss.tSpan;
-            tp = max(0,t-1);
-            
-            mn = testCase.TvPoiss.parameters{1,2}/testCase.TvPoiss.parameters{2,2}*...
-                (1-exp(-testCase.TvPoiss.parameters{2,2}*tp));
-            
-            fspSoln = testCase.TvPoissSolution.fsp;
-            fspMn = NaN*mn;
-            for i = 1:length(fspSoln)
-                n = size(testCase.TvPoissSolution.fsp{i}.p.data,1);
-                fspMn(i) = [0:n-1]*double(testCase.TvPoissSolution.fsp{i}.p.data);
-            end
-
-            diff = abs(fspMn-mn);
-            relDiff = sum(diff(mn>0)./mn(mn>0))/length(fspSoln);
-
-            testCase.verifyEqual(relDiff<0.01, true, ...
-                'Solution Mean is not within 1% Tolerance');
-        end
-
-        function TimeVaryingPoissonSpeedSuccess(testCase)
-            % In this test, we check that the Time Varying 1D Poisson model
-            % is solved in a reasonable amount of time.
-            disp(['TV Poiss time = ',num2str(testCase.TvPoissSolution.time)]);
-            testCase.verifyEqual(testCase.TvPoissSolution.time<0.3, true, ...
-                'Time Varying Possion Solution Time is Slow');
-        end
-        
-        function TwoDPoissMeansSuccess(testCase)
-            % In this test, we check that the 2D Poisson model generates a
-            % solution with the correct means versus time.
-            t = testCase.TwoDPoiss.tSpan;
-            mn1 = testCase.TwoDPoiss.parameters{1,2}/testCase.TwoDPoiss.parameters{2,2}*...
-                (1-exp(-testCase.TwoDPoiss.parameters{2,2}*t));
-            mn2 = testCase.TwoDPoiss.parameters{3,2}/testCase.TwoDPoiss.parameters{4,2}*...
-                (1-exp(-testCase.TwoDPoiss.parameters{4,2}*t));
-            
-            fspSoln = testCase.TwoDPoissSolution.fsp;
-            fspMn1 = NaN*mn1;
-            fspMn2 = NaN*mn2;
-            for i = 1:length(fspMn1)
-                sz = size(testCase.TwoDPoissSolution.fsp{i}.p.data);                
-                fspMn1(i) = [0:sz(1)-1]*double(testCase.TwoDPoissSolution.fsp{i}.p.sumOver(2).data);
-                fspMn2(i) = [0:sz(2)-1]*double(testCase.TwoDPoissSolution.fsp{i}.p.sumOver(1).data);
-            end
-
-            diff1 = abs(fspMn1-mn1);
-            diff2 = abs(fspMn2-mn2);
-
-            relDiff1 = sum(diff1(diff1>0)./mn1(diff1>0))/length(fspSoln);
-            relDiff2 = sum(diff2(diff2>0)./mn2(diff2>0))/length(fspSoln);
-
-            testCase.verifyEqual(max(relDiff1,relDiff2)<0.01, true, ...
-                'Two D Poiosson Solution Mean is not within 1% Tolerance');
-        end
-
-        function TwoDPoissonSpeedSuccess(testCase)
-            % In this test, we check that the 2D Poisson model is solved in
-            % a reasonable amount of time.
-            disp(['2D Poiss time = ',num2str(testCase.TwoDPoissSolution.time)]);
-            testCase.verifyEqual(testCase.TwoDPoissSolution.time<0.3, true, ...
-                'TwoD Possion Solution Time is Slow');
-        end
-
-        function HybridModel(testCase)
-            % In this test, we check that the code correctly solves the
-            % hybrid 2D Poisson Model, where the first species is solved
-            % using ODE model and the second species is solved using the
-            % discrete stochastic analysis.
-
-            HybridModel = testCase.TwoDPoiss;
-            HybridModel.useHybrid = true;
-            HybridModel.hybridOptions.upstreamODEs = {'rna1'};
-            HybridModel = HybridModel.formPropensitiesGeneral('Hybrid');
-            [hybSoln, HybridModel.fspOptions.bounds] = HybridModel.solve;
-
-            t = HybridModel.tSpan;
-            mn1 = HybridModel.parameters{1,2}/HybridModel.parameters{2,2}*...
-                (1-exp(-HybridModel.parameters{2,2}*t));
-            mn2 = HybridModel.parameters{3,2}/HybridModel.parameters{4,2}*...
-                (1-exp(-HybridModel.parameters{4,2}*t));
-            
-            fspSoln = hybSoln.fsp;
-            fspMn1 = NaN*mn1;
-            fspMn2 = NaN*mn2;
-            for i = 1:length(fspMn1)
-                sz = size(fspSoln{i}.p.data,1);                
-                fspMn2(i) = [0:sz-1]*double(fspSoln{i}.p.data);
-                fspMn1(i) = fspSoln{i}.upstreamODEs;
-            end
-
-            diff1 = abs(fspMn1-mn1);
-            diff2 = abs(fspMn2-mn2);
-
-            relDiff1 = sum(diff1(diff1>0)./mn1(diff1>0))/length(fspSoln);
-            relDiff2 = sum(diff2(diff2>0)./mn2(diff2>0))/length(fspSoln);
-
-            testCase.verifyEqual(max(relDiff1,relDiff2)<0.01, true, ...
-                'Hybrid Poisson Solution Mean is not within 1% Tolerance');
-        end
-
         function EscapeTimeCalculation(testCase)
             % In this test, we check that the code correctly calcuates the
             % escape times until N births occur in the pure birth model.
@@ -265,15 +120,6 @@ classdef ssitTests < matlab.unittest.TestCase
            
         end
 
-        function Plotting(testCase)
-            % In this test, we check that the code successfully generates
-            % fogures for the solutions of the 2D Poisson Model. If
-            % successful, four figures should have been generated.
-            testCase.TwoDPoiss.makePlot(testCase.TwoDPoissSolution,'meansAndDevs',[],[],1);
-            testCase.TwoDPoiss.makePlot(testCase.TwoDPoissSolution,'marginals',[3:3:21],[],[2,3]);
-            testCase.TwoDPoiss.makePlot(testCase.TwoDPoissSolution,'joints',[3:3:21],[],4);
-        end
-
         function FspDataGeneration(testCase)
             % In this test, we check that the code generates and saves data
             % generated using the Poisson model.
@@ -290,6 +136,7 @@ classdef ssitTests < matlab.unittest.TestCase
             % In this test, we check that the code generates and saves data
             % generated using the Poisson model.
             delete 'testDataSSA.csv'
+            testCase.Poiss.ssaOptions.useParalel = true;
             testCase.Poiss.ssaOptions.nSimsPerExpt = 1000;
             testCase.Poiss.ssaOptions.Nexp = 1;
             testCase.Poiss.solutionScheme = 'SSA';
@@ -311,7 +158,6 @@ classdef ssitTests < matlab.unittest.TestCase
             mn = testCase.Poiss.parameters{1,2}/testCase.Poiss.parameters{2,2}*...
                 (1-exp(-testCase.Poiss.parameters{2,2}*t));
  
-
             diff = abs(ssaMn-mn');
             relDiff = sum(diff(diff>0)./mn(diff>0))/length(ssaMn);
 
@@ -419,42 +265,6 @@ classdef ssitTests < matlab.unittest.TestCase
 
         end
 
-        function ODEsolutionTV(testCase)
-            % In this test, we check that the ODE Solution matches the
-            % exact solution for the 1D Time Varying Poisson model and the
-            % 2D Poisson Model.
-            t = testCase.PoissTVODE.tSpan;
-            tp = max(0,t-1);
-            
-            mn = testCase.PoissTVODE.parameters{1,2}/testCase.PoissTVODE.parameters{2,2}*...
-                (1-exp(-testCase.PoissTVODE.parameters{2,2}*tp));
-            
-            Model = testCase.PoissTVODE;
-            odeSoln = Model.solve;
-
-            diff = abs(odeSoln.ode-mn');
-            relDiff = sum(diff(mn>0)./mn(mn>0)')/length(odeSoln.ode);
-
-            % Compare to 2D Poisson starting at SS.
-
-            mn1 = testCase.TwoDPoissODE.parameters{1,2}/testCase.TwoDPoissODE.parameters{2,2};
-            mn2 = testCase.TwoDPoissODE.parameters{3,2}/testCase.TwoDPoissODE.parameters{4,2};
-            
-            Model = testCase.TwoDPoissODE;
-            Model.fspOptions.initApproxSS = true;
-            odeSoln = Model.solve;
-
-            diff1 = abs(odeSoln.ode(:,1)-mn1);
-            diff2 = abs(odeSoln.ode(:,2)-mn2);
-
-            relDiff1 = sum(diff1(diff1>0)./mn1)/length(diff1);
-            relDiff2 = sum(diff2(diff2>0)./mn2)/length(diff2);
-
-            testCase.verifyEqual(max([relDiff,relDiff1,relDiff2])<0.001, true, ...
-                'ODE Solution is not within 1% Tolerance');
-            
-        end
-   
         function ComputeODELikelihood(testCase)
             % In this test we compare the computed ODE approximation for
             % the log-likelihood to the exact solution for the Poisson Model:

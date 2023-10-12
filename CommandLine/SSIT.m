@@ -657,7 +657,7 @@ classdef SSIT
                     Solution.T_array = obj.tSpan;
                     Nt = length(Solution.T_array);
                     nSims = obj.ssaOptions.Nexp*obj.ssaOptions.nSimsPerExpt*Nt;
-                    W = obj.propensities;
+                    W = obj.propensitiesGeneral;
                     if obj.ssaOptions.useParalel
                         trajs = zeros(length(obj.species),...
                             length(obj.tSpan),nSims);% Creates an empty Trajectories matrix from the size of the time array and number of simulations
@@ -670,7 +670,8 @@ classdef SSIT
                                 W,...
                                 obj.tSpan,...
                                 obj.ssaOptions.useTimeVar,...
-                                obj.ssaOptions.signalUpdateRate)
+                                obj.ssaOptions.signalUpdateRate,...
+                                [obj.parameters{:,2}]');
                         end
                         Solution.trajs = trajs;
                     else
@@ -682,7 +683,8 @@ classdef SSIT
                                 W,...
                                 obj.tSpan,...
                                 obj.ssaOptions.useTimeVar,...
-                                obj.ssaOptions.signalUpdateRate);
+                                obj.ssaOptions.signalUpdateRate,...
+                                [obj.parameters{:,2}]');
                         end
                     end
                     disp([num2str(nSims),' SSA Runs Completed'])
@@ -833,6 +835,10 @@ classdef SSIT
             % Arguments:
             %   sensSoln - (optional) previously compute FSP Sensitivity.
             %              Automatically computed if not provided.
+            %   scale - ('lin'(default) or 'log') Choice of FIM based on
+            %            linear parameters or their natural logarithm
+            %   MHSamples - (optional) set of parameter sets at which to calculate
+            %           the FIM.
             % Outputs:
             %   fimResults - FIM at each time point in obj.tSpan
             %   sensSoln - FSP Sensitivity.
@@ -920,27 +926,45 @@ classdef SSIT
 
         function [fimTotal,mleCovEstimate,fimMetrics] = evaluateExperiment(obj,...
                 fimResults,cellCounts)
-            fimTotal = 0*fimResults{1};
-            Np = size(fimTotal,1);
-            for i=1:length(cellCounts)
-                fimTotal = fimTotal + cellCounts(i)*fimResults{i};
+            % This function evaluates the provided experiment design (in
+            % "cellCounts" and produces an array of FIMs (one for each
+            % parameter set.
+            arguments
+                obj
+                fimResults
+                cellCounts
             end
+            Ns = size(fimResults,2);
+            Nt = size(fimResults,1);
+            Np = size(fimResults{1,1},1);
+            fimTotal = cell(1,Ns);
+            mleCovEstimate = cell(1,Ns);
 
-            if nargout>=2
-                % Estimate MLE covariance
-                if rank(fimTotal)<Np
-                    disp(['FIM has rank ',num2str(rank(fimTotal)),' and is not invertable for this experiment design'])
-                    mleCovEstimate = NaN;
-                else
-                    mleCovEstimate = fimTotal^-1;
+            for is=1:Ns
+                fimTotal{is} = 0*fimResults{1,is};
+
+                for it=1:Nt
+                    fimTotal{is} = fimTotal{is} + cellCounts(it)*fimResults{it,is};
+                end
+
+                if nargout>=2
+                    % Estimate MLE covariance
+                    if rank(fimTotal{is})<Np
+                        disp(['FIM has rank ',num2str(rank(fimTotal{is})),' and is not invertable for this experiment design'])
+                        mleCovEstimate{1,is} = NaN*ones(Np);
+                    else
+                        mleCovEstimate{1,is} = fimTotal{is}^-1;
+                    end
                 end
             end
 
             if nargout>=3
-                % Compute FIM metrics.
-                fimMetrics.det = det(fimTotal);
-                fimMetrics.trace = trace(fimTotal);
-                fimMetrics.minEigVal = min(eig(fimTotal));
+                for is = Ns:-1:1
+                    % Compute FIM metrics.
+                    fimMetrics.det(1,is) = det(fimTotal{is});
+                    fimMetrics.trace(1,is) = trace(fimTotal{is});
+                    fimMetrics.minEigVal(1,is) = min(eig(fimTotal{is}));
+                end
             end
         end
 
@@ -1670,7 +1694,7 @@ classdef SSIT
                         end
                         FIM = TMP.evaluateExperiment(fimResults,TMP.dataSet.nCells);
 
-                        FIMfree = FIM(obj.fittingOptions.modelVarsToFit,obj.fittingOptions.modelVarsToFit);
+                        FIMfree = FIM{1}(obj.fittingOptions.modelVarsToFit,obj.fittingOptions.modelVarsToFit);
 
                         if allFitOptions.logForm&&min(eig(FIMfree))<1
                             disp('Warning -- FIM has one or more small eigenvalues.  Reducing proposal width to 10x in those directions. MH Convergence may be slow.')
