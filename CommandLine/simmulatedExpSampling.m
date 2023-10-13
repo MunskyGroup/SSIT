@@ -39,8 +39,8 @@ Model.parameters = ({'koff',0.14;'kon',0.01;'kr',1;'gr',0.01;...
 Model.fspOptions.initApproxSS = true;
 
 tpt_array = [0 10 20 30 40 50 60 75 90 120 150 180];
-Model.tSpan = tpt_array; % Define the time points
-
+% Model.tSpan = tpt_array; % Define the time points
+ Model.tSpan = timeMatrix;
 %% Solve the model using the FSP
 Model.fittingOptions.modelVarsToFit = 1:8; % Picking parameters 1-8 for fitting
 
@@ -54,7 +54,7 @@ Model.fittingOptions.logPrior = @(p)-(log10(p(:))-muLog10Prior').^2./(2*sigLog10
 
 Model = Model.loadData(csvFile,{'x2','RNA_nuc'}); % Load experimental data set
 
-for i=1
+for i=1:3
     Model.solutionScheme = 'FSP';
     Model.fspOptions.fspTol = 1e-4;
     Model.fspOptions.verbose = 0;
@@ -70,7 +70,6 @@ for i=1
       [Model.parameters{Model.fittingOptions.modelVarsToFit,2}],...
       fitOptions));
 end
-Model.tSpan
 Model.makeFitPlot
 %% Metropolis Hastings to Quantify Parameter Uncertainty
 Model.fittingOptions.modelVarsToFit = 1:4; % Picking parameters 1-4 for fitting
@@ -80,7 +79,7 @@ sigLog10Prior = [2 2 1 1];
 muLog10Prior = muLog10Prior(Model.fittingOptions.modelVarsToFit);
 sigLog10Prior = sigLog10Prior(Model.fittingOptions.modelVarsToFit);
 Model.fittingOptions.logPrior = @(p)-(log10(p(:))-muLog10Prior').^2./(2*sigLog10Prior'.^2);
-Model.fittingOptions.logPrior = []; % Remove prior before fitting
+% Model.fittingOptions.logPrior = []; % Remove prior before fitting
 
 allFitOptions.CovFIMscale = 0.1;% make smaller for higher acceptance rate
 MHOptions = struct('numberOfSamples',5000,'burnin',100,'thin',1,...
@@ -88,15 +87,15 @@ MHOptions = struct('numberOfSamples',5000,'burnin',100,'thin',1,...
 [bestParsFound,~,mhResults] = Model.maximizeLikelihood([Model.parameters{Model.fittingOptions.modelVarsToFit,2}]',...
   MHOptions,'MetropolisHastings');
 Model.parameters(Model.fittingOptions.modelVarsToFit,2) = num2cell(bestParsFound);
-Model.tSpan
 %% Pick Samples
+Model.tSpan = tpt_array; % Define the time points
 mhSamplePar = exp(mhResults.mhSamples);
 pickN = 20; % Number of samples to pick
 halfStack = length(mhSamplePar(:,1))/2;
 k1 = randperm(halfStack,pickN);
 k2 = halfStack + k1; % Picks random samples from second half of stack
 par_pick = mhSamplePar(k2,:);
-fims_sim = zeros(pickN,length(tpt_array,Model.parameters),length(Model.parameters));
+fims_sim = zeros(pickN,length(tpt_array),length(Model.parameters),length(Model.parameters));
 
 for i=1:pickN
     ModelSamplePar = Model;
@@ -104,40 +103,50 @@ for i=1:pickN
     ModelSamplePar.parameters = ({'koff',par_pick(i,1);'kon',par_pick(i,2);'kr',par_pick(i,3);'gr',par_pick(i,4);...
                    'kcn0',Model.parameters{5,2};'kcn1',Model.parameters{6,2};'knc',Model.parameters{7,2};'r1',Model.parameters{8,2}});
 
-%     ModelSamplePar.tSpan = [0,3,6,...]
     ModelSamplePar.sensOptions.solutionMethod = 'finiteDifference';
     ModelSamplePar.solutionScheme = 'fspSens'; % Choosing sensitivity solution method
     ModelSamplePar.fspOptions.fspTol = 1e-6;
     [sensSoln,ModelSamplePar.fspOptions.bounds] = ModelSamplePar.solve;
 
-    SGRS_Model.pdoOptions.unobservedSpecies = {'x1'}; % PDO applied for the case where the Gene state is not observed
+    ModelSamplePar.pdoOptions.unobservedSpecies = {'x1'}; % PDO applied for the case where the Gene state is not observed
     
     % FIM calculation taking into account the number of cells measured at each time point
-    fims_sim(i,:,:,:) = Model.computeFIM(sensSoln.sens);
-%     FIM_sim(i,:,:) = Model.evaluateExperiment(fims_sim(i,:,:,:),Model.dataSet.nCells);
+    fims_time = ModelSamplePar.computeFIM(sensSoln.sens);
+    for j = 1:length(tpt_array)
+        fims_sim(i,j,:,:) = fims_time{j};
+    end
 end
 
-fim_average = squeeze(mean(fims_sim,1));
-
-
-
-%% Average FIM of Samples
-FIM_Sum = zeros(length(Model.parameters(:,1)),length(Model.parameters(:,1)));
-for i = 1:length(FIM_sim(:,:,1))
-    FIM_Sum = FIM_Sum + squeeze(FIM_sim(i,:,:))^(-1);
+%% det(FIM) of each sample
+for n = 1:pickN
+    for m = 1:length(tpt_array)
+        fimSample(n,m) = det(squeeze(fims_sim(n,m,:,:)));
+    end
 end
-FIM_inv_avg = FIM_Sum/length(FIM_sim(:,:,1));
-COV = det(FIM_inv_avg);
 
-%% Suggested New Measurement time
-% addNewTime = [10:10:180];
-% for i = 1:length(addNewTime)
-%     newTimeMatrix = timeMatrix;
-%     newTimeMatrix = [newTimeMatrix, addNewTime(i)];
-%     newTimeMatrix = sort(newTimeMatrix);
-% 
-%     dataFileName =  'DUSP1_3hr_Dex_100nM_total.csv'; 
-%     [simData,csvFile2] = sampleExperimentSim(dataFileName,newTimeMatrix,NCells);
-%     Model.tSpan = newTimeMatrix;
-%     Model.loadData(csvFile2,{'x2','RNA_nuc'})
-% end
+figure()
+time=[];
+fimPlot=[];
+
+for z = 1:pickN
+    time = [time tpt_array];
+    fimPlot = [fimPlot fimSample(z,:)]
+end
+
+plot(time,fimPlot,'--b',tpt_array,mean(fimSample,1),'k','LineWidth',2)
+legend('Samples','Mean')
+xlabel('time [min]')
+ylabel('|FIM|')
+
+%% Plot FIM with standard Deviation
+std_dev = std(fimSample,1);
+curve1 = mean(fimSample,1) + std_dev;
+curve2 = mean(fimSample,1) - std_dev;
+x2 = [tpt_array, fliplr(tpt_array)];
+inBetween = [curve1, fliplr(curve2)];
+figure()
+fill(x2, inBetween, 'g');
+hold on;
+plot(tpt_array,mean(fimSample,1),'r','LineWidth',3)
+legend('Standard Dev','Average |FIM|')
+hold off
