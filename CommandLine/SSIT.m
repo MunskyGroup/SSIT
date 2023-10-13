@@ -968,7 +968,7 @@ classdef SSIT
             end
         end
 
-        function [Nc] = optimizeCellCounts(obj,fims,nCellsTotal,FIMMetric,Nc)
+        function [NcDNewDesign] = optimizeCellCounts(obj,fims,nCellsTotalNew,FIMMetric,Nc,NcFixed)
             % This function optimizes the number of cells per time point
             % according to the user-provide metric. 
             % 
@@ -979,7 +979,7 @@ classdef SSIT
             % array containing the FIM for each combination of Nt time
             % points and Ns different parameter sets.
             %
-            % 'nCellsTotal' is the total number of cells the user wishes to
+            % 'nCellsTotalNew' is the total number of cells the user wishes to
             % measure, spead out among the Nt time points.
             % 
             % 'FIMmetric' is the type of optimization that the user
@@ -999,6 +999,10 @@ classdef SSIT
             %
             % 'Nc' is an optimal guess for the optimal experiment design.
             %
+            % 'NcFixed' is a minimal number of cells to measure at each
+            %      time point.  This is useful for subsequent experiment
+            %      design where you already have measured cells in the
+            %
             % OUTPUTS:
             % 'Nc' is the optimized experiment design (number of cells to
             % measure at each point in time.
@@ -1006,9 +1010,10 @@ classdef SSIT
             arguments
                 obj
                 fims
-                nCellsTotal
+                nCellsTotalNew
                 FIMMetric = 'Smallest Eigenvalue';
                 Nc = [];
+                NcFixed = [];
             end
             switch FIMMetric
                 case 'Determinant'
@@ -1033,16 +1038,22 @@ classdef SSIT
             NT = size(fims,1);
             NS = size(fims,2);
 
+            if isempty(NcFixed)
+                NcFixed = zeros(1,NT);
+            end
+            
             if isempty(Nc)
-                Nc = zeros(1,NT);
-                Nc(1)=nCellsTotal;
+                Nc = NcFixed;
+                Nc(1)=Nc(1)+nCellsTotalNew;
+            else
+                Nc = NcFixed+Nc;
             end
 
             Converged = 0;
             while Converged==0
                 Converged = 1;
                 for i = 1:NT
-                    while Nc(i)>0
+                    while Nc(i)>NcFixed(i)
                         Ncp = Nc;
                         Ncp(i) = Ncp(i)-1;
                         k = SSIT.findBestMove(fims,Ncp,met);
@@ -1055,6 +1066,7 @@ classdef SSIT
                     end
                 end
             end
+            NcDNewDesign = Nc - NcFixed;
         end
 
         %% Data Loading and Fitting

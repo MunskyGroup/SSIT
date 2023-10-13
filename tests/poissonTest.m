@@ -362,8 +362,15 @@ classdef poissonTest < matlab.unittest.TestCase
             % Find optimal experiment design given parameters sets
             NcOptExperiment = Model.optimizeCellCounts(fimResults,sum(Nc),'Determinant');
             FIMOptExpt = Model.totalFim(fimResults,NcOptExperiment);
-            Model.plotMHResults(MHResults,[FIM,FIMOptExpt])
-            
+            Model.plotMHResults(MHResults,[FIM,FIMOptExpt])         
+
+            % Find optimal experiment design given parameters sets but
+            % where there is a base of 10 cells at every time point.
+            NcBase = 10*ones(size(NcOptExperiment));
+            NcOptExperimentBase = Model.optimizeCellCounts(fimResults,sum(Nc),'Determinant',[],NcBase);
+            FIMOptExptBase = Model.totalFim(fimResults,NcOptExperimentBase+NcBase);
+            Model.plotMHResults(MHResults,[FIM,FIMOptExpt,FIMOptExptBase])
+
         end  
     end
 end
