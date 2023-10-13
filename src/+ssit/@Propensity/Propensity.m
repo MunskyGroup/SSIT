@@ -45,7 +45,7 @@ classdef Propensity
     %           ``y = f(t,v)`` where 'v' is the vector of the ODE species.
     %
     %   jointHybridFactor: function handle
-    %       if isFactorizable == false and useHybrid == true, this property 
+    %       if isFactorizable == false and useHybrid == true, this property
     %       must be set. It must be callable with the syntax
     %           ``Y = f(t, X, v)``
     %       where t is a scalar representing the time variable, and X a 2-D
@@ -63,10 +63,16 @@ classdef Propensity
         jointDependentFactor; % function handle to compute the time-and-state-dependent factor, this
         % is only used if the propensity is not isFactorizable.
         hybridFactor % function handle for factorized hybrid propensity functions.
+        hybridFactorVector  % function handle for all hybrid or t-dependent reactions
+        xFactorVector % function handle for all state-dependent reactions
         hybridJointFactor % function handle for joint hybrid propensity functions.
         originalString;
         parameters; % list of required model parameters
         ODEstoichVector=[]; % (column vec) the associated stoichiometry vector (for upstream ODEs)
+        anonymousT = false; % are time dependent functions anonymous?
+        anonymousX = true; % are state dependent functions anonymous?
+        DstateFactorDstate % function handle for jacobian with respect to the states.
+        DhybridFactorDodesVec % function handle for jacobian with respect to the upstream odes.
     end
 
     methods (Access = public)
@@ -77,11 +83,12 @@ classdef Propensity
             obj.isFactorizable = true;
         end
 
-        function y = evaluate(obj, t, x, upstreamSpecies)
+        function y = evaluate(obj, t, x, parameters, upstreamSpecies)
             arguments
                 obj
                 t
                 x
+                parameters
                 upstreamSpecies = [];
             end
             if (size(x, 1) ~= size(obj.stoichVector, 1))
@@ -91,51 +98,52 @@ classdef Propensity
                 y = obj.stateDependentFactor(x);
             else
                 if (obj.isFactorizable)
-                    y = obj.timeDependentFactor(t)*obj.stateDependentFactor(x);
+                    y = obj.timeDependentFactor(t)*obj.stateDependentFactor(x,parameters);
                 else
-%                     try
-                        if ~isempty(obj.jointDependentFactor)
-                            y = obj.jointDependentFactor(t, x);
-                        elseif ~isempty(obj.hybridFactor)
-                            y = obj.hybridFactor(t, x, upstreamSpecies);
-                        end
-%                     catch
-%                         f = uifigure;
-%                         X = uiconfirm(f, 'Differentiation is not possible for your current propensity functions. Please change to finite difference sensitivity, or try with pieceswise functions.', 'Non-Differentiable',...
-%                         'Options', {'Okay - Quit','Try with Piecewise Functions'},...
-%                         'DefaultOption','Okay - Quit');
-%                         close(f)
-%                         if strcmp(X,'Okay - Quit')
-%                             error('Sensitivity not analytically computable in current version. Please use Finite Difference');
-%                         end
-%                         disp('trying with piecewise funtions');
-%                         TMP = func2str(obj.jointDependentFactor);
-%                         TMP = strrep(TMP,'t','tt');
-%                         TMP = strrep(TMP,'omittnan','omitnan');                        
-%                         TMP = strrep(TMP,'x(1,:)','x1');
-%                         TMP = strrep(TMP,'x(2,:)','x2');
-%                         TMP = strrep(TMP,'x(3,:)','x3');
-%                         syms tt
-%                         syms x1 x2 x3 positive
-%                         eval(['Q=',TMP(8:end),';'])
-%                         switch size(x,1)-1
-%                             case 1
-%                                 y = eval(subs(Q,{tt,x1},{t*ones(1,size(x,2)),x(1,:)}));
-%                             case 2
-%                                 y = eval(subs(Q,{tt,x1,x2},{t*ones(1,size(x,2)),x(1,:),x(2,:)}));
-%                             case 3
-%                                 y = eval(subs(Q,{tt,x1,x2,x3},{t*ones(1,size(x,2)),x(1,:),x(2,:),x(3,:)}));
-%                         end
-%                     end
-                    
+                    %                     try
+                    if ~isempty(obj.jointDependentFactor)
+                        y = obj.jointDependentFactor(t, x, parameters);
+                    elseif ~isempty(obj.hybridFactor)
+                        y = obj.hybridFactor(t, x, parameters, upstreamSpecies);
+                    end
+                    %                     catch
+                    %                         f = uifigure;
+                    %                         X = uiconfirm(f, 'Differentiation is not possible for your current propensity functions. Please change to finite difference sensitivity, or try with pieceswise functions.', 'Non-Differentiable',...
+                    %                         'Options', {'Okay - Quit','Try with Piecewise Functions'},...
+                    %                         'DefaultOption','Okay - Quit');
+                    %                         close(f)
+                    %                         if strcmp(X,'Okay - Quit')
+                    %                             error('Sensitivity not analytically computable in current version. Please use Finite Difference');
+                    %                         end
+                    %                         disp('trying with piecewise funtions');
+                    %                         TMP = func2str(obj.jointDependentFactor);
+                    %                         TMP = strrep(TMP,'t','tt');
+                    %                         TMP = strrep(TMP,'omittnan','omitnan');
+                    %                         TMP = strrep(TMP,'x(1,:)','x1');
+                    %                         TMP = strrep(TMP,'x(2,:)','x2');
+                    %                         TMP = strrep(TMP,'x(3,:)','x3');
+                    %                         syms tt
+                    %                         syms x1 x2 x3 positive
+                    %                         eval(['Q=',TMP(8:end),';'])
+                    %                         switch size(x,1)-1
+                    %                             case 1
+                    %                                 y = eval(subs(Q,{tt,x1},{t*ones(1,size(x,2)),x(1,:)}));
+                    %                             case 2
+                    %                                 y = eval(subs(Q,{tt,x1,x2},{t*ones(1,size(x,2)),x(1,:),x(2,:)}));
+                    %                             case 3
+                    %                                 y = eval(subs(Q,{tt,x1,x2,x3},{t*ones(1,size(x,2)),x(1,:),x(2,:),x(3,:)}));
+                    %                         end
+                    %                     end
+
                 end
             end
         end
 
-        function y = evaluateStateFactor(obj, x, varNames)
+        function y = evaluateStateFactor(obj, x, parameters, varNames)
             arguments
                 obj
                 x
+                parameters
                 varNames=[];
             end
             if isempty(varNames)
@@ -144,35 +152,269 @@ classdef Propensity
             if (size(x, 1) ~= size(obj.stoichVector, 1))
                 error('Propensity.evalAt : input state dimension is not consistent with the stoichiometry vector in the object''s record');
             end
-            try
+            % try
+            if ~isempty(parameters)
+                y = obj.stateDependentFactor(x,parameters);
+            else
                 y = obj.stateDependentFactor(x);
-            catch
-                % This section was very inefficient.  I sped it up for one
-                % case, but need to check that that it keeps working for
-                % others.
-                TMP = func2str(obj.stateDependentFactor);
-                TMP = strrep(TMP,'t','tt');
-                for i=1:length(varNames)
-                    eval([varNames{i},'=x(i,:);']);
-                    TMP = strrep(TMP,['x(',num2str(i),',:)'],varNames{i});
-                end
-                eval(['y=',TMP(5:end),';'])
             end
-  
+            % catch
+            %     % This section was very inefficient.  I sped it up for one
+            %     % case, but need to check that that it keeps working for
+            %     % others.
+            %     TMP = func2str(obj.stateDependentFactor);
+            %     TMP = strrep(TMP,'t','tt');
+            %     for i=1:length(varNames)
+            %         eval([varNames{i},'=x(i,:);']);
+            %         TMP = strrep(TMP,['x(',num2str(i),',:)'],varNames{i});
+            %     end
+            %     eval(['y=',TMP(5:end),';'])
+            % end
+
         end
     end
     methods (Access = public, Static)
-        function obj = createFromSym(symbolicExpression, stoichVector, reactionIndex, nonXTpars, species, logicTerms)
+        %% function obj = createFromSym(symbolicExpression, stoichVector, reactionIndex, nonXTpars, species, logicTerms)
+        %     arguments
+        %         symbolicExpression
+        %         stoichVector
+        %         reactionIndex
+        %         nonXTpars = {};
+        %         species = {};
+        %         logicTerms = {};
+        %     end
+        % 
+        %     % Construct an instance of Propensity from a symbolic expression.
+        %     %
+        %     % Parameters
+        %     % ----------
+        %     %
+        %     %   symbolicExpression: sym
+        %     %       is a symbolic expression of the propensity.
+        %     %
+        %     %   stoichVector: column vector
+        %     %       is the column stoichiometry vector associated
+        %     %       with this propensity.
+        %     %
+        %     %   reactionIndex: integer
+        %     %       index of the reaction associated with this propensity.
+        %     %
+        %     %   nonXTpars: cell of strings
+        %     %       names of the model parameters (excluding the species
+        %     %       names)
+        %     %
+        %     %   species: cell of strings
+        %     %       names of the species.
+        %     %
+        %     % Returns
+        %     % -------
+        %     %
+        %     %   obj: Propensity
+        %     %       an instance of the Propensity class.
+        %     %
+        %     obj = ssit.Propensity(stoichVector, reactionIndex);
+        % 
+        %     % Now determine time-dependency
+        %     prop_vars = symvar(symbolicExpression);
+        %     str_tmp = string(prop_vars);
+        % 
+        %     if ~isempty(logicTerms)&&isfield(logicTerms,'logT')
+        %         obj.isTimeDependent = true;
+        %     else
+        %         for i = 1:length(str_tmp)
+        %             if (strcmp(str_tmp(i), "t"))&&~(strcmp(str_tmp(i), "@(t)1"))
+        %                 obj.isTimeDependent = true;
+        %                 break;
+        %             end
+        %         end
+        %     end
+        % 
+        %     TMP = string(prop_vars);
+        %     Jx = contains(TMP,species);
+        %     if sum(Jx)==0
+        %         % No x dependance
+        %         factors = [str2sym('1'),symbolicExpression];
+        %     elseif ~obj.isTimeDependent
+        %         syms(prop_vars);
+        %         factors = factor(symbolicExpression, prop_vars(Jx));
+        %         factors = [prod(factors(2:end)),factors(1)];
+        %     elseif (obj.isTimeDependent)
+        %         % Determine if the symbolicExpression is isFactorizable
+        %         syms(prop_vars);
+        % 
+        %         factors = factor(symbolicExpression, prop_vars(Jx));
+        %         factors = [prod(factors(2:end)),factors(1)];
+        % 
+        %         if (ismember(t, symvar(factors(1))))
+        %             obj.isFactorizable = false;
+        %         else
+        %             for i = 2:length(factors)
+        %                 fvars = symvar(factors(i));
+        %                 TMP = string(fvars);
+        %                 Jx = contains(TMP,species);
+        %                 if (sum(Jx) > 1)
+        %                     obj.isFactorizable = false;
+        %                     break;
+        %                 end
+        %             end
+        %         end
+        %     end
+        %     if (obj.isFactorizable)
+        %         % If the propensity is isFactorizable, collect the
+        %         % time-dependent and state-dependent function handles
+        % 
+        %         expr_t = prod(factors(2:end));
+        %         expr_x = factors(1);
+        %         % Convert these symbolic expressions to anonymous
+        %         % functions
+        %         timeDependentFactor = sym2propfun(expr_t, true, false, nonXTpars, species, [], logicTerms);
+        %         % stateDependentFactor = sym2propfun(expr_x, false, true, nonXTpars, species, [], logicTerms);
+        % 
+        %         tmp = num2cell(rand(size(nonXTpars)));
+        %         TmpTimeFactor =  @(t)timeDependentFactor(t,tmp{:});
+        %         if sign(TmpTimeFactor(0))==-1
+        %             obj.timeDependentFactor = sym2propfun(-expr_t, true, false, nonXTpars, species, varODEs, logicTerms);
+        %             obj.stateDependentFactor =  sym2propfun(-expr_x, false, true, nonXTpars, species, [], logicTerms);
+        %             % expr_t_vec(i) = -expr_t;
+        %         else
+        %             obj.timeDependentFactor = timeDependentFactor;
+        %             obj.stateDependentFactor =  sym2propfun(expr_x, false, true, nonXTpars, species, [], logicTerms);
+        %             % expr_t_vec(i) = expr_t;
+        %         end
+        % 
+        %     else
+        % 
+        %         % If it is not factorizable, collect everything into a
+        %         % single function handle
+        %         expr_tx = symbolicExpression;
+        %         % Convert to anonymous function
+        %         obj.jointDependentFactor = sym2propfun(expr_tx, true, true, nonXTpars, species, [], logicTerms);
+        %     end
+        % end
+        %% function obj = createAsHybrid(symbolicExpression, stoichVector, reactionIndex, nonXTpars, species, upstreamODEs, logicTerms)
+        %     arguments
+        %         symbolicExpression
+        %         stoichVector
+        %         reactionIndex
+        %         nonXTpars
+        %         species
+        %         upstreamODEs
+        %         logicTerms = {};
+        %     end
+        % 
+        %     % Construct an instance of Hybrid Propensity from a symbolic expression.
+        %     %
+        %     % Parameters
+        %     % ----------
+        %     %
+        %     %   symbolicExpression: sym
+        %     %       is a symbolic expression of the propensity.
+        %     %
+        %     %   stoichVector: column vector
+        %     %       is the column stoichiometry vector associated
+        %     %       with this propensity.
+        %     %
+        %     %   reactionIndex: integer
+        %     %       index of the reaction associated with this propensity.
+        %     %
+        %     %   nonXTpars: cell of strings
+        %     %       names of the model parameters (excluding the species
+        %     %       names)
+        %     %
+        %     %   species: cell of strings
+        %     %       names of the species.
+        %     %
+        %     %   upstreamODEs: cell of strings
+        %     %       names of the upstream species that are to be treated as
+        %     %       ODEs.
+        %     %
+        %     % Returns
+        %     % -------
+        %     %
+        %     %   obj: Propensity
+        %     %       an instance of the Propensity class.
+        %     %
+        % 
+        %     jStochastic = find(~contains(species,upstreamODEs));
+        %     jODE = find(contains(species,upstreamODEs));
+        %     obj = ssit.Propensity(stoichVector(jStochastic), reactionIndex);
+        %     obj.ODEstoichVector = stoichVector(jODE);
+        %     if max(abs(obj.stoichVector))~=0&&max(abs(obj.ODEstoichVector))~=0
+        %         warning(['Reaction ',num2str(reactionIndex),' changes both ODE and stochastic species. Removing effect on upstream species.'])
+        %         obj.ODEstoichVector = 0*obj.ODEstoichVector;
+        %     end
+        %     prop_vars = symvar(symbolicExpression);
+        % 
+        %     syms(prop_vars);
+        %     expr_tx = symbolicExpression;
+        % 
+        %     speciesStoch = setdiff(species,upstreamODEs,'stable');
+        %     % Convert to anonymous function
+        % 
+        %     TMP = string(prop_vars);
+        %     Jx = contains(TMP,speciesStoch);
+        %     if sum(Jx)==0
+        %         % No x dependance
+        %         factors = [str2sym('1'),symbolicExpression];
+        %     else
+        %         % Determine if the symbolicExpression is isFactorizable
+        %         factors = factor(symbolicExpression, prop_vars(Jx));
+        %         factors = [prod(factors(2:end)),factors(1)];
+        % 
+        %         syms t
+        %         syms(upstreamODEs)
+        % 
+        %         if (ismember(t, symvar(factors(1))))||max(ismember(upstreamODEs,symvar(factors(1))))
+        %             obj.isFactorizable = false;
+        %         end
+        %         for i = 2:length(factors)
+        %             fvars = symvar(factors(i));
+        %             TMP = string(fvars);
+        %             Jx = contains(TMP,speciesStoch);
+        %             if (sum(Jx) > 1)
+        %                 obj.isFactorizable = false;
+        %                 break;
+        %             end
+        %         end
+        %     end
+        % 
+        %     varODEs = sym('varODEs',[1,length(upstreamODEs)]);
+        %     if (obj.isFactorizable)
+        %         % If the propensity is isFactorizable, collect the
+        %         % time-dependent and state-dependent function handles
+        % 
+        %         expr_t = prod(factors(2:end));
+        %         expr_x = factors(1);
+        %         % Convert these symbolic expressions to anonymous
+        %         % functions
+        %         for i=1:length(upstreamODEs)
+        %             expr_t = subs(expr_t,upstreamODEs{i},varODEs(i));
+        %         end
+        %         obj.hybridFactor = sym2propfun(expr_t, true, false, nonXTpars, speciesStoch, varODEs, logicTerms);
+        %         obj.stateDependentFactor = sym2propfun(expr_x, false, true, nonXTpars, speciesStoch, [], logicTerms);
+        %         obj.isTimeDependent = true;
+        %     else
+        %         for i=1:length(upstreamODEs)
+        %             expr_tx = subs(expr_tx,upstreamODEs{i},varODEs(i));
+        %         end
+        %         obj.hybridJointFactor = sym2propfun(expr_tx, true, true, nonXTpars, speciesStoch, varODEs, logicTerms);
+        %         obj.isTimeDependent = true;
+        %     end
+        % 
+        % end
+        %%
+        function obj = createAsHybridVec(symbolicExpression, stoichMatrix, nonXTpars, species, upstreamODEs, logicTerms, prefixName)
             arguments
                 symbolicExpression
-                stoichVector
-                reactionIndex
-                nonXTpars = {};
-                species = {};
+                stoichMatrix
+                nonXTpars
+                species
+                upstreamODEs = {};
                 logicTerms = {};
+                prefixName = [];
             end
 
-            % Construct an instance of Propensity from a symbolic expression.
+            % Construct an vector of Hybrid Propensity from a symbolic expression.
             %
             % Parameters
             % ----------
@@ -194,192 +436,237 @@ classdef Propensity
             %   species: cell of strings
             %       names of the species.
             %
+            %   upstreamODEs: cell of strings
+            %       names of the upstream species that are to be treated as
+            %       ODEs.
+            %
             % Returns
             % -------
             %
             %   obj: Propensity
             %       an instance of the Propensity class.
             %
-            obj = ssit.Propensity(stoichVector, reactionIndex);
 
-            % Now determine time-dependency
-            prop_vars = symvar(symbolicExpression);
-            str_tmp = string(prop_vars);
-            
-            if ~isempty(logicTerms)&&isfield(logicTerms,'logT')
-                obj.isTimeDependent = true;
+            if ~isempty(upstreamODEs)
+                jStochastic = find(~contains(species,upstreamODEs));
+                jODE = find(contains(species,upstreamODEs));
+                timeFunName = 'hybridFactor';
+                jntFactorName = 'hybridJointFactor';
             else
-                for i = 1:length(str_tmp)
-                    if (strcmp(str_tmp(i), "t"))&&~(strcmp(str_tmp(i), "@(t)1"))
-                        obj.isTimeDependent = true;
-                        break;
+                jStochastic=[1:length(species)];
+                jODE = [];
+                timeFunName = 'timeDependentFactor';
+                jntFactorName = 'jointDependentFactor';
+            end
+            n_reactions = size(stoichMatrix,2);
+            speciesStoch = setdiff(species,upstreamODEs,'stable');
+            varODEs = sym('varODEs',[1,length(upstreamODEs)]);
+
+            % Delete previous propensity function m-files
+            if ~exist([pwd,'/tmpPropensityFunctions'],'dir')
+                mkdir([pwd,'/tmpPropensityFunctions'])
+            end
+            delete([pwd,'/tmpPropensityFunctions/',prefixName,'*']);
+            addpath([pwd,'/tmpPropensityFunctions/'],'-begin')
+
+            obj = cell(1,n_reactions);
+            expr_t_vec = sym('w',[n_reactions,1]);
+            expr_x_vec = sym('wx',[n_reactions,1]);
+            expr_dt_vec_dode = sym('wx',[n_reactions,length(jODE)]);
+
+            anyLogical = false;
+
+            for iRxn = 1:n_reactions
+
+                obj{iRxn} = ssit.Propensity(stoichMatrix(jStochastic,iRxn), iRxn);
+                obj{iRxn}.ODEstoichVector = stoichMatrix(jODE,iRxn);
+
+                if ~isempty(jODE)&&~isempty(obj{iRxn}.stoichVector)&&max(abs(obj{iRxn}.stoichVector))~=0&&max(abs(obj{iRxn}.ODEstoichVector))~=0
+                    warning(['Reaction ',num2str(iRxn),' changes both ODE and stochastic species. Removing effect on upstream species.'])
+                    obj{iRxn}.ODEstoichVector = 0*obj{iRxn}.ODEstoichVector;
+                end
+                prop_vars = symvar(symbolicExpression{iRxn});
+
+                syms(prop_vars,'real');
+                syms t real
+                expr_tx = symbolicExpression{iRxn};
+
+                % Convert to callable function
+                Jx = zeros(1,length(prop_vars),'logical'); % List of variables corrresponding to species
+                Jt = zeros(1,length(prop_vars),'logical'); % List of variables corrresponding to time
+                if ~isempty(speciesStoch)
+                    for j = 1:length(prop_vars)
+                        Jx(j) = max(strcmp(string(prop_vars(j)),speciesStoch));
+                        Jt(j) = max(strcmp(string(prop_vars(j)),'t'));
                     end
                 end
-            end
-
-            TMP = string(prop_vars);
-            Jx = contains(TMP,species);
-            if sum(Jx)==0
-                % No x dependance
-                factors = [str2sym('1'),symbolicExpression];
-            elseif ~obj.isTimeDependent
-                syms(prop_vars);
-                factors = factor(symbolicExpression, prop_vars(Jx));
-                factors = [prod(factors(2:end)),factors(1)];
-            elseif (obj.isTimeDependent)
-                % Determine if the symbolicExpression is isFactorizable
-                syms(prop_vars);
-
-                factors = factor(symbolicExpression, prop_vars(Jx));
-                factors = [prod(factors(2:end)),factors(1)];
-
-                if (ismember(t, symvar(factors(1))))
-                    obj.isFactorizable = false;
+                if sum(Jx)==0
+                    % No x dependance
+                    factors = [str2sym('1'),symbolicExpression{iRxn}];
+                elseif sum(Jt)==0
+                    % No t dependence
+                    factors = [symbolicExpression{iRxn},str2sym('1')];
                 else
-                    for i = 2:length(factors)
-                        fvars = symvar(factors(i));
-                        TMP = string(fvars);
-                        Jx = contains(TMP,species);
+                    % Determine if the symbolicExpression is isFactorizable
+                    factors = factor(symbolicExpression{iRxn}, prop_vars(Jx));
+                    factors = [prod(factors(2:end)),factors(1)];
+
+                    if ~isempty(upstreamODEs)
+                        syms(upstreamODEs,'positive')
+                    end
+
+                    if (ismember(t, symvar(factors(1))))||(~isempty(upstreamODEs)&&max(ismember(upstreamODEs,symvar(factors(1)))))
+                        obj.isFactorizable = false;
+                    end
+                    for i2 = 2:length(factors)
+                        fvars = symvar(factors(i2));
+                        % TMP = string(fvars);
+                        Jx = zeros(1,length(fvars),'logical');
+                        for j = 1:length(fvars)
+                            Jx(j) = max(strcmp(string(fvars(j)),speciesStoch));
+                        end
+                        % Jx = strcmp(TMP,speciesStoch);
                         if (sum(Jx) > 1)
-                            obj.isFactorizable = false;
+                            obj{iRxn}.isFactorizable = false;
                             break;
                         end
                     end
                 end
-            end
-            if (obj.isFactorizable)
-                % If the propensity is isFactorizable, collect the
-                % time-dependent and state-dependent function handles
+
 
                 expr_t = prod(factors(2:end));
                 expr_x = factors(1);
                 % Convert these symbolic expressions to anonymous
                 % functions
-                obj.timeDependentFactor = sym2propfun(expr_t, true, false, nonXTpars, species, [], logicTerms);
-                obj.stateDependentFactor = sym2propfun(expr_x, false, true, nonXTpars, species, [], logicTerms);
-            else
+                for i2=1:length(upstreamODEs)
+                    expr_t = subs(expr_t,upstreamODEs{i2},varODEs(i2));
+                end
 
-                % If it is not factorizable, collect everything into a
-                % single function handle
-                expr_tx = symbolicExpression;
-                % Convert to anonymous function
-                obj.jointDependentFactor = sym2propfun(expr_tx, true, true, nonXTpars, species, [], logicTerms);
-            end
-        end
+                if (~isempty(string(symvar(expr_x)))&&max(contains(string(symvar(expr_x)),'logT')))||...
+                        (~isempty(string(symvar(expr_t)))&&max(contains(string(symvar(expr_t)),'logX')))
+                    obj{iRxn}.isFactorizable = false;
+                    anyLogical = true;
+                end
 
-        function obj = createAsHybrid(symbolicExpression, stoichVector, reactionIndex, nonXTpars, species, upstreamODEs, logicTerms)
-            arguments
-                symbolicExpression
-                stoichVector
-                reactionIndex
-                nonXTpars
-                species
-                upstreamODEs
-                logicTerms = {};
-            end
+                if (obj{iRxn}.isFactorizable)
+                    % If the propensity is isFactorizable, collect the
+                    % time-dependent and state-dependent function handles
 
-        % Construct an instance of Hybrid Propensity from a symbolic expression.
-        %
-        % Parameters
-        % ----------
-        %
-        %   symbolicExpression: sym
-        %       is a symbolic expression of the propensity.
-        %
-        %   stoichVector: column vector
-        %       is the column stoichiometry vector associated
-        %       with this propensity.
-        %
-        %   reactionIndex: integer
-        %       index of the reaction associated with this propensity.
-        %
-        %   nonXTpars: cell of strings
-        %       names of the model parameters (excluding the species
-        %       names)
-        %
-        %   species: cell of strings
-        %       names of the species.
-        %
-        %   upstreamODEs: cell of strings
-        %       names of the upstream species that are to be treated as
-        %       ODEs.
-        %
-        % Returns
-        % -------
-        %
-        %   obj: Propensity
-        %       an instance of the Propensity class.
-        %
 
-        jStochastic = find(~contains(species,upstreamODEs));
-        jODE = find(contains(species,upstreamODEs));
-        obj = ssit.Propensity(stoichVector(jStochastic), reactionIndex);
-        obj.ODEstoichVector = stoichVector(jODE);
-        if max(abs(obj.stoichVector))~=0&&max(abs(obj.ODEstoichVector))~=0
-            warning(['Reaction ',num2str(reactionIndex),' changes both ODE and stochastic species. Removing effect on upstream species.'])
-            obj.ODEstoichVector = 0*obj.ODEstoichVector;
-        end
-        prop_vars = symvar(symbolicExpression);
+                    % The following commands will generate callable
+                    % functions to compute propensity functions.  If there
+                    % are no logical expressions, these are created as
+                    % m-files, and if there are logical commands, these
+                    % are created as much slower anonymous functions. this
+                    % will require keeping track since the variables need
+                    % to be sent individually to the anonymous functions.
+                    if ~isempty(logicTerms{iRxn})&&(isfield(logicTerms{iRxn},'logT')||isfield(logicTerms{iRxn},'logE'))
+                        obj{iRxn}.anonymousT = true;
+                        hybridFactor = sym2propfun(expr_t, true, false, nonXTpars(:,1), speciesStoch, varODEs, logicTerms(iRxn));
+                        anyLogical = true;
+                    % elseif sum(contains(string(symvar(expr_t)),'logX'))
+                    %     obj{iRxn}.anonymousT = true;
+                    %     obj{iRxn}.isFactorizable = false;
+                    %     hybridFactor = sym2propfun(expr_t, true, false, nonXTpars(:,1), speciesStoch, varODEs, logicTerms(iRxn));
+                    %     anyLogical = true;
+                    else
+                        obj{iRxn}.anonymousT = false;
+                        % hybridFactor = sym2mFun(expr_t, true, false, nonXTpars(:,1), speciesStoch, varODEs);
+                    end
+                    if ~isempty(logicTerms{iRxn})&&(isfield(logicTerms{iRxn},'logX')||isfield(logicTerms{iRxn},'logE'))
+                        obj{iRxn}.anonymousX = true;
+                        anyLogical = true;
+                    % elseif sum(contains(string(symvar(expr_x)),'logT'))
+                    %     obj{iRxn}.isFactorizable = false;
+                    %     obj{iRxn}.anonymousX = true;
+                    %     anyLogical = true;
+                    else
+                        obj{iRxn}.anonymousX = false;
+                    end
 
-        syms(prop_vars);
-        expr_tx = symbolicExpression;
+                    % Compute the time-varying factor.
+                    if ~isempty(logicTerms{iRxn})&&(isfield(logicTerms{iRxn},'logT')||isfield(logicTerms{iRxn},'logE'))
+                        if ~isempty(jODE)
+                            TmpHybridFactor = hybridFactor(rand,rand(size(nonXTpars(:,1))),rand(size(varODEs)));
+                        else
+                            TmpHybridFactor = hybridFactor(rand,rand(size(nonXTpars(:,1))));
+                        end
+                    else
+                        if ~isempty(jODE)
+                            obj{iRxn}.isTimeDependent = true;
+                            % TmpHybridFactor =  hybridFactor(rand,[nonXTpars{:,2}]',rand(1,length(upstreamODEs)));
+                            TmpHybridFactor = subs(expr_t,t,rand);
+                            TmpHybridFactor = subs(TmpHybridFactor,nonXTpars(:,1),rand(size(nonXTpars(:,2))));
+                            TmpHybridFactor = eval(subs(TmpHybridFactor,varODEs,rand(size(varODEs))));
+                        else
+                            TmpHybridFactor = subs(expr_t,t,rand);
+                            TmpHybridFactor = eval(subs(TmpHybridFactor,nonXTpars(:,1),rand(size(nonXTpars(:,2)))));
+                            % TmpHybridFactor =  hybridFactor(rand,[nonXTpars{:,2}]');
+                        end
+                    end
 
-        speciesStoch = setdiff(species,upstreamODEs,'stable');
-        % Convert to anonymous function
-       
-        TMP = string(prop_vars);
-        Jx = contains(TMP,speciesStoch);
-        if sum(Jx)==0
-            % No x dependance
-            factors = [str2sym('1'),symbolicExpression];
-        else 
-            % Determine if the symbolicExpression is isFactorizable
-            factors = factor(symbolicExpression, prop_vars(Jx));
-            factors = [prod(factors(2:end)),factors(1)];
-
-            syms t
-            syms(upstreamODEs)
-
-            if (ismember(t, symvar(factors(1))))||max(ismember(upstreamODEs,symvar(factors(1))))
-                obj.isFactorizable = false;
-            end
-            for i = 2:length(factors)
-                fvars = symvar(factors(i));
-                TMP = string(fvars);
-                Jx = contains(TMP,speciesStoch);
-                if (sum(Jx) > 1)
-                    obj.isFactorizable = false;
-                    break;
+                    % The time dependent signal must always be
+                    % non-negative, so we check the sign and multiple by -1
+                    % if necessary. 
+                    % First for the time varying factors.
+                    signHybridFactor = ((TmpHybridFactor>=0)-(TmpHybridFactor<0));
+                    if obj{iRxn}.anonymousT
+                        [obj{iRxn}.(timeFunName),expr_dt_vec_dodei] = ...
+                            sym2propfun(signHybridFactor*expr_t, true, false, nonXTpars(:,1), speciesStoch, varODEs, logicTerms(iRxn), true);
+                    else
+                        [~,expr_dt_vec_dodei] = ...
+                            sym2mFun(signHybridFactor*expr_t, true, false, nonXTpars(:,1), speciesStoch, varODEs, true, false, prefixName);
+                    end
+                    
+                    % Then for the state varying factors.
+                    if obj{iRxn}.anonymousX
+                        obj{iRxn}.stateDependentFactor =...
+                            sym2propfun(signHybridFactor*expr_x, false, true, nonXTpars(:,1), speciesStoch, [], logicTerms(iRxn));
+                    else
+                        obj{iRxn}.stateDependentFactor =...
+                            sym2mFun(signHybridFactor*expr_x, false, true, nonXTpars(:,1), speciesStoch, [], false, true, prefixName);
+                    end
+                    
+                    expr_t_vec(iRxn) = signHybridFactor*expr_t;
+                    expr_x_vec(iRxn) = signHybridFactor*expr_x;
+                    if ~isempty(expr_dt_vec_dode)&&exist('expr_dt_vec_dodei','var')
+                        expr_dt_vec_dode(iRxn,:) = signHybridFactor*expr_dt_vec_dodei;
+                    end
+                    if ismember(t,symvar(expr_t))||isfield(logicTerms{iRxn},'logT')&&~isempty(logicTerms{iRxn}.logT)
+                        obj{iRxn}.isTimeDependent = true;
+                    end
+                
+                else
+                    for i2=1:length(upstreamODEs)
+                        expr_tx = subs(expr_tx,upstreamODEs{i2},varODEs(i2));
+                    end
+                    obj{iRxn}.(jntFactorName) = sym2propfun(expr_tx, true, true, nonXTpars(:,1), speciesStoch, varODEs, logicTerms(iRxn));
+                    obj{iRxn}.isTimeDependent = true;
+                    expr_t_vec(iRxn) = sym(NaN);
+                    expr_x_vec(iRxn) = sym(NaN);
                 end
             end
-        end
-        
-        varODEs = sym('varODEs',[1,length(upstreamODEs)]);
-        if (obj.isFactorizable)
-            % If the propensity is isFactorizable, collect the
-            % time-dependent and state-dependent function handles
-
-            expr_t = prod(factors(2:end));
-            expr_x = factors(1);
-            % Convert these symbolic expressions to anonymous
-            % functions
-            for i=1:length(upstreamODEs)
-                expr_t = subs(expr_t,upstreamODEs{i},varODEs(i));
+            
+            % Create a vector function for the time varying part of the
+            % propensity functions so that these can be found all at once.
+            if anyLogical
+                hybridFactorVector = sym2propfun(expr_t_vec, true, false, nonXTpars(:,1), speciesStoch, varODEs, logicTerms);
+                xFactorVector = sym2propfun(expr_x_vec, false, true, nonXTpars(:,1), speciesStoch, varODEs, logicTerms);
+                if ~isempty(expr_dt_vec_dode)
+                    obj{1}.DhybridFactorDodesVec = sym2propfun(expr_dt_vec_dode, true, false, nonXTpars(:,1), speciesStoch, varODEs, logicTerms);
+                end
+            else
+                hybridFactorVector = sym2mFun(expr_t_vec, true, false, nonXTpars(:,1), speciesStoch, varODEs, false, true, prefixName);
+                xFactorVector = sym2mFun(expr_x_vec, false, true, nonXTpars(:,1), speciesStoch, varODEs, false, true, prefixName);
+                if ~isempty(expr_dt_vec_dode)
+                    obj{1}.DhybridFactorDodesVec = sym2mFun(expr_dt_vec_dode, true, false, nonXTpars(:,1), speciesStoch, varODEs, false, true, prefixName);
+                end
             end
-            obj.hybridFactor = sym2propfun(expr_t, true, false, nonXTpars, speciesStoch, varODEs, logicTerms);
-            obj.stateDependentFactor = sym2propfun(expr_x, false, true, nonXTpars, speciesStoch, [], logicTerms);
-            obj.isTimeDependent = true;
-        else
-            for i=1:length(upstreamODEs)
-                expr_tx = subs(expr_tx,upstreamODEs{i},varODEs(i));
-            end
-            obj.hybridJointFactor = sym2propfun(expr_tx, true, true, nonXTpars, speciesStoch, varODEs, logicTerms);
-            obj.isTimeDependent = true;
+            obj{1}.hybridFactorVector = hybridFactorVector;
+            obj{1}.xFactorVector = xFactorVector;
         end
 
-    end
-
-    function obj = createFromString(fstr, stoichVector, reactionIndex)
+        function obj = createFromString(fstr, stoichVector, reactionIndex)
             % Construct an instance of Propensity from a symbolic expression.
             %
             % Parameters
@@ -404,7 +691,7 @@ classdef Propensity
             import ssit.*
             fstr = strrep(fstr,'..','.');
             [ft, fx, isFactorizable] = separateExpression(fstr);
-            
+
             if isFactorizable
                 ft = strrep(ft,'..','.');fx = strrep(fx,'..','.');
                 obj = Propensity.createAsSeparable(str2func(['@(t)' ft]), str2func(['@(x)' fx]),...
@@ -413,29 +700,29 @@ classdef Propensity
                 obj = Propensity.createAsNotSeparable(str2func(['@(t,x)' fstr]), stoichVector, reactionIndex, fstr);
             end
         end
-
-        function obj = createAsTimeInvariant(fxhandle, stoichVector, reactionIndex)
-            % Create an object for a time-invariant propensity function.
-            %
-            % Parameters
-            % ----------
-            %
-            %   fxhandle: function handle
-            %       state-dependent factor of the propensity function. Must have the same syntax as the property Propensity.stateDependentFactor.
-            %
-            %   stoichVector: column vector
-            %       stoichiometry vector associated with this propensity.
-            %
-            %   reactionIndex: integer
-            %       index of the reaction associated with this propensity.
-
-            import ssit.*
-            obj = Propensity(stoichVector, reactionIndex);
-            obj.isTimeDependent = false;
-            obj.isFactorizable = true;
-            obj.stateDependentFactor = fxhandle;
-        end
-
+%%
+        %% function obj = createAsTimeInvariant(fxhandle, stoichVector, reactionIndex)
+        %     % Create an object for a time-invariant propensity function.
+        %     %
+        %     % Parameters
+        %     % ----------
+        %     %
+        %     %   fxhandle: function handle
+        %     %       state-dependent factor of the propensity function. Must have the same syntax as the property Propensity.stateDependentFactor.
+        %     %
+        %     %   stoichVector: column vector
+        %     %       stoichiometry vector associated with this propensity.
+        %     %
+        %     %   reactionIndex: integer
+        %     %       index of the reaction associated with this propensity.
+        % 
+        %     import ssit.*
+        %     obj = Propensity(stoichVector, reactionIndex);
+        %     obj.isTimeDependent = false;
+        %     obj.isFactorizable = true;
+        %     obj.stateDependentFactor = fxhandle;
+        % end
+%%
         function obj = createAsSeparable(fthandle, fxhandle, stoichVector, reactionIndex)
             % Create an object for a time-varying propensity that is
             % separable.
@@ -464,7 +751,7 @@ classdef Propensity
             %
             import ssit.*
             obj = Propensity(stoichVector, reactionIndex);
-            if strcmp(func2str(fthandle),'@(t)1') 
+            if strcmp(func2str(fthandle),'@(t)1')
                 obj.isTimeDependent = false;
             else
                 obj.isTimeDependent = true;
@@ -474,41 +761,41 @@ classdef Propensity
             obj.stateDependentFactor = fxhandle;
         end
 
-        function obj = createAsNotSeparable(ftxhandle, stoichVector, reactionIndex, str)
-            % Create an object for a time-varying propensity that is cannot
-            % be factorized into a time-varying factor and a time-invariant
-            % factor.
-            %
-            % Parameters
-            % ----------
-            %
-            %   ftxhandle: function handle
-            %       this function handle must evaluate the propensity at
-            %       a given joint value of the time and state variables.
-            %
-            %   stoichVector: column vector
-            %       stoichiometry vector associated with this propensity.
-            %
-            %   reactionIndex: integer
-            %       index of the reaction associated with this propensity.
-            %
-            % Returns
-            % -------
-            %
-            %   obj: Propensity
-            %       an instance of Propensity, where obj.isFactorizable ==
-            %       false.
-            %
-            import ssit.*
-            obj = Propensity(stoichVector, reactionIndex);
-            obj.isTimeDependent = true;
-            obj.isFactorizable = false;
-            obj.jointDependentFactor = ftxhandle;
-        end
+        %% function obj = createAsNotSeparable(ftxhandle, stoichVector, reactionIndex, str)
+        %     % Create an object for a time-varying propensity that is cannot
+        %     % be factorized into a time-varying factor and a time-invariant
+        %     % factor.
+        %     %
+        %     % Parameters
+        %     % ----------
+        %     %
+        %     %   ftxhandle: function handle
+        %     %       this function handle must evaluate the propensity at
+        %     %       a given joint value of the time and state variables.
+        %     %
+        %     %   stoichVector: column vector
+        %     %       stoichiometry vector associated with this propensity.
+        %     %
+        %     %   reactionIndex: integer
+        %     %       index of the reaction associated with this propensity.
+        %     %
+        %     % Returns
+        %     % -------
+        %     %
+        %     %   obj: Propensity
+        %     %       an instance of Propensity, where obj.isFactorizable ==
+        %     %       false.
+        %     %
+        %     import ssit.*
+        %     obj = Propensity(stoichVector, reactionIndex);
+        %     obj.isTimeDependent = true;
+        %     obj.isFactorizable = false;
+        %     obj.jointDependentFactor = ftxhandle;
+        % end
     end
 
     methods (Static)
-        function [stNew,logicTerms] = stripLogicals(st,species)
+        function [stNew,logicTerms,counter] = stripLogicals(st,species,counter)
             logTypes = {'=','>','<'};
             logicTerms = [];
             n = [0,0,0];
@@ -524,17 +811,20 @@ classdef Propensity
                     if contains(logE,'t')&&max(contains(logE,species))
                         n(1)=n(1)+1;
                         logicTerms.logJ{n(1),1} = logE;
-                        logicTerms.logJ{n(1),2} = ['logJ',num2str(n(1))];
+                        counter = counter+1;
+                        logicTerms.logJ{n(1),2} = ['logJ',num2str(counter)];
                         stNew = strrep(stNew,logE,['(',logicTerms.logJ{n(1),2},')']);
                     elseif contains(logE,'t')
                         n(2)=n(2)+1;
                         logicTerms.logT{n(2),1} = logE;
-                        logicTerms.logT{n(2),2} = ['logT',num2str(n(2))];
+                        counter = counter+1;
+                        logicTerms.logT{n(2),2} = ['logT',num2str(counter)];
                         stNew = strrep(stNew,logE,['(',logicTerms.logT{n(2),2},')']);
                     elseif max(contains(logE,species))
                         n(3)=n(3)+1;
                         logicTerms.logX{n(3),1} = logE;
-                        logicTerms.logX{n(3),2} = ['logE',num2str(n(3))];
+                        counter = counter+1;
+                        logicTerms.logX{n(3),2} = ['logE',num2str(counter)];
                         stNew = strrep(stNew,logE,['(',logicTerms.logX{n(3),2},')']);
                     end
                 end
@@ -544,133 +834,168 @@ classdef Propensity
 end
 
 function [ft, fx, isFactorizable] = separateExpression(expr)
-    cft = [];
-    fx = [];
-    isFactorizable = [];
-    % Check input
-    left_bracket_loc = strfind(expr, '{');
-    right_bracket_loc = strfind(expr, '}');
+cft = [];
+fx = [];
+isFactorizable = [];
+% Check input
+left_bracket_loc = strfind(expr, '{');
+right_bracket_loc = strfind(expr, '}');
 
-    if (length(left_bracket_loc) > length(right_bracket_loc))
-        fprintf('Syntax error, missing ''}'' in one of the propensities.\n');
-        return;
-    elseif (length(left_bracket_loc) < length(right_bracket_loc))
-        fprintf('Syntax error, missing ''{'' in one of the propensities.\n');
-        return;
-    end
-
-    if (length(left_bracket_loc) > 2)
-        fprintf('We currently only support separating propensity into two factor.\n');
-        return;
-    end
-
-    if (isempty(left_bracket_loc))
-        % Is it a function of only t?
-        if (~contains(expr, 't'))
-            isFactorizable = true;
-            ft = '1';
-            fx = expr;
-            return;
-        elseif (~contains(strrep(expr,'exp','EP'), 'x')) % Check if it has 'x' and not 'exp'
-            isFactorizable = true;
-            ft = expr;
-            fx = '1';
-            return;
-        else
-            isFactorizable = false;
-            ft = [];
-            fx = [];
-            return;
-        end
-    end
-    %
-    isFactorizable = true;
-    f1 = expr(left_bracket_loc(1)+1:right_bracket_loc(1)-1);
-    f2 = expr(left_bracket_loc(2)+1:right_bracket_loc(2)-1);
-
-    if (contains(f1, 't') || contains(f1, 'I'))
-        ft = f1;
-        fx = f2;
-    else
-        ft = f2;
-        fx = f1;
-    end
-    %     ft = strip(ft, 'left', '{');
-    %     ft = strip(ft, 'right', '}');
-    %     fx = strip(fx, 'left', '{');
-    %     fx = strip(fx, 'right', '}');
+if (length(left_bracket_loc) > length(right_bracket_loc))
+    fprintf('Syntax error, missing ''}'' in one of the propensities.\n');
+    return;
+elseif (length(left_bracket_loc) < length(right_bracket_loc))
+    fprintf('Syntax error, missing ''{'' in one of the propensities.\n');
+    return;
 end
 
-function y = sym2propfun(symbolicExpression, time_dep, state_dep, nonXTpars, species, varODEs, logicTerms)
+if (length(left_bracket_loc) > 2)
+    fprintf('We currently only support separating propensity into two factor.\n');
+    return;
+end
+
+if (isempty(left_bracket_loc))
+    % Is it a function of only t?
+    if (~contains(expr, 't'))
+        isFactorizable = true;
+        ft = '1';
+        fx = expr;
+        return;
+    elseif (~contains(strrep(expr,'exp','EP'), 'x')) % Check if it has 'x' and not 'exp'
+        isFactorizable = true;
+        ft = expr;
+        fx = '1';
+        return;
+    else
+        isFactorizable = false;
+        ft = [];
+        fx = [];
+        return;
+    end
+end
+%
+isFactorizable = true;
+f1 = expr(left_bracket_loc(1)+1:right_bracket_loc(1)-1);
+f2 = expr(left_bracket_loc(2)+1:right_bracket_loc(2)-1);
+
+if (contains(f1, 't') || contains(f1, 'I'))
+    ft = f1;
+    fx = f2;
+else
+    ft = f2;
+    fx = f1;
+end
+%     ft = strip(ft, 'left', '{');
+%     ft = strip(ft, 'right', '}');
+%     fx = strip(fx, 'left', '{');
+%     fx = strip(fx, 'right', '}');
+end
+
+function [exprHandle,exprJac] = sym2propfun(symbolicExpression, time_dep, state_dep, nonXTpars, species, varODEs, logicTerms, jacobian)
 arguments
     symbolicExpression
     time_dep
     state_dep
     nonXTpars
     species
-    varODEs = [];
-    logicTerms = {};
+    varODEs = []
+    logicTerms = {}
+    jacobian = false
 end
-    % Convert a symbolic expression into usable anonoymous function
-    % handle.
-    % We assume that the time variable is always named 't' and the
-    % state variables are always named with the form 'x*' where the
-    % expression following the character 'x' tells us the index of
-    % the species. For example, 'x1', 'x2', 'x12' etc.
+% Convert a symbolic expression into usable anonoymous function
+% handle.
+% We assume that the time variable is always named 't' and the
+% state variables are always named with the form 'x*' where the
+% expression following the character 'x' tells us the index of
+% the species. For example, 'x1', 'x2', 'x12' etc.
 
-    % To do:  Adjust this to first factorize the symbolic expression. Check
-    % to see if terms with x1, x2, etc can be separated completely from
-    % those with t or other veriables.  If so, lump all these non-xi terms together
-    % in an anonymous functon (of all non-x parameters) and put all the 
-    % x-dependent terms into another function. Will need to check that this
-    % does not disrupt codes for sensitivity analysis.
+% To do:  Adjust this to first factorize the symbolic expression. Check
+% to see if terms with x1, x2, etc can be separated completely from
+% those with t or other veriables.  If so, lump all these non-xi terms together
+% in an anonymous functon (of all non-x parameters) and put all the
+% x-dependent terms into another function. Will need to check that this
+% does not disrupt codes for sensitivity analysis.
 
-    import ssit.fsp.*
-    exprStr = char(symbolicExpression);
-    varNames = string(symvar(symbolicExpression));
-    sort(varNames, 'descend');
-    opVar = {'*','/','^'};
-    for i = 1:length(opVar)
-        op = opVar{i};
-        exprStr = strrep(exprStr, op, ['.' op]);
+% import ssit.fsp.*
+varNames = string(symvar(symbolicExpression));
+% sort(varNames, 'descend');
+
+if jacobian&&~isempty(varODEs)
+    exprJac = sym('dedx',[1,length(varODEs)]);
+    for i=1:length(varODEs)
+        exprJac(i) = diff(symbolicExpression,varODEs(i));
     end
+else
+    exprJac=[];
+end
 
-    parStr = [];
-    for iPar = 1:length(nonXTpars)
-        parStr = [parStr,', ',nonXTpars{iPar}];
+exprStr = char(symbolicExpression);
+opVar = {'*','/','^'};
+for i = 1:length(opVar)
+    op = opVar{i};
+    exprStr = strrep(exprStr, op, ['.' op]);
+end
+
+% parStr = [];
+% for iPar = 1:length(nonXTpars)
+%     parStr = [parStr,', ',nonXTpars{iPar}];
+% end
+parStr = ', Parameters';
+
+if ~isempty(varODEs)
+    parStr = [parStr,', varODEs'];
+    for i=length(varODEs):-1:1
+        exprStr = strrep(exprStr, ['varODEs',num2str(i)], ['varODEs(',num2str(i),')']);
     end
+end
 
-    if ~isempty(varODEs)
-        parStr = [parStr,', varODEs'];
-        for i=1:length(varODEs)
-            exprStr = strrep(exprStr, ['varODEs',num2str(i)], ['varODEs(',num2str(i),')']);
+for i = 1:length(nonXTpars)
+    exprStr = strrep(exprStr, nonXTpars{i}, ['Parameters(',num2str(i),')']);
+end
+
+for i = length(nonXTpars):-1:1
+    exprStr = strrep(exprStr, ['parameters',num2str(i)], ['Parameters(',num2str(i),')']);
+end
+
+for i=1:length(logicTerms)
+    if isfield(logicTerms{i},'logT')
+        for j=1:size(logicTerms{i}.logT,1)
+            exprStr=strrep(exprStr,logicTerms{i}.logT{j,2},logicTerms{i}.logT{j,1});
         end
     end
-
-    if ~isempty(logicTerms)
-        if isfield(logicTerms,'logT')
-%             time_dep = true;
-            for i=1:size(logicTerms.logT,1)
-                exprStr=strrep(exprStr,logicTerms.logT{i,2},logicTerms.logT{i,1});
-            end
-        end
-        if isfield(logicTerms,'logX')
-%             state_dep = true;
-            for i=1:size(logicTerms.logX,1)
-                exprStr=strrep(exprStr,logicTerms.logX{i,2},logicTerms.logX{i,1});
-            end
-        end
-        if isfield(logicTerms,'logE')
-%             time_dep = true;
-%             state_dep = true;
-            for i=1:size(logicTerms.logX,1)
-                exprStr=strrep(exprStr,logicTerms.logX{i,2},logicTerms.logX{i,1});
-            end
+    if isfield(logicTerms{i},'logX')
+        %             state_dep = true;
+        for j=1:size(logicTerms.logX,1)
+            exprStr=strrep(exprStr,logicTerms{i}.logX{j,2},logicTerms.logX{j,1});
         end
     end
+    if isfield(logicTerms{i},'logE')
+        %             time_dep = true;
+        %             state_dep = true;
+        for j=1:size(logicTerms{i}.logX,1)
+            exprStr=strrep(exprStr,logicTerms.logX{j,2},logicTerms.logX{j,1});
+        end
+    end
+end
 
-    if (time_dep && state_dep)
-        fhandle_var = ['@(t, x',parStr,')'];
+if (time_dep && state_dep)
+    fhandle_var = ['@(t, x',parStr,')'];
+    for i = 1:length(varNames)
+        old_name = char(varNames(i));
+        if max(ismember(species, old_name))
+            j = find(ismember(species, old_name));
+            new_name = ['x(', num2str(j), ', :)'];
+            exprStr = strrep(exprStr, old_name, new_name);
+        end
+    end
+    exprHandle = str2func([fhandle_var exprStr]);
+
+elseif (time_dep)
+    fhandle_var = ['@(t',parStr,')'];
+    exprHandle = str2func([fhandle_var '(' exprStr ')']);
+else
+    fhandle_var = ['@(x',parStr,')'];
+    if ~isempty(varNames)
         for i = 1:length(varNames)
             old_name = char(varNames(i));
             if max(ismember(species, old_name))
@@ -679,25 +1004,95 @@ end
                 exprStr = strrep(exprStr, old_name, new_name);
             end
         end
-        y = str2func([fhandle_var exprStr]);
-    elseif (time_dep)
-        fhandle_var = ['@(t',parStr,')'];
-        y = str2func([fhandle_var '(' exprStr ')']);
     else
-        fhandle_var = ['@(x',parStr,')'];
-        if ~isempty(varNames)
-            for i = 1:length(varNames)
-                old_name = char(varNames(i));
-                if max(ismember(species, old_name))
-                    j = find(ismember(species, old_name));
-                    new_name = ['x(', num2str(j), ', :)'];
-                    exprStr = strrep(exprStr, old_name, new_name);
-                end
-            end
-        else
-            exprStr = ['( ' exprStr ').* ones(1, size(x,2))'];
-        end
-        y = str2func([fhandle_var exprStr]);
+        exprStr = ['( ' exprStr ').* ones(1, size(x,2))'];
+    end
+    exprHandle = str2func([fhandle_var exprStr]);
+end
+end
+function [exprHandle,exprJac] = sym2mFun(symbolicExpression, time_dep, state_dep, nonXTpars, species, varODEs, jacobian, writeFiles, prefixName)
+arguments
+    symbolicExpression
+    time_dep
+    state_dep
+    nonXTpars
+    species
+    varODEs = {}
+    jacobian = false
+    writeFiles = true
+    prefixName = []
+end
+% This function writes an executable m-file for the provided expression.
+varNames = string(symvar(symbolicExpression));
+states = sym("states",[length(species),1],'positive');
+parameters = sym("parameters",[length(nonXTpars),1],'positive');
+syms t real
+for i = 1:length(varNames)
+    old_name = char(varNames(i));
+    if max(ismember(species, old_name))
+        j = find(ismember(species, old_name));
+        symbolicExpression = subs(symbolicExpression,species{j},states(j));
+    end
+    if max(ismember(nonXTpars, old_name))
+        j = find(ismember(nonXTpars, old_name));
+        symbolicExpression = subs(symbolicExpression,nonXTpars{j},parameters(j));
     end
 end
 
+if isempty(prefixName)
+    prefixName = pwd;
+    j = find(prefixName==filesep,1,'last');
+    prefixName = prefixName(j+1:end);
+end
+
+ifn = sum(contains({dir('tmpPropensityFunctions').name},'fun'))+1;
+fn = [pwd,'/tmpPropensityFunctions/',prefixName,'_fun_',num2str(ifn),'.m'];
+
+if jacobian&&~isempty(varODEs)
+    exprJac = sym(zeros([1,length(varODEs)]));
+    [~,a2] = intersect(varODEs,symvar(symbolicExpression));
+    for i=1:a2
+        exprJac(i) = diff(symbolicExpression,varODEs(i));
+    end
+else
+    exprJac=[];
+end
+
+if writeFiles
+    if isempty(varODEs)
+        if (time_dep && state_dep)
+            exprHandle = matlabFunction(symbolicExpression,'Vars',{t,states,parameters},'File',fn,'Sparse',true);
+        elseif time_dep
+            exprHandle = matlabFunction(symbolicExpression,'Vars',{t,parameters},'File',fn,'Sparse',true);
+        else
+            exprHandle = matlabFunction(symbolicExpression,'Vars',{states,parameters},'File',fn,'Sparse',false);
+        end
+    else
+        if (time_dep && state_dep)
+            exprHandle = matlabFunction(symbolicExpression,'Vars',{t,states,parameters,varODEs},'File',fn,'Sparse',true);
+        elseif time_dep
+            exprHandle = matlabFunction(symbolicExpression,'Vars',{t,parameters,varODEs},'File',fn,'Sparse',true);
+        else
+            exprHandle = matlabFunction(symbolicExpression,'Vars',{states,parameters,varODEs},'File',fn,'Sparse',true);
+        end
+    end
+else
+    exprHandle=[];
+end
+% if jacobian
+%     fn = [pwd,'/tmpPropensityFunctions/',prefix,'_fun_',num2str(ifn+1),'.m'];
+%     if isempty(varODEs)
+%         % if (time_dep && state_dep)
+%         %     exprHandleJac = matlabFunction(exprJac,'Vars',{t,states,parameters},'File',fn);
+%         % elseif state_dep
+%         %     exprHandleJac = matlabFunction(exprJac,'Vars',{states,parameters},'File',fn);
+%         % end
+%     else
+%         if (time_dep && state_dep)
+%             exprHandleJac = matlabFunction(exprJac,'Vars',{t,states,parameters,varODEs},'File',fn);
+%         elseif time_dep
+%             exprHandleJac = matlabFunction(exprJac,'Vars',{states,parameters,varODEs},'File',fn);
+%         end
+%     end
+% end
+end

@@ -7,3 +7,14 @@ CommandLine/OldProablyTrash/*/*
 BackgroundFitsResults*
 CommandLine/Bomyi/*
 CommandLine/Josh/complex_dusp1.zip
+tests/tmp*/*
+tmp*s/*
+EricModel/tmp*/*
+CommandLine/Josh/OldVersions/*
+CommandLine/Josh/*
+CommandLine/tmp*/*
+CommandLine/SawyerHelaAndA549/*
+*.zip
+tests/testData.csv
+tests/testDataSSA.csv
+CommandLine/Josh/Josh_example_BPPB_C.m

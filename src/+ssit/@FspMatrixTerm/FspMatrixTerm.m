@@ -40,10 +40,11 @@ classdef FspMatrixTerm
     end
 
     methods
-        function obj = FspMatrixTerm(propensity, stateSet, numConstraints, varNames, modRedTransformMatrices)
+        function obj = FspMatrixTerm(propensity, stateSet, parameters, numConstraints, varNames, modRedTransformMatrices)
             arguments
                 propensity
                 stateSet
+                parameters
                 numConstraints
                 varNames = []
                 modRedTransformMatrices = []
@@ -81,7 +82,7 @@ classdef FspMatrixTerm
 
             if ((~obj.isTimeDependent) || (obj.isFactorizable))
                 % Generate generator matrix for this term
-                obj.matrix = ssit.FspMatrixTerm.GenerateMatrixTermTimeInvariant(propensity, stateSet, numConstraints, varNames); % The matrix data is generated only once
+                obj.matrix = ssit.FspMatrixTerm.GenerateMatrixTermTimeInvariant(propensity, stateSet, parameters, numConstraints, varNames); % The matrix data is generated only once
                 
                 % Perform model reduction if requested
                 if ~isempty(modRedTransformMatrices)
@@ -99,17 +100,17 @@ classdef FspMatrixTerm
             end
         end
 
-        function w = multiply(obj, t, v)
+        function w = multiply(obj, t, v, parameters)
             % Compute the action of the term matrix at time `t` on a vector
             % `v`.
             if (~obj.isTimeDependent)&&isempty(obj.propensity.timeDependentFactor)
                 w = obj.matrix*v;
             elseif (~obj.isTimeDependent)&&~isempty(obj.propensity.timeDependentFactor)
-                w = obj.propensity.timeDependentFactor(t)*(obj.matrix*v);
+                w = obj.propensity.timeDependentFactor(t,parameters)*(obj.matrix*v);
             elseif (obj.isFactorizable)
-                w = obj.propensity.timeDependentFactor(t)*(obj.matrix*v);
+                w = obj.propensity.timeDependentFactor(t,parameters)*(obj.matrix*v);
             else
-                A = ssit.FspMatrixTerm.generateTimeVaryingMatrixTerm(t, obj.propensity, obj.matrix, obj.numConstraints);
+                A = ssit.FspMatrixTerm.generateTimeVaryingMatrixTerm(t, obj.propensity, obj.matrix, parameters, obj.numConstraints);
                 if ~isempty(obj.modRedTransformMatrices)
                     A = obj.modRedTransformMatrices.phi_inv*...
                         A(1:end-obj.numConstraints,1:end-obj.numConstraints)*...
@@ -124,15 +125,16 @@ classdef FspMatrixTerm
             end
         end
 
-        function w = multiplyHybrid(obj, t, v, vODEs)
+        function w = multiplyHybrid(obj, t, v, parameters, vODEs)
             % Compute the action of the term matrix at time `t` on a vector
             % `v`. This version is for hybrid models, where 'v' corresponds
             % to the CME (i.e., the vector P(t)) and'vODEs' corresponds to
             % the upstream ODEs.
+            
             if (obj.isFactorizable)
-                w1 = obj.propensity.hybridFactor(t,vODEs)*(obj.matrix*v);
+                w1 = obj.propensity.hybridFactor(t,parameters,vODEs)*(obj.matrix*v);
             else
-                A = ssit.FspMatrixTerm.generateHybridMatrixTerm(t, obj.propensity, obj.matrix, obj.numConstraints, vODEs);
+                A = ssit.FspMatrixTerm.generateHybridMatrixTerm(t, obj.propensity, obj.matrix, parameters, obj.numConstraints, vODEs');
                 if ~isempty(obj.modRedTransformMatrices)
                     A = obj.modRedTransformMatrices.phi_inv*...
                         A(1:end-obj.numConstraints,1:end-obj.numConstraints)*...
@@ -146,9 +148,9 @@ classdef FspMatrixTerm
                 w1 = A*v;
             end
             if max(abs(obj.propensity.ODEstoichVector))~=0
-                w2 = obj.propensity.ODEstoichVector*obj.propensity.hybridFactor(t,vODEs);
+                w2 = obj.propensity.ODEstoichVector*obj.propensity.hybridFactor(t,parameters,vODEs);
             else
-                w2 = 0*vODEs;
+                w2 = 0*vODEs';
             end
             w = [w1;w2];
 
@@ -157,10 +159,11 @@ classdef FspMatrixTerm
 
 methods (Static)
 
-    function A_fsp = GenerateMatrixTermTimeInvariant(propensity, state_set, numConstraints, varNames)
+    function A_fsp = GenerateMatrixTermTimeInvariant(propensity, state_set,parameters, numConstraints, varNames)
         arguments
             propensity
             state_set
+            parameters
             numConstraints =[];
             varNames = [];
         end
@@ -175,7 +178,7 @@ methods (Static)
 %                 propensity.evaluateStateFactor(state_set.states,varNames)...
 %                 +0*zeros(1,size(state_set.states,2));
 %         else
-            prop_val = propensity.evaluateStateFactor(state_set.states,varNames)...
+            prop_val = propensity.evaluateStateFactor(state_set.states,parameters,varNames)...
                 +0*zeros(1,size(state_set.states,2));
 %         end
 
@@ -229,11 +232,12 @@ methods (Static)
         A_fsp = sparse([i;isinks], [j;jsinks], [aij;aijsinks], n_states + numConstraints, n_states + numConstraints);
     end
 
-    function A_fsp = generateTimeVaryingMatrixTerm(t, propensity, state_set, numConstraints, modRedTransformMatrices)
+    function A_fsp = generateTimeVaryingMatrixTerm(t, propensity, state_set, parameters, numConstraints, modRedTransformMatrices)
         arguments
             t
             propensity
             state_set
+            parameters
             numConstraints
             modRedTransformMatrices =[];
         end
@@ -242,7 +246,7 @@ methods (Static)
         reachableIndices = state_set.reachableIndices(:, propensity.reactionIndex);
         reachableIndices(reachableIndices < 0) = 0;
 
-        prop_val = propensity.evaluate(t, state_set.states);
+        prop_val = propensity.evaluate(t, state_set.states, parameters);
         if (size(prop_val, 2) > 1)
             prop_val = prop_val';
         end
@@ -302,11 +306,12 @@ methods (Static)
 
     end
 
-    function A_fsp = generateHybridMatrixTerm(t, hybridPropensity, state_set, numConstraints, upStreamSpecies, modRedTransformMatrices)
+    function A_fsp = generateHybridMatrixTerm(t, hybridPropensity, state_set, parameters, numConstraints, upStreamSpecies, modRedTransformMatrices)
         arguments
             t
             hybridPropensity
             state_set
+            parameters
             numConstraints
             upStreamSpecies
             modRedTransformMatrices =[];
@@ -316,7 +321,7 @@ methods (Static)
         reachableIndices = state_set.reachableIndices(:, hybridPropensity.reactionIndex);
         reachableIndices(reachableIndices < 0) = 0;
 
-        prop_val = hybridPropensity.evaluate(t, state_set.states, upStreamSpecies);
+        prop_val = hybridPropensity.evaluate(t, state_set.states, parameters, upStreamSpecies);
         if (size(prop_val, 2) > 1)
             prop_val = prop_val';
         end

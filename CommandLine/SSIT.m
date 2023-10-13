@@ -10,14 +10,17 @@ classdef SSIT
         fspOptions = struct('fspTol',0.001,'fspIntegratorRelTol',1e-2,...
             'fspIntegratorAbsTol',1e-4, 'odeSolver','auto', 'verbose',false,...
             'bounds',[],'usePiecewiseFSP',false,...
-            'initApproxSS',false); % Options for FSP solver.
-        sensOptions = struct('solutionMethod','forward','useParallel',true); 
-            % Options for FSP-Sensitivity solver.
+            'initApproxSS',false,...
+            'escapeSinks',[],...
+            'constantJacobian',false, ...
+            'constantJacobianTime',1.1); % Options for FSP solver.
+        sensOptions = struct('solutionMethod','forward','useParallel',true);
+        % Options for FSP-Sensitivity solver.
         ssaOptions = struct('Nexp',1,'nSimsPerExpt',100,'useTimeVar',false,...
             'signalUpdateRate',[],'useParalel',false,...
             'verbose',false); % Options for SSA solver
-        pdoOptions = struct('unobservedSpecies',[],'PDO',[]); 
-            % Options for FIM analyses
+        pdoOptions = struct('unobservedSpecies',[],'PDO',[]);
+        % Options for FIM analyses
         fittingOptions = struct('modelVarsToFit','all','pdoVarsToFit',[],...
             'timesToFit','all','logPrior',[])
         initialCondition = [0]; % Initial condition for species [x1;x2;...]
@@ -25,13 +28,18 @@ classdef SSIT
         initialTime = 0;
         tSpan = linspace(0,10,21); % Times at which to find solutions
         solutionScheme = 'FSP' % Chosen solutuon scheme ('FSP','SSA')
+        modelReductionOptions = struct('useModReduction',false,'reductionType','None') % Settings for
+        % model reduction tools.
         dataSet = [];
+        useHybrid = false
+        hybridOptions = struct('upstreamODEs',[]);
+        propensitiesGeneral = [];% Processed propensity functions for use in solvers
+
     end
 
     properties (Dependent)
         fspConstraints % FSP Constraint Functions
-        pars_container % Container for parameters
-        propensities % Processed propensity functions for use in solvers
+        pars_container  % Container for parameters
     end
 
     methods
@@ -51,11 +59,9 @@ classdef SSIT
             arguments
                 modelFile = [];
             end
-            %SSIT Construct an instance of the SSIT class
+            % SSIT Construct an instance of the SSIT class
             addpath(genpath('../src'));
-            if isempty(modelFile)
-                return
-            else
+            if ~isempty(modelFile)
                 obj = pregenModel(obj,modelFile);
             end
         end
@@ -68,49 +74,91 @@ classdef SSIT
             end
         end
 
-        function Propensities = get.propensities(obj)
-            switch obj.solutionScheme
-                case 'FSP'
-                    propenType = "str";
-                case 'SSA'
-                    propenType = "fun";
+       
+        function obj = formPropensitiesGeneral(obj,prefixName)
+            arguments
+                obj
+                prefixName = [];
             end
-            propstrings = ssit.SrnModel.processPropensityStrings(obj.propensityFunctions,...
-                obj.inputExpressions,...
-                obj.pars_container,...
-                propenType,...
-                obj.species);
-
-            if strcmp(obj.solutionScheme,'FSP')
-                n_reactions = length(obj.propensityFunctions);
-                Propensities = cell(n_reactions, 1);
-                for i = 1:n_reactions
-                    Propensities{i} = ssit.Propensity.createFromString(propstrings{i}, obj.stoichiometry(:,i), i);
+            % This function starts the process to write m-file for each
+            % propensity function.
+            if ~strcmp(obj.solutionScheme,'SSA')
+                if strcmp(obj.solutionScheme,'ode')
+                    obj.useHybrid = true;
+                    obj.hybridOptions.upstreamODEs = obj.species;
                 end
-            elseif strcmp(obj.solutionScheme,'SSA')
-                Propensities = propstrings;
-            end
-        end
+                n_reactions = length(obj.propensityFunctions);
+                % Propensity for hybrid models will include
+                % solutions from the upstream ODEs.
+                sm = cell(1,n_reactions);
+                logicTerms = cell(1,n_reactions);
+                logCounter = 0;
+                for i = 1:n_reactions
+                    st = obj.propensityFunctions{i};
+                    for jI = 1:size(obj.inputExpressions,1)
+                        st = strrep(st,obj.inputExpressions{jI,1},['(',obj.inputExpressions{jI,2},')']);
+                    end
+                    [st,logicTerms{i},logCounter] = ssit.Propensity.stripLogicals(st,obj.species,logCounter);
+                    sm{i} = str2sym(st);
+                end
 
+                if obj.useHybrid
+                    PropensitiesGeneral = ssit.Propensity.createAsHybridVec(sm, obj.stoichiometry,...
+                        obj.parameters, obj.species, obj.hybridOptions.upstreamODEs, logicTerms, prefixName);
+                else
+                    PropensitiesGeneral = ssit.Propensity.createAsHybridVec(sm, obj.stoichiometry,...
+                        obj.parameters, obj.species, [], logicTerms, prefixName);
+                end
+
+                obj.propensitiesGeneral = PropensitiesGeneral;
+
+            elseif strcmp(obj.solutionScheme,'SSA')
+                PropensitiesGeneral = ssit.SrnModel.processPropensityStrings(obj.propensityFunctions,...
+                    obj.inputExpressions,...
+                    obj.pars_container,...
+                    propenType,...
+                    obj.species);
+            end
+
+        end
+%%
         function constraints = get.fspConstraints(obj)
             % Makes a list of FSP constraints that can be used by the FSP
             % solver.
-            nSpecies = length(obj.species);
+            if obj.useHybrid
+                stochasticSpecies = setdiff(obj.species,obj.hybridOptions.upstreamODEs);
+            else
+                stochasticSpecies = obj.species;
+            end
+
+            nSpecies = length(stochasticSpecies);
             Data = cell(nSpecies*2,3);
             for i = 1:nSpecies
-%                 Data(i,:) = {['-',obj.species{i}],'<',0};
-%                 Data(nSpecies+i,:) = {obj.species{i},'<',1};
                 Data(i,:) = {['-x',num2str(i)],'<',0};
                 Data(nSpecies+i,:) = {['x',num2str(i)],'<',1};
             end
             for i = 1:length(obj.customConstraintFuns)
                 Data(2*nSpecies+i,:) = {obj.customConstraintFuns{i},'<',1};
             end
-            constraints.f = readConstraintsForAdaptiveFsp([], obj.species, Data);
-            if isempty(obj.fspOptions.bounds)
+            constraints.f = readConstraintsForAdaptiveFsp([], stochasticSpecies, Data);
+            if isempty(obj.fspOptions.bounds)||size(Data,1)~=length(obj.fspOptions.bounds)
                 constraints.b = [Data{:,3}]';
+                obj.fspOptions.bounds = constraints.b;
             else
                 constraints.b = obj.fspOptions.bounds;
+            end
+
+            if ~isempty(obj.fspOptions.escapeSinks)
+                nEscape = length(obj.fspOptions.escapeSinks.f);
+                escapeData = cell(nEscape,3);
+                for i = 1:nEscape
+                    escapeData(i,:) = {obj.fspOptions.escapeSinks.f{i},'<',1};
+                end
+                constraints.fEscape = readConstraintsForAdaptiveFsp([], stochasticSpecies, escapeData);
+                constraints.bEscape = obj.fspOptions.escapeSinks.b;
+            else
+                constraints.fEscape = [];
+                constraints.bEscape = [];
             end
         end
 
@@ -246,6 +294,79 @@ classdef SSIT
             end
         end
 
+        function [obj] = createModelFromSBML(obj,sbmlFile,scaleVolume)
+            arguments
+                obj
+                sbmlFile
+                scaleVolume = true
+            end
+            % This function allows one to create a model directly from an
+            % SBML file.
+            % Example:
+            %      Model = SSIT();
+            %      Model = Model.createModelFromSBML('../SBML_test_cases/00010/00010-sbml-l1v2.xml');
+            %      [fspSoln] = Model.solve;
+            %      Model.makePlot(fspSoln,'meansAndDevs')
+            sbmlobj = sbmlimport(sbmlFile);
+            nR = length(sbmlobj.Reactions);
+            nS = length(sbmlobj.Species);
+
+            % Extract species names and stoichiometry
+            [obj.stoichiometry, obj.species] = getstoichmatrix(sbmlobj);
+
+            % Extract parameter names
+            nP = length(sbmlobj.Parameter);
+            obj.parameters = {};
+            for i = 1:nP
+                obj.parameters{i,1} = sbmlobj.Parameter(i).Name;
+                obj.parameters{i,2} = sbmlobj.Parameter(i).Value;
+            end
+
+            if length(sbmlobj.Compartments)>1
+                error('SSIT Tools not yet set up to support multi-compartment models.')
+            end
+
+            obj.propensityFunctions={};
+            for i = 1:nR
+                reactRate = sbmlobj.Reactions(i).ReactionRate;
+                obj.propensityFunctions{i,1} = strrep(reactRate,'compartment*','');
+            end
+
+            if scaleVolume
+                % Replace species numbers (Xi) with concentrations (Xi/Volume).
+                for i = 1:nR
+                    for j = 1:nS
+                        obj.propensityFunctions{i,1} = strrep(obj.propensityFunctions{i,1},...
+                            obj.species{j},['(',obj.species{j},'/Volume)']);
+                    end
+                    obj.propensityFunctions{i,1} = [obj.propensityFunctions{i,1},'*Volume'];
+                end
+
+                % Scale Initial Condition and Volume to remove fractional
+                % concentrations.
+                frac = false;
+                scl = 0;
+                for i = 1:nS
+                    if rem(sbmlobj.Species(i).Value,1)~=0
+                        frac = true;
+                    end
+                    scl = max(scl,sbmlobj.Species(i).Value);
+                end
+                if frac
+                    scl = round(100/scl);
+                    disp(['Fractional species values detected.  Scaling by Vol=',num2str(scl),' and rounding.'])
+                    disp(' ')
+                    IC(1:nS,1) = round(scl*[sbmlobj.Species.Value]);
+                end
+                obj.parameters(end+1,:) = {'Volume',scl};
+            else
+                IC(1:nS,1) = [sbmlobj.Species.Value];
+            end
+            obj.initialCondition = IC;
+            obj.summarizeModel;
+
+        end
+
         function [obj] = addSpecies(obj,newSpecies,initialCond)
             % addSpecies - add new species to reaction model.
             % example:
@@ -299,8 +420,8 @@ classdef SSIT
             end
 
             obj.pdoOptions.type = pdoType;
-%             app.DistortionTypeDropDown.Value = obj.pdoOptions.type;
-%             app.FIMTabOutputs.PDOProperties.props = obj.pdoOptions.props;
+            %             app.DistortionTypeDropDown.Value = obj.pdoOptions.type;
+            %             app.FIMTabOutputs.PDOProperties.props = obj.pdoOptions.props;
 
             Tab = readtable(dataFileName);
             dataNames = Tab.Properties.VariableNames;
@@ -364,7 +485,7 @@ classdef SSIT
                 end
                 return
             end
-      
+
             % Computes likelihood of observed data given the model of affine poisson
             % extra spot counting and probability of measurmeent failure.
             NmaxTrue = max(True);
@@ -395,8 +516,69 @@ classdef SSIT
                 case 'AffinePoiss'
                     logL = logL-1e4*(lambda(1)<0);
             end
-        end  
-        
+        end
+
+        function summarizeModel(obj)
+            arguments
+                obj;
+            end
+            % Show the model species
+            nS = size(obj.stoichiometry,1);
+            disp('Species:')
+            for i = 1:nS
+                if ~isempty(obj.hybridOptions.upstreamODEs)&&max(contains(obj.hybridOptions.upstreamODEs,obj.species{i}))
+                    disp(['     ',obj.species{i},'; IC = ',num2str(obj.initialCondition(i)),';  upstream ODE']);
+                else
+                    disp(['     ',obj.species{i},'; IC = ',num2str(obj.initialCondition(i)),';  discrete stochastic']);
+                end
+            end
+            disp(' ')
+
+            % Show the model stoichiometries and propensity functions
+            disp('Reactions:')
+            nR = size(obj.stoichiometry,2);
+            for iR = 1:nR
+                s = obj.stoichiometry(:,iR);
+                disp(['  Reaction ',num2str(iR),':'])
+                jReactant = find(s<0);
+                jProd = find(s>0);
+                if isempty(jReactant)
+                    reactTxt = 'NULL';
+                else
+                    reactTxt = [num2str(-s(jReactant(1))),'*',obj.species{jReactant(1)}];
+                    for i = 2:length(jReactant)
+                        reactTxt = [reactTxt,' + ',num2str(-s(jReactant(i))),'*',obj.species{jReactant(i)}];
+                    end
+                end
+                if isempty(jProd)
+                    prodTxt = 'NULL';
+                else
+                    prodTxt = [num2str(s(jProd(1))),'*',obj.species{jProd(1)}];
+                    for i = 2:length(jProd)
+                        prodTxt = [prodTxt,' + ',num2str(s(jProd(i))),'*',obj.species{jProd(i)}];
+                    end
+                end
+                disp(['     s',num2str(iR),': ',reactTxt, ' --> ', prodTxt])
+
+                disp(['     w',num2str(iR),': ',obj.propensityFunctions{iR}])
+
+            end
+
+            if ~isempty(obj.inputExpressions)
+                disp(' ')
+                disp('Input Signals:')
+                nI = size(obj.inputExpressions,1);
+                for i = 1:nI
+                    disp(['     ',obj.inputExpressions{i,1},'(t) = ',obj.inputExpressions{i,2}])
+                end
+            end
+
+            disp(' ')
+            disp('Model Parameters:')
+            disp(obj.parameters)
+
+        end
+
         %% Model Analysis Functions
         function [Solution, bConstraints] = solve(obj,stateSpace,saveFile,fspSoln)
             arguments
@@ -420,8 +602,26 @@ classdef SSIT
             if obj.initialTime>obj.tSpan(1)
                 error('First time in tspan cannot be earlier than the initial time.')
             elseif obj.initialTime~=obj.tSpan(1)
-%                 warning('First time in tspan is not the same as initial time.')
+                %                 warning('First time in tspan is not the same as initial time.')
                 obj.tSpan = unique([obj.initialTime,obj.tSpan]);
+            end
+
+            if isempty(obj.propensitiesGeneral)
+                obj = formPropensitiesGeneral(obj);
+            end
+
+            if obj.modelReductionOptions.useModReduction
+                if ~isfield(obj.modelReductionOptions,'phi')
+                    error('Model Reduction Matrices have not yet been Defined.')
+                end
+                useReducedModel = true;
+                modRedTransformMatrices.phi = obj.modelReductionOptions.phi;
+                modRedTransformMatrices.phi_inv = obj.modelReductionOptions.phi_inv;
+                modRedTransformMatrices.phiScale = obj.modelReductionOptions.phiScale;
+                modRedTransformMatrices.phiPlot = obj.modelReductionOptions.phiPlot;
+            else
+                useReducedModel = false;
+                modRedTransformMatrices = [];
             end
 
             switch obj.solutionScheme
@@ -430,11 +630,14 @@ classdef SSIT
                         error('HERE')
                     end
 
+                    % specificPropensities = SSIT.parameterizePropensities(obj.propensitiesGeneral,[obj.parameters{:,2}]');
+
                     [Solution.fsp, bConstraints,Solution.stateSpace] = ssit.fsp.adaptiveFspSolve(obj.tSpan,...
                         obj.initialCondition,...
                         obj.initialProbs,...
                         obj.stoichiometry, ...
-                        obj.propensities, ...
+                        obj.propensitiesGeneral, ...
+                        [obj.parameters{:,2}]', ...
                         obj.fspOptions.fspTol, ...
                         obj.fspConstraints.f, ...
                         obj.fspConstraints.b,...
@@ -444,12 +647,17 @@ classdef SSIT
                         obj.fspOptions.odeSolver,stateSpace,...
                         obj.fspOptions.usePiecewiseFSP,...
                         obj.fspOptions.initApproxSS,...
-                        obj.species);
+                        obj.species,...
+                        useReducedModel,modRedTransformMatrices, ...
+                        obj.useHybrid,obj.hybridOptions,...
+                        obj.fspConstraints.fEscape,obj.fspConstraints.bEscape, ...
+                        obj.fspOptions.constantJacobian);
+
                 case 'SSA'
                     Solution.T_array = obj.tSpan;
                     Nt = length(Solution.T_array);
                     nSims = obj.ssaOptions.Nexp*obj.ssaOptions.nSimsPerExpt*Nt;
-                    W = obj.propensities;
+                    W = obj.propensitiesGeneral;
                     if obj.ssaOptions.useParalel
                         trajs = zeros(length(obj.species),...
                             length(obj.tSpan),nSims);% Creates an empty Trajectories matrix from the size of the time array and number of simulations
@@ -462,7 +670,8 @@ classdef SSIT
                                 W,...
                                 obj.tSpan,...
                                 obj.ssaOptions.useTimeVar,...
-                                obj.ssaOptions.signalUpdateRate)
+                                obj.ssaOptions.signalUpdateRate,...
+                                [obj.parameters{:,2}]');
                         end
                         Solution.trajs = trajs;
                     else
@@ -474,7 +683,8 @@ classdef SSIT
                                 W,...
                                 obj.tSpan,...
                                 obj.ssaOptions.useTimeVar,...
-                                obj.ssaOptions.signalUpdateRate);
+                                obj.ssaOptions.signalUpdateRate,...
+                                [obj.parameters{:,2}]');
                         end
                     end
                     disp([num2str(nSims),' SSA Runs Completed'])
@@ -535,6 +745,7 @@ classdef SSIT
                     [Solution.sens, bConstraints] = ...
                         ssit.sensitivity.computeSensitivity(model,...
                         obj.parameters,...
+                        obj.propensitiesGeneral,...
                         obj.tSpan,...
                         obj.fspOptions.fspTol,...
                         obj.initialCondition,...
@@ -548,156 +759,250 @@ classdef SSIT
                         obj.fspOptions.initApproxSS,...
                         obj.species,...
                         obj.sensOptions.useParallel,...
-                        fspSoln);
+                        fspSoln,...
+                        useReducedModel,modRedTransformMatrices, ...
+                        obj.useHybrid,obj.hybridOptions,...
+                        obj.fspConstraints.fEscape,obj.fspConstraints.bEscape);
                     %                     app.SensFspTabOutputs.solutions = Solution.sens;
                     %                     app.SensPrintTimesEditField.Value = mat2str(obj.tSpan);
                     %                     Solution.plotable = exportSensResults(app);
+
+                case 'ode'
+                    
+                    % specificPropensities = SSIT.parameterizePropensities(obj.propensitiesGeneral,[obj.parameters{:,2}]');
+                    
+                    [~,Solution.ode] = ssit.moments.solveOde2(obj.initialCondition, obj.tSpan, ...
+                        obj.stoichiometry, obj.propensitiesGeneral,  [obj.parameters{:,2}]', obj.fspOptions.initApproxSS);
             end
         end
 
         function sampleDataFromFSP(obj,fspSoln,saveFile)
-             Solution.T_array = obj.tSpan;
-             Nt = length(Solution.T_array);
-             nSims = obj.ssaOptions.nSimsPerExpt*obj.ssaOptions.Nexp;
-             Solution.trajs = zeros(length(obj.species),...
-                 length(obj.tSpan),nSims);% Creates an empty Trajectories matrix
-             % from the size of the time array and number of simulations
-             for it = 1:length(obj.tSpan)
-                 clear PP
-                 PP = double(fspSoln.fsp{it}.p.data);
-                 clear w
-                 w(:) = PP(:); w(w<0)=0;                 
-                 [I1,I2,I3,I4,I5] =  ind2sub(size(PP),randsample(length(w), nSims, true, w ));
-                 for iSp = 1:length(obj.species)
-                     eval(['Solution.trajs(iSp,it,:) = I',num2str(iSp),'-1;']);
-                 end
-             end
-             if ~isempty(obj.pdoOptions.PDO)
-                 Solution.trajsDistorted = zeros(length(obj.species),...
-                     length(obj.tSpan),nSims);% Creates an empty Trajectories matrix from the size of the time array and number of simulations
-                 for iS = 1:length(obj.species)
-                     PDO = obj.pdoOptions.PDO.conditionalPmfs{iS};
-                     nDpossible = size(PDO,1);
-                     Q = Solution.trajs(iS,:,:);
-                     for iD = 1:length(Q(:))
-                         Q(iD) = randsample([0:nDpossible-1],1,true,PDO(:,Q(iD)+1));
-                     end
-                     Solution.trajsDistorted(iS,:,:) = Q;
-                 end
-                 disp('PDO applied to FSP Samples')
-             end
-             if ~isempty(saveFile)
-                 A = table;
-                 for it=1:Nt
-                     A.time((it-1)*obj.ssaOptions.nSimsPerExpt+1:it*obj.ssaOptions.nSimsPerExpt) = obj.tSpan(it);
-                     for ie = 1:obj.ssaOptions.Nexp
-%                          for is=1:obj.ssaOptions.nSimsPerExpt
-                             for s = 1:size(Solution.trajs,1)
-                                 warning('off')
-                                 A.(['exp',num2str(ie),'_s',num2str(s)])((it-1)*obj.ssaOptions.nSimsPerExpt+(1:obj.ssaOptions.nSimsPerExpt)) = ...
-                                     Solution.trajs(s,it,(ie-1)*obj.ssaOptions.nSimsPerExpt+(1:obj.ssaOptions.nSimsPerExpt));
-                                 if ~isempty(obj.pdoOptions.PDO)
-                                     A.(['exp',num2str(ie),'_s',num2str(s),'_Distorted'])((it-1)*obj.ssaOptions.nSimsPerExpt+1:obj.ssaOptions.nSimsPerExpt) = ...
-                                         Solution.trajsDistorted(s,it,(ie-1)*obj.ssaOptions.nSimsPerExpt+1:obj.ssaOptions.nSimsPerExpt);
-                                 end
-                             end
-%                          end
-                     end
-                 end
-                 writetable(A,saveFile)
-                 disp(['FSP Samples saved to ',saveFile])
-             end
+            Solution.T_array = obj.tSpan;
+            Nt = length(Solution.T_array);
+            nSims = obj.ssaOptions.nSimsPerExpt*obj.ssaOptions.Nexp;
+            Solution.trajs = zeros(length(obj.species),...
+                length(obj.tSpan),nSims);% Creates an empty Trajectories matrix
+            % from the size of the time array and number of simulations
+            for it = 1:length(obj.tSpan)
+                clear PP
+                PP = double(fspSoln.fsp{it}.p.data);
+                clear w
+                w(:) = PP(:); w(w<0)=0;
+                [I1,I2,I3,I4,I5] =  ind2sub(size(PP),randsample(length(w), nSims, true, w ));
+                for iSp = 1:length(obj.species)
+                    eval(['Solution.trajs(iSp,it,:) = I',num2str(iSp),'-1;']);
+                end
+            end
+            if ~isempty(obj.pdoOptions.PDO)
+                Solution.trajsDistorted = zeros(length(obj.species),...
+                    length(obj.tSpan),nSims);% Creates an empty Trajectories matrix from the size of the time array and number of simulations
+                for iS = 1:length(obj.species)
+                    PDO = obj.pdoOptions.PDO.conditionalPmfs{iS};
+                    nDpossible = size(PDO,1);
+                    Q = Solution.trajs(iS,:,:);
+                    for iD = 1:length(Q(:))
+                        Q(iD) = randsample([0:nDpossible-1],1,true,PDO(:,Q(iD)+1));
+                    end
+                    Solution.trajsDistorted(iS,:,:) = Q;
+                end
+                disp('PDO applied to FSP Samples')
+            end
+            if ~isempty(saveFile)
+                A = table;
+                for it=1:Nt
+                    A.time((it-1)*obj.ssaOptions.nSimsPerExpt+1:it*obj.ssaOptions.nSimsPerExpt) = obj.tSpan(it);
+                    for ie = 1:obj.ssaOptions.Nexp
+                        %                          for is=1:obj.ssaOptions.nSimsPerExpt
+                        for s = 1:size(Solution.trajs,1)
+                            warning('off')
+                            A.(['exp',num2str(ie),'_s',num2str(s)])((it-1)*obj.ssaOptions.nSimsPerExpt+(1:obj.ssaOptions.nSimsPerExpt)) = ...
+                                Solution.trajs(s,it,(ie-1)*obj.ssaOptions.nSimsPerExpt+(1:obj.ssaOptions.nSimsPerExpt));
+                            if ~isempty(obj.pdoOptions.PDO)
+                                A.(['exp',num2str(ie),'_s',num2str(s),'_Distorted'])((it-1)*obj.ssaOptions.nSimsPerExpt+1:obj.ssaOptions.nSimsPerExpt) = ...
+                                    Solution.trajsDistorted(s,it,(ie-1)*obj.ssaOptions.nSimsPerExpt+1:obj.ssaOptions.nSimsPerExpt);
+                            end
+                        end
+                        %                          end
+                    end
+                end
+                writetable(A,saveFile)
+                disp(['FSP Samples saved to ',saveFile])
+            end
         end
 
-        function [fimResults,sensSoln] = computeFIM(obj,sensSoln)
+        function [fimResults,sensSoln] = computeFIM(obj,sensSoln,scale,MHSamples)
             % computeFIM - computes FIM at all time points.
             % Arguments:
             %   sensSoln - (optional) previously compute FSP Sensitivity.
             %              Automatically computed if not provided.
+            %   scale - ('lin'(default) or 'log') Choice of FIM based on
+            %            linear parameters or their natural logarithm
+            %   MHSamples - (optional) set of parameter sets at which to calculate
+            %           the FIM.
             % Outputs:
             %   fimResults - FIM at each time point in obj.tSpan
             %   sensSoln - FSP Sensitivity.
             arguments
                 obj
                 sensSoln = [];
-            end
-            if isempty(sensSoln)
-                disp({'Running Sensitivity Calculation';'You can skip this step by providing sensSoln.'})
-                obj.solutionScheme = 'fspSens';
-                [sensSoln] = obj.solve;
-                sensSoln = sensSoln.sens;
+                scale = 'lin';
+                MHSamples = [];
             end
 
-            % Separate into observed and unobserved species.
-            Nd = length(obj.species);
-            indsUnobserved=[];
-            indsObserved=[];
-            for i=1:Nd
-                if ~isempty(obj.pdoOptions.unobservedSpecies)&&max(contains(obj.pdoOptions.unobservedSpecies,obj.species{i}))
-                    indsUnobserved=[indsUnobserved,i];
-                else
-                    indsObserved=[indsObserved,i];
+            if ~isempty(MHSamples)
+                % For FIM calculation 
+                nSamples = size(MHSamples,1);
+                Nt = length(obj.tSpan);
+                fimResults = cell(Nt,nSamples);
+                if isempty(sensSoln)||length(sensSoln)~=nSamples
+                    sensSoln = cell(1,nSamples);
                 end
-            end
-
-            % compute FIM for each time point
-            fimResults = {};
-            for it=length(sensSoln.data):-1:1
-                if isempty(indsUnobserved)
-                    F = ssit.fim.computeSingleCellFim(sensSoln.data{it}.p, sensSoln.data{it}.S, obj.pdoOptions.PDO);
+                if strcmp(obj.fittingOptions.modelVarsToFit,'all')
+                    obj.fittingOptions.modelVarsToFit = 1:size(obj.parameters,1);
+                end
+                if nargout == 2
+                    saveSens = true;
                 else
-                    % Remove unobservable species.
-                    redS = sensSoln.data{it}.S;
-                    for ir = 1:length(redS)
-                        redS(ir) = sensSoln.data{it}.S(ir).sumOver(indsUnobserved);
+                    saveSens = false;
+                end
+
+                for i=1:nSamples
+                    objTMP = obj;
+                    objTMP.parameters(objTMP.fittingOptions.modelVarsToFit,2) = ...
+                        num2cell(MHSamples(i,:));
+                    if saveSens
+                        [fimResults(:,i),sensSoln{i}] = computeFIM(obj,sensSoln{i},scale);
+                    else
+                        fimResults(:,i) = objTMP.computeFIM(sensSoln{i},scale);
                     end
-                    F = ssit.fim.computeSingleCellFim(sensSoln.data{it}.p.sumOver(indsUnobserved), redS, obj.pdoOptions.PDO);
                 end
-                fimResults{it,1} = F;
+            else
+
+                if isempty(sensSoln)
+                    disp({'Running Sensitivity Calculation';'You can skip this step by providing sensSoln.'})
+                    obj.solutionScheme = 'fspSens';
+                    [sensSoln] = obj.solve;
+                    sensSoln = sensSoln.sens;
+                end
+
+                % Separate into observed and unobserved species.
+                Nd = length(obj.species);
+                indsUnobserved=[];
+                indsObserved=[];
+                for i=1:Nd
+                    if ~isempty(obj.pdoOptions.unobservedSpecies)&&max(contains(obj.pdoOptions.unobservedSpecies,obj.species{i}))
+                        indsUnobserved=[indsUnobserved,i];
+                    else
+                        indsObserved=[indsObserved,i];
+                    end
+                end
+
+                % compute FIM for each time point
+                fimResults = {};
+                for it=length(sensSoln.data):-1:1
+                    if isempty(indsUnobserved)
+                        F = ssit.fim.computeSingleCellFim(sensSoln.data{it}.p, sensSoln.data{it}.S, obj.pdoOptions.PDO);
+                    else
+                        % Remove unobservable species.
+                        redS = sensSoln.data{it}.S;
+                        for ir = 1:length(redS)
+                            redS(ir) = sensSoln.data{it}.S(ir).sumOver(indsUnobserved);
+                        end
+                        F = ssit.fim.computeSingleCellFim(sensSoln.data{it}.p.sumOver(indsUnobserved), redS, obj.pdoOptions.PDO);
+                    end
+                    fimResults{it,1} = F;
+                end
+
+                if strcmp(scale,'log')
+                    for it=length(sensSoln.data):-1:1
+                        fimResults{it,1} = diag([obj.parameters{:,2}])*...
+                            fimResults{it,1}*...
+                            diag([obj.parameters{:,2}]);
+                    end
+                end
+
             end
         end
 
         function [fimTotal,mleCovEstimate,fimMetrics] = evaluateExperiment(obj,...
                 fimResults,cellCounts)
-            fimTotal = 0*fimResults{1};
-            Np = size(fimTotal,1);
-            for i=1:length(cellCounts)
-                fimTotal = fimTotal + cellCounts(i)*fimResults{i};
+            % This function evaluates the provided experiment design (in
+            % "cellCounts" and produces an array of FIMs (one for each
+            % parameter set.
+            arguments
+                obj
+                fimResults
+                cellCounts
             end
+            Ns = size(fimResults,2);
+            Nt = size(fimResults,1);
+            Np = size(fimResults{1,1},1);
+            fimTotal = cell(1,Ns);
+            mleCovEstimate = cell(1,Ns);
 
-            if nargout>=2
-                % Estimate MLE covariance
-                if rank(fimTotal)<Np
-                    disp(['FIM has rank ',num2str(rank(fimTotal)),' and is not invertable for this experiment design'])
-                    mleCovEstimate = NaN;
-                else
-                    mleCovEstimate = fimTotal^-1;
+            for is=1:Ns
+                fimTotal{is} = 0*fimResults{1,is};
+
+                for it=1:Nt
+                    fimTotal{is} = fimTotal{is} + cellCounts(it)*fimResults{it,is};
+                end
+
+                if nargout>=2
+                    % Estimate MLE covariance
+                    if rank(fimTotal{is})<Np
+                        disp(['FIM has rank ',num2str(rank(fimTotal{is})),' and is not invertable for this experiment design'])
+                        mleCovEstimate{1,is} = NaN*ones(Np);
+                    else
+                        mleCovEstimate{1,is} = fimTotal{is}^-1;
+                    end
                 end
             end
 
             if nargout>=3
-                % Compute FIM metrics.
-                fimMetrics.det = det(fimTotal);
-                fimMetrics.trace = trace(fimTotal);
-                fimMetrics.minEigVal = min(eig(fimTotal));
+                for is = Ns:-1:1
+                    % Compute FIM metrics.
+                    fimMetrics.det(1,is) = det(fimTotal{is});
+                    fimMetrics.trace(1,is) = trace(fimTotal{is});
+                    fimMetrics.minEigVal(1,is) = min(eig(fimTotal{is}));
+                end
             end
         end
 
         function [Nc] = optimizeCellCounts(obj,fims,nCellsTotal,FIMMetric,Nc)
-           % This function optimizes the number of cells per time point
-           % according to the user-provide metric.  
-           % Allowable metric are:
-           %   'Determinant' - maximize the determinant of the FIM
-           %   'Smallest Eigenvalue' - maximize the smallest e.val of the
-           %       FIM
-           %   'Trace' - maximize the trace of the FIM
-           %   '[<i1>,<i2>,...]' - minimize the determinant of the inverse
-           %       FIM for the specified indices. All other parameters are
-           %       assumed to be free.
-           %   'TR[<i1>,<i2>,...]' - maximize the determinant of the  FIM 
-           %       for the specified indices. Only the parameters in
-           %       obj.fittingOptions.modelVarsToFit are assumed to be
-           %       free.
+            % This function optimizes the number of cells per time point
+            % according to the user-provide metric. 
+            % 
+            % INPUTS:
+            %
+            % 'fims' is either [Nt x 1] cell array containing the FIM matrices
+            % for each of the Nt time points, or it is a [Nt x Ns] cell
+            % array containing the FIM for each combination of Nt time
+            % points and Ns different parameter sets.
+            %
+            % 'nCellsTotal' is the total number of cells the user wishes to
+            % measure, spead out among the Nt time points.
+            % 
+            % 'FIMmetric' is the type of optimization that the user
+            % desires. Allowable metrics are:
+            %   'Determinant' - maximize the expected determinant of the FIM
+            %   'DetCovariance' - minimize the expected determinant of MLE covariance. 
+            %   'Smallest Eigenvalue' - maximize the smallest e.val of the
+            %       FIM
+            %   'Trace' - maximize the trace of the FIM
+            %   '[<i1>,<i2>,...]' - minimize the determinant of the inverse
+            %       FIM for the specified indices. All other parameters are
+            %       assumed to be free.
+            %   'TR[<i1>,<i2>,...]' - maximize the determinant of the  FIM
+            %       for the specified indices. Only the parameters in
+            %       obj.fittingOptions.modelVarsToFit are assumed to be
+            %       free.
+            %
+            % 'Nc' is an optimal guess for the optimal experiment design.
+            %
+            % OUTPUTS:
+            % 'Nc' is the optimized experiment design (number of cells to
+            % measure at each point in time.
+            %
             arguments
                 obj
                 fims
@@ -708,6 +1013,8 @@ classdef SSIT
             switch FIMMetric
                 case 'Determinant'
                     met = @(A)-det(A);
+                case 'DetCovariance'
+                    met = @(A)det(inv(A));
                 case 'Smallest Eigenvalue'
                     met = @(A)-min(eig(A));
                 case 'Trace'
@@ -715,7 +1022,7 @@ classdef SSIT
                 otherwise
                     if strcmp(FIMMetric(1:2),'TR')
                         k = eval(FIMMetric(3:end));
-                        met = @(A)det(inv(A(k,k)));                        
+                        met = @(A)det(inv(A(k,k)));
                     else  % all parameters are free.
                         k = eval(FIMMetric);
                         ek = zeros(length(k),length(fims{1}));
@@ -723,8 +1030,9 @@ classdef SSIT
                         met = @(A)det(ek*inv(A)*ek');
                     end
             end
-            NT = size(fims(:,1),1);
-            
+            NT = size(fims,1);
+            NS = size(fims,2);
+
             if isempty(Nc)
                 Nc = zeros(1,NT);
                 Nc(1)=nCellsTotal;
@@ -737,7 +1045,7 @@ classdef SSIT
                     while Nc(i)>0
                         Ncp = Nc;
                         Ncp(i) = Ncp(i)-1;
-                        k = SSIT.findBestMove(fims(:,1),Ncp,met);
+                        k = SSIT.findBestMove(fims,Ncp,met);
                         if k==i
                             break
                         end
@@ -755,10 +1063,10 @@ classdef SSIT
                 obj
                 dataFileName
                 linkedSpecies
-                conditions = {}; 
+                conditions = {};
                 % Data conditions that can be used to filter out data that
                 % do not meet specifications.
-                % Example:  
+                % Example:
                 %     conditions = {'Rep_num','1'}  : Only the data in the
                 %     'Rep_num' column that is exactly equal to '1' will be
                 %     kept in the data set.
@@ -797,7 +1105,7 @@ classdef SSIT
             Itime = Nd+1;
             Jtime = find(Q);
             obj.dataSet.app.DataLoadingAndFittingTabOutputs.marginalMatrix(Itime,Jtime) = 1;
-            obj.dataSet.times = unique([obj.dataSet.DATA{:,Jtime}]);
+%             obj.dataSet.times = unique([obj.dataSet.DATA{:,Jtime}]);
 
             % record linked species
             for i=1:size(linkedSpecies,1)
@@ -818,7 +1126,9 @@ classdef SSIT
                 sum(obj.dataSet.app.DataLoadingAndFittingTabOutputs.marginalMatrix)==0;
 
             obj.dataSet.app.SpeciesForFitPlot.Items = obj.species;
-            obj.dataSet.app = filterAndMarginalize([],[],obj.dataSet.app);
+            [obj.dataSet.app,obj.dataSet.times] = filterAndMarginalize([],[],obj.dataSet.app);
+
+%             obj.dataSet.times = unique([obj.dataSet.DATA{:,Jtime}]);
 
             sz = size(obj.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor);
             obj.dataSet.nCells=zeros(sz(1),1);
@@ -834,7 +1144,24 @@ classdef SSIT
                 end
             end
 
-            obj.tSpan = unique([obj.initialTime,obj.dataSet.times]);            
+            obj.tSpan = unique([obj.initialTime,obj.dataSet.times]);
+
+            % Calculate the means
+            obj.dataSet.mean = zeros(sz(1),length(sz)-1);
+            for i=1:sz(1)
+                for j=2:length(sz)
+                    tmpInt{j-1} = [1:sz(j)];
+                end
+                TMP = squeeze(double(obj.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor(i,tmpInt{:})));
+                for j = 1:length(sz)-1
+                    if length(sz)>2
+                        H = sum(TMP,[1:j-1,j+1:length(sz)-1]);
+                    else
+                        H = TMP;
+                    end
+                    obj.dataSet.mean(i,j) = sum([0:length(H)-1]'.*H(:))/sum(H);
+                end
+            end
 
         end
 
@@ -842,6 +1169,71 @@ classdef SSIT
             [logL,gradient] = computeLikelihood(obj,exp(pars),stateSpace,computeSensitivity);
             logL = -logL;
             gradient = -gradient.*exp(pars);
+        end
+
+        function [logLode] = computeLikelihoodODE(obj,pars,SIG)
+            arguments
+                obj
+                pars = [];
+                SIG = [];
+            end
+        
+            if strcmp(obj.fittingOptions.modelVarsToFit,'all')
+                indsParsToFit = [1:length(obj.parameters)];
+            else
+                indsParsToFit = obj.fittingOptions.modelVarsToFit;
+            end
+            nModelPars = length(indsParsToFit);
+
+            if isempty(pars)
+                pars = [obj.parameters{indsParsToFit,2}];
+            end
+
+            if ~isempty(obj.fittingOptions.logPrior)
+                logPrior = sum(obj.fittingOptions.logPrior(pars));
+            else
+                logPrior = 0;
+            end
+
+            originalPars = obj.parameters;
+            obj.tSpan = unique([obj.initialTime,obj.tSpan,obj.dataSet.times]);
+            [~,IA,~] = intersect(obj.tSpan,obj.dataSet.times);
+
+            % Update Model and PDO parameters using supplied guess
+            obj.parameters(indsParsToFit,2) =  num2cell(pars(1:nModelPars));
+
+            obj.solutionScheme = 'ode'; % Chosen solutuon scheme
+            for i=1:size(obj.parameters,1)
+                obj.parameters{i,2} = round(obj.parameters{i,2},12);
+            end
+            solutions = obj.solve;  % Solve the ODE analysis
+
+            obj.parameters =  originalPars;
+
+            % Need to add likelihood calculation here.
+            nt = length(IA);
+%             ns = length(obj.species);
+
+            for i = 1:size(obj.dataSet.linkedSpecies,1)
+                J(i) = find(strcmp(obj.species,obj.dataSet.linkedSpecies{i,1}));
+            end
+            nds = length(J);
+
+            if isempty(SIG)
+                SIG = eye(nt*nds);
+            end
+            nc = repmat(obj.dataSet.nCells,nds,1);
+
+            vm = zeros(nt*nds,1); 
+            tmp = solutions.ode(IA,J);
+            vm(:) = tmp(:);
+            
+            vd = zeros(nt*nds,1); vd(:) = obj.dataSet.mean(:);
+            
+            vm = real(vm);
+
+            logLode = -1/2*(sqrt(nc)'.*(vd-vm)')*SIG^(-1)*((vd-vm).*sqrt(nc));
+            logLode = logLode+logPrior;
         end
 
         function [logL,gradient,fitSolutions] = computeLikelihood(obj,pars,stateSpace,computeSensitivity)
@@ -881,7 +1273,7 @@ classdef SSIT
             end
 
             originalPars = obj.parameters;
-%             obj.tSpan = unique([obj.initialTime,obj.dataSet.times]);
+            %             obj.tSpan = unique([obj.initialTime,obj.dataSet.times]);
             obj.tSpan = unique([obj.initialTime,obj.tSpan]);
 
             % Update Model and PDO parameters using supplied guess
@@ -892,15 +1284,7 @@ classdef SSIT
                 [solutions] = obj.solve(stateSpace);  % Solve the FSP analysis
             else
                 obj.solutionScheme = 'FSP'; % Chosen solutuon scheme ('FSP','SSA')
-%                 try
-                    [solutions] = obj.solve(stateSpace);  % Solve the FSP analysis
-%                 catch
-                    % sometimes the FSP analysis crashes if the provided statespace
-                    % is incorrect.  Not sure why, but regenerating it will fix
-                    % the problem...
-                    %                 warning('Regenerate stateset.')
-%                     [solutions,bounds] = obj.solve;  % Solve the FSP analysis
-%                 end
+                [solutions] = obj.solve(stateSpace);  % Solve the FSP analysis
             end
             obj.parameters =  originalPars;
 
@@ -910,9 +1294,14 @@ classdef SSIT
             end
 
             %% Project FSP result onto species of interest.
-            Nd = length(obj.species);
+            if obj.useHybrid
+                speciesStochastic = setdiff(obj.species,obj.hybridOptions.upstreamODEs);
+            else
+                speciesStochastic = obj.species;
+            end
+            Nd = length(speciesStochastic);
             for i=Nd:-1:1
-                indsPlots(i) = max(contains(obj.dataSet.linkedSpecies(:,1),obj.species(i)));
+                indsPlots(i) = max(contains(obj.dataSet.linkedSpecies(:,1),speciesStochastic(i)));
             end
 
             szP = zeros(1,Nd);
@@ -926,7 +1315,6 @@ classdef SSIT
 
             P = zeros([length(obj.tSpan),szP(indsPlots)]);
             for it = length(obj.tSpan):-1:1
-                %                 if ~isempty(solutions.fsp{it})
                 INDS = setdiff([1:Nd],find(indsPlots));
                 if ~computeSensitivity||nargout<2
                     px = solutions.fsp{it}.p;
@@ -972,7 +1360,7 @@ classdef SSIT
                         S{iPar}(it,d~=0) = d(d~=0);
                     end
                 end
-%             end
+                %             end
             end
 
             %% Padd P or Data to match sizes of tensors.
@@ -1003,32 +1391,32 @@ classdef SSIT
                 end
                 tmp = [tmp,')=0;'];
                 eval(tmp);
-%                 if computeSensitivity&&nargout>=2
-%                     for iPar = 1:parCount
-%                         tmp2 = strrep(tmp,'P(end',['S{',num2str(iPar),'}(end']);
-%                         eval(tmp2);
-%                     end
-%                 end
+                %                 if computeSensitivity&&nargout>=2
+                %                     for iPar = 1:parCount
+                %                         tmp2 = strrep(tmp,'P(end',['S{',num2str(iPar),'}(end']);
+                %                         eval(tmp2);
+                %                     end
+                %                 end
             end
             obj.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor=PD;
-           
-%             if max(NP(2:length(NDat))-NDat(2:end))>0   % truncate if model longer than data
-%                 tmp = 'P = P(:';
-%                 for j = 2:length(NDat)
-%                     tmp = [tmp,',1:',num2str(NDat(j))];
-%                 end
-%                 for j = (length(NDat)+1):4
-%                     tmp = [tmp,',1'];
-%                 end
-%                 tmp = [tmp,');'];
-%                 eval(tmp)
-%                 if computeSensitivity&&nargout>=2
-%                     for iPar = 1:parCount
-%                         tmp2 = strrep(tmp,'P = P',['S{',num2str(iPar),'} = S{',num2str(iPar),'}']);
-%                         eval(tmp2);
-%                     end
-%                 end
-%             end
+
+            %             if max(NP(2:length(NDat))-NDat(2:end))>0   % truncate if model longer than data
+            %                 tmp = 'P = P(:';
+            %                 for j = 2:length(NDat)
+            %                     tmp = [tmp,',1:',num2str(NDat(j))];
+            %                 end
+            %                 for j = (length(NDat)+1):4
+            %                     tmp = [tmp,',1'];
+            %                 end
+            %                 tmp = [tmp,');'];
+            %                 eval(tmp)
+            %                 if computeSensitivity&&nargout>=2
+            %                     for iPar = 1:parCount
+            %                         tmp2 = strrep(tmp,'P = P',['S{',num2str(iPar),'} = S{',num2str(iPar),'}']);
+            %                         eval(tmp2);
+            %                     end
+            %                 end
+            %             end
 
             P = max(P,1e-10);
             if ~isreal(P)
@@ -1059,9 +1447,9 @@ classdef SSIT
                 sz = size(P);
                 fitSolutions.DataLoadingAndFittingTabOutputs.fitResults.current = zeros([length(times),sz(2:end)]);
                 fitSolutions.DataLoadingAndFittingTabOutputs.fitResults.currentData = zeros([length(times),sz(2:end)]);
-                fitSolutions.NameTable.Data = [obj.species,obj.species];
-                fitSolutions.SpeciesForFitPlot.Value = obj.species(indsPlots);
-                fitSolutions.SpeciesForFitPlot.Items = obj.species;
+                fitSolutions.NameTable.Data = [speciesStochastic,speciesStochastic];
+                fitSolutions.SpeciesForFitPlot.Value = speciesStochastic(indsPlots);
+                fitSolutions.SpeciesForFitPlot.Items = speciesStochastic;
                 fitSolutions.DataLoadingAndFittingTabOutputs.dataTensor = PD;
                 fitSolutions.FspPrintTimesField.Value = ['[',num2str(obj.tSpan),']'];
                 if ~computeSensitivity
@@ -1134,9 +1522,7 @@ classdef SSIT
             else
                 gradient = [];
             end
-            %             obj.parameters = originalPars;
-            %             fit_error = app.DataLoadingAndFittingTabOutputs.J_LogLk;
-end
+        end
 
         function fitErrors = likelihoodSweep(obj,parIndices,scalingRange,makePlot)
             % likelihoodSweep - sweep over range of parameters and return
@@ -1184,18 +1570,39 @@ end
                 fitOptions = optimset('Display','iter','MaxIter',10);
                 fitAlgorithm = 'fminsearch';
             end
+
+            if isempty(obj.propensitiesGeneral)
+                obj = formPropensitiesGeneral(obj);
+            end
+
             if isempty(parGuess)
                 parGuess = [obj.parameters{obj.fittingOptions.modelVarsToFit,2}]';
             end
-            obj.solutionScheme = 'FSP';   % Set solution scheme to FSP.
-            [FSPsoln,bounds] = obj.solve;  % Solve the FSP analysis
-            obj.fspOptions.bounds = bounds;% Save bound for faster analyses
-            objFun = @(x)-obj.computeLikelihood(exp(x),FSPsoln.stateSpace);  % We want to MAXIMIZE the likelihood.
+
+            if strcmp(obj.solutionScheme,'FSP')   % Set solution scheme to FSP.
+                [FSPsoln,bounds] = obj.solve;  % Solve the FSP analysis
+                obj.fspOptions.bounds = bounds;% Save bound for faster analyses
+                objFun = @(x)-obj.computeLikelihood(exp(x),FSPsoln.stateSpace);  % We want to MAXIMIZE the likelihood.
+
+                if isfield(fitOptions,'suppressFSPExpansion')&&fitOptions.suppressFSPExpansion
+                    tmpFSPtol = obj.fspOptions.fspTol;
+                    obj.fspOptions.fspTol = inf;
+                end
+            elseif strcmp(obj.solutionScheme,'ode')  % Set solution scheme to ode.
+                objFun = @(x)-obj.computeLikelihoodODE(exp(x));  % We want to MAXIMIZE the likelihood.
+            end
+
             x0 = log(parGuess);
 
             switch fitAlgorithm
                 case 'fminsearch'
-                    [x0,likelihood,~,otherResults]  = fminsearch(objFun,x0,fitOptions);
+                    allFitOptions.suppressFSPExpansion = true;
+                    fNames = fieldnames(fitOptions);
+                    for i=1:length(fNames)
+                        allFitOptions.(fNames{i}) = fitOptions.(fNames{i});
+                    end
+
+                    [x0,likelihood,~,otherResults]  = fminsearch(objFun,x0,allFitOptions);
 
                 case 'fminunc'
                     obj.fspOptions.fspTol = inf;
@@ -1218,8 +1625,8 @@ end
                     % Not yet working efficiently.
                     allFitOptions.maxIter=1000;
                     allFitOptions.burnIn=30;
-                    allFitOptions.updateRate=10;                    
-                    allFitOptions.guessRate=1000;  
+                    allFitOptions.updateRate=10;
+                    allFitOptions.guessRate=1000;
                     allFitOptions.proposalDistribution=@(x)x+0.01*randn(size(x));
                     allFitOptions.useFIMforSearch = false;
                     allFitOptions.CovFIMscale = 0.6;
@@ -1240,7 +1647,7 @@ end
                         objFun = @(x)obj.computeLikelihood(x,FSPsoln.stateSpace);  % We want to MAXIMIZE the likelihood.
                         x0 = (parGuess);
                     end
-                    
+
                     [x0,likelihood]  = mlSearch(objFun,x0,allFitOptions);
 
                 case 'MetropolisHastings'
@@ -1252,15 +1659,15 @@ end
                     allFitOptions.progress=true;
                     allFitOptions.proposalDistribution=@(x)x+0.1*randn(size(x));
                     allFitOptions.numChains = 1;
-                    allFitOptions.useFIMforMH = false;
+                    allFitOptions.useFIMforMetHast = false;
                     allFitOptions.CovFIMscale = 0.6;
                     allFitOptions.suppressFSPExpansion = true;
                     allFitOptions.logForm = true;
-                                        
+
                     j=1;
                     while exist(['TMPmh_',num2str(j),'.mat'],'file')
                         j=j+1;
-                    end                    
+                    end
                     allFitOptions.saveFile = ['TMPmh_',num2str(j),'.mat'];
                     fNames = fieldnames(fitOptions);
                     for i=1:length(fNames)
@@ -1280,22 +1687,25 @@ end
                         TMP.solutionScheme = 'fspSens'; % Set solutions scheme to FSP Sensitivity
                         [sensSoln] = TMP.solve;  % Solve the sensitivity problem
 
-                        fimResults = TMP.computeFIM(sensSoln.sens);
-                        [FIM] = TMP.evaluateExperiment(fimResults,TMP.dataSet.nCells);
-
                         if allFitOptions.logForm
-                            FIMlog = diag([TMP.parameters{obj.fittingOptions.modelVarsToFit,2}])*...
-                                FIM(obj.fittingOptions.modelVarsToFit,obj.fittingOptions.modelVarsToFit)*...
-                                diag([TMP.parameters{obj.fittingOptions.modelVarsToFit,2}]);
+                            fimResults = TMP.computeFIM(sensSoln.sens,'log');
                         else
-                            FIMlog = FIM(obj.fittingOptions.modelVarsToFit,obj.fittingOptions.modelVarsToFit);
+                            fimResults = TMP.computeFIM(sensSoln.sens);
                         end
-                        
-                        covLog = FIMlog^-1;
-                        covLog = allFitOptions.CovFIMscale*(covLog+covLog')/2;
-                        allFitOptions.proposalDistribution=@(x)mvnrnd(x,covLog);                       
+                        FIM = TMP.evaluateExperiment(fimResults,TMP.dataSet.nCells);
+
+                        FIMfree = FIM{1}(obj.fittingOptions.modelVarsToFit,obj.fittingOptions.modelVarsToFit);
+
+                        if allFitOptions.logForm&&min(eig(FIMfree))<1
+                            disp('Warning -- FIM has one or more small eigenvalues.  Reducing proposal width to 10x in those directions. MH Convergence may be slow.')
+                            FIMfree = FIMfree + 1*eye(length(FIMfree));
+                        end
+
+                        covFree = FIMfree^-1;
+                        covFree = allFitOptions.CovFIMscale*(covFree+covFree')/2;
+                        allFitOptions.proposalDistribution=@(x)mvnrnd(x,covFree);
                     end
-                    
+
                     if allFitOptions.suppressFSPExpansion
                         obj.fspOptions.fspTol = inf;
                     end
@@ -1345,7 +1755,122 @@ end
             end
 
             pars = exp(x0);
+
+            if strcmp(obj.solutionScheme,'FSP')&&isfield(fitOptions,'suppressFSPExpansion')
+                obj.fspOptions.fspTol = tmpFSPtol;
+            end
+
         end
+
+        %% Model Reduction Functions
+        function [obj,fspSoln] = computeModelReductionTransformMatrices(obj,fspSoln,phi)
+            % This function computes linear transformation matrices (PHI
+            % and PHIinv) that can be used to switch between the reduced
+            % and origional FSP bases.
+            arguments
+                obj
+                fspSoln = []
+                phi = []
+            end
+
+            numConstraints = length(obj.fspOptions.bounds);
+
+            % Assemble for generator matrix for original FSP problem.
+            if ~isfield(fspSoln,'A_total')
+                fspSoln.Afsp = ssit.FspMatrix(obj.propensities, fspSoln.stateSpace, numConstraints);
+                fspSoln.A_total = fspSoln.Afsp.createSingleMatrix(obj.tSpan(1));
+            end
+
+            % Remove FSP Sinks
+            fspSoln.A_total = fspSoln.A_total(1:end-numConstraints,1:end-numConstraints);
+
+            % Call function to compute transformation matrices.
+            [obj.modelReductionOptions.phi,...
+                obj.modelReductionOptions.phi_inv,...
+                obj.modelReductionOptions.phiScale,...
+                obj.modelReductionOptions.phiPlot,...
+                obj.modelReductionOptions.redOutputs] = ...
+                ssit.fsp_model_reduction.getTransformMatrices(...
+                obj.modelReductionOptions,...
+                fspSoln);
+
+            fspSoln.tOut = obj.tSpan;
+            obj.modelReductionOptions.fspSoln=fspSoln;
+
+        end
+
+        function redSolutions = solveReducedFSP(obj)
+            arguments
+                obj
+            end
+
+            numConstraints = length(obj.fspOptions.bounds);
+            stateCount = obj.modelReductionOptions.fspSoln.stateSpace.getNumStates();
+            % Use Approximate steady state as initial distribution if requested.
+            if obj.fspOptions.initApproxSS
+                jac = obj.modelReductionOptions.fspSoln.A_total;
+                jac = jac(1:end-numConstraints,1:end-numConstraints);
+                jac = jac+diag(sum(jac));
+                try
+                    warning('off')
+                    [eigVec,~] = eigs(jac,1,'smallestabs');
+                catch
+                    try
+                        [eigVec,~] = eigs(jac,0);
+                    catch
+                        try
+                            eigVec = null(full(jac));
+                        catch
+                            disp('Could not find null space. Using uniform.')
+                            eigVec = ones(size(jac,1),1);
+                        end
+                    end
+                end
+                obj.modelReductionOptions.fspSoln.P0 = [eigVec/sum(eigVec);zeros(numConstraints,1)];
+            else % otherwise use user supplied IC.
+                obj.modelReductionOptions.fspSoln.P0  = zeros(stateCount + numConstraints, 1);
+                obj.modelReductionOptions.fspSoln.P0(1:size(obj.initialCondition,2)) = obj.initialProbs;
+            end
+
+            if strcmp(obj.modelReductionOptions.reductionType,'Balanced Model Truncation (HSV)')
+                %                 sys = ss(fspSoln.A_total,fspSoln.P0,eye(nStates),[]);
+                %                 sysred = balred(sys,n,redOutputs.info);
+                %                 A_red = sysred.A;
+                %                 q0 = sysred.B;
+                %                 OutPutC = sysred.C;
+            else
+                q0 = obj.modelReductionOptions.phi_inv*obj.modelReductionOptions.fspSoln.P0;
+                A_red = obj.modelReductionOptions.phi_inv*...
+                    obj.modelReductionOptions.fspSoln.A_total*...
+                    obj.modelReductionOptions.phi;
+            end
+
+            fspErrorCondition.tInit = obj.modelReductionOptions.fspSoln.tOut(1);
+            [~, ~, ~, ~, solutionsNow] = ssit.fsp_ode_solvers.expv_modified(...
+                obj.modelReductionOptions.fspSoln.tOut(end), A_red, q0,...
+                1e-8, 30,...
+                [],...
+                obj.modelReductionOptions.fspSoln.tOut,...
+                1e-3, [],...
+                obj.modelReductionOptions.fspSoln.tOut(1),...
+                fspErrorCondition);
+
+            if strcmp(obj.modelReductionOptions.reductionType,'Balanced Model Truncation (HSV)')
+                %                 redSolutionsNow = solutionsNow*OutPutC';
+            else
+                redSolutionsNow = solutionsNow*obj.modelReductionOptions.phi';
+                redSolutionsNow = diag(1./sum(redSolutionsNow,2))*redSolutionsNow;
+            end
+
+            for j=size(redSolutionsNow,1):-1:1
+                redSolutions.fsp{j} = struct(time=obj.modelReductionOptions.fspSoln.tOut(j),...
+                    p=ssit.FspVector(obj.modelReductionOptions.fspSoln.stateSpace.states,...
+                    redSolutionsNow(j,1:stateCount)),...
+                    sinks=[]);
+            end
+            redSolutions.stateSpace = obj.modelReductionOptions.fspSoln.stateSpace.states;
+        end
+
         %% Plotting/Visualization Functions
         function makePlot(obj,solution,plotType,indTimes,includePDO,figureNums)
             % SSIT.makePlot -- tool to make plot of the FSP or SSA results.
@@ -1416,11 +1941,13 @@ end
                             for i = 1:Nd
                                 subplot(Nd,1,i); hold on
                                 errorbar(solution.T_array(indTimes),solution.Means(indTimes,i),sqrt(solution.Var(indTimes,i)),'linewidth',2);
+                                ylabel(obj.species{i})
                             end
+                            xlabel('time')
                         case 'marginals'
                             for j = 1:Nd
                                 f = figure(figureNums(kfig)); kfig=kfig+1;
-                                f.Name = ['Marginal Distributions of x',num2str(j)];
+                                f.Name = ['Marginal Distributions of ',obj.species{j}];
                                 Nr = ceil(sqrt(Nt));
                                 Nc = ceil(Nt/Nr);
                                 for i = 1:Nt
@@ -1438,13 +1965,13 @@ end
                                 for j1 = 1:Nd
                                     for j2 = j1+1:Nd
                                         h = figure(figureNums(kfig)); kfig=kfig+1;
-                                        h.Name = ['Joint Distribution of x',num2str(j1),' and x',num2str(j2)];
+                                        h.Name = ['Joint Distribution of ',obj.species{j1},' and ',obj.species{j2}];
                                         Nr = ceil(sqrt(Nt));
                                         Nc = ceil(Nt/Nr);
                                         for i = 1:Nt
                                             i2 = indTimes(i);
                                             subplot(Nr,Nc,i);
-                                            contourf(log10(solution.Joints{i2}{j1,j2}));
+                                            contourf(log10(max(1e-16,solution.Joints{i2}{j1,j2})));
                                             colorbar
                                             title(['t = ',num2str(solution.T_array(i2),2)])
                                             %                                             if mod(i-1,Nc)==0;
@@ -1458,6 +1985,22 @@ end
                                     end
                                 end
                             end
+                        case 'escapeTimes'
+                            f = figure(figureNums(kfig)); kfig=kfig+1;
+                            subplot(2,1,1)
+                            z = solution.EscapeCDF(indTimes,:);
+                            t = solution.T_array(indTimes);
+                            plot(t,z,'linewidth',3); hold on
+                            set(gca,'fontsize',16)
+                            ylabel('Escape CDF')
+
+                            subplot(2,1,2)
+                            zp = (z(2:end,:)-z(1:end-1,:))./(t(2:end)-t(1:end-1))';
+                            tp = (t(2:end)+t(1:end-1))/2;
+                            plot(tp',zp,'linewidth',3); hold on
+                            set(gca,'fontsize',16)
+                            ylabel('Escape PDF')
+                            xlabel('time')
                     end
                 case 'SSA'
                     Nd = size(solution.trajs,1);
@@ -1545,7 +2088,7 @@ end
                 fignums = [];
             end
             if isempty(fitSolution)
-               [~,~,fitSolution] = obj.computeLikelihood;
+                [~,~,fitSolution] = obj.computeLikelihood;
             end
             makeSeparatePlotOfData(fitSolution,smoothWindow,fignums)
         end
@@ -1553,14 +2096,16 @@ end
         function plotMHResults(obj,mhResults,FIM)
             arguments
                 obj
-                mhResults 
+                mhResults = [];
                 FIM =[];
             end
 
+            parNames = obj.parameters(obj.fittingOptions.modelVarsToFit,1);
             if ~isempty(FIM)
                 pars = [obj.parameters{obj.fittingOptions.modelVarsToFit,2}];
+               
                 parsLog = log10(pars);
-                
+
                 if ~iscell(FIM)
                     FIM = diag(pars)*...
                         FIM(obj.fittingOptions.modelVarsToFit,obj.fittingOptions.modelVarsToFit)*...
@@ -1577,42 +2122,52 @@ end
             end
 
 
-            figure
-            plot(mhResults.mhValue); 
-            xlabel('Iteration number');
-            ylabel('log-likelihood')
-            title('MH Convergence')
+            if ~isempty(mhResults)
+                % Make figures for MH convergence
+                figure;
+                plot(mhResults.mhValue);
+                xlabel('Iteration number');
+                ylabel('log-likelihood')
+                title('MH Convergence')
 
-            figure
-            ac = xcorr(mhResults.mhValue-mean(mhResults.mhValue),'normalized');
-            ac = ac(size(mhResults.mhValue,1):end);
-            plot(ac,'LineWidth',3); hold on
-            N = size(mhResults.mhValue,1);
-            tau = 1+2*sum((ac(2:N/100)));
-            Neff = N/tau;
-            xlabel('Lag');
-            ylabel('Auto-correlation')
-            title('MH Convergence')
-                       
-            figure
-            [valDoneSorted,J] = sort(mhResults.mhValue);
-            smplDone = mhResults.mhSamples(J,:);
-            Np = size(mhResults.mhSamples,2);
+                figure
+                ac = xcorr(mhResults.mhValue-mean(mhResults.mhValue),'normalized');
+                ac = ac(size(mhResults.mhValue,1):end);
+                plot(ac,'LineWidth',3); hold on
+                N = size(mhResults.mhValue,1);
+                tau = 1+2*sum((ac(2:N/100)));
+                Neff = N/tau;
+                xlabel('Lag');
+                ylabel('Auto-correlation')
+                title('MH Convergence')
 
-            fimCols = {'k','c','b','g','r'};
+                figure
+                [valDoneSorted,J] = sort(mhResults.mhValue);
+                smplDone = mhResults.mhSamples(J,:);
+                Np = size(mhResults.mhSamples,2);
+            end
             
+            fimCols = {'k','c','b','g','r'};
+
             for i=1:Np-1
                 for j = i+1:Np
                     subplot(Np-1,Np-1,(i-1)*(Np-1)+j-1);
-                    scatter(smplDone(:,j)/log(10),smplDone(:,i)/log(10),20,valDoneSorted,'filled'); hold on;
+
+                    if ~isempty(mhResults)
+                        scatter(smplDone(:,j)/log(10),smplDone(:,i)/log(10),20,valDoneSorted,'filled'); hold on;
+                        par0 = mean(smplDone(:,[j,i])/log(10));
+                        cov12 = cov(smplDone(:,j)/log(10),smplDone(:,i)/log(10));
+                    end
                     if ~isempty(FIM)
                         for iFIM = 1:length(covFIM)
-                            ssit.parest.ellipse(parsLog([j,i]),icdf('chi2',0.9,2)*covFIM{iFIM}([j,i],[j,i]),fimCols{iFIM},'linewidth',2)
+                            ssit.parest.ellipse(parsLog([j,i]),icdf('chi2',0.9,2)*covFIM{iFIM}([j,i],[j,i]),fimCols{mod(iFIM,5)+1},'linewidth',2)
                         end
                     end
-                    par0 = mean(smplDone(:,[j,i])/log(10));
-                    cov12 = cov(smplDone(:,j)/log(10),smplDone(:,i)/log(10));
-                    ssit.parest.ellipse(par0,icdf('chi2',0.9,2)*cov12,'m--','linewidth',2)
+                    if ~isempty(mhResults)
+                        ssit.parest.ellipse(par0,icdf('chi2',0.9,2)*cov12,'m--','linewidth',2)
+                    end
+                    xlabel(parNames{j});
+                    ylabel(parNames{i});
                 end
             end
         end
@@ -1627,7 +2182,7 @@ end
                 figNum=[]
                 par0 = []
             end
-            if isempty(figNum)                
+            if isempty(figNum)
                 gcf;
             end
 
@@ -1660,19 +2215,48 @@ end
     end
     methods (Static)
         function FIM = totalFim(fims,Nc)
-            FIM = 0*fims{1};
-            for i = 1:length(fims)
-                FIM = FIM+Nc(i)*fims{i};
+            Nt = size(fims,1);
+            Ns = size(fims,2);
+            FIM = cell(1,Ns);
+            for is = 1:Ns
+                FIM{is} = 0*fims{1};
+                for it = 1:Nt
+                    FIM{is} = FIM{is}+Nc(it)*fims{it,is};
+                end
             end
         end
         function k = findBestMove(fims,Ncp,met)
-            obj = zeros(1,length(Ncp));
+            Nt = size(fims,1);
+            Ns = size(fims,2);
+            obj = zeros(Nt,Ns);
             FIM0 = SSIT.totalFim(fims,Ncp);
-            for i = 1:length(Ncp)
-                FIM = FIM0+fims{i};
-                obj(i) = met(FIM);
+            for is = 1:Ns
+                for it = 1:Nt
+                    FIM = FIM0{is}+fims{it,is};
+                    obj(it,is) = met(FIM);
+                end
             end
-            [~,k] = min(obj);
+            [~,k] = min(mean(obj,2));
+        end
+        function propensities = parameterizePropensities(GenProps,Parset)
+            propensities = GenProps;
+            for i=1:length(GenProps)
+                if ~isempty(propensities{i}.stateDependentFactor)
+                    propensities{i}.stateDependentFactor = @(x)GenProps{i}.stateDependentFactor(x,Parset);
+                end
+                if ~isempty(propensities{i}.hybridFactor)
+                    propensities{i}.hybridFactor = @(t,v)GenProps{i}.hybridFactor(t,Parset,v');
+                end
+                if ~isempty(propensities{i}.hybridFactorVector)
+                    propensities{i}.hybridFactorVector = @(t,v)GenProps{i}.hybridFactorVector(t,Parset,v');
+                end
+                if ~isempty(propensities{i}.timeDependentFactor)
+                    propensities{i}.timeDependentFactor = @(t)GenProps{i}.timeDependentFactor(t,Parset);
+                end
+                if ~isempty(propensities{i}.hybridJointFactor)
+                    propensities{i}.hybridJointFactor = @(t,x,v)GenProps{i}.hybridJointFactor(t,x,Parset,v');
+                end
+            end
         end
     end
 end

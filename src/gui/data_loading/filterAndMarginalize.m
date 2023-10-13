@@ -114,7 +114,8 @@ app.DataLoadingAndFittingTabOutputs.dataTensor = sptensor(subsHistData, valsHist
 % app.DataLoadingAndFittingTabOutputs.collapseInd(lrgInd) = app.DataLoadingAndFittingTabOutputs.collapseInd(lrgInd) - 1;
 % close(gcf)
 
-app.ParEstFitTimesList.Items = cell(1,length(times));
+% app.ParEstFitTimesList.Items = cell(1,length(times));
+app.ParEstFitTimesList.Items = {};
 for i = 1:length(times)
     app.ParEstFitTimesList.Items{1,i} = num2str(times(i));
 end

@@ -45,13 +45,44 @@ propstrings = ssit.SrnModel.processPropensityStrings(app.ReactionsTabOutputs.pro
 % propensities{i} = ssit.Propensity.createFromSym(propstrings{i}, stoichMatrix(:,i), i);
 
 n_reactions = length(app.ReactionsTabOutputs.propensities);
-propensities = cell(n_reactions, 1);
-for i = 1:n_reactions
-    propstrings{i} = strrep(propstrings{i},'..','.');
-    propensities{i} = ssit.Propensity.createFromString(propstrings{i}, stoichMatrix(:,i), i);
-end
+% propensities = cell(n_reactions, 1);
+% for i = 1:n_reactions
+%     propstrings{i} = strrep(propstrings{i},'..','.');
+%     propensities{i} = ssit.Propensity.createFromString(propstrings{i}, stoichMatrix(:,i), i);
+% end
 
-app.FspTabOutputs.propensities = propensities;
+
+if isfield(app.FspTabOutputs,'PropensitiesGeneral')
+    PropensitiesGeneral = app.FspTabOutputs.PropensitiesGeneral;
+else
+
+    sm = cell(1,n_reactions);
+    logicTerms = cell(1,n_reactions);
+    logCounter = 0;
+    for i = 1:n_reactions
+        st = app.ReactionsTabOutputs.propensities{i};
+        for jI = 1:size(app.ReactionsTabOutputs.inputs,1)
+            st = strrep(st,app.ReactionsTabOutputs.inputs{jI,1},['(',app.ReactionsTabOutputs.inputs{jI,2},')']);
+        end
+        [st,logicTerms{i},logCounter] = ssit.Propensity.stripLogicals(st,app.ReactionsTabOutputs.varNames,logCounter);
+        sm{i} = str2sym(st);
+    end
+
+    % if obj.useHybrid
+    %     PropensitiesGeneral = ssit.Propensity.createAsHybridVec(sm, obj.stoichiometry,...
+    %         obj.parameters, obj.species, obj.hybridOptions.upstreamODEs, logicTerms, prefixName);
+    % else
+    PropensitiesGeneral = ssit.Propensity.createAsHybridVec(sm, ...
+        app.ReactionsTabOutputs.stoichMatrix,...
+        app.ReactionsTabOutputs.parameters, ...
+        app.ReactionsTabOutputs.varNames, ...
+        [], logicTerms, 'TEMPPropens');
+    app.FspTabOutputs.PropensitiesGeneral = PropensitiesGeneral;
+end
+% end
+
+
+% app.FspTabOutputs.propensities = propensities;
 
 if (size(x0, 2) > 1)
     x0 = x0';
@@ -74,11 +105,13 @@ app.FspRunningStatus.Text = 'FSP is running...';
 tic
 verbose = 1;
 odeSolver = 'auto';
+
 [solutions, bConstraints, app.FspTabOutputs.stateSpace] = ssit.fsp.adaptiveFspSolve(  tSpan,...
                                                         x0,...
                                                         [1.0], ...
                                                         stoichMatrix, ...
-                                                        propensities, ...
+                                                        PropensitiesGeneral, ...  % need change and add parameters
+                                                        [app.ReactionsTabOutputs.parameters{:,2}]',...
                                                         fspTol, ...
                                                         fConstraints, ...
                                                         bConstraints,...

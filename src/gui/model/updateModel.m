@@ -1,4 +1,4 @@
-function [] = updateModel(app)
+function updateModel(app)
 % This function changes updates the propensity vector, parameter table, and
 % inputs of the model within the GUI. This occurs after the
 % UpdateModelButton had been pushed.
@@ -226,6 +226,11 @@ if ~isempty(app.ReactionsTabOutputs.presetInputs)
     app.SsaSignalUpdateRateField.Enable = 1;
 else
     app.SsaSignalUpdateRateField.Enable = 0;
+end
+
+%% Reset the Propensity Functions
+if isfield(app.FspTabOutputs,'PropensitiesGeneral')
+    app.FspTabOutputs = rmfield(app.FspTabOutputs,'PropensitiesGeneral');
 end
 
 %% Reset the sensitivity and FIM calculations for new model
