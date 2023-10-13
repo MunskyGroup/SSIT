@@ -533,17 +533,25 @@ classdef Propensity
                     end
                 end
 
+
+                expr_t = prod(factors(2:end));
+                expr_x = factors(1);
+                % Convert these symbolic expressions to anonymous
+                % functions
+                for i2=1:length(upstreamODEs)
+                    expr_t = subs(expr_t,upstreamODEs{i2},varODEs(i2));
+                end
+
+                if (~isempty(string(symvar(expr_x)))&&max(contains(string(symvar(expr_x)),'logT')))||...
+                        (~isempty(string(symvar(expr_t)))&&max(contains(string(symvar(expr_t)),'logX')))
+                    obj{iRxn}.isFactorizable = false;
+                    anyLogical = true;
+                end
+
                 if (obj{iRxn}.isFactorizable)
                     % If the propensity is isFactorizable, collect the
                     % time-dependent and state-dependent function handles
 
-                    expr_t = prod(factors(2:end));
-                    expr_x = factors(1);
-                    % Convert these symbolic expressions to anonymous
-                    % functions
-                    for i2=1:length(upstreamODEs)
-                        expr_t = subs(expr_t,upstreamODEs{i2},varODEs(i2));
-                    end
 
                     % The following commands will generate callable
                     % functions to compute propensity functions.  If there
@@ -556,6 +564,11 @@ classdef Propensity
                         obj{iRxn}.anonymousT = true;
                         hybridFactor = sym2propfun(expr_t, true, false, nonXTpars(:,1), speciesStoch, varODEs, logicTerms(iRxn));
                         anyLogical = true;
+                    % elseif sum(contains(string(symvar(expr_t)),'logX'))
+                    %     obj{iRxn}.anonymousT = true;
+                    %     obj{iRxn}.isFactorizable = false;
+                    %     hybridFactor = sym2propfun(expr_t, true, false, nonXTpars(:,1), speciesStoch, varODEs, logicTerms(iRxn));
+                    %     anyLogical = true;
                     else
                         obj{iRxn}.anonymousT = false;
                         % hybridFactor = sym2mFun(expr_t, true, false, nonXTpars(:,1), speciesStoch, varODEs);
@@ -563,6 +576,10 @@ classdef Propensity
                     if ~isempty(logicTerms{iRxn})&&(isfield(logicTerms{iRxn},'logX')||isfield(logicTerms{iRxn},'logE'))
                         obj{iRxn}.anonymousX = true;
                         anyLogical = true;
+                    % elseif sum(contains(string(symvar(expr_x)),'logT'))
+                    %     obj{iRxn}.isFactorizable = false;
+                    %     obj{iRxn}.anonymousX = true;
+                    %     anyLogical = true;
                     else
                         obj{iRxn}.anonymousX = false;
                     end
@@ -623,8 +640,10 @@ classdef Propensity
                     for i2=1:length(upstreamODEs)
                         expr_tx = subs(expr_tx,upstreamODEs{i2},varODEs(i2));
                     end
-                    obj{iRxn}.(jntFactorName) = sym2propfun(expr_tx, true, true, nonXTpars(:,1), speciesStoch, varODEs, logicTerms{iRxn});
+                    obj{iRxn}.(jntFactorName) = sym2propfun(expr_tx, true, true, nonXTpars(:,1), speciesStoch, varODEs, logicTerms(iRxn));
                     obj{iRxn}.isTimeDependent = true;
+                    expr_t_vec(iRxn) = sym(NaN);
+                    expr_x_vec(iRxn) = sym(NaN);
                 end
             end
             
