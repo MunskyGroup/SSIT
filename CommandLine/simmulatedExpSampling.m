@@ -130,7 +130,7 @@ fimPlot=[];
 
 for z = 1:pickN
     time = [time tpt_array];
-    fimPlot = [fimPlot fimSample(z,:)]
+    fimPlot = [fimPlot fimSample(z,:)];
 end
 
 plot(time,fimPlot,'--b',tpt_array,mean(fimSample,1),'k','LineWidth',2)
