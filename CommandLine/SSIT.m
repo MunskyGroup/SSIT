@@ -298,7 +298,7 @@ classdef SSIT
             arguments
                 obj
                 sbmlFile
-                scaleVolume = true
+                scaleVolume = false
             end
             % This function allows one to create a model directly from an
             % SBML file.
@@ -329,7 +329,14 @@ classdef SSIT
             obj.propensityFunctions={};
             for i = 1:nR
                 reactRate = sbmlobj.Reactions(i).ReactionRate;
-                obj.propensityFunctions{i,1} = strrep(reactRate,'compartment*','');
+                reactRate = strrep(reactRate,'compartment*','');
+                if contains(reactRate,'time')
+                    obj.propensityFunctions{i,1} = strrep(reactRate,'time','Ig');
+                    obj.inputExpressions = {'Ig','t'};
+                else
+                    obj.propensityFunctions{i,1} = reactRate;
+                end
+
             end
 
             if scaleVolume
@@ -365,6 +372,81 @@ classdef SSIT
             obj.initialCondition = IC;
             obj.summarizeModel;
 
+        end
+
+        function exportToSBML(obj,modelName)
+            % This function exports the model to an SBML file called
+            % <modelName>.
+            arguments
+                obj
+                modelName
+            end
+            sbModel = exportSimBiol(obj);
+            sbmlexport(sbModel, modelName)
+        end
+
+        function sbModel = exportSimBiol(obj,verifyAndPlot)
+            % This function converts the model to a simple simbiology model
+            % and returns that simbiology object. 
+            % Arguments:
+            %   verifyAndPlot (true/false0) -- option to verify the model
+            %       and run simBiology to make a plot of its results.
+            %
+            % Outputs:
+            %   smModel -- the resulting simBiology model.
+            arguments
+                obj
+                verifyAndPlot = false;
+            end
+
+            sbModel = sbiomodel('simpleModel');
+
+            s = cell(1,length(obj.species));        
+            for is = 1:size(obj.stoichiometry,1)
+                s{is} = addspecies(sbModel,obj.species{is},obj.initialCondition(is));
+            end
+
+            for is = 1:size(obj.parameters,1)
+                p{is} = addparameter(sbModel,obj.parameters{is,1},obj.parameters{is,2});
+            end
+
+            % Parse time varying components in the reaction rate equations. 
+            props = obj.propensityFunctions;
+            for is = 1:size(obj.inputExpressions,1)
+                tvComp = strrep(obj.inputExpressions{is,2},'t','time');
+                for ir = 1:length(props)
+                    props{ir} = strrep(props{ir},obj.inputExpressions{is,1},['(',tvComp,')']);
+                end
+            end
+           
+            for ir=1:size(obj.stoichiometry,2)
+                strReactants = [];
+                strProducts =  [];
+                for is = 1:size(obj.stoichiometry,1)
+                    if obj.stoichiometry(is,ir)<0
+                        strReactants =[strReactants,'+ ',[num2str(-obj.stoichiometry(is,ir))],' ',obj.species{is}];
+                    elseif obj.stoichiometry(is,ir)>0
+                        strProducts =[strProducts,'+ ',[num2str(obj.stoichiometry(is,ir))],' ',obj.species{is}];
+                    end
+                end
+                if isempty(strProducts); strProducts = '  null '; end
+                if isempty(strReactants); strReactants = '  null '; end
+                rxn = [strReactants(3:end),' -> ',strProducts(3:end)];
+                RXN{is} = addreaction(sbModel,rxn,'ReactionRate',props{ir});
+            end
+
+
+
+            if verifyAndPlot
+                verify(sbModel)
+                csObj = getconfigset(sbModel,'active');
+                set(csObj,'Stoptime',max(obj.tSpan));
+                [t,x,names] = sbiosimulate(sbModel);
+                plot(t,x);
+                xlabel('Time');
+                ylabel('Amount');
+                legend(names);
+            end
         end
 
         function [obj] = addSpecies(obj,newSpecies,initialCond)

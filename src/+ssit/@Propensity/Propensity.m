@@ -516,7 +516,7 @@ classdef Propensity
                     end
 
                     if (ismember(t, symvar(factors(1))))||(~isempty(upstreamODEs)&&max(ismember(upstreamODEs,symvar(factors(1)))))
-                        obj.isFactorizable = false;
+                        obj{iRxn}.isFactorizable = false;
                     end
                     for i2 = 2:length(factors)
                         fvars = symvar(factors(i2));
