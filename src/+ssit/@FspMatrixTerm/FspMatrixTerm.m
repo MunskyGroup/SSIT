@@ -40,11 +40,11 @@ classdef FspMatrixTerm
     end
 
     methods
-        function obj = FspMatrixTerm(propensity, stateSet, parameters, numConstraints, varNames, modRedTransformMatrices)
+        function obj = FspMatrixTerm(propensity, parameters, stateSet, numConstraints, varNames, modRedTransformMatrices)
             arguments
                 propensity
-                stateSet
                 parameters
+                stateSet
                 numConstraints
                 varNames = []
                 modRedTransformMatrices = []
@@ -82,7 +82,7 @@ classdef FspMatrixTerm
 
             if ((~obj.isTimeDependent) || (obj.isFactorizable))
                 % Generate generator matrix for this term
-                obj.matrix = ssit.FspMatrixTerm.GenerateMatrixTermTimeInvariant(propensity, stateSet, parameters, numConstraints, varNames); % The matrix data is generated only once
+                obj.matrix = ssit.FspMatrixTerm.GenerateMatrixTermTimeInvariant(propensity, parameters, stateSet, numConstraints, varNames); % The matrix data is generated only once
                 
                 % Perform model reduction if requested
                 if ~isempty(modRedTransformMatrices)
@@ -159,11 +159,11 @@ classdef FspMatrixTerm
 
 methods (Static)
 
-    function A_fsp = GenerateMatrixTermTimeInvariant(propensity, state_set,parameters, numConstraints, varNames)
+    function A_fsp = GenerateMatrixTermTimeInvariant(propensity, parameters, state_set, numConstraints, varNames)
         arguments
             propensity
-            state_set
             parameters
+            state_set
             numConstraints =[];
             varNames = [];
         end

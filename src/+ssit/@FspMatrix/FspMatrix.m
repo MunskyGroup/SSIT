@@ -64,7 +64,7 @@ classdef FspMatrix
             obj = obj.regenerate(propensities, parameters, stateSet, numConstraints, varNames, modRedTransformMatrices);
         end
 
-        function obj = regenerate(obj, propensities, stateSet, parameters, numConstraints, varNames, modRedTransformMatrices)
+        function obj = regenerate(obj, propensities, parameters, stateSet, numConstraints, varNames, modRedTransformMatrices)
             % Regenerate the state space for the current contraints.
             % Parameters
             % ----------
@@ -95,8 +95,8 @@ classdef FspMatrix
             arguments
                 obj
                 propensities
-                stateSet
                 parameters
+                stateSet
                 numConstraints
                 varNames = []
                 modRedTransformMatrices = []
@@ -104,7 +104,7 @@ classdef FspMatrix
             n_reactions = length(propensities);
             obj.terms = cell(n_reactions, 1);
             for i = 1:n_reactions
-                obj.terms{i} = ssit.FspMatrixTerm(propensities{i}, stateSet, parameters, numConstraints, varNames, modRedTransformMatrices);
+                obj.terms{i} = ssit.FspMatrixTerm(propensities{i}, parameters, stateSet, numConstraints, varNames, modRedTransformMatrices);
             end
         end
 

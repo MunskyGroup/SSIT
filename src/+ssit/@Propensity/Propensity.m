@@ -497,7 +497,7 @@ classdef Propensity
                 if ~isempty(speciesStoch)
                     for j = 1:length(prop_vars)
                         Jx(j) = max(strcmp(string(prop_vars(j)),speciesStoch));
-                        Jt(j) = max(strcmp(string(prop_vars(j)),'t'));
+                        Jt(j) = max(strcmp(string(prop_vars(j)),['t',upstreamODEs]));
                     end
                 end
                 if sum(Jx)==0
@@ -540,6 +540,7 @@ classdef Propensity
                 % functions
                 for i2=1:length(upstreamODEs)
                     expr_t = subs(expr_t,upstreamODEs{i2},varODEs(i2));
+                    expr_x = subs(expr_x,upstreamODEs{i2},varODEs(i2));
                 end
 
                 if (~isempty(string(symvar(expr_x)))&&max(contains(string(symvar(expr_x)),'logT')))||...

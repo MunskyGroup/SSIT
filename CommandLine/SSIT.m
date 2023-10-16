@@ -1871,8 +1871,8 @@ classdef SSIT
 
             % Assemble for generator matrix for original FSP problem.
             if ~isfield(fspSoln,'A_total')
-                fspSoln.Afsp = ssit.FspMatrix(obj.propensities, fspSoln.stateSpace, numConstraints);
-                fspSoln.A_total = fspSoln.Afsp.createSingleMatrix(obj.tSpan(1));
+                fspSoln.Afsp = ssit.FspMatrix(obj.propensitiesGeneral, [obj.parameters{:,2}]', fspSoln.stateSpace, numConstraints);
+                fspSoln.A_total = fspSoln.Afsp.createSingleMatrix(obj.tSpan(1), [obj.parameters{:,2}]');
             end
 
             % Remove FSP Sinks

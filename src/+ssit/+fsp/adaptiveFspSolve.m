@@ -190,11 +190,11 @@ end
 % Generate the FSP matrix
 stateCount = stateSpace.getNumStates();
 if useHybrid
-    AfspFull = ssit.FspMatrix(propensities, stateSpace, parameters, constraintCount, speciesNames, modRedTransformMatrices);    
+    AfspFull = ssit.FspMatrix(propensities, parameters, stateSpace, constraintCount, speciesNames, modRedTransformMatrices);    
 elseif useReducedModel
-    AfspRed = ssit.FspMatrix(propensities, stateSpace, parameters, constraintCount, speciesNames, modRedTransformMatrices);
+    AfspRed = ssit.FspMatrix(propensities, parameters, stateSpace, constraintCount, speciesNames, modRedTransformMatrices);
 else
-    AfspFull = ssit.FspMatrix(propensities, stateSpace, parameters, constraintCount, speciesNames);
+    AfspFull = ssit.FspMatrix(propensities, parameters, stateSpace, constraintCount, speciesNames);
 end
 
 % Check that the model propensities are time-invariant
@@ -222,7 +222,7 @@ if initApproxSS
 
     else
         if useReducedModel
-            AfspFull = ssit.FspMatrix(propensities, stateSpace, constraintCount, speciesNames);
+            AfspFull = ssit.FspMatrix(propensities, parameters, stateSpace, constraintCount, speciesNames);
         end
 
         jac = AfspFull.createSingleMatrix(outputTimes(1),parameters);
@@ -483,11 +483,11 @@ while (tNow < maxOutputTime)
         end
 
         try
-            AfspFull = AfspFull.regenerate(propensities, stateSpace, parameters, constraintCount,speciesNames);
+            AfspFull = AfspFull.regenerate(propensities, parameters, stateSpace, constraintCount,speciesNames);
         catch
             stateSpace = ssit.FiniteStateSet(initStates, stoichMatrix);
             stateSpace = stateSpace.expand(constraintFunctions, constraintBoundsFinal);
-            AfspFull = AfspFull.regenerate(propensities, stateSpace, parameters, constraintCount,speciesNames);
+            AfspFull = AfspFull.regenerate(propensities, parameters, stateSpace, constraintCount,speciesNames);
         end
 
         stateCountOld = stateCount;
@@ -518,7 +518,7 @@ y = zeros(length(propensities), 1);
 wt = propensities{1}.hybridFactorVector(t,parameters,v);
 for i = 1:length(propensities)
     if propensities{i}.isFactorizable
-        y(i) = wt(i).*propensities{i}.stateDependentFactor(x);
+        y(i) = wt(i).*propensities{i}.stateDependentFactor(x,parameters);
     else
         y(i) = propensities{i}.hybridJointFactor(t,[]);
     end
