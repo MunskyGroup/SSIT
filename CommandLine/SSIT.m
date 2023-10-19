@@ -548,6 +548,31 @@ classdef SSIT
             obj.pdoOptions.props.PDOpars = lambda;
             obj.pdoOptions.PDO = obj.generatePDO(obj.pdoOptions,lambda,[],[],maxSize);
         end
+        
+        function [pdo] = generatePDO(obj,pdoOptions,paramsPDO,fspSoln,variablePDO,maxSize)
+            arguments
+                obj
+                pdoOptions
+                paramsPDO = []
+                fspSoln = []
+                variablePDO =[]
+                maxSize=[];
+            end
+            app.DistortionTypeDropDown.Value = pdoOptions.type;
+            app.FIMTabOutputs.PDOProperties.props = pdoOptions.props;
+            % Separate into observed and unobserved species.
+            Nd = length(obj.species);
+            indsUnobserved=[];
+            indsObserved=[];
+            for i=1:Nd
+                if ~isempty(obj.pdoOptions.unobservedSpecies)&&max(contains(obj.pdoOptions.unobservedSpecies,obj.species{i}))
+                    indsUnobserved=[indsUnobserved,i];
+                else
+                    indsObserved=[indsObserved,i];
+                end
+            end
+            [~,pdo] = ssit.pdo.generatePDO(app,paramsPDO,fspSoln,indsObserved,variablePDO,maxSize);
+        end
 
         function [logL,P] = findPdoError(obj,pdoType,lambda,True,Distorted)
             % This function calculates the likelihood of observed data
@@ -900,8 +925,8 @@ classdef SSIT
                             A.(['exp',num2str(ie),'_s',num2str(s)])((it-1)*obj.ssaOptions.nSimsPerExpt+(1:obj.ssaOptions.nSimsPerExpt)) = ...
                                 Solution.trajs(s,it,(ie-1)*obj.ssaOptions.nSimsPerExpt+(1:obj.ssaOptions.nSimsPerExpt));
                             if ~isempty(obj.pdoOptions.PDO)
-                                A.(['exp',num2str(ie),'_s',num2str(s),'_Distorted'])((it-1)*obj.ssaOptions.nSimsPerExpt+1:obj.ssaOptions.nSimsPerExpt) = ...
-                                    Solution.trajsDistorted(s,it,(ie-1)*obj.ssaOptions.nSimsPerExpt+1:obj.ssaOptions.nSimsPerExpt);
+                                A.(['exp',num2str(ie),'_s',num2str(s),'_Distorted'])((it-1)*obj.ssaOptions.nSimsPerExpt+(1:obj.ssaOptions.nSimsPerExpt)) = ...
+                                    Solution.trajsDistorted(s,it,(ie-1)*obj.ssaOptions.nSimsPerExpt+(1:obj.ssaOptions.nSimsPerExpt));
                             end
                         end
                         %                          end

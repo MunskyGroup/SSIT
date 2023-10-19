@@ -198,7 +198,6 @@ classdef poissonTest < matlab.unittest.TestCase
             Model.solutionScheme = 'FSP';
             [~,Model.fspOptions.bounds] = Model.solve;
 
-            
             Model.solutionScheme = 'fspSens';
             Model.fspOptions.fspTol = 1e-6;            
 
@@ -331,7 +330,6 @@ classdef poissonTest < matlab.unittest.TestCase
         function MetHastAndSampledFIM(testCase)
             Model = testCase.Poiss;
             Model.solutionScheme = 'FSP';
-            % Model = Model.formPropensitiesGeneral;
 
             % run Metropolis Hastings
             MHFitOptions.thin=1;
