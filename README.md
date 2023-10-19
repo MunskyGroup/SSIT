@@ -2,14 +2,13 @@
 
 ![SSIT](https://github.com/MunskyGroup/SSIT/blob/main/images/GraphicalAbstract.png)
 
-Authors: Huy Vo, Joshua Cook, Brian Munsky
+Authors: Huy Vo, Joshua Cook, E. Ron, Brian Munsky
 
 [![License](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
 
 The SSIT allows users to specifiy and solve the chemical master equation for discreate stochastic models, especially those used for the analysis of single-cell gene regulaton.  
 
 To learn more about the FSP theory that underlies the SSIT, please see the slides from our [Nov. 3, 2022 BPPB Seminar](https://github.com/MunskyGroup/SSIT/blob/main/images/BPPBSeminarNov2022.pdf)
-
 
 The SSIT includes command line tools and a graphical user interface to:
 - Build, save, and load models
@@ -68,16 +67,6 @@ To test your installation, navigate to the folder SSIT/tests and run the followi
 - modelReductionTests % Tests various model reduction schemes for more efficient solutions of the Chemical Master Equation
 - miscelaneousTests % Tests other aspects, including GUI functionality, loading/saving to SBME and SimBiology
 
-# Acknowledgements
-
-The SSIT tools in this repository make use of sparse tensors using the Tensor Toolbox for MATLAB (version 3.2.1) provided by Brett W. Bader, Tamara G. Kolda and others at www.tensortoolbox.org under   Users of this software should cite the TTM creators at:
-
-* B. W. Bader and T. G. Kolda, Efficient MATLAB Computations with Sparse and Factored Tensors, SIAM J. Scientific Computing, 30(1):205-231, 2007, http://dx.doi.org/10.1137/060676489. 
-
-The provided SSIT tools also make use a modified version of Expokit for the solution of time-invariant master equations (although these codes are not used for the current publication). Users of this software should cite the creators at:
-
-* Sidje, R. B., Expokit Software Package for Computing Matrix Exponentials, ACM Trans. Math. Softw., 24:1, 1998.
-
 # Getting Started
 The SSIT provides two basic interaction options: (1) command line tools and (2) a graphical user interface.
 
@@ -134,7 +123,35 @@ You should arrive at a fit of the model to the experimentally measured Dusp1 mRN
 ![SSIT](https://github.com/MunskyGroup/SSIT/blob/main/images/Dusp1Fit.png)
 
 
+# Acknowledgements
 
+The SSIT tools in this repository make use of sparse tensors using the Tensor Toolbox for MATLAB (version 3.2.1) provided by Brett W. Bader, Tamara G. Kolda and others at www.tensortoolbox.org under   Users of this software should cite the TTM creators at:
 
+* B. W. Bader and T. G. Kolda, Efficient MATLAB Computations with Sparse and Factored Tensors, SIAM J. Scientific Computing, 30(1):205-231, 2007, http://dx.doi.org/10.1137/060676489. 
 
+The provided SSIT tools also make use a modified version of Expokit for the solution of time-invariant master equations (although these codes are not used for the current publication). Users of this software should cite the creators at:
 
+* Sidje, R. B., Expokit Software Package for Computing Matrix Exponentials, ACM Trans. Math. Softw., 24:1, 1998.
+
+# How to Cite This Repository
+
+the SSIT is free to use or copy with citation of the authors and the above referenced packages (Expokit from Sidje) and (TensorToolbox from Bader et al).  If you use the SSIT for your research, we would appreciate it if you could cite us as:
+
+- H. D. Vo, J. Cook, B. Munsky, 2023, Stochastic System Identification Toolbox, v1.0.0, https://doi.org/10.5281/zenodo.10023437
+
+For use of FSP tools, please cite:
+
+- B. Munsky, M. Khammash, "The finite state projection algorithm for the solution of the chemical master equation," J. Chemical Physics, 124:4, 2006.
+
+For use of FSP forlikelihood calculation and model estimation, please cite one or more of the following:
+
+- G. Neuert, B. Munsky, et al., "Systematic identification of signal-activated stochastic gene regulation", Science, 339:6119, 584-587, 2013.
+- B Munsky, Z Fox, G Neuert, "Integrating single-molecule experiments and discrete stochastic models to understand heterogeneous gene transcription dynamics," Methods 85, 12-21, 2015
+- B Munsky, G Li, ZR Fox, DP Shepherd, G Neuert, "Distribution shapes govern the discovery of predictive models for gene regulation," Proceedings of the National Academy of Sciences, 115:29, 7533-7538, 2018
+- D Kalb, HD Vo, S Adikari, E Hong-Geller, B Munsky, J Werner, Visualization and modeling of inhibition of IL-1β and TNF-α mRNA transcription at the single-cell level, Scientific Reports 11:1, 13692, 2021
+
+For use of FIM for experiment design, please cite one of the following: 
+
+- ZR Fox, B Munsky, "The finite state projection based Fisher information matrix approach to estimate information and optimize single-cell experiments," PLoS computational biology 15:1, e1006365, 2019
+- ZR Fox, G Neuert, B Munsky, "Optimal design of single-cell experiments within temporally fluctuating environments," Complexity 2020, 1-15, 2020
+- HD Vo, LS Forero-Quintero, LU Aguilera, B Munsky, "Analysis and design of single-cell experiments to harvest fluctuation information while rejecting measurement noise," Frontiers in Cell and Developmental Biology 11, 1133994, 2023.
