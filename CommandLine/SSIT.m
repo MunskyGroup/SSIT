@@ -1991,7 +1991,7 @@ classdef SSIT
         end
 
         %% Plotting/Visualization Functions
-        function makePlot(obj,solution,plotType,indTimes,includePDO,figureNums)
+        function makePlot(obj,solution,plotType,indTimes,includePDO,figureNums,lineProps)
             % SSIT.makePlot -- tool to make plot of the FSP or SSA results.
             % arguments:
             %   solution -- solution structure from SSIT.
@@ -2031,6 +2031,7 @@ classdef SSIT
                 indTimes = [];
                 includePDO = false;
                 figureNums = [1:100];
+                lineProps = {'linewidth',2};
             end
             kfig = 1;
             switch obj.solutionScheme
@@ -2054,12 +2055,12 @@ classdef SSIT
                     Nt = length(indTimes);
                     switch plotType
                         case 'means'
-                            plot(solution.T_array(indTimes),solution.Means(indTimes,:));
+                            plot(solution.T_array(indTimes),solution.Means(indTimes,:),lineProps{:});
                         case 'meansAndDevs'
                             figure(figureNums(kfig)); kfig=kfig+1;
                             for i = 1:Nd
                                 subplot(Nd,1,i); hold on
-                                errorbar(solution.T_array(indTimes),solution.Means(indTimes,i),sqrt(solution.Var(indTimes,i)),'linewidth',2);
+                                errorbar(solution.T_array(indTimes),solution.Means(indTimes,i),sqrt(solution.Var(indTimes,i)),lineProps{:});
                                 ylabel(obj.species{i})
                             end
                             xlabel('time')
@@ -2072,7 +2073,7 @@ classdef SSIT
                                 for i = 1:Nt
                                     i2 = indTimes(i);
                                     subplot(Nr,Nc,i); hold on
-                                    stairs(solution.Marginals{i2}{j},'linewidth',2);
+                                    stairs(solution.Marginals{i2}{j},lineProps{:});
                                     set(gca,'fontsize',15)
                                     title(['t = ',num2str(solution.T_array(i2),2)])
                                 end
@@ -2182,7 +2183,7 @@ classdef SSIT
                                     f.Name = ['Marg. Dist. Sensitivities of x',num2str(id),' at t=',num2str(solution.plotable.T_array(it2))];
                                     for j = 1:Np
                                         subplot(Nr,Nc,j); hold on;
-                                        stairs(solution.plotable.sensmdist{j,id,it2},'linewidth',2);
+                                        stairs(solution.plotable.sensmdist{j,id,it2},lineProps{:});
                                         set(gca,'fontsize',15)
                                         title(obj.parameters{j,1})
                                         %                                         if mod(j-1,Nc)==0;
