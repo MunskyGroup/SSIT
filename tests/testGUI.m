@@ -6,11 +6,11 @@ classdef testGUI < matlab.uitest.TestCase
     methods (TestClassSetup)
         % Shared setup for the entire test class
         function createTestGUI(tc)
-            addpath('..')
+            cd ../../SSIT/
+            addpath('../')
+            addpath(genpath('../src'));
             close all force
             tc.GUI = SSIT_GUI;
-            % tc.GUI.ModelDropDown.Value = 'M01_Toggle_Switch.m';
-            % tc.GUI.ModelDropDownValueChanged(tc.GUI)
         end
     end
 
