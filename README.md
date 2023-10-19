@@ -13,39 +13,39 @@ To learn more about the FSP theory that underlies the SSIT, please see the slide
 
 The SSIT includes command line tools and a graphical user interface to:
 - Build, save, and load models
--- Create from propensity functions and stoichiometries
--- Load from / export to SimBiology
--- Load from / export to SBML
+    - Create from propensity functions and stoichiometries
+    - Load from / export to SimBiology
+    - Load from / export to SBML
 - Solve models
--- Solve using ODE analyses and basic moment closure analyses
--- Generate synthetic data from models using Stochastic Simulations (parallel)
--- Solve CME directly using the Finite State Projection algorithm, included automated FSP state set selection/expansion
--- All methods support non-linear, time varying propensity functions, including logical statements 
+    - Solve using ODE analyses and basic moment closure analyses
+    - Generate synthetic data from models using Stochastic Simulations (parallel)
+    - Solve CME directly using the Finite State Projection algorithm, included automated FSP state set selection/expansion
+    - All methods support non-linear, time varying propensity functions, including logical statements 
 - Compute sensitivity of solutions to parameter variations
 - Compute first passage or escape time distributions for complex trajectories
 - Load experimental single-cell data (e.g., from processes smFISH images)
 - Fit Models to Experimental data
--- Compute the likelihood of data given model
--- Maximize likelihood using gradient and non-gradient based searches
--- Run efficient Metropolis Hastings algorithm (with custom proposal distribution or proposal distribution based on FIM) to estimate parameter uncertainties given single-cell data
--- Include custom priors on parameter distributions for Bayesian analysis
+    - Compute the likelihood of data given model
+    - Maximize likelihood using gradient and non-gradient based searches
+    - Run efficient Metropolis Hastings algorithm (with custom proposal distribution or proposal distribution based on FIM) to estimate parameter uncertainties given single-cell data
+    - Include custom priors on parameter distributions for Bayesian analysis
 - Model and reject measurement noise
--- Calibrate empirical probability distortion operator (PDO) to quantify effects of image distortion
--- Include image distortions in parameter estimation
+    - Calibrate empirical probability distortion operator (PDO) to quantify effects of image distortion
+    - Include image distortions in parameter estimation
 - Improve Experiment Designs
--- Compute the Fisher Information Matrix for CME models 
--- Sample over model uncertainty (e.g., model prior or posterior from previous experiment round) for iterative experiment design.
--- Search experiment design space to find optimally informative experiments
--- Automatically adjust designs to account for image distortion effects
+    - Compute the Fisher Information Matrix for CME models 
+    - Sample over model uncertainty (e.g., model prior or posterior from previous experiment round) for iterative experiment design.
+    - Search experiment design space to find optimally informative experiments
+    - Automatically adjust designs to account for image distortion effects
 - Explore effects of Extrinsic Noise in parameters
 - Form reduce order models
--- Run hybrid models with deterministic and stochastic species
--- Reduce models using Quasi-Steady Approximations on Fast Species
--- Reduce models using Eigenvalue decomposition
--- Reduce models using coarse meshes
--- Reduce models using Principle Orthogonal Decomposition
+    - Run hybrid models with deterministic and stochastic species
+    - Reduce models using Quasi-Steady Approximations on Fast Species
+    - Reduce models using Eigenvalue decomposition
+    - Reduce models using coarse meshes
+    - Reduce models using Principle Orthogonal Decomposition
 - Compare multiple models to different data sets with shared parameter sets
--- Identify parameters that change with genetic/environmental/experimental conditions
+    - Identify parameters that change with genetic/environmental/experimental conditions
 - Many Examples
 
 # Dependencies
@@ -60,13 +60,13 @@ For all basic functionalities:
 Clone this package to a local folder on your computer. Then add the path to that folder (with subfolders) into MATLAB's search path. You can then call all functions from MATLAB. 
 
 # Testing
-To test your installation, navigate to the folder SSIT/tests and run the following test routines:
-PoissonTest % Tests various solution schemes, data generation/loading and model parameterization for a 1-species model
-Poisson2DTest % Tests various solutions for a 2-species model
-PoissonTVTest % Tests various solutions for a 1-species Time-varying model
-multiModelTests % Tests various solutions for a combinations of multiple models with different data sets.
-modelReductionTests % Tests various model reduction schemes for more efficient solutions of the Chemical Master Equation
-miscelaneousTests % Tests other aspects, including GUI functionality, loading/saving to SBME and SimBiology
+To test your installation, navigate to the folder SSIT/tests and run the following test routines.
+- PoissonTest % Tests various solution schemes, data generation/loading and model parameterization for a 1-species model
+- Poisson2DTest % Tests various solutions for a 2-species model
+- PoissonTVTest % Tests various solutions for a 1-species Time-varying model
+- multiModelTests % Tests various solutions for a combinations of multiple models with different data sets.
+- modelReductionTests % Tests various model reduction schemes for more efficient solutions of the Chemical Master Equation
+- miscelaneousTests % Tests other aspects, including GUI functionality, loading/saving to SBME and SimBiology
 
 # Acknowledgements
 
