@@ -139,9 +139,17 @@ the SSIT is free to use or copy with citation of the authors and the above refer
 
 - H. D. Vo, J. Cook, B. Munsky, 2023, Stochastic System Identification Toolbox, v1.0.0, https://doi.org/10.5281/zenodo.10023437
 
-For use of FSP tools, please cite:
+For use of FSP tools, please cite one or more of the following:
 
 - B. Munsky, M. Khammash, "The finite state projection algorithm for the solution of the chemical master equation," J. Chemical Physics, 124:4, 2006.
+- B Munsky, M Khammash, "The finite state projection approach for the analysis of stochastic noise in gene networks," IEEE Transactions on Automatic Control 53 (Special Issue), 201-214, 2008.
+- Z Fox, G Neuert, B Munsky, "Finite state projection based bounds to compare chemical master equation models using single-cell data," The Journal of chemical physics, 145:7, 2016.
+
+For use of FSP tools with model reductions, please cite one or more of the following:
+
+- S Peleš, B Munsky, M Khammash, "Reduction and solution of the chemical master equation using time scale separation and finite state projection," The Journal of chemical physics, 125:20, 2006.
+- JJ Tapia, JR Faeder, B Munsky, "Adaptive coarse-graining for transient and quasi-equilibrium analyses of stochastic gene regulation," 2012 IEEE 51st IEEE Conference on Decision and Control (CDC), 5361-5366, 2012
+- HD Vo, Z Fox, A Baetica, B Munsky, "Bayesian estimation for stochastic gene expression using multifidelity models," The Journal of Physical Chemistry B, 123:10, 2217-2234, 2019.
 
 For use of FSP forlikelihood calculation and model estimation, please cite one or more of the following:
 
