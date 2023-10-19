@@ -8,30 +8,65 @@ Authors: Huy Vo, Joshua Cook, Brian Munsky
 
 The SSIT allows users to specifiy and solve the chemical master equation for discreate stochastic models, especially those used for the analysis of single-cell gene regulaton.  
 
-To learn more about the FSP theory that underlies the SSIT, please see the slide from our [Nov. 3, 2022 BPPB Seminar](https://github.com/MunskyGroup/SSIT/blob/main/images/BPPBSeminarNov2022.pdf)
+To learn more about the FSP theory that underlies the SSIT, please see the slides from our [Nov. 3, 2022 BPPB Seminar](https://github.com/MunskyGroup/SSIT/blob/main/images/BPPBSeminarNov2022.pdf)
 
 
 The SSIT includes command line tools and a graphical user interface to:
 - Build, save, and load models
-- Generate synthetic data from models using Stochastic Simulations
-- Solve models using the Finite State Projection algorithm
-- Compute sensitivity of FSP solutions to parameter variations
-- Load experimental smFISH data
-- Compute/Maximize the likelihood of data givien model
-- Run Metropolis Hastings algorithm to estimate parametr uncertainties given single-cell data
-- Compute the Fisher Information Matrix for CME models
-- Search experiment design space to find optimally informative experiments
+-- Create from propensity functions and stoichiometries
+-- Load from / export to SimBiology
+-- Load from / export to SBML
+- Solve models
+-- Solve using ODE analyses and basic moment closure analyses
+-- Generate synthetic data from models using Stochastic Simulations (parallel)
+-- Solve CME directly using the Finite State Projection algorithm, included automated FSP state set selection/expansion
+-- All methods support non-linear, time varying propensity functions, including logical statements 
+- Compute sensitivity of solutions to parameter variations
+- Compute first passage or escape time distributions for complex trajectories
+- Load experimental single-cell data (e.g., from processes smFISH images)
+- Fit Models to Experimental data
+-- Compute the likelihood of data given model
+-- Maximize likelihood using gradient and non-gradient based searches
+-- Run efficient Metropolis Hastings algorithm (with custom proposal distribution or proposal distribution based on FIM) to estimate parameter uncertainties given single-cell data
+-- Include custom priors on parameter distributions for Bayesian analysis
+- Model and reject measurement noise
+-- Calibrate empirical probability distortion operator (PDO) to quantify effects of image distortion
+-- Include image distortions in parameter estimation
+- Improve Experiment Designs
+-- Compute the Fisher Information Matrix for CME models 
+-- Sample over model uncertainty (e.g., model prior or posterior from previous experiment round) for iterative experiment design.
+-- Search experiment design space to find optimally informative experiments
+-- Automatically adjust designs to account for image distortion effects
+- Explore effects of Extrinsic Noise in parameters
+- Form reduce order models
+-- Run hybrid models with deterministic and stochastic species
+-- Reduce models using Quasi-Steady Approximations on Fast Species
+-- Reduce models using Eigenvalue decomposition
+-- Reduce models using coarse meshes
+-- Reduce models using Principle Orthogonal Decomposition
+- Compare multiple models to different data sets with shared parameter sets
+-- Identify parameters that change with genetic/environmental/experimental conditions
+- Many Examples
 
 # Dependencies
 For all basic functionalities:
 - MATLAB R2021b or later.
 - Symbolic Computing Toolbox.
-- Global Optimization Toolbox.
-- Parallel Computing Toolbox. 
-- [Tensor Toolbox for MATLAB](https://www.tensortoolbox.org/).  You will need to make sure to add the TTB to the Matlab path before running the SSIT.
+- Global Optimization Toolbox (for model fitting only)
+- Parallel Computing Toolbox (optional). 
+- SimBiology Toolbox (for loading/saving SBML models only)
 
 # Installation
 Clone this package to a local folder on your computer. Then add the path to that folder (with subfolders) into MATLAB's search path. You can then call all functions from MATLAB. 
+
+# Testing
+To test your installation, navigate to the folder SSIT/tests and run the following test routines:
+PoissonTest % Tests various solution schemes, data generation/loading and model parameterization for a 1-species model
+Poisson2DTest % Tests various solutions for a 2-species model
+PoissonTVTest % Tests various solutions for a 1-species Time-varying model
+multiModelTests % Tests various solutions for a combinations of multiple models with different data sets.
+modelReductionTests % Tests various model reduction schemes for more efficient solutions of the Chemical Master Equation
+miscelaneousTests % Tests other aspects, including GUI functionality, loading/saving to SBME and SimBiology
 
 # Acknowledgements
 
@@ -47,7 +82,7 @@ The provided SSIT tools also make use a modified version of Expokit for the solu
 The SSIT provides two basic interaction options: (1) command line tools and (2) a graphical user interface.
 
 ## GUI Version  
-To get started with the GUI, compile and launch to tool kit with the following commands:
+A GUI version of the SSIT has much of the functionality, and is a great way to familiarize yourself with the approach.  However, for intenssive research tasks, we strongly recommend using the command line tools. To get started with the GUI, compile and launch to tool kit with the following commands:
 
 >> src2app;
 
@@ -66,11 +101,11 @@ Define SSIT Model
 
 >> Model = SSIT;
 
->> Model.species = {'x1';'x2'};
+>> Model.species = {'OnGene';'rna'};
 
 >> Model.initialCondition = [0; 0];
 
->> Model.propensityFunctions = {'kon * IGR * (2-x1)'; 'koff * x1'; 'kr * x1'; 'gr * x2'};
+>> Model.propensityFunctions = {'kon * IGR * (2-OnGene)'; 'koff * OnGene'; 'kr * OnGene'; 'gr * rna'};
 
 >> Model.stoichiometry = [1,-1,0,0; 0,0,1,-1];
 
@@ -78,11 +113,11 @@ Define SSIT Model
 
 >> Model.parameters = ({'koff',0.14; 'kon',0.14; 'kr',25; 'gr',0.01; 'a0',0.006; 'a1',0.4; 'r1',0.04; 'r2',0.1});
     
->> Model.initialTime = -120;  % large negative time to simulate steady state at t=0
+>> Model.fspOptions.initApproxSS = true;  % Model is assumed to start at steady state at t=0;
 
 Load and Fit smFISH Data
     
->> Model = Model.loadData('../ExampleData/DUSP1_Dex_100nM_Rep1_Rep2.csv',{'x2','RNA_nuc'});
+>> Model = Model.loadData('../ExampleData/DUSP1_Dex_100nM_Rep1_Rep2.csv',{'rna','RNA_nuc'});
     
 >> Model.tSpan = unique([Model.initialTime,Model.dataSet.times]);
 >> fitOptions = optimset('Display','iter','MaxIter',100);
