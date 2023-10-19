@@ -47,13 +47,14 @@ SSASoln = F3.solve;
 
 %%          (2B.1) Make plots of SSA solution
 F3.makePlot(SSASoln,'trajectories',[],[],4) % Make some plots.
-F2.makePlot(FSPsoln,'meansAndDevs',[],[],1,...
+F2.makePlot(FSPsoln,'meansAndDevs',[],[],4,...
     {'linewidth',4,'color',[0,1,1],'Marker','s','MarkerSize',20}) % Add FSP Solution to plot.
 
 %% (3) Sensitivity Analysis using FSP
-F2.solutionScheme = 'fspSens'; % Set solutions scheme to FSP Sensitivity
-[sensSoln,bounds] = F2.solve(FSPsoln.stateSpace);  % Solve the sensitivity problem
+F4 = F3;
+F4.solutionScheme = 'fspSens'; % Set solutions scheme to FSP Sensitivity
+[sensSoln,bounds] = F4.solve(FSPsoln.stateSpace);  % Solve the sensitivity problem
 
 %%      (3A) Make plot of sensitivities
-F2.makePlot(sensSoln,'marginals',[],[],4,{'linewidth',3,'color',[0,0,1]}) % Plot marginal sensitivities
+F4.makePlot(sensSoln,'marginals',[],[],4,{'linewidth',3,'color',[0,0,1]}) % Plot marginal sensitivities
 
