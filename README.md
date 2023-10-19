@@ -2,7 +2,7 @@
 
 ![SSIT](https://github.com/MunskyGroup/SSIT/blob/main/images/GraphicalAbstract.png)
 
-Authors: Huy Vo, Joshua Cook, E. Ron, Brian Munsky
+Authors: Huy Vo, Joshua Cook, Eric Ron, Brian Munsky
 
 [![License](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
 
