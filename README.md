@@ -135,31 +135,42 @@ The provided SSIT tools also make use a modified version of Expokit for the solu
 
 # How to Cite This Repository
 
-the SSIT is free to use or copy with citation of the authors and the above referenced packages (Expokit from Sidje) and (TensorToolbox from Bader et al).  If you use the SSIT for your research, we would appreciate it if you could cite us as:
+The SSIT is free to use or copy with citation of the authors and the above referenced packages (Expokit from Sidje) and (TensorToolbox from Bader et al).  If you use the SSIT for your research, we would appreciate it if you could cite us.
 
 - H. D. Vo, J. Cook, B. Munsky, 2023, Stochastic System Identification Toolbox, v1.0.0, https://doi.org/10.5281/zenodo.10023437
 
-For use of FSP tools, please cite one or more of the following:
+To learn more about the history and use of the FSP, please explore the following papers. 
 
-- B. Munsky, M. Khammash, "The finite state projection algorithm for the solution of the chemical master equation," J. Chemical Physics, 124:4, 2006.
-- B Munsky, M Khammash, "The finite state projection approach for the analysis of stochastic noise in gene networks," IEEE Transactions on Automatic Control 53 (Special Issue), 201-214, 2008.
-- Z Fox, G Neuert, B Munsky, "Finite state projection based bounds to compare chemical master equation models using single-cell data," The Journal of chemical physics, 145:7, 2016.
+For use of FSP, please read/cite one or more of the following:
 
-For use of FSP tools with model reductions, please cite one or more of the following:
+- B. Munsky, M. Khammash, "The finite state projection algorithm for the solution of the chemical master equation," J. Chemical Physics, 124:4, 2006. https://doi.org/10.1063/1.2145882
+- B Munsky, M Khammash, "The finite state projection approach for the analysis of stochastic noise in gene networks," IEEE Transactions on Automatic Control 53 (Special Issue), 201-214, 2008. https://ieeexplore.ieee.org/abstract/document/4439819
+- Z Fox, G Neuert, B Munsky, "Finite state projection based bounds to compare chemical master equation models using single-cell data," The Journal of chemical physics, 145:7, 2016. https://pubs.aip.org/aip/jcp/article/145/7/074101/810475
 
-- S Peleš, B Munsky, M Khammash, "Reduction and solution of the chemical master equation using time scale separation and finite state projection," The Journal of chemical physics, 125:20, 2006.
-- JJ Tapia, JR Faeder, B Munsky, "Adaptive coarse-graining for transient and quasi-equilibrium analyses of stochastic gene regulation," 2012 IEEE 51st IEEE Conference on Decision and Control (CDC), 5361-5366, 2012
-- HD Vo, Z Fox, A Baetica, B Munsky, "Bayesian estimation for stochastic gene expression using multifidelity models," The Journal of Physical Chemistry B, 123:10, 2217-2234, 2019.
+For use of FSP tools with model reductions, please read/cite one or more of the following:
 
-For use of FSP forlikelihood calculation and model estimation, please cite one or more of the following:
+- S Peleš, B Munsky, M Khammash, "Reduction and solution of the chemical master equation using time scale separation and finite state projection," The Journal of chemical physics, 125:20, 2006. https://doi.org/10.1063/1.2397685
+- JJ Tapia, JR Faeder, B Munsky, "Adaptive coarse-graining for transient and quasi-equilibrium analyses of stochastic gene regulation," 2012 IEEE 51st IEEE Conference on Decision and Control (CDC), 5361-5366, 2012. https://ieeexplore.ieee.org/abstract/document/6425828
+- HD Vo, Z Fox, A Baetica, B Munsky, "Bayesian estimation for stochastic gene expression using multifidelity models," The Journal of Physical Chemistry B, 123:10, 2217-2234, 2019. https://pubs.acs.org/doi/full/10.1021/acs.jpcb.8b10946
 
-- G. Neuert, B. Munsky, et al., "Systematic identification of signal-activated stochastic gene regulation", Science, 339:6119, 584-587, 2013.
-- B Munsky, Z Fox, G Neuert, "Integrating single-molecule experiments and discrete stochastic models to understand heterogeneous gene transcription dynamics," Methods 85, 12-21, 2015
-- B Munsky, G Li, ZR Fox, DP Shepherd, G Neuert, "Distribution shapes govern the discovery of predictive models for gene regulation," Proceedings of the National Academy of Sciences, 115:29, 7533-7538, 2018
-- D Kalb, HD Vo, S Adikari, E Hong-Geller, B Munsky, J Werner, Visualization and modeling of inhibition of IL-1β and TNF-α mRNA transcription at the single-cell level, Scientific Reports 11:1, 13692, 2021
+For use of FSP for likelihood calculation and model parameter estimation, please read/cite one or more of the following:
 
-For use of FIM for experiment design, please cite one of the following: 
+- G. Neuert, B. Munsky, et al., "Systematic identification of signal-activated stochastic gene regulation", Science, 339:6119, 584-587, 2013. https://www.science.org/doi/full/10.1126/science.1231456
+- B Munsky, Z Fox, G Neuert, "Integrating single-molecule experiments and discrete stochastic models to understand heterogeneous gene transcription dynamics," Methods 85, 12-21, 2015. https://www.sciencedirect.com/science/article/pii/S1046202315002510
+- B Munsky, G Li, ZR Fox, DP Shepherd, G Neuert, "Distribution shapes govern the discovery of predictive models for gene regulation," Proceedings of the National Academy of Sciences, 115:29, 7533-7538, 2018. https://www.pnas.org/doi/abs/10.1073/pnas.1804060115
+- D Kalb, HD Vo, S Adikari, E Hong-Geller, B Munsky, J Werner, Visualization and modeling of inhibition of IL-1β and TNF-α mRNA transcription at the single-cell level, Scientific Reports 11:1, 13692, 2021. https://www.nature.com/articles/s41598-021-92846-0
+- C Lou, B Stanton, YJ Chen, B Munsky, CA Voigt, Ribozyme-based insulator parts buffer synthetic circuits from genetic context, Nature biotechnology 30:11, 1137-1142, 2012. https://www.nature.com/articles/nbt.2401
+- DP Shepherd, N Li, et al, "Counting small RNA in pathogenic bacteria," Analytical Chemistry 85:10, 4938-4943, 2013. https://pubs.acs.org/doi/full/10.1021/ac303792p
 
-- ZR Fox, B Munsky, "The finite state projection based Fisher information matrix approach to estimate information and optimize single-cell experiments," PLoS computational biology 15:1, e1006365, 2019
-- ZR Fox, G Neuert, B Munsky, "Optimal design of single-cell experiments within temporally fluctuating environments," Complexity 2020, 1-15, 2020
-- HD Vo, LS Forero-Quintero, LU Aguilera, B Munsky, "Analysis and design of single-cell experiments to harvest fluctuation information while rejecting measurement noise," Frontiers in Cell and Developmental Biology 11, 1133994, 2023.
+For use of the FSP to calculate escape and first passage times, please read/cite the following:
+
+- B Munsky, M Khammash, "Transient analysis of stochastic switches and trajectories with applications to gene regulatory networks," IET systems biology, 2:5, 323-333, 2008. https://digital-library.theiet.org/content/journals/10.1049/iet-syb_20070082
+
+For use of FIM for experiment design, please read/cite one of the following: 
+
+- ZR Fox, B Munsky, "The finite state projection based Fisher information matrix approach to estimate information and optimize single-cell experiments," PLoS computational biology 15:1, e1006365, 2019. https://doi.org/10.1371/journal.pcbi.1006365
+- ZR Fox, G Neuert, B Munsky, "Optimal design of single-cell experiments within temporally fluctuating environments," Complexity 2020, 1-15, 2020. https://doi.org/10.1155/2020/8536365
+- HD Vo, LS Forero-Quintero, LU Aguilera, B Munsky, "Analysis and design of single-cell experiments to harvest fluctuation information while rejecting measurement noise," Frontiers in Cell and Developmental Biology 11, 1133994, 2023. https://doi.org/10.3389/fcell.2023.1133994
+
+For more general insight on the use of quantitative models in biology, please read the q-bio Community written textbook:
+- B Munsky, WS Hlavacek, LS Tsimring (Editors), "Quantitative biology: theory, computational methods, and models, MIT Press, 2018. 
