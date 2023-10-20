@@ -1075,7 +1075,7 @@ classdef SSIT
             end
         end
 
-        function [NcDNewDesign] = optimizeCellCounts(obj,fims,nCellsTotalNew,FIMMetric,Nc,NcFixed)
+        function [NcDNewDesign] = optimizeCellCounts(obj,fims,nCellsTotalNew,FIMMetric,Nc,NcFixed,NcMax)
             % This function optimizes the number of cells per time point
             % according to the user-provide metric. 
             % 
@@ -1110,6 +1110,11 @@ classdef SSIT
             %      time point.  This is useful for subsequent experiment
             %      design where you already have measured cells in the
             %
+            % 'NcMax' maximum total number of cells allowed for each time
+            %       point.  This is useful in simulated experiment design,
+            %       where there are only so many cells available in the
+            %       real data.
+            %
             % OUTPUTS:
             % 'Nc' is the optimized experiment design (number of cells to
             % measure at each point in time.
@@ -1121,6 +1126,7 @@ classdef SSIT
                 FIMMetric = 'Smallest Eigenvalue';
                 Nc = [];
                 NcFixed = [];
+                NcMax = []
             end
             switch FIMMetric
                 case 'Determinant'
@@ -1148,6 +1154,10 @@ classdef SSIT
             if isempty(NcFixed)
                 NcFixed = zeros(1,NT);
             end
+
+            if isempty(NcMax)
+                NcMax = inf*ones(1,NT);
+            end
             
             if isempty(Nc)
                 Nc = NcFixed;
@@ -1163,7 +1173,7 @@ classdef SSIT
                     while Nc(i)>NcFixed(i)
                         Ncp = Nc;
                         Ncp(i) = Ncp(i)-1;
-                        k = SSIT.findBestMove(fims,Ncp,met);
+                        k = SSIT.findBestMove(fims,Ncp,met,NcMax);
                         if k==i
                             break
                         end
@@ -2345,14 +2355,30 @@ classdef SSIT
                 end
             end
         end
-        function k = findBestMove(fims,Ncp,met)
+        function k = findBestMove(fims,Ncp,met,NcMax)
+            arguments
+                fims
+                Ncp
+                met
+                NcMax = [];
+            end
             Nt = size(fims,1);
+            if isempty(NcMax)
+                NcMax = inf*ones(1,Nt);
+            end
             Ns = size(fims,2);
             obj = zeros(Nt,Ns);
             FIM0 = SSIT.totalFim(fims,Ncp);
             for is = 1:Ns
                 for it = 1:Nt
-                    FIM = FIM0{is}+fims{it,is};
+                    if Ncp(it)<NcMax(it)
+                        % If one can do that experiment.
+                        FIM = FIM0{is}+fims{it,is};
+                    else
+                        % If there are no more cells avalable for that time
+                        % point.
+                        FIM = FIM0{is};
+                    end
                     obj(it,is) = met(FIM);
                 end
             end
