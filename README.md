@@ -137,7 +137,7 @@ The provided SSIT tools also make use a modified version of Expokit for the solu
 
 The SSIT is free to use or copy with citation of the authors and the above referenced packages (Expokit from Sidje) and (TensorToolbox from Bader et al).  If you use the SSIT for your research, we would appreciate it if you could cite us.
 
-- H. D. Vo, J. Cook, B. Munsky, 2023, Stochastic System Identification Toolbox, v1.0.0, https://doi.org/10.5281/zenodo.10023437
+- H. D. Vo, J. Cook, E. Ron, B. Munsky, 2023, Stochastic System Identification Toolbox, v1.0.0, https://doi.org/10.5281/zenodo.10023437
 
 To learn more about the history and use of the FSP, please explore the following papers. 
 
