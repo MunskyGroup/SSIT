@@ -87,5 +87,53 @@ classdef miscelaneousTests < matlab.unittest.TestCase
             
         end
 
+         function test2DSpeedVsSimBiol(tc)
+            close all
+            TwoDNonLinearTV = SSIT;
+            TwoDNonLinearTV.species = {'rna','prot','phosProt','GFP'};
+            TwoDNonLinearTV.initialCondition = [0;0;0;0];
+            TwoDNonLinearTV.propensityFunctions = {'kr';'gr*rna*(1/(1+(phosProt/M)^eta*Ir))';...
+                'kp*rna';'gp*prot';...
+                'kx*prot';'gx*phosProt';...
+                'kg*rna';'ggfp*GFP'};
+            TwoDNonLinearTV.stoichiometry = [1,-1,0,0,0,0,0,0;...
+                0,0,1,-1,-1,0,0,0;...
+                0,0,0,0,1,-1,0,0;...
+                0,0,0,0,0,0,1,-1];
+            TwoDNonLinearTV.parameters = ({'kr',20;'gr',1;'kp',18;'gp',1;'M',20;'eta',5;...
+                'kx',2;'gx',1;'kg',12;'ggfp',0.5});
+            TwoDNonLinearTV.inputExpressions = {'Ir','1+cos(t)'};
+            TwoDNonLinearTV.tSpan = linspace(0,10,40);
+            TwoDNonLinearTV.solutionScheme = 'ode';
+            TwoDNonLinearTV = TwoDNonLinearTV.formPropensitiesGeneral('TwoDTV');
+            
+            [odeSoln1] = TwoDNonLinearTV.solve;
+            parVector = [TwoDNonLinearTV.parameters{:,2}];
+            tic
+            for i=1:100
+                TwoDNonLinearTV.parameters(:,2) = num2cell(parVector.*(1+0.1*randn(size(parVector))));
+                [odeSoln1] = TwoDNonLinearTV.solve;
+            end
+            SSITSolveTime100pars = toc
+
+            sbModel = TwoDNonLinearTV.exportSimBiol;
+            csObj = getconfigset(sbModel,'active');
+            set(csObj,'Stoptime',max(TwoDNonLinearTV.tSpan));
+            
+            [t,x,names] = sbiosimulate(sbModel);
+            tic
+            for i=1:100
+                for j=1:length(parVector)
+                    sbModel.Parameters(j).Value = parVector(j)*(1+0.1*randn);
+                end
+                [t,x,names] = sbiosimulate(sbModel);
+            end
+            simBiolSolveTime100pars = toc
+
+            tc.verifyEqual(SSITSolveTime100pars<(2*simBiolSolveTime100pars), true, ...
+                'SSIT ODE Solution is > 2x slower than SimBiology.');
+            
+         end
+
     end
 end

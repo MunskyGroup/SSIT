@@ -295,12 +295,12 @@ classdef SSIT
         end
 
         function [obj] = createModelFromSBML(obj,sbmlFile,scaleVolume)
-            arguments
+             arguments
                 obj
                 sbmlFile
                 scaleVolume = false
             end
-            % This function allows one to create a model directly from an
+           % This function allows one to create a model directly from an
             % SBML file.
             % Example:
             %      Model = SSIT();
@@ -308,6 +308,23 @@ classdef SSIT
             %      [fspSoln] = Model.solve;
             %      Model.makePlot(fspSoln,'meansAndDevs')
             sbmlobj = sbmlimport(sbmlFile);
+            [obj] = createModelFromSimBiol(obj,sbmlobj,scaleVolume);
+        
+        end
+
+        function [obj] = createModelFromSimBiol(obj,sbmlobj,scaleVolume)
+           % This function allows one to create a model directly from an
+            % simBiology object.
+            % Example:
+            %      Model = SSIT();
+            %      Model = Model.createModelFromSimBiol(sbmlobj);
+            %      [fspSoln] = Model.solve;
+            %      Model.makePlot(fspSoln,'meansAndDevs')
+            arguments
+                obj
+                sbmlobj
+                scaleVolume = false
+            end
             nR = length(sbmlobj.Reactions);
             nS = length(sbmlobj.Species);
 
@@ -434,8 +451,6 @@ classdef SSIT
                 rxn = [strReactants(3:end),' -> ',strProducts(3:end)];
                 RXN{is} = addreaction(sbModel,rxn,'ReactionRate',props{ir});
             end
-
-
 
             if verifyAndPlot
                 verify(sbModel)
