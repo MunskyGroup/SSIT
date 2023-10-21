@@ -292,6 +292,7 @@ classdef SSIT
                     obj.customConstraintFuns = {};
 
             end
+            obj.propensitiesGeneral = [];
         end
 
         function [obj] = createModelFromSBML(obj,sbmlFile,scaleVolume)
@@ -309,7 +310,8 @@ classdef SSIT
             %      Model.makePlot(fspSoln,'meansAndDevs')
             sbmlobj = sbmlimport(sbmlFile);
             [obj] = createModelFromSimBiol(obj,sbmlobj,scaleVolume);
-        
+            obj.propensitiesGeneral = [];
+
         end
 
         function [obj] = createModelFromSimBiol(obj,sbmlobj,scaleVolume)
@@ -388,6 +390,7 @@ classdef SSIT
             end
             obj.initialCondition = IC;
             obj.summarizeModel;
+            obj.propensitiesGeneral = [];
 
         end
 
@@ -480,6 +483,7 @@ classdef SSIT
                 initialCond = zeros(size(newSpecies,1),1);
             end
             obj.initialCondition = [obj.initialCondition;initialCond];
+            obj.propensitiesGeneral = [];
 
         end
 
@@ -499,6 +503,7 @@ classdef SSIT
             %     x1->x1+x2 with rate kr.
             obj.propensityFunctions =  [obj.propensityFunctions;newPropensity];
             obj.stoichiometry =  [obj.stoichiometry,newStoichVector];
+            obj.propensitiesGeneral = [];
         end
 
         function [obj] = calibratePDO(obj,dataFileName,measuredSpecies,...
