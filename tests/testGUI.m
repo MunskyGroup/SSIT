@@ -26,7 +26,7 @@ classdef testGUI < matlab.uitest.TestCase
                 'the SSIT GUI was launched');
         end
 
-        function ModeleUpdateButton(tc)
+        function ModelUpdateButton(tc)
             tc.choose(tc.GUI.ModelDropDown,'M01_Toggle_Switch.m')
             tc.verifyEqual(strcmp(tc.GUI.ModelDropDown.Value,...
                 'M01_Toggle_Switch.m'), true, ...

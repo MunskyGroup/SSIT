@@ -129,7 +129,7 @@ classdef FspMatrix
             w = 0*v;
             % w = obj.terms{1}.multiply(t,v,parameters);
             for i = 1:length(obj.terms)
-                if obj.terms{i}.isTimeDependent
+                if obj.terms{i}.isTimeDependent&&~obj.terms{i}.isFactorizable
                     w = w + obj.terms{i}.multiply(t,v,parameters);
                 else
                     w = w + wt(i)*(obj.terms{i}.matrix*v);

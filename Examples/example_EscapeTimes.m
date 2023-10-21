@@ -23,6 +23,7 @@ Model1.fspOptions.verbose = false;
 Model1.fspOptions.escapeSinks.b = 50;
 [fspSoln1,Model1.fspOptions.bounds] = Model1.solve;
 Model1.makePlot(fspSoln1,'escapeTimes',[],[],10)
+Model1 = Model1.formPropensitiesGeneral('Model1');
 
 %% Example 2 - escape time with time varying transcription rate
 % First let's copy and adjust the previous mdoel to add a time varying
@@ -30,13 +31,14 @@ Model1.makePlot(fspSoln1,'escapeTimes',[],[],10)
 Model2 = Model1;
 Model2.propensityFunctions = {'kr*I';'gr*rna';'k2*rna';'g2*protein'};
 Model2.inputExpressions = {'I','exp(-2*t)'};
+Model2 = Model2.formPropensitiesGeneral('Model2');
 
 %%       Here we solve for the escape time:
 Model2.fspOptions.escapeSinks.f = {'x2'};
 Model2.fspOptions.escapeSinks.b = 50;
 [fspSoln2,Model2.fspOptions.bounds] = Model2.solve;
 Model2.makePlot(fspSoln2,'escapeTimes',[],[],10)
-% Note that with the decaying transcriotion rate not all cells will every
+% Note that with the decaying transcription rate not all cells will
 % reach the level of 50 proteins.
 
 %% Example 3 - More complex escape thresholds.
