@@ -61,9 +61,10 @@ classdef SSITMultiModel
                 SMM.parameterConstraints = parConstraints;
             end
 
+            nMod = length(SMM.SSITModels);
             for i = 1:nMod
                 SMM.parameters(1,SMM.parameterIndices{i}) = ...
-                    [SMM.SSITModels{i}.parameters{SMM.SSITModels{i}.fittingOptions,2}];
+                    [SMM.SSITModels{i}.parameters{SMM.SSITModels{i}.fittingOptions.modelVarsToFit,2}];
             end
         end
 
@@ -104,12 +105,15 @@ classdef SSITMultiModel
                 SMM.SSITModels{i}.parameters(SMM.SSITModels{i}.fittingOptions.modelVarsToFit,2) = ...
                     num2cell(parameters(SMM.parameterIndices{i}));
                 if makeplot
+                    solnType = SMM.SSITModels{i}.solutionScheme;
+                    SMM.SSITModels{i}.solutionScheme = 'FSP';
                     if isempty(fignums)
                         SMM.SSITModels{i}.makeFitPlot([],1,100*i+[1:4]);
                     else
                         SMM.SSITModels{i}.makeFitPlot([],1,fignums(i,1:4));
                     end
-                end
+                    SMM.SSITModels{i}.solutionScheme = solnType;
+               end
             end
         end
 
