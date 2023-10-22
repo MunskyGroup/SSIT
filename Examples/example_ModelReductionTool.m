@@ -5,7 +5,12 @@ clear all
 addpath('../CommandLine');
 
 %% First, choose a model on which to illustrate the reduction approximation,
-% or you can create your own. See below for the codes to create each model.
+% or you can create your own. Here are the example options defined below:
+%       (1)   Poisson Process
+%       (2)   Poisson Start at SS.
+%       (3)   Two Species Poisson Process.
+%       (4)   Time varying bursting gene expression model (DUSP1)
+% See below for the codes to create each model so you can create your own.
 testModel = 3; 
 
 %% Next, choose which type of model reduction to apply. Options include:
@@ -30,11 +35,11 @@ testModel = 3;
 %   'QSSA' - Reduction using QSSA applied to a specific species or set of
 %       species. The list of species to be assumed at QSSA must be
 %       specified in a vector 'reductionSpecies'. 
-%%
+
 reductionType = 'Proper Orthogonal Decomposition'; %{'Log Lump QSSA','Proper Orthogonal Decomposition','QSSA'};
 reductionOrder = 20;
-qssaSpecies = 2;
-podTimeSetSize = 100;
+qssaSpecies = 2;        % Only needed for the QSSA reduction scheme.
+podTimeSetSize = 100;   % Only needed for the POD reduction scheme.
 
 % Define SSIT Model
 % SSIT models are defined as usual:
@@ -80,60 +85,57 @@ switch testModel
         Model1.tSpan = linspace(0,180,12);
 end
  
+%% Solve the original Model (for comparison)
+% Solve once to get the necessary FSP projection space.
+Model1 = Model1.formPropensitiesGeneral('Model1');
 [fspSoln,Model1.fspOptions.bounds] = Model1.solve;
 
+% Solve again to record FSP solution time following expansion.
+tic
+[fspSoln,Model1.fspOptions.bounds] = Model1.solve(fspSoln.stateSpace);
+fullModelSolveTime = toc
+
+% Turn off further FSP expansion.
+Model1.fspOptions.fspTol = inf;
+
+% If using the POD, we will also need to generate basis set using solution
+% at finer resolution. Note -- this means that the POD will be inefficient
+% for the initial set up of the reduction.  The benefits typically come
+% from solving the model multiple times with different parameters sets.
 if strcmp(reductionType,'Proper Orthogonal Decomposition')
     tSpan = Model1.tSpan;
     Model1.tSpan = linspace(min(Model1.tSpan),max(Model1.tSpan),podTimeSetSize);
-    [fspSoln,Model1.fspOptions.bounds] = Model1.solve(fspSoln.stateSpace);
-else
-    tic
-    [fspSoln,Model1.fspOptions.bounds] = Model1.solve(fspSoln.stateSpace);
-    fullModelSolveTime = toc
-end
-
-if strcmp(reductionType,'Proper Orthogonal Decomposition')
+    [fspSoln2,Model1.fspOptions.bounds] = Model1.solve(fspSoln.stateSpace);
     Model1.tSpan = tSpan;
+else
+    fspSoln2 = fspSoln;
 end
 
+%% Solving the reduced models
+% Make a copy of the full model.
 Model2 = Model1;
+
+% Set the solver to use ModelReduction
 Model2.modelReductionOptions.useModReduction = true;
-Model2.fspOptions.fspTol = inf;
+% FSP expansion should be supressed when using Model Reductions
+
+% Set type and order of Model Recution
 Model2.modelReductionOptions.reductionType = reductionType;
 Model2.modelReductionOptions.reductionOrder = reductionOrder;
 Model2.modelReductionOptions.qssaSpecies = qssaSpecies;
-Model2 = Model2.computeModelReductionTransformMatrices(fspSoln);
 
+% Call SSIT to compute the model reduction transformation matrices.
+Model2 = Model2.computeModelReductionTransformMatrices(fspSoln2);
+
+% Solve the reduce model.
 tic
-fspSoln2 = Model2.solve(fspSoln.stateSpace);
+fspSolnRed = Model2.solve(fspSoln2.stateSpace);
 redModelSolveTime = toc
 
-if strcmp(reductionType,'Proper Orthogonal Decomposition')
-    tic
-    [fspSoln,Model1.fspOptions.bounds] = Model1.solve(fspSoln.stateSpace);
-    fullModelSolveTime = toc
-end
+% Make Figures to compare the results. Here, we will plot the original
+% model in blue and the reduced model in red lines.
+Model1.makePlot(fspSoln,'meansAndDevs',[],[],1,{'Color',[0,0,1]})
+Model1.makePlot(fspSoln,'marginals',[],[],[2,3],{'Color',[0,0,1]})
 
-
-Model1.makePlot(fspSoln,'meansAndDevs',[],[],1)
-Model1.makePlot(fspSoln,'marginals',[],[],[2,3])
-
-Model2.makePlot(fspSoln2,'meansAndDevs',[],[],1)
-Model2.makePlot(fspSoln2,'marginals',[],[],[2,3])
-return
-%%
-Model3 = Model2;
-Model3.modelReductionOptions.reductionType ='POD Update';
-Model3 = Model3.computeModelReductionTransformMatrices(fspSoln);
-
-
-%% Fitting using reduced model
-
-Model2{1}.tSpan = 0;
-Model2{1} = Model2{1}.loadData('../ExampleData/DUSP1_Dex_100nM_Rep1_Rep2.csv',{'x2','RNA_nuc'});
-Model2{1}.fspOptions.fspTol = inf;
-Model2{1}.fittingOptions.modelVarsToFit = 1:2;
-fitOptions = optimset('Display','iter','MaxIter',4000);
-%
-Model2{1}.parameters(Model2{1}.fittingOptions.modelVarsToFit,2) = num2cell(Model2{1}.maximizeLikelihood([],fitOptions));
-Model2{1}.makeFitPlot;
+Model2.makePlot(fspSolnRed,'meansAndDevs',[],[],1,{'Color',[1,0,0]})
+Model2.makePlot(fspSolnRed,'marginals',[],[],[2,3],{'Color',[1,0,0]})
