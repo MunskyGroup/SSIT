@@ -20,7 +20,7 @@ Model1.makePlot(fspSoln1,'marginals',[],[],[2,3])
 
 %% Generate, solve and plot results for an extrinsic noise version
 % Specify the rules for the extrinsic noise.  This must be a function that
-% retursna  vector of parameters, that are in the same order as the
+% returns a  vector of parameters, that are in the same order as the
 % parameters provided. You can choose a different distribution for the
 % extrinsic noise in each parameter.
 parDistributions = @()[10+2*randn,...

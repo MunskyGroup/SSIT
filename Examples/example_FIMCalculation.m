@@ -2,6 +2,7 @@
 % In this script, we show how to set up and solve the FSP-FIM matrix with
 % partial observations and probabilistic distortion.
 clear all
+close all
 
 %% (1) Set up Model
 ModelChoice = 'CentralDogma';  % Two species problem (mRNa and protein)

@@ -4,6 +4,7 @@
 % under Dexamethasome stimulation of Glucocorticoid Receptors.
 clear all
 clc
+close all
 addpath('../CommandLine');
 %% Define SSIT Model
 % Here we set up a simple model where there is an upstream transcription
@@ -36,17 +37,17 @@ Model.fittingOptions.modelVarsToFit = 1:7;
 % Next, we call a fitting routine to maximize the likelihood of the data
 % given the model.  Once that is complete, we update the model parameters
 % and call a function to generate a plot of the results.
-fitOptions = optimset('Display','iter','MaxIter',1000);
+fitOptions = optimset('Display','none','MaxIter',1000);
 fitOptions.suppressFSPExpansion = true; 
 % Fitting can be much faster if we choose not to expand the FSP during each
 % step, but this also introduces an approximation error.
 fitParameters = Model.maximizeLikelihood([],fitOptions);
 Model.parameters(Model.fittingOptions.modelVarsToFit,2) = num2cell(fitParameters);
 Model.makeFitPlot;
-% Note that one round of fitting may not be sufficient, or maybe the
+% Note, that one round of fitting may not be sufficient, or maybe the
 % approximation error led to a poor parameter set, resulting in poor 
 % looking fits. In either case, it may be necessary to try multiple rounds 
-% and to iterate with different local and global search methods. for the
+% and to iterate with different local and global search methods. For the
 % example DUSP1 data, a fit of < 45000 should be achieved in a few rounds.
 
 %% Calculate CME Sensitivity to Parameter Variations
@@ -68,6 +69,7 @@ FIMlog =  Model.evaluateExperiment(fimResults,Model.dataSet.nCells);
 % parameters. In this case, we assume that the GR parameters ([5:7]) are
 % correct, and we only care about the uncertainity in the other parameters
 % ([1:4]).
+Model.solutionScheme = 'FSP';
 Model.fittingOptions.modelVarsToFit = 1:4;
 MHOptions = struct('numberOfSamples',1000,'burnin',0,'thin',2,...
     'useFIMforMetHast',true,'suppressFSPExpansion',true,'CovFIMscale',.6);
@@ -98,7 +100,7 @@ Model.plotMHResults(mhResults,FIM);
 nTotal = sum(Model.dataSet.nCells);
 nCellsOpt = Model.optimizeCellCounts(fims,nTotal,'TR[1:4]');
 fimOpt = Model.evaluateExperiment(fims,nCellsOpt);
-Model.plotMHResults(mhResults,{FIM,fimOpt});
+Model.plotMHResults(mhResults,[FIM,fimOpt]);
 
 %% Calibrate PDO from Multi-Modal Experimental Data
 % Calibration the PDO from empirical data. Here, the number of spots has
@@ -109,27 +111,27 @@ Model.plotMHResults(mhResults,{FIM,fimOpt});
 % obervation probability is a Poisson distribution where the mean value is
 % affine linearly related to the true value: P(y|x) = Poiss(a0 + a1*x);
 ModelPDOSpots = Model.calibratePDO('../ExampleData/pdoCalibrationData.csv',...
-    {'x2'},{'nTotal'},{'nSpots0'},'AffinePoiss',true);
+    {'rna'},{'nTotal'},{'nSpots0'},'AffinePoiss',true);
 
 ModelPDOIntens = Model.calibratePDO('../ExampleData/pdoCalibrationData.csv',...
-    {'x2'},{'nTotal'},{'intens1'},'AffinePoiss',true,[1,1000,1]);
+    {'rna'},{'nTotal'},{'intens1'},'AffinePoiss',true,[1,1000,1]);
 
 %% Compute the FIM for the calculated PDO
 % Now that we have the new PDO, we can calculate the FIM for the different
 % distorted observation experiments.  In each case, we compare the results
 % to the Metropolis Hastings results in which the data was assumed to be
 % undistorted.
-% First, for the alternate label distortion.
+% First, for the alternate label distortion:
 fimsPDOSpot = ModelPDOSpots.computeFIM(sensSoln.sens);
 fimPDOSpots = ModelPDOSpots.evaluateExperiment(fimsPDOSpot,nCellsOpt);
-Model.plotMHResults(mhResults,{FIM,fimOpt,fimPDOSpots});
+Model.plotMHResults(mhResults,[FIM,fimOpt,fimPDOSpots]);
 
-% Next, for the intensity integration distortion.
+% Next, for the intensity integration distortion:
 fimsPDOIntens = ModelPDOIntens.computeFIM(sensSoln.sens);
 fimPDOIntens = ModelPDOIntens.evaluateExperiment(fimsPDOIntens,nCellsOpt);
-Model.plotMHResults(mhResults,{FIM,fimOpt,fimPDOSpots,fimPDOIntens});
+Model.plotMHResults(mhResults,[FIM,fimOpt,fimPDOSpots,fimPDOIntens]);
 
-% Finally for an extended experiment with a larger number of cells.
+% Finally, for an extended experiment with a larger number of cells;
 fimsPDOIntens = ModelPDOIntens.computeFIM(sensSoln.sens);
 fimPDOIntens2x = ModelPDOIntens.evaluateExperiment(fimsPDOIntens,2.218*nCellsOpt);
-Model.plotMHResults(mhResults,{FIM,fimOpt,fimPDOSpots,fimPDOIntens,fimPDOIntens2x});
+Model.plotMHResults(mhResults,[FIM,fimOpt,fimPDOSpots,fimPDOIntens,fimPDOIntens2x]);

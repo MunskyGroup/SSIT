@@ -537,7 +537,7 @@ classdef SSIT
 
             lambda = [];
             maxSize = zeros(1,length(obj.species));
-            options = optimset('display','iter');
+            options = optimset('display','none');
             for i=1:length(obj.species)
                 if sum(strcmp(measuredSpecies,obj.species{i}))==1
                     k = find(strcmp(measuredSpecies,obj.species{i}));
@@ -2060,8 +2060,12 @@ classdef SSIT
                 plotType = 'means';
                 indTimes = [];
                 includePDO = false;
-                figureNums = [1:100];
+                figureNums = [];
                 lineProps = {'linewidth',2};
+            end
+            if isempty(figureNums)
+                h =  findobj('type','figure');
+                figureNums = max([h.Number])+(1:10);
             end
             kfig = 1;
             switch obj.solutionScheme
@@ -2316,7 +2320,7 @@ classdef SSIT
                     if ~isempty(mhResults)
                         ssit.parest.ellipse(par0,icdf('chi2',0.9,2)*cov12,'m--','linewidth',2)
                     end
-                    xlabel(parNames{j});
+                    xlabel(['log_{10}(',parNames{j},')']);
                     ylabel(parNames{i});
                 end
             end

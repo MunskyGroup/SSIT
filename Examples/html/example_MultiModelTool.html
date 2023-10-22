@@ -1,0 +1,285 @@
+
+<!DOCTYPE html
+  PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html><head>
+      <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+   <!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      --><title>example_MultiModelTool</title><meta name="generator" content="MATLAB 9.14"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2023-10-20"><meta name="DC.source" content="example_MultiModelTool.m"><style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; }
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+span.typesection { color:#A0522D }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style></head><body><div class="content"><h2>Contents</h2><div><ul><li><a href="#1">Using the SSIT to fit Multiple Models and Data sets with Shared Parameters</a></li><li><a href="#2">Define SSIT Model</a></li><li><a href="#3">Load and Associate smFISH Data</a></li><li><a href="#4">Create Second Model and associate to its own data</a></li><li><a href="#5">Fitting options</a></li><li><a href="#6">Create and estimate parameters for combined models</a></li><li><a href="#7">Example 0 -- single model.</a></li><li><a href="#8">Example 1 -- Adding new Model+Data to an existing multimodel</a></li><li><a href="#9">Example 2 -- completely independent parameters.</a></li><li><a href="#10">Example 3 -- completely dependent parameters.</a></li><li><a href="#11">Example 4 -- mixed parameters.</a></li><li><a href="#12">Example 5 -- constrained parameters.</a></li></ul></div><h2 id="1">Using the SSIT to fit Multiple Models and Data sets with Shared Parameters</h2><p>In this script, we show how multiple SSIT models and data sets can be fit simultaneously.  This is most useful in situations where:   1) the analysis considers different experimental conditions (e.g.,   different time points, different inducer concentrations, different   genetic mutations).   2) replica to replica variations are expected that would result in   slightly different parameter combinations</p><pre class="codeinput">close <span class="string">all</span>
+clear <span class="string">all</span>
+addpath(<span class="string">'../CommandLine'</span>);
+</pre><h2 id="2">Define SSIT Model</h2><p>SSIT models are defined as usual:</p><pre class="codeinput">Model1 = SSIT;
+Model1.species = {<span class="string">'x1'</span>;<span class="string">'x2'</span>};
+Model1.initialCondition = [0;0];
+Model1.propensityFunctions = {<span class="string">'kon*IGR*(2-x1)'</span>;<span class="string">'koff*x1'</span>;<span class="string">'kr*x1'</span>;<span class="string">'gr*x2'</span>};
+Model1.stoichiometry = [1,-1,0,0;0,0,1,-1];
+Model1.inputExpressions = {<span class="string">'IGR'</span>,<span class="string">'1+a1*exp(-r1*t)*(1-exp(-r2*t))'</span>};
+Model1.parameters = ({<span class="string">'koff'</span>,0.14;<span class="string">'kon'</span>,0.14;<span class="string">'kr'</span>,10;<span class="string">'gr'</span>,0.01;<span class="keyword">...</span>
+    <span class="string">'a1'</span>,0.4;<span class="string">'r1'</span>,0.04;<span class="string">'r2'</span>,0.1});
+Model1.fspOptions.initApproxSS = true;
+</pre><h2 id="3">Load and Associate smFISH Data</h2><p>Each model is associated with its data as usual:</p><pre class="codeinput">Model1 = Model1.loadData(<span class="string">'../ExampleData/DUSP1_Dex_100nM_Rep1_Rep2.csv'</span>,{<span class="string">'x2'</span>,<span class="string">'RNA_nuc'</span>},<span class="keyword">...</span>
+    {<span class="string">'Rep_num'</span>,<span class="string">'1'</span>}); <span class="comment">% This would load the data assign x1 and x2 and condition on Rep_num = 1;</span>
+
+Model1.fspOptions.fspTol = inf;
+Model1.fittingOptions.modelVarsToFit = 1:7;
+</pre><h2 id="4">Create Second Model and associate to its own data</h2><pre class="codeinput">Model2 = Model1;
+Model2 = Model2.loadData(<span class="string">'../ExampleData/DUSP1_Dex_100nM_Rep1_Rep2.csv'</span>,{<span class="string">'x2'</span>,<span class="string">'RNA_nuc'</span>},<span class="keyword">...</span>
+    {<span class="string">'Rep_num'</span>,<span class="string">'2'</span>}); <span class="comment">% This would load the data assign x1 and x2 and condition on Rep_num = 1;</span>
+</pre><h2 id="5">Fitting options</h2><pre class="codeinput">fitOptions = optimset(<span class="string">'Display'</span>,<span class="string">'iter'</span>,<span class="string">'MaxIter'</span>,100);
+fitAlgorithm = <span class="string">'fminsearch'</span>;
+</pre><h2 id="6">Create and estimate parameters for combined models</h2><h2 id="7">Example 0 -- single model.</h2><p>This is a simple example, where we only fit one model to a single data set.</p><pre class="codeinput">singleModel = SSITMultiModel({Model1},{[1:7]});
+singleModel = singleModel.initializeStateSpaces;
+allParsSingle = ([Model1.parameters{:,2}]);
+allParsSingle = singleModel.maximizeLikelihood(<span class="keyword">...</span>
+    allParsSingle, fitOptions, fitAlgorithm);
+singleModel = singleModel.updateModels(allParsSingle);
+
+<span class="comment">% Copy the parameters back into Model1 and Model2 so we can reuse them later.</span>
+Model1.parameters = singleModel.SSITModels{1}.parameters;
+Model2.parameters = singleModel.SSITModels{1}.parameters;
+</pre><pre class="codeoutput error">Index in position 1 is invalid. Array indices must be positive integers or
+logical values.
+Error in ssit.FspMatrixTerm/multiply (line 111)
+                w = obj.propensity.timeDependentFactor(t,parameters)*(obj.matrix*v);
+Error in ssit.FspMatrix/multiply (line 133)
+                    w = w + obj.terms{i}.multiply(t,v,parameters);
+Error in ssit.fsp.adaptiveFspSolve&gt;@(t,p)AfspFull.multiply(t,p,parameters) (line 390)
+                    matvec = @(t, p) AfspFull.multiply(t, p, parameters);
+Error in odearguments (line 92)
+f0 = ode(t0,y0,args{:});   % ODE15I sets args{1} to yp0.
+Error in ode23s (line 122)
+    = odearguments(odeIsFuncHandle, odeTreatAsMFile, solver_name, ode, tspan, y0, options, varargin);
+Error in ssit.fsp_ode_solvers.OdeSuite/solve (line 104)
+        [tExport, solutionsNow, te, ye, ~] =  ode23s(rhs, tSpan, initSolution, ode_opts);
+Error in ssit.fsp.adaptiveFspSolve (line 409)
+    [~, solutionsNow, fspStopStatus] = solver.solve(tNow, tOut,...
+Error in SSIT/solve (line 742)
+                    [Solution.fsp, bConstraints,Solution.stateSpace] = ssit.fsp.adaptiveFspSolve(obj.tSpan,...
+Error in SSITMultiModel/initializeStateSpaces (line 87)
+                    [fspSoln,SMM.SSITModels{i}.fspOptions.bounds] = Model.solve;
+Error in example_MultiModelTool (line 47)
+singleModel = singleModel.initializeStateSpaces;</pre><h2 id="8">Example 1 -- Adding new Model+Data to an existing multimodel</h2><p>This is how one adds a second model/data combination.  In this case the parameters of the new model are completely independent of the parameter set for the first model.</p><pre class="codeinput">combinedModel = singleModel.addModel({Model2},{[8:14]});
+combinedModel = combinedModel.initializeStateSpaces;
+allParsCombined = ([Model1.parameters{:,2},[Model2.parameters{:,2}]]);
+allParsCombined = combinedModel.maximizeLikelihood(<span class="keyword">...</span>
+    allParsCombined, fitOptions, fitAlgorithm);
+combinedModel = combinedModel.updateModels(allParsCombined);
+
+<span class="comment">% Note: This example is shown for illustration purposes only.  Usually, if</span>
+<span class="comment">% one is fitting a single model independently, then it is more efficient to fit</span>
+<span class="comment">% it separately.</span>
+</pre><h2 id="9">Example 2 -- completely independent parameters.</h2><p>Here is how we can create the combined model in one shot.</p><pre class="codeinput">combinedModelIndependent = SSITMultiModel({Model1,Model2},{[1:7],[8:14]});
+combinedModelIndependent = combinedModelIndependent.initializeStateSpaces;
+allParsIndepdendent = ([Model1.parameters{:,2},[Model2.parameters{:,2}]]);
+allParsIndepdendent = combinedModelIndependent.maximizeLikelihood(<span class="keyword">...</span>
+    allParsIndepdendent, fitOptions, fitAlgorithm);
+combinedModelIndependent = combinedModelIndependent.updateModels(allParsIndepdendent);
+</pre><h2 id="10">Example 3 -- completely dependent parameters.</h2><p>Here is an example of how a single set of parameters can be used for both models and data sets. In the following we make a joint model where both Model1 and Model2 use the parameters [1:7].</p><pre class="codeinput">combinedModelDependent = SSITMultiModel({Model1,Model2},{[1:7],[1:7]});
+combinedModelDependent = combinedModelDependent.initializeStateSpaces;
+allParsDependent = ([Model1.parameters{:,2}]);
+allParsDependent = combinedModelDependent.maximizeLikelihood(<span class="keyword">...</span>
+    allParsDependent, fitOptions, fitAlgorithm);
+combinedModelDependent = combinedModelDependent.updateModels(allParsDependent);
+
+<span class="comment">% Note: This example is shown for illustration purposes only.  Usually, if</span>
+<span class="comment">% one is fitting two replicas of the exact same experiment, then it is</span>
+<span class="comment">% more efficient to combine the data from both replicas and fit them at the</span>
+<span class="comment">% same time, e.g. to combined all replicas into one set, simply loas the</span>
+<span class="comment">% data as follows:</span>
+<span class="comment">% Model = Model.loadData('../ExampleData/DUSP1_Dex_100nM_Rep1_Rep2.csv',{'x2','RNA_nuc'});</span>
+</pre><h2 id="11">Example 4 -- mixed parameters.</h2><p>Sometimes it is desirable to only let some parameters change from condition to condition.  In this example both Model1 and Model2 use the same parameters [1-4], but parameters [5:7] are only for Model1 and [8:10] are only for Model2.</p><pre class="codeinput">combinedModelMixed= SSITMultiModel({Model1,Model2},{[1:7],[1:4,8:10]});
+combinedModelMixed = combinedModelMixed.initializeStateSpaces;
+allParsMixed = ([Model1.parameters{:,2},Model2.parameters{5:7,2}]);
+allParsMixed = combinedModelMixed.maximizeLikelihood(<span class="keyword">...</span>
+    allParsMixed, fitOptions, fitAlgorithm);
+</pre><h2 id="12">Example 5 -- constrained parameters.</h2><p>it is also often helpful to place constraints on parameters since it can be expectd that cartain parameters should not change that much from one experiment to another.</p><pre class="codeinput">constraint = @(x)sum((x(5:7)-x(8:10)).^2);
+combinedModelConstrained = SSITMultiModel({Model1,Model2},{[1:7],[1:4,8:10]},constraint);
+combinedModelConstrained = combinedModelConstrained.initializeStateSpaces;
+allParsConstrained = ([Model1.parameters{:,2},Model2.parameters{5:7,2}]);
+allParsConstrained = combinedModelConstrained.maximizeLikelihood(<span class="keyword">...</span>
+    allParsConstrained, fitOptions, fitAlgorithm);
+</pre><p class="footer"><br><a href="https://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2023a</a><br></p></div><!--
+##### SOURCE BEGIN #####
+%% Using the SSIT to fit Multiple Models and Data sets with Shared Parameters
+% In this script, we show how multiple SSIT models and data sets can be fit
+% simultaneously.  This is most useful in situations where:
+%   1) the analysis considers different experimental conditions (e.g.,
+%   different time points, different inducer concentrations, different
+%   genetic mutations).
+%   2) replica to replica variations are expected that would result in
+%   slightly different parameter combinations
+close all 
+clear all
+addpath('../CommandLine');
+
+%% Define SSIT Model
+% SSIT models are defined as usual:
+Model1 = SSIT;
+Model1.species = {'x1';'x2'};
+Model1.initialCondition = [0;0];
+Model1.propensityFunctions = {'kon*IGR*(2-x1)';'koff*x1';'kr*x1';'gr*x2'};
+Model1.stoichiometry = [1,-1,0,0;0,0,1,-1];
+Model1.inputExpressions = {'IGR','1+a1*exp(-r1*t)*(1-exp(-r2*t))'};
+Model1.parameters = ({'koff',0.14;'kon',0.14;'kr',10;'gr',0.01;...
+    'a1',0.4;'r1',0.04;'r2',0.1});
+Model1.fspOptions.initApproxSS = true;
+
+%% Load and Associate smFISH Data
+% Each model is associated with its data as usual:
+Model1 = Model1.loadData('../ExampleData/DUSP1_Dex_100nM_Rep1_Rep2.csv',{'x2','RNA_nuc'},...
+    {'Rep_num','1'}); % This would load the data assign x1 and x2 and condition on Rep_num = 1;
+
+Model1.fspOptions.fspTol = inf;
+Model1.fittingOptions.modelVarsToFit = 1:7;
+
+%% Create Second Model and associate to its own data
+Model2 = Model1;
+Model2 = Model2.loadData('../ExampleData/DUSP1_Dex_100nM_Rep1_Rep2.csv',{'x2','RNA_nuc'},...
+    {'Rep_num','2'}); % This would load the data assign x1 and x2 and condition on Rep_num = 1;
+
+%% Fitting options
+fitOptions = optimset('Display','iter','MaxIter',100);
+fitAlgorithm = 'fminsearch';
+
+%% Create and estimate parameters for combined models
+%%      Example 0 REPLACE_WITH_DASH_DASH single model.
+% This is a simple example, where we only fit one model to a single data
+% set.
+singleModel = SSITMultiModel({Model1},{[1:7]});
+singleModel = singleModel.initializeStateSpaces;
+allParsSingle = ([Model1.parameters{:,2}]);
+allParsSingle = singleModel.maximizeLikelihood(...
+    allParsSingle, fitOptions, fitAlgorithm);
+singleModel = singleModel.updateModels(allParsSingle);
+
+% Copy the parameters back into Model1 and Model2 so we can reuse them later.
+Model1.parameters = singleModel.SSITModels{1}.parameters;
+Model2.parameters = singleModel.SSITModels{1}.parameters;
+
+%%      Example 1 REPLACE_WITH_DASH_DASH Adding new Model+Data to an existing multimodel
+% This is how one adds a second model/data combination.  In this case the
+% parameters of the new model are completely independent of the parameter
+% set for the first model.
+combinedModel = singleModel.addModel({Model2},{[8:14]});
+combinedModel = combinedModel.initializeStateSpaces;
+allParsCombined = ([Model1.parameters{:,2},[Model2.parameters{:,2}]]);
+allParsCombined = combinedModel.maximizeLikelihood(...
+    allParsCombined, fitOptions, fitAlgorithm);
+combinedModel = combinedModel.updateModels(allParsCombined);
+
+% Note: This example is shown for illustration purposes only.  Usually, if 
+% one is fitting a single model independently, then it is more efficient to fit
+% it separately.
+
+%%      Example 2 REPLACE_WITH_DASH_DASH completely independent parameters.
+% Here is how we can create the combined model in one shot.
+combinedModelIndependent = SSITMultiModel({Model1,Model2},{[1:7],[8:14]});
+combinedModelIndependent = combinedModelIndependent.initializeStateSpaces;
+allParsIndepdendent = ([Model1.parameters{:,2},[Model2.parameters{:,2}]]);
+allParsIndepdendent = combinedModelIndependent.maximizeLikelihood(...
+    allParsIndepdendent, fitOptions, fitAlgorithm);
+combinedModelIndependent = combinedModelIndependent.updateModels(allParsIndepdendent);
+
+%%      Example 3 REPLACE_WITH_DASH_DASH completely dependent parameters.
+% Here is an example of how a single set of parameters can be used for both
+% models and data sets. In the following we make a joint model where both
+% Model1 and Model2 use the parameters [1:7].
+combinedModelDependent = SSITMultiModel({Model1,Model2},{[1:7],[1:7]});
+combinedModelDependent = combinedModelDependent.initializeStateSpaces;
+allParsDependent = ([Model1.parameters{:,2}]);
+allParsDependent = combinedModelDependent.maximizeLikelihood(...
+    allParsDependent, fitOptions, fitAlgorithm);
+combinedModelDependent = combinedModelDependent.updateModels(allParsDependent);
+
+% Note: This example is shown for illustration purposes only.  Usually, if 
+% one is fitting two replicas of the exact same experiment, then it is
+% more efficient to combine the data from both replicas and fit them at the
+% same time, e.g. to combined all replicas into one set, simply loas the
+% data as follows:
+% Model = Model.loadData('../ExampleData/DUSP1_Dex_100nM_Rep1_Rep2.csv',{'x2','RNA_nuc'});
+
+%%      Example 4 REPLACE_WITH_DASH_DASH mixed parameters.
+% Sometimes it is desirable to only let some parameters change from
+% condition to condition.  In this example both Model1 and Model2 use the
+% same parameters [1-4], but parameters [5:7] are only for Model1 and
+% [8:10] are only for Model2.
+combinedModelMixed= SSITMultiModel({Model1,Model2},{[1:7],[1:4,8:10]});
+combinedModelMixed = combinedModelMixed.initializeStateSpaces;
+allParsMixed = ([Model1.parameters{:,2},Model2.parameters{5:7,2}]);
+allParsMixed = combinedModelMixed.maximizeLikelihood(...
+    allParsMixed, fitOptions, fitAlgorithm);
+
+%%      Example 5 REPLACE_WITH_DASH_DASH constrained parameters.
+% it is also often helpful to place constraints on parameters since it can
+% be expectd that cartain parameters should not change that much from one
+% experiment to another.
+constraint = @(x)sum((x(5:7)-x(8:10)).^2);
+combinedModelConstrained = SSITMultiModel({Model1,Model2},{[1:7],[1:4,8:10]},constraint);
+combinedModelConstrained = combinedModelConstrained.initializeStateSpaces;
+allParsConstrained = ([Model1.parameters{:,2},Model2.parameters{5:7,2}]);
+allParsConstrained = combinedModelConstrained.maximizeLikelihood(...
+    allParsConstrained, fitOptions, fitAlgorithm);
+##### SOURCE END #####
+--></body></html>

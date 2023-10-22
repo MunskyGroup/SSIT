@@ -17,7 +17,7 @@ Model1.stoichiometry = [1,-1,0,0;0,0,1,-1];
 Model1.parameters = ({'kr',100;'gr',0.5;...
     'k2',2;'g2',1});
 Model1.fspOptions.initApproxSS = false; 
-Model1.tSpan = linspace(0,5,10);
+Model1.tSpan = linspace(0,5,11);
 [fspSoln1,Model1.fspOptions.bounds] = Model1.solve;
 Model1.makePlot(fspSoln1,'marginals',[],[],[2,3])
 
@@ -25,47 +25,50 @@ Model1.makePlot(fspSoln1,'marginals',[],[],[2,3])
 Model2 = Model1;
 Model2.useHybrid = true;
 Model2.hybridOptions.upstreamODEs = {'rna'};
-Model2.fspOptions.verbose = 0;
 [fspSoln2, Model2.fspOptions.bounds] = Model2.solve;
 Model2.makePlot(fspSoln2,'marginals',[],[],3)
 
 %% Example 2 - 5-species MAPK induction Model
-% In this example, we consider a model of MAPK trnaslocation to the nucleus
-% followed by binding to a gene and then transcription activation.
+% In this example, we consider a model of MAPK translocation to the nucleus
+% followed by binding to a gene and then transcription activation. We will
+% assume that there are two alleles with one each starting in the active
+% and inactive state.
 Model3 = SSIT;
-Model3.species = {'mapkCyt','mapkNuc','geneInactive','geneActive','rna'};
-Model3.initialCondition = [50;0;1;0;0];
-Model3.propensityFunctions = {'ktr1*mapkCyt';'ktr2*mapkNuc';'kb*mapkNuc*geneInactive';'ku*geneActive';'k*geneActive';'g*rna'};
-Model3.stoichiometry = [-1,1,0,0,0,0;...
-    1,-1,-1,1,0,0;...
-    0,0,-1,1,0,0;...
+Model3.species = {'geneInactive','geneActive','mapkCyt','mapkNuc','rna'};
+Model3.initialCondition = [1;1;50;0;0];
+Model3.propensityFunctions = {'kin*mapkCyt';'kout*mapkNuc';...
+    'kbind*mapkNuc*geneInactive';'kunbind*geneActive';...
+    'ktranscribe*geneActive';'gdegrade*rna'};
+Model3.stoichiometry = [0,0,-1,1,0,0;...
     0,0,1,-1,0,0;...
+    -1,1,0,0,0,0;...
+    1,-1,-1,1,0,0;...
     0,0,0,0,1,-1];
-Model3.parameters = ({'ktr1',1;'ktr2',2;...
-    'kb',2;'ku',20;...
-    'k',20;'g',1});
+Model3.parameters = ({'kin',1;'kout',2;...
+    'kbind',2;'kunbind',200;...
+    'ktranscribe',20;'gdegrade',1});
 Model3.fspOptions.initApproxSS = false; 
-Model3.tSpan = linspace(0,5,10);
+Model3.tSpan = linspace(0,5,11);
 [fspSoln3,Model3.fspOptions.bounds] = Model3.solve;
 Model3.makePlot(fspSoln3,'marginals',[],[],[11:15])
 
 %% Reduced model where only the RNA species is stochastic
 Model4 = Model3;
 Model4.useHybrid = true;
-Model4.hybridOptions.upstreamODEs = {'mapkCyt','mapkNuc','geneInactive','geneActive'};
+Model4.hybridOptions.upstreamODEs = {'geneInactive','geneActive','mapkCyt','mapkNuc'};
 [fspSoln4, Model4.fspOptions.bounds] = Model4.solve;
 Model4.makePlot(fspSoln4,'marginals',[],[],15)
 
 %% Reduced model where only the gene and RNA species are stochastic.
-% In this example, you will recieve a warning telling you that one of the
-% reactions changes both the upstream and downstream species.  This is not
-% allowed, and the code will then automatically delete the upstream effect
-% (in this case the change of active MAPK) from the stoichiometry for the
-% downstream reaction. This will introduce an additional approximation
-% error.
+% In this example, you should recieve a warning telling you that two
+% reactions (3 and 4) change both the upstream and downstream species.
+% This is not allowed, and the code will then automatically delete the
+% upstream effect (in this case the change of active MAPK) from the
+% stoichiometry for the downstream reaction. This will introduce an
+% additional approximation error.
 Model5 = Model3;
 Model5.useHybrid = true;
 Model5.hybridOptions.upstreamODEs = {'mapkCyt','mapkNuc'};
 [fspSoln5, Model5.fspOptions.bounds] = Model5.solve;
-Model5.makePlot(fspSoln5,'marginals',[],[],[13,14,15])
+Model5.makePlot(fspSoln5,'marginals',[],[],[11,12,15])
 
