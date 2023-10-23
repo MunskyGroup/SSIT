@@ -125,8 +125,10 @@ Load and Fit smFISH Data
 >> Model = Model.loadData('../ExampleData/DUSP1_Dex_100nM_Rep1_Rep2.csv',{'rna','RNA_nuc'});
     
 >> Model.tSpan = unique([Model.initialTime,Model.dataSet.times]);
+
 >> fitOptions = optimset('Display','iter','MaxIter',100);
->> pars,likelihood] = Model.maximizeLikelihood([],fitOptions);
+
+>> [pars,likelihood] = Model.maximizeLikelihood([],fitOptions);
 
 Update Model and Make Plots of Results
 
