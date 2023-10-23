@@ -1724,6 +1724,9 @@ classdef SSIT
                 obj = formPropensitiesGeneral(obj);
             end
 
+            if ischar(obj.fittingOptions.modelVarsToFit)&&strcmp(obj.fittingOptions.modelVarsToFit,'all')
+                obj.fittingOptions.modelVarsToFit = (1:size(obj.parameters,1));
+            end
             if isempty(parGuess)
                 parGuess = [obj.parameters{obj.fittingOptions.modelVarsToFit,2}]';
             end
