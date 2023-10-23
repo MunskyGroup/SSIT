@@ -82,7 +82,23 @@ You should then see the model loading and building page of the graphical interfa
 
 ## Command Line Version
 
-To get started with the Command line Tools, navigate to the directory "CommandLine" and open one of the tutorial scripts "example_XXX.m".  Or you caan start creating and solving models as follows.
+To get started with the Command line Tools, navigate to the directory "Examples" and open one of the tutorial scripts "example_XXX.m".  We recommend getting started using the following examples: 
+
+[Examples/example_SSITBasics.m](https://htmlpreview.github.io/?https://github.com/MunskyGroup/SSIT/blob/main/Examples/html/example_SSITBasics.html) This example will get you started on creating and solving SSIT models.
+
+[Examples/example_EscapeTimes.m](https://htmlpreview.github.io/?https://github.com/MunskyGroup/SSIT/blob/main/Examples/html/example_EscapeTimes.html) This example will get you started on using the SSIT to calculate escape time distributions.
+
+[Examples/example_FIMCalculation.m](https://htmlpreview.github.io/?https://github.com/MunskyGroup/SSIT/blob/main/Examples/html/example_FIMCalculation.html) This example demonstrates the use of the SSIT to calculate Sensitivity of the CME solution and the Fisher Information Matrix.
+
+[Examples/example_FittingAndDesigningExperiments.m](https://htmlpreview.github.io/?https://github.com/MunskyGroup/SSIT/blob/main/Examples/html/example_FittingAndDesigningExperiments.html) This example demonstrates the use of the SSIT and Fisher Information Matrix to design optimally informative experiments.
+
+[Examples/example_HybridModel.m](https://htmlpreview.github.io/?https://github.com/MunskyGroup/SSIT/blob/main/Examples/html/example_HybridModel.html) This example demonstrates the use of the SSIT for creating hybrid models where some (upstream) species evolve determistically while other (downstream) species are stochastic.
+
+[Examples/example_ModelReductionTool.m](https://htmlpreview.github.io/?https://github.com/MunskyGroup/SSIT/blob/main/Examples/html/example_ModelReductionTool.html) This example  demonstrates the use of the SSIT for applying linear transformations to reduce the size of the CME solution scheme (e.g., eigvenvalue decomposition, principle orthoginal decomposition, quasi-steady state assumptions, or coarse mesh solutions).
+
+[Examples/example_MultiModelTool.m](https://htmlpreview.github.io/?https://github.com/MunskyGroup/SSIT/blob/main/Examples/html/example_MultiModelTool.html) This example demonstrates the use of the SSIT for fitting multiple different models with shared or related pameters, but fit to different data sets.
+
+Or you can start creating and solving models as follows.
 
 Example for generating an FSI model and fitting it to smFISH data for Dusp1 activation following glucocorticoid stimulation:
 
@@ -109,8 +125,10 @@ Load and Fit smFISH Data
 >> Model = Model.loadData('../ExampleData/DUSP1_Dex_100nM_Rep1_Rep2.csv',{'rna','RNA_nuc'});
     
 >> Model.tSpan = unique([Model.initialTime,Model.dataSet.times]);
+
 >> fitOptions = optimset('Display','iter','MaxIter',100);
->> pars,likelihood] = Model.maximizeLikelihood([],fitOptions);
+
+>> [pars,likelihood] = Model.maximizeLikelihood([],fitOptions);
 
 Update Model and Make Plots of Results
 
