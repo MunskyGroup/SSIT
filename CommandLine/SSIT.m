@@ -1731,6 +1731,10 @@ classdef SSIT
                 parGuess = [obj.parameters{obj.fittingOptions.modelVarsToFit,2}]';
             end
 
+            if strcmp(obj.solutionScheme,'fspSens')   % Set solution scheme to FSP.
+                obj.solutionScheme='FSP';
+            end
+
             if strcmp(obj.solutionScheme,'FSP')   % Set solution scheme to FSP.
                 [FSPsoln,bounds] = obj.solve;  % Solve the FSP analysis
                 obj.fspOptions.bounds = bounds;% Save bound for faster analyses
