@@ -85,16 +85,6 @@ end
 %       each is the partial derivative of `p` with respect to a model
 %       parameter.
 
-% Obtain Stoichiometry from model
-% stoichMatrix = srnModel.stoichiometry;
-
-% Obtain CME solution at paramter_values
-% if ~isempty(varNames)
-%     propensities = srnModel.createPropensities(parameters,varNames);
-% else
-%     propensities = srnModel.createPropensities(parameters);
-% end
-
 % Find solution to FSP
 if isempty(fspSoln)
     [solutions,constraintBounds,stateSpace] = ssit.fsp.adaptiveFspSolve(outputTimes, initialStates,...

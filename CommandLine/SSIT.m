@@ -863,20 +863,11 @@ classdef SSIT
                         obj = formPropensitiesGeneral(obj,'Sensitivities',true);
                     end
                     if ~isempty(obj.parameters)
-                    %     model = ssit.SrnModel(obj.stoichiometry,...
-                    %         obj.propensityFunctions,...
-                    %         obj.parameters(:,1),...
-                    %         obj.inputExpressions);
                         app.ReactionsTabOutputs.parameters = obj.parameters(:,1);
                     else
-                    %     model = ssit.SrnModel(obj.stoichiometry,...
-                    %         obj.propensityFunctions,...
-                    %         [],...
-                    %         obj.inputExpressions);
                         app.ReactionsTabOutputs.parameters = [];
                     end
                     app.ReactionsTabOutputs.varNames = obj.species;
-                    % model = [];
 
                     [Solution.sens, bConstraints] = ...
                         ssit.sensitivity.computeSensitivity(...
@@ -905,9 +896,6 @@ classdef SSIT
                     %                     Solution.plotable = exportSensResults(app);
 
                 case 'ode'
-                    
-                    % specificPropensities = SSIT.parameterizePropensities(obj.propensitiesGeneral,[obj.parameters{:,2}]');
-                    
                     [~,Solution.ode] = ssit.moments.solveOde2(obj.initialCondition, obj.tSpan, ...
                         obj.stoichiometry, obj.propensitiesGeneral,  [obj.parameters{:,2}]', obj.fspOptions.initApproxSS);
             end
@@ -949,7 +937,6 @@ classdef SSIT
                 for it=1:Nt
                     A.time((it-1)*obj.ssaOptions.nSimsPerExpt+1:it*obj.ssaOptions.nSimsPerExpt) = obj.tSpan(it);
                     for ie = 1:obj.ssaOptions.Nexp
-                        %                          for is=1:obj.ssaOptions.nSimsPerExpt
                         for s = 1:size(Solution.trajs,1)
                             warning('off')
                             A.(['exp',num2str(ie),'_s',num2str(s)])((it-1)*obj.ssaOptions.nSimsPerExpt+(1:obj.ssaOptions.nSimsPerExpt)) = ...
@@ -959,7 +946,6 @@ classdef SSIT
                                     Solution.trajsDistorted(s,it,(ie-1)*obj.ssaOptions.nSimsPerExpt+(1:obj.ssaOptions.nSimsPerExpt));
                             end
                         end
-                        %                          end
                     end
                 end
                 writetable(A,saveFile)

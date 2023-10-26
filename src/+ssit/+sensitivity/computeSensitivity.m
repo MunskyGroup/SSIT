@@ -45,14 +45,6 @@ app.SensParDropDown.Items = parameters(:,1);
 
 if (strcmp(method, 'forward'))
     try
-        % if ~isempty(parameters)
-        %     parsDict = containers.Map(parameters(:,1),...
-        %         parameters(:,2));
-        % else
-        %     parsDict=[];
-        % end
-        % propensities = model.createPropensities(parsDict,app.ReactionsTabOutputs.varNames);
-        % [propensityDerivatives,computableSensitivities] = model.findPropensityDerivativesSymbolic(parsDict,app.ReactionsTabOutputs.varNames);
         if isempty(propensitiesGeneral{1}.sensTimeFactorVec)
             obj = formPropensitiesGeneral(obj,'Sensitivities',true);
         end

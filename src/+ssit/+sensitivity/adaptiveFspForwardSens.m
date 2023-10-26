@@ -95,8 +95,6 @@ for i = 1:length(propensities)
 end
 
 % check input sizes
-reactionCount = length(propensities);
-% parameterCount = size(propensityDerivatives, 2);
 parameterCount = sum(computableSensitivities);
 
 % if (reactionCount ~= size(propensityDerivatives,1))
@@ -126,20 +124,6 @@ stateCount = stateSpace.getNumStates();
 
 % Generate the time-varying FSP operator
 fspMatrix = ssit.FspMatrix(propensities, [parameters{:,2}]', stateSpace, constraintCount, varNames, modRedTransformMatrices, true);
-
-% Generate the sensitivity matrices
-% fspMatrixDiff = cell(parameterCount, 1);
-% indsCompSens = find(computableSensitivities);
-% for i = 1:parameterCount
-%     propDiffs = {};
-%     % select non-empty entries of propensityDerivatives
-%     for j = 1:reactionCount
-%         if (~isempty(propensityDerivatives{j,indsCompSens(i)}))
-%             propDiffs = [propDiffs; propensityDerivatives(j,indsCompSens(i))];
-%         end        
-%     end
-%     fspMatrixDiff{indsCompSens(i)} = ssit.FspMatrix(propDiffs, [parameters{:,2}]', stateSpace, constraintCount);
-% end
 
 probabilityVec = zeros(stateCount + constraintCount, 1);
 probabilityVec(1:size(initialStates,2)) = initialProbabilities;
@@ -275,21 +259,7 @@ while (tNow < tFinal)
 
         stateSpace = stateSpace.expand(constraintFunctions, constraintBounds);
 
-        % fspMatrix = ssit.FspMatrix(propensities, stateSpace, constraintCount);
         fspMatrix = ssit.FspMatrix(propensities, [parameters{:,2}]', stateSpace, constraintCount, varNames, modRedTransformMatrices, true);
-
-        % % Generate the sensitivity matrices
-        % fspMatrixDiff = cell(parameterCount, 1);
-        % for i = 1:parameterCount
-        %     propDiffs = cell(0);
-        %     % select non-empty entries of propensityDerivatives
-        %     for j = 1:reactionCount
-        %         if (~isempty(propensityDerivatives{j,i}))
-        %             propDiffs = [propDiffs; propensityDerivatives(j,i)];
-        %         end
-        %     end
-        %     fspMatrixDiff{i} = ssit.FspMatrix(propDiffs, stateSpace, constraintCount);
-        % end
 
         stateCountOld = stateCount;
         stateCount = stateSpace.getNumStates;
