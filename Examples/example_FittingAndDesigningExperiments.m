@@ -27,6 +27,7 @@ Model.fspOptions.initApproxSS = true;
 Model.solutionScheme = 'FSP';
 Model.fspOptions.fspTol = 1e-4;
 Model.fspOptions.bounds(3:4) = [2,400];
+Model = Model.formPropensitiesGeneral('Model');
 [fspSoln,Model.fspOptions.bounds] = Model.solve;
 
 %% Load and Fit smFISH Data

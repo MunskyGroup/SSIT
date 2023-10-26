@@ -2,8 +2,9 @@ function [outputs, constraintBounds, stateSpace] = adaptiveFspForwardSens(output
     initialStates,...
     initialProbabilities, initialSensitivities,...
     stoichMatrix, ...
-    propensities, propensityDerivatives, computableSensitivities,...
+    propensities, parameters, propensityDerivatives, computableSensitivities,...
     fspTol,...
+    varNames, modRedTransformMatrices, ...
     constraintFunctions, initialConstraintBounds,...
     verbose, useMex,...
     relTol,...
@@ -16,9 +17,12 @@ arguments
     initialSensitivities
     stoichMatrix
     propensities
+    parameters
     propensityDerivatives
     computableSensitivities
     fspTol
+    varNames
+    modRedTransformMatrices
     constraintFunctions
     initialConstraintBounds
     verbose
@@ -95,9 +99,9 @@ reactionCount = length(propensities);
 % parameterCount = size(propensityDerivatives, 2);
 parameterCount = sum(computableSensitivities);
 
-if (reactionCount ~= size(propensityDerivatives,1))
-    error('Number of rows of propensityDerivatives cell must be the same as number of propensities');
-end
+% if (reactionCount ~= size(propensityDerivatives,1))
+%     error('Number of rows of propensityDerivatives cell must be the same as number of propensities');
+% end
 if (size(initialProbabilities, 1)*parameterCount ~= size(initialSensitivities,1))
     error('Input probabilities and sensitivities must have compatible size.');
 end
@@ -121,21 +125,21 @@ end
 stateCount = stateSpace.getNumStates();
 
 % Generate the time-varying FSP operator
-fspMatrix = ssit.FspMatrix(propensities, stateSpace, constraintCount);
+fspMatrix = ssit.FspMatrix(propensities, [parameters{:,2}]', stateSpace, constraintCount, varNames, modRedTransformMatrices, true);
 
 % Generate the sensitivity matrices
-fspMatrixDiff = cell(parameterCount, 1);
-indsCompSens = find(computableSensitivities);
-for i = 1:parameterCount
-    propDiffs = {};
-    % select non-empty entries of propensityDerivatives
-    for j = 1:reactionCount
-        if (~isempty(propensityDerivatives{j,indsCompSens(i)}))
-            propDiffs = [propDiffs; propensityDerivatives(j,indsCompSens(i))];
-        end        
-    end
-    fspMatrixDiff{indsCompSens(i)} = ssit.FspMatrix(propDiffs, stateSpace, constraintCount);
-end
+% fspMatrixDiff = cell(parameterCount, 1);
+% indsCompSens = find(computableSensitivities);
+% for i = 1:parameterCount
+%     propDiffs = {};
+%     % select non-empty entries of propensityDerivatives
+%     for j = 1:reactionCount
+%         if (~isempty(propensityDerivatives{j,indsCompSens(i)}))
+%             propDiffs = [propDiffs; propensityDerivatives(j,indsCompSens(i))];
+%         end        
+%     end
+%     fspMatrixDiff{indsCompSens(i)} = ssit.FspMatrix(propDiffs, [parameters{:,2}]', stateSpace, constraintCount);
+% end
 
 probabilityVec = zeros(stateCount + constraintCount, 1);
 probabilityVec(1:size(initialStates,2)) = initialProbabilities;
@@ -195,7 +199,7 @@ while (tNow < tFinal)
         
         if isTimeInvariant
             % Expokit Solution
-            jac = forwardSensJac(tNow, y0, fspMatrix, fspMatrixDiff(indsCompSens));
+            jac = forwardSensJac(tNow, y0, fspMatrix, [parameters{:,2}]');
             tryAgain=1;
             m=30;
             indSinks =[stop_cond.n_states+1:stop_cond.n_states+stop_cond.n_sinks];
@@ -271,19 +275,21 @@ while (tNow < tFinal)
 
         stateSpace = stateSpace.expand(constraintFunctions, constraintBounds);
 
-        fspMatrix = ssit.FspMatrix(propensities, stateSpace, constraintCount);
-        % Generate the sensitivity matrices
-        fspMatrixDiff = cell(parameterCount, 1);
-        for i = 1:parameterCount
-            propDiffs = cell(0);
-            % select non-empty entries of propensityDerivatives
-            for j = 1:reactionCount
-                if (~isempty(propensityDerivatives{j,i}))
-                    propDiffs = [propDiffs; propensityDerivatives(j,i)];
-                end
-            end
-            fspMatrixDiff{i} = ssit.FspMatrix(propDiffs, stateSpace, constraintCount);
-        end
+        % fspMatrix = ssit.FspMatrix(propensities, stateSpace, constraintCount);
+        fspMatrix = ssit.FspMatrix(propensities, [parameters{:,2}]', stateSpace, constraintCount, varNames, modRedTransformMatrices, true);
+
+        % % Generate the sensitivity matrices
+        % fspMatrixDiff = cell(parameterCount, 1);
+        % for i = 1:parameterCount
+        %     propDiffs = cell(0);
+        %     % select non-empty entries of propensityDerivatives
+        %     for j = 1:reactionCount
+        %         if (~isempty(propensityDerivatives{j,i}))
+        %             propDiffs = [propDiffs; propensityDerivatives(j,i)];
+        %         end
+        %     end
+        %     fspMatrixDiff{i} = ssit.FspMatrix(propDiffs, stateSpace, constraintCount);
+        % end
 
         stateCountOld = stateCount;
         stateCount = stateSpace.getNumStates;
@@ -403,16 +409,26 @@ for j = 1:n_pars
 end
 end
 
-function J = forwardSensJac(t, ~, A, dA)
-Amerged = A.createSingleMatrix(t);
+function J = forwardSensJac(t, x, A, parameters, modRedTransformMatrices)
+arguments
+    t
+    x
+    A
+    parameters
+    modRedTransformMatrices = []
+end
+[Amerged,AmergedSens] = A.createSingleMatrix(t,parameters,modRedTransformMatrices,true);
+
 n = size(Amerged,1);
-nzbound = nnz(Amerged)*(length(dA)+1);
+npars = size(parameters,1);
+nzbound = nnz(Amerged)*(npars+1);
 J = spalloc(n, n, nzbound);
 J(1:n, 1:n) = Amerged;
-for j=1:length(dA)
+for j=1:npars
     J(j*n+1:(j+1)*n, j*n+1:(j+1)*n) = Amerged;
     %BRIAN     J(j*n+1:(j+1)*n, (j-1)*n+1:j*n) = dA{j}.createSingleMatrix(t);
-    J(j*n+1:(j+1)*n, 1:n) = dA{j}.createSingleMatrix(t);
+    % J(j*n+1:(j+1)*n, 1:n) = dA{j}.createSingleMatrix(t);
+    J(j*n+1:(j+1)*n, 1:n) = AmergedSens{j};
 end
 end
 

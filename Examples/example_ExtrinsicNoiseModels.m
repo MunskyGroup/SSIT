@@ -16,6 +16,7 @@ Model1.parameters = ({'kr',10;'gr',0.5;...
 Model1.fspOptions.initApproxSS = false; 
 Model1.tSpan = linspace(0,5,10);
 [fspSoln1,Model1.fspOptions.bounds] = Model1.solve;
+Model1 = Model1.formPropensitiesGeneral('Model1');   
 Model1.makePlot(fspSoln1,'marginals',[],[],[2,3])
 
 %% Generate, solve and plot results for an extrinsic noise version

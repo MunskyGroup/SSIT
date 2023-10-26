@@ -57,22 +57,32 @@ classdef Propensity
         isTimeDependent; % (true/false) telling us if this propensity is time-dep
         isFactorizable; % (true/false) if time-dep, is it isFactorizable?
         stoichVector; % (column vec) the associated stoichiometry vector
+        
         timeDependentFactor; % function handle to compute the time-dependent factor,
-        % left empty if it is either independent of time or not isFactorizable
+                % left empty if it is either independent of time or not isFactorizable
         stateDependentFactor; % function handle to compute the state-dependent factor.
         jointDependentFactor; % function handle to compute the time-and-state-dependent factor, this
-        % is only used if the propensity is not isFactorizable.
+                % is only used if the propensity is not isFactorizable.
+        
         hybridFactor % function handle for factorized hybrid propensity functions.
         hybridFactorVector  % function handle for all hybrid or t-dependent reactions
         xFactorVector % function handle for all state-dependent reactions
         hybridJointFactor % function handle for joint hybrid propensity functions.
+
+        sensTimeFactorVec
+        sensStateFactor
+        sensStateFactorVec
+        
         originalString;
+       
         parameters; % list of required model parameters
         ODEstoichVector=[]; % (column vec) the associated stoichiometry vector (for upstream ODEs)
+       
         anonymousT = false; % are time dependent functions anonymous?
         anonymousX = true; % are state dependent functions anonymous?
         DstateFactorDstate % function handle for jacobian with respect to the states.
         DhybridFactorDodesVec % function handle for jacobian with respect to the upstream odes.
+
     end
 
     methods (Access = public)
@@ -139,12 +149,14 @@ classdef Propensity
             end
         end
 
-        function y = evaluateStateFactor(obj, x, parameters, varNames)
+        function y = evaluateStateFactor(obj, x, parameters, varNames, computeSens, ipar)
             arguments
                 obj
                 x
                 parameters
                 varNames=[];
+                computeSens = false
+                ipar  = [];
             end
             if isempty(varNames)
                 varNames={'x1','x2','x3','x4'};
@@ -152,25 +164,19 @@ classdef Propensity
             if (size(x, 1) ~= size(obj.stoichVector, 1))
                 error('Propensity.evalAt : input state dimension is not consistent with the stoichiometry vector in the object''s record');
             end
-            % try
-            if ~isempty(parameters)
-                y = obj.stateDependentFactor(x,parameters);
+            if computeSens
+                if ~isempty(parameters)
+                    y = obj.sensStateFactor{ipar}(x,parameters);
+                else
+                    y = 0;
+                end
             else
-                y = obj.stateDependentFactor(x);
+                if ~isempty(parameters)
+                    y = obj.stateDependentFactor(x,parameters);
+                else
+                    y = obj.stateDependentFactor(x);
+                end
             end
-            % catch
-            %     % This section was very inefficient.  I sped it up for one
-            %     % case, but need to check that that it keeps working for
-            %     % others.
-            %     TMP = func2str(obj.stateDependentFactor);
-            %     TMP = strrep(TMP,'t','tt');
-            %     for i=1:length(varNames)
-            %         eval([varNames{i},'=x(i,:);']);
-            %         TMP = strrep(TMP,['x(',num2str(i),',:)'],varNames{i});
-            %     end
-            %     eval(['y=',TMP(5:end),';'])
-            % end
-
         end
     end
     methods (Access = public, Static)
@@ -403,7 +409,7 @@ classdef Propensity
         % 
         % end
         %%
-        function obj = createAsHybridVec(symbolicExpression, stoichMatrix, nonXTpars, species, upstreamODEs, logicTerms, prefixName)
+        function obj = createAsHybridVec(symbolicExpression, stoichMatrix, nonXTpars, species, upstreamODEs, logicTerms, prefixName, computeSens)
             arguments
                 symbolicExpression
                 stoichMatrix
@@ -412,6 +418,7 @@ classdef Propensity
                 upstreamODEs = {};
                 logicTerms = {};
                 prefixName = [];
+                computeSens = false;
             end
 
             % Construct an vector of Hybrid Propensity from a symbolic expression.
@@ -458,8 +465,11 @@ classdef Propensity
                 timeFunName = 'timeDependentFactor';
                 jntFactorName = 'jointDependentFactor';
             end
+
             n_reactions = size(stoichMatrix,2);
+            n_pars = size(nonXTpars,1);
             speciesStoch = setdiff(species,upstreamODEs,'stable');
+
             varODEs = sym('varODEs',[1,length(upstreamODEs)]);
 
             % Delete previous propensity function m-files
@@ -473,6 +483,11 @@ classdef Propensity
             expr_t_vec = sym('w',[n_reactions,1]);
             expr_x_vec = sym('wx',[n_reactions,1]);
             expr_dt_vec_dode = sym('wx',[n_reactions,length(jODE)]);
+            
+            if computeSens
+                expr_t_vec_sens = sym('w',[n_reactions,n_pars]);
+                expr_x_vec_sens = sym('wx',[n_reactions,n_pars]);
+            end
 
             anyLogical = false;
 
@@ -533,9 +548,9 @@ classdef Propensity
                     end
                 end
 
-
                 expr_t = prod(factors(2:end));
                 expr_x = factors(1);
+
                 % Convert these symbolic expressions to anonymous
                 % functions
                 for i2=1:length(upstreamODEs)
@@ -622,7 +637,7 @@ classdef Propensity
                     % Then for the state varying factors.
                     if obj{iRxn}.anonymousX
                         obj{iRxn}.stateDependentFactor =...
-                            sym2propfun(signHybridFactor*expr_x, false, true, nonXTpars(:,1), speciesStoch, [], logicTerms(iRxn));
+                            sym2propfun(signHybridFactor*expr_x, false, true, nonXTpars(:,1), speciesStoch, [], logicTerms(iRxn));                    
                     else
                         obj{iRxn}.stateDependentFactor =...
                             sym2mFun(signHybridFactor*expr_x, false, true, nonXTpars(:,1), speciesStoch, [], false, true, prefixName);
@@ -636,7 +651,13 @@ classdef Propensity
                     if ismember(t,symvar(expr_t))||isfield(logicTerms{iRxn},'logT')&&~isempty(logicTerms{iRxn}.logT)
                         obj{iRxn}.isTimeDependent = true;
                     end
-                
+                    if computeSens
+                        for iPar = 1:n_pars
+                            expr_t_vec_sens(iRxn,iPar) = signHybridFactor*diff(expr_t,nonXTpars{iPar,1});
+                            expr_x_vec_sens(iRxn,iPar) = signHybridFactor*diff(expr_x,nonXTpars{iPar,1});
+                        end
+                    end
+
                 else
                     for i2=1:length(upstreamODEs)
                         expr_tx = subs(expr_tx,upstreamODEs{i2},varODEs(i2));
@@ -656,11 +677,31 @@ classdef Propensity
                 if ~isempty(expr_dt_vec_dode)
                     obj{1}.DhybridFactorDodesVec = sym2propfun(expr_dt_vec_dode, true, false, nonXTpars(:,1), speciesStoch, varODEs, logicTerms);
                 end
+                if computeSens
+                    obj{1}.sensStateFactorVec = sym2propfun(expr_x_vec_sens, false, true, nonXTpars(:,1), speciesStoch, varODEs, logicTerms);
+                    for iRxn = 1:n_reactions
+                        obj{iRxn}.sensStateFactor = cell(1,n_pars);
+                        for ipar = 1:n_pars
+                            obj{iRxn}.sensStateFactor{ipar} =  sym2propfun(expr_x_vec_sens(iRxn,ipar), false, true, nonXTpars(:,1), speciesStoch, varODEs, logicTerms);
+                            obj{1}.sensTimeFactorVec{ipar} = sym2propfun(expr_t_vec_sens(:,ipar), true, false, nonXTpars(:,1), speciesStoch, varODEs, logicTerms);
+                        end
+                    end
+                end
             else
                 hybridFactorVector = sym2mFun(expr_t_vec, true, false, nonXTpars(:,1), speciesStoch, varODEs, false, true, prefixName);
                 xFactorVector = sym2mFun(expr_x_vec, false, true, nonXTpars(:,1), speciesStoch, varODEs, false, true, prefixName);
                 if ~isempty(expr_dt_vec_dode)
                     obj{1}.DhybridFactorDodesVec = sym2mFun(expr_dt_vec_dode, true, false, nonXTpars(:,1), speciesStoch, varODEs, false, true, prefixName);
+                end
+                if computeSens
+                    obj{1}.sensStateFactorVec = sym2mFun(expr_x_vec_sens, false, true, nonXTpars(:,1), speciesStoch, varODEs, false, true, prefixName);
+                    for iRxn = 1:n_reactions
+                        obj{iRxn}.sensStateFactor = cell(1,n_pars);
+                        for ipar = 1:n_pars
+                            obj{iRxn}.sensStateFactor{ipar} =  sym2mFun(expr_x_vec_sens(iRxn,ipar), false, true, nonXTpars(:,1), speciesStoch, varODEs, false, true, prefixName);
+                            obj{1}.sensTimeFactorVec{ipar} = sym2mFun(expr_t_vec_sens(:,ipar), true, false, nonXTpars(:,1), speciesStoch, varODEs, false, true, prefixName);
+                        end
+                    end
                 end
             end
             obj{1}.hybridFactorVector = hybridFactorVector;

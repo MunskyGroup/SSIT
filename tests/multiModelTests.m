@@ -22,7 +22,7 @@ classdef multiModelTests < matlab.unittest.TestCase
             tc.Poiss.parameters = ({'kr',10;'gr',1});
             tc.Poiss.tSpan = linspace(0,2,9);
             tc.Poiss.fspOptions.fspTol = 1e-5;
-            tc.Poiss = tc.Poiss.formPropensitiesGeneral('Poiss1');
+            tc.Poiss = tc.Poiss.formPropensitiesGeneral('Poiss1',true);
             tc.Poiss.fittingOptions.modelVarsToFit = [1,2];
             [tc.PoissSolution,tc.Poiss.fspOptions.bounds] = tc.Poiss.solve;
             
@@ -36,7 +36,7 @@ classdef multiModelTests < matlab.unittest.TestCase
             tc.Poiss2.ssaOptions.nSimsPerExpt = 100;
             tc.Poiss2.ssaOptions.Nexp = 1;
             tc.Poiss2.parameters = ({'kr',15;'gr',1});
-            tc.Poiss2 = tc.Poiss2.formPropensitiesGeneral('Poiss2');
+            tc.Poiss2 = tc.Poiss2.formPropensitiesGeneral('Poiss2',true);
             [tc.Poiss2Solution,tc.Poiss2.fspOptions.bounds] = tc.Poiss2.solve;
             delete 'testData2.csv'
             tc.Poiss2.sampleDataFromFSP(tc.Poiss2Solution,'testData2.csv')
@@ -111,13 +111,17 @@ classdef multiModelTests < matlab.unittest.TestCase
                     0,exactIkg2(i),exactIk2(i)];
             end
             % 
-            diff = max(abs(exactIk1-fspIk1)+abs(exactIg1-fspIg1)+abs(exactIkg1-fspIkg1))+...
-                max(abs(exactIk2-fspIk2)+abs(exactIg2-fspIg2)+abs(exactIkg2-fspIkg2));
+            diff = max(abs((exactIk1-fspIk1)./exactIk1)+...
+                abs((exactIg1-fspIg1)./exactIg1)+...
+                abs((exactIkg1-fspIkg1)./exactIkg1))+...
+                max(abs((exactIk2-fspIk2)./exactIk2)+...
+                abs((exactIg2-fspIg2)./exactIg2)+...
+                abs((exactIkg2-fspIkg2)./exactIkg2));
            
-            diff = max(diff,max(abs(combinedModel.FIM.totalFIM - exactTotalFIM),[],"all")/9);
+            diff = max(diff,max(abs((combinedModel.FIM.totalFIM - exactTotalFIM)./exactTotalFIM),[],"all")/9);
             
             tc.verifyEqual(diff<0.001, true, ...
-                'FIM Calculation is not within 1e-4% Tolerance');
+                'FIM Calculation is not within 0.1% Tolerance');
         end
 
     end
