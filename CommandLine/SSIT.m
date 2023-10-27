@@ -1095,7 +1095,7 @@ classdef SSIT
             end
         end
 
-        function [NcDNewDesign] = optimizeCellCounts(obj,fims,nCellsTotalNew,FIMMetric,Nc,NcFixed,NcMax)
+        function [NcDNewDesign] = optimizeCellCounts(obj,fims,nCellsTotalNew,FIMMetric,NcGuess,NcFixed,NcMax)
             % This function optimizes the number of cells per time point
             % according to the user-provide metric. 
             % 
@@ -1144,7 +1144,7 @@ classdef SSIT
                 fims
                 nCellsTotalNew
                 FIMMetric = 'Smallest Eigenvalue';
-                Nc = [];
+                NcGuess = [];
                 NcFixed = [];
                 NcMax = []
             end
@@ -1179,31 +1179,31 @@ classdef SSIT
                 NcMax = inf*ones(1,NT);
             end
             
-            if isempty(Nc)
-                Nc = NcFixed;
-                Nc(1)=Nc(1)+nCellsTotalNew;
+            if isempty(NcGuess)
+                NcGuess = NcFixed;
+                NcGuess(1)=NcGuess(1)+nCellsTotalNew;
             else
-                Nc = NcFixed+Nc;
+                NcGuess = NcFixed+NcGuess;
             end
 
             Converged = 0;
             while Converged==0
                 Converged = 1;
                 for i = 1:NT
-                    while Nc(i)>NcFixed(i)
-                        Ncp = Nc;
+                    while NcGuess(i)>NcFixed(i)
+                        Ncp = NcGuess;
                         Ncp(i) = Ncp(i)-1;
                         k = SSIT.findBestMove(fims,Ncp,met,NcMax);
                         if k==i
                             break
                         end
-                        Nc = Ncp;
-                        Nc(k)=Nc(k)+1;
+                        NcGuess = Ncp;
+                        NcGuess(k)=NcGuess(k)+1;
                         Converged = 0;
                     end
                 end
             end
-            NcDNewDesign = Nc - NcFixed;
+            NcDNewDesign = NcGuess - NcFixed;
         end
 
         %% Data Loading and Fitting
