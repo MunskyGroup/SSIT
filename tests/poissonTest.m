@@ -8,6 +8,7 @@ classdef poissonTest < matlab.unittest.TestCase
     methods (TestClassSetup)
         % Shared setup for the entire test class
         function createTestModel1(testCase1)
+            addpath(genpath('../src'));
             addpath('../CommandLine')
             %% Test Case 1 - a simple Poisson model
             testCase1.Poiss = SSIT;
@@ -25,8 +26,12 @@ classdef poissonTest < matlab.unittest.TestCase
             [testCase1.PoissSolution,testCase1.Poiss.fspOptions.bounds] = testCase1.Poiss.solve(testCase1.PoissSolution.stateSpace);
             testCase1.PoissSolution.time = toc;
 
-            testCase1.Poiss = testCase1.Poiss.loadData('testData.csv',{'rna','exp1_s1'});
+            delete 'testData.csv'
+            testCase1.Poiss.ssaOptions.nSimsPerExpt = 1000;
+            testCase1.Poiss.ssaOptions.Nexp = 1;
+            testCase1.Poiss.sampleDataFromFSP(testCase1.PoissSolution,'testData.csv')
 
+            testCase1.Poiss = testCase1.Poiss.loadData('testData.csv',{'rna','exp1_s1'});
 
             %% ODE model for Poisson process
             testCase1.PoissODE = testCase1.Poiss;

@@ -82,7 +82,7 @@ classdef SSIT
             end
             % This function starts the process to write m-file for each
             % propensity function.
-            if ~strcmp(obj.solutionScheme,'SSA')
+            % if ~strcmp(obj.solutionScheme,'SSA')
                 if strcmp(obj.solutionScheme,'ode')
                     obj.useHybrid = true;
                     obj.hybridOptions.upstreamODEs = obj.species;
@@ -112,13 +112,13 @@ classdef SSIT
 
                 obj.propensitiesGeneral = PropensitiesGeneral;
 
-            elseif strcmp(obj.solutionScheme,'SSA')
-                PropensitiesGeneral = ssit.SrnModel.processPropensityStrings(obj.propensityFunctions,...
-                    obj.inputExpressions,...
-                    obj.pars_container,...
-                    propenType,...
-                    obj.species);
-            end
+            % elseif strcmp(obj.solutionScheme,'SSA')
+            %     PropensitiesGeneral = ssit.SrnModel.processPropensityStrings(obj.propensityFunctions,...
+            %         obj.inputExpressions,...
+            %         obj.pars_container,...
+            %         propenType,...
+            %         obj.species);
+            % end
 
         end
 %%
@@ -2072,7 +2072,11 @@ classdef SSIT
             end
             if isempty(figureNums)
                 h =  findobj('type','figure');
-                figureNums = max([h.Number])+(1:10);
+                if isfield(h,'Number')
+                    figureNums = max([h.Number])+(1:10);
+                else
+                    figureNums = (1:10);
+                end      
             end
             kfig = 1;
             switch obj.solutionScheme
