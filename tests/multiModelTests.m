@@ -60,7 +60,7 @@ classdef multiModelTests < matlab.unittest.TestCase
             combinedModel = combinedModel.initializeStateSpaces;
             parGuess = [1,1,1];
 
-            fitOptions = optimset('Display','iter','MaxIter',500);
+            fitOptions = optimset('Display','final','MaxIter',500);
             parGuess = combinedModel.maximizeLikelihood(...
                 parGuess, fitOptions);
 
