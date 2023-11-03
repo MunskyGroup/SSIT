@@ -1,5 +1,5 @@
 function [outputs,constraintBounds] = adaptiveFspFiniteDiff(...
-    srnModel,...
+    stoichMatrix,...
     propensitiesGeneral,...
     parameters,...
     perturbationFactor,...
@@ -14,7 +14,7 @@ function [outputs,constraintBounds] = adaptiveFspFiniteDiff(...
     useHybrid,hybridOptions,...
     fEscape,bEscape)
 arguments
-    srnModel
+    stoichMatrix
     propensitiesGeneral
     parameters
     perturbationFactor
@@ -84,16 +84,6 @@ end
 %       - S: array of :mat:class:`~+ssit.@FspVector.FspVector` objects,
 %       each is the partial derivative of `p` with respect to a model
 %       parameter.
-
-% Obtain Stoichiometry from model
-stoichMatrix = srnModel.stoichiometry;
-
-% Obtain CME solution at paramter_values
-% if ~isempty(varNames)
-%     propensities = srnModel.createPropensities(parameters,varNames);
-% else
-%     propensities = srnModel.createPropensities(parameters);
-% end
 
 % Find solution to FSP
 if isempty(fspSoln)

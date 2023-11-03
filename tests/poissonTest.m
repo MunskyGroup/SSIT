@@ -19,7 +19,7 @@ classdef poissonTest < matlab.unittest.TestCase
             testCase1.Poiss.parameters = ({'kr',10;'gr',1});
             testCase1.Poiss.tSpan = linspace(0,2,21);
             testCase1.Poiss.fspOptions.fspTol = 1e-5;
-            testCase1.Poiss = testCase1.Poiss.formPropensitiesGeneral('Poiss');
+            testCase1.Poiss = testCase1.Poiss.formPropensitiesGeneral('Poiss',true);
 
             [testCase1.PoissSolution,testCase1.Poiss.fspOptions.bounds] = testCase1.Poiss.solve;
             tic
@@ -206,7 +206,10 @@ classdef poissonTest < matlab.unittest.TestCase
             Model.solutionScheme = 'fspSens';
             Model.fspOptions.fspTol = 1e-6;            
 
+            Model.sensOptions.solutionMethod = 'forward';
             SensSoln = Model.solve;
+            Model.sensOptions.solutionMethod = 'finiteDifference';
+            SensSoln2 = Model.solve;
             
             t = Model.tSpan;
             k = Model.parameters{1,2};
@@ -229,6 +232,13 @@ classdef poissonTest < matlab.unittest.TestCase
             end
 
             Model.makePlot(SensSoln,'marginals',21,[],[5]);
+            subplot(2,1,1)
+            hold on
+            plot(analytical1);
+            subplot(2,1,2)
+            hold on
+            plot(analytical2);
+            Model.makePlot(SensSoln2,'marginals',21,[],[5]);
 
             testCase.verifyEqual(max(diff1+diff2)<0.001, true, ...
                 'Sensitivity Calculation is not within 0.1% Tolerance');            

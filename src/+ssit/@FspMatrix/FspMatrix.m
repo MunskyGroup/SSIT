@@ -19,11 +19,11 @@ classdef FspMatrix
     %
     % :mat:class:`~+ssit.@FspMatrixTerm.FspMatrixTerm`
     properties
-        terms;
+        terms
     end
 
     methods
-        function obj = FspMatrix(propensities, parameters, stateSet, numConstraints, varNames, modRedTransformMatrices)
+        function obj = FspMatrix(propensities, parameters, stateSet, numConstraints, varNames, modRedTransformMatrices, computeSens)
             % Construct an instance of FspMatrix.
             %
             % Parameters
@@ -59,12 +59,13 @@ classdef FspMatrix
                 stateSet
                 numConstraints
                 varNames = []
-                modRedTransformMatrices =[];
+                modRedTransformMatrices = []
+                computeSens = false;
             end
-            obj = obj.regenerate(propensities, parameters, stateSet, numConstraints, varNames, modRedTransformMatrices);
+            obj = obj.regenerate(propensities, parameters, stateSet, numConstraints, varNames, modRedTransformMatrices, computeSens);
         end
 
-        function obj = regenerate(obj, propensities, parameters, stateSet, numConstraints, varNames, modRedTransformMatrices)
+        function obj = regenerate(obj, propensities, parameters, stateSet, numConstraints, varNames, modRedTransformMatrices, computeSens)
             % Regenerate the state space for the current contraints.
             % Parameters
             % ----------
@@ -100,11 +101,12 @@ classdef FspMatrix
                 numConstraints
                 varNames = []
                 modRedTransformMatrices = []
+                computeSens = false
             end
             n_reactions = length(propensities);
             obj.terms = cell(n_reactions, 1);
             for i = 1:n_reactions
-                obj.terms{i} = ssit.FspMatrixTerm(propensities{i}, parameters, stateSet, numConstraints, varNames, modRedTransformMatrices);
+                obj.terms{i} = ssit.FspMatrixTerm(propensities{i}, parameters, stateSet, numConstraints, varNames, modRedTransformMatrices, computeSens);
             end
         end
 
@@ -170,7 +172,7 @@ classdef FspMatrix
 
         end
 
-        function A = createSingleMatrix(obj, t, parameters, modRedTransformMatrices)
+        function [A,Asens] = createSingleMatrix(obj, t, parameters, modRedTransformMatrices, computeSens)
             % Generate a single MATLAB sparse matrix from the current time
             % `t`. This matrix's left multiplication on a vector `v` of
             % appropriate size will return the same output as when calling
@@ -183,6 +185,7 @@ classdef FspMatrix
                 t
                 parameters
                 modRedTransformMatrices =[];
+                computeSens = false;
             end
 
             if obj.terms{1}.isFactorizable
@@ -199,12 +202,7 @@ classdef FspMatrix
 
             for i = 2:length(obj.terms)
                 if obj.terms{i}.isFactorizable
-                    % if obj.terms{i}.isTimeDependent
-                        A = A + wt(i)*obj.terms{i}.matrix;
-                    % else
-                        % A = A + obj.terms{i}.propensity.timeDependentFactor(0,parameters)*obj.terms{i}.matrix;
-%                         A = A + obj.terms{i}.matrix;
-                    % end
+                    A = A + wt(i)*obj.terms{i}.matrix;
                 else
                     A = A + ssit.FspMatrixTerm.generateTimeVaryingMatrixTerm(t, obj.terms{i}.propensity, obj.terms{i}.matrix, parameters, obj.terms{i}.numConstraints, modRedTransformMatrices);
                 end
@@ -215,9 +213,28 @@ classdef FspMatrix
                 warning('NaNs detected and set to zero. Errors may be present.')
                 A(ANaN) = 0;
             end
-            
+
+            if computeSens
+                npar = size(parameters,1);
+                Asens = cell(1,npar);
+                objSens1 = obj;
+                objSens2 = obj;
+                for ipar = 1:npar
+                    % Aisens = dwit/dpar * Aix + wit * dAix/dpar
+                    
+                    objSens1.terms{1}.propensity.hybridFactorVector = ...
+                        obj.terms{1}.propensity.sensTimeFactorVec{ipar};
+                    for iterm = 1:length(obj.terms)
+                        objSens2.terms{iterm}.matrix = obj.terms{iterm}.matrixSens{ipar};
+                        objSens2.terms{iterm}.propensity.stateDependentFactor = obj.terms{iterm}.propensity.sensStateFactor{ipar};
+                    end
+                    
+                    Asens{ipar} = createSingleMatrix(objSens1, t, parameters, modRedTransformMatrices, false) ...
+                        + createSingleMatrix(objSens2, t, parameters, modRedTransformMatrices, false);
+                end
+            end
         end
-    
+
         function A = createJacHybridMatrix(obj, t, v, parameters, nUpstream, partialJacobian)
             % Generate a single MATLAB sparse matrix from the current time
             % `t`. This matrix's left multiplication on a vector `v` of
