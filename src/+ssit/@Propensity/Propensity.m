@@ -408,6 +408,13 @@ classdef Propensity
                     obj{iRxn}.isTimeDependent = true;
                     expr_t_vec(iRxn) = sym(NaN);
                     expr_x_vec(iRxn) = sym(NaN);
+                    
+                    % if computeSens
+                    %     for iPar = 1:n_pars
+                    %         expr_tx_vec_sens(iRxn,iPar) = signHybridFactor*diff(expr_tx,nonXTpars{iPar,1});
+                    %     end                   
+                    % end
+
                 end
             end
             
