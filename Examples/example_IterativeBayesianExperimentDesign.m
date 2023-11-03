@@ -5,7 +5,7 @@ addpath('../CommandLine')
 rng(1)
 %% Define Model
 % example = 'Poisson';
-example = 'Toggle';
+example = 'Poisson';
 switch example
     case 'Poisson'
         ModelTrue = SSIT;
@@ -61,7 +61,7 @@ nBurnMH = 100; % Numbr for MH burn in
 nFIMsamples = 10;
 
 % Total number of new cells allowed in each experiment
-numCellsPerExperiment = 15; 
+numCellsPerExperiment = 30; 
 
 % Definition of initial experiment
 nextExperiment = zeros(1,nT);
@@ -141,6 +141,7 @@ for iExpt = 1:nExptRounds
     MHFitOptions.CovFIMscale = 1.0;
     MHFitOptions.numChains = 1;
     MHFitOptions.saveFile = 'TMPMHChain.mat';
+    delete 'TMPMHChain.mat'
     ModelGuess.fittingOptions.modelVarsToFit = fitParameters;
     [newPars,~,MHResults] = ModelGuess.maximizeLikelihood(...
         [], MHFitOptions, 'MetropolisHastings');
