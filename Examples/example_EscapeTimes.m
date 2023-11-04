@@ -3,7 +3,7 @@
 % time problem.
 close all
 clear all
-addpath('../CommandLine');
+addpath(genpath('../src'));
 %% Example 1 - a simple transcription/translation model
 % First create a full model (e.g., for mRNA and protein)
 Model1 = SSIT;

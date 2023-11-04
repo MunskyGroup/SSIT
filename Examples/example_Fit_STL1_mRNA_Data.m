@@ -4,7 +4,7 @@
 % some data collected in Dr. Gregor Neuert's laboratory at Vanderbilt.
 close all
 clear all
-addpath('../CommandLine')
+addpath(genpath('../src'));
 
 %% Create SSIT Model
 % First, we are going to create an FSP model for a bursting gene expression

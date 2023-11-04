@@ -2,7 +2,7 @@
 % types of projectionbased transformations.
 close all 
 clear all
-addpath('../CommandLine');
+addpath(genpath('../src'));
 
 %% First, choose a model on which to illustrate the reduction approximation,
 % or you can create your own. Here are the example options defined below:
