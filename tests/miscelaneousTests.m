@@ -62,6 +62,7 @@ classdef miscelaneousTests < matlab.unittest.TestCase
             TwoDNonLinearTV.parameters = ({'kr1',20;'gr1',1;'kr2',18;'gr2',1;'M',20;'eta',5});
             TwoDNonLinearTV.inputExpressions = {'Ir','1+cos(t)'};
             TwoDNonLinearTV.tSpan = linspace(0,10,40);
+            TwoDNonLinearTV = TwoDNonLinearTV.formPropensitiesGeneral('TwoNonLinTV',false);
             [fspSoln1] = TwoDNonLinearTV.solve;
             TwoDNonLinearTV.makePlot(fspSoln1,'meansAndDevs',[],[],[1])
             
@@ -74,6 +75,8 @@ classdef miscelaneousTests < matlab.unittest.TestCase
             TwoDNonLinearTV = SSIT;
             TwoDNonLinearTV = TwoDNonLinearTV.createModelFromSBML('TwoDNonLinearTV.xml');
             TwoDNonLinearTV.tSpan = linspace(0,10,40);
+                        
+            TwoDNonLinearTV = TwoDNonLinearTV.formPropensitiesGeneral('TwoNonLinTV',false);
             [fspSoln2] = TwoDNonLinearTV.solve;
             TwoDNonLinearTV.makePlot(fspSoln2,'meansAndDevs',[],[],[3])
 

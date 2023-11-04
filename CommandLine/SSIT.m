@@ -75,10 +75,11 @@ classdef SSIT
         end
 
        
-        function obj = formPropensitiesGeneral(obj,prefixName)
+        function obj = formPropensitiesGeneral(obj,prefixName,computeSens)
             arguments
                 obj
                 prefixName = [];
+                computeSens = true;
             end
             % This function starts the process to write m-file for each
             % propensity function.
@@ -103,11 +104,14 @@ classdef SSIT
                 end
 
                 if obj.useHybrid
-                    PropensitiesGeneral = ssit.Propensity.createAsHybridVec(sm, obj.stoichiometry,...
-                        obj.parameters, obj.species, obj.hybridOptions.upstreamODEs, logicTerms, prefixName);
+                    PropensitiesGeneral = ...
+                        ssit.Propensity.createAsHybridVec(sm, obj.stoichiometry,...
+                        obj.parameters, obj.species, obj.hybridOptions.upstreamODEs,...
+                        logicTerms, prefixName, computeSens);
                 else
-                    PropensitiesGeneral = ssit.Propensity.createAsHybridVec(sm, obj.stoichiometry,...
-                        obj.parameters, obj.species, [], logicTerms, prefixName);
+                    PropensitiesGeneral = ...
+                        ssit.Propensity.createAsHybridVec(sm, obj.stoichiometry,...
+                        obj.parameters, obj.species, [], logicTerms, prefixName, computeSens);
                 end
 
                 obj.propensitiesGeneral = PropensitiesGeneral;
@@ -855,28 +859,25 @@ classdef SSIT
                         pause;
                     end
                 case 'fspSens'
+                    if strcmp(obj.sensOptions.solutionMethod,'forward')&&isempty(obj.propensitiesGeneral{1}.sensTimeFactorVec)
+                        obj = formPropensitiesGeneral(obj,'Sensitivities',true);
+                    end
                     if ~isempty(obj.parameters)
-                        model = ssit.SrnModel(obj.stoichiometry,...
-                            obj.propensityFunctions,...
-                            obj.parameters(:,1),...
-                            obj.inputExpressions);
                         app.ReactionsTabOutputs.parameters = obj.parameters(:,1);
                     else
-                        model = ssit.SrnModel(obj.stoichiometry,...
-                            obj.propensityFunctions,...
-                            [],...
-                            obj.inputExpressions);
                         app.ReactionsTabOutputs.parameters = [];
                     end
                     app.ReactionsTabOutputs.varNames = obj.species;
+
                     [Solution.sens, bConstraints] = ...
-                        ssit.sensitivity.computeSensitivity(model,...
+                        ssit.sensitivity.computeSensitivity(...
                         obj.parameters,...
                         obj.propensitiesGeneral,...
                         obj.tSpan,...
                         obj.fspOptions.fspTol,...
                         obj.initialCondition,...
-                        1.0,...
+                        obj.initialProbs,...
+                        obj.stoichiometry, ...
                         obj.fspConstraints.f,...
                         obj.fspConstraints.b,...
                         [], obj.fspOptions.verbose, 0,...
@@ -895,9 +896,6 @@ classdef SSIT
                     %                     Solution.plotable = exportSensResults(app);
 
                 case 'ode'
-                    
-                    % specificPropensities = SSIT.parameterizePropensities(obj.propensitiesGeneral,[obj.parameters{:,2}]');
-                    
                     [~,Solution.ode] = ssit.moments.solveOde2(obj.initialCondition, obj.tSpan, ...
                         obj.stoichiometry, obj.propensitiesGeneral,  [obj.parameters{:,2}]', obj.fspOptions.initApproxSS);
             end
@@ -939,7 +937,6 @@ classdef SSIT
                 for it=1:Nt
                     A.time((it-1)*obj.ssaOptions.nSimsPerExpt+1:it*obj.ssaOptions.nSimsPerExpt) = obj.tSpan(it);
                     for ie = 1:obj.ssaOptions.Nexp
-                        %                          for is=1:obj.ssaOptions.nSimsPerExpt
                         for s = 1:size(Solution.trajs,1)
                             warning('off')
                             A.(['exp',num2str(ie),'_s',num2str(s)])((it-1)*obj.ssaOptions.nSimsPerExpt+(1:obj.ssaOptions.nSimsPerExpt)) = ...
@@ -949,7 +946,6 @@ classdef SSIT
                                     Solution.trajsDistorted(s,it,(ie-1)*obj.ssaOptions.nSimsPerExpt+(1:obj.ssaOptions.nSimsPerExpt));
                             end
                         end
-                        %                          end
                     end
                 end
                 writetable(A,saveFile)
@@ -2258,34 +2254,53 @@ classdef SSIT
             makeSeparatePlotOfData(fitSolution,smoothWindow,fignums)
         end
 
-        function plotMHResults(obj,mhResults,FIM)
+        function plotMHResults(obj,mhResults,FIM,fimScale,mhPlotScale,scatterFig)
             arguments
                 obj
                 mhResults = [];
                 FIM =[];
+                fimScale = 'lin';
+                mhPlotScale = 'log10';
+                scatterFig = [];
             end
 
             parNames = obj.parameters(obj.fittingOptions.modelVarsToFit,1);
+            
             if ~isempty(FIM)
                 pars = [obj.parameters{obj.fittingOptions.modelVarsToFit,2}];
-               
-                parsLog = log10(pars);
+                
+                if strcmp(mhPlotScale,'log10')
+                    parsScaled = log10(pars);
+                elseif strcmp(mhPlotScale,'log')
+                    parsScaled = log(pars);
+                elseif strcmp(mhPlotScale,'lin')
+                    parsScaled = pars;
+                end
 
                 if ~iscell(FIM)
-                    FIM = diag(pars)*...
-                        FIM(obj.fittingOptions.modelVarsToFit,obj.fittingOptions.modelVarsToFit)*...
-                        diag(pars);
-                    covFIM{1} = FIM^(-1)/log(10)^2;
-                else
-                    for i=1:length(FIM)
+                    FIM = {FIM};
+                end
+                %     FIM = diag(pars)*...
+                %         FIM(obj.fittingOptions.modelVarsToFit,obj.fittingOptions.modelVarsToFit)*...
+                %         diag(pars);
+                %     covFIM{1} = FIM^(-1)/log(10)^2;
+                % else
+                for i=1:length(FIM)
+                    if strcmp(fimScale,'lin')
                         FIMi = diag(pars)*...
                             FIM{i}(obj.fittingOptions.modelVarsToFit,obj.fittingOptions.modelVarsToFit)*...
                             diag(pars);
+                    else
+                        FIMi = FIM{i};
+                    end
+                    if strcmp(mhPlotScale,'log10')
                         covFIM{i} = FIMi^(-1)/log(10)^2;
+                    else
+                        covFIM{i} = FIMi^(-1);
                     end
                 end
+                % end
             end
-
 
             if ~isempty(mhResults)
                 % Make figures for MH convergence
@@ -2306,7 +2321,11 @@ classdef SSIT
                 ylabel('Auto-correlation')
                 title('MH Convergence')
 
-                figure
+                if isempty(scatterFig)
+                    figure
+                else
+                    figure(scatterFig);
+                end
                 [valDoneSorted,J] = sort(mhResults.mhValue);
                 smplDone = mhResults.mhSamples(J,:);
                 Np = size(mhResults.mhSamples,2);
@@ -2325,7 +2344,7 @@ classdef SSIT
                     end
                     if ~isempty(FIM)
                         for iFIM = 1:length(covFIM)
-                            ssit.parest.ellipse(parsLog([j,i]),icdf('chi2',0.9,2)*covFIM{iFIM}([j,i],[j,i]),fimCols{mod(iFIM,5)+1},'linewidth',2)
+                            ssit.parest.ellipse(parsScaled([j,i]),icdf('chi2',0.9,2)*covFIM{iFIM}([j,i],[j,i]),fimCols{mod(iFIM,5)+1},'linewidth',2)
                         end
                     end
                     if ~isempty(mhResults)

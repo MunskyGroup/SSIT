@@ -51,6 +51,7 @@ The SSIT includes command line tools and a graphical user interface to:
 For all basic functionalities:
 - MATLAB R2021b or later.
 - Symbolic Computing Toolbox.
+- Image Processing Toolbox
 - Global Optimization Toolbox (for model fitting only)
 - Parallel Computing Toolbox (optional). 
 - SimBiology Toolbox (for loading/saving SBML models only)

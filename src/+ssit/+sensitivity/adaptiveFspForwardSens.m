@@ -2,13 +2,16 @@ function [outputs, constraintBounds, stateSpace] = adaptiveFspForwardSens(output
     initialStates,...
     initialProbabilities, initialSensitivities,...
     stoichMatrix, ...
-    propensities, propensityDerivatives, computableSensitivities,...
+    propensities, parameters, propensityDerivatives, computableSensitivities,...
     fspTol,...
+    varNames, modRedTransformMatrices, ...
     constraintFunctions, initialConstraintBounds,...
     verbose, useMex,...
     relTol,...
     absTol, ...
-    stateSpace)
+    stateSpace, ...
+    initApproxSS, ...
+    useReducedModel)
 arguments
     outputTimes
     initialStates
@@ -16,9 +19,12 @@ arguments
     initialSensitivities
     stoichMatrix
     propensities
+    parameters
     propensityDerivatives
     computableSensitivities
     fspTol
+    varNames
+    modRedTransformMatrices
     constraintFunctions
     initialConstraintBounds
     verbose
@@ -26,6 +32,8 @@ arguments
     relTol
     absTol
     stateSpace =[];
+    initApproxSS = false;
+    useReducedModel = false;
 end
 % Compute and outputs the solution and sensitivitiy vectors of the CME at the user-input timepoints.
 %
@@ -91,13 +99,11 @@ for i = 1:length(propensities)
 end
 
 % check input sizes
-reactionCount = length(propensities);
-% parameterCount = size(propensityDerivatives, 2);
 parameterCount = sum(computableSensitivities);
 
-if (reactionCount ~= size(propensityDerivatives,1))
-    error('Number of rows of propensityDerivatives cell must be the same as number of propensities');
-end
+% if (reactionCount ~= size(propensityDerivatives,1))
+%     error('Number of rows of propensityDerivatives cell must be the same as number of propensities');
+% end
 if (size(initialProbabilities, 1)*parameterCount ~= size(initialSensitivities,1))
     error('Input probabilities and sensitivities must have compatible size.');
 end
@@ -121,21 +127,7 @@ end
 stateCount = stateSpace.getNumStates();
 
 % Generate the time-varying FSP operator
-fspMatrix = ssit.FspMatrix(propensities, stateSpace, constraintCount);
-
-% Generate the sensitivity matrices
-fspMatrixDiff = cell(parameterCount, 1);
-indsCompSens = find(computableSensitivities);
-for i = 1:parameterCount
-    propDiffs = {};
-    % select non-empty entries of propensityDerivatives
-    for j = 1:reactionCount
-        if (~isempty(propensityDerivatives{j,indsCompSens(i)}))
-            propDiffs = [propDiffs; propensityDerivatives(j,indsCompSens(i))];
-        end        
-    end
-    fspMatrixDiff{indsCompSens(i)} = ssit.FspMatrix(propDiffs, stateSpace, constraintCount);
-end
+fspMatrix = ssit.FspMatrix(propensities, [parameters{:,2}]', stateSpace, constraintCount, varNames, modRedTransformMatrices, true);
 
 probabilityVec = zeros(stateCount + constraintCount, 1);
 probabilityVec(1:size(initialStates,2)) = initialProbabilities;
@@ -161,96 +153,149 @@ while (tNow < tFinal)
     stop_cond = struct('t_start', tNow, 't_final', tFinal,...
         'fspTol', fspTol, 'n_sinks', constraintCount, 'n_states', stateCount, 'tInit', tInit);
     % Solve the forward sensitivity FSP ODE system
-    if (useMex)
-        matvec = @(t, p) fspMatrix.multiply(t, p);
-        dmatvec = cell(parameterCount, 1);
-        for i = 1:parameterCount
-            dmatvec{i} = @(t, v) fspMatrixDiff{i}.multiply(t, v);
-        end
+    % if (useMex)
+    %     matvec = @(t, p) fspMatrix.multiply(t, p);
+    %     dmatvec = cell(parameterCount, 1);
+    %     for i = 1:parameterCount
+    %         dmatvec{i} = @(t, v) fspMatrixDiff{i}.multiply(t, v);
+    %     end
+    %
+    %     f_out = @(t, p, dp) struct('p', p, 'dp', {dp});
+    %
+    %     [outputs_current, stopStatus] = FspSensCVodeMex(tNow, outputTimes(outputTimes>tNow), matvec, dmatvec, ...
+    %         probabilityVec, sensitivityVecs, f_out, @fspErrorSundialsEvent, stop_cond);
+    %     j = 0;
+    %     while (j < length(outputs_current))
+    %         if (isempty(outputs_current{j+1}))
+    %             break;
+    %         end
+    %         j = j +1;
+    %         iout = iout+1;
+    %         DP = cell2mat(outputs_current{j}.dp');
+    %         outputs{iout} = packForwardSensFspSolution(outputTimes(iout),...
+    %             stateSpace.states,...
+    %             outputs_current{j}.p, DP);
+    %     end
+    %
+    % else
 
-        f_out = @(t, p, dp) struct('p', p, 'dp', {dp});
+    if initApproxSS
+        error('Codes not yet ready for forward sensitivity with SS initial condition.')
+        % if useHybrid
+        %     FUN = @(v)odeStoichs*generate_propensity_vector(0, v, zeros(length(jStochastic),1), propensities, parameters);
+        %     OPTIONS = optimoptions('fsolve','display','none',...
+        %         'OptimalityTolerance',1e-8,'MaxIterations',2000);
+        %     x0b = fsolve(FUN,initODEs,OPTIONS);
+        %     FUN = @(t,v)odeStoichs*generate_propensity_vector(0, v, zeros(length(jStochastic),1), propensities, parameters);
+        %     [~,ode_solutions] = ode45(FUN,max(outputTimes)*[0,500,1000],x0b);
+        %     initODEs = ode_solutions(end,:)';
+        % 
+        %     jac = AfspFull.createJacHybridMatrix(0, initODEs, parameters, length(hybridOptions.upstreamODEs), true);
+        % 
+        % else 
+        %     if useReducedModel
+        %         AfspFull = ssit.FspMatrix(propensities, parameters, stateSpace, constraintCount, varNames, modRedTransformMatrices, true);
+        %     end
+        %     jac = forwardSensJac(0, [], fspMatrix, [parameters{:,2}]');
+        % end
 
-        [outputs_current, stopStatus] = FspSensCVodeMex(tNow, outputTimes(outputTimes>tNow), matvec, dmatvec, ...
-            probabilityVec, sensitivityVecs, f_out, @fspErrorSundialsEvent, stop_cond);
-        j = 0;
-        while (j < length(outputs_current))
-            if (isempty(outputs_current{j+1}))
-                break;
-            end
-            j = j +1;
-            iout = iout+1;
-            DP = cell2mat(outputs_current{j}.dp');
-            outputs{iout} = packForwardSensFspSolution(outputTimes(iout),...
-                stateSpace.states,...
-                outputs_current{j}.p, DP);
-        end
-        
+        % remove sinks from the jacobian
+        % JnotSinks = (1:stateCount);
+        % for ipar=1:parameterCount
+        %     JnotSinks = [JnotSinks,(stateCount+constraintCount)*ipar+(1:stateCount)];
+        % end
+        % jac = jac(JnotSinks,JnotSinks);
+        % 
+        % try
+        %     warning('off')
+        %     [eigVec,~] = eigs(jac,1,'smallestreal');
+        % catch
+        %     try
+        %         [eigVec,~] = eigs(jac,1);
+        %     catch
+        %         try
+        %             eigVec = null(full(jac));
+        %         catch
+        %             disp('Could not find null space. Using uniform.')
+        %             eigVec = ones(size(jac,1),1);
+        %         end
+        %     end
+        % end
+        % if useReducedModel
+        %     y0 = eigVec/sum(eigVec);
+        %     y0 = modRedTransformMatrices.phi_inv*y0;
+        % else
+        %     y0 = zeros((stateCount+constraintCount)*(1+parameterCount),1);
+        %     y0(JnotSinks) = eigVec/sum(eigVec);
+        % end
     else
+
         y0 = zeros(length(probabilityVec)*(parameterCount+1), 1);
         y0(1:stateCount+constraintCount) = probabilityVec;
         for j = 1:parameterCount
             y0(j*(stateCount+constraintCount)+1:(j+1)*(stateCount+constraintCount)) = ...
                 sensitivityVecs(:,j);
         end
-        
-        if isTimeInvariant
-            % Expokit Solution
-            jac = forwardSensJac(tNow, y0, fspMatrix, fspMatrixDiff(indsCompSens));
-            tryAgain=1;
-            m=30;
-            indSinks =[stop_cond.n_states+1:stop_cond.n_states+stop_cond.n_sinks];
-            while tryAgain==1
-                [~, ~, ~, tout, outputs_current, ~, tryAgain, te, ye] =...
-                    ssit.fsp_ode_solvers.expv_modified(outputTimes(end), jac,...
-                    y0, 1e-8, m, [], outputTimes(outputTimes>=tNow), fspTol, indSinks, tNow, stop_cond);
-                if tryAgain==0;break;end
-                if m>300
-                    warning('Expokit expansion truncated at 300');
-                    [~, ~, ~, tout, outputs_current, ~, ~, te, ye] =...
-                        ssit.fsp_ode_solvers.expv_modified(outputTimes(end), jac, y0, fspTol/1e5, m,...
-                        [], outputTimes(outputTimes>=tNow), fspTol, indSinks, tNow);
-                    tryAgain=0;
-                    break;
-                end
-                m=m+5;
-            end
-            %%
-        else
-            % ODE Solver
-            ode_event = @(t,ps) fspErrorEvent(t, ps, stop_cond);
-            jac = @(t,ps,dpsdt) forwardSensJac(t, ps, fspMatrix, fspMatrixDiff(indsCompSens));
-            ode_rhs = @(t, ps) forwardSensRHS(t, ps, fspMatrix, fspMatrixDiff(indsCompSens), stateCount, constraintCount, parameterCount);
-            ode_opts = odeset(Events=ode_event, Jacobian=jac, RelTol=relTol, AbsTol=absTol);
-            [tout, outputs_current, te, ye, ~] = ...
-                ode23s(ode_rhs, outputTimes(outputTimes>=tNow), y0, ode_opts);
-        end
-
-        if length(tout)<2||(~isempty(te)&&te<tout(2))
-            outputs_current = outputs_current(1);
-            tout = tout(1);
-        end
-
-        ikeep = ismember(tout, outputTimes) & (tout > tNow);
-        outputs_current = outputs_current(ikeep, :)';
-
-        if (~isempty(te))
-            sinks = ye(stateCount+1:stateCount+constraintCount);
-            errorBound = stop_cond.fspTol*(te-stop_cond.t_start)/(stop_cond.t_final-stop_cond.t_start);
-            stopStatus = struct(iExpand=true, tBreak=te, sinks=sinks, errorBound=errorBound);
-        else
-            stopStatus = struct(iExpand=false, tBreak=[], sinks=[], errorBound=[]);
-        end
-        % Enter intermediate solutions to the Outputs container
-        j = 0;
-        while (j < size(outputs_current, 2))
-            j = j+1;
-            iout = iout+1;
-            DP = reshape(outputs_current(stateCount+constraintCount+1:end,j), stateCount+constraintCount, parameterCount);
-            outputs{iout} = packForwardSensFspSolution(outputTimes(iout),...
-                stateSpace.states,...
-                outputs_current(1:stateCount+constraintCount,j), DP);
-        end
     end
+
+    if isTimeInvariant
+        % Expokit Solution
+        jac = forwardSensJac(tNow, y0, fspMatrix, [parameters{:,2}]');
+        tryAgain=1;
+        m=30;
+        indSinks =[stop_cond.n_states+1:stop_cond.n_states+stop_cond.n_sinks];
+        while tryAgain==1
+            [~, ~, ~, tout, outputs_current, ~, tryAgain, te, ye] =...
+                ssit.fsp_ode_solvers.expv_modified(outputTimes(end), jac,...
+                y0, 1e-8, m, [], outputTimes(outputTimes>=tNow), fspTol, indSinks, tNow, stop_cond);
+            if tryAgain==0;break;end
+            if m>300
+                warning('Expokit expansion truncated at 300');
+                [~, ~, ~, tout, outputs_current, ~, ~, te, ye] =...
+                    ssit.fsp_ode_solvers.expv_modified(outputTimes(end), jac, y0, fspTol/1e5, m,...
+                    [], outputTimes(outputTimes>=tNow), fspTol, indSinks, tNow);
+                tryAgain=0;
+                break;
+            end
+            m=m+5;
+        end
+        %%
+    else
+        % ODE Solver
+        ode_event = @(t,ps) fspErrorEvent(t, ps, stop_cond);
+        jac = @(t,ps,dpsdt) forwardSensJac(t, ps, fspMatrix, fspMatrixDiff(indsCompSens));
+        ode_rhs = @(t, ps) forwardSensRHS(t, ps, fspMatrix, fspMatrixDiff(indsCompSens), stateCount, constraintCount, parameterCount);
+        ode_opts = odeset(Events=ode_event, Jacobian=jac, RelTol=relTol, AbsTol=absTol);
+        [tout, outputs_current, te, ye, ~] = ...
+            ode23s(ode_rhs, outputTimes(outputTimes>=tNow), y0, ode_opts);
+    end
+
+    if length(tout)<2||(~isempty(te)&&te<tout(2))
+        outputs_current = outputs_current(1);
+        tout = tout(1);
+    end
+
+    ikeep = ismember(tout, outputTimes) & (tout > tNow);
+    outputs_current = outputs_current(ikeep, :)';
+
+    if (~isempty(te))
+        sinks = ye(stateCount+1:stateCount+constraintCount);
+        errorBound = stop_cond.fspTol*(te-stop_cond.t_start)/(stop_cond.t_final-stop_cond.t_start);
+        stopStatus = struct(iExpand=true, tBreak=te, sinks=sinks, errorBound=errorBound);
+    else
+        stopStatus = struct(iExpand=false, tBreak=[], sinks=[], errorBound=[]);
+    end
+    % Enter intermediate solutions to the Outputs container
+    j = 0;
+    while (j < size(outputs_current, 2))
+        j = j+1;
+        iout = iout+1;
+        DP = reshape(outputs_current(stateCount+constraintCount+1:end,j), stateCount+constraintCount, parameterCount);
+        outputs{iout} = packForwardSensFspSolution(outputTimes(iout),...
+            stateSpace.states,...
+            outputs_current(1:stateCount+constraintCount,j), DP);
+    end
+    % end
 
     if (j > 0)
         tNow = outputTimes(iout);
@@ -271,19 +316,7 @@ while (tNow < tFinal)
 
         stateSpace = stateSpace.expand(constraintFunctions, constraintBounds);
 
-        fspMatrix = ssit.FspMatrix(propensities, stateSpace, constraintCount);
-        % Generate the sensitivity matrices
-        fspMatrixDiff = cell(parameterCount, 1);
-        for i = 1:parameterCount
-            propDiffs = cell(0);
-            % select non-empty entries of propensityDerivatives
-            for j = 1:reactionCount
-                if (~isempty(propensityDerivatives{j,i}))
-                    propDiffs = [propDiffs; propensityDerivatives(j,i)];
-                end
-            end
-            fspMatrixDiff{i} = ssit.FspMatrix(propDiffs, stateSpace, constraintCount);
-        end
+        fspMatrix = ssit.FspMatrix(propensities, [parameters{:,2}]', stateSpace, constraintCount, varNames, modRedTransformMatrices, true);
 
         stateCountOld = stateCount;
         stateCount = stateSpace.getNumStates;
@@ -403,16 +436,26 @@ for j = 1:n_pars
 end
 end
 
-function J = forwardSensJac(t, ~, A, dA)
-Amerged = A.createSingleMatrix(t);
+function J = forwardSensJac(t, x, A, parameters, modRedTransformMatrices)
+arguments
+    t
+    x
+    A
+    parameters
+    modRedTransformMatrices = []
+end
+[Amerged,AmergedSens] = A.createSingleMatrix(t,parameters,modRedTransformMatrices,true);
+
 n = size(Amerged,1);
-nzbound = nnz(Amerged)*(length(dA)+1);
+npars = size(parameters,1);
+nzbound = nnz(Amerged)*(npars+1);
 J = spalloc(n, n, nzbound);
 J(1:n, 1:n) = Amerged;
-for j=1:length(dA)
+for j=1:npars
     J(j*n+1:(j+1)*n, j*n+1:(j+1)*n) = Amerged;
     %BRIAN     J(j*n+1:(j+1)*n, (j-1)*n+1:j*n) = dA{j}.createSingleMatrix(t);
-    J(j*n+1:(j+1)*n, 1:n) = dA{j}.createSingleMatrix(t);
+    % J(j*n+1:(j+1)*n, 1:n) = dA{j}.createSingleMatrix(t);
+    J(j*n+1:(j+1)*n, 1:n) = AmergedSens{j};
 end
 end
 

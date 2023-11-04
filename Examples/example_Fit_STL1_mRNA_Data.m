@@ -63,7 +63,7 @@ Model.solutionScheme = 'FSP';    % Set solutions scheme to FSP.
 
 % Set the code to start at steady state at t=0;
 Model.fspOptions.initApproxSS =true;
-Model = Model.formPropensitiesGeneral('STL1Model');
+Model = Model.formPropensitiesGeneral('STL1Model',true);
 [FSPsoln,Model.fspOptions.bounds] = Model.solve;  % Solve the FSP analysis
 
 % Next we make plots of the marginal distributions at time points 3, 5, 7,
