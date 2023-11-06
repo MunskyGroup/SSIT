@@ -5,7 +5,8 @@
 clear all
 clc
 close all
-addpath('../CommandLine');
+addpath(genpath('../src'));
+
 %% Define SSIT Model
 % Here we set up a simple model where there is an upstream transcription
 % factor (GR) that activates a gene.  Once active, the gene can transcribe

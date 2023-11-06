@@ -45,7 +45,7 @@ for DistType = 0:1
             cb = contains(app.SpeciesForFitPlot.Items,app.SpeciesForFitPlot.Value{icb});
             Plts_to_make(cb) = 1;
             
-            soMod = setdiff([1:NdMod],icb);
+            soMod = setdiff([1:NdMod],find(cb~=0));
             soDat = setdiff([1:NdDat],icb);
             le = app.NameTable.Data{icb,2};
             
@@ -68,13 +68,13 @@ for DistType = 0:1
                 if DistType
 %                     stairs(FNHists,[0:length(H1)-1],smoothBins(H1,smoothWindow)); hold on
                     stairs(FNHists,[0:length(H1)-1],smoothBins(H1,smoothWindow),'linewidth',3);
-                    
+                    hold(FNHists,'on')
                     ym = max(ym,max(H1));
                 else
                     stairs(FNHists,[0:length(H1)-1],cumsum(H1),'linewidth',3);
+                    hold(FNHists,'on')
                     ym=1;
                 end
-                hold(FNHists,'on')
                 L{end+1} = [le,'-data'];
                 xm = max(xm,length(H1));
                 
@@ -87,12 +87,13 @@ for DistType = 0:1
                 H1(end+1)=0;
                 if DistType
                     stairs(FNHists,[0:length(H1)-1],smoothBins(H1,smoothWindow),'linewidth',3);
+                    hold(FNHists,'on')
                     ym = max(ym,max(H1));
                 else
                     stairs(FNHists,[0:length(H1)-1],cumsum(H1),'linewidth',3);
+                    hold(FNHists,'on')
                     ym=1;
                 end
-                hold(FNHists,'on')
                 L{end+1} = [le,'-mod'];
 %             end
         end

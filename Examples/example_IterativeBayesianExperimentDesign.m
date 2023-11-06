@@ -1,8 +1,8 @@
 close all
 clear all
-addpath('../CommandLine')
+addpath(genpath('../src'));
 
-rng(1)
+rng(1)  % Set RNG seed for reproducibility.
 %% Define Model
 % example = 'Poisson';
 example = 'Poisson';

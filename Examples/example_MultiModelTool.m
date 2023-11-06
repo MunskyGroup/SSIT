@@ -8,7 +8,7 @@
 %   slightly different parameter combinations
 close all
 clear all
-addpath('../CommandLine');
+addpath(genpath('../src'));
 
 %% Define SSIT Model
 % SSIT models are defined as usual:

@@ -5,7 +5,7 @@
 % stochastic manner. 
 close all 
 clear all
-addpath('../CommandLine');
+addpath(genpath('../src'));
 
 %% Example 1 - transcription and translation
 % First create a full model (e.g., for mRNA and protein)

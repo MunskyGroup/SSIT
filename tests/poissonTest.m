@@ -9,7 +9,6 @@ classdef poissonTest < matlab.unittest.TestCase
         % Shared setup for the entire test class
         function createTestModel1(testCase1)
             addpath(genpath('../src'));
-            addpath('../CommandLine')
             %% Test Case 1 - a simple Poisson model
             testCase1.Poiss = SSIT;
             testCase1.Poiss.species = {'rna'};

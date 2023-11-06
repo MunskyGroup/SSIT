@@ -3,6 +3,7 @@
 % partial observations and probabilistic distortion.
 clear all
 close all
+addpath(genpath('../src'));
 
 %% (1) Set up Model
 ModelChoice = 'CentralDogma';  % Two species problem (mRNa and protein)

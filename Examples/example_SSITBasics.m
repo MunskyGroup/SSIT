@@ -1,8 +1,8 @@
 clear all
 close all
+addpath(genpath('../src'));
 
 %% (1) Creating and Modifying SSIT Model
-
 %%      (1A) Choosing a Pre-Made Model
 ModelChoice = 'BirthDeath';    % One species problem
 % ModelChoice = 'ToggleSwitch';  % Two species problem (non-linear toggle switch)
