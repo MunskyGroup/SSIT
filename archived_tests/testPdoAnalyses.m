@@ -21,7 +21,7 @@ classdef testPdoAnalyses < matlab.unittest.TestCase
             tc.Poiss.parameters = ({'kr',10;'gr',1});
             tc.Poiss.tSpan = linspace(0,2,21);
             tc.Poiss.fspOptions.fspTol = 1e-5;
-            tc.Poiss = tc.Poiss.formPropensitiesGeneral('Poiss');
+            tc.Poiss = tc.Poiss.formPropensitiesGeneral('Poiss',true);
 
             %% Compute CME Solution
             tc.Poiss.solutionScheme = 'FSP';
