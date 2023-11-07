@@ -1,6 +1,5 @@
 clear all
-% addpath(genpath('../src'));
-addpath('../CommandLine')
+addpath(genpath('../../src'));
 
 Model = SSIT;
 Model.species = {'E1'};
@@ -89,4 +88,7 @@ Model.fittingOptions.modelVarsToFit = [1,2];
 Model.parameters(Model.fittingOptions.modelVarsToFit,2) = num2cell(newPars);
 delete('TMPMHChain.mat')
 
-  
+%%  FIM Calculation
+Model.unobservedSpecies = {'x1',;
+
+

@@ -913,7 +913,8 @@ classdef SSIT
                 PP = double(fspSoln.fsp{it}.p.data);
                 clear w
                 w(:) = PP(:); w(w<0)=0;
-                [I1,I2,I3,I4,I5] =  ind2sub(size(PP),randsample(length(w), nSims, true, w ));
+                % TODO - there has to be another way of doing this.
+                [I1,I2,I3,I4,I5,I6,I7,I8,I9,I10,I11] =  ind2sub(size(PP),randsample(length(w), nSims, true, w ));
                 for iSp = 1:length(obj.species)
                     eval(['Solution.trajs(iSp,it,:) = I',num2str(iSp),'-1;']);
                 end
