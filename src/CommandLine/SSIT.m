@@ -2294,6 +2294,7 @@ classdef SSIT
                     else
                         FIMi = FIM{i};
                     end
+                    FIMi = FIMi(obj.fittingOptions.modelVarsToFit,obj.fittingOptions.modelVarsToFit);
                     if strcmp(mhPlotScale,'log10')
                         covFIM{i} = FIMi^(-1)/log(10)^2;
                     else
