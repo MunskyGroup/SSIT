@@ -12,7 +12,7 @@ classdef multiModelTests < matlab.unittest.TestCase
     methods (TestClassSetup)
         % Shared setup for the entire test class
         function createTestModel1(tc)
-            addpath('../CommandLine')
+            addpath(genpath('../src'));
             %% Test Case 1 - a simple Poisson model
             tc.Poiss = SSIT;
             tc.Poiss.species = {'rna'};
