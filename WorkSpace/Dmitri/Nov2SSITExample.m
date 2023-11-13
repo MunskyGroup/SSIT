@@ -53,9 +53,9 @@ stoichProduction = zeros(size(Model.species,1),1);
 stoichProduction(end)=1;
 Model = Model.addReaction('k5*E5',stoichProduction);
 
-stoichDegradtion = zeros(size(Model.species,1),1);
-stoichDegradtion(end)=-1;
-Model = Model.addReaction('deg*G',stoichDegradtion);
+stoichDegradation = zeros(size(Model.species,1),1);
+stoichDegradation(end)=-1;
+Model = Model.addReaction('deg*G',stoichDegradation);
 
 Model.summarizeModel
 %% Generate Equations for Propensities
@@ -65,14 +65,14 @@ Model = Model.formPropensitiesGeneral('EnzymeModel');
 Model.fspOptions.verbose = true;
 [fspSoln,Model.fspOptions.bounds] = Model.solve;
 
-%% Generate Fake Data
+%% Generate In Silico Data
 Model.ssaOptions.nSimsPerExpt = 10;
 Model.ssaOptions.Nexp = 1;
 Model.tSpan = linspace(0,2,9);
-Model.sampleDataFromFSP(fspSoln,'fakeData.csv')
+Model.sampleDataFromFSP(fspSoln,'InSilicoData.csv')
 
 %%
-Model = Model.loadData('fakeData.csv',{'G','exp1_s6'});
+Model = Model.loadData('InSilicoData.csv',{'G','exp1_s6'});
 Model.makeFitPlot
 
 %%
