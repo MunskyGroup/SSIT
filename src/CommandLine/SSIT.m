@@ -78,7 +78,7 @@ classdef SSIT
         function obj = formPropensitiesGeneral(obj,prefixName,computeSens)
             arguments
                 obj
-                prefixName = [];
+                prefixName = 'default';
                 computeSens = true;
             end
             % This function starts the process to write m-file for each
