@@ -8,7 +8,7 @@ classdef modelReductionTest < matlab.unittest.TestCase
     methods (TestClassSetup)
         % Shared setup for the entire test class
         function createTestModel1(tc)
-            addpath('../CommandLine')
+            addpath(genpath('../src'));
 
             %% Test Case 3 - 2 Species Poisson Model
             tc.TwoDPoiss = SSIT;
