@@ -6,10 +6,8 @@ Model = SSIT;
 Model.species = {};
 Model.initialCondition = [];
 Model.propensityFunctions = {};
-Model.propensityFunctions = {};
 Model.stoichiometry = [];
 Model.parameters = {};
-Model.tSpan = linspace(0,2,21);
 
 % Add species
 for i=1:3
@@ -24,8 +22,8 @@ Model = Model.addSpecies('NP',0);
 
 Model.stoichiometry = [];
 
-Model = Model.addParameter({'vAlpha',0.1;...
-    'vBeta',0.2});
+Model = Model.addParameter({'vAlpha',0.2;...
+    'vBeta',0.1});
   % Add reactions
 for i = 1:2
     stoichForward = zeros(size(Model.species,1),1);
@@ -59,13 +57,14 @@ Model.summarizeModel
 Model = Model.formPropensitiesGeneral('EnzymeModel');
 
 %% Solve the FSP
+
+Model.tSpan = linspace(0,20,4);
 Model.fspOptions.verbose = true;
 [fspSoln,Model.fspOptions.bounds] = Model.solve;
 
 %% Generate In Silico Data
-Model.ssaOptions.nSimsPerExpt = 10;
+Model.ssaOptions.nSimsPerExpt = 50;
 Model.ssaOptions.Nexp = 1;
-Model.tSpan = linspace(0,2,9);
 Model.sampleDataFromFSP(fspSoln,'InSilicoData.csv')
 
 %%
@@ -73,17 +72,17 @@ Model = Model.loadData('InSilicoData.csv',{'NP','exp1_s4'});
 Model.makeFitPlot
 
 %%
-% fitOptions = optimset('Display','iter','MaxIter',1000);
-% fitOptions.SIG = [];
-% for i=1:3
-%     fitPars = Model.maximizeLikelihood([],fitOptions);
-%     Model.parameters(:,2) = num2cell(fitPars);
-% end
+fitOptions = optimset('Display','iter','MaxIter',1000);
+fitOptions.SIG = [];
+for i=1:3
+    fitPars = Model.maximizeLikelihood([],fitOptions);
+    Model.parameters(:,2) = num2cell(fitPars);
+end
 
 %%
 % run Metropolis Hastings
 MHFitOptions.thin=1;
-MHFitOptions.numberOfSamples=1000;
+MHFitOptions.numberOfSamples=2000;
 MHFitOptions.burnIn=0;
 MHFitOptions.progress=true;
 MHFitOptions.useFIMforMetHast =true;
@@ -113,7 +112,7 @@ Model.pdoOptions.unobservedSpecies = {'E1','E2','E3'};
 fimResults = Model.computeFIM(sensSoln.sens);
 
 % Choose experiment design (number of measurements per time for each time).
-cellCounts = 100*ones(size(Model.tSpan));
+cellCounts = Model.dataSet.nCells;
 
 % Compute the total FIM:
 [fimTotal,mleCovEstimate,fimMetrics] = ...
@@ -122,10 +121,10 @@ cellCounts = 100*ones(size(Model.tSpan));
 % Compare to the MH results
 Model.plotMHResults(MHResults,fimTotal)
 
-% Optimize to find the best experiment for same number of spot/cells
-allowableCellNumber = 2100;
+%% Optimize to find the best experiment for same number of spot/cells
+allowableCellNumber = sum(Model.dataSet.nCells);
 OptimumExperiment = Model.optimizeCellCounts(fimResults,allowableCellNumber,...
-    'Determinant',[],[],[]);
+    'Determinant',[],[],[])
 
 % Compute the total FIM:
 fimTotalOptimized = Model.evaluateExperiment(fimResults,OptimumExperiment);
@@ -138,3 +137,14 @@ Model.plotMHResults(MHResults,[fimTotal,fimTotalOptimized])
 JUncertain = find(diag(Vals)<1e-9)
 figure
 bar(Vecs(:,JUncertain))
+
+%%
+figure
+subplot(1,2,1)
+pie(Model.dataSet.nCells)
+subplot(1,2,2)
+pie(OptimumExperiment)
+
+%%
+det(fimTotalOptimized{1}^-1)
+det(fimTotal{1}^-1)
