@@ -6,7 +6,7 @@
    <!--
 This HTML was auto-generated from MATLAB code.
 To make changes, update the MATLAB code and republish this document.
-      --><title>example_HybridModel</title><meta name="generator" content="MATLAB 9.14"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2023-10-22"><meta name="DC.source" content="example_HybridModel.m"><style type="text/css">
+      --><title>example_HybridModel</title><meta name="generator" content="MATLAB 9.14"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2023-11-15"><meta name="DC.source" content="example_HybridModel.m"><style type="text/css">
 html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
 
 html { min-height:100%; margin-bottom:1px; }
@@ -69,7 +69,7 @@ table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px soli
 
   </style></head><body><div class="content"><h2>Contents</h2><div><ul><li><a href="#1">example_HybridModel</a></li><li><a href="#2">Example 1 - transcription and translation</a></li><li><a href="#3">Next, reduce it by assuming that the rna behaves deterministically</a></li><li><a href="#4">Example 2 - 5-species MAPK induction Model</a></li><li><a href="#5">Reduced model where only the RNA species is stochastic</a></li><li><a href="#6">Reduced model where only the gene and RNA species are stochastic.</a></li></ul></div><h2 id="1">example_HybridModel</h2><p>In this script, we demonstrate how to adjust a model to treat some species (i.e., upstream reactions) using an ODE formulation, while having other species (i.e., downstream species) evolving in a discrete stochastic manner.</p><pre class="codeinput">close <span class="string">all</span>
 clear <span class="string">all</span>
-addpath(<span class="string">'../CommandLine'</span>);
+addpath(genpath(<span class="string">'../src'</span>));
 </pre><h2 id="2">Example 1 - transcription and translation</h2><p>First create a full model (e.g., for mRNA and protein)</p><pre class="codeinput">Model1 = SSIT;
 Model1.species = {<span class="string">'rna'</span>,<span class="string">'protein'</span>};
 Model1.initialCondition = [0;0];
@@ -86,6 +86,7 @@ Model2.useHybrid = true;
 Model2.hybridOptions.upstreamODEs = {<span class="string">'rna'</span>};
 [fspSoln2, Model2.fspOptions.bounds] = Model2.solve;
 Model2.makePlot(fspSoln2,<span class="string">'marginals'</span>,[],[],3)
+legend(<span class="string">'Full'</span>,<span class="string">'QSSA for (n)'</span>,<span class="string">'Location'</span>,<span class="string">'eastoutside'</span>)
 </pre><img vspace="5" hspace="5" src="example_HybridModel_03.png" alt=""> <h2 id="4">Example 2 - 5-species MAPK induction Model</h2><p>In this example, we consider a model of MAPK translocation to the nucleus followed by binding to a gene and then transcription activation. We will assume that there are two alleles with one each starting in the active and inactive state.</p><pre class="codeinput">Model3 = SSIT;
 Model3.species = {<span class="string">'geneInactive'</span>,<span class="string">'geneActive'</span>,<span class="string">'mapkCyt'</span>,<span class="string">'mapkNuc'</span>,<span class="string">'rna'</span>};
 Model3.initialCondition = [1;1;50;0;0];
@@ -114,14 +115,13 @@ Model5.useHybrid = true;
 Model5.hybridOptions.upstreamODEs = {<span class="string">'mapkCyt'</span>,<span class="string">'mapkNuc'</span>};
 [fspSoln5, Model5.fspOptions.bounds] = Model5.solve;
 Model5.makePlot(fspSoln5,<span class="string">'marginals'</span>,[],[],[11,12,15])
-</pre><pre class="codeoutput">Warning: Reaction 3 changes both
-ODE and stochastic species.
-Removing effect on upstream
-species. 
-Warning: Reaction 4 changes both
-ODE and stochastic species.
-Removing effect on upstream
-species. 
+legend(<span class="string">'Full'</span>,<span class="string">'QSSA for (gene,MAKP)'</span>,<span class="string">'QSSA for (MAKP)'</span>,<span class="string">'Location'</span>,<span class="string">'eastoutside'</span>)
+</pre><pre class="codeoutput">Warning: Reaction 4 changes both ODE and stochastic species. Removing effect on upstream species.
+&gt; In &lt;a href="matlab:matlab.internal.language.introspective.errorDocCallback('parallel_function&gt;make_general_channel/channel_general', '/Applications/MATLAB_R2023a.app/toolbox/matlab/lang/parallel_function.m', 837)" style="font-weight:bold"&gt;parallel_function&gt;make_general_channel/channel_general&lt;/a&gt; (&lt;a href="matlab: opentoline('/Applications/MATLAB_R2023a.app/toolbox/matlab/lang/parallel_function.m',837,0)"&gt;line 837&lt;/a&gt;)
+In &lt;a href="matlab:matlab.internal.language.introspective.errorDocCallback('parallel.internal.parfor.cppRemoteParallelFunction', '/Applications/MATLAB_R2023a.app/toolbox/parallel/cluster/+parallel/+internal/+parfor/cppRemoteParallelFunction.m', 53)" style="font-weight:bold"&gt;parallel.internal.parfor.cppRemoteParallelFunction&lt;/a&gt; (&lt;a href="matlab: opentoline('/Applications/MATLAB_R2023a.app/toolbox/parallel/cluster/+parallel/+internal/+parfor/cppRemoteParallelFunction.m',53,0)"&gt;line 53&lt;/a&gt;)
+Warning: Reaction 3 changes both ODE and stochastic species. Removing effect on upstream species.
+&gt; In &lt;a href="matlab:matlab.internal.language.introspective.errorDocCallback('parallel_function&gt;make_general_channel/channel_general', '/Applications/MATLAB_R2023a.app/toolbox/matlab/lang/parallel_function.m', 837)" style="font-weight:bold"&gt;parallel_function&gt;make_general_channel/channel_general&lt;/a&gt; (&lt;a href="matlab: opentoline('/Applications/MATLAB_R2023a.app/toolbox/matlab/lang/parallel_function.m',837,0)"&gt;line 837&lt;/a&gt;)
+In &lt;a href="matlab:matlab.internal.language.introspective.errorDocCallback('parallel.internal.parfor.cppRemoteParallelFunction', '/Applications/MATLAB_R2023a.app/toolbox/parallel/cluster/+parallel/+internal/+parfor/cppRemoteParallelFunction.m', 53)" style="font-weight:bold"&gt;parallel.internal.parfor.cppRemoteParallelFunction&lt;/a&gt; (&lt;a href="matlab: opentoline('/Applications/MATLAB_R2023a.app/toolbox/parallel/cluster/+parallel/+internal/+parfor/cppRemoteParallelFunction.m',53,0)"&gt;line 53&lt;/a&gt;)
 </pre><img vspace="5" hspace="5" src="example_HybridModel_10.png" alt=""> <img vspace="5" hspace="5" src="example_HybridModel_11.png" alt=""> <img vspace="5" hspace="5" src="example_HybridModel_12.png" alt=""> <p class="footer"><br><a href="https://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2023a</a><br></p></div><!--
 ##### SOURCE BEGIN #####
 %% example_HybridModel
@@ -131,7 +131,7 @@ species.
 % stochastic manner. 
 close all 
 clear all
-addpath('../CommandLine');
+addpath(genpath('../src'));
 
 %% Example 1 - transcription and translation
 % First create a full model (e.g., for mRNA and protein)
@@ -153,6 +153,7 @@ Model2.useHybrid = true;
 Model2.hybridOptions.upstreamODEs = {'rna'};
 [fspSoln2, Model2.fspOptions.bounds] = Model2.solve;
 Model2.makePlot(fspSoln2,'marginals',[],[],3)
+legend('Full','QSSA for (n)','Location','eastoutside')
 
 %% Example 2 - 5-species MAPK induction Model
 % In this example, we consider a model of MAPK translocation to the nucleus
@@ -197,7 +198,7 @@ Model5.useHybrid = true;
 Model5.hybridOptions.upstreamODEs = {'mapkCyt','mapkNuc'};
 [fspSoln5, Model5.fspOptions.bounds] = Model5.solve;
 Model5.makePlot(fspSoln5,'marginals',[],[],[11,12,15])
-
+legend('Full','QSSA for (gene,MAKP)','QSSA for (MAKP)','Location','eastoutside')
 
 ##### SOURCE END #####
 --></body></html>

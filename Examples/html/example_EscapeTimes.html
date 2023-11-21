@@ -6,7 +6,7 @@
    <!--
 This HTML was auto-generated from MATLAB code.
 To make changes, update the MATLAB code and republish this document.
-      --><title>example_EscapeTimes</title><meta name="generator" content="MATLAB 9.14"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2023-10-21"><meta name="DC.source" content="example_EscapeTimes.m"><style type="text/css">
+      --><title>example_EscapeTimes</title><meta name="generator" content="MATLAB 9.14"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2023-11-15"><meta name="DC.source" content="example_EscapeTimes.m"><style type="text/css">
 html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
 
 html { min-height:100%; margin-bottom:1px; }
@@ -69,7 +69,7 @@ table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px soli
 
   </style></head><body><div class="content"><h2>Contents</h2><div><ul><li><a href="#1">example_EscapeTimes</a></li><li><a href="#2">Example 1 - a simple transcription/translation model</a></li><li><a href="#3">Next, specify a boundary for the escape calculation</a></li><li><a href="#4">Example 2 - escape time with time varying transcription rate</a></li><li><a href="#5">Here we solve for the escape time:</a></li><li><a href="#6">Example 3 - More complex escape thresholds.</a></li><li><a href="#7">Example 4 - Time until making a specific decision.</a></li></ul></div><h2 id="1">example_EscapeTimes</h2><p>In this script, we demonstrate how to create and solve a fiorst passage time problem.</p><pre class="codeinput">close <span class="string">all</span>
 clear <span class="string">all</span>
-addpath(<span class="string">'../CommandLine'</span>);
+addpath(genpath(<span class="string">'../src'</span>));
 </pre><h2 id="2">Example 1 - a simple transcription/translation model</h2><p>First create a full model (e.g., for mRNA and protein)</p><pre class="codeinput">Model1 = SSIT;
 Model1.species = {<span class="string">'rna'</span>,<span class="string">'protein'</span>};
 Model1.initialCondition = [0;0];
@@ -112,7 +112,7 @@ legend(Model3.fspOptions.escapeSinks.f)
 % time problem.
 close all
 clear all
-addpath('../CommandLine');
+addpath(genpath('../src'));
 %% Example 1 - a simple transcription/translation model
 % First create a full model (e.g., for mRNA and protein)
 Model1 = SSIT;
