@@ -2265,12 +2265,16 @@ classdef SSIT
                 scatterFig = [];
             end
 
+            if strcmp(obj.fittingOptions.modelVarsToFit,'all')
+                obj.fittingOptions.modelVarsToFit = ones(1,size(obj.parameters,1),'logical');
+            end
             parNames = obj.parameters(obj.fittingOptions.modelVarsToFit,1);
-            
+            Np = length(parNames);
+
             if ~isempty(FIM)
                 pars = [obj.parameters{obj.fittingOptions.modelVarsToFit,2}];
                 
-                if strcmp(mhPlotScale,'log10')
+                if isempty(mhPlotScale)||strcmp(mhPlotScale,'log10')
                     parsScaled = log10(pars);
                 elseif strcmp(mhPlotScale,'log')
                     parsScaled = log(pars);
@@ -2287,7 +2291,7 @@ classdef SSIT
                 %     covFIM{1} = FIM^(-1)/log(10)^2;
                 % else
                 for i=1:length(FIM)
-                    if strcmp(fimScale,'lin')
+                    if isempty(fimScale)||strcmp(fimScale,'lin')
                         FIMi = diag(pars)*...
                             FIM{i}(obj.fittingOptions.modelVarsToFit,obj.fittingOptions.modelVarsToFit)*...
                             diag(pars);
@@ -2295,7 +2299,7 @@ classdef SSIT
                         FIMi = FIM{i};
                     end
                     FIMi = FIMi(obj.fittingOptions.modelVarsToFit,obj.fittingOptions.modelVarsToFit);
-                    if strcmp(mhPlotScale,'log10')
+                    if isempty(mhPlotScale)||strcmp(mhPlotScale,'log10')
                         covFIM{i} = FIMi^(-1)/log(10)^2;
                     else
                         covFIM{i} = FIMi^(-1);
@@ -2330,7 +2334,6 @@ classdef SSIT
                 end
                 [valDoneSorted,J] = sort(mhResults.mhValue);
                 smplDone = mhResults.mhSamples(J,:);
-                Np = size(mhResults.mhSamples,2);
             end
             
             fimCols = {'k','c','b','g','r'};
@@ -2346,14 +2349,14 @@ classdef SSIT
                     end
                     if ~isempty(FIM)
                         for iFIM = 1:length(covFIM)
-                            ssit.parest.ellipse(parsScaled([j,i]),icdf('chi2',0.9,2)*covFIM{iFIM}([j,i],[j,i]),fimCols{mod(iFIM,5)+1},'linewidth',2)
+                            ssit.parest.ellipse(parsScaled([j,i]),icdf('chi2',0.9,2)*covFIM{iFIM}([j,i],[j,i]),fimCols{mod(iFIM,5)+1},'linewidth',2); hold on;
                         end
                     end
                     if ~isempty(mhResults)
-                        ssit.parest.ellipse(par0,icdf('chi2',0.9,2)*cov12,'m--','linewidth',2)
+                        ssit.parest.ellipse(par0,icdf('chi2',0.9,2)*cov12,'m--','linewidth',2);  hold on;
                     end
                     xlabel(['log_{10}(',parNames{j},')']);
-                    ylabel(parNames{i});
+                    ylabel(['log_{10}(',parNames{i},')']);
                 end
             end
         end
