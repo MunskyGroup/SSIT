@@ -30,3 +30,4 @@ parDistributions = @()[10+2*randn,...
     1+0.2*randn];
 extrinsicModel = extrinsicSSIT(Model1,parDistributions,20);
 Model1.makePlot(extrinsicModel.averagedResults,'marginals',[],[],[2,3])
+legend('Intrinsic Only','Intrinsic + Extrinsic','Location','EastOutside')

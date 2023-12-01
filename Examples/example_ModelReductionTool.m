@@ -135,7 +135,10 @@ redModelSolveTime = toc
 % Make Figures to compare the results. Here, we will plot the original
 % model in blue and the reduced model in red lines.
 Model1.makePlot(fspSoln,'meansAndDevs',[],[],1,{'Color',[0,0,1]})
-Model1.makePlot(fspSoln,'marginals',[],[],[2,3],{'Color',[0,0,1]})
-
 Model2.makePlot(fspSolnRed,'meansAndDevs',[],[],1,{'Color',[1,0,0]})
+figure(1);legend('Full','Reduced','Location','southeast')
+
+Model1.makePlot(fspSoln,'marginals',[],[],[2,3],{'Color',[0,0,1]})
 Model2.makePlot(fspSolnRed,'marginals',[],[],[2,3],{'Color',[1,0,0]})
+figure(2);legend('Full','Reduced','Location','eastoutside')
+figure(3);legend('Full','Reduced','Location','eastoutside')

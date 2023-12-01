@@ -6,7 +6,7 @@
    <!--
 This HTML was auto-generated from MATLAB code.
 To make changes, update the MATLAB code and republish this document.
-      --><title>example_FittingAndDesigningExperiments</title><meta name="generator" content="MATLAB 9.14"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2023-10-22"><meta name="DC.source" content="example_FittingAndDesigningExperiments.m"><style type="text/css">
+      --><title>example_FittingAndDesigningExperiments</title><meta name="generator" content="MATLAB 9.14"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2023-11-15"><meta name="DC.source" content="example_FittingAndDesigningExperiments.m"><style type="text/css">
 html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
 
 html { min-height:100%; margin-bottom:1px; }
@@ -70,7 +70,7 @@ table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px soli
   </style></head><body><div class="content"><h2>Contents</h2><div><ul><li><a href="#1">example_FittingAndDesigningExperiments</a></li><li><a href="#2">Define SSIT Model</a></li><li><a href="#3">Solve the model using the FSP</a></li><li><a href="#4">Load and Fit smFISH Data</a></li><li><a href="#5">Calculate CME Sensitivity to Parameter Variations</a></li><li><a href="#6">Compute Fisher Information (in log-parameter space)</a></li><li><a href="#7">Metropolis Hastings to Quantify Parameter Uncertainty</a></li><li><a href="#8">Solve for Fisher Information Matrix at all Time Points</a></li><li><a href="#9">Optimize Experiment Design (Same Number of Cells and Timepoints)</a></li><li><a href="#10">Calibrate PDO from Multi-Modal Experimental Data</a></li><li><a href="#11">Compute the FIM for the calculated PDO</a></li></ul></div><h2 id="1">example_FittingAndDesigningExperiments</h2><p>In this script, we show how the SSIT can be used to identify a time-inhomogeneous model for the activation of Dusp1 mRNA expression under Dexamethasome stimulation of Glucocorticoid Receptors.</p><pre class="codeinput">clear <span class="string">all</span>
 clc
 close <span class="string">all</span>
-addpath(<span class="string">'../CommandLine'</span>);
+addpath(genpath(<span class="string">'../src'</span>));
 </pre><h2 id="2">Define SSIT Model</h2><p>Here we set up a simple model where there is an upstream transcription factor (GR) that activates a gene.  Once active, the gene can transcribe nuclear RNA, which can later decay or leave the nucleus.</p><pre class="codeinput">Model = SSIT;
 Model.species = {<span class="string">'activeGene'</span>;<span class="string">'rna'</span>};
 Model.initialCondition = [0;0];
@@ -83,6 +83,7 @@ Model.fspOptions.initApproxSS = true;
 </pre><h2 id="3">Solve the model using the FSP</h2><p>Next, we can solve the model using the FSP.  In this example, we show how to run the code twice.  First call finds the FSP projection needed to solve the problem, and the second call solves using that projection.</p><pre class="codeinput">Model.solutionScheme = <span class="string">'FSP'</span>;
 Model.fspOptions.fspTol = 1e-4;
 Model.fspOptions.bounds(3:4) = [2,400];
+Model = Model.formPropensitiesGeneral(<span class="string">'Model'</span>);
 [fspSoln,Model.fspOptions.bounds] = Model.solve;
 </pre><h2 id="4">Load and Fit smFISH Data</h2><p>Next we load experimental data from a CSV file and associate the species 'rna' with the collumn 'RNA_nuc'.</p><pre class="codeinput">Model = Model.loadData(<span class="string">'../ExampleData/DUSP1_Dex_100nM_Rep1_Rep2.csv'</span>,{<span class="string">'rna'</span>,<span class="string">'RNA_nuc'</span>});
 Model.fittingOptions.modelVarsToFit = 1:7;
@@ -106,7 +107,7 @@ Model.sensOptions.solutionMethod = <span class="string">'finiteDifference'</span
 Model.fspOptions.fspTol = 1e-6;
 [sensSoln] = Model.solve(fspSoln.stateSpace);
 Model.makePlot(sensSoln,<span class="string">'marginals'</span>)
-</pre><img vspace="5" hspace="5" src="example_FittingAndDesigningExperiments_05.png" alt=""> <img vspace="5" hspace="5" src="example_FittingAndDesigningExperiments_06.png" alt=""> <img vspace="5" hspace="5" src="example_FittingAndDesigningExperiments_07.png" alt=""> <h2 id="6">Compute Fisher Information (in log-parameter space)</h2><pre class="codeinput">Model.pdoOptions.unobservedSpecies = {<span class="string">'activeGene'</span>};
+</pre><img vspace="5" hspace="5" src="example_FittingAndDesigningExperiments_05.png" alt=""> <img vspace="5" hspace="5" src="example_FittingAndDesigningExperiments_06.png" alt=""> <h2 id="6">Compute Fisher Information (in log-parameter space)</h2><pre class="codeinput">Model.pdoOptions.unobservedSpecies = {<span class="string">'activeGene'</span>};
 fimResults = Model.computeFIM(sensSoln.sens,<span class="string">'log'</span>);
 FIMlog =  Model.evaluateExperiment(fimResults,Model.dataSet.nCells);
 </pre><h2 id="7">Metropolis Hastings to Quantify Parameter Uncertainty</h2><p>Next, we determine the uncertainty in a subset of the estimated parameters. In this case, we assume that the GR parameters ([5:7]) are correct, and we only care about the uncertainity in the other parameters ([1:4]).</p><pre class="codeinput">Model.solutionScheme = <span class="string">'FSP'</span>;
@@ -122,54 +123,54 @@ Model.plotMHResults(mhResults);
 <span class="comment">% calculated using the first parameters set, this will cause the MH to</span>
 <span class="comment">% converge more slowly.  You will likely want to re-run the fit again</span>
 <span class="comment">% multiple times to have a better chance of convergence.</span>
-</pre><pre class="codeoutput">n=0; acc=0.5. TMPmh_5.mat
-n=100; acc=0.485. TMPmh_5.mat
-n=200; acc=0.47667. TMPmh_5.mat
-n=300; acc=0.495. TMPmh_5.mat
-n=400; acc=0.504. TMPmh_5.mat
-n=500; acc=0.50167. TMPmh_5.mat
-n=600; acc=0.49143. TMPmh_5.mat
-n=700; acc=0.485. TMPmh_5.mat
-n=800; acc=0.48444. TMPmh_5.mat
-n=900; acc=0.48. TMPmh_5.mat
-n=1000; acc=0.48273. TMPmh_5.mat
-n=1100; acc=0.48083. TMPmh_5.mat
-n=1200; acc=0.48. TMPmh_5.mat
-n=1300; acc=0.47643. TMPmh_5.mat
-n=1400; acc=0.47467. TMPmh_5.mat
-n=1500; acc=0.475. TMPmh_5.mat
-n=1600; acc=0.47353. TMPmh_5.mat
-n=1700; acc=0.47611. TMPmh_5.mat
-n=1800; acc=0.47053. TMPmh_5.mat
-n=1900; acc=0.474. TMPmh_5.mat
-n=2000; acc=0.48. TMPmh_5.mat
-</pre><img vspace="5" hspace="5" src="example_FittingAndDesigningExperiments_08.png" alt=""> <img vspace="5" hspace="5" src="example_FittingAndDesigningExperiments_09.png" alt=""> <img vspace="5" hspace="5" src="example_FittingAndDesigningExperiments_10.png" alt=""> <img vspace="5" hspace="5" src="example_FittingAndDesigningExperiments_11.png" alt=""> <h2 id="8">Solve for Fisher Information Matrix at all Time Points</h2><p>Using the sensitivity calculation, we next computer the Fisher Information Matrix.  Because we only can observe one species 'rna'), we must include that the species 'activeGene' is not observed when formulating the PDO.</p><pre class="codeinput">Model.pdoOptions.unobservedSpecies = {<span class="string">'activeGene'</span>};
+</pre><pre class="codeoutput">n=0; acc=0.51. TMPmh_1.mat
+n=100; acc=0.52. TMPmh_1.mat
+n=200; acc=0.5. TMPmh_1.mat
+n=300; acc=0.4775. TMPmh_1.mat
+n=400; acc=0.474. TMPmh_1.mat
+n=500; acc=0.47833. TMPmh_1.mat
+n=600; acc=0.48571. TMPmh_1.mat
+n=700; acc=0.4925. TMPmh_1.mat
+n=800; acc=0.5. TMPmh_1.mat
+n=900; acc=0.496. TMPmh_1.mat
+n=1000; acc=0.48818. TMPmh_1.mat
+n=1100; acc=0.49417. TMPmh_1.mat
+n=1200; acc=0.49615. TMPmh_1.mat
+n=1300; acc=0.49143. TMPmh_1.mat
+n=1400; acc=0.48933. TMPmh_1.mat
+n=1500; acc=0.48875. TMPmh_1.mat
+n=1600; acc=0.48882. TMPmh_1.mat
+n=1700; acc=0.48667. TMPmh_1.mat
+n=1800; acc=0.48316. TMPmh_1.mat
+n=1900; acc=0.4805. TMPmh_1.mat
+n=2000; acc=0.48476. TMPmh_1.mat
+</pre><img vspace="5" hspace="5" src="example_FittingAndDesigningExperiments_07.png" alt=""> <img vspace="5" hspace="5" src="example_FittingAndDesigningExperiments_08.png" alt=""> <img vspace="5" hspace="5" src="example_FittingAndDesigningExperiments_09.png" alt=""> <h2 id="8">Solve for Fisher Information Matrix at all Time Points</h2><p>Using the sensitivity calculation, we next computer the Fisher Information Matrix.  Because we only can observe one species 'rna'), we must include that the species 'activeGene' is not observed when formulating the PDO.</p><pre class="codeinput">Model.pdoOptions.unobservedSpecies = {<span class="string">'activeGene'</span>};
 fims = Model.computeFIM(sensSoln.sens);
 FIM = Model.evaluateExperiment(fims,Model.dataSet.nCells);
 Model.plotMHResults(mhResults,FIM);
-</pre><img vspace="5" hspace="5" src="example_FittingAndDesigningExperiments_12.png" alt=""> <img vspace="5" hspace="5" src="example_FittingAndDesigningExperiments_13.png" alt=""> <img vspace="5" hspace="5" src="example_FittingAndDesigningExperiments_14.png" alt=""> <h2 id="9">Optimize Experiment Design (Same Number of Cells and Timepoints)</h2><p>Now that we have calculate the FIM and PDO, we can optimize an experiment design to match the total number of cellular measurements as conducted in the original experiment.</p><pre class="codeinput">nTotal = sum(Model.dataSet.nCells);
+</pre><img vspace="5" hspace="5" src="example_FittingAndDesigningExperiments_10.png" alt=""> <img vspace="5" hspace="5" src="example_FittingAndDesigningExperiments_11.png" alt=""> <img vspace="5" hspace="5" src="example_FittingAndDesigningExperiments_12.png" alt=""> <h2 id="9">Optimize Experiment Design (Same Number of Cells and Timepoints)</h2><p>Now that we have calculate the FIM and PDO, we can optimize an experiment design to match the total number of cellular measurements as conducted in the original experiment.</p><pre class="codeinput">nTotal = sum(Model.dataSet.nCells);
 nCellsOpt = Model.optimizeCellCounts(fims,nTotal,<span class="string">'TR[1:4]'</span>);
 fimOpt = Model.evaluateExperiment(fims,nCellsOpt);
 Model.plotMHResults(mhResults,[FIM,fimOpt]);
-</pre><img vspace="5" hspace="5" src="example_FittingAndDesigningExperiments_15.png" alt=""> <img vspace="5" hspace="5" src="example_FittingAndDesigningExperiments_16.png" alt=""> <img vspace="5" hspace="5" src="example_FittingAndDesigningExperiments_17.png" alt=""> <h2 id="10">Calibrate PDO from Multi-Modal Experimental Data</h2><p>Calibration the PDO from empirical data. Here, the number of spots has been measured using different assays in data columns 'nTotal' for the 'true' data set and in the columns 'nSpots0' for a different label or 'intens1' for the integrated intensity.  We calibrate two different PDOs for this case. In both cases, we assume an 'AffinePoiss' PDO where the obervation probability is a Poisson distribution where the mean value is affine linearly related to the true value: P(y|x) = Poiss(a0 + a1*x);</p><pre class="codeinput">ModelPDOSpots = Model.calibratePDO(<span class="string">'../ExampleData/pdoCalibrationData.csv'</span>,<span class="keyword">...</span>
+</pre><img vspace="5" hspace="5" src="example_FittingAndDesigningExperiments_13.png" alt=""> <img vspace="5" hspace="5" src="example_FittingAndDesigningExperiments_14.png" alt=""> <img vspace="5" hspace="5" src="example_FittingAndDesigningExperiments_15.png" alt=""> <h2 id="10">Calibrate PDO from Multi-Modal Experimental Data</h2><p>Calibration the PDO from empirical data. Here, the number of spots has been measured using different assays in data columns 'nTotal' for the 'true' data set and in the columns 'nSpots0' for a different label or 'intens1' for the integrated intensity.  We calibrate two different PDOs for this case. In both cases, we assume an 'AffinePoiss' PDO where the obervation probability is a Poisson distribution where the mean value is affine linearly related to the true value: P(y|x) = Poiss(a0 + a1*x);</p><pre class="codeinput">ModelPDOSpots = Model.calibratePDO(<span class="string">'../ExampleData/pdoCalibrationData.csv'</span>,<span class="keyword">...</span>
     {<span class="string">'rna'</span>},{<span class="string">'nTotal'</span>},{<span class="string">'nSpots0'</span>},<span class="string">'AffinePoiss'</span>,true);
 
 ModelPDOIntens = Model.calibratePDO(<span class="string">'../ExampleData/pdoCalibrationData.csv'</span>,<span class="keyword">...</span>
     {<span class="string">'rna'</span>},{<span class="string">'nTotal'</span>},{<span class="string">'intens1'</span>},<span class="string">'AffinePoiss'</span>,true,[1,1000,1]);
-</pre><img vspace="5" hspace="5" src="example_FittingAndDesigningExperiments_18.png" alt=""> <img vspace="5" hspace="5" src="example_FittingAndDesigningExperiments_19.png" alt=""> <h2 id="11">Compute the FIM for the calculated PDO</h2><p>Now that we have the new PDO, we can calculate the FIM for the different distorted observation experiments.  In each case, we compare the results to the Metropolis Hastings results in which the data was assumed to be undistorted. First, for the alternate label distortion.</p><pre class="codeinput">fimsPDOSpot = ModelPDOSpots.computeFIM(sensSoln.sens);
+</pre><img vspace="5" hspace="5" src="example_FittingAndDesigningExperiments_16.png" alt=""> <img vspace="5" hspace="5" src="example_FittingAndDesigningExperiments_17.png" alt=""> <h2 id="11">Compute the FIM for the calculated PDO</h2><p>Now that we have the new PDO, we can calculate the FIM for the different distorted observation experiments.  In each case, we compare the results to the Metropolis Hastings results in which the data was assumed to be undistorted. First, for the alternate label distortion:</p><pre class="codeinput">fimsPDOSpot = ModelPDOSpots.computeFIM(sensSoln.sens);
 fimPDOSpots = ModelPDOSpots.evaluateExperiment(fimsPDOSpot,nCellsOpt);
 Model.plotMHResults(mhResults,[FIM,fimOpt,fimPDOSpots]);
 
-<span class="comment">% Next, for the intensity integration distortion.</span>
+<span class="comment">% Next, for the intensity integration distortion:</span>
 fimsPDOIntens = ModelPDOIntens.computeFIM(sensSoln.sens);
 fimPDOIntens = ModelPDOIntens.evaluateExperiment(fimsPDOIntens,nCellsOpt);
 Model.plotMHResults(mhResults,[FIM,fimOpt,fimPDOSpots,fimPDOIntens]);
 
-<span class="comment">% Finally for an extended experiment with a larger number of cells.</span>
+<span class="comment">% Finally, for an extended experiment with a larger number of cells;</span>
 fimsPDOIntens = ModelPDOIntens.computeFIM(sensSoln.sens);
 fimPDOIntens2x = ModelPDOIntens.evaluateExperiment(fimsPDOIntens,2.218*nCellsOpt);
 Model.plotMHResults(mhResults,[FIM,fimOpt,fimPDOSpots,fimPDOIntens,fimPDOIntens2x]);
-</pre><img vspace="5" hspace="5" src="example_FittingAndDesigningExperiments_20.png" alt=""> <img vspace="5" hspace="5" src="example_FittingAndDesigningExperiments_21.png" alt=""> <img vspace="5" hspace="5" src="example_FittingAndDesigningExperiments_22.png" alt=""> <img vspace="5" hspace="5" src="example_FittingAndDesigningExperiments_23.png" alt=""> <img vspace="5" hspace="5" src="example_FittingAndDesigningExperiments_24.png" alt=""> <img vspace="5" hspace="5" src="example_FittingAndDesigningExperiments_25.png" alt=""> <img vspace="5" hspace="5" src="example_FittingAndDesigningExperiments_26.png" alt=""> <img vspace="5" hspace="5" src="example_FittingAndDesigningExperiments_27.png" alt=""> <img vspace="5" hspace="5" src="example_FittingAndDesigningExperiments_28.png" alt=""> <p class="footer"><br><a href="https://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2023a</a><br></p></div><!--
+</pre><img vspace="5" hspace="5" src="example_FittingAndDesigningExperiments_18.png" alt=""> <img vspace="5" hspace="5" src="example_FittingAndDesigningExperiments_19.png" alt=""> <img vspace="5" hspace="5" src="example_FittingAndDesigningExperiments_20.png" alt=""> <img vspace="5" hspace="5" src="example_FittingAndDesigningExperiments_21.png" alt=""> <img vspace="5" hspace="5" src="example_FittingAndDesigningExperiments_22.png" alt=""> <img vspace="5" hspace="5" src="example_FittingAndDesigningExperiments_23.png" alt=""> <img vspace="5" hspace="5" src="example_FittingAndDesigningExperiments_24.png" alt=""> <img vspace="5" hspace="5" src="example_FittingAndDesigningExperiments_25.png" alt=""> <img vspace="5" hspace="5" src="example_FittingAndDesigningExperiments_26.png" alt=""> <p class="footer"><br><a href="https://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2023a</a><br></p></div><!--
 ##### SOURCE BEGIN #####
 %% example_FittingAndDesigningExperiments
 % In this script, we show how the SSIT can be used to identify a
@@ -178,7 +179,8 @@ Model.plotMHResults(mhResults,[FIM,fimOpt,fimPDOSpots,fimPDOIntens,fimPDOIntens2
 clear all
 clc
 close all
-addpath('../CommandLine');
+addpath(genpath('../src'));
+
 %% Define SSIT Model
 % Here we set up a simple model where there is an upstream transcription
 % factor (GR) that activates a gene.  Once active, the gene can transcribe
@@ -200,6 +202,7 @@ Model.fspOptions.initApproxSS = true;
 Model.solutionScheme = 'FSP';
 Model.fspOptions.fspTol = 1e-4;
 Model.fspOptions.bounds(3:4) = [2,400];
+Model = Model.formPropensitiesGeneral('Model');
 [fspSoln,Model.fspOptions.bounds] = Model.solve;
 
 %% Load and Fit smFISH Data
@@ -294,17 +297,17 @@ ModelPDOIntens = Model.calibratePDO('../ExampleData/pdoCalibrationData.csv',...
 % distorted observation experiments.  In each case, we compare the results
 % to the Metropolis Hastings results in which the data was assumed to be
 % undistorted.
-% First, for the alternate label distortion.
+% First, for the alternate label distortion:
 fimsPDOSpot = ModelPDOSpots.computeFIM(sensSoln.sens);
 fimPDOSpots = ModelPDOSpots.evaluateExperiment(fimsPDOSpot,nCellsOpt);
 Model.plotMHResults(mhResults,[FIM,fimOpt,fimPDOSpots]);
 
-% Next, for the intensity integration distortion.
+% Next, for the intensity integration distortion:
 fimsPDOIntens = ModelPDOIntens.computeFIM(sensSoln.sens);
 fimPDOIntens = ModelPDOIntens.evaluateExperiment(fimsPDOIntens,nCellsOpt);
 Model.plotMHResults(mhResults,[FIM,fimOpt,fimPDOSpots,fimPDOIntens]);
 
-% Finally for an extended experiment with a larger number of cells.
+% Finally, for an extended experiment with a larger number of cells;
 fimsPDOIntens = ModelPDOIntens.computeFIM(sensSoln.sens);
 fimPDOIntens2x = ModelPDOIntens.evaluateExperiment(fimsPDOIntens,2.218*nCellsOpt);
 Model.plotMHResults(mhResults,[FIM,fimOpt,fimPDOSpots,fimPDOIntens,fimPDOIntens2x]);

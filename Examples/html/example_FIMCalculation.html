@@ -6,7 +6,7 @@
    <!--
 This HTML was auto-generated from MATLAB code.
 To make changes, update the MATLAB code and republish this document.
-      --><title>example_FIMCalculation</title><meta name="generator" content="MATLAB 9.14"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2023-10-21"><meta name="DC.source" content="example_FIMCalculation.m"><style type="text/css">
+      --><title>example_FIMCalculation</title><meta name="generator" content="MATLAB 9.14"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2023-11-21"><meta name="DC.source" content="example_FIMCalculation.m"><style type="text/css">
 html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
 
 html { min-height:100%; margin-bottom:1px; }
@@ -69,84 +69,135 @@ table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px soli
 
   </style></head><body><div class="content"><h2>Contents</h2><div><ul><li><a href="#1">fimExample</a></li><li><a href="#2">(1) Set up Model</a></li><li><a href="#3">(2) Solve FSP for model</a></li><li><a href="#4">(3) Solve FSP Sensitivity</a></li><li><a href="#5">(4) Compute FIM using FSP Sensitivity Results</a></li><li><a href="#6">(5) Compute FIM for Partial Observations</a></li><li><a href="#7">(6) Compute FIM for Distorted Observation (Probabilistic Distortion Operator)</a></li></ul></div><h2 id="1">fimExample</h2><p>In this script, we show how to set up and solve the FSP-FIM matrix with partial observations and probabilistic distortion.</p><pre class="codeinput">clear <span class="string">all</span>
 close <span class="string">all</span>
+addpath(genpath(<span class="string">'../src'</span>));
 </pre><h2 id="2">(1) Set up Model</h2><pre class="codeinput">ModelChoice = <span class="string">'CentralDogma'</span>;  <span class="comment">% Two species problem (mRNa and protein)</span>
 F2 = SSIT(ModelChoice);
 F2 = F2.formPropensitiesGeneral(<span class="string">'FIMExample'</span>);
 </pre><h2 id="3">(2) Solve FSP for model</h2><pre class="codeinput">F2.solutionScheme = <span class="string">'FSP'</span>;    <span class="comment">% Set solution scheme to FSP.</span>
 [FSPsoln,F2.fspOptions.bounds] = F2.solve;  <span class="comment">% Solve the FSP analysis</span>
-</pre><h2 id="4">(3) Solve FSP Sensitivity</h2><pre class="codeinput">F2.solutionScheme = <span class="string">'fspSens'</span>; <span class="comment">% Set solutions scheme to FSP Sensitivity</span>
+<span class="comment">% Plot the results from the FSP analysis</span>
+fig1 = figure(1);clf; set(fig1,<span class="string">'Name'</span>,<span class="string">'Marginal Distributions, mRNA'</span>);
+fig2 = figure(2);clf; set(fig2,<span class="string">'Name'</span>,<span class="string">'Marginal Distributions, Protein'</span>);
+F2.makePlot(FSPsoln,<span class="string">'marginals'</span>,[1:4:21],false,[fig1,fig2],{<span class="string">'r-'</span>,<span class="string">'linewidth'</span>,2})
+</pre><img vspace="5" hspace="5" src="example_FIMCalculation_01.png" alt=""> <img vspace="5" hspace="5" src="example_FIMCalculation_02.png" alt=""> <h2 id="4">(3) Solve FSP Sensitivity</h2><pre class="codeinput">F2.solutionScheme = <span class="string">'fspSens'</span>; <span class="comment">% Set solutions scheme to FSP Sensitivity</span>
 [sensSoln,bounds] = F2.solve(FSPsoln.stateSpace);  <span class="comment">% Solve the sensitivity problem</span>
-</pre><pre class="codeoutput">Error with Analytical Sensitivity Calculations - Switching to Finite Difference Method
-</pre><h2 id="5">(4) Compute FIM using FSP Sensitivity Results</h2><pre class="codeinput">fimResults = F2.computeFIM(sensSoln.sens); <span class="comment">% Compute the FIM for full observations and no distortion.</span>
+<span class="comment">% Plot the results from the sensitivity analysis</span>
+fig3 = figure(3);clf; set(fig3,<span class="string">'Name'</span>,<span class="string">'Marginal Sensitivity, mRNA'</span>);
+fig4 = figure(4);clf; set(fig4,<span class="string">'Name'</span>,<span class="string">'Marginal Sensitivity, Protein'</span>);
+F2.makePlot(sensSoln,<span class="string">'marginals'</span>,[],false,[fig3,fig4],{<span class="string">'b'</span>,<span class="string">'linewidth'</span>,2})
+</pre><img vspace="5" hspace="5" src="example_FIMCalculation_03.png" alt=""> <img vspace="5" hspace="5" src="example_FIMCalculation_04.png" alt=""> <h2 id="5">(4) Compute FIM using FSP Sensitivity Results</h2><pre class="codeinput">fimResults = F2.computeFIM(sensSoln.sens); <span class="comment">% Compute the FIM for full observations and no distortion.</span>
 cellCounts = 10*ones(size(F2.tSpan));  <span class="comment">% Number of cells in each experiment.</span>
 [fimTotal,mleCovEstimate,fimMetrics] = F2.evaluateExperiment(fimResults,cellCounts)
-</pre><pre class="codeoutput">fimTotal =
+fig5 = figure(5);clf; set(fig5,<span class="string">'Name'</span>,<span class="string">'Fim-Predicted Uncertainty Ellipses'</span>);
+F2.plotMHResults([],fimTotal,<span class="string">'lin'</span>,[],fig5)
+legend(<span class="string">'FIM - Full Observation'</span>)
+</pre><pre class="codeoutput">
+fimTotal =
+
   1&times;1 cell array
+
     {4&times;4 double}
+
+
 mleCovEstimate =
+
   1&times;1 cell array
+
     {4&times;4 double}
+
+
 fimMetrics = 
+
   struct with fields:
 
-          det: 15056909185.6849
-        trace: 31032.4672821342
-    minEigVal: 1.01963637716716
-</pre><h2 id="6">(5) Compute FIM for Partial Observations</h2><pre class="codeinput">F2.pdoOptions.PDO=[];
+          det: 15056904911.6332
+        trace: 31032.4672181693
+    minEigVal: 1.01963610988029
+
+</pre><img vspace="5" hspace="5" src="example_FIMCalculation_05.png" alt=""> <h2 id="6">(5) Compute FIM for Partial Observations</h2><pre class="codeinput">F2.pdoOptions.PDO=[];
 F2.pdoOptions.unobservedSpecies = <span class="string">'x1'</span>;
 [fimResults_partialObs] = F2.computeFIM(sensSoln.sens); <span class="comment">% Compute the FIM for full observations and no distortion.</span>
 [fimTotal_partialObs,mleCovEstimate_partialObs,fimMetrics_partialObs] = F2.evaluateExperiment(fimResults_partialObs,cellCounts)
-</pre><pre class="codeoutput">fimTotal_partialObs =
+fig6 = figure(6);clf; set(fig6,<span class="string">'Name'</span>,<span class="string">'Fim-Predicted Uncertainty Ellipses'</span>);
+F2.plotMHResults([],[fimTotal,fimTotal_partialObs],<span class="string">'lin'</span>,[],fig6)
+legend(<span class="string">'FIM - Full Observation'</span>,<span class="string">'FIM - Protein Only'</span>)
+</pre><pre class="codeoutput">
+fimTotal_partialObs =
+
   1&times;1 cell array
+
     {4&times;4 double}
+
+
 mleCovEstimate_partialObs =
+
   1&times;1 cell array
+
     {4&times;4 double}
+
+
 fimMetrics_partialObs = 
+
   struct with fields:
 
-          det: 15334575.7734958
-        trace: 28026.2035489583
-    minEigVal: 0.265831411968639
-</pre><h2 id="7">(6) Compute FIM for Distorted Observation (Probabilistic Distortion Operator)</h2><pre class="codeinput">F2.pdoOptions.unobservedSpecies = <span class="string">'x1'</span>;
+          det: 15334574.1344478
+        trace: 28026.2035042016
+    minEigVal: 0.265831373533071
+
+</pre><img vspace="5" hspace="5" src="example_FIMCalculation_06.png" alt=""> <h2 id="7">(6) Compute FIM for Distorted Observation (Probabilistic Distortion Operator)</h2><pre class="codeinput">F2.pdoOptions.unobservedSpecies = <span class="string">'x1'</span>;
 pdoOptions.type = <span class="string">'Binomial'</span>;
 <span class="comment">% Need to define loss parameter for each species S1, S2,...</span>
 pdoOptions.props.CaptureProbabilityS1 = 0;  <span class="comment">% Use zero for unobserved species.</span>
 pdoOptions.props.CaptureProbabilityS2 = 0.9;
 
-<span class="comment">% call method to generate the PDO.</span>
+<span class="comment">% Call method to generate the PDO.</span>
 F2.pdoOptions.PDO = F2.generatePDO(pdoOptions,[],FSPsoln.fsp);
 
-<span class="comment">% plot the PDO</span>
+<span class="comment">% Plot the PDO</span>
 N = size(F2.pdoOptions.PDO.conditionalPmfs{1});
-figure;
+fig7 = figure(7); set(fig7,<span class="string">'Name'</span>,<span class="string">'Probabilistic Distortion Operator for Protein'</span>);
 contourf([0:N(1)-1],[0:N(2)-1],log10(F2.pdoOptions.PDO.conditionalPmfs{1}));
 <span class="comment">% Here we wanted the first PDO for 'x2' because 'x1' was unobserved.</span>
 xlabel(<span class="string">'Actual'</span>);ylabel(<span class="string">'Observable'</span>);colorbar;
 
-<span class="comment">% solve FIM using the specified PDO</span>
+<span class="comment">% Solve FIM using the specified PDO</span>
 [fimResults_BinomialPDO] = F2.computeFIM(sensSoln.sens); <span class="comment">% Compute the FIM for full observations and no distortion.</span>
 [fimTotal_BinomialPDO,mleCovEstimate_BinomialPDO,fimMetrics_BinomialPDO] =<span class="keyword">...</span>
     F2.evaluateExperiment(fimResults_BinomialPDO,cellCounts)
-</pre><pre class="codeoutput">fimTotal_BinomialPDO =
+fig8 = figure(8);clf; set(fig8,<span class="string">'Name'</span>,<span class="string">'Fim-Predicted Uncertainty Ellipses'</span>);
+F2.plotMHResults([],[fimTotal,fimTotal_partialObs,fimTotal_BinomialPDO],<span class="string">'lin'</span>,[],fig8)
+legend(<span class="string">'FIM - Full Observation'</span>,<span class="string">'FIM - Protein Only'</span>,<span class="string">'FIM - Protein with Error'</span>)
+</pre><pre class="codeoutput">
+fimTotal_BinomialPDO =
+
   1&times;1 cell array
+
     {4&times;4 double}
+
+
 mleCovEstimate_BinomialPDO =
+
   1&times;1 cell array
+
     {4&times;4 double}
+
+
 fimMetrics_BinomialPDO = 
+
   struct with fields:
 
-          det: 11753388.9719856
-        trace: 26697.1703866449
-    minEigVal: 0.240145247197538
-</pre><img vspace="5" hspace="5" src="example_FIMCalculation_01.png" alt=""> <p class="footer"><br><a href="https://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2023a</a><br></p></div><!--
+          det: 11753387.7754394
+        trace: 26697.17034425
+    minEigVal: 0.240145214258803
+
+</pre><img vspace="5" hspace="5" src="example_FIMCalculation_07.png" alt=""> <img vspace="5" hspace="5" src="example_FIMCalculation_08.png" alt=""> <p class="footer"><br><a href="https://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2023a</a><br></p></div><!--
 ##### SOURCE BEGIN #####
 %% fimExample
 % In this script, we show how to set up and solve the FSP-FIM matrix with
 % partial observations and probabilistic distortion.
 clear all
 close all
+addpath(genpath('../src'));
 
 %% (1) Set up Model
 ModelChoice = 'CentralDogma';  % Two species problem (mRNa and protein)
@@ -156,21 +207,35 @@ F2 = F2.formPropensitiesGeneral('FIMExample');
 %% (2) Solve FSP for model
 F2.solutionScheme = 'FSP';    % Set solution scheme to FSP.
 [FSPsoln,F2.fspOptions.bounds] = F2.solve;  % Solve the FSP analysis
+% Plot the results from the FSP analysis
+fig1 = figure(1);clf; set(fig1,'Name','Marginal Distributions, mRNA');
+fig2 = figure(2);clf; set(fig2,'Name','Marginal Distributions, Protein');
+F2.makePlot(FSPsoln,'marginals',[1:4:21],false,[fig1,fig2],{'r-','linewidth',2})
 
 %% (3) Solve FSP Sensitivity
 F2.solutionScheme = 'fspSens'; % Set solutions scheme to FSP Sensitivity
 [sensSoln,bounds] = F2.solve(FSPsoln.stateSpace);  % Solve the sensitivity problem
+% Plot the results from the sensitivity analysis
+fig3 = figure(3);clf; set(fig3,'Name','Marginal Sensitivity, mRNA');
+fig4 = figure(4);clf; set(fig4,'Name','Marginal Sensitivity, Protein');
+F2.makePlot(sensSoln,'marginals',[],false,[fig3,fig4],{'b','linewidth',2})
 
 %% (4) Compute FIM using FSP Sensitivity Results
 fimResults = F2.computeFIM(sensSoln.sens); % Compute the FIM for full observations and no distortion.
 cellCounts = 10*ones(size(F2.tSpan));  % Number of cells in each experiment.
 [fimTotal,mleCovEstimate,fimMetrics] = F2.evaluateExperiment(fimResults,cellCounts)
+fig5 = figure(5);clf; set(fig5,'Name','Fim-Predicted Uncertainty Ellipses');
+F2.plotMHResults([],fimTotal,'lin',[],fig5)
+legend('FIM - Full Observation')
 
 %% (5) Compute FIM for Partial Observations
 F2.pdoOptions.PDO=[];
 F2.pdoOptions.unobservedSpecies = 'x1';
 [fimResults_partialObs] = F2.computeFIM(sensSoln.sens); % Compute the FIM for full observations and no distortion.
 [fimTotal_partialObs,mleCovEstimate_partialObs,fimMetrics_partialObs] = F2.evaluateExperiment(fimResults_partialObs,cellCounts)
+fig6 = figure(6);clf; set(fig6,'Name','Fim-Predicted Uncertainty Ellipses');
+F2.plotMHResults([],[fimTotal,fimTotal_partialObs],'lin',[],fig6)
+legend('FIM - Full Observation','FIM - Protein Only')
 
 %% (6) Compute FIM for Distorted Observation (Probabilistic Distortion Operator)
 F2.pdoOptions.unobservedSpecies = 'x1';
@@ -179,19 +244,23 @@ pdoOptions.type = 'Binomial';
 pdoOptions.props.CaptureProbabilityS1 = 0;  % Use zero for unobserved species.
 pdoOptions.props.CaptureProbabilityS2 = 0.9;
 
-% call method to generate the PDO.
+% Call method to generate the PDO.
 F2.pdoOptions.PDO = F2.generatePDO(pdoOptions,[],FSPsoln.fsp);
 
-% plot the PDO
+% Plot the PDO
 N = size(F2.pdoOptions.PDO.conditionalPmfs{1});
-figure;
+fig7 = figure(7); set(fig7,'Name','Probabilistic Distortion Operator for Protein');
 contourf([0:N(1)-1],[0:N(2)-1],log10(F2.pdoOptions.PDO.conditionalPmfs{1}));
 % Here we wanted the first PDO for 'x2' because 'x1' was unobserved.
 xlabel('Actual');ylabel('Observable');colorbar;
 
-% solve FIM using the specified PDO
+% Solve FIM using the specified PDO
 [fimResults_BinomialPDO] = F2.computeFIM(sensSoln.sens); % Compute the FIM for full observations and no distortion.
 [fimTotal_BinomialPDO,mleCovEstimate_BinomialPDO,fimMetrics_BinomialPDO] =...
     F2.evaluateExperiment(fimResults_BinomialPDO,cellCounts)
+fig8 = figure(8);clf; set(fig8,'Name','Fim-Predicted Uncertainty Ellipses');
+F2.plotMHResults([],[fimTotal,fimTotal_partialObs,fimTotal_BinomialPDO],'lin',[],fig8)
+legend('FIM - Full Observation','FIM - Protein Only','FIM - Protein with Error')
+
 ##### SOURCE END #####
 --></body></html>

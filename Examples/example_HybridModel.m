@@ -27,6 +27,7 @@ Model2.useHybrid = true;
 Model2.hybridOptions.upstreamODEs = {'rna'};
 [fspSoln2, Model2.fspOptions.bounds] = Model2.solve;
 Model2.makePlot(fspSoln2,'marginals',[],[],3)
+legend('Full','QSSA for (n)','Location','eastoutside')
 
 %% Example 2 - 5-species MAPK induction Model
 % In this example, we consider a model of MAPK translocation to the nucleus
@@ -71,4 +72,4 @@ Model5.useHybrid = true;
 Model5.hybridOptions.upstreamODEs = {'mapkCyt','mapkNuc'};
 [fspSoln5, Model5.fspOptions.bounds] = Model5.solve;
 Model5.makePlot(fspSoln5,'marginals',[],[],[11,12,15])
-
+legend('Full','QSSA for (gene,MAKP)','QSSA for (MAKP)','Location','eastoutside')

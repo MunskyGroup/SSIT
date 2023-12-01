@@ -159,7 +159,7 @@ classdef Propensity
                 species
                 upstreamODEs = {};
                 logicTerms = {};
-                prefixName = [];
+                prefixName = 'default';
                 computeSens = false;
             end
 
@@ -231,9 +231,23 @@ classdef Propensity
                 expr_x_vec_sens = sym('wx',[n_reactions,n_pars]);
             end
 
-            anyLogical = false;
-
+            anyLogical = zeros(1,n_reactions,'logical');
+           
+            t = sym('t','real');
             for iRxn = 1:n_reactions
+                prop_vars = symvar(symbolicExpression{iRxn});
+                syms(prop_vars,'real');
+            end
+            if ~isempty(upstreamODEs)
+                syms(upstreamODEs,'positive')
+            end
+            oneSym = str2sym('1');
+
+            % change to parfor?
+            parfor iRxn = 1:n_reactions
+                prop_vars = symvar(symbolicExpression{iRxn});
+                hybridFactor =[];
+                prefixNameLocal = [prefixName,'_',num2str(iRxn)];
 
                 obj{iRxn} = ssit.Propensity(stoichMatrix(jStochastic,iRxn), iRxn);
                 obj{iRxn}.ODEstoichVector = stoichMatrix(jODE,iRxn);
@@ -242,12 +256,11 @@ classdef Propensity
                     warning(['Reaction ',num2str(iRxn),' changes both ODE and stochastic species. Removing effect on upstream species.'])
                     obj{iRxn}.ODEstoichVector = 0*obj{iRxn}.ODEstoichVector;
                 end
-                prop_vars = symvar(symbolicExpression{iRxn});
+                % prop_vars = symvar(symbolicExpression{iRxn});
 
-                syms(prop_vars,'real');
-                syms t real
+                % syms t real
+
                 expr_tx = symbolicExpression{iRxn};
-
                 % Convert to callable function
                 Jx = zeros(1,length(prop_vars),'logical'); % List of variables corrresponding to species
                 Jt = zeros(1,length(prop_vars),'logical'); % List of variables corrresponding to time
@@ -257,20 +270,21 @@ classdef Propensity
                         Jt(j) = max(strcmp(string(prop_vars(j)),['t',upstreamODEs]));
                     end
                 end
+
                 if sum(Jx)==0
                     % No x dependance
-                    factors = [str2sym('1'),symbolicExpression{iRxn}];
+                    factors = [oneSym,symbolicExpression{iRxn}];
                 elseif sum(Jt)==0
                     % No t dependence
-                    factors = [symbolicExpression{iRxn},str2sym('1')];
+                    factors = [symbolicExpression{iRxn},oneSym];
                 else
                     % Determine if the symbolicExpression is isFactorizable
                     factors = factor(symbolicExpression{iRxn}, prop_vars(Jx));
                     factors = [prod(factors(2:end)),factors(1)];
 
-                    if ~isempty(upstreamODEs)
-                        syms(upstreamODEs,'positive')
-                    end
+                    % if ~isempty(upstreamODEs)
+                    %     syms(upstreamODEs,'positive')
+                    % end
 
                     if (ismember(t, symvar(factors(1))))||(~isempty(upstreamODEs)&&max(ismember(upstreamODEs,symvar(factors(1)))))
                         obj{iRxn}.isFactorizable = false;
@@ -303,7 +317,7 @@ classdef Propensity
                 if (~isempty(string(symvar(expr_x)))&&max(contains(string(symvar(expr_x)),'logT')))||...
                         (~isempty(string(symvar(expr_t)))&&max(contains(string(symvar(expr_t)),'logX')))
                     obj{iRxn}.isFactorizable = false;
-                    anyLogical = true;
+                    anyLogical(iRxn) = true;
                 end
 
                 if (obj{iRxn}.isFactorizable)
@@ -321,26 +335,28 @@ classdef Propensity
                     if ~isempty(logicTerms{iRxn})&&(isfield(logicTerms{iRxn},'logT')||isfield(logicTerms{iRxn},'logE'))
                         obj{iRxn}.anonymousT = true;
                         hybridFactor = sym2propfun(expr_t, true, false, nonXTpars(:,1), speciesStoch, varODEs, logicTerms(iRxn));
-                        anyLogical = true;
+                        anyLogical(iRxn) = true;
                     % elseif sum(contains(string(symvar(expr_t)),'logX'))
                     %     obj{iRxn}.anonymousT = true;
                     %     obj{iRxn}.isFactorizable = false;
                     %     hybridFactor = sym2propfun(expr_t, true, false, nonXTpars(:,1), speciesStoch, varODEs, logicTerms(iRxn));
-                    %     anyLogical = true;
+                    %     anyLogical(iRxn) = true;
                     else
                         obj{iRxn}.anonymousT = false;
                         % hybridFactor = sym2mFun(expr_t, true, false, nonXTpars(:,1), speciesStoch, varODEs);
                     end
+
                     if ~isempty(logicTerms{iRxn})&&(isfield(logicTerms{iRxn},'logX')||isfield(logicTerms{iRxn},'logE'))
                         obj{iRxn}.anonymousX = true;
-                        anyLogical = true;
+                        anyLogical(iRxn) = true;
                     % elseif sum(contains(string(symvar(expr_x)),'logT'))
                     %     obj{iRxn}.isFactorizable = false;
                     %     obj{iRxn}.anonymousX = true;
-                    %     anyLogical = true;
+                    %     anyLogical(iRxn) = true;
                     else
                         obj{iRxn}.anonymousX = false;
                     end
+
 
                     % Compute the time-varying factor.
                     if ~isempty(logicTerms{iRxn})&&(isfield(logicTerms{iRxn},'logT')||isfield(logicTerms{iRxn},'logE'))
@@ -355,10 +371,10 @@ classdef Propensity
                             % TmpHybridFactor =  hybridFactor(rand,[nonXTpars{:,2}]',rand(1,length(upstreamODEs)));
                             TmpHybridFactor = subs(expr_t,t,rand);
                             TmpHybridFactor = subs(TmpHybridFactor,nonXTpars(:,1),rand(size(nonXTpars(:,2))));
-                            TmpHybridFactor = eval(subs(TmpHybridFactor,varODEs,rand(size(varODEs))));
+                            TmpHybridFactor = double(subs(TmpHybridFactor,varODEs,rand(size(varODEs))));
                         else
                             TmpHybridFactor = subs(expr_t,t,rand);
-                            TmpHybridFactor = eval(subs(TmpHybridFactor,nonXTpars(:,1),rand(size(nonXTpars(:,2)))));
+                            TmpHybridFactor = double(subs(TmpHybridFactor,nonXTpars(:,1),rand(size(nonXTpars(:,2)))));
                             % TmpHybridFactor =  hybridFactor(rand,[nonXTpars{:,2}]');
                         end
                     end
@@ -373,21 +389,21 @@ classdef Propensity
                             sym2propfun(signHybridFactor*expr_t, true, false, nonXTpars(:,1), speciesStoch, varODEs, logicTerms(iRxn), true);
                     else
                         [~,expr_dt_vec_dodei] = ...
-                            sym2mFun(signHybridFactor*expr_t, true, false, nonXTpars(:,1), speciesStoch, varODEs, true, false, prefixName);
+                            sym2mFun(signHybridFactor*expr_t, true, false, nonXTpars(:,1), speciesStoch, varODEs, true, false, prefixNameLocal);
                     end
-                    
+
                     % Then for the state varying factors.
                     if obj{iRxn}.anonymousX
                         obj{iRxn}.stateDependentFactor =...
                             sym2propfun(signHybridFactor*expr_x, false, true, nonXTpars(:,1), speciesStoch, [], logicTerms(iRxn));                    
                     else
                         obj{iRxn}.stateDependentFactor =...
-                            sym2mFun(signHybridFactor*expr_x, false, true, nonXTpars(:,1), speciesStoch, [], false, true, prefixName);
+                            sym2mFun(signHybridFactor*expr_x, false, true, nonXTpars(:,1), speciesStoch, [], false, true, prefixNameLocal);
                     end
-                    
+
                     expr_t_vec(iRxn) = signHybridFactor*expr_t;
                     expr_x_vec(iRxn) = signHybridFactor*expr_x;
-                    if ~isempty(expr_dt_vec_dode)&&exist('expr_dt_vec_dodei','var')
+                    if ~isempty(expr_dt_vec_dodei)
                         expr_dt_vec_dode(iRxn,:) = signHybridFactor*expr_dt_vec_dodei;
                     end
                     if ismember(t,symvar(expr_t))||isfield(logicTerms{iRxn},'logT')&&~isempty(logicTerms{iRxn}.logT)
@@ -408,7 +424,7 @@ classdef Propensity
                     obj{iRxn}.isTimeDependent = true;
                     expr_t_vec(iRxn) = sym(NaN);
                     expr_x_vec(iRxn) = sym(NaN);
-                    
+
                     % if computeSens
                     %     for iPar = 1:n_pars
                     %         expr_tx_vec_sens(iRxn,iPar) = signHybridFactor*diff(expr_tx,nonXTpars{iPar,1});
@@ -418,9 +434,11 @@ classdef Propensity
                 end
             end
             
+            prefixNameLocal = prefixName;
+
             % Create a vector function for the time varying part of the
             % propensity functions so that these can be found all at once.
-            if anyLogical
+            if any(anyLogical)
                 hybridFactorVector = sym2propfun(expr_t_vec, true, false, nonXTpars(:,1), speciesStoch, varODEs, logicTerms);
                 xFactorVector = sym2propfun(expr_x_vec, false, true, nonXTpars(:,1), speciesStoch, varODEs, logicTerms);
                 if ~isempty(expr_dt_vec_dode)
@@ -437,19 +455,23 @@ classdef Propensity
                     end
                 end
             else
-                hybridFactorVector = sym2mFun(expr_t_vec, true, false, nonXTpars(:,1), speciesStoch, varODEs, false, true, prefixName);
-                xFactorVector = sym2mFun(expr_x_vec, false, true, nonXTpars(:,1), speciesStoch, varODEs, false, true, prefixName);
+                hybridFactorVector = sym2mFun(expr_t_vec, true, false, nonXTpars(:,1), speciesStoch, varODEs, false, true, prefixNameLocal);
+                xFactorVector = sym2mFun(expr_x_vec, false, true, nonXTpars(:,1), speciesStoch, varODEs, false, true, prefixNameLocal);
                 if ~isempty(expr_dt_vec_dode)
-                    obj{1}.DhybridFactorDodesVec = sym2mFun(expr_dt_vec_dode, true, false, nonXTpars(:,1), speciesStoch, varODEs, false, true, prefixName);
+                    obj{1}.DhybridFactorDodesVec = sym2mFun(expr_dt_vec_dode, true, false, nonXTpars(:,1), speciesStoch, varODEs, false, true, prefixNameLocal);
                 end
                 if computeSens
-                    obj{1}.sensStateFactorVec = sym2mFun(expr_x_vec_sens, false, true, nonXTpars(:,1), speciesStoch, varODEs, false, true, prefixName);
-                    for iRxn = 1:n_reactions
+                    obj{1}.sensStateFactorVec = sym2mFun(expr_x_vec_sens, false, true, nonXTpars(:,1), speciesStoch, varODEs, false, true, prefixNameLocal);
+                    parfor iRxn = 1:n_reactions
                         obj{iRxn}.sensStateFactor = cell(1,n_pars);
                         for ipar = 1:n_pars
-                            obj{iRxn}.sensStateFactor{ipar} =  sym2mFun(expr_x_vec_sens(iRxn,ipar), false, true, nonXTpars(:,1), speciesStoch, varODEs, false, true, prefixName);
-                            obj{1}.sensTimeFactorVec{ipar} = sym2mFun(expr_t_vec_sens(:,ipar), true, false, nonXTpars(:,1), speciesStoch, varODEs, false, true, prefixName);
+                            prefixNameLocal = [prefixName,'_',num2str(iRxn),'_',num2str(ipar)];
+                            obj{iRxn}.sensStateFactor{ipar} =  sym2mFun(expr_x_vec_sens(iRxn,ipar), false, true, nonXTpars(:,1), speciesStoch, varODEs, false, true, prefixNameLocal);
                         end
+                    end
+                    for ipar = 1:n_pars
+                        prefixNameLocal = [prefixName,'_',num2str(iRxn),'_',num2str(ipar)];
+                        obj{1}.sensTimeFactorVec{ipar} = sym2mFun(expr_t_vec_sens(:,ipar), true, false, nonXTpars(:,1), speciesStoch, varODEs, false, true, prefixNameLocal);
                     end
                 end
             end
@@ -778,7 +800,7 @@ if isempty(prefixName)
     prefixName = prefixName(j+1:end);
 end
 
-ifn = sum(contains({dir('tmpPropensityFunctions').name},'fun'))+1;
+ifn = sum(contains({dir('tmpPropensityFunctions').name},[prefixName,'_fun']))+1;
 fn = [pwd,'/tmpPropensityFunctions/',prefixName,'_fun_',num2str(ifn),'.m'];
 
 if jacobian&&~isempty(varODEs)

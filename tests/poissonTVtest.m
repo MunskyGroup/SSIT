@@ -8,7 +8,7 @@ classdef poissonTVtest < matlab.unittest.TestCase
     methods (TestClassSetup)
         % Shared setup for the entire test class
         function createTestModel1(testCase1)
-            addpath('../CommandLine')
+            addpath(genpath('../src'));
             %% Test Case - a simple Poisson model with time varying production
             testCase1.TvPoiss = SSIT;
             testCase1.TvPoiss.species = {'rna'};

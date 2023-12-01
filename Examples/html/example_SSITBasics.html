@@ -6,7 +6,7 @@
    <!--
 This HTML was auto-generated from MATLAB code.
 To make changes, update the MATLAB code and republish this document.
-      --><title>example_SSITBasics</title><meta name="generator" content="MATLAB 9.14"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2023-10-21"><meta name="DC.source" content="example_SSITBasics.m"><style type="text/css">
+      --><title>example_SSITBasics</title><meta name="generator" content="MATLAB 9.14"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2023-11-14"><meta name="DC.source" content="example_SSITBasics.m"><style type="text/css">
 html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
 
 html { min-height:100%; margin-bottom:1px; }
@@ -69,6 +69,7 @@ table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px soli
 
   </style></head><body><div class="content"><h2>Contents</h2><div><ul><li><a href="#2">(1) Creating and Modifying SSIT Model</a></li><li><a href="#3">(1A) Choosing a Pre-Made Model</a></li><li><a href="#4">(1B) Extending a model with additional reactions</a></li><li><a href="#5">(2) Solving a Model</a></li><li><a href="#6">(2A) Solve using FSP</a></li><li><a href="#7">(2A.1) Solve FSP Model again using the bounds from the last solution</a></li><li><a href="#8">(2A.2) Make plots of FSP solution</a></li><li><a href="#9">(2B) Solve using SSA</a></li><li><a href="#10">(2B.1) Make plots of SSA solution</a></li><li><a href="#11">(3) Sensitivity Analysis using FSP</a></li><li><a href="#12">(3A) Make plot of sensitivities</a></li></ul></div><pre class="codeinput">clear <span class="string">all</span>
 close <span class="string">all</span>
+addpath(genpath(<span class="string">'../src'</span>));
 </pre><h2 id="2">(1) Creating and Modifying SSIT Model</h2><h2 id="3">(1A) Choosing a Pre-Made Model</h2><pre class="codeinput">ModelChoice = <span class="string">'BirthDeath'</span>;    <span class="comment">% One species problem</span>
 <span class="comment">% ModelChoice = 'ToggleSwitch';  % Two species problem (non-linear toggle switch)</span>
 <span class="comment">% ModelChoice = 'CentralDogmaTV';  % Two species problem (mRNa and protein) with time varying transcription rate</span>
@@ -84,6 +85,8 @@ F1.tSpan = [-1:1:10];
 F1.initialTime = -1;
 F1.solutionScheme = <span class="string">'FSP'</span>;    <span class="comment">% Set solutions scheme to FSP.</span>
 [FSPsoln,F1.fspOptions.bounds] = F1.solve;  <span class="comment">% Solve the FSP analysis</span>
+</pre><pre class="codeoutput">Starting parallel pool (parpool) using the 'Processes' profile ...
+Connected to parallel pool with 6 workers.
 </pre><h2 id="7">(2A.1) Solve FSP Model again using the bounds from the last solution</h2><p>If we start with the bounds computed in the first analysis, the solution is often much faster.</p><pre class="codeinput">[FSPsoln] = F1.solve(FSPsoln.stateSpace);  <span class="comment">% Solve the FSP analysis</span>
 </pre><h2 id="8">(2A.2) Make plots of FSP solution</h2><pre class="codeinput">F1.makePlot(FSPsoln,<span class="string">'meansAndDevs'</span>,[],[],1,{<span class="string">'linewidth'</span>,3,<span class="string">'color'</span>,[0,1,1]}) <span class="comment">% Make plot of mean vs. time.</span>
 F1.makePlot(FSPsoln,<span class="string">'marginals'</span>,[],[],2,{<span class="string">'linewidth'</span>,3,<span class="string">'color'</span>,[0,0,1]}) <span class="comment">% Make plot of mean vs. time.</span>
@@ -97,15 +100,14 @@ F1.makePlot(FSPsoln,<span class="string">'meansAndDevs'</span>,[],[],4,<span cla
 </pre><img vspace="5" hspace="5" src="example_SSITBasics_03.png" alt=""> <h2 id="11">(3) Sensitivity Analysis using FSP</h2><pre class="codeinput">F4 = F1;
 F4.solutionScheme = <span class="string">'fspSens'</span>; <span class="comment">% Set solutions scheme to FSP Sensitivity</span>
 [sensSoln,bounds] = F4.solve(FSPsoln.stateSpace);  <span class="comment">% Solve the sensitivity problem</span>
-</pre><pre class="codeoutput">Error with Analytical Sensitivity Calculations - Switching to Finite Difference Method
 </pre><h2 id="12">(3A) Make plot of sensitivities</h2><pre class="codeinput">F4.makePlot(sensSoln,<span class="string">'marginals'</span>,[],[],4,{<span class="string">'linewidth'</span>,3,<span class="string">'color'</span>,[0,0,1]}) <span class="comment">% Plot marginal sensitivities</span>
 </pre><img vspace="5" hspace="5" src="example_SSITBasics_04.png" alt=""> <p class="footer"><br><a href="https://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2023a</a><br></p></div><!--
 ##### SOURCE BEGIN #####
 clear all
 close all
+addpath(genpath('../src'));
 
 %% (1) Creating and Modifying SSIT Model
-
 %%      (1A) Choosing a Pre-Made Model
 ModelChoice = 'BirthDeath';    % One species problem
 % ModelChoice = 'ToggleSwitch';  % Two species problem (non-linear toggle switch)

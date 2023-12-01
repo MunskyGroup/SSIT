@@ -78,12 +78,12 @@ for DistType = 0:1
                 L{end+1} = [le,'-data'];
                 xm = max(xm,length(H1));
                 
-                if ~isempty(soMod)
-                    M = squeeze(app.DataLoadingAndFittingTabOutputs.fitResults.current(it,:,:,:,:,:,:,:,:,:,:,:,:));
-                    H1 = squeeze(sum(M,soMod));
-                else
+                % if ~isempty(soMod)
+                %     M = squeeze(app.DataLoadingAndFittingTabOutputs.fitResults.current(it,:,:,:,:,:,:,:,:,:,:,:,:));
+                %     H1 = squeeze(sum(M,soMod));
+                % else
                     H1 = squeeze(app.DataLoadingAndFittingTabOutputs.fitResults.current(it,:,:,:,:,:,:,:,:,:,:,:,:));
-                end
+                % end
                 H1(end+1)=0;
                 if DistType
                     stairs(FNHists,[0:length(H1)-1],smoothBins(H1,smoothWindow),'linewidth',3);
