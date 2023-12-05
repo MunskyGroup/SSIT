@@ -6,7 +6,7 @@
    <!--
 This HTML was auto-generated from MATLAB code.
 To make changes, update the MATLAB code and republish this document.
-      --><title>example_ModelReductionTool</title><meta name="generator" content="MATLAB 9.14"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2023-10-22"><meta name="DC.source" content="example_ModelReductionTool.m"><style type="text/css">
+      --><title>example_ModelReductionTool</title><meta name="generator" content="MATLAB 9.14"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2023-11-15"><meta name="DC.source" content="example_ModelReductionTool.m"><style type="text/css">
 html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
 
 html { min-height:100%; margin-bottom:1px; }
@@ -71,7 +71,7 @@ table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px soli
 <span class="comment">% types of projectionbased transformations.</span>
 close <span class="string">all</span>
 clear <span class="string">all</span>
-addpath(<span class="string">'../CommandLine'</span>);
+addpath(genpath(<span class="string">'../src'</span>));
 </pre><h2 id="2">First, choose a model on which to illustrate the reduction approximation,</h2><p>or you can create your own. Here are the example options defined below:       (1)   Poisson Process       (2)   Poisson Start at SS.       (3)   Two Species Poisson Process.       (4)   Time varying bursting gene expression model (DUSP1) See below for the codes to create each model so you can create your own.</p><pre class="codeinput">testModel = 3;
 </pre><h2 id="3">Next, choose which type of model reduction to apply. Options include:</h2><pre class="language-matlab"><span class="string">'Proper Orthogonal Decomposition'</span> - solve the <span class="string">FSP</span> <span class="string">once</span> <span class="string">and</span> <span class="string">then</span> <span class="string">uses</span>
     POD <span class="string">to</span> <span class="string">construct</span> <span class="string">a</span> <span class="string">reduced</span> <span class="string">basis</span> <span class="string">set</span> <span class="string">that</span> <span class="string">covers</span> <span class="string">the</span> <span class="string">current</span> <span class="string">FSP</span>
@@ -165,8 +165,11 @@ Model1.fspOptions.fspTol = inf;
 <span class="keyword">else</span>
     fspSoln2 = fspSoln;
 <span class="keyword">end</span>
-</pre><pre class="codeoutput">fullModelSolveTime =
-               0.230021236
+</pre><pre class="codeoutput">
+fullModelSolveTime =
+
+               0.183600451
+
 </pre><h2 id="5">Solving the reduced models</h2><p>Make a copy of the full model.</p><pre class="codeinput">Model2 = Model1;
 
 <span class="comment">% Set the solver to use ModelReduction</span>
@@ -189,19 +192,25 @@ redModelSolveTime = toc
 <span class="comment">% Make Figures to compare the results. Here, we will plot the original</span>
 <span class="comment">% model in blue and the reduced model in red lines.</span>
 Model1.makePlot(fspSoln,<span class="string">'meansAndDevs'</span>,[],[],1,{<span class="string">'Color'</span>,[0,0,1]})
-Model1.makePlot(fspSoln,<span class="string">'marginals'</span>,[],[],[2,3],{<span class="string">'Color'</span>,[0,0,1]})
-
 Model2.makePlot(fspSolnRed,<span class="string">'meansAndDevs'</span>,[],[],1,{<span class="string">'Color'</span>,[1,0,0]})
+figure(1);legend(<span class="string">'Full'</span>,<span class="string">'Reduced'</span>,<span class="string">'Location'</span>,<span class="string">'southeast'</span>)
+
+Model1.makePlot(fspSoln,<span class="string">'marginals'</span>,[],[],[2,3],{<span class="string">'Color'</span>,[0,0,1]})
 Model2.makePlot(fspSolnRed,<span class="string">'marginals'</span>,[],[],[2,3],{<span class="string">'Color'</span>,[1,0,0]})
-</pre><pre class="codeoutput">redModelSolveTime =
-               0.114765705
+figure(2);legend(<span class="string">'Full'</span>,<span class="string">'Reduced'</span>,<span class="string">'Location'</span>,<span class="string">'eastoutside'</span>)
+figure(3);legend(<span class="string">'Full'</span>,<span class="string">'Reduced'</span>,<span class="string">'Location'</span>,<span class="string">'eastoutside'</span>)
+</pre><pre class="codeoutput">
+redModelSolveTime =
+
+               0.062181628
+
 </pre><img vspace="5" hspace="5" src="example_ModelReductionTool_01.png" alt=""> <img vspace="5" hspace="5" src="example_ModelReductionTool_02.png" alt=""> <img vspace="5" hspace="5" src="example_ModelReductionTool_03.png" alt=""> <p class="footer"><br><a href="https://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2023a</a><br></p></div><!--
 ##### SOURCE BEGIN #####
 % In this example, we show how to create reduced FSP models using different
 % types of projectionbased transformations.
 close all 
 clear all
-addpath('../CommandLine');
+addpath(genpath('../src'));
 
 %% First, choose a model on which to illustrate the reduction approximation,
 % or you can create your own. Here are the example options defined below:
@@ -334,9 +343,12 @@ redModelSolveTime = toc
 % Make Figures to compare the results. Here, we will plot the original
 % model in blue and the reduced model in red lines.
 Model1.makePlot(fspSoln,'meansAndDevs',[],[],1,{'Color',[0,0,1]})
-Model1.makePlot(fspSoln,'marginals',[],[],[2,3],{'Color',[0,0,1]})
-
 Model2.makePlot(fspSolnRed,'meansAndDevs',[],[],1,{'Color',[1,0,0]})
+figure(1);legend('Full','Reduced','Location','southeast')
+
+Model1.makePlot(fspSoln,'marginals',[],[],[2,3],{'Color',[0,0,1]})
 Model2.makePlot(fspSolnRed,'marginals',[],[],[2,3],{'Color',[1,0,0]})
+figure(2);legend('Full','Reduced','Location','eastoutside')
+figure(3);legend('Full','Reduced','Location','eastoutside')
 ##### SOURCE END #####
 --></body></html>

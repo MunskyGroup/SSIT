@@ -8,7 +8,7 @@ classdef miscelaneousTests < matlab.unittest.TestCase
     methods (TestClassSetup)
         % Shared setup for the entire test class
         function createTestModel1(tc)
-            addpath('../CommandLine')
+            addpath(genpath('../src'));
             tc.Model = SSIT;
          end  
     end

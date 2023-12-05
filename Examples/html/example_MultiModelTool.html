@@ -6,7 +6,7 @@
    <!--
 This HTML was auto-generated from MATLAB code.
 To make changes, update the MATLAB code and republish this document.
-      --><title>example_MultiModelTool</title><meta name="generator" content="MATLAB 9.14"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2023-10-22"><meta name="DC.source" content="example_MultiModelTool.m"><style type="text/css">
+      --><title>example_MultiModelTool</title><meta name="generator" content="MATLAB 9.14"><link rel="schema.DC" href="http://purl.org/dc/elements/1.1/"><meta name="DC.date" content="2023-11-16"><meta name="DC.source" content="example_MultiModelTool.m"><style type="text/css">
 html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
 
 html { min-height:100%; margin-bottom:1px; }
@@ -69,7 +69,7 @@ table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px soli
 
   </style></head><body><div class="content"><h2>Contents</h2><div><ul><li><a href="#1">Using the SSIT to fit Multiple Models and Data sets with Shared Parameters</a></li><li><a href="#2">Define SSIT Model</a></li><li><a href="#3">Load and Associate smFISH Data</a></li><li><a href="#4">Create Second Model and associate to its own data</a></li><li><a href="#5">Set Fitting Options</a></li><li><a href="#6">Example 0 -- single model.</a></li><li><a href="#7">Example 1 -- Adding new Model+Data to an existing multimodel</a></li><li><a href="#8">Example 2 -- completely independent parameters.</a></li><li><a href="#9">Example 3 -- completely dependent parameters.</a></li><li><a href="#10">Example 4 -- mixed parameters.</a></li><li><a href="#11">Example 5 -- constrained parameters.</a></li></ul></div><h2 id="1">Using the SSIT to fit Multiple Models and Data sets with Shared Parameters</h2><p>In this script, we show how multiple SSIT models and data sets can be fit simultaneously.  This is most useful in situations where:   1) the analysis considers different experimental conditions (e.g.,   different time points, different inducer concentrations, different   genetic mutations).   2) replica to replica variations are expected that would result in   slightly different parameter combinations</p><pre class="codeinput">close <span class="string">all</span>
 clear <span class="string">all</span>
-addpath(<span class="string">'../CommandLine'</span>);
+addpath(genpath(<span class="string">'../src'</span>));
 </pre><h2 id="2">Define SSIT Model</h2><p>SSIT models are defined as usual:</p><pre class="codeinput">Model1 = SSIT;
 Model1.species = {<span class="string">'onGene'</span>;<span class="string">'rna'</span>};
 Model1.initialCondition = [0;0];
@@ -87,6 +87,8 @@ Model1.fittingOptions.modelVarsToFit = 1:7;
 
 <span class="comment">% We generate functions for model propensities</span>
 Model1 = Model1.formPropensitiesGeneral(<span class="string">'Model1FSP'</span>);
+</pre><pre class="codeoutput">Starting parallel pool (parpool) using the 'Processes' profile ...
+Connected to parallel pool with 6 workers.
 </pre><h2 id="4">Create Second Model and associate to its own data</h2><pre class="codeinput">Model2 = Model1;
 Model2 = Model2.loadData(<span class="string">'../ExampleData/DUSP1_Dex_100nM_Rep1_Rep2.csv'</span>,{<span class="string">'rna'</span>,<span class="string">'RNA_nuc'</span>},<span class="keyword">...</span>
     {<span class="string">'Rep_num'</span>,<span class="string">'2'</span>}); <span class="comment">% This would load the data assign onGene and rna and condition on Rep_num = 1;</span>
@@ -208,7 +210,7 @@ Exiting: Maximum number of iterations has been exceeded
 %   slightly different parameter combinations
 close all
 clear all
-addpath('../CommandLine');
+addpath(genpath('../src'));
 
 %% Define SSIT Model
 % SSIT models are defined as usual:

@@ -8,7 +8,7 @@ classdef poisson2Dtest < matlab.unittest.TestCase
     methods (TestClassSetup)
         % Shared setup for the entire test class
         function createTestModel1(testCase1)
-            addpath('../CommandLine')
+            addpath(genpath('../src'));
 
             %% Test Case 3 - 2 Species Poisson Model
             testCase1.TwoDPoiss = SSIT;
