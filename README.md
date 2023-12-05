@@ -49,7 +49,8 @@ The SSIT includes command line tools and a graphical user interface to:
 
 # Dependencies
 For all basic functionalities:
-- MATLAB R2021b or later.
+- MATLAB R2023a
+ - Note that most, but not all, functionalities are also working in R2023b; we therefore encourage using R2023a for the time being.
 - Symbolic Computing Toolbox.
 - Image Processing Toolbox
 - Global Optimization Toolbox (for model fitting only)
