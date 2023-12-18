@@ -72,6 +72,18 @@ classdef poissonTVtest < matlab.unittest.TestCase
                 'Time Varying Possion Solution Time is Slow');
         end        
 
+        function ode45Test(testCase)
+            % In this test, we check that the code allow for the
+            % substitution of different ode solvers.
+            testCase.TvPoiss.fspOptions.odeSolutionScheme = 'ode23s_SparseWithJPattern';
+            tic
+                testCase.TvPoiss.solve;
+            timeOde45 = toc;
+
+            disp(['TV Poiss (ode45) time = ',num2str(timeOde45)]);
+               
+        end        
+
         function ODEsolutionTV(testCase)
             % In this test, we check that the ODE Solution matches the
             % exact solution for the 1D Time Varying Poisson model and the

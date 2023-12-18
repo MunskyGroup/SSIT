@@ -33,7 +33,8 @@ classdef OdeSuite < ssit.fsp_ode_solvers.OdeSolver
 %         obj.numODEs = numODEs;
         end
         
-        function [tExport, solutionsNow, fspStopStatus] = solve(obj, tStart, tOut, initSolution, rhs, jac, fspErrorCondition)
+        function [tExport, solutionsNow, fspStopStatus] = solve(obj, tStart, tOut,...
+                initSolution, rhs, jac, fspErrorCondition, odeSolnScheme)
         %SOLVE Advance the solution of the FSP-truncated CME up until
         %either the final time point or when the FSP error is exceeded for
         %the current set of states.
@@ -85,6 +86,17 @@ classdef OdeSuite < ssit.fsp_ode_solvers.OdeSolver
         %   - errorBound: the error bound at ``tExit``. 
         %
         %
+        arguments
+            obj
+            tStart
+            tOut
+            initSolution
+            rhs
+            jac
+            fspErrorCondition
+            odeSolnScheme = 'ode23s';
+        end
+
         odeEvent = @(t,p) fspOdesuiteEvent(t, p, fspErrorCondition);  
         if length(tOut)>1
             maxStep = min(tOut(2:end)-tOut(1:end-1))/2;
@@ -100,17 +112,25 @@ classdef OdeSuite < ssit.fsp_ode_solvers.OdeSolver
                 'absTol', obj.absTol,'Vectorized','off','MaxStep',maxStep);
         end
         tSpan = sort(unique([tStart; tOut]));
-        % tic
-        [tExport, solutionsNow, te, ye, ~] =  ode23s(rhs, tSpan, initSolution, ode_opts);
-        % toc23 = toc
-        % tic
-        % [tExport, solutionsNow, te, ye, ~] =  ode15s(rhs, tSpan, initSolution, ode_opts);
-        % toc15 = toc
-        % tic
-        % [tExport, solutionsNow, te, ye, ~] =  ode45(rhs, tSpan, initSolution, ode_opts);
-        % toc45 = toc
-        % [tExport, solutionsNow, te, ye, ~] =  ode45(rhs, tSpan, initSolution, ode_opts);
-        
+
+
+        %% Choose ODE solution Scheme
+        switch odeSolnScheme
+            case 'ode23s'
+                [tExport, solutionsNow, te, ye, ~] =  ode23s(rhs, tSpan, initSolution, ode_opts);
+            case 'ode23s_SparseWithJPattern'
+                sparsityJac = jac(rand)~=0;
+                ode_opts = odeset('Events', odeEvent, 'Jacobian', jac,...
+                    'JPattern',sparsityJac,...
+                    'relTol', obj.relTol, 'absTol', obj.absTol,'Vectorized','on',...
+                    'MaxStep',maxStep);
+                [tExport, solutionsNow, te, ye, ~] =  ode23s(rhs, tSpan, initSolution, ode_opts);
+            case 'ode15s'
+                [tExport, solutionsNow, te, ye, ~] =  ode15s(rhs, tSpan, initSolution, ode_opts);
+            case 'ode45'
+                [tExport, solutionsNow, te, ye, ~] =  ode45(rhs, tSpan, initSolution, ode_opts);
+        end 
+
         if ~isempty(te)&&(length(tExport)<2||te(end)<tExport(2))
             solutionsNow = solutionsNow(1);
             tExport = tExport(1);
