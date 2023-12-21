@@ -1049,7 +1049,7 @@ classdef SSIT
         end
 
         function [fimTotal,mleCovEstimate,fimMetrics] = evaluateExperiment(obj,...
-                fimResults,cellCounts)
+                fimResults,cellCounts,priorCoVariance)
             % This function evaluates the provided experiment design (in
             % "cellCounts" and produces an array of FIMs (one for each
             % parameter set.
@@ -1057,15 +1057,28 @@ classdef SSIT
                 obj
                 fimResults
                 cellCounts
+                priorCoVariance = []
             end
+
             Ns = size(fimResults,2);
             Nt = size(fimResults,1);
             Np = size(fimResults{1,1},1);
             fimTotal = cell(1,Ns);
             mleCovEstimate = cell(1,Ns);
 
+            if isempty(priorCoVariance)
+                PriorFIM = zeros(Np);
+            else
+                % switch priorType
+                    % case 'log10'
+                        PriorFIM = inv(priorCoVariance);
+                    % case 'lin'
+                %     case 'log'
+                % end
+            end
+
             for is=1:Ns
-                fimTotal{is} = 0*fimResults{1,is};
+                fimTotal{is} = PriorFIM; %0*fimResults{1,is};
 
                 for it=1:Nt
                     fimTotal{is} = fimTotal{is} + cellCounts(it)*fimResults{it,is};
