@@ -113,11 +113,16 @@ classdef OdeSuite < ssit.fsp_ode_solvers.OdeSolver
         end
         tSpan = sort(unique([tStart; tOut]));
 
-
         %% Choose ODE solution Scheme
         switch odeSolnScheme
-            case 'ode23s'
+            case 'ode45' % solver based on the fourth and fifth order Runge-Kutta method
+                [tExport, solutionsNow, te, ye, ~] =  ode45(rhs, tSpan, initSolution, ode_opts);
+            case 'ode23' % similar to ode45 but uses a second and third order Runge-Kutta method
+                [tExport, solutionsNow, te, ye, ~] =  ode23(rhs, tSpan, initSolution, ode_opts);
+            case 'ode23s' % similar to ode15s but uses a second and third order Runge-Kutta methoddx
                 [tExport, solutionsNow, te, ye, ~] =  ode23s(rhs, tSpan, initSolution, ode_opts);
+            case 'ode23t' % A trapezoidal rule solver for solving ODEs with a high-index differential-algebraic equation (DAE) form
+                [tExport, solutionsNow, te, ye, ~] =  ode23t(rhs, tSpan, initSolution, ode_opts);
             case 'ode23s_SparseWithJPattern'
                 sparsityJac = jac(rand)~=0;
                 ode_opts = odeset('Events', odeEvent, 'Jacobian', jac,...
@@ -125,10 +130,10 @@ classdef OdeSuite < ssit.fsp_ode_solvers.OdeSolver
                     'relTol', obj.relTol, 'absTol', obj.absTol,'Vectorized','on',...
                     'MaxStep',maxStep);
                 [tExport, solutionsNow, te, ye, ~] =  ode23s(rhs, tSpan, initSolution, ode_opts);
-            case 'ode15s'
+            case 'ode15s' % Designed for stiff ODEs, it uses a variable-order, variable-step method based on implicit integration formulas
                 [tExport, solutionsNow, te, ye, ~] =  ode15s(rhs, tSpan, initSolution, ode_opts);
-            case 'ode45'
-                [tExport, solutionsNow, te, ye, ~] =  ode45(rhs, tSpan, initSolution, ode_opts);
+            case 'ode113' % variable-order solver that uses a combination of Adams-Bashforth and Gear methods
+                [tExport, solutionsNow, te, ye, ~] =  ode113(rhs, tSpan, initSolution, ode_opts);
         end 
 
         if ~isempty(te)&&(length(tExport)<2||te(end)<tExport(2))
