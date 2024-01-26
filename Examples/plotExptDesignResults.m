@@ -1,22 +1,22 @@
 
 % clear all
-close all
-parfor i=4:6
-    switch i
-        case 1
-            iterativeExperimentRunner('Poisson','simulated','FIMopt',10,1,i)
-        case 2
-            iterativeExperimentRunner('Poisson','simulated','FIMopt',10,1,i)
-        case 3
-            iterativeExperimentRunner('Poisson','simulated','uniform',10,1,i)
-        case 4            
-            iterativeExperimentRunner('DUSP1','simulated','FIMopt',10,1,i)
-        case 5
-            iterativeExperimentRunner('DUSP1','simulated','random',10,1,i)
-        case 6
-            iterativeExperimentRunner('DUSP1','simulated','uniform',10,1,i)
-    end
-end
+% close all
+% parfor i=4:6
+%     switch i
+%         case 1
+%             iterativeExperimentRunner('Poisson','simulated','FIMopt',10,1,i)
+%         case 2
+%             iterativeExperimentRunner('Poisson','simulated','FIMopt',10,1,i)
+%         case 3
+%             iterativeExperimentRunner('Poisson','simulated','uniform',10,1,i)
+%         case 4            
+%             iterativeExperimentRunner('DUSP1','simulated','FIMopt',10,1,i)
+%         case 5
+%             iterativeExperimentRunner('DUSP1','simulated','random',10,1,i)
+%         case 6
+%             iterativeExperimentRunner('DUSP1','simulated','uniform',10,1,i)
+%     end
+% end
 
 %% Poisson Results
 clear det*
