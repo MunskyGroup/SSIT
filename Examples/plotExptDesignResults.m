@@ -1,20 +1,22 @@
 
 % clear all
 close all
-parfor i=4:6
+for i=4:7
     switch i
         case 1
-            iterativeExperimentRunner('Poisson','simulated','FIMopt',10,1,i)
+            iterativeExperimentRunner('Poisson','simulated','FIMopt',5,1,i)
         case 2
-            iterativeExperimentRunner('Poisson','simulated','FIMopt',10,1,i)
+            iterativeExperimentRunner('Poisson','simulated','FIMopt',5,1,i)
         case 3
-            iterativeExperimentRunner('Poisson','simulated','uniform',10,1,i)
+            iterativeExperimentRunner('Poisson','simulated','uniform',5,1,i)
         case 4            
-            iterativeExperimentRunner('DUSP1','simulated','FIMopt',10,1,i)
+            iterativeExperimentRunner('DUSP1','real','FIMopt',5,1,i)
         case 5
-            iterativeExperimentRunner('DUSP1','simulated','random',10,1,i)
+            iterativeExperimentRunner('DUSP1','real','random',5,1,i)
         case 6
-            iterativeExperimentRunner('DUSP1','simulated','uniform',10,1,i)
+            iterativeExperimentRunner('DUSP1','real','uniform',5,1,i)
+        case 7
+            iterativeExperimentRunner('DUSP1','real','intuition',5,1,i)
     end
 end
 
@@ -67,6 +69,8 @@ legend('FIM','Uniform','Random')
 %% DUSP1 Results
 clear det*
 load IterativeExperimentResults_DUSP1_simulated_FIMopt_4
+% load IterativeExperimentResults_DUSP1_real_FIMopt_4
+
 nExpt = length(covLogMH);
 for i = 2:nExpt
     detCov_FIM(i-1) = det(covLogMH{i});
@@ -74,7 +78,18 @@ for i = 2:nExpt
     detFIMTrueInv_FIM(i-1) = predictCov(FIMcurrentExptTrueSaved{i},[1:4]);
 end
 
+load IterativeExperimentResults_DUSP1_simulated_intuition_4
+% load IterativeExperimentResults_DUSP1_real_intuition_4
+
+nExpt = length(covLogMH);
+for i = 2:nExpt
+    detCov_int(i-1) = det(covLogMH{i});
+    detFIMInv_int(i-1) = predictCov(FIMcurrentExptSaved{i},[1:4]);
+    detFIMTrueInv_int(i-1) = predictCov(FIMcurrentExptTrueSaved{i},[1:4]);
+end
+
 load IterativeExperimentResults_DUSP1_simulated_uniform_4
+% load IterativeExperimentResults_DUSP1_real_uniform_4
 nExpt = length(covLogMH);
 for i = 2:nExpt
     detCov_Unif(i-1) = det(covLogMH{i});
@@ -83,6 +98,8 @@ for i = 2:nExpt
 end
 
 load IterativeExperimentResults_DUSP1_simulated_random_4
+% load IterativeExperimentResults_DUSP1_real_random_4
+
 nExpt = length(covLogMH);
 for i = 2:nExpt
     detCov_Rand(i-1) = det(covLogMH{i});
@@ -94,22 +111,27 @@ figure(2); clf;
 plot(2:nExpt,detCov_FIM,'b',...
     2:nExpt,detCov_Unif,'r',...
     2:nExpt,detCov_Rand,'m',...
+    2:nExpt,detCov_Rand,'g',...
     'linewidth',2)
 
 hold on
 plot(2:nExpt,detFIMInv_FIM,'--b',...
     2:nExpt,detFIMInv_Unif,'--r',...
     2:nExpt,detFIMInv_Rand,'--m',...
+    2:nExpt,detFIMInv_int,'--g',...
     'linewidth',2)
 
 plot(2:nExpt,detFIMTrueInv_FIM,'-.b',...
     2:nExpt,detFIMTrueInv_Unif,'-.r',...
     2:nExpt,detFIMTrueInv_Rand,'-.m',...
+    2:nExpt,detFIMTrueInv_int,'-.g',...
     'linewidth',2)
     
 set(gca,"FontSize",16,'yscale','log')
-% legend('MH','Predicted','Exact')
-% legend('FIM','Uniform','Random')
+legend('MH','Predicted','Exact')
+legend('FIM','Uniform','Random','Intuition')
+xlabel('Experiment round');
+% legend(legend(['MH','Predicted','Exact';'FIM','Uniform','Random']);
 
 function predictedDetCov = predictCov(fimSet,parSet)
 arguments
@@ -122,3 +144,6 @@ for i = 1:length(fimSet)
 end
 predictedDetCov = mean(detCovPreds);
 end
+
+% plot(2:nExpt,detFIMTrueInv_FIM,'k',2:nExpt,detFIMTrueInv_FIM,'--k',2:nExpt,detFIMTrueInv_FIM,'-.k','linewidth',2)
+% legend('|COV|','|FIM^-1|','|FIM^-1| True')

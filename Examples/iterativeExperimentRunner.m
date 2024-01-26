@@ -16,7 +16,7 @@ end
 %% Define Model
 % Number of experiment Rounds
 
-showPlots = false;
+showPlots = true;
 
 switch example
     case 'Poisson'
@@ -33,7 +33,7 @@ switch example
         nT = 21;
         ModelTrue.tSpan = linspace(0,10,nT);
         fimMetric = 'Determinant';
-        nSamplesMH = 500; % Number of MH Samples to run
+        nSamplesMH = 2000; % Number of MH Samples to run
         
         % Total number of new cells allowed in each experiment
         numCellsPerExperiment = 50;
@@ -56,7 +56,7 @@ switch example
         ModelTrue.tSpan = linspace(0,10,nT);
         fimMetric = 'Determinant';
         
-        nSamplesMH = 1000; % Number of MH Samples to run
+        nSamplesMH = 2000; % Number of MH Samples to run
 
         % Total number of new cells allowed in each experiment
         numCellsPerExperiment = 50;
@@ -98,22 +98,22 @@ switch example
         sigLog10Prior = sigLog10Prior(ModelTrue.fittingOptions.modelVarsToFit);
         ModelTrue.fittingOptions.logPrior = @(p)-(log10(p(:))-muLog10Prior').^2./(2*sigLog10Prior'.^2);
 
-        nSamplesMH = 500; % Number of MH Samples to run
+        nSamplesMH = 2000; % Number of MH Samples to run
 
-        intuitiveDesign = [50 0 50 0 50 0 50 0 50 0 0 50;
-                             75 0 0 75 0 0 75 0 0 0 75 0;
-                             0 0 0 100 0 0 100 0 0 100 0 0;
-                             0 0 0 100 0 0 0 100 0 100 0 0;
-                             0 0 0 0 100 0 100 0 0 100 0 0];
+%         intuitiveDesign = [50 0 50 0 50 0 50 0 50 0 0 50;
+%                              75 0 0 75 0 0 75 0 0 0 75 0;
+%                              0 0 0 100 0 0 100 0 0 100 0 0;
+%                              0 0 0 100 0 0 0 100 0 100 0 0;
+%                              0 0 0 0 100 0 100 0 0 100 0 0];
 
-        %             intuitionCell = [20 0 20 0 20 0 20 0 20 0 0 20;
-        %                              30 0 0 30 0 0 30 0 0 0 30 0;
-        %                              0 0 0 40 0 0 40 0 0 40 0 0;
-        %                              0 0 0 40 0 0 0 40 0 40 0 0;
-        %                              0 0 0 0 40 0 40 0 0 40 0 0];
+                    intuitiveDesign = [20 0 20 0 20 0 20 0 20 0 0 20;
+                                     30 0 0 30 0 0 30 0 0 0 30 0;
+                                     0 0 0 40 0 0 40 0 0 40 0 0;
+                                     0 0 0 40 0 0 0 40 0 40 0 0;
+                                     0 0 0 0 40 0 40 0 0 40 0 0];
 
         % Total number of new cells allowed in each experiment
-        numCellsPerExperiment = 100;
+        numCellsPerExperiment = 120;
         ModelTrue = ModelTrue.formPropensitiesGeneral(['DUSP1_',num2str(ind)],true);
 
 end
@@ -146,7 +146,7 @@ end
 % Possible Time points for Experiments.
     
 % MLE Fitting Options
-maxFitIter = 1000;
+maxFitIter = 2000;
 nFitRounds = 3;
 
 % Metropolis Hastings Properties
@@ -266,7 +266,7 @@ for iExpt = 1:nExptRounds
     MHFitOptions.burnIn=nBurnMH;
     MHFitOptions.progress=true;
     MHFitOptions.useFIMforMetHast=true;
-    MHFitOptions.CovFIMscale = 0.6;
+    MHFitOptions.CovFIMscale = 0.95;
     MHFitOptions.numChains = 1;
     MHFitOptions.saveFile = ['TMPMHChain_',num2str(ind),'.mat'];
     delete(MHFitOptions.saveFile) 
@@ -333,7 +333,7 @@ for iExpt = 1:nExptRounds
     if showPlots
         f = figure;
         f.Name = ['Current MH Results and Next FIM Prediction (Round ',num2str(iExpt),')'];
-        ModelGuess.plotMHResults(MHResults,FIMOptNextExpt,fimScale,mhPlotScale,f)
+        ModelGuess.plotMHResults(MHResults,FIMOptNextExptReduced,fimScale,mhPlotScale,f)
 
         f = figure;
         f.Name = ['Current MH Results and Perfect FIM Prediction (Round ',num2str(iExpt),')'];
