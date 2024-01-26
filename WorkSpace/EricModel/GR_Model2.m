@@ -7,9 +7,8 @@
 %   2) replica to replica variations are expected that would result in
 %   slightly different parameter combinations
 close all 
-clear
+clear all
 addpath('../CommandLine');
-addpath('C:\Users\Jack\Documents\GitHub\SSIT_Base\src\CommandLine');
 
 %% Create Model for GR only
 ModelGR = SSIT;
