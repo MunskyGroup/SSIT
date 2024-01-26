@@ -244,7 +244,7 @@ classdef Propensity
             oneSym = str2sym('1');
 
             % change to parfor?
-            parfor iRxn = 1:n_reactions
+            for iRxn = 1:n_reactions
                 prop_vars = symvar(symbolicExpression{iRxn});
                 hybridFactor =[];
                 prefixNameLocal = [prefixName,'_',num2str(iRxn)];

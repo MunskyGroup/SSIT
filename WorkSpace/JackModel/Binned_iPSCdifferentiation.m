@@ -4,13 +4,13 @@
 % analysis that are unique to SSIT
 close all 
 clear
-addpath(genpath('../src'));
+addpath(genpath('../../src'));
 
 %% Reading in the data
 % goal is to make this universal for the groups because grouping may be
 % changed later to betteraddpath('C:\Users\Jack\Documents\GitHub\SSIT_Base\src\CommandLine');addpath(genpath('../src')); fit biological groups instead of machine learned
 % groups
-dataloc = "Z:\home\formanj\scRNAseq_model\UpDownProject\Story\SSITData.csv";
+dataloc = "SSITData.csv";
 data = readtable(dataloc);
 
 
@@ -18,25 +18,67 @@ data = readtable(dataloc);
 Model = SSIT;
 
 % species
-groupnames = data.Properties.VariableNames;
-index = find(contains(groupnames, 'Group'));
-speciesnames = cell(length(index),1);
-for i = 1:length(speciesnames)
-    speciesnames(i) = groupnames(index(i));
-end
+varNames = data.Properties.VariableNames;
+% index = find(contains(varNames, 'leiden'));
+% unique(data.leiden)
+% speciesnames = cell(unique(data.leiden),1);
+% for i = 1:length(speciesnames)
+%     speciesnames(i) = groupnames(index(i));
+% end
 
 % speciesnames = {'Group_0'; 'Group_1'; 'Group_2'; 'Group_3'; 'Group_4'; 'Group_5'; ...
 %  'Group_6'; 'Group_7'; 'Group_8'; 'Group_9';};
 
-Model.species = speciesnames;
+Model.species = {'Group'};
+
+% nGroups = max(data.leiden);
+nGroups = 3;%max(data.leiden);
+
+Pars = rand(max(data.leiden)+1); Pars = Pars-diag(diag(Pars));
 
 % initial conditions
-ic = zeros([height(speciesnames), 1]);
-ic(1) = 1;
-Model.initialCondition = ic;
+% ic = zeros([height(speciesnames), 1]);
+% ic(1) = 1;
+Model.initialCondition = 1;
 
-% Parameters, Propensities & Stoichiometery
-pars = cell(height(speciesnames)*height(speciesnames), 2);
+pars = {};
+n =0;
+for i = 0:nGroups
+    for j = 0:nGroups
+        if i~=j
+            n = n+1;
+            pars = [pars;{['k',num2str(i),'_',num2str(j)],Pars(i+1,j+1)}];
+            % pars = [pars;{['k',num2str(n)],Pars(i+1,j+1)}];
+        end
+    end
+end
+   
+reactions = cell(nGroups+nGroups,1);
+stoichs = zeros(1,nGroups+nGroups);
+stoichs(1:nGroups) = [1:nGroups];
+stoichs(nGroups+1:end) = -[1:nGroups];
+
+for i = 0:nGroups-1
+    for j = i+1:nGroups
+         reactions{j-i} =         [reactions{j-i},        '+k',num2str(i),'_',num2str(j),'*(Group==',num2str(i),')'];
+         reactions{nGroups+j-i} = [reactions{nGroups+j-i},'+k',num2str(j),'_',num2str(i),'*(Group==',num2str(j),')'];
+         % reactions{j-i} =         [reactions{j-i},        '+k',num2str(n),'*(Group==',num2str(i),')'];
+         % reactions{nGroups+j-i} = [reactions{nGroups+j-i},'+k',num2str(n),'*(Group==',num2str(j),')'];
+    end
+end
+
+Model.parameters = pars;
+Model.propensityFunctions = reactions;
+Model.stoichiometry = stoichs;
+Model.formPropensitiesGeneral('JackPropens')
+
+return
+%%
+
+
+
+
+cell(height(speciesnames)*height(speciesnames), 2);
 indx = 1;
 propen = cell(height(speciesnames)*height(speciesnames), 1);
 stoich = zeros([length(speciesnames), length(propen)]);
