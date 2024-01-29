@@ -45,7 +45,7 @@ ModelGRparameterMap = cell(1,size(GRfitCases,1));
 ModelGRfit = cell(1,size(GRfitCases,1));
 for i=1:size(GRfitCases,1)
     ModelGRfit{i} = ModelGR.loadData("EricDataJan23_2024/Complete_dataframe_Ron_2024_NormalizedGR.csv",...
-        {'nucGR','normgrnuc'},...
+        {'nucGR','normgrnuc';'cytGR','normgrcyt'},...
         {'Condition','GR_timesweep';'Dex_Conc',GRfitCases{i,2}}); 
     ModelGRfit{i}.inputExpressions = {'IDex',[GRfitCases{i,2},'*exp(-gDex*t)*(t>0)']};
     ModelGRfit{i} = ModelGRfit{i}.formPropensitiesGeneral(['EricModGR_',num2str(i),'_FSP']);
@@ -58,7 +58,6 @@ combinedGRModel = SSITMultiModel(ModelGRfit,ModelGRparameterMap);
 combinedGRModel = combinedGRModel.initializeStateSpaces;
 GRpars = combinedGRModel.maximizeLikelihood(...
     GRpars, fitOptions);
-
 
 % %% Compute FIM
 % combinedGRModel = combinedGRModel.computeFIMs;
@@ -88,6 +87,7 @@ for i=1:size(GRfitCases,1)
     ModelGRfit{i} = combinedGRModel.SSITModels{i};
 end
 
+return
 
 %% Extend Model to Include DUSP1 Activation, Production, and Degradation
 clc

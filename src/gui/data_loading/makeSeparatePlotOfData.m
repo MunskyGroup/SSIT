@@ -55,7 +55,7 @@ for DistType = 0:1
                     H1 = matTensor;
                 else
                     try
-                    H1 = squeeze(matTensor(it,:,:,:,:,:,:,:,:,:));
+                        H1 = squeeze(matTensor(it,:,:,:,:,:,:,:,:,:));
                     catch
                         whos
                     end
@@ -63,7 +63,7 @@ for DistType = 0:1
                 if ~isempty(soDat)
                     H1 = sum(H1,soDat);
                 end
-                H1 = H1/sum(H1(:));  % Normalize data before plotting.
+                H1 = H1(:)/sum(H1(:));  % Normalize data before plotting.
                 
                 if DistType
 %                     stairs(FNHists,[0:length(H1)-1],smoothBins(H1,smoothWindow)); hold on
@@ -84,7 +84,7 @@ for DistType = 0:1
                 % else
                     H1 = squeeze(app.DataLoadingAndFittingTabOutputs.fitResults.current(it,:,:,:,:,:,:,:,:,:,:,:,:));
                 % end
-                H1(end+1)=0;
+                % H1(end+1)=0;
                 if DistType
                     stairs(FNHists,[0:length(H1)-1],smoothBins(H1,smoothWindow),'linewidth',3);
                     hold(FNHists,'on')
