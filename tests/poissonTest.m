@@ -280,12 +280,7 @@ classdef poissonTest < matlab.unittest.TestCase
         function TestFIMwPrior(testCase)
             % In this test case, we check that the FIM calculation using
             % the FSP matches to the analytical expresion for the Poisson
-            % model when there is a LogNormal Prior:
-            % lam(t) = k/g*(1-exp(-g*t));
-            % FIM_kk = (dlam/dk)^2 * FIM_lamlam = lam/k^2
-            % FIM_gg = (dlam/dg)^2 * FIM_lamlam = (-lam/g + k*t/g*exp(-g*t))
-            % FIM_kg = (dlam/dg)(dlam/dk) * FIM_lamlam = 
-            %                                 (-lam/g + k*t/g*exp(-g*t))/k
+            % model when there is a appropriate Prior:
             Model = testCase.Poiss;
             Model.solutionScheme = 'fspSens';
             Model.fspOptions.fspTol = 1e-6;
@@ -296,9 +291,6 @@ classdef poissonTest < matlab.unittest.TestCase
             FIMwPrior = Model.evaluateExperiment(fspFIM, [1:length(t)],...
                 SIGprior);
             FIMwoPrior = Model.evaluateExperiment(fspFIM,[1:length(t)]);
-            
-            FIMwPrior{1}  -   FIMwoPrior{1}
-
             diff = max(abs(FIMwPrior{1}-FIMwoPrior{1}-inv(SIGprior)),[],"all");
             testCase.verifyEqual(diff<1e-5, true, ...
                 'FIM Prior Calculation is not within 1e-4% Tolerance');            
