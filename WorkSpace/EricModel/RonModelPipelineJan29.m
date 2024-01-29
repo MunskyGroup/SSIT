@@ -33,13 +33,14 @@ ModelGR = ModelGR.formPropensitiesGeneral('EricModGR');
 [FSPGrSoln,ModelGR.fspOptions.bounds] = ModelGR.solve(FSPGrSoln.stateSpace);
 
 %%    Load previously fit parameter values (optional)
-load('EricModelDataSep14','GRpars','DUSP1pars')
+load('EricModelDataJan29','GRpars','DUSP1pars')
 ModelGR.parameters(:,2) = num2cell([DUSP1pars,GRpars]);
 
 %%    Associate Data with Different Instances of Model (10,100nm Dex)
 GRfitCases = {'1','1',101,'GR Fit (1nM Dex)';...
     '10','10',102,'GR Fit (10nM Dex)';...
     '100','100',103,'GR Fit (100nM Dex)'};
+% GRfitCases = GRfitCases(1,:);
 
 ModelGRparameterMap = cell(1,size(GRfitCases,1));
 ModelGRfit = cell(1,size(GRfitCases,1));
@@ -53,7 +54,7 @@ for i=1:size(GRfitCases,1)
 end
 
 %%    Combine all three GR models and fit using a single parameter set.
-fitOptions = optimset('Display','iter','MaxIter',5);
+fitOptions = optimset('Display','iter','MaxIter',50);
 combinedGRModel = SSITMultiModel(ModelGRfit,ModelGRparameterMap);
 combinedGRModel = combinedGRModel.initializeStateSpaces;
 GRpars = combinedGRModel.maximizeLikelihood(...
@@ -73,12 +74,12 @@ GRpars = combinedGRModel.maximizeLikelihood(...
 % [~,~,MHResultsGR] = combinedGRModel.maximizeLikelihood(...
 %     GRpars, MHFitOptions, 'MetropolisHastings');
 
-%%    Make Plots of GR Fit Results
-fignums = [111,121,GRfitCases{1,3},131;112,122,GRfitCases{2,3},132;113,123,GRfitCases{3,3},133];
+%    Make Plots of GR Fit Results
+% fignums = [111,121,GRfitCases{1,3},131;112,122,GRfitCases{2,3},132;113,123,GRfitCases{3,3},133];
 combinedGRModel = combinedGRModel.updateModels(GRpars,true,fignums);
 for i=1:size(GRfitCases,1)
     figure(GRfitCases{i,3}); 
-    set(gca,'ylim',[0,30])
+    set(gca,'ylim',[0,20])
     title(GRfitCases{i,4})
     ylabel('Nuclear GR')
     xlabel('Time (min)')
