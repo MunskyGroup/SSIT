@@ -76,9 +76,10 @@ switch example
         % Input expression for time varying signals
         ModelTrue.inputExpressions = {'IGR','kcn0/knc+(t>=0)*kcn1/(r1-knc)*(exp(-knc*t)-exp(-r1*t))'};       
         % Defining the values of each parameter used
-        ModelTrue.parameters = ({'koff',0.14;'kon',1;'kr',1;'gr',0.01;...
-                           'kcn0',0.01;'kcn1',0.1;'knc',1;'r1',0.01});
-%         ModelTrue.parameters=load('SGRS_model_v1.mat').SGRS_Model.parameters; % True model parameters after fitting to data
+        
+        %ModelTrue.parameters = ({'koff',0.14;'kon',1;'kr',1;'gr',0.01;...
+        %                   'kcn0',0.01;'kcn1',0.1;'knc',1;'r1',0.01});
+        ModelTrue.parameters=load('SGRS_model_v1.mat').SGRS_Model.parameters; % True model parameters after fitting to data
 
         ModelTrue.fspOptions.initApproxSS = true;
         
@@ -211,7 +212,6 @@ nTotalCells = zeros(1,nT);
 
 for iExpt = 1:nExptRounds
     
-
     nTotalCells = nTotalCells + nextExperiment
     
     switch data
@@ -293,20 +293,17 @@ for iExpt = 1:nExptRounds
         case 'FIMopt'
             % Find optimal NEXT experiment design given parameter sets
             nextExperiment = ModelGuess.optimizeCellCounts(fimResults,numCellsPerExperiment,fimMetric,[],nTotalCells);
-            FIMOptNextExpt = ModelGuess.totalFim(fimResults,nextExperiment+nTotalCells);
-
+            
         case 'random'
             nextExperiment = randomCell(iExpt,:);
-            FIMOptNextExpt = ModelGuess.totalFim(fimResults,nextExperiment+nTotalCells);
 
         case 'intuition'
             nextExperiment = intuitiveDesign(iExpt,:);
-            FIMOptNextExpt = ModelGuess.totalFim(fimResults,nextExperiment+nTotalCells);
 
         case 'uniform'
             nextExperiment = uniformCell(iExpt,:);
-            FIMOptNextExpt = ModelGuess.totalFim(fimResults,nextExperiment+nTotalCells);        
     end
+    FIMOptNextExpt = ModelGuess.totalFim(fimResults,nextExperiment+nTotalCells);
 
     % Compute and Save Covariance from MH from current stage.
     parametersFound{iExpt} = newPars;
@@ -324,13 +321,14 @@ for iExpt = 1:nExptRounds
 
     exptDesigns{iExpt} = nextExperiment;
 
-    FIMOptNextExptReduced = cell(size(FIMOptNextExpt));
-    for i = 1:nFIMsamples
-        FIMOptNextExptReduced{i} = FIMOptNextExpt{i}(ModelGuess.fittingOptions.modelVarsToFit,...
-            ModelGuess.fittingOptions.modelVarsToFit); %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    end
 
     if showPlots
+        FIMOptNextExptReduced = cell(size(FIMOptNextExpt));
+        for i = 1:nFIMsamples
+            FIMOptNextExptReduced{i} = FIMOptNextExpt{i}(ModelGuess.fittingOptions.modelVarsToFit,...
+                ModelGuess.fittingOptions.modelVarsToFit); %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        end
+        
         f = figure;
         f.Name = ['Current MH Results and Next FIM Prediction (Round ',num2str(iExpt),')'];
         ModelGuess.plotMHResults(MHResults,FIMOptNextExptReduced,fimScale,mhPlotScale,f)
