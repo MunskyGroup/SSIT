@@ -8,8 +8,8 @@ end
 
 %% This function creates a histogram from the loaded data.
 NT = length(app.ParEstFitTimesList.Value);
-% NdMod = max(1,length(size(app.DataLoadingAndFittingTabOutputs.fitResults.current))-1);
-NdMod = size(app.NameTable.Data,1);
+NdMod = max(1,length(size(app.DataLoadingAndFittingTabOutputs.fitResults.current))-1);
+% NdMod = size(app.NameTable.Data,1);
 NdDat = length(app.SpeciesForFitPlot.Value);
 
 Plts_to_make = zeros(1,NdMod);
@@ -49,6 +49,7 @@ for DistType = 0:1
             soDat = setdiff([1:NdDat],icb);
             le = app.NameTable.Data{icb,2};
             
+            %% Histograms for the data.
 %             if cb
                 matTensor = double(app.DataLoadingAndFittingTabOutputs.dataTensor);
                 if length(size(app.DataLoadingAndFittingTabOutputs.dataTensor))==1
@@ -78,6 +79,8 @@ for DistType = 0:1
                 L{end+1} = [le,'-data'];
                 xm = max(xm,length(H1));
                 
+
+                %% Histograms for the model
                 if ~isempty(soMod)
                     M = squeeze(app.DataLoadingAndFittingTabOutputs.fitResults.current(it,:,:,:,:,:,:,:,:,:,:,:,:));
                     H1 = squeeze(sum(M,soMod));
@@ -116,7 +119,7 @@ end
 
 
 %% Make a trajectory plot for model.
-NdMod = size(app.NameTable.Data,1);
+NdModAll = size(app.NameTable.Data,1);
 if isempty(fignums)
     figure
 else
@@ -126,8 +129,8 @@ FNTraj = gca;
 T_array = eval(app.FspPrintTimesField.Value);
 for it = 1:length(T_array)
     if ~isempty(app.FspTabOutputs.solutions{it})
-        for i=1:NdMod
-            INDS = setdiff([1:NdMod],i);
+        for i=1:NdModAll
+            INDS = setdiff([1:NdModAll],i);
 
             % Add effect of PDO.
             px = app.FspTabOutputs.solutions{it}.p;
@@ -140,7 +143,7 @@ for it = 1:length(T_array)
                 mdist{i} = double(px.data);
             end
         end
-        for j=1:NdMod
+        for j=1:NdModAll
             mns(it,j) = [0:length(mdist{j})-1]*mdist{j};
             mns2(it,j) = [0:length(mdist{j})-1].^2*mdist{j};
         end
@@ -151,7 +154,7 @@ cols = ['b','r','g','m','c','k'];
 cols2 = [.90 .90  1.00; 1.00 .90 .90; .90 1.00 .90; .60 .60  1.00; 1.00 .60 .60; .60 1.00 .60];
 LG = {};
 for iplt=1:NdMod
-    if Plts_to_make(iplt)
+    % if Plts_to_make(iplt)
         BD = [mns(:,iplt)'+sqrt(vars(:,iplt)'),mns(end:-1:1,iplt)'-sqrt(vars(end:-1:1,iplt)')];
         TT = [T_array(1:end),T_array(end:-1:1)];
         fill(FNTraj,TT,BD,cols2(iplt,:));
@@ -159,7 +162,7 @@ for iplt=1:NdMod
         plot(FNTraj,T_array,mns(:,iplt),cols(iplt),'linewidth',2);
         LG{end+1} = [char(app.NameTable.Data(iplt,2)),' Model Mean \pm std'];
         LG{end+1} = [char(app.NameTable.Data(iplt,2)),' Model Mean'];
-    end
+    % end
 end
 title('Trajectory of means and standard deviations')
 

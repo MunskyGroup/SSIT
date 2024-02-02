@@ -43,26 +43,45 @@ GRfitCases = {'1','1',101,'GR Fit (1nM Dex)';...
 % GRfitCases = GRfitCases(1,:);
 
 ModelGRparameterMap = cell(1,size(GRfitCases,1));
-ModelGRfit = cell(1,size(GRfitCases,1));
-for i=1:size(GRfitCases,1)
-    ModelGRfit{i} = ModelGR.loadData("EricDataJan23_2024/Complete_dataframe_Ron_020224_NormalizedGR.csv",...
-        {'nucGR','normgrnuc';'cytGR','normgrcyt'},...
-        {'Condition','GR_timesweep';'Dex_Conc',GRfitCases{i,2}});
-%     ModelGRfit{i} = ModelGR.loadData("EricDataJan23_2024/Complete_dataframe_Ron_2024_NormalizedGR.csv",...
-%         {'nucGR','normgrnuc'},...
-%         {'Condition','GR_timesweep';'Dex_Conc',GRfitCases{i,2}});
-    ModelGRfit{i}.inputExpressions = {'IDex',[GRfitCases{i,2},'*exp(-gDex*t)*(t>0)']};
-    ModelGRfit{i} = ModelGRfit{i}.formPropensitiesGeneral(['EricModGR_',num2str(i),'_FSP']);
+ModelGRfit = cell(1,2*size(GRfitCases,1));
+for i=1:6
+    % ModelGRfit{i} = ModelGR.loadData("EricDataJan23_2024/Complete_dataframe_Ron_2024_NormalizedGR.csv",...
+    %     {'nucGR','normgrnuc';'cytGR','normgrcyt'},...
+    %     {'Condition','GR_timesweep';'Dex_Conc',GRfitCases{i,2}});
+    if i<=3
+        ModelGRfit{i} = ModelGR.loadData("EricDataJan23_2024/Gated_dataframe_Ron_020224_NormalizedGR.csv",...
+            {'cytGR','normgrcyt'},...
+            {'Condition','GR_timesweep';'Dex_Conc',GRfitCases{i,2}});
+        ModelGRfit{i}.inputExpressions = {'IDex',[GRfitCases{i,2},'*exp(-gDex*t)*(t>0)']};
+        ModelGRfit{i} = ModelGRfit{i}.formPropensitiesGeneral(['EricModGR_',num2str(i),'_FSP']);
+    else
+        ModelGRfit{i} = ModelGRfit{i-3}.loadData("EricDataJan23_2024/Gated_dataframe_Ron_020224_NormalizedGR.csv",...
+            {'nucGR','normgrnuc'},...
+            {'Condition','GR_timesweep';'Dex_Conc',GRfitCases{i-3,2}});
+    end
+    % ModelGRfit{i} = ModelGR.loadData("EricDataJan23_2024/Gated_dataframe_Ron_020224_NormalizedGR.csv",...
+    %     {'nucGR','normgrnuc';'cytGR','normgrcyt'},...
+    %     {'Condition','GR_timesweep';'Dex_Conc',GRfitCases{i,2}});
+    % ModelGRfit{i} = ModelGR.loadData("EricDataJan23_2024/Complete_dataframe_Ron_2024_NormalizedGR.csv",...
+    %     {'nucGR','normgrnuc'},...
+    %     {'Condition','GR_timesweep';'Dex_Conc',GRfitCases{i,2}});
     ModelGRparameterMap(i) = {(1:7)};
 end
 
 %%    Combine all three GR models and fit using a single parameter set.
-fitOptions = optimset('Display','iter','MaxIter',1000);
+% fitOptions = optimset('Display','iter','MaxIter',5);
 combinedGRModel = SSITMultiModel(ModelGRfit,ModelGRparameterMap);
 combinedGRModel = combinedGRModel.initializeStateSpaces;
-GRpars = combinedGRModel.maximizeLikelihood(...
-    GRpars, fitOptions);
+% GRpars = combinedGRModel.maximizeLikelihood(...
+%     GRpars, fitOptions);
 
+%%
+% obj = @(x)-(ModelGRfit{1}.computeLikelihood(10.^x) + ...
+%     5*ModelGRfit{2}.computeLikelihood(10.^x) +...
+%     ModelGRfit{3}.computeLikelihood(10.^x));
+% obj = @(x)-(5*ModelGRfit{2}.computeLikelihood(10.^x));
+% 
+% GRpars = 10.^(fminsearch(obj,log10(GRpars),fitOptions));
 %%
 
 % %% Compute FIM
@@ -81,8 +100,8 @@ GRpars = combinedGRModel.maximizeLikelihood(...
 
 % 
 %    Make Plots of GR Fit Results
-fignums = [111,121,GRfitCases{1,3},131;112,122,GRfitCases{2,3},132;113,123,GRfitCases{3,3},133];
-combinedGRModel = combinedGRModel.updateModels(GRpars,true,fignums);
+% fignums = [111,121,GRfitCases{1,3},131;112,122,GRfitCases{2,3},132;113,123,GRfitCases{3,3},133];
+combinedGRModel = combinedGRModel.updateModels(GRpars,true);
 for i=1:size(GRfitCases,1)
     figure(GRfitCases{i,3}); 
     set(gca,'ylim',[0,20])

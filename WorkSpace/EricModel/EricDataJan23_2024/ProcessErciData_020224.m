@@ -18,7 +18,7 @@ hold on
 scatter(X.Nuc_Area(J),X.Cyto_Area(J),'xr')
 plot(x,y,'k--','LineWidth',3)
 
-%% Gate on 25% to 75% of nucleus size.
+%% Gate all data on 25% to 75% of nucleus size.
 NA = X.Nuc_Area;
 sortNA = sort(NA);
 nucLow = sortNA(floor(0.25*length(sortNA)));
@@ -31,7 +31,6 @@ figure(2); clf;
 J = contains(X.Condition,'GR_timesweep');
 bins = 20; threshold = 0.005;
 GRDat = X(J,:);
-
 
 nGRcells = size(GRDat,1);
 
