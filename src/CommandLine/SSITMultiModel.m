@@ -141,8 +141,13 @@ classdef SSITMultiModel
             % all models for the provided parameter combination.
             Nmods = length(SMM.logLikelihoodFunctions);
             logLs = zeros(1,Nmods);
+
+            G = cell(1,Nmods);
             for i = 1:Nmods
-                logLs(i) = SMM.logLikelihoodFunctions{i}(parameterGuess);
+                G{i} = SMM.logLikelihoodFunctions{i};
+            end
+            for i = 1:Nmods
+                logLs(i) = G{i}(parameterGuess);
             end
 
             totalLogLikelihood = sum(logLs);
