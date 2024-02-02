@@ -32,7 +32,7 @@ varNames = data.Properties.VariableNames;
 Model.species = {'Group'};
 
 % nGroups = max(data.leiden);
-nGroups = 3;%max(data.leiden);
+nGroups = max(data.leiden);
 
 Pars = rand(max(data.leiden)+1); Pars = Pars-diag(diag(Pars));
 
@@ -75,29 +75,26 @@ Model.formPropensitiesGeneral('JackPropens')
 return
 %%
 
-
-
-
-cell(height(speciesnames)*height(speciesnames), 2);
-indx = 1;
-propen = cell(height(speciesnames)*height(speciesnames), 1);
-stoich = zeros([length(speciesnames), length(propen)]);
-for i = 1:height(speciesnames)
-    for j = 1:height(speciesnames)
-        pars(indx, 1) = {'k_' + string(i-1) + string(j-1)};
-        pars(indx, 2) = {1};
-        propen(indx) = {string(speciesnames(i)) + '*' + pars(indx, 1)};
-        stoich(i, indx) = -1;
-        stoich(j, indx) = stoich(j, indx) + 1;
-        indx = indx + 1;
-    end
-end
-Model.parameters = pars;
-Model.propensityFunctions = propen;
-Model.stoichiometry = stoich;
-
-Model.fspOptions.initApproxSS = true;
-Model.dataSet = [];
+% cell(height(speciesnames)*height(speciesnames), 2);
+% indx = 1;
+% propen = cell(height(speciesnames)*height(speciesnames), 1);
+% stoich = zeros([length(speciesnames), length(propen)]);
+% for i = 1:height(speciesnames)
+%     for j = 1:height(speciesnames)
+%         pars(indx, 1) = {'k_' + string(i-1) + string(j-1)};
+%         pars(indx, 2) = {1};
+%         propen(indx) = {string(speciesnames(i)) + '*' + pars(indx, 1)};
+%         stoich(i, indx) = -1;
+%         stoich(j, indx) = stoich(j, indx) + 1;
+%         indx = indx + 1;
+%     end
+% end
+% Model.parameters = pars;
+% Model.propensityFunctions = propen;
+% Model.stoichiometry = stoich;
+% 
+% Model.fspOptions.initApproxSS = true;
+% Model.dataSet = [];
 
 %% Fit Model on all data
 c = cell(length(speciesnames),2);
