@@ -583,7 +583,7 @@ classdef Propensity
                         n(3)=n(3)+1;
                         logicTerms.logX{n(3),1} = logE;
                         counter = counter+1;
-                        logicTerms.logX{n(3),2} = ['logE',num2str(counter)];
+                        logicTerms.logX{n(3),2} = ['logX',num2str(counter)];
                         stNew = strrep(stNew,logE,['(',logicTerms.logX{n(3),2},')']);
                     end
                 end
@@ -720,8 +720,8 @@ for i=1:length(logicTerms)
     end
     if isfield(logicTerms{i},'logX')
         %             state_dep = true;
-        for j=1:size(logicTerms.logX,1)
-            exprStr=strrep(exprStr,logicTerms{i}.logX{j,2},logicTerms.logX{j,1});
+        for j=1:size(logicTerms{i}.logX,1)
+            exprStr=strrep(exprStr,logicTerms{i}.logX{j,2},logicTerms{i}.logX{j,1});
         end
     end
     if isfield(logicTerms{i},'logE')
