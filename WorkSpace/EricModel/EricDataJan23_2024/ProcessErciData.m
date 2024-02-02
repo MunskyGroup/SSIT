@@ -1,4 +1,4 @@
-Orig = readtable('Complete_dataframe_Ron_2024.csv');
+Orig = readtable('Complete_dataframe_Ron_010224.csv');
 X = Orig;
 %%
 X.Properties.VariableNames
@@ -61,7 +61,7 @@ ylabel('Cytoplasm')
 GRDatReduced = array2table([GRDat.Cell_id,GRDat.Time_index,GRDat.Dex_Conc,GRDat.normgrnuc,GRDat.normgrcyt],...
 'variableNames',{'Cell_id','time','Dex_Conc','normgrnuc','normgrcyt'});
 
-writetable(GRDatReduced,'Complete_dataframe_Ron_2024_NormalizedGR.csv')
+writetable(GRDatReduced,'Complete_dataframe_Ron_020224_NormalizedGR.csv')
 
 return
 

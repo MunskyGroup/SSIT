@@ -28,7 +28,7 @@ ModelGR.fspOptions.initApproxSS = true;
 ModelGR.fittingOptions.modelVarsToFit = (5:11);
 
 ModelGR.inputExpressions = {'IDex','100*exp(-gDex*t)*(t>0)'};
-ModelGR = ModelGR.formPropensitiesGeneral('EricModGR');
+ModelGR = ModelGR.formPropensitiesGeneral('EricRonModGR');
 [FSPGrSoln,ModelGR.fspOptions.bounds] = ModelGR.solve;
 [FSPGrSoln,ModelGR.fspOptions.bounds] = ModelGR.solve(FSPGrSoln.stateSpace);
 
@@ -45,20 +45,25 @@ GRfitCases = {'1','1',101,'GR Fit (1nM Dex)';...
 ModelGRparameterMap = cell(1,size(GRfitCases,1));
 ModelGRfit = cell(1,size(GRfitCases,1));
 for i=1:size(GRfitCases,1)
-    ModelGRfit{i} = ModelGR.loadData("EricDataJan23_2024/Complete_dataframe_Ron_2024_NormalizedGR.csv",...
+    ModelGRfit{i} = ModelGR.loadData("EricDataJan23_2024/Complete_dataframe_Ron_020224_NormalizedGR.csv",...
         {'nucGR','normgrnuc';'cytGR','normgrcyt'},...
-        {'Condition','GR_timesweep';'Dex_Conc',GRfitCases{i,2}}); 
+        {'Condition','GR_timesweep';'Dex_Conc',GRfitCases{i,2}});
+%     ModelGRfit{i} = ModelGR.loadData("EricDataJan23_2024/Complete_dataframe_Ron_2024_NormalizedGR.csv",...
+%         {'nucGR','normgrnuc'},...
+%         {'Condition','GR_timesweep';'Dex_Conc',GRfitCases{i,2}});
     ModelGRfit{i}.inputExpressions = {'IDex',[GRfitCases{i,2},'*exp(-gDex*t)*(t>0)']};
     ModelGRfit{i} = ModelGRfit{i}.formPropensitiesGeneral(['EricModGR_',num2str(i),'_FSP']);
     ModelGRparameterMap(i) = {(1:7)};
 end
 
 %%    Combine all three GR models and fit using a single parameter set.
-fitOptions = optimset('Display','iter','MaxIter',50);
+fitOptions = optimset('Display','iter','MaxIter',1000);
 combinedGRModel = SSITMultiModel(ModelGRfit,ModelGRparameterMap);
 combinedGRModel = combinedGRModel.initializeStateSpaces;
 GRpars = combinedGRModel.maximizeLikelihood(...
     GRpars, fitOptions);
+
+%%
 
 % %% Compute FIM
 % combinedGRModel = combinedGRModel.computeFIMs;
@@ -74,8 +79,9 @@ GRpars = combinedGRModel.maximizeLikelihood(...
 % [~,~,MHResultsGR] = combinedGRModel.maximizeLikelihood(...
 %     GRpars, MHFitOptions, 'MetropolisHastings');
 
+% 
 %    Make Plots of GR Fit Results
-% fignums = [111,121,GRfitCases{1,3},131;112,122,GRfitCases{2,3},132;113,123,GRfitCases{3,3},133];
+fignums = [111,121,GRfitCases{1,3},131;112,122,GRfitCases{2,3},132;113,123,GRfitCases{3,3},133];
 combinedGRModel = combinedGRModel.updateModels(GRpars,true,fignums);
 for i=1:size(GRfitCases,1)
     figure(GRfitCases{i,3}); 
