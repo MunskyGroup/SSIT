@@ -2439,7 +2439,7 @@ classdef SSIT
                 NcMax = inf*ones(1,Nt);
             end
             Ns = size(fims,2);
-            obj = zeros(Nt,Ns);
+            objFun = zeros(Nt,Ns);
             FIM0 = SSIT.totalFim(fims,Ncp);
             for is = 1:Ns
                 for it = 1:Nt
@@ -2451,10 +2451,10 @@ classdef SSIT
                         % point.
                         FIM = FIM0{is};
                     end
-                    obj(it,is) = met(FIM);
+                    objFun(it,is) = met(FIM);
                 end
             end
-            [~,k] = min(mean(obj,2));
+            [~,k] = min(median(objFun,2));
         end
         function propensities = parameterizePropensities(GenProps,Parset)
             propensities = GenProps;
