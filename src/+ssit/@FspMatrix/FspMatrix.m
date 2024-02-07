@@ -166,8 +166,15 @@ classdef FspMatrix
             w = wt(1)*[obj.terms{1}.matrix*vJ1;...
                 obj.terms{1}.propensity.ODEstoichVector];
             for i = 2:length(obj.terms)
-                w = w + wt(i)*[obj.terms{i}.matrix*vJ1;...
-                    obj.terms{i}.propensity.ODEstoichVector];
+                if obj.terms{i}.isFactorizable
+                    w = w + wt(i)*[obj.terms{i}.matrix*vJ1;...
+                        obj.terms{i}.propensity.ODEstoichVector];
+                else
+                    tmp = ssit.FspMatrixTerm.generateHybridMatrixTerm(t, obj.terms{i}.propensity, obj.terms{i}.matrix, parameters, ...
+                        obj.terms{i}.numConstraints, v(end-length(upstreamODEs)+1:end)');
+                    w = w + [tmp*vJ1;...
+                        obj.terms{i}.propensity.ODEstoichVector];
+                end
             end
 
         end
@@ -310,7 +317,7 @@ classdef FspMatrix
                     % A = A + obj.terms{i}.propensity.hybridFactor(t,v2)*obj.terms{i}.matrix;
                     A = A + wt(i)*obj.terms{i}.matrix;
                 else
-                    A = A + ssit.FspMatrixTerm.generateHybridgMatrixTerm(t, obj.terms{i}.propensity, obj.terms{i}.matrix, parameters, obj.terms{i}.numConstraints, v2);
+                    A = A + ssit.FspMatrixTerm.generateHybridMatrixTerm(t, obj.terms{i}.propensity, obj.terms{i}.matrix, parameters, obj.terms{i}.numConstraints, v2);
                 end
             end
 

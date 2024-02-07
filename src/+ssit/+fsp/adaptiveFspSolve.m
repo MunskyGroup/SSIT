@@ -520,7 +520,7 @@ for i = 1:length(propensities)
     if propensities{i}.isFactorizable
         y(i) = wt(i).*propensities{i}.stateDependentFactor(x,parameters);
     else
-        y(i) = propensities{i}.hybridJointFactor(t,[]);
+        y(i) = propensities{i}.hybridJointFactor(t,x,parameters,v);
     end
 end
 end

@@ -275,6 +275,25 @@ classdef poissonTest < matlab.unittest.TestCase
             testCase.verifyEqual(diff<0.001, true, ...
                 'FIM Calculation is not within 1e-4% Tolerance');            
 
+        end
+
+        function TestFIMwPrior(testCase)
+            % In this test case, we check that the FIM calculation using
+            % the FSP matches to the analytical expresion for the Poisson
+            % model when there is a appropriate Prior:
+            Model = testCase.Poiss;
+            Model.solutionScheme = 'fspSens';
+            Model.fspOptions.fspTol = 1e-6;
+            SensSoln = Model.solve;
+            fspFIM = Model.computeFIM(SensSoln.sens);
+            t = Model.tSpan;
+            SIGprior = diag(rand(1,2));
+            FIMwPrior = Model.evaluateExperiment(fspFIM, [1:length(t)],...
+                SIGprior);
+            FIMwoPrior = Model.evaluateExperiment(fspFIM,[1:length(t)]);
+            diff = max(abs(FIMwPrior{1}-FIMwoPrior{1}-inv(SIGprior)),[],"all");
+            testCase.verifyEqual(diff<1e-5, true, ...
+                'FIM Prior Calculation is not within 1e-4% Tolerance');            
 
         end
 
