@@ -57,6 +57,7 @@ for i=1:3
     ModelGRfit{i} = ModelGR.loadData("EricDataJan23_2024/Gated_dataframe_Ron_020224_NormalizedGR_bins.csv",...
         {'nucGR','normgrnuc';'cytGR','normgrcyt'},...
         {'Condition','GR_timesweep';'Dex_Conc',GRfitCases{i,2}});
+    
     ModelGRfit{i}.parameters{12,2} = str2num(GRfitCases{i,1});
     
     ModelGRparameterMap(i) = {(1:7)};
@@ -116,8 +117,10 @@ for i=1:length(ModelGRfit)
     % % ylabel('Nuclear GR')
     % xlabel('Time (min)')
     
+
     %  Update parameters in original models.
     ModelGRfit{i} = combinedGRModel.SSITModels{i};
+    ModelGRfit{i}.tSpan = sort(unique([ModelGRfit{i}.tSpan,linspace(0,180,30)]));
     ModelGRfit{i}.makeFitPlot([],1)
 
 end
@@ -198,6 +201,7 @@ for i=1:size(Dusp1FitCases,1)
     xlabel('Time (min)')
     
     %  Update parameters in original models.
+    ModelDusp1Fit{i}.tSpan = sort(unique([ModelDusp1Fit{i}.tSpan,linspace(0,180,30)]));
     ModelDusp1Fit{i} = combinedDusp1Model.SSITModels{i};
 end
 
@@ -214,6 +218,8 @@ for i=1:size(PredictionCases,1)
     ModelPred{i} = ModelGRDusp.loadData('DUSP1_GR_dataframes/DUSP1_3hr_Dex_TimeConcSweep_total.csv',...
         {'rna','RNA_nuc'},...
         {'conc',PredictionCases{i,2}});
+
+    ModelPred{i}.tSpan = sort(unique([ModelPred{i}.tSpan,linspace(0,180,30)]));
 
     % Change Dex concentraion in the model.
     ModelPred{i}.parameters(12,1:2) = {'Dex0',str2num(PredictionCases{i,2})};
