@@ -127,7 +127,7 @@ end
 
 %% Extend Model to Include DUSP1 Activation, Production, and Degradation
 
-ModelGRDusp = ModelGRfit{1};
+ModelGRDusp = ModelGRfit{3};
 ModelGRDusp.species = {'offGene';'onGene';'cytGR';'nucGR';'rna'};
 ModelGRDusp.initialCondition = [2;0;24;1;5];
 ModelGRDusp.propensityFunctions = {'kon*offGene*nucGR';'koff*onGene';
@@ -325,14 +325,18 @@ end
 
 %% Sandbox for Predicting Other Behaviors
 SBModel = ModelGRDusp;
+SBModel.parameters(12,:) = {'Dex0',100};
+
 SBModel.tSpan = linspace(0,300,50);
-SBModel.inputExpressions = {'IDex','10*exp(-gDex*t)*(t>0)-10*exp(-gDex*(t))*(t>10)'};
+SBModel.inputExpressions = {'IDex','Dex0*exp(-gDex*t)*(t>0)-Dex0*exp(-gDex*t)*(t>10)'};
+SBModel = SBModel.formPropensitiesGeneral('Pulse');
 [fspSoln] = SBModel.solve;
 SBModel.makePlot(fspSoln,'meansAndDevs',[],[],[4])
 
-SBModel2 = ModelGRDusp;
+SBModel2 = SBModel;
 SBModel2.tSpan = linspace(0,300,50);
-SBModel2.inputExpressions = {'IDex','10*exp(-gDex*t)*(t>0)'};
+SBModel2.inputExpressions = {'IDex','Dex0*exp(-gDex*t)*(t>0)'};
+SBModel = SBModel.formPropensitiesGeneral('Step');
 [fspSoln2] = SBModel2.solve;
 SBModel2.makePlot(fspSoln2,'meansAndDevs',[],[],[4])
 
@@ -341,6 +345,7 @@ SBModelJoint = ModelGRDusp;
 SBModelJoint.useHybrid = false;
 SBModelJoint.fspOptions.verbose = true;
 SBModelJoint = SBModelJoint.formPropensitiesGeneral('EricGRDusp1Joint');
+SBModelJoint.customConstraintFuns = {'x3+x4','x5/(x4+1)'};
 [fspSoln3] = SBModelJoint.solve;
 SBModelJoint.makePlot(fspSoln3,'joints',[],[])
 
