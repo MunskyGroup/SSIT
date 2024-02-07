@@ -26,10 +26,20 @@ nucHigh = sortNA(ceil(0.75*length(sortNA)));
 J = X.Nuc_Area>=nucLow&X.Nuc_Area<=nucHigh;
 X = X(J,:);
 
+%% Estimate volume ratio between nucleus and cytoplasm (using segemented cells)
+sortNA = sort(NucAreas);
+nucLow = sortNA(floor(0.25*length(sortNA)));
+nucHigh = sortNA(ceil(0.75*length(sortNA)));
+J = NucAreas>=nucLow&NucAreas<=nucHigh;
+ratio = mean(NucAreas(J))/mean(CytoAreas(J))
+
 %% Compute "normalized" GR in nuc and cytoplasm.
 figure(2); clf;
 J = contains(X.Condition,'GR_timesweep');
-bins = 20; threshold = 0.005;
+binsCyt = 15; 
+binsNuc = 30;
+
+threshold = 0.005;
 GRDat = X(J,:);
 
 
@@ -38,16 +48,16 @@ nGRcells = size(GRDat,1);
 sortGRnuc = sort(GRDat.Nuc_GR_avg_int);
 nucGR95 = sortGRnuc(ceil((1-threshold)*length(sortGRnuc)));
 nucGR05 = sortGRnuc(ceil(threshold*length(sortGRnuc)));
-nucGRnorm = round(bins*max(0,min(1,(GRDat.Nuc_GR_avg_int-nucGR05)/(nucGR95-nucGR05))));
-subplot(1,3,1);histogram(round(nucGRnorm),'BinEdges',[0:30])
+nucGRnorm = round(binsNuc*max(0,min(1,(GRDat.Nuc_GR_avg_int-nucGR05)/(nucGR95-nucGR05))));
+subplot(1,3,1);histogram(round(nucGRnorm),'BinEdges',[0:binsNuc])
 GRDat.normgrnuc = nucGRnorm;
 title('Nuclear Distribution')
 
 sortGRcyt = sort(GRDat.Cyto_GR_avg_int);
 cytGR95 = sortGRcyt(ceil((1-threshold)*length(sortGRcyt)));
 cytGR05 = sortGRcyt(ceil(threshold*length(sortGRcyt)));
-cytGRnorm = round(bins*max(0,min(1,(GRDat.Cyto_GR_avg_int-cytGR05)/(cytGR95-cytGR05))));
-subplot(1,3,2);histogram(round(cytGRnorm),'BinEdges',[0:30])
+cytGRnorm = round(binsCyt*max(0,min(1,(GRDat.Cyto_GR_avg_int-cytGR05)/(cytGR95-cytGR05))));
+subplot(1,3,2);histogram(round(cytGRnorm),'BinEdges',[0:binsCyt])
 GRDat.normgrcyt = cytGRnorm;
 title('Cytoplasm Distribution')
 
@@ -59,18 +69,18 @@ GRDat.Dex_Conc(jZero) = dexConc(iZero);
 
 %%
     
-jointHist = zeros(31);
+jointHist = zeros(binsNuc+1,binsCyt+1);
 for i=1:length(nucGRnorm)
     jointHist(nucGRnorm(i)+1,cytGRnorm(i)+1) = jointHist(nucGRnorm(i)+1,cytGRnorm(i)+1) + 1;
 end
 subplot(1,3,3);contourf(jointHist)
-xlabel('Nuclear')
-ylabel('Cytoplasm')
+ylabel('Nuclear')
+xlabel('Cytoplasm')
 
 GRDatReduced = array2table([GRDat.Cell_id,GRDat.Time_index,GRDat.Dex_Conc,GRDat.normgrnuc,GRDat.normgrcyt],...
 'variableNames',{'Cell_id','time','Dex_Conc','normgrnuc','normgrcyt'});
 
-writetable(GRDatReduced,'Gated_dataframe_Ron_020224_NormalizedGR.csv')
+writetable(GRDatReduced,'Gated_dataframe_Ron_020224_NormalizedGR_bins.csv')
 
 return
 

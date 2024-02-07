@@ -15,39 +15,34 @@ ModelGR = SSIT;
 ModelGR.species = {'cytGR';'nucGR'};
 ModelGR.initialCondition = [20;1];
 
-ModelGR.propensityFunctions = {'(kcn0+kcn1*IDex)*cytGR';'knc*nucGR';...
+ModelGR.propensityFunctions = {'(kcn0+kcn1*IDex)*cytGR';'knc*nucGR*(nucGR-1)';...
     'kg1';'gg1*cytGR';'gg2*nucGR'};
 ModelGR.stoichiometry = [-1,1,1,-1,0;...
-                         1,-1,0,0,-1];
+                         2,-2,0,0,-1];
 ModelGR.parameters = ({'koff',0.1;'kon',0.1;'kr',1;'gr',0.02;...
     'kcn0',0.005;'kcn1',0.02;'gDex',0.003;'knc',0.01;'kg1',14e-5;...
-    'gg1',1e-5;'gg2',1e-6});
+    'gg1',1e-5;'gg2',1e-6;'Dex0',100});
 
 ModelGR.fspOptions.initApproxSS = true;
 
 ModelGR.fittingOptions.modelVarsToFit = (5:11);
 
-ModelGR.inputExpressions = {'IDex','100*exp(-gDex*t)*(t>0)'};
+ModelGR.inputExpressions = {'IDex','Dex0*exp(-gDex*t)*(t>0)'};
 ModelGR = ModelGR.formPropensitiesGeneral('EricRonModGR');
 [FSPGrSoln,ModelGR.fspOptions.bounds] = ModelGR.solve;
 [FSPGrSoln,ModelGR.fspOptions.bounds] = ModelGR.solve(FSPGrSoln.stateSpace);
 
 %%    Load previously fit parameter values (optional)
-load('EricModelDataFeb5','GRpars','DUSP1pars')
-ModelGR.parameters(:,2) = num2cell([DUSP1pars,GRpars]);
-% load('TMPEricResults','GRpars')
-% ModelGR.parameters(5:11,2) = num2cell([GRpars]);
-
-%% Create ODE models for faster fitting
-ModelGRODE = ModelGR;
-ModelGRODE.solutionScheme = 'ode';
-ModelGRODE = ModelGRODE.formPropensitiesGeneral('EricRonModGR_ode');
+% load('EricModelDataFeb5','GRpars','DUSP1pars')
+% ModelGR.parameters(:,2) = num2cell([DUSP1pars,GRpars,1]);
+load('EricModelDataFeb5b','GRpars')
+ModelGR.parameters(5:11,2) = num2cell([GRpars]);
+% GRpars = [ModelGR.parameters{5:11,2}];
 
 %%    Associate Data with Different Instances of Model (10,100nm Dex)
 GRfitCases = {'1','1',101,'GR Fit (1nM Dex)';...
     '10','10',102,'GR Fit (10nM Dex)';...
     '100','100',103,'GR Fit (100nM Dex)'};
-% GRfitCases = GRfitCases(1,:);
 
 ModelGRparameterMap = cell(1,size(GRfitCases,1));
 ModelGRfit = cell(1,size(GRfitCases,1));
@@ -56,51 +51,51 @@ for i=1:3
     ModelGRfit{i} = ModelGR.loadData("EricDataJan23_2024/Gated_dataframe_Ron_020224_NormalizedGR.csv",...
         {'nucGR','normgrnuc';'cytGR','normgrcyt'},...
         {'Condition','GR_timesweep';'Dex_Conc',GRfitCases{i,2}});
-    ModelGRODEfit{i} = ModelGRODE.loadData("EricDataJan23_2024/Gated_dataframe_Ron_020224_NormalizedGR.csv",...
-        {'nucGR','normgrnuc';'cytGR','normgrcyt'},...
-        {'Condition','GR_timesweep';'Dex_Conc',GRfitCases{i,2}});
+    ModelGRfit{i}.parameters{12,2} = str2num(GRfitCases{i,1});
+    
     ModelGRparameterMap(i) = {(1:7)};
 end
 
+%% Guesses for the FSP bounds
+for i = 1:3
+    boundGuesses{i} = [0;0;20;20];
+end
+
 %%    Combine all three GR models and fit using a single parameter set.
-fitOptions = optimset('Display','iter','MaxIter',50);
-prior = @(x)-sum(abs(log10(x)-3));
-combinedGRODEModel = SSITMultiModel(ModelGRODEfit,ModelGRparameterMap,prior);
-combinedGRODEModel = combinedGRODEModel.initializeStateSpaces;
-GRpars = combinedGRODEModel.maximizeLikelihood(...
-     GRpars, fitOptions);
+fitOptions = optimset('Display','iter','MaxIter',500);
+prior = @(x)-sum(abs(log10(x)-3))/5;
 
 combinedGRModel = SSITMultiModel(ModelGRfit,ModelGRparameterMap,prior);
-combinedGRModel = combinedGRModel.initializeStateSpaces;
+combinedGRModel = combinedGRModel.initializeStateSpaces(boundGuesses);
 combinedGRModel = combinedGRModel.updateModels(GRpars,false);
-% GRpars = combinedGRModel.maximizeLikelihood(...
-%      GRpars, fitOptions);
+GRpars = combinedGRModel.maximizeLikelihood(...
+     GRpars, fitOptions);
 
 %%
 % obj = @(x)-(ModelGRfit{1}.computeLikelihood(10.^x) + ...
 %     5*ModelGRfit{2}.computeLikelihood(10.^x) +...
 %     ModelGRfit{3}.computeLikelihood(10.^x));
-% obj = @(x)-(5*ModelGRfit{2}.computeLikelihood(10.^x));
+% obj = @(x)-(ModelGRfit{3}.computeLikelihood(10.^x));
 % 
 % GRpars = 10.^(fminsearch(obj,log10(GRpars),fitOptions));
 %%
 
-% %% Compute FIM
-% combinedGRModel = combinedGRModel.computeFIMs;
-% 
-% %%    Run MH on GR Models.
-% MHFitOptions.thin=1;
-% MHFitOptions.numberOfSamples=100;
-% MHFitOptions.burnIn=0;
-% MHFitOptions.progress=true;
-% MHFitOptions.numChains = 1;
-% MHFitOptions.useFIMforMetHast = true;
-% MHFitOptions.saveFile = 'TMPEricMHGR.mat';
-% [~,~,MHResultsGR] = combinedGRModel.maximizeLikelihood(...
-%     GRpars, MHFitOptions, 'MetropolisHastings');
+%% Compute FIM
+combinedGRModel = combinedGRModel.computeFIMs;
 
-% 
-%    Make Plots of GR Fit Results
+%%    Run MH on GR Models.
+MHFitOptions.thin=1;
+MHFitOptions.numberOfSamples=100;
+MHFitOptions.burnIn=0;
+MHFitOptions.progress=true;
+MHFitOptions.numChains = 1;
+MHFitOptions.useFIMforMetHast = true;
+MHFitOptions.saveFile = 'TMPEricMHGR.mat';
+[~,~,MHResultsGR] = combinedGRModel.maximizeLikelihood(...
+    GRpars, MHFitOptions, 'MetropolisHastings');
+delete(MHFitOptions.saveFile)
+ 
+%%    Make Plots of GR Fit Results
 % fignums = [111,121,GRfitCases{1,3},131;112,122,GRfitCases{2,3},132;113,123,GRfitCases{3,3},133];
 combinedGRModel = combinedGRModel.updateModels(GRpars,false);
 for i=1:length(ModelGRfit)
@@ -112,7 +107,7 @@ for i=1:length(ModelGRfit)
     
     %  Update parameters in original models.
     ModelGRfit{i} = combinedGRModel.SSITModels{i};
-    ModelGRfit{i}.makeFitPlot
+    ModelGRfit{i}.makeFitPlot([],1)
 
 end
 

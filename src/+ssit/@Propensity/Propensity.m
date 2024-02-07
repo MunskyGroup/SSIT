@@ -112,8 +112,8 @@ classdef Propensity
                 else
                     if ~isempty(obj.jointDependentFactor)
                         y = obj.jointDependentFactor(t, x, parameters);
-                    elseif ~isempty(obj.hybridFactor)
-                        y = obj.hybridFactor(t, x, parameters, upstreamSpecies);
+                    elseif ~isempty(obj.hybridJointFactor)
+                        y = obj.hybridJointFactor(t, x, parameters, upstreamSpecies);
                     end
                 end
             end
@@ -244,7 +244,7 @@ classdef Propensity
             oneSym = str2sym('1');
 
             % change to parfor?
-            parfor iRxn = 1:n_reactions
+            for iRxn = 1:n_reactions
                 prop_vars = symvar(symbolicExpression{iRxn});
                 hybridFactor =[];
                 prefixNameLocal = [prefixName,'_',num2str(iRxn)];
@@ -420,16 +420,21 @@ classdef Propensity
                     for i2=1:length(upstreamODEs)
                         expr_tx = subs(expr_tx,upstreamODEs{i2},varODEs(i2));
                     end
-                    obj{iRxn}.(jntFactorName) = sym2propfun(expr_tx, true, true, nonXTpars(:,1), speciesStoch, varODEs, logicTerms(iRxn));
+                    [obj{iRxn}.(jntFactorName),expr_dt_vec_dodei] = ...
+                        sym2propfun(expr_tx, true, true, nonXTpars(:,1), speciesStoch, varODEs, logicTerms(iRxn), true);
                     obj{iRxn}.isTimeDependent = true;
                     expr_t_vec(iRxn) = sym(NaN);
                     expr_x_vec(iRxn) = sym(NaN);
-
-                    % if computeSens
-                    %     for iPar = 1:n_pars
-                    %         expr_tx_vec_sens(iRxn,iPar) = signHybridFactor*diff(expr_tx,nonXTpars{iPar,1});
-                    %     end                   
-                    % end
+                    
+                    if ~isempty(expr_dt_vec_dodei)
+                        expr_dt_vec_dode(iRxn,:) = expr_dt_vec_dodei;
+                    end
+                    
+                    if computeSens
+                        for iPar = 1:n_pars
+                            expr_tx_vec_sens(iRxn,iPar) = signHybridFactor*diff(expr_tx,nonXTpars{iPar,1});
+                        end                   
+                    end
 
                 end
             end
@@ -560,13 +565,13 @@ classdef Propensity
             n = [0,0,0];
             stNew = st;
             for i=1:3
-                J = strfind(st,logTypes{i});
+                J = strfind(stNew,logTypes{i});
                 for j = 1:length(J)
-                    K = strfind(st,'(');
+                    K = strfind(stNew,'(');
                     k1 = max(K(K<J(j)));
-                    K = strfind(st,')');
+                    K = strfind(stNew,')');
                     k2 = min(K(K>J(j)));
-                    logE = st(k1:k2);
+                    logE = stNew(k1:k2);
                     if contains(logE,'t')&&max(contains(logE,species))
                         n(1)=n(1)+1;
                         logicTerms.logJ{n(1),1} = logE;
@@ -720,15 +725,15 @@ for i=1:length(logicTerms)
     end
     if isfield(logicTerms{i},'logX')
         %             state_dep = true;
-        for j=1:size(logicTerms.logX,1)
-            exprStr=strrep(exprStr,logicTerms{i}.logX{j,2},logicTerms.logX{j,1});
+        for j=1:size(logicTerms{i}.logX,1)
+            exprStr=strrep(exprStr,logicTerms{i}.logX{j,2},logicTerms{i}.logX{j,1});
         end
     end
     if isfield(logicTerms{i},'logE')
         %             time_dep = true;
         %             state_dep = true;
         for j=1:size(logicTerms{i}.logX,1)
-            exprStr=strrep(exprStr,logicTerms.logX{j,2},logicTerms.logX{j,1});
+            exprStr=strrep(exprStr,logicTerms{i}.logX{j,2},logicTerms{i}.logX{j,1});
         end
     end
 end
