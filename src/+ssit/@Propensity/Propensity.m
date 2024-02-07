@@ -588,7 +588,7 @@ classdef Propensity
                         n(3)=n(3)+1;
                         logicTerms.logX{n(3),1} = logE;
                         counter = counter+1;
-                        logicTerms.logX{n(3),2} = ['logE',num2str(counter)];
+                        logicTerms.logX{n(3),2} = ['logX',num2str(counter)];
                         stNew = strrep(stNew,logE,['(',logicTerms.logX{n(3),2},')']);
                     end
                 end
