@@ -16,7 +16,7 @@ end
 %% Define Model
 % Number of experiment Rounds
 
-showPlots = true;
+showPlots = false;
 
 switch example
     case 'Poisson'
@@ -33,7 +33,7 @@ switch example
         nT = 21;
         ModelTrue.tSpan = linspace(0,10,nT);
         fimMetric = 'Determinant';
-        nSamplesMH = 2000; % Number of MH Samples to run
+        nSamplesMH = 5000; % Number of MH Samples to run
         
         % Total number of new cells allowed in each experiment
         numCellsPerExperiment = 50;
@@ -56,7 +56,7 @@ switch example
         ModelTrue.tSpan = linspace(0,10,nT);
         fimMetric = 'Determinant';
         
-        nSamplesMH = 2000; % Number of MH Samples to run
+        nSamplesMH = 5000; % Number of MH Samples to run
 
         % Total number of new cells allowed in each experiment
         numCellsPerExperiment = 50;
@@ -99,7 +99,7 @@ switch example
         sigLog10Prior = sigLog10Prior(ModelTrue.fittingOptions.modelVarsToFit);
         ModelTrue.fittingOptions.logPrior = @(p)-(log10(p(:))-muLog10Prior').^2./(2*sigLog10Prior'.^2);
 
-        nSamplesMH = 2000; % Number of MH Samples to run
+        nSamplesMH = 5000; % Number of MH Samples to run
 
 %         intuitiveDesign = [50 0 50 0 50 0 50 0 50 0 0 50;
 %                              75 0 0 75 0 0 75 0 0 0 75 0;
@@ -111,7 +111,12 @@ switch example
                                      30 0 0 30 0 0 30 0 0 0 30 0;
                                      0 0 0 40 0 0 40 0 0 40 0 0;
                                      0 0 0 40 0 0 0 40 0 40 0 0;
-                                     0 0 0 0 40 0 40 0 0 40 0 0];
+                                     0 0 0 0 40 0 40 0 0 40 0 0;
+                                     0 0 40 0 40 0 0 40 0 0 0 0;
+                                     40 0 0 0 40 0 0 0 0 0 0 0;
+                                     0 0 0 40 0 0 0 40 0 40 0 0;
+                                     0 0 0 0 40 0 40 0 0 40 0 0;
+                                     80 0 0 0 40 0 0 0 0 0 0 0];
 
         % Total number of new cells allowed in each experiment
         numCellsPerExperiment = 120;
@@ -165,7 +170,7 @@ nextExperiment([1,round(nT/2),nT]) = round(numCellsPerExperiment/3);
 mhPlotScale = 'log10';  % Show MH and FIM plots in log10 scale.
 
 %% Experiment Design Definitions
-incrementAdd = 5; % group size for Cells added
+incrementAdd = 30; % group size for Cells added
 N = numCellsPerExperiment/incrementAdd; % needs to be int
 randomCell = zeros(nExptRounds,nT);
 for i = 1:nExptRounds

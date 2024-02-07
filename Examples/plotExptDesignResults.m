@@ -1,22 +1,24 @@
 
-% clear all
-% close all
-% parfor i=4:6
-%     switch i
-%         case 1
-%             iterativeExperimentRunner('Poisson','simulated','FIMopt',10,1,i)
-%         case 2
-%             iterativeExperimentRunner('Poisson','simulated','FIMopt',10,1,i)
-%         case 3
-%             iterativeExperimentRunner('Poisson','simulated','uniform',10,1,i)
-%         case 4            
-%             iterativeExperimentRunner('DUSP1','simulated','FIMopt',10,1,i)
-%         case 5
-%             iterativeExperimentRunner('DUSP1','simulated','random',10,1,i)
-%         case 6
-%             iterativeExperimentRunner('DUSP1','simulated','uniform',10,1,i)
-%     end
-% end
+clear all
+close all
+parfor i=4:7
+    switch i
+        case 1
+            iterativeExperimentRunner('Poisson','simulated','FIMopt',10,1,i)
+        case 2
+            iterativeExperimentRunner('Poisson','simulated','FIMopt',10,1,i)
+        case 3
+            iterativeExperimentRunner('Poisson','simulated','uniform',10,1,i)
+        case 4            
+            iterativeExperimentRunner('DUSP1','real','FIMopt',20,1,i)
+        case 5
+            iterativeExperimentRunner('DUSP1','real','random',20,1,i)
+        case 6
+            iterativeExperimentRunner('DUSP1','real','uniform',20,1,i)
+         case 7
+            iterativeExperimentRunner('DUSP1','real','intuition',20,1,i)
+    end
+end
 
 
 %% Poisson Results
@@ -68,6 +70,7 @@
 %% DUSP1 Results
 clear det*
 % load IterativeExperimentResults_DUSP1_simulated_FIMopt_4
+% load IterativeExperimentResults_DUSP1_real_FIMopt_4_10rd
 load IterativeExperimentResults_DUSP1_real_FIMopt_4
 
 nExpt = length(covLogMH);
@@ -77,9 +80,10 @@ for i = 2:nExpt
     detFIMTrueInv_FIM(i-1) = predictCov(FIMcurrentExptTrueSaved{i},[1:4]);
     pars_FIM(i-1,:) = parametersFound{i};
 end
-
+%%
 % load IterativeExperimentResults_DUSP1_simulated_intuition_4
-load IterativeExperimentResults_DUSP1_real_intuition_4
+load IterativeExperimentResults_DUSP1_real_intuition_4_10rd
+% load IterativeExperimentResults_DUSP1_real_intuition_4
 
 nExpt = length(covLogMH);
 for i = 2:nExpt
@@ -88,8 +92,9 @@ for i = 2:nExpt
     detFIMTrueInv_int(i-1) = predictCov(FIMcurrentExptTrueSaved{i},[1:4]);
     pars_int(i-1,:) = parametersFound{i};
 end
-
-% load IterativeExperimentResults_DUSP1_simulated_uniform_4
+%%
+%load IterativeExperimentResults_DUSP1_simulated_uniform_4
+% load IterativeExperimentResults_DUSP1_real_uniform_4_10rd
 load IterativeExperimentResults_DUSP1_real_uniform_4
 nExpt = length(covLogMH);
 for i = 2:nExpt
@@ -98,8 +103,9 @@ for i = 2:nExpt
     detFIMTrueInv_Unif(i-1) = predictCov(FIMcurrentExptTrueSaved{i},[1:4]);
     pars_Unif(i-1,:) = parametersFound{i};
 end
-
+%%
 % load IterativeExperimentResults_DUSP1_simulated_random_4
+% load IterativeExperimentResults_DUSP1_real_random_4_10rd
 load IterativeExperimentResults_DUSP1_real_random_4
 
 nExpt = length(covLogMH);
@@ -109,22 +115,22 @@ for i = 2:nExpt
     detFIMTrueInv_Rand(i-1) = predictCov(FIMcurrentExptTrueSaved{i},[1:4]);
     pars_Rand(i-1,:) = parametersFound{i};
 end
-
+%%
 figure(2); clf;
-plot(2:nExpt,detCov_FIM,'b',...
+plot(2:nExpt1,detCov_FIM,'b',...
     2:nExpt,detCov_Unif,'r',...
     2:nExpt,detCov_Rand,'m',...
     2:nExpt,detCov_int,'g',...
     'linewidth',2)
 
 hold on
-plot(2:nExpt,detFIMInv_FIM,'--b',...
+plot(2:nExpt1,detFIMInv_FIM,'--b',...
     2:nExpt,detFIMInv_Unif,'--r',...
     2:nExpt,detFIMInv_Rand,'--m',...
     2:nExpt,detFIMInv_int,'--g',...
     'linewidth',2)
 
-plot(2:nExpt,detFIMTrueInv_FIM,'-.b',...
+plot(2:nExpt1,detFIMTrueInv_FIM,'-.b',...
     2:nExpt,detFIMTrueInv_Unif,'-.r',...
     2:nExpt,detFIMTrueInv_Rand,'-.m',...
     2:nExpt,detFIMTrueInv_int,'-.g',...
@@ -132,14 +138,23 @@ plot(2:nExpt,detFIMTrueInv_FIM,'-.b',...
 
 set(gca,"FontSize",16,'yscale','log')
 legend('MH','Predicted','Exact')
-legend('FIM','Uniform','Random','Intuition')
+legend('FIM','Uniform','Random')
 xlabel('Experiment round');
 
 figure(3); clf
-plot(2:nExpt,pars_FIM,'b','linewidth',3); hold on
+plot(2:nExpt1,pars_FIM,'b','linewidth',3); hold on
 plot(2:nExpt,pars_Unif,'r','linewidth',3)
 plot(2:nExpt,pars_Rand,'m','linewidth',3)
 plot(2:nExpt,pars_int,'g','linewidth',3)
+ylabel('Parameter Value')
+xlabel('Experiment round')
+
+tmp = ([load('SGRS_model_v1.mat').SGRS_Model.parameters{1:4,2}]); %
+
+for i=1:length(tmp)
+    plot([2,nExpt],[tmp(i),tmp(i)],'k--','LineWidth',2)
+end
+set(gca,"FontSize",16,'yscale','log')
 
 figure(4); clf
 mean_fold_error_FIM = sum(abs(log(pars_FIM./tmp)),2);
@@ -147,17 +162,18 @@ mean_fold_error_Unif = sum(abs(log(pars_Unif./tmp)),2);
 mean_fold_error_Rand = sum(abs(log(pars_Rand./tmp)),2);
 mean_fold_error_int = sum(abs(log(pars_int./tmp)),2);
 
-plot(2:nExpt,mean_fold_error_FIM); hold on
-plot(2:nExpt,mean_fold_error_Unif);
-plot(2:nExpt,mean_fold_error_Rand);
-plot(2:nExpt,mean_fold_error_int);
+plot(2:nExpt,mean_fold_error_FIM,'linewidth',2); hold on
+plot(2:nExpt,mean_fold_error_Unif,'linewidth',2);
+plot(2:nExpt,mean_fold_error_Rand,'linewidth',2);
+plot(2:nExpt,mean_fold_error_int,'linewidth',2);
+xlabel('Experiment Round')
+ylabel('Mean Fold Error')
+legend('FIM','Uniform','Random','Intuition')
+set(gca,"FontSize",16)
 
 
-tmp = ([load('SGRS_model_v1.mat').SGRS_Model.parameters{1:4,2}]); %
-for i=1:length(tmp)
-    plot([2,nExpt],[tmp(i),tmp(i)],'k--','LineWidth',2)
-end
-set(gca,"FontSize",16,'yscale','log')
+
+
 
 
 % legend(legend(['MH','Predicted','Exact';'FIM','Uniform','Random']);
