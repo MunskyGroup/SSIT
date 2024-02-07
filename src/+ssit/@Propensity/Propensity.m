@@ -332,7 +332,7 @@ classdef Propensity
                     % are created as much slower anonymous functions. this
                     % will require keeping track since the variables need
                     % to be sent individually to the anonymous functions.
-                    if ~isempty(logicTerms{iRxn})&&(isfield(logicTerms{iRxn},'logT')||isfield(logicTerms{iRxn},'logE'))
+                    if ~isempty(logicTerms{iRxn})&&(isfield(logicTerms{iRxn},'logT')||isfield(logicTerms{iRxn},'logJ'))
                         obj{iRxn}.anonymousT = true;
                         hybridFactor = sym2propfun(expr_t, true, false, nonXTpars(:,1), speciesStoch, varODEs, logicTerms(iRxn));
                         anyLogical(iRxn) = true;
@@ -346,7 +346,7 @@ classdef Propensity
                         % hybridFactor = sym2mFun(expr_t, true, false, nonXTpars(:,1), speciesStoch, varODEs);
                     end
 
-                    if ~isempty(logicTerms{iRxn})&&(isfield(logicTerms{iRxn},'logX')||isfield(logicTerms{iRxn},'logE'))
+                    if ~isempty(logicTerms{iRxn})&&(isfield(logicTerms{iRxn},'logX')||isfield(logicTerms{iRxn},'logJ'))
                         obj{iRxn}.anonymousX = true;
                         anyLogical(iRxn) = true;
                     % elseif sum(contains(string(symvar(expr_x)),'logT'))
@@ -588,7 +588,7 @@ classdef Propensity
                         n(3)=n(3)+1;
                         logicTerms.logX{n(3),1} = logE;
                         counter = counter+1;
-                        logicTerms.logX{n(3),2} = ['logE',num2str(counter)];
+                        logicTerms.logX{n(3),2} = ['logX',num2str(counter)];
                         stNew = strrep(stNew,logE,['(',logicTerms.logX{n(3),2},')']);
                     end
                 end
@@ -709,14 +709,6 @@ if ~isempty(varODEs)
     end
 end
 
-for i = 1:length(nonXTpars)
-    exprStr = strrep(exprStr, nonXTpars{i}, ['Parameters(',num2str(i),')']);
-end
-
-for i = length(nonXTpars):-1:1
-    exprStr = strrep(exprStr, ['parameters',num2str(i)], ['Parameters(',num2str(i),')']);
-end
-
 for i=1:length(logicTerms)
     if isfield(logicTerms{i},'logT')
         for j=1:size(logicTerms{i}.logT,1)
@@ -729,7 +721,7 @@ for i=1:length(logicTerms)
             exprStr=strrep(exprStr,logicTerms{i}.logX{j,2},logicTerms{i}.logX{j,1});
         end
     end
-    if isfield(logicTerms{i},'logE')
+    if isfield(logicTerms{i},'logJ')
         %             time_dep = true;
         %             state_dep = true;
         for j=1:size(logicTerms{i}.logX,1)
@@ -737,6 +729,15 @@ for i=1:length(logicTerms)
         end
     end
 end
+
+for i = 1:length(nonXTpars)
+    exprStr = strrep(exprStr, nonXTpars{i}, ['Parameters(',num2str(i),')']);
+end
+
+for i = length(nonXTpars):-1:1
+    exprStr = strrep(exprStr, ['parameters',num2str(i)], ['Parameters(',num2str(i),')']);
+end
+
 
 if (time_dep && state_dep)
     fhandle_var = ['@(t, x',parStr,')'];
