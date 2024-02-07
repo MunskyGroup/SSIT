@@ -81,8 +81,8 @@ end
 %     drawnow
 % end
 %%    Combine all three GR models and fit using a single parameter set.
-for jj = 1%:5
-    fitOptions = optimset('Display','iter','MaxIter',5);
+for jj = 1:5
+    fitOptions = optimset('Display','iter','MaxIter',500);
 
     combinedGRModel = SSITMultiModel(ModelGRfit,ModelGRparameterMap);
     combinedGRModel = combinedGRModel.initializeStateSpaces(boundGuesses);
@@ -169,7 +169,7 @@ DUSP1pars = [ModelDusp1Fit{i}.parameters{ModelGRDusp.fittingOptions.modelVarsToF
 
 %%    Fit DUSP1 model(s) with single parameter set.
 for i = 1:5
-    fitOptions = optimset('Display','iter','MaxIter',50);
+    fitOptions = optimset('Display','iter','MaxIter',500);
     fitOptions.suppressFSPExpansion = true;
     combinedDusp1Model = SSITMultiModel(ModelDusp1Fit,ModelDusp1parameterMap);
     combinedDusp1Model = combinedDusp1Model.initializeStateSpaces({[0;0;0;2;2;400]});
