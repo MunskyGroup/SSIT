@@ -81,8 +81,8 @@ end
 %     drawnow
 % end
 %%    Combine all three GR models and fit using a single parameter set.
-for jj = 1:5
-    fitOptions = optimset('Display','iter','MaxIter',500);
+% for jj = 1:5
+    fitOptions = optimset('Display','iter','MaxIter',5);
 
     combinedGRModel = SSITMultiModel(ModelGRfit,ModelGRparameterMap);
     combinedGRModel = combinedGRModel.initializeStateSpaces(boundGuesses);
@@ -90,7 +90,7 @@ for jj = 1:5
     GRpars = combinedGRModel.maximizeLikelihood(...
         GRpars, fitOptions);
     save('EricModelDataFeb5e','GRpars')
-end
+% end
 
 %% Compute FIM
 % combinedGRModel = combinedGRModel.computeFIMs;
@@ -168,8 +168,8 @@ end
 DUSP1pars = [ModelDusp1Fit{i}.parameters{ModelGRDusp.fittingOptions.modelVarsToFit,2}];
 
 %%    Fit DUSP1 model(s) with single parameter set.
-for i = 1:5
-    fitOptions = optimset('Display','iter','MaxIter',500);
+% for i = 1:5
+    fitOptions = optimset('Display','iter','MaxIter',5);
     fitOptions.suppressFSPExpansion = true;
     combinedDusp1Model = SSITMultiModel(ModelDusp1Fit,ModelDusp1parameterMap);
     combinedDusp1Model = combinedDusp1Model.initializeStateSpaces({[0;0;0;2;2;400]});
@@ -177,7 +177,7 @@ for i = 1:5
         DUSP1pars, fitOptions);
     ModelGRDusp.parameters(1:4,2) = num2cell(DUSP1pars);
     save('EricModelDusp1Feb06','DUSP1pars') 
-end
+% end
 
 %% Sample uncertainty for Dusp1 Parameters
 % MHFitOptions.thin=1;
@@ -192,7 +192,8 @@ end
 
 %%    Make Plots of DUSP1 FIT Results
 fignums = [211,221,201,231];
-combinedDusp1Model = combinedDusp1Model.updateModels(DUSP1pars,true,fignums);
+combinedDusp1Model = combinedDusp1Model.updateModels(DUSP1pars,false,fignums);
+ModelDusp1Fit{i}.makeFitPlot([],5,fignums)
 for i=1:size(Dusp1FitCases,1)
     figure(Dusp1FitCases{i,3}); 
     set(gca,'ylim',[0,150])
@@ -322,30 +323,31 @@ for i=1:size(PredictionCases,1)
     xlabel('Time (min)')
 end
 
+return
 
-%% Sandbox for Predicting Other Behaviors
-SBModel = ModelGRDusp;
-SBModel.parameters(12,:) = {'Dex0',100};
-
-SBModel.tSpan = linspace(0,300,50);
-SBModel.inputExpressions = {'IDex','Dex0*exp(-gDex*t)*(t>0)-Dex0*exp(-gDex*t)*(t>10)'};
-SBModel = SBModel.formPropensitiesGeneral('Pulse');
-[fspSoln] = SBModel.solve;
-SBModel.makePlot(fspSoln,'meansAndDevs',[],[],[4])
-
-SBModel2 = SBModel;
-SBModel2.tSpan = linspace(0,300,50);
-SBModel2.inputExpressions = {'IDex','Dex0*exp(-gDex*t)*(t>0)'};
-SBModel = SBModel.formPropensitiesGeneral('Step');
-[fspSoln2] = SBModel2.solve;
-SBModel2.makePlot(fspSoln2,'meansAndDevs',[],[],[4])
-
-%%
-SBModelJoint = ModelGRDusp;
-SBModelJoint.useHybrid = false;
-SBModelJoint.fspOptions.verbose = true;
-SBModelJoint = SBModelJoint.formPropensitiesGeneral('EricGRDusp1Joint');
-SBModelJoint.customConstraintFuns = {'x3+x4','x5/(x4+1)'};
-[fspSoln3] = SBModelJoint.solve;
-SBModelJoint.makePlot(fspSoln3,'joints',[],[])
-
+% %% Sandbox for Predicting Other Behaviors
+% SBModel = ModelGRDusp;
+% SBModel.parameters(12,:) = {'Dex0',100};
+% 
+% SBModel.tSpan = linspace(0,300,50);
+% SBModel.inputExpressions = {'IDex','Dex0*exp(-gDex*t)*(t>0)-Dex0*exp(-gDex*t)*(t>10)'};
+% SBModel = SBModel.formPropensitiesGeneral('Pulse');
+% [fspSoln] = SBModel.solve;
+% SBModel.makePlot(fspSoln,'meansAndDevs',[],[],[4])
+% 
+% SBModel2 = SBModel;
+% SBModel2.tSpan = linspace(0,300,50);
+% SBModel2.inputExpressions = {'IDex','Dex0*exp(-gDex*t)*(t>0)'};
+% SBModel = SBModel.formPropensitiesGeneral('Step');
+% [fspSoln2] = SBModel2.solve;
+% SBModel2.makePlot(fspSoln2,'meansAndDevs',[],[],[4])
+% 
+% %%
+% SBModelJoint = ModelGRDusp;
+% SBModelJoint.useHybrid = false;
+% SBModelJoint.fspOptions.verbose = true;
+% SBModelJoint = SBModelJoint.formPropensitiesGeneral('EricGRDusp1Joint');
+% SBModelJoint.customConstraintFuns = {'x3+x4','x5/(x4+1)'};
+% [fspSoln3] = SBModelJoint.solve;
+% SBModelJoint.makePlot(fspSoln3,'joints',[],[])
+% 
