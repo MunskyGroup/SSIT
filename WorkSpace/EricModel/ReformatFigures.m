@@ -14,9 +14,19 @@ for idex = 1:3
     h = gca;
     % ch = get(gca,'Children');
     set(h,'Children',h.Children([1,3,4,2,5,6]))
-    h.Children(4).Visible = 'off'
-    h.Children(5).Visible = 'off'
-    h.Children(6).Visible = 'off'
+    h.Children(4).Visible = 'off';
+    h.Children(5).Visible = 'off';
+    h.Children(6).Visible = 'off';
+
+    h.Children(1).LineWidth = 4;
+    h.Children(2).LineWidth = 4;
+
+    % Adjust concentration scale for Nuclear GR.
+    ratio = 0.520900129552663; %Fit in "ProcessEric_Data_Feb6".
+    for ich=1:3
+        h.Children(ich).YData = h.Children(ich).YData/ratio;
+    end
+
     legend('','','','Model \mu \pm \sigma','Model \mu','Data \mu \pm \sigma ')
     set(gca,'fontsize',16)
     xlabel('')
@@ -39,9 +49,13 @@ for idex = 1:3
     h = gca;
     % ch = get(gca,'Children');
     set(h,'Children',h.Children([2,5,6,1,3,4]))
-    h.Children(4).Visible = 'off'
-    h.Children(5).Visible = 'off'
-    h.Children(6).Visible = 'off'
+    h.Children(4).Visible = 'off';
+    h.Children(5).Visible = 'off';
+    h.Children(6).Visible = 'off';
+
+    h.Children(1).LineWidth = 4;
+    h.Children(2).LineWidth = 4;
+
     legend('','','','Model \mu \pm \sigma','Model \mu','Data \mu \pm \sigma ')
     set(gca,'fontsize',16)
     xlabel('')
@@ -85,11 +99,23 @@ for idex = 1:3
 
         grid on
 
-        h.Children(3).Visible = 'off'
-        h.Children(4).Visible = 'off'
+        h.Children(3).Visible = 'off';
+        h.Children(4).Visible = 'off';
+        
+        h.Children(1).LineWidth = 4;
+        h.Children(2).LineWidth = 4;
 
-        set(gca,'xlim',[0,20],'ylim',[0,0.3],'FontSize',16)
+        % Adjust concentration scale for Nuclear GR.
+        ratio = 0.520900129552663; %Fit in "ProcessEric_Data_Feb6".
+        for ich=1:2
+            h.Children(ich).XData = h.Children(ich).XData/ratio;
+        end
+
+        set(gca,'xlim',[0,40],'ylim',[0,0.3],'FontSize',16)
         % h.Children(6).Visible = 'off'
+
+        text(10,0.28,[subplotHandle.Title.String(5:end),' min'],'Fontsize',16)
+
     end
 
 end
@@ -130,8 +156,11 @@ for idex = 1:3
 
         grid on
 
-        h.Children(1).Visible = 'off'
-        h.Children(2).Visible = 'off'
+        h.Children(3).LineWidth = 4;
+        h.Children(4).LineWidth = 4;
+
+        h.Children(1).Visible = 'off';
+        h.Children(2).Visible = 'off';
 
         set(gca,'xlim',[0,20],'ylim',[0,0.5],'FontSize',16)
         % h.Children(6).Visible = 'off'
@@ -205,8 +234,8 @@ for idex = 1:4
 
         grid on
 
-        % h.Children(1).Visible = 'off'
-        % h.Children(2).Visible = 'off'
+        h.Children(1).LineWidth = 4;
+        h.Children(2).LineWidth = 4;
 
         set(gca,'xlim',[0,200],'ylim',[0,0.2],'FontSize',16)
         % h.Children(6).Visible = 'off'
