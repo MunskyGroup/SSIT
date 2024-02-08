@@ -166,6 +166,9 @@ for idex = 1:3
 
         set(gca,'xlim',[0,20],'ylim',[0,0.5],'FontSize',16)
         % h.Children(6).Visible = 'off'
+
+        text(6,0.42,[subplotHandle.Title.String(5:end),' min'],'Fontsize',16)
+
     end
 end
 
@@ -243,5 +246,8 @@ for idex = 1:4
 
         set(gca,'xlim',[0,200],'ylim',[0,0.2],'FontSize',16)
         % h.Children(6).Visible = 'off'
+
+        text(60,0.17,[subplotHandle.Title.String(5:end),' min'],'Fontsize',16)
+
     end
 end
