@@ -12,6 +12,7 @@ for idex = 1:3
     newFig = figure(newFig);
     set(newFig,'Name',titles{idex})
     h = gca;
+    grid on
     % ch = get(gca,'Children');
     set(h,'Children',h.Children([1,3,4,2,5,6]))
     h.Children(4).Visible = 'off';
@@ -47,6 +48,7 @@ for idex = 1:3
     newFig = figure(newFig);
     set(newFig,'Name',titles{idex})
     h = gca;
+    grid on
     % ch = get(gca,'Children');
     set(h,'Children',h.Children([2,5,6,1,3,4]))
     h.Children(4).Visible = 'off';
@@ -181,6 +183,7 @@ for idex = 1:4
     newFig = figure(newFig);
     set(newFig,'Name',titles{idex})
     h = gca;
+    grid on
     legend('Model \mu \pm \sigma','Model \mu','Data \mu \pm \sigma ')
     set(gca,'fontsize',16)
     xlabel('')
@@ -233,6 +236,7 @@ for idex = 1:4
         set(h,'Children',h.Children([1,2]))
 
         grid on
+        ax.XMinorGrid = 'on';
 
         h.Children(1).LineWidth = 4;
         h.Children(2).LineWidth = 4;
