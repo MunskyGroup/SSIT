@@ -94,7 +94,7 @@ switch example
 
         muLog10Prior = [-1 -1 -1 -2 -2 -2 -2 -2];
         sigLog10Prior = [2 2 2 2 2 2 2 2];
-        ModelTrue.fittingOptions.modelVarsToFit = length(sigLog10Prior);
+        ModelTrue.fittingOptions.modelVarsToFit = fitParameters;
         muLog10Prior = muLog10Prior(ModelTrue.fittingOptions.modelVarsToFit);
         sigLog10Prior = sigLog10Prior(ModelTrue.fittingOptions.modelVarsToFit);
         ModelTrue.fittingOptions.logPrior = @(p)-(log10(p(:))-muLog10Prior').^2./(2*sigLog10Prior'.^2);
