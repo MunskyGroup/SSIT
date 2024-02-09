@@ -1049,7 +1049,7 @@ classdef SSIT
         end
 
         function [fimTotal,mleCovEstimate,fimMetrics] = evaluateExperiment(obj,...
-                fimResults,cellCounts)
+                fimResults,cellCounts,priorCoVariance)
             % This function evaluates the provided experiment design (in
             % "cellCounts" and produces an array of FIMs (one for each
             % parameter set.
@@ -1057,15 +1057,23 @@ classdef SSIT
                 obj
                 fimResults
                 cellCounts
+                priorCoVariance = []
             end
+
             Ns = size(fimResults,2);
             Nt = size(fimResults,1);
             Np = size(fimResults{1,1},1);
             fimTotal = cell(1,Ns);
             mleCovEstimate = cell(1,Ns);
 
+            if isempty(priorCoVariance)
+                PriorFIM = zeros(Np);
+            else
+                PriorFIM = inv(priorCoVariance);
+            end
+
             for is=1:Ns
-                fimTotal{is} = 0*fimResults{1,is};
+                fimTotal{is} = PriorFIM; %0*fimResults{1,is};
 
                 for it=1:Nt
                     fimTotal{is} = fimTotal{is} + cellCounts(it)*fimResults{it,is};
@@ -1225,10 +1233,13 @@ classdef SSIT
             obj.dataSet.linkedSpecies = linkedSpecies;
 
             Q = contains(obj.dataSet.dataNames,{'time','Time','TIME'});
-            if sum(Q)==1
-                obj.dataSet.app.ParEstFitTimesList.Items = {};
+            if sum(Q)>=1
                 obj.dataSet.app.ParEstFitTimesList.Value = {};
-                col_time = find(Q);
+                obj.dataSet.app.ParEstFitTimesList.Items = {};
+                if sum(Q)>1
+                    warning('Provided data more than one entry with keyword "time"')   
+                end
+                col_time = find(Q,1);
                 obj.dataSet.app.DataLoadingAndFittingTabOutputs.fittingOptions.fit_time_index = col_time;
                 obj.dataSet.app.DataLoadingAndFittingTabOutputs.fittingOptions.fit_times = sort(unique(cell2mat(obj.dataSet.DATA(:,col_time))));
                 for i=1:length(obj.dataSet.app.DataLoadingAndFittingTabOutputs.fittingOptions.fit_times)
@@ -1236,6 +1247,7 @@ classdef SSIT
                     obj.dataSet.app.ParEstFitTimesList.Value{i} = num2str(obj.dataSet.app.DataLoadingAndFittingTabOutputs.fittingOptions.fit_times(i));
                 end
                 % We need to make sure that the fitting times are included in the solution times.
+            
             else
                 error('Provided data set does not have required column named "time"')
             end
@@ -1717,6 +1729,13 @@ classdef SSIT
                 fitAlgorithm = 'fminsearch';
             end
 
+            % parse fitting options
+            allFitOptions.suppressFSPExpansion = true;
+            fNames = fieldnames(fitOptions);
+            for i=1:length(fNames)
+                allFitOptions.(fNames{i}) = fitOptions.(fNames{i});
+            end
+
             if isempty(obj.propensitiesGeneral)
                 obj = formPropensitiesGeneral(obj);
             end
@@ -1735,12 +1754,11 @@ classdef SSIT
             if strcmp(obj.solutionScheme,'FSP')   % Set solution scheme to FSP.
                 [FSPsoln,bounds] = obj.solve;  % Solve the FSP analysis
                 obj.fspOptions.bounds = bounds;% Save bound for faster analyses
-                objFun = @(x)-obj.computeLikelihood(exp(x),FSPsoln.stateSpace);  % We want to MAXIMIZE the likelihood.
-
-                if isfield(fitOptions,'suppressFSPExpansion')&&fitOptions.suppressFSPExpansion
+                if allFitOptions.suppressFSPExpansion
                     tmpFSPtol = obj.fspOptions.fspTol;
                     obj.fspOptions.fspTol = inf;
                 end
+                objFun = @(x)-obj.computeLikelihood(exp(x),FSPsoln.stateSpace);  % We want to MAXIMIZE the likelihood.
             elseif strcmp(obj.solutionScheme,'ode')  % Set solution scheme to ode.
                 objFun = @(x)-obj.computeLikelihoodODE(exp(x));  % We want to MAXIMIZE the likelihood.
             end
@@ -1749,19 +1767,13 @@ classdef SSIT
 
             switch fitAlgorithm
                 case 'fminsearch'
-                    allFitOptions.suppressFSPExpansion = true;
-                    fNames = fieldnames(fitOptions);
-                    for i=1:length(fNames)
-                        allFitOptions.(fNames{i}) = fitOptions.(fNames{i});
-                    end
-
                     [x0,likelihood,~,otherResults]  = fminsearch(objFun,x0,allFitOptions);
 
                 case 'fminunc'
                     obj.fspOptions.fspTol = inf;
                     objFun = @obj.minusLogL;  % We want to MAXIMIZE the likelihood.
                     x0 = log(parGuess);
-                    [x0,likelihood]  = fminunc(objFun,x0,fitOptions,FSPsoln.stateSpace,true);
+                    [x0,likelihood]  = fminunc(objFun,x0,allFitOptions,FSPsoln.stateSpace,true);
 
                 case 'particleSwarm'
                     obj.fspOptions.fspTol=inf;
@@ -1772,25 +1784,27 @@ classdef SSIT
                     initSwarm = repmat(x0',fitOptions.SwarmSize-1,1);
                     initSwarm = [x0';initSwarm.*(1+0.1*randn(size(initSwarm)))];
                     fitOptions.InitialSwarmMatrix = initSwarm;
-                    [x0,likelihood] = particleswarm(OBJps,length(x0),LB,UB,fitOptions);
+                    [x0,likelihood] = particleswarm(OBJps,length(x0),LB,UB,allFitOptions);
 
                 case 'mlSearch'
                     % Not yet working efficiently.
-                    allFitOptions.maxIter=1000;
-                    allFitOptions.burnIn=30;
-                    allFitOptions.updateRate=10;
-                    allFitOptions.guessRate=1000;
-                    allFitOptions.proposalDistribution=@(x)x+0.01*randn(size(x));
-                    allFitOptions.useFIMforSearch = false;
-                    allFitOptions.CovFIMscale = 0.6;
-                    allFitOptions.suppressFSPExpansion = true;
-                    allFitOptions.logForm = true;
-                    allFitOptions.plotFunVals = false;
-                    allFitOptions.proposalDistributionWide=@(x)x+randn(size(x));
+                    defaultFitOptions.maxIter=1000;
+                    defaultFitOptions.burnIn=30;
+                    defaultFitOptions.updateRate=10;
+                    defaultFitOptions.guessRate=1000;
+                    defaultFitOptions.proposalDistribution=@(x)x+0.01*randn(size(x));
+                    defaultFitOptions.useFIMforSearch = false;
+                    defaultFitOptions.CovFIMscale = 0.6;
+                    defaultFitOptions.suppressFSPExpansion = true;
+                    defaultFitOptions.logForm = true;
+                    defaultFitOptions.plotFunVals = false;
+                    defaultFitOptions.proposalDistributionWide=@(x)x+randn(size(x));
 
-                    fNames = fieldnames(fitOptions);
+                    fNames = fieldnames(defaultFitOptions);
                     for i=1:length(fNames)
-                        allFitOptions.(fNames{i}) = fitOptions.(fNames{i});
+                        if ~isfield(allFitOptions,fNames{i})
+                            allFitOptions.(fNames{i}) = defaultFitOptions.(fNames{i});
+                        end
                     end
 
                     if allFitOptions.logForm
@@ -1805,26 +1819,29 @@ classdef SSIT
 
                 case 'MetropolisHastings'
 
-                    allFitOptions.isPropDistSymmetric=true;
-                    allFitOptions.thin=1;
-                    allFitOptions.numberOfSamples=1000;
-                    allFitOptions.burnIn=100;
-                    allFitOptions.progress=true;
-                    allFitOptions.proposalDistribution=@(x)x+0.1*randn(size(x));
-                    allFitOptions.numChains = 1;
-                    allFitOptions.useFIMforMetHast = false;
-                    allFitOptions.CovFIMscale = 0.6;
-                    allFitOptions.suppressFSPExpansion = true;
-                    allFitOptions.logForm = true;
+                    defaultFitOptions.isPropDistSymmetric=true;
+                    defaultFitOptions.thin=1;
+                    defaultFitOptions.numberOfSamples=1000;
+                    defaultFitOptions.burnIn=100;
+                    defaultFitOptions.progress=true;
+                    defaultFitOptions.proposalDistribution=@(x)x+0.1*randn(size(x));
+                    defaultFitOptions.numChains = 1;
+                    defaultFitOptions.useFIMforMetHast = false;
+                    defaultFitOptions.CovFIMscale = 0.6;
+                    defaultFitOptions.suppressFSPExpansion = true;
+                    defaultFitOptions.logForm = true;
 
                     j=1;
                     while exist(['TMPmh_',num2str(j),'.mat'],'file')
                         j=j+1;
                     end
-                    allFitOptions.saveFile = ['TMPmh_',num2str(j),'.mat'];
-                    fNames = fieldnames(fitOptions);
+                    defaultFitOptions.saveFile = ['TMPmh_',num2str(j),'.mat'];
+                   
+                    fNames = fieldnames(defaultFitOptions);
                     for i=1:length(fNames)
-                        allFitOptions.(fNames{i}) = fitOptions.(fNames{i});
+                        if ~isfield(allFitOptions,fNames{i})
+                            allFitOptions.(fNames{i}) = defaultFitOptions.(fNames{i});
+                        end
                     end
 
                     if allFitOptions.logForm
@@ -1909,7 +1926,7 @@ classdef SSIT
 
             pars = exp(x0);
 
-            if strcmp(obj.solutionScheme,'FSP')&&isfield(fitOptions,'suppressFSPExpansion')
+            if strcmp(obj.solutionScheme,'FSP')&&allFitOptions.suppressFSPExpansion
                 obj.fspOptions.fspTol = tmpFSPtol;
             end
 

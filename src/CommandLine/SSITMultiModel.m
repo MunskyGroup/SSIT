@@ -141,8 +141,13 @@ classdef SSITMultiModel
             % all models for the provided parameter combination.
             Nmods = length(SMM.logLikelihoodFunctions);
             logLs = zeros(1,Nmods);
+
+            G = cell(1,Nmods);
             for i = 1:Nmods
-                logLs(i) = SMM.logLikelihoodFunctions{i}(parameterGuess);
+                G{i} = SMM.logLikelihoodFunctions{i};
+            end
+            for i = 1:Nmods
+                logLs(i) = G{i}(parameterGuess);
             end
 
             totalLogLikelihood = sum(logLs);
@@ -267,7 +272,7 @@ classdef SSITMultiModel
 
                         if allFitOptions.logForm&&min(eig(FIMlog))<1
                             disp('Warning -- FIM has one or more small eigenvalues.  Reducing proposal width to 10x in those directions. MH Convergence may be slow.')
-                            FIMlog = FIMlog + 1*eye(length(FIMlog));
+                            FIMlog = FIMlog + 0.1*eye(length(FIMlog));
                         end
 
                         covLog = FIMlog^-1;
