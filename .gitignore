@@ -37,9 +37,6 @@ Examples/FakeExperiment_*.csv
 WorkSpace/Bomyi/*
 WorkSpace/Bomyi/*/*
 WorkSpace/Bomyi/*/*/*
-WorkSpace/DavidKing/*
-WorkSpace/DavidKing/*/*
-WorkSpace/DavidKing/*/*/*
 WorkSpace/Josh/OldVersions/*
 WorkSpace/Josh/OldVersions/*/*
 WorkSpace/Josh/OldVersions/*/*/*
@@ -51,5 +48,3 @@ WorkSpace/OldProablyTrash/*/*/*
 */tmpPropensityFunctions/*
 Examples/Iterative*.mat
 WorkSpace/Josh/Fake*.csv
-Workspace/*/*
-Workspace/*
