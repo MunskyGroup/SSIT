@@ -2427,12 +2427,13 @@ classdef SSIT
                 end
             end
         end
-        function k = findBestMove(fims,Ncp,met,NcMax)
+        function k = findBestMove(fims,Ncp,met,NcMax,statistic)
             arguments
                 fims
                 Ncp
                 met
                 NcMax = [];
+                statistic='mean';
             end
             Nt = size(fims,1);
             if isempty(NcMax)
@@ -2454,7 +2455,14 @@ classdef SSIT
                     objFun(it,is) = met(FIM);
                 end
             end
-            [~,k] = min(median(objFun,2));
+            switch statistics
+                case 'median'
+                    [~,k] = min(median(objFun,2));
+                case 'mean'
+                    [~,k] = min(mean(objFun,2));
+                otherwise
+                    [~,k] = min(median(objFun,2));
+            end
         end
         function propensities = parameterizePropensities(GenProps,Parset)
             propensities = GenProps;
