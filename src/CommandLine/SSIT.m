@@ -1100,7 +1100,7 @@ classdef SSIT
             end
         end
 
-        function [NcDNewDesign] = optimizeCellCounts(obj,fims,nCellsTotalNew,FIMMetric,NcGuess,NcFixed,NcMax)
+        function [NcDNewDesign] = optimizeCellCounts(obj,fims,nCellsTotalNew,FIMMetric,NcGuess,NcFixed,NcMax,statistic)
             % This function optimizes the number of cells per time point
             % according to the user-provide metric. 
             % 
@@ -1152,6 +1152,7 @@ classdef SSIT
                 NcGuess = [];
                 NcFixed = [];
                 NcMax = []
+                statistic = 'median'
             end
             switch FIMMetric
                 case 'Determinant'
@@ -1198,7 +1199,7 @@ classdef SSIT
                     while NcGuess(i)>NcFixed(i)
                         Ncp = NcGuess;
                         Ncp(i) = Ncp(i)-1;
-                        k = SSIT.findBestMove(fims,Ncp,met,NcMax);
+                        k = SSIT.findBestMove(fims,Ncp,met,NcMax,statistic);
                         if k==i
                             break
                         end
