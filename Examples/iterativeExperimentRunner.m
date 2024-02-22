@@ -1,4 +1,57 @@
 function iterativeExperimentRunner(example,data,sampleType,nExptRounds,rngSeed,ind)
+%iterativeExperimentRunner -- tool to evaluate different experiment design
+%                             approaches
+% arguments:
+%   example -- The model run in the iterative experiment design.
+%              Current Models included are 'Poisson', 'Toggle',
+%              and 'DUSP1'.
+%   data - the type of data used in each experiment step:
+%       'simulated':
+%                  Simulated data is generated from SSA
+%                  trajectories that are generated and saved in
+%                  a csv file.
+%       'real':
+%              Real data from and experiment csv file is loaded
+%              into the model and fit. The cells used is randomly
+%              selected from the csv file. An error will be
+%              passed if there are not enough cells in the
+%              passed data file.
+%       
+%
+%  sampleType -- The data sampling method used for selecting
+%                the measurement times for the next experiment
+%
+%             'FIMopt':
+%                      Uses the FIM optimization method to
+%                      select the next measurement times and
+%                      how many cells are allocated to each
+%                      measuement time.
+%             'intuition':
+%                      This is a n by m matrix defined by the
+%                      user in the "intuition" option of the
+%                      codes. n is the number of timepoints in
+%                      the experiment model while m is the
+%                      number of experiment rounds. The values
+%                      of the row vectors coinside with how
+%                      many cells are measured at that time
+%                      point.
+%             'random':
+%                      Random time points are chosen for cell
+%                      measurements. The default setting picks
+%                      3 random time points to have 1/3 of the
+%                      round's additional cells measured at
+%                      that point.
+%            'uniform':
+%                      The total cell added each experiment
+%                      round is split up evenly and measured
+%                      across all time points.
+%
+%   nExptRounds -- The number of experiment rounds perfomed
+%
+%   rngSeed -- RNG seed before any additional code is ran
+%
+%   ind -- indices for model and parameter naming convention
+            
 arguments
     example = 'Poisson'
     data = 'simulated';
@@ -14,12 +67,12 @@ if ~isempty(rngSeed)
 end
 
 %% Define Model
-% Number of experiment Rounds
 
-showPlots = false;
+showPlots = false; % Set to true to see all fitting plots for each experiment round
 
 switch example
     case 'Poisson'
+        % Poisson model set up
         ModelTrue = SSIT;
         ModelTrue.species = {'rna'};
         ModelTrue.initialCondition = 0;
@@ -36,22 +89,26 @@ switch example
         nSamplesMH = 5000; % Number of MH Samples to run
         
         % Total number of new cells allowed in each experiment
-        numCellsPerExperiment = 50;
+        numCellsPerExperiment = 60;
 
     case 'Toggle'
+        % Toggle model set up
         ModelTrue = SSIT;
-        ModelTrue.parameters = {'kb',10;'ka',80;'M',20;'g',1};
-        ModelTrue.species = {'lacI';'lambdaCI'};
-        ModelTrue.stoichiometry = [1,-1,0, 0;...
-            0, 0,1,-1];
+        ModelTrue.parameters = {'kb',10;'ka',80;'M',20;'g',1}; % Define parameters and their values
+        ModelTrue.species = {'lacI';'lambdaCI'}; % Species label
+        ModelTrue.stoichiometry = [1,-1,0, 0;... % Model stoichiometery
+                                   0, 0,1,-1];
+        % Model Propensities
         ModelTrue.propensityFunctions = {'kb+ka*M^3/(M^3+lambdaCI^3)';...
-            'g*lacI';...
-            'kb+ka*M^3/(M^3+lacI^3)';...
-            'g*lambdaCI'};
-        ModelTrue.initialCondition = [0;0];
+                                        'g*lacI';...
+                                        'kb+ka*M^3/(M^3+lacI^3)';...
+                                        'g*lambdaCI'};
+        ModelTrue.initialCondition = [0;0]; % Inital conditions
         ModelTrue.customConstraintFuns = {'(x1-3).^2.*(x2-3).^2'};
+
+        % Which data columns to load data into the associate model species
         dataToFit = {'lacI','exp1_s1';'lambdaCI','exp1_s2'};
-        fitParameters = [1:4];
+        fitParameters = [1:4]; % parameters to fit
         nT = 21;
         ModelTrue.tSpan = linspace(0,10,nT);
         fimMetric = 'Determinant';
@@ -67,31 +124,34 @@ switch example
         ModelTrue.species = {'x1';'x2'}; % x1: number of on alleles,  x2: mRNA 
         ModelTrue.initialCondition = [0;0]; % Set initial conditions
         ModelTrue.propensityFunctions = {'kon*IGR*(2-x1)';'koff*x1';'kr*x1';'gr*x2'}; % Set the propensity functions of the 4 reactions
+        
         % Associated stoichiometry of the four reactions
         stoich = [1,0;   % Gene allele switching to on state
                  -1,0;   % Gene allele switching to off state
                   0,1;   % mRNA production
                   0,-1]; % mRNA degredation   
         ModelTrue.stoichiometry = transpose(stoich);
+
         % Input expression for time varying signals
-        ModelTrue.inputExpressions = {'IGR','kcn0/knc+(t>=0)*kcn1/(r1-knc)*(exp(-knc*t)-exp(-r1*t))'};       
-        % Defining the values of each parameter used
-        
-        %ModelTrue.parameters = ({'koff',0.14;'kon',1;'kr',1;'gr',0.01;...
-        %                   'kcn0',0.01;'kcn1',0.1;'knc',1;'r1',0.01});
-        ModelTrue.parameters=load('SGRS_model_v1.mat').SGRS_Model.parameters; % True model parameters after fitting to data
+        ModelTrue.inputExpressions = {'IGR','kcn0/knc+(t>=0)*kcn1/(r1-knc)*(exp(-knc*t)-exp(-r1*t))'};
+
+        % Defining parameters and their values
+        ModelTrue.parameters = ({'koff',0.14;'kon',1;'kr',1;'gr',0.01;...
+                          'kcn0',0.01;'kcn1',0.1;'knc',1;'r1',0.01});
+%         ModelTrue.parameters=load('SGRS_model_v1.mat').SGRS_Model.parameters; % True model parameters after fitting to data
 
         ModelTrue.fspOptions.initApproxSS = true;
         
         dataToFit = {'x2','exp1_s2'};
         fitParameters = [1:4];
-        timeDUSP1 = [0 10 20 30 40 50 60 75 90 120 150 180];
+        timeDUSP1 = [0 10 20 30 40 50 60 75 90 120 150 180]; % Model experiment time points
         nT = length(timeDUSP1);
         ModelTrue.tSpan = timeDUSP1;
         ModelTrue.fspOptions.bounds(3:4) = [2.1,100];
         fimMetric = 'TR1:4';
         ModelTrue.pdoOptions.unobservedSpecies = {'x1'};
-
+        
+        % Setting Prior for fitting model
         muLog10Prior = [-1 -1 -1 -2 -2 -2 -2 -2];
         sigLog10Prior = [2 2 2 2 2 2 2 2];
         ModelTrue.fittingOptions.modelVarsToFit = fitParameters;
@@ -101,22 +161,17 @@ switch example
 
         nSamplesMH = 5000; % Number of MH Samples to run
 
-%         intuitiveDesign = [50 0 50 0 50 0 50 0 50 0 0 50;
-%                              75 0 0 75 0 0 75 0 0 0 75 0;
-%                              0 0 0 100 0 0 100 0 0 100 0 0;
-%                              0 0 0 100 0 0 0 100 0 100 0 0;
-%                              0 0 0 0 100 0 100 0 0 100 0 0];
-
-                    intuitiveDesign = [20 0 20 0 20 0 20 0 20 0 0 20;
-                                     30 0 0 30 0 0 30 0 0 0 30 0;
-                                     0 0 0 40 0 0 40 0 0 40 0 0;
-                                     0 0 0 40 0 0 0 40 0 40 0 0;
-                                     0 0 0 0 40 0 40 0 0 40 0 0;
-                                     0 0 40 0 40 0 0 40 0 0 0 0;
-                                     40 0 0 0 40 0 0 0 0 0 0 0;
-                                     0 0 0 40 0 0 0 40 0 40 0 0;
-                                     0 0 0 0 40 0 40 0 0 40 0 0;
-                                     80 0 0 0 40 0 0 0 0 0 0 0];
+        % Intuitive design for DUSP1 model for 10 experiment rounds
+        intuitiveDesign = [20 0 20 0 20 0 20 0 20 0 0 20;
+                         30 0 0 30 0 0 30 0 0 0 30 0;
+                         0 0 0 40 0 0 40 0 0 40 0 0;
+                         0 0 0 40 0 0 0 40 0 40 0 0;
+                         0 0 0 0 40 0 40 0 0 40 0 0;
+                         0 0 40 0 40 0 0 40 0 0 0 0;
+                         40 0 0 0 40 0 0 0 0 0 0 0;
+                         0 0 0 40 0 0 0 40 0 40 0 0;
+                         0 0 0 0 40 0 40 0 0 40 0 0;
+                         80 0 0 0 40 0 0 0 0 0 0 0];
 
         % Total number of new cells allowed in each experiment
         numCellsPerExperiment = 120;
@@ -170,7 +225,9 @@ nextExperiment([1,round(nT/2),nT]) = round(numCellsPerExperiment/3);
 mhPlotScale = 'log10';  % Show MH and FIM plots in log10 scale.
 
 %% Experiment Design Definitions
-incrementAdd = 30; % group size for Cells added
+
+% Random experiment design
+incrementAdd = 20; % group size for Cells added
 N = numCellsPerExperiment/incrementAdd; % needs to be int
 randomCell = zeros(nExptRounds,nT);
 for i = 1:nExptRounds
@@ -180,6 +237,7 @@ for i = 1:nExptRounds
     end
 end
 
+% Uniform experiment design
 uniformCell = floor(ones(nExptRounds,nT)*numCellsPerExperiment/nT);
 for i=1:nExptRounds
     if sum(uniformCell(i,:))<numCellsPerExperiment
@@ -222,7 +280,8 @@ for iExpt = 1:nExptRounds
     switch data
         case 'real'
             % Sample from real data
-            [simData,csvFile] = sampleExperimentSim('../ExampleData/DUSP1_Dex_100nM_Rep1_Rep2.csv',timeDUSP1,nTotalCells);
+%             [simData,csvFile] = sampleExperimentSim('../ExampleData/DUSP1_Dex_100nM_Rep1_Rep2.csv',timeDUSP1,nTotalCells);
+            [simData,csvFile] = sampleExperimentSim('../ExampleData/DUSP1_3hr_Dex_100nM_total.csv',timeDUSP1,nTotalCells);
             dataFile = csvFile;
             dataToFit = {'x2','RNA_nuc'};
         case 'simulated'
@@ -298,7 +357,10 @@ for iExpt = 1:nExptRounds
         case 'FIMopt'
             % Find optimal NEXT experiment design given parameter sets
             nextExperiment = ModelGuess.optimizeCellCounts(fimResults,numCellsPerExperiment,fimMetric,[],nTotalCells);
-            
+%             batchGroup = 3;
+%             totalCellGroups=nTotalCells/incrementAdd;
+%             batchNextExperiment = ModelGuess.optimizeCellCounts(fimResults,batchGroup,fimMetric,[],totalCellGroups,[],'mean'); 
+%             nextExperiment = batchNextExperiment*incrementAdd;
         case 'random'
             nextExperiment = randomCell(iExpt,:);
 
@@ -349,11 +411,7 @@ for iExpt = 1:nExptRounds
         xlabel('time [min]');
         ylim([0 300]);
     end
-%     if iExpt>1
-%         f = figure;
-%         f.Name = ['Current MH Results and Previous FIM Prediction (Round ',num2str(iExpt),')'];
-%         ModelGuess.plotMHResults(MHResults,[FIMOptNextExptSaved{iExpt-1}],fimScale,mhPlotScale,f)
-%     end
+
     saveExpName =[saveFileName,'_', data,'_',sampleType,'_',int2str(fitParameters(end))];
     save(saveExpName,'parametersFound','FIMcurrentExptSaved','FIMcurrentExptTrueSaved','covMH',...
         'covLogMH','exptDesigns','MHResultsSaved')
