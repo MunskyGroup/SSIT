@@ -1,7 +1,7 @@
 clear all
 addpath(genpath('../../src'));
 
-Model = SSIT;
+Model = SSIT('Empty');
 Model.species = {};
 Model.initialCondition = [];
 Model.propensityFunctions = {};
@@ -36,10 +36,10 @@ for i = 1:4
     stoichForward([i,i+1])=[-1,1];
     % Model = Model.addReaction(['alpha',num2str(i),'*E',num2str(i)],stoichForward);
     Model = Model.addReaction(['alph*E',num2str(i)],stoichForward);
-    
+
     stoichBackward = zeros(size(Model.species,1),1);
     stoichBackward([i,i+1])=[1,-1];
-    Model = Model.addReaction(['bet*E',num2str(i+1),'*',num2str(i)],stoichBackward);  
+    Model = Model.addReaction(['bet*E',num2str(i+1),'*',num2str(i)],stoichBackward);
 
     stoichProduction = zeros(size(Model.species,1),1);
     stoichProduction(end)=1;

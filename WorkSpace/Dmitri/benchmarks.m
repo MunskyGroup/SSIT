@@ -1,9 +1,11 @@
 clear all
+addpath(genpath('../../src'));
+
 %% Random Matrix
 M = 5;
 Ns = 6;
 Nsim = 5;
-Nar = floor(logspace(2,3,Ns));
+Nar = floor(logspace(1,2,Ns));
 timeExpm =nan*ones(Nsim,Ns);
 timeExpokit =nan*ones(Nsim,Ns);
 diff_expm_expokit =nan*ones(Nsim,Ns);
@@ -16,7 +18,10 @@ for n = length(Nar):-1:1
 
     for j = 1:Nsim
         A = rand(N,N);
-        thr = min(maxk(A,5));
+        %% MATLAB version
+        %thr = min(maxk(A,5));
+        %% Octave version
+        thr = Asorted
         A(A<thr)=0;
         A = sparse(A);
         A = A - diag(sum(A));
