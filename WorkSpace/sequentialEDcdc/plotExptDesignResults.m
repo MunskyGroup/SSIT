@@ -1,22 +1,27 @@
 
 clear all
 close all
-parfor i=4:7
+nRounds = 10;
+rngSeed = 0;
+modelIndex = 1;
+for i=8
     switch i
         case 1
-            iterativeExperimentRunner('Poisson','simulated','FIMopt',10,1,i)
+            iterativeExperimentRunner('Poisson','simulated','FIMopt',nRounds,rngSeed,i)
         case 2
-            iterativeExperimentRunner('Poisson','simulated','FIMopt',10,1,i)
+            iterativeExperimentRunner('Poisson','simulated','FIMopt',nRounds,rngSeed,i)
         case 3
-            iterativeExperimentRunner('Poisson','simulated','uniform',10,1,i)
+            iterativeExperimentRunner('Poisson','simulated','uniform',nRounds,rngSeed,i)
         case 4            
-            iterativeExperimentRunner('DUSP1','real','FIMopt',20,1,i)
+            iterativeExperimentRunner('DUSP1','real','FIMopt',nRounds,rngSeed,i)
         case 5
-            iterativeExperimentRunner('DUSP1','real','random',20,1,i)
+            iterativeExperimentRunner('DUSP1','real','random',nRounds,rngSeed,i)
         case 6
-            iterativeExperimentRunner('DUSP1','real','uniform',20,1,i)
+            iterativeExperimentRunner('DUSP1','real','uniform',nRounds,rngSeed,i)
          case 7
-            iterativeExperimentRunner('DUSP1','real','intuition',20,1,i)
+            iterativeExperimentRunner('DUSP1','real','intuition',nRounds,rngSeed,i)
+         case 8
+            iterativeExperimentRunner('Burst','simulated','FIMopt',nRounds,rngSeed,i)
     end
 end
 

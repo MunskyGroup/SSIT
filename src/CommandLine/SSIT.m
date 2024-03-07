@@ -22,7 +22,7 @@ classdef SSIT
         pdoOptions = struct('unobservedSpecies',[],'PDO',[]);
         % Options for FIM analyses
         fittingOptions = struct('modelVarsToFit','all','pdoVarsToFit',[],...
-            'timesToFit','all','logPrior',[])
+            'timesToFit','all','logPrior',[],'logPriorCovariance',[],'priorCovariance',[])
         initialCondition = [0]; % Initial condition for species [x1;x2;...]
         initialProbs = 1; % Probability mass of states given in init. cond.
         initialTime = 0;
@@ -1066,6 +1066,9 @@ classdef SSIT
             fimTotal = cell(1,Ns);
             mleCovEstimate = cell(1,Ns);
 
+            % Add the prior covariance into the FIM calculation if
+            % provided. The prior covariance should be in the same scale as
+            % the parameters (e.g.m linear, log, or log10).
             if isempty(priorCoVariance)
                 PriorFIM = zeros(Np);
             else
@@ -1100,7 +1103,8 @@ classdef SSIT
             end
         end
 
-        function [NcDNewDesign] = optimizeCellCounts(obj,fims,nCellsTotalNew,FIMMetric,NcGuess,NcFixed,NcMax,statistic)
+        function [NcDNewDesign] = optimizeCellCounts(obj,fims,nCellsTotalNew,FIMMetric,...
+                NcGuess,NcFixed,NcMax,statistic,covPrior,incrementAdd)
             % This function optimizes the number of cells per time point
             % according to the user-provide metric. 
             % 
@@ -1148,11 +1152,16 @@ classdef SSIT
                 obj
                 fims
                 nCellsTotalNew
-                FIMMetric = 'Smallest Eigenvalue';
-                NcGuess = [];
-                NcFixed = [];
+                FIMMetric = 'Smallest Eigenvalue'
+                NcGuess = []
+                NcFixed = []
                 NcMax = []
-                statistic = 'median'
+                statistic = 'mean'
+                covPrior = []
+                incrementAdd = 1
+            end
+            if mod(nCellsTotalNew,incrementAdd)~=0
+                error('Number of cells must be evenly divisible by incrementAdd.')
             end
             switch FIMMetric
                 case 'Determinant'
@@ -1192,19 +1201,22 @@ classdef SSIT
                 NcGuess = NcFixed+NcGuess;
             end
 
+            % Process to search for optimal experiment
             Converged = 0;
             while Converged==0
                 Converged = 1;
+                % Iterate through the time points
                 for i = 1:NT
-                    while NcGuess(i)>NcFixed(i)
+                    % If 
+                    while NcGuess(i)-incrementAdd>=NcFixed(i)
                         Ncp = NcGuess;
-                        Ncp(i) = Ncp(i)-1;
-                        k = SSIT.findBestMove(fims,Ncp,met,NcMax,statistic);
+                        Ncp(i) = Ncp(i)-incrementAdd;
+                        k = SSIT.findBestMove(fims,Ncp,met,NcMax,statistic,covPrior,incrementAdd);
                         if k==i
                             break
                         end
                         NcGuess = Ncp;
-                        NcGuess(k)=NcGuess(k)+1;
+                        NcGuess(k)=NcGuess(k)+incrementAdd;
                         Converged = 0;
                     end
                 end
@@ -1820,7 +1832,7 @@ classdef SSIT
                     defaultFitOptions.thin=1;
                     defaultFitOptions.numberOfSamples=1000;
                     defaultFitOptions.burnIn=100;
-                    defaultFitOptions.progress=true;
+                    defaultFitOptions.progress=false;
                     defaultFitOptions.proposalDistribution=@(x)x+0.1*randn(size(x));
                     defaultFitOptions.numChains = 1;
                     defaultFitOptions.useFIMforMetHast = false;
@@ -1859,7 +1871,14 @@ classdef SSIT
                         else
                             fimResults = TMP.computeFIM(sensSoln.sens);
                         end
-                        FIM = TMP.evaluateExperiment(fimResults,TMP.dataSet.nCells);
+                        
+                        % Call function to assemble full FIM from cell
+                        % counts and prior covariance information.
+                        if allFitOptions.logForm
+                            FIM = TMP.evaluateExperiment(fimResults,TMP.dataSet.nCells,obj.fittingOptions.logPriorCovariance);
+                        else
+                            FIM = TMP.evaluateExperiment(fimResults,TMP.dataSet.nCells,obj.fittingOptions.priorCovariance);                            
+                        end
 
                         FIMfree = FIM{1}(obj.fittingOptions.modelVarsToFit,obj.fittingOptions.modelVarsToFit);
 
@@ -2269,112 +2288,6 @@ classdef SSIT
             makeSeparatePlotOfData(fitSolution,smoothWindow,fignums)
         end
 
-        function plotMHResults(obj,mhResults,FIM,fimScale,mhPlotScale,scatterFig)
-            arguments
-                obj
-                mhResults = [];
-                FIM =[];
-                fimScale = 'lin';
-                mhPlotScale = 'log10';
-                scatterFig = [];
-            end
-
-            if strcmp(obj.fittingOptions.modelVarsToFit,'all')
-                obj.fittingOptions.modelVarsToFit = ones(1,size(obj.parameters,1),'logical');
-            end
-            parNames = obj.parameters(obj.fittingOptions.modelVarsToFit,1);
-            Np = length(parNames);
-
-            if ~isempty(FIM)
-                pars = [obj.parameters{obj.fittingOptions.modelVarsToFit,2}];
-                
-                if isempty(mhPlotScale)||strcmp(mhPlotScale,'log10')
-                    parsScaled = log10(pars);
-                elseif strcmp(mhPlotScale,'log')
-                    parsScaled = log(pars);
-                elseif strcmp(mhPlotScale,'lin')
-                    parsScaled = pars;
-                end
-
-                if ~iscell(FIM)
-                    FIM = {FIM};
-                end
-                %     FIM = diag(pars)*...
-                %         FIM(obj.fittingOptions.modelVarsToFit,obj.fittingOptions.modelVarsToFit)*...
-                %         diag(pars);
-                %     covFIM{1} = FIM^(-1)/log(10)^2;
-                % else
-                for i=1:length(FIM)
-                    if isempty(fimScale)||strcmp(fimScale,'lin')
-                        FIMi = diag(pars)*...
-                            FIM{i}(obj.fittingOptions.modelVarsToFit,obj.fittingOptions.modelVarsToFit)*...
-                            diag(pars);
-                    else
-                        FIMi = FIM{i};
-                    end
-                    FIMi = FIMi(obj.fittingOptions.modelVarsToFit,obj.fittingOptions.modelVarsToFit);
-                    if isempty(mhPlotScale)||strcmp(mhPlotScale,'log10')
-                        covFIM{i} = FIMi^(-1)/log(10)^2;
-                    else
-                        covFIM{i} = FIMi^(-1);
-                    end
-                end
-                % end
-            end
-
-            if ~isempty(mhResults)
-                % Make figures for MH convergence
-                figure;
-                plot(mhResults.mhValue);
-                xlabel('Iteration number');
-                ylabel('log-likelihood')
-                title('MH Convergence')
-
-                figure
-                ac = xcorr(mhResults.mhValue-mean(mhResults.mhValue),'normalized');
-                ac = ac(size(mhResults.mhValue,1):end);
-                plot(ac,'LineWidth',3); hold on
-                N = size(mhResults.mhValue,1);
-                tau = 1+2*sum((ac(2:N/100)));
-                Neff = N/tau;
-                xlabel('Lag');
-                ylabel('Auto-correlation')
-                title('MH Convergence')
-
-                if isempty(scatterFig)
-                    figure
-                else
-                    figure(scatterFig);
-                end
-                [valDoneSorted,J] = sort(mhResults.mhValue);
-                smplDone = mhResults.mhSamples(J,:);
-            end
-            
-            fimCols = {'k','c','b','g','r'};
-
-            for i=1:Np-1
-                for j = i+1:Np
-                    subplot(Np-1,Np-1,(i-1)*(Np-1)+j-1);
-
-                    if ~isempty(mhResults)
-                        scatter(smplDone(:,j)/log(10),smplDone(:,i)/log(10),20,valDoneSorted,'filled'); hold on;
-                        par0 = mean(smplDone(:,[j,i])/log(10));
-                        cov12 = cov(smplDone(:,j)/log(10),smplDone(:,i)/log(10));
-                    end
-                    if ~isempty(FIM)
-                        for iFIM = 1:length(covFIM)
-                            ssit.parest.ellipse(parsScaled([j,i]),icdf('chi2',0.9,2)*covFIM{iFIM}([j,i],[j,i]),fimCols{mod(iFIM,5)+1},'linewidth',2); hold on;
-                        end
-                    end
-                    if ~isempty(mhResults)
-                        ssit.parest.ellipse(par0,icdf('chi2',0.9,2)*cov12,'m--','linewidth',2);  hold on;
-                    end
-                    xlabel(['log_{10}(',parNames{j},')']);
-                    ylabel(['log_{10}(',parNames{i},')']);
-                end
-            end
-        end
-
         function makeMleFimPlot(obj,MLE,FIM,indPars,CI,figNum,par0)
             arguments
                 obj
@@ -2415,26 +2328,162 @@ classdef SSIT
 
         end
 
+        function plotMHResults(obj,mhResults,FIM,fimScale,mhPlotScale,scatterFig)
+            plotMHResultsStatic(obj,mhResults,FIM,fimScale,mhPlotScale,scatterFig)
+        end
     end
     methods (Static)
-        function FIM = totalFim(fims,Nc)
+        function plotMHResultsStatic(obj,mhResults,FIM,fimScale,mhPlotScale,scatterFig,showConvergence)
+            arguments
+                obj
+                mhResults = [];
+                FIM =[];
+                fimScale = 'lin';
+                mhPlotScale = 'log10';
+                scatterFig = [];
+                showConvergence = true
+            end
+
+            if isempty(obj)
+                obj.fittingOptions.modelVarsToFit = 'all';
+                obj.parameters(:,2) = num2cell(mean(exp(mhResults.mhSamples)));
+            end
+
+            if strcmp(obj.fittingOptions.modelVarsToFit,'all')
+                obj.fittingOptions.modelVarsToFit = ones(1,size(obj.parameters,1),'logical');
+            end
+            parNames = obj.parameters(obj.fittingOptions.modelVarsToFit,1);
+            Np = length(parNames);
+
+            if ~isempty(FIM)
+                pars = [obj.parameters{obj.fittingOptions.modelVarsToFit,2}];
+
+                if isempty(mhPlotScale)||strcmp(mhPlotScale,'log10')
+                    parsScaled = log10(pars);
+                elseif strcmp(mhPlotScale,'log')
+                    parsScaled = log(pars);
+                elseif strcmp(mhPlotScale,'lin')
+                    parsScaled = pars;
+                end
+
+                if ~iscell(FIM)
+                    FIM = {FIM};
+                end
+                %     FIM = diag(pars)*...
+                %         FIM(obj.fittingOptions.modelVarsToFit,obj.fittingOptions.modelVarsToFit)*...
+                %         diag(pars);
+                %     covFIM{1} = FIM^(-1)/log(10)^2;
+                % else
+                for i=1:length(FIM)
+                    if isempty(fimScale)||strcmp(fimScale,'lin')
+                        FIMi = diag(pars)*...
+                            FIM{i}(obj.fittingOptions.modelVarsToFit,obj.fittingOptions.modelVarsToFit)*...
+                            diag(pars);
+                    else
+                        FIMi = FIM{i};
+                    end
+                    FIMi = FIMi(obj.fittingOptions.modelVarsToFit,obj.fittingOptions.modelVarsToFit);
+                    if isempty(mhPlotScale)||strcmp(mhPlotScale,'log10')
+                        covFIM{i} = FIMi^(-1)/log(10)^2;
+                    else
+                        covFIM{i} = FIMi^(-1);
+                    end
+                end
+                % end
+            end
+
+            if ~isempty(mhResults)
+                % Make figures for MH convergence
+                if showConvergence
+                    figure;
+                    plot(mhResults.mhValue);
+                    xlabel('Iteration number');
+                    ylabel('log-likelihood')
+                    title('MH Convergence')
+
+                    figure
+                    ac = xcorr(mhResults.mhValue-mean(mhResults.mhValue),'normalized');
+                    ac = ac(size(mhResults.mhValue,1):end);
+                    plot(ac,'LineWidth',3); hold on
+                    N = size(mhResults.mhValue,1);
+                    tau = 1+2*sum((ac(2:N/100)));
+                    Neff = N/tau;
+                    xlabel('Lag');
+                    ylabel('Auto-correlation')
+                    title('MH Convergence')
+                end
+
+                if isempty(scatterFig)
+                    figure
+                else
+                    figure(scatterFig);
+                end
+
+                % Select second half of MH chain.
+                mhResultsSecondHalf = mhResults;
+                mhResultsSecondHalf.mhValue = mhResultsSecondHalf.mhValue(floor(end/2):end);
+                mhResultsSecondHalf.mhSamples = mhResultsSecondHalf.mhSamples(floor(end/2):end,:);
+                [valDoneSorted,J] = sort(mhResultsSecondHalf.mhValue);
+                smplDone = mhResultsSecondHalf.mhSamples(J,:);
+            end
+
+            fimCols = {'k','c','b','g','r'};
+
+            for i=1:Np-1
+                for j = i+1:Np
+                    subplot(Np-1,Np-1,(i-1)*(Np-1)+j-1);
+
+                    if ~isempty(mhResultsSecondHalf)
+                        scatter(smplDone(:,j)/log(10),smplDone(:,i)/log(10),20,valDoneSorted,'filled'); hold on;
+                        par0 = mean(smplDone(:,[j,i])/log(10));
+                        cov12 = cov(smplDone(:,j)/log(10),smplDone(:,i)/log(10));
+                    end
+                    if ~isempty(FIM)
+                        for iFIM = 1:length(covFIM)
+                            ssit.parest.ellipse(parsScaled([j,i]),icdf('chi2',0.9,2)*covFIM{iFIM}([j,i],[j,i]),fimCols{mod(iFIM,5)+1},'linewidth',2); hold on;
+                            plot(parsScaled(j),parsScaled(i),'ks','MarkerSize',15)
+                            plot(smplDone(end,j)/log(10),smplDone(end,i)/log(10),'cs','MarkerSize',15)
+
+                        end
+                    end
+                    if ~isempty(mhResultsSecondHalf)
+                        ssit.parest.ellipse(par0,icdf('chi2',0.9,2)*cov12,'m--','linewidth',2);  hold on;
+                    end
+                    xlabel(['log_{10}(',parNames{j},')']);
+                    ylabel(['log_{10}(',parNames{i},')']);
+                end
+            end
+        end
+        function FIM = totalFim(fims,Nc,covPrior)
+            arguments
+                fims
+                Nc
+                covPrior = [];
+            end
+            if isempty(covPrior)
+                fimPrior = zeros(size(fims{1}));
+            else
+                fimPrior = inv(covPrior);
+            end
             Nt = size(fims,1);
             Ns = size(fims,2);
             FIM = cell(1,Ns);
             for is = 1:Ns
-                FIM{is} = 0*fims{1};
+                FIM{is} = fimPrior;
                 for it = 1:Nt
                     FIM{is} = FIM{is}+Nc(it)*fims{it,is};
                 end
             end
         end
-        function k = findBestMove(fims,Ncp,met,NcMax,statistic)
+        function k = findBestMove(fims,Ncp,met,NcMax,statistic,covPrior,incrementAdd)
             arguments
                 fims
                 Ncp
                 met
-                NcMax = [];
-                statistic='mean';
+                NcMax = []
+                statistic='mean'
+                covPrior=[]
+                incrementAdd=1
             end
             Nt = size(fims,1);
             if isempty(NcMax)
@@ -2442,12 +2491,12 @@ classdef SSIT
             end
             Ns = size(fims,2);
             objFun = zeros(Nt,Ns);
-            FIM0 = SSIT.totalFim(fims,Ncp);
+            FIM0 = SSIT.totalFim(fims,Ncp,covPrior);
             for is = 1:Ns
                 for it = 1:Nt
-                    if Ncp(it)<NcMax(it)
+                    if Ncp(it)+incrementAdd<=NcMax(it)
                         % If one can do that experiment.
-                        FIM = FIM0{is}+fims{it,is};
+                        FIM = FIM0{is}+incrementAdd*fims{it,is};
                     else
                         % If there are no more cells avalable for that time
                         % point.
@@ -2456,7 +2505,7 @@ classdef SSIT
                     objFun(it,is) = met(FIM);
                 end
             end
-            switch statistics
+            switch statistic
                 case 'median'
                     [~,k] = min(median(objFun,2));
                 case 'mean'
