@@ -54,7 +54,7 @@ ModelGRparameterMap = cell(1,size(GRfitCases,1));
 ModelGRfit = cell(1,size(GRfitCases,1));
 ModelGRODEfit = cell(1,size(GRfitCases,1));
 for i=1:3
-    ModelGRfit{i} = ModelGR.loadData("EricDataJan23_2024/Gated_dataframe_Ron_020224_NormalizedGR_bins.csv",...
+    ModelGRfit{i} = ModelGR.loadData("EricDataJan23_2024/Gated_dataframe_Ron_030624_NormalizedGR_bins.csv",...
         {'nucGR','normgrnuc';'cytGR','normgrcyt'},...
         {'Condition','GR_timesweep';'Dex_Conc',GRfitCases{i,2}});
     
@@ -81,16 +81,16 @@ end
 %     drawnow
 % end
 %%    Combine all three GR models and fit using a single parameter set.
-% for jj = 1:5
-    fitOptions = optimset('Display','iter','MaxIter',5);
+for jj = 1:5
+    fitOptions = optimset('Display','iter','MaxIter',50);
 
     combinedGRModel = SSITMultiModel(ModelGRfit,ModelGRparameterMap);
     combinedGRModel = combinedGRModel.initializeStateSpaces(boundGuesses);
     combinedGRModel = combinedGRModel.updateModels(GRpars,false);
     GRpars = combinedGRModel.maximizeLikelihood(...
         GRpars, fitOptions);
-    save('EricModelDataFeb5e','GRpars')
-% end
+    save('EricModelDataMarch06','GRpars')
+end
 
 %% Compute FIM
 % combinedGRModel = combinedGRModel.computeFIMs;
@@ -157,8 +157,8 @@ ModelDusp1Fit = cell(size(Dusp1FitCases,1),1);
 ModelDusp1parameterMap = cell(1,size(GRfitCases,1));
 for i = 1:size(Dusp1FitCases,1)
     % TODo - Adjust for newly processed data.
-    ModelDusp1Fit{i} = ModelGRDusp.loadData('DUSP1_GR_dataframes/DUSP1_3hr_Dex_100nM_total.csv',...
-        {'rna','RNA_nuc'}); 
+    ModelDusp1Fit{i} = ModelGRDusp.loadData('EricDataJan23_2024/DUSP1_fit_flitered_data_100nM_030624.csv',...
+        {'rna','RNA_DUSP1_nuc'}); 
     ModelDusp1Fit{i}.inputExpressions = {'IDex','Dex0*exp(-gDex*t)*(t>0)'};    
     ModelDusp1parameterMap{i} = (1:4);
     % Set Dex concentration.
@@ -168,16 +168,16 @@ end
 DUSP1pars = [ModelDusp1Fit{i}.parameters{ModelGRDusp.fittingOptions.modelVarsToFit,2}];
 
 %%    Fit DUSP1 model(s) with single parameter set.
-% for i = 1:5
-    fitOptions = optimset('Display','iter','MaxIter',5);
+for i = 1:5
+    fitOptions = optimset('Display','iter','MaxIter',50);
     fitOptions.suppressFSPExpansion = true;
     combinedDusp1Model = SSITMultiModel(ModelDusp1Fit,ModelDusp1parameterMap);
     combinedDusp1Model = combinedDusp1Model.initializeStateSpaces({[0;0;0;2;2;400]});
     DUSP1pars = combinedDusp1Model.maximizeLikelihood(...
         DUSP1pars, fitOptions);
     ModelGRDusp.parameters(1:4,2) = num2cell(DUSP1pars);
-    save('EricModelDusp1Feb06','DUSP1pars') 
-% end
+    save('EricModelDusp1March06','DUSP1pars') 
+end
 
 %% Sample uncertainty for Dusp1 Parameters
 % MHFitOptions.thin=1;
@@ -216,9 +216,9 @@ fignums = [311,321,301,331;...
     313,323,303,333];
 ModelPred = cell(size(Dusp1FitCases,1),1);
 for i=1:size(PredictionCases,1)
-    ModelPred{i} = ModelGRDusp.loadData('DUSP1_GR_dataframes/DUSP1_3hr_Dex_TimeConcSweep_total.csv',...
-        {'rna','RNA_nuc'},...
-        {'conc',PredictionCases{i,2}});
+    ModelPred{i} = ModelGRDusp.loadData('EricDataJan23_2024/DUSP1_predict_flitered_data_03nM_1nM_10nM_030624.csv',...
+        {'rna','RNA_DUSP1_nuc'},...
+        {'Dex_Conc',PredictionCases{i,2}});
 
     ModelPred{i}.tSpan = sort(unique([ModelPred{i}.tSpan,linspace(0,180,30)]));
 
@@ -242,9 +242,9 @@ DecConcStr = {'0.001','0.01','0.1','1','10','1000','10000'};
 ModelPredDexTtr = cell(size(DexConc,1),1);
 ModelPredDexTtrSoln = cell(size(DexConc,1),1);
 for i=1:length(DexConc)
-    ModelPredDexTtr{i} = ModelGRDusp.loadData('DUSP1_GR_dataframes/DUSP1_75min_ConcSweep_total.csv',...
-        {'rna','RNA_nuc'},...
-        {'conc',DecConcStr{i}}); 
+    ModelPredDexTtr{i} = ModelGRDusp.loadData('EricDataJan23_2024/DUSP1_predict_flitered_data_75min_ConcSweep_030624.csv',...
+        {'rna','RNA_DUSP1_nuc'},...
+        {'Dex_Conc',DecConcStr{i}}); 
 
     % Change Dex concentration in the model.
     ModelPredDexTtr{i}.parameters(12,1:2) = {'Dex0',str2num(DecConcStr{i})};
@@ -284,20 +284,22 @@ clc
 fignums = [511,521,501,531;...
     512,522,502,532;...
     513,523,503,533;...
-    514,524,504,534];
+    514,524,504,534;...
+    515,525,505,535];
 
 % List of tryptolide experiments
 PredictionCases = {'0',501,'DUSP1 Prediction (t_{TPL} = 0 min)';...
                    '20',502,'DUSP1 Prediction (t_{TPL} = 20 min)';...
                    '75',503,'DUSP1 Prediction (t_{TPL} = 75 min)';...
-                   '180',504,'DUSP1 Prediction (t_{TPL} = 180 min)'};
+                   '150',504,'DUSP1 Prediction (t_{TPL} = 150 min)';...
+                   '180',505,'DUSP1 Prediction (t_{TPL} = 180 min)'};
 
 ModelPredDexTpl = cell(size(PredictionCases,1),1);
 ModelPredDexTplSoln = cell(size(PredictionCases,1),1);
 for i=1:size(PredictionCases,1)
     ModelPredDexTpl{i}.dataSet = [];
-    ModelPredDexTpl{i} = ModelGRDusp.loadData('DUSP1_GR_dataframes/DUSP1_100nM_Dex_5uM_TPL_R1_Brian.csv',...
-        {'rna','RNA_nuc'},...
+    ModelPredDexTpl{i} = ModelGRDusp.loadData('EricDataJan23_2024/DUSP1_100nM_Dex_5uM_TPL_R1_Brian.csv',...
+        {'rna','RNA_DUSP1_nuc'},...
         {['tryptCond',num2str(i)],num2str(i)}); 
 
     % set the Dex concentration.
