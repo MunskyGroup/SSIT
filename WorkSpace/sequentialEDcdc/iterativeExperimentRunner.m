@@ -107,7 +107,7 @@ switch lower(example)
         end
         
         ModelTrue.parameters = truePars;
-        ModelTrue = ModelTrue.formPropensitiesGeneral(['Burst_',num2str(ind)],true);
+        ModelTrue = ModelTrue.formPropensitiesGeneral(saveFileName,true);
         dataToFit = {'rna','exp1_s3'};
         fitParameters = [1:5];
         nT = 61;
