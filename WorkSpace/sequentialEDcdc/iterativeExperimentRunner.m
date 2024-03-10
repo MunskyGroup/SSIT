@@ -222,7 +222,7 @@ fimTrue = ModelTrue.computeFIM([],fimScale);
 
 %% Verify that the true model and simulated data look correct.
 if showPlots
-    dataFile = ['FakeExperiment_TMP_',num2str(ind),'.csv'];
+    dataFile = ['FakeExperiment_',saveFileName,'_',num2str(ind),'.csv'];
     nextExperiment = 100*ones(1,nT);
     ModelTrue.ssaOptions.nSimsPerExpt = max(nextExperiment);
     ModelTrue.ssaOptions.Nexp = 1;
@@ -309,7 +309,8 @@ for iExpt = 1:nExptRounds
             dataToFit = {'x2','RNA_nuc'};
         case 'simulated'
             % Generate "Fake" data
-            dataFile = ['FakeExperiment_',num2str(iExpt),'_',num2str(ind),'.csv'];
+            dataFile = ['FakeExperiment_',saveFileName,'_',num2str(ind),'.csv'];
+
             ModelTrue.ssaOptions.nSimsPerExpt = max(nextExperiment);
             ModelTrue.ssaOptions.Nexp = 1;
             ModelTrue.sampleDataFromFSP(ModelSolution,dataFile)
