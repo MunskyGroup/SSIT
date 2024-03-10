@@ -357,7 +357,7 @@ for iExpt = 1:nExptRounds
     MHFitOptions.useFIMforMetHast=true;
     MHFitOptions.CovFIMscale = 1.0;
     MHFitOptions.numChains = 1;
-    MHFitOptions.saveFile = ['TMPMHChain_',num2str(ind),'.mat'];
+    MHFitOptions.saveFile = ['TMPMHChain_',saveFileName,'_',num2str(ind),'.mat'];
     delete(MHFitOptions.saveFile) 
     [newPars,~,MHResults] = ModelGuess.maximizeLikelihood(...
         [], MHFitOptions, 'MetropolisHastings');
