@@ -2329,7 +2329,7 @@ classdef SSIT
         end
 
         function plotMHResults(obj,mhResults,FIM,fimScale,mhPlotScale,scatterFig)
-            plotMHResultsStatic(obj,mhResults,FIM,fimScale,mhPlotScale,scatterFig)
+            obj.plotMHResultsStatic(obj,mhResults,FIM,fimScale,mhPlotScale,scatterFig)
         end
     end
     methods (Static)

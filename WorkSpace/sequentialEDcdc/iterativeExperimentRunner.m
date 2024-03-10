@@ -1,10 +1,10 @@
 function [saveExpName] = iterativeExperimentRunner(example,data,sampleType,nExptRounds,...
     rngSeed,ind,incrementAdd,numCellsPerExperiment,initialExperiment,...
-    nFIMsamples,truePars)
+    nFIMsamples,truePars,saveFileName,initialParameterGuess)
 arguments
     example = 'poisson'
     data = 'simulated'
-    sampleType = 'random'
+    sampleType = 'fimopt'
     nExptRounds = 5
     rngSeed = []
     ind = randi(10000)
@@ -13,17 +13,21 @@ arguments
     initialExperiment = []
     nFIMsamples = 10;
     truePars = [];
+    saveFileName = [];
+    initialParameterGuess = [];
 end
 
 % Check if Save File Exists
-saveFileName = ['IterativeExperimentResults_',example];
+if isempty(saveFileName)
+    saveFileName = ['IterativeExperimentResults_',example];
+end
 saveExpName = lower([saveFileName,'_', data,'_',sampleType,'_',int2str(ind),'.mat']);
 if exist(saveExpName,'file')
     warning('Save File Already Exists -- Skipping Calculations')
     return
 end
 
-addpath(genpath('../src'));
+addpath(genpath('../../src'));
 if ~isempty(rngSeed)
     rng(rngSeed)
 end
@@ -84,6 +88,40 @@ switch lower(example)
         ModelTrue.fittingOptions.logPrior = @(p)-(log10(p(:))-muLog10Prior').^2./(2*sigLog10Prior'.^2);
         ModelTrue.fittingOptions.logPriorCovariance = diag(sigLog10Prior.^2*log(10^2));
 
+    case 'uncertainburst'
+        ModelTrue = SSIT;
+        ModelTrue.species = {'on';'off';'rna'};
+        ModelTrue.initialCondition = [0;1;0];
+        ModelTrue.propensityFunctions = {'kon*((1-2*atan(alph)/pi)+2*atan(alph)/pi*Iu_on)*off';...
+            'koff*(2*atan(alph)/pi+(1-2*atan(alph)/pi)*Iu_off)*on';...
+            'kr*on';'gr*rna'};
+        ModelTrue.stoichiometry = [1,-1,0,0;...
+            -1,1,0,0;...
+            0,0,1,-1];
+        
+        ModelTrue.inputExpressions = {'Iu_on','(t>0)*(t^2/(10^2+t^2))';...
+            'Iu_off','(t>0)*(10^2/(10^2+t^2))'};
+        
+        if isempty(truePars)
+            truePars = ({'kon',0.1;'koff',0.2;'kr',10;'gr',0.3;'alph',1e-4});
+        end
+        
+        ModelTrue.parameters = truePars;
+        ModelTrue = ModelTrue.formPropensitiesGeneral(['Burst_',num2str(ind)],true);
+        dataToFit = {'rna','exp1_s3'};
+        fitParameters = [1:5];
+        nT = 61;
+        ModelTrue.tSpan = linspace(0,30,nT);
+        fimMetric = 'Determinant';
+        nSamplesMH = 500; % Number of MH Samples to run
+
+        %% Prior
+        muLog10Prior = [0,0,0,0,0];
+        sigLog10Prior = [2 2 2 2 2];
+        ModelTrue.fittingOptions.modelVarsToFit = fitParameters;
+        ModelTrue.fittingOptions.logPrior = @(p)-(log10(p(:))-muLog10Prior').^2./(2*sigLog10Prior'.^2);
+        ModelTrue.fittingOptions.logPriorCovariance = diag(sigLog10Prior.^2*log(10^2));
+    
     case 'toggle'
         ModelTrue = SSIT;
         if isempty(truePars)
@@ -198,7 +236,7 @@ end
     
 % MLE Fitting Options
 maxFitIter = 2000;
-nFitRounds = 3;
+nFitRounds = 5;
 
 % Metropolis Hastings Properties
 nThinMH = 2; % Thin rate for MH sampling
@@ -237,9 +275,10 @@ ModelTrue.fittingOptions.modelVarsToFit = fitParameters;
 ModelGuess = ModelTrue;
 
 % Randomize the initial parameter set.
-% np = length(fitParameters);
-% ModelGuess.parameters(fitParameters,2) = ...
-%     num2cell([ModelGuess.parameters{fitParameters,2}]'.*(1+0.2*randn(np,1)));
+if ~ isempty(initialParameterGuess)
+    ModelGuess.parameters(fitParameters,2) = ...
+        num2cell(initialParameterGuess);
+end
 
 %% Initialize cells for saved results
 covMH = cell(1,nExptRounds);
