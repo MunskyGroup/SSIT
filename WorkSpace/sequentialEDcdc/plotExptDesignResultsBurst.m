@@ -1,6 +1,6 @@
 clear all
 close all
-nRounds = 3;
+nRounds = 8;
 initialExperiment = [];
 nFIMsamples = 10;
 

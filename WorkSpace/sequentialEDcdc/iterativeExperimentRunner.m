@@ -113,7 +113,7 @@ switch lower(example)
         nT = 61;
         ModelTrue.tSpan = linspace(0,30,nT);
         fimMetric = 'Determinant';
-        nSamplesMH = 500; % Number of MH Samples to run
+        nSamplesMH = 1000; % Number of MH Samples to run
 
         %% Prior
         muLog10Prior = [0,0,0,0,0];
