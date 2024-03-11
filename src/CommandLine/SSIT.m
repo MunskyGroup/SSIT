@@ -1237,7 +1237,7 @@ classdef SSIT
                 obj.dataSet.app.ParEstFitTimesList.Value = {};
                 obj.dataSet.app.ParEstFitTimesList.Items = {};
                 if sum(Q)>1
-                    warning('Provided data more than one entry with keyword "time"')   
+                    error('Provided data more than one entry with keyword "time"')   
                 end
                 col_time = find(Q,1);
                 obj.dataSet.app.DataLoadingAndFittingTabOutputs.fittingOptions.fit_time_index = col_time;
