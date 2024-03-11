@@ -1232,7 +1232,7 @@ classdef SSIT
 
             obj.dataSet.linkedSpecies = linkedSpecies;
 
-            Q = contains(obj.dataSet.dataNames,{'time','Time','TIME','Time_index'});
+            Q = strcmp(obj.dataSet.dataNames,{'time','Time','TIME','Time_index'});
             if sum(Q)>=1
                 obj.dataSet.app.ParEstFitTimesList.Value = {};
                 obj.dataSet.app.ParEstFitTimesList.Items = {};
