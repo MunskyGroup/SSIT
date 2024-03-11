@@ -22,18 +22,18 @@ ModelGR.stoichiometry = [-1,1,1,-1,0;...
 
 ModelGR.parameters = ({'koff',0.1;'kon',0.1;'kr',1;'gr',0.02;...
     'kcn0',0.005;'kcn1',0.02;'gDex',0.003;'knc',0.01;'kg1',14e-5;...
-    'gg1',1e-5;'gg2',1e-6;'Dex0',100});
+    'gg1',1e-5;'gg2',1e-6;'MDex',5;'Dex0',100});
 
 log10PriorMean = [-1 -1 0 -2,...
-    -1 -3 -2 -1 -2 -2 -2 ];
-log10PriorStd = ones(1,11);
+    -1 -3 -2 -1 -2 -2 -2 0.5];
+log10PriorStd = ones(1,12);
 
 ModelGR.fspOptions.initApproxSS = true;
 
-ModelGR.fittingOptions.modelVarsToFit = (5:11);
-ModelGR.fittingOptions.logPrior = @(x)-sum((x-log10PriorMean(5:11)).^2./(2*log10PriorStd(5:11).^2));
+ModelGR.fittingOptions.modelVarsToFit = (5:12);
+ModelGR.fittingOptions.logPrior = @(x)-sum((x-log10PriorMean(5:12)).^2./(2*log10PriorStd(5:12).^2));
 
-ModelGR.inputExpressions = {'IDex','Dex0*exp(-gDex*t)*(t>0)'};
+ModelGR.inputExpressions = {'IDex','Dex0/(MDex+Dex0)*exp(-gDex*t)*(t>0)'};
 ModelGR = ModelGR.formPropensitiesGeneral('EricRonModGR');
 [FSPGrSoln,ModelGR.fspOptions.bounds] = ModelGR.solve;
 [FSPGrSoln,ModelGR.fspOptions.bounds] = ModelGR.solve(FSPGrSoln.stateSpace);
@@ -41,9 +41,9 @@ ModelGR = ModelGR.formPropensitiesGeneral('EricRonModGR');
 %%    Load previously fit parameter values (optional)
 % load('EricModelDataFeb5','GRpars','DUSP1pars')
 % ModelGR.parameters(:,2) = num2cell([DUSP1pars,GRpars,1]);
-load('EricModelDataFeb5e','GRpars')
-ModelGR.parameters(5:11,2) = num2cell([GRpars]);
-% GRpars = [ModelGR.parameters{5:11,2}];
+load('EricModel_MMDex','GRpars')
+ModelGR.parameters(5:12,2) = num2cell([GRpars]);
+% GRpars = [ModelGR.parameters{5:12,2}];
 
 %%    Associate Data with Different Instances of Model (10,100nm Dex)
 GRfitCases = {'1','1',101,'GR Fit (1nM Dex)';...
@@ -58,9 +58,9 @@ for i=1:3
         {'nucGR','normgrnuc';'cytGR','normgrcyt'},...
         {'Condition','GR_timesweep';'Dex_Conc',GRfitCases{i,2}});
     
-    ModelGRfit{i}.parameters{12,2} = str2num(GRfitCases{i,1});
+    ModelGRfit{i}.parameters{13,2} = str2num(GRfitCases{i,1});
     
-    ModelGRparameterMap(i) = {(1:7)};
+    ModelGRparameterMap(i) = {(1:8)};
 end
 
 %% Guesses for the FSP bounds
@@ -89,7 +89,7 @@ for jj = 1:5
     combinedGRModel = combinedGRModel.updateModels(GRpars,false);
     GRpars = combinedGRModel.maximizeLikelihood(...
         GRpars, fitOptions);
-    save('EricModelDataMarch06','GRpars')
+    save('EricModel_MMDex','GRpars')
 end
 
 %% Compute FIM
@@ -148,7 +148,7 @@ ModelGRDusp.fittingOptions.logPrior = [];%@(x)-sum((x-log10PriorMean(1:4)).^2./(
 ModelGRDusp = ModelGRDusp.formPropensitiesGeneral('EricModDusp1');
 
 %% Load pre-fit parameters into model.
-load('EricModelDusp1Feb06','DUSP1pars')
+load('EricModelDusp1_MMDex','DUSP1pars')
 ModelGRDusp.parameters(1:4,2) = num2cell(DUSP1pars);
 
 %%    Load and Associate with DUSP1 smFISH Data (100nM Dex Only)
@@ -159,10 +159,11 @@ for i = 1:size(Dusp1FitCases,1)
     % TODo - Adjust for newly processed data.
     ModelDusp1Fit{i} = ModelGRDusp.loadData('EricDataJan23_2024/DUSP1_fit_flitered_data_100nM_030624.csv',...
         {'rna','RNA_DUSP1_nuc'}); 
-    ModelDusp1Fit{i}.inputExpressions = {'IDex','Dex0*exp(-gDex*t)*(t>0)'};    
+    ModelDusp1Fit{i}.inputExpressions = {'IDex','Dex0/(MDex+Dex0)*exp(-gDex*t)*(t>0)'};
+
     ModelDusp1parameterMap{i} = (1:4);
     % Set Dex concentration.
-    ModelDusp1Fit{i}.parameters{12,2} = str2num(Dusp1FitCases{i,1});
+    ModelDusp1Fit{i}.parameters{13,2} = str2num(Dusp1FitCases{i,1});
     ModelDusp1Fit{i} = ModelDusp1Fit{i}.formPropensitiesGeneral(['EricModDusp1_',num2str(i),'_FSP']);
 end
 DUSP1pars = [ModelDusp1Fit{i}.parameters{ModelGRDusp.fittingOptions.modelVarsToFit,2}];
@@ -176,7 +177,7 @@ for i = 1:5
     DUSP1pars = combinedDusp1Model.maximizeLikelihood(...
         DUSP1pars, fitOptions);
     ModelGRDusp.parameters(1:4,2) = num2cell(DUSP1pars);
-    save('EricModelDusp1March06','DUSP1pars') 
+    save('EricModelDusp1_MMDex','DUSP1pars') 
 end
 
 %% Sample uncertainty for Dusp1 Parameters
@@ -223,7 +224,7 @@ for i=1:size(PredictionCases,1)
     ModelPred{i}.tSpan = sort(unique([ModelPred{i}.tSpan,linspace(0,180,30)]));
 
     % Change Dex concentraion in the model.
-    ModelPred{i}.parameters(12,1:2) = {'Dex0',str2num(PredictionCases{i,2})};
+    ModelPred{i}.parameters(13,1:2) = {'Dex0',str2num(PredictionCases{i,2})};
     
     % ModelPred{i} = ModelPred{i}.formPropensitiesGeneral(['EricModDusp1_',num2str(i),'_FSPPred']);
     ModelPred{i}.makeFitPlot([],5,fignums(i,:))
@@ -247,7 +248,7 @@ for i=1:length(DexConc)
         {'Dex_Conc',DecConcStr{i}}); 
 
     % Change Dex concentration in the model.
-    ModelPredDexTtr{i}.parameters(12,1:2) = {'Dex0',str2num(DecConcStr{i})};
+    ModelPredDexTtr{i}.parameters(13,1:2) = {'Dex0',str2num(DecConcStr{i})};
     
     ModelPredDexTtr{i} = ModelPredDexTtr{i}.formPropensitiesGeneral(['EricModDusp1_',num2str(i),'_TtrPred']);
     ModelPredDexTtrSoln{i} = ModelPredDexTtr{i}.solve;
@@ -303,7 +304,7 @@ for i=1:size(PredictionCases,1)
         {['tryptCond',num2str(i)],num2str(i)}); 
 
     % set the Dex concentration.
-    ModelPredDexTpl{i}.parameters(12,:) = {'Dex0',100};
+    ModelPredDexTpl{i}.parameters(13,:) = {'Dex0',100};
 
     ModelPredDexTpl{i}.tSpan = sort(unique([ModelPredDexTpl{i}.tSpan,linspace(0,250,30)]));
 
@@ -311,7 +312,7 @@ for i=1:size(PredictionCases,1)
         '(kcn0+kcn1*IDex)*cytGR';'knc*nucGR';'kg1';'gg1*cytGR';'gg2*nucGR';...
         'kr*onGene*Itrpt';'gr*rna'};
 
-    ModelPredDexTpl{i}.inputExpressions = {'IDex','Dex0*exp(-gDex*t)*(t>0)';...
+    ModelPredDexTpl{i}.inputExpressions = {'IDex','Dex0/(MDex+Dex0)*exp(-gDex*t)*(t>0)';...
         'Itrpt',['(t<=',PredictionCases{i},')']};   
     
     ModelPredDexTpl{i} = ModelPredDexTpl{i}.formPropensitiesGeneral(['EricModDusp1_',num2str(i),'_TplPred'],false);
@@ -329,7 +330,7 @@ return
 
 % %% Sandbox for Predicting Other Behaviors
 % SBModel = ModelGRDusp;
-% SBModel.parameters(12,:) = {'Dex0',100};
+% SBModel.parameters(13,:) = {'Dex0',100};
 % 
 % SBModel.tSpan = linspace(0,300,50);
 % SBModel.inputExpressions = {'IDex','Dex0*exp(-gDex*t)*(t>0)-Dex0*exp(-gDex*t)*(t>10)'};
