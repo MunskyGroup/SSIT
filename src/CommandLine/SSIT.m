@@ -1245,11 +1245,18 @@ classdef SSIT
 
             obj.dataSet.linkedSpecies = linkedSpecies;
 
-            Q = contains(obj.dataSet.dataNames,{'time','Time','TIME'});
-            if sum(Q)==1
-                obj.dataSet.app.ParEstFitTimesList.Items = {};
+            possibleTimeHeaders = {'time','Time','TIME','Time_index'};
+            Q = zeros(1,length(obj.dataSet.dataNames));
+            for iHead = 1:length(possibleTimeHeaders)
+                Q = max(Q,strcmp(obj.dataSet.dataNames,possibleTimeHeaders{iHead}));
+            end
+            if sum(Q)>=1
                 obj.dataSet.app.ParEstFitTimesList.Value = {};
-                col_time = find(Q);
+                obj.dataSet.app.ParEstFitTimesList.Items = {};
+                if sum(Q)>1
+                    error('Provided data more than one entry with keyword "time"')   
+                end
+                col_time = find(Q,1);
                 obj.dataSet.app.DataLoadingAndFittingTabOutputs.fittingOptions.fit_time_index = col_time;
                 obj.dataSet.app.DataLoadingAndFittingTabOutputs.fittingOptions.fit_times = sort(unique(cell2mat(obj.dataSet.DATA(:,col_time))));
                 for i=1:length(obj.dataSet.app.DataLoadingAndFittingTabOutputs.fittingOptions.fit_times)
@@ -1257,6 +1264,7 @@ classdef SSIT
                     obj.dataSet.app.ParEstFitTimesList.Value{i} = num2str(obj.dataSet.app.DataLoadingAndFittingTabOutputs.fittingOptions.fit_times(i));
                 end
                 % We need to make sure that the fitting times are included in the solution times.
+            
             else
                 error('Provided data set does not have required column named "time"')
             end

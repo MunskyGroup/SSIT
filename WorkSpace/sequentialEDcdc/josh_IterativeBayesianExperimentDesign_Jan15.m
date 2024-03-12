@@ -1,13 +1,21 @@
 close all
 clear all
+function runExp
+
 addpath(genpath('../src'));
 rng(1)
 %% Define Model
-% example = 'Poisson';
+example = 'Poisson';
 % example = 'Toggle';
-example = 'DUSP1';
+% example = 'DUSP1';
 data = 'simulated';
-sampleType = 'uniform';
+sampleType = 'random';
+% sampleType = 'FIMopt';
+
+% Number of experiment Rounds
+nExptRounds = 10;
+
+showPlots = false;
 
 switch example
     case 'Poisson'
@@ -24,6 +32,11 @@ switch example
         nT = 21;
         ModelTrue.tSpan = linspace(0,10,nT);
         fimMetric = 'Determinant';
+        nSamplesMH = 500; % Number of MH Samples to run
+        
+        % Total number of new cells allowed in each experiment
+        numCellsPerExperiment = 50;
+
     case 'Toggle'
         ModelTrue = SSIT;
         ModelTrue.parameters = {'kb',10;'ka',80;'M',20;'g',1};
@@ -41,6 +54,11 @@ switch example
         nT = 21;
         ModelTrue.tSpan = linspace(0,10,nT);
         fimMetric = 'Determinant';
+        
+        nSamplesMH = 1000; % Number of MH Samples to run
+
+        % Total number of new cells allowed in each experiment
+        numCellsPerExperiment = 50;
 
     case 'DUSP1'
         ModelTrue = SSIT; % Rename SSIT code to make changes with out changing the original code
@@ -70,17 +88,34 @@ switch example
         ModelTrue.fspOptions.bounds(3:4) = [2.1,100];
         fimMetric = 'TR1:4';
         ModelTrue.pdoOptions.unobservedSpecies = {'x1'};
+
+        muLog10Prior = [-1 -1 -1 -2 -2 -2 -2 -2];
+        sigLog10Prior = [2 2 2 2 2 2 2 2];
+        ModelTrue.fittingOptions.modelVarsToFit = length(sigLog10Prior);
+        muLog10Prior = muLog10Prior(ModelTrue.fittingOptions.modelVarsToFit);
+        sigLog10Prior = sigLog10Prior(ModelTrue.fittingOptions.modelVarsToFit);
+        ModelTrue.fittingOptions.logPrior = @(p)-(log10(p(:))-muLog10Prior').^2./(2*sigLog10Prior'.^2);
+
+        nSamplesMH = 7500; % Number of MH Samples to run
+
+        intuitiveDesign = [50 0 50 0 50 0 50 0 50 0 0 50;
+                             75 0 0 75 0 0 75 0 0 0 75 0;
+                             0 0 0 100 0 0 100 0 0 100 0 0;
+                             0 0 0 100 0 0 0 100 0 100 0 0;
+                             0 0 0 0 100 0 100 0 0 100 0 0];
+
+        %             intuitionCell = [20 0 20 0 20 0 20 0 20 0 0 20;
+        %                              30 0 0 30 0 0 30 0 0 0 30 0;
+        %                              0 0 0 40 0 0 40 0 0 40 0 0;
+        %                              0 0 0 40 0 0 0 40 0 40 0 0;
+        %                              0 0 0 0 40 0 40 0 0 40 0 0];
+
+        % Total number of new cells allowed in each experiment
+        numCellsPerExperiment = 50;
+
 end
 ModelTrue.fspOptions.fspTol = 1e-6;
 saveFileName = ['IterativeExperimentResults_',example];
-
-muLog10Prior = [-1 -1 -1 -2 -2 -2 -2 -2];
-sigLog10Prior = [2 2 2 2 2 2 2 2];
-ModelTrue.fittingOptions.modelVarsToFit = length(sigLog10Prior);
-muLog10Prior = muLog10Prior(ModelTrue.fittingOptions.modelVarsToFit);
-sigLog10Prior = sigLog10Prior(ModelTrue.fittingOptions.modelVarsToFit);
-ModelTrue.fittingOptions.logPrior = @(p)-(log10(p(:))-muLog10Prior').^2./(2*sigLog10Prior'.^2);
-
 
 %% Generate Model Propensity Functions and Solve True Model
 ModelTrue = ModelTrue.formPropensitiesGeneral('TrueModel',true);
@@ -94,28 +129,24 @@ ModelTrue.ssaOptions.nSimsPerExpt = max(nextExperiment);
 ModelTrue.ssaOptions.Nexp = 1;
 ModelTrue.sampleDataFromFSP(ModelSolution,dataFile)
 ModelTMP = ModelTrue.loadData(dataFile,dataToFit);
-ModelTMP.makeFitPlot
+
+if showPlots
+    ModelTMP.makeFitPlot
+end
 
 %% Set Rules for Experiment Designs and Iterations
 % Possible Time points for Experiments.
-
-% Number of experiment Rounds
-nExptRounds = 5;
     
 % MLE Fitting Options
 maxFitIter = 1000;
 nFitRounds = 3;
 
 % Metropolis Hastings Properties
-nSamplesMH = 7500; % Number of MH Samples to run
 nThinMH = 2; % Thin rate for MH sampling
 nBurnMH = 100; % Number for MH burn in
 
 % Number of MH samples to use for FIM calculation
 nFIMsamples = 10;
-
-% Total number of new cells allowed in each experiment
-numCellsPerExperiment = 300; 
 
 % Definition of initial experiment
 nextExperiment = zeros(1,nT);
@@ -127,11 +158,29 @@ fimScale = 'log'; % Maximize fim for log parameters
 % Plotting options
 mhPlotScale = 'log10';  % Show MH and FIM plots in log10 scale.
 
+%% Experiment Design Definitions
+incrementAdd = 5; % group size for Cells added
+N = numCellsPerExperiment/incrementAdd; % needs to be int
+randomCell = zeros(nExptRounds,nT);
+for i = 1:nExptRounds
+    n = randi(nT,1,N);
+    for j = n
+        randomCell(i,j) = randomCell(i,j) + incrementAdd;
+    end
+end
+
+uniformCell = floor(ones(nExptRounds,nT)*numCellsPerExperiment/nT);
+for i=1:nExptRounds
+    if sum(uniformCell(i,:))<numCellsPerExperiment
+        uniformCell(i,1:numCellsPerExperiment-sum(uniformCell(i,:)))=...
+            uniformCell(i,1:numCellsPerExperiment-sum(uniformCell(i,:)))+1;
+    end
+end
 %%
 % Create Model for Estimate.
 ModelTrue.fittingOptions.modelVarsToFit = fitParameters;
 ModelGuess = ModelTrue;
-ModelGuess.fspOptions.fspTol = inf;
+% ModelGuess.fspOptions.fspTol = inf;
 
 % Randomize the initial parameter set.
 np = length(fitParameters);
@@ -202,7 +251,10 @@ for iExpt = 1:nExptRounds
         fitPars = ModelGuess.maximizeLikelihood([],fitOptions);
         ModelGuess.parameters(fitParameters,2) = num2cell(fitPars);
     end
-    ModelGuess.makeFitPlot
+    
+    if showPlots
+        ModelGuess.makeFitPlot
+    end
 
     % Run Metropolis Hastings
     MHFitOptions.thin=nThinMH;
@@ -237,45 +289,14 @@ for iExpt = 1:nExptRounds
             FIMOptNextExpt = ModelGuess.totalFim(fimResults,nextExperiment+nTotalCells);
 
         case 'random'
-            if iExpt==1
-                incrementAdd = 5; % group size for Cells added 
-                N = numCellsPerExperiment/incrementAdd; % needs to be int                
-                randomCell = zeros(5,12);
-                for i = 1:nExptRounds
-                    n = randi([1,length(ModelGuess.tSpan)],1,N);
-                    for j = n
-                        randomCell(i,j) = randomCell(i,j) + incrementAdd;
-                    end
-                end
-
-                nextExperiment = randomCell(iExpt,:);
-                FIMOptNextExpt = ModelGuess.totalFim(fimResults,nextExperiment+nTotalCells);
-
-            else
-                nextExperiment = randomCell(iExpt,:);
-                FIMOptNextExpt = ModelGuess.totalFim(fimResults,nextExperiment+nTotalCells);
-            end
-
+            nextExperiment = randomCell(iExpt,:);
+            FIMOptNextExpt = ModelGuess.totalFim(fimResults,nextExperiment+nTotalCells);
 
         case 'intuition'
-            intuitionCell = [50 0 50 0 50 0 50 0 50 0 0 50;
-                             75 0 0 75 0 0 75 0 0 0 75 0;
-                             0 0 0 100 0 0 100 0 0 100 0 0;
-                             0 0 0 100 0 0 0 100 0 100 0 0;
-                             0 0 0 0 100 0 100 0 0 100 0 0];
-%             intuitionCell = [20 0 20 0 20 0 20 0 20 0 0 20;
-%                              30 0 0 30 0 0 30 0 0 0 30 0;
-%                              0 0 0 40 0 0 40 0 0 40 0 0;
-%                              0 0 0 40 0 0 0 40 0 40 0 0;
-%                              0 0 0 0 40 0 40 0 0 40 0 0];
-                      
-            nextExperiment = intuitionCell(iExpt,:);
+            nextExperiment = intuitiveDesign(iExpt,:);
             FIMOptNextExpt = ModelGuess.totalFim(fimResults,nextExperiment+nTotalCells);
 
         case 'uniform'
-            expCell = ones(5,12);
-            incrementAdd = length(expCell(1,:)); % group size for Cells added 
-            uniformCell =expCell*numCellsPerExperiment/incrementAdd; % needs to be int
             nextExperiment = uniformCell(iExpt,:);
             FIMOptNextExpt = ModelGuess.totalFim(fimResults,nextExperiment+nTotalCells);        
     end
@@ -296,24 +317,26 @@ for iExpt = 1:nExptRounds
 
     FIMOptNextExptReduced = cell(size(FIMOptNextExpt));
     for i = 1:nFIMsamples
-        FIMOptNextExptReduced{i} = FIMOptNextExpt{i}(1:4,1:4); %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        FIMOptNextExptReduced{i} = FIMOptNextExpt{i}(ModelGuess.fittingOptions.modelVarsToFit,...
+            ModelGuess.fittingOptions.modelVarsToFit); %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     end
 
-    f = figure;
-    f.Name = ['Current MH Results and Next FIM Prediction (Round ',num2str(iExpt),')'];
-    ModelGuess.plotMHResults(MHResults,FIMOptNextExpt,fimScale,mhPlotScale,f)
-    
-    f = figure;
-    f.Name = ['Current MH Results and Perfect FIM Prediction (Round ',num2str(iExpt),')'];
-    ModelGuess.plotMHResults(MHResults,FIMCurrentExpt,fimScale,mhPlotScale,f)
+    if showPlots
+        f = figure;
+        f.Name = ['Current MH Results and Next FIM Prediction (Round ',num2str(iExpt),')'];
+        ModelGuess.plotMHResults(MHResults,FIMOptNextExpt,fimScale,mhPlotScale,f)
 
-    figure;
-    title(['Number of cells Measured at each Time Point (Round ',num2str(iExpt),')']);
-    bar(ModelGuess.tSpan,nTotalCells,'BarWidth', 0.4)
-    ylabel('Number of Cells Measured');
-    xlabel('time [min]');
-    ylim([0 300]);
-   
+        f = figure;
+        f.Name = ['Current MH Results and Perfect FIM Prediction (Round ',num2str(iExpt),')'];
+        ModelGuess.plotMHResults(MHResults,FIMCurrentExpt,fimScale,mhPlotScale,f)
+
+        figure;
+        title(['Number of cells Measured at each Time Point (Round ',num2str(iExpt),')']);
+        bar(ModelGuess.tSpan,nTotalCells,'BarWidth', 0.4)
+        ylabel('Number of Cells Measured');
+        xlabel('time [min]');
+        ylim([0 300]);
+    end
 %     if iExpt>1
 %         f = figure;
 %         f.Name = ['Current MH Results and Previous FIM Prediction (Round ',num2str(iExpt),')'];
