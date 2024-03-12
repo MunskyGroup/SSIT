@@ -15,7 +15,7 @@ ModelGR = SSIT;
 ModelGR.species = {'cytGR';'nucGR'};
 ModelGR.initialCondition = [20;1];
 
-ModelGR.propensityFunctions = {'(kcn0+kcn1*IDex)*cytGR';'knc*nucGR';...
+ModelGR.propensityFunctions = {'(kcn0 + (t>0)*kcn1*IDex/(MDex+IDex)) * cytGR';'knc*nucGR';...
     'kg1';'gg1*cytGR';'gg2*nucGR'};
 ModelGR.stoichiometry = [-1,1,1,-1,0;...
                          1,-1,0,0,-1];
@@ -33,7 +33,7 @@ ModelGR.fspOptions.initApproxSS = true;
 ModelGR.fittingOptions.modelVarsToFit = (5:12);
 ModelGR.fittingOptions.logPrior = @(x)-sum((x-log10PriorMean(5:12)).^2./(2*log10PriorStd(5:12).^2));
 
-ModelGR.inputExpressions = {'IDex','Dex0/(MDex+Dex0)*exp(-gDex*t)*(t>0)'};
+ModelGR.inputExpressions = {'IDex','Dex0*exp(-gDex*t)'};
 ModelGR = ModelGR.formPropensitiesGeneral('EricRonModGR');
 [FSPGrSoln,ModelGR.fspOptions.bounds] = ModelGR.solve;
 [FSPGrSoln,ModelGR.fspOptions.bounds] = ModelGR.solve(FSPGrSoln.stateSpace);
@@ -131,7 +131,7 @@ ModelGRDusp = ModelGRfit{3};
 ModelGRDusp.species = {'offGene';'onGene';'cytGR';'nucGR';'rna'};
 ModelGRDusp.initialCondition = [2;0;24;1;5];
 ModelGRDusp.propensityFunctions = {'kon*offGene*nucGR';'koff*onGene';
-    '(kcn0+kcn1*IDex)*cytGR';'knc*nucGR';'kg1';'gg1*cytGR';'gg2*nucGR';...
+    '(kcn0 + (t>0)*kcn1*IDex/(MDex+IDex)) * cytGR';'knc*nucGR';'kg1';'gg1*cytGR';'gg2*nucGR';...
     'kr*onGene';'gr*rna'};
 ModelGRDusp.stoichiometry = [-1,1,0,0,0,0,0,0,0;...
                          1,-1,0,0,0,0,0,0,0;...
@@ -159,7 +159,7 @@ for i = 1:size(Dusp1FitCases,1)
     % TODo - Adjust for newly processed data.
     ModelDusp1Fit{i} = ModelGRDusp.loadData('EricDataJan23_2024/DUSP1_fit_flitered_data_100nM_030624.csv',...
         {'rna','RNA_DUSP1_nuc'}); 
-    ModelDusp1Fit{i}.inputExpressions = {'IDex','Dex0/(MDex+Dex0)*exp(-gDex*t)*(t>0)'};
+    ModelDusp1Fit{i}.inputExpressions = {'IDex','Dex0*exp(-gDex*t)'};
 
     ModelDusp1parameterMap{i} = (1:4);
     % Set Dex concentration.
@@ -309,10 +309,10 @@ for i=1:size(PredictionCases,1)
     ModelPredDexTpl{i}.tSpan = sort(unique([ModelPredDexTpl{i}.tSpan,linspace(0,250,30)]));
 
     ModelPredDexTpl{i}.propensityFunctions = {'kon*offGene*nucGR';'koff*onGene';
-        '(kcn0+kcn1*IDex)*cytGR';'knc*nucGR';'kg1';'gg1*cytGR';'gg2*nucGR';...
+        '(kcn0 + (t>0)*kcn1*IDex/(MDex+IDex)) * cytGR';'knc*nucGR';'kg1';'gg1*cytGR';'gg2*nucGR';...
         'kr*onGene*Itrpt';'gr*rna'};
 
-    ModelPredDexTpl{i}.inputExpressions = {'IDex','Dex0/(MDex+Dex0)*exp(-gDex*t)*(t>0)';...
+    ModelPredDexTpl{i}.inputExpressions = {'IDex','Dex0*exp(-gDex*t)';...
         'Itrpt',['(t<=',PredictionCases{i},')']};   
     
     ModelPredDexTpl{i} = ModelPredDexTpl{i}.formPropensitiesGeneral(['EricModDusp1_',num2str(i),'_TplPred'],false);
