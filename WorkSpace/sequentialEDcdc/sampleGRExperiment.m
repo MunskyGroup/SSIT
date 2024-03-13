@@ -1,0 +1,52 @@
+function [simData,csvFile,allDataSoFar] = sampleGRExperiment(dataFileName,times,Dex,NCells,iExpt)
+
+if iExpt == 1
+    % Randomize data order
+    X = importdata(dataFileName);
+    Xtable = readtable(dataFileName);
+    J = randperm(size(Xtable,1));
+    Xtable = Xtable(J,:);
+    writetable(Xtable,[dataFileName(1:end-4),'_permuted.csv']);
+
+end
+dataFileName = [dataFileName(1:end-4),'_permuted.csv'];
+
+% load data
+X = importdata(dataFileName);
+Xtable = readtable(dataFileName);
+indTime=find(ismember(X.textdata,'time'));
+indDex=find(ismember(X.textdata,'Dex_Conc'));
+
+% Pick 'NCells' random cells for simmulated experiment
+for j = 1:length(Dex)
+    simData = [];
+    for i = 1:length(times)
+        c = find((X.data(:,indTime) == times(i)).*...
+            (X.data(:,indDex) == Dex(j)));
+        if isempty(c)
+            error(['No Cells at timepoint t = ',num2str(timeMatrix(i))])
+        else
+            if length(c) < NCells(j,i)
+                error(['Not enough cells in experiment for measuring ',num2str(NCells(j,i)), ' cells at time t = ',num2str(timeMatrix(i))])
+            else
+                %                 ki = randperm(length(c),NCells(i)); % Picks the cells at random from the dataset
+                ki = 1:NCells(j,i); % Picks the cells in order from the dataset
+                c_pick = c(ki,:);
+                simData = cat(1,simData,c_pick);
+            end
+        end
+    end
+
+    % Save simmulated experiment results
+    n=1;
+    while exist(['ExampleData/purposeExp','_v',num2str(n),'.csv'])
+        n=n+1;
+    end
+    Xnew=Xtable(simData,:);
+    writetable(Xnew,['ExampleData/purposeExp','_v',num2str(n),'.csv']);
+    csvFile{j} = ['ExampleData/purposeExp','_v',num2str(n),'.csv'];
+
+    allDataSoFar{j} = NCells(j,:);
+end
+
+end

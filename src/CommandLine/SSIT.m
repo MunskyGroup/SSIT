@@ -782,7 +782,8 @@ classdef SSIT
                         useReducedModel,modRedTransformMatrices, ...
                         obj.useHybrid,obj.hybridOptions,...
                         obj.fspConstraints.fEscape,obj.fspConstraints.bEscape, ...
-                        obj.fspOptions.constantJacobian);
+                        obj.fspOptions.constantJacobian,...
+                        obj.fspOptions.constantJacobianTime);
 
                 case 'SSA'
                     Solution.T_array = obj.tSpan;
@@ -890,7 +891,8 @@ classdef SSIT
                         fspSoln,...
                         useReducedModel,modRedTransformMatrices, ...
                         obj.useHybrid,obj.hybridOptions,...
-                        obj.fspConstraints.fEscape,obj.fspConstraints.bEscape);
+                        obj.fspConstraints.fEscape,obj.fspConstraints.bEscape,...
+                        obj.fspOptions.constantJacobian,obj.fspOptions.constantJacobianTime);
                     %                     app.SensFspTabOutputs.solutions = Solution.sens;
                     %                     app.SensPrintTimesEditField.Value = mat2str(obj.tSpan);
                     %                     Solution.plotable = exportSensResults(app);
@@ -1003,7 +1005,7 @@ classdef SSIT
             else
 
                 if isempty(sensSoln)
-                    disp({'Running Sensitivity Calculation';'You can skip this step by providing sensSoln.'})
+                    % disp({'Running Sensitivity Calculation';'You can skip this step by providing sensSoln.'})
                     obj.solutionScheme = 'fspSens';
                     [sensSoln] = obj.solve;
                     sensSoln = sensSoln.sens;
@@ -1647,13 +1649,13 @@ classdef SSIT
             perfectModSmoothed = zeros(1,length(times));
             for i=1:length(times)
                 [~,j] = min(abs(obj.tSpan-times(i)));
-                if length(times)>1
+                % if length(times)>1
                     Jind = PD.subs(:,1) == i;
                     SpInds = PD.subs(Jind,:);
-                else
-                    Jind = ones(size(PD.subs),'logical');
-                    SpInds = [ones(length(Jind),1),PD.subs(Jind,:)];
-                end
+                % else
+                %     Jind = ones(size(PD.subs,1),1,'logical');
+                %     SpInds = [ones(length(Jind),1),PD.subs(Jind,:)];
+                % end
                 SpVals = PD.vals(Jind);
                 H = sptensor([ones(length(SpVals),1),SpInds(:,2:end)],SpVals,[1,NDat(2:end)]);
                 H = double(H);

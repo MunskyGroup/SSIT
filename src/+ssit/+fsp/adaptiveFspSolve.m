@@ -225,7 +225,7 @@ if initApproxSS
             AfspFull = ssit.FspMatrix(propensities, parameters, stateSpace, constraintCount, speciesNames);
         end
 
-        jac = AfspFull.createSingleMatrix(outputTimes(1),parameters);
+        jac = AfspFull.createSingleMatrix(outputTimes(1)-1e-6,parameters);
     end
     jac = jac(1:end-constraintCount,1:end-constraintCount);
 
@@ -364,7 +364,7 @@ while (tNow < maxOutputTime)
         else
             if isTimeInvariant==1 % If no parameters are functions of time.
                 % if ~isempty(parameters)
-                    jac = AfspFull.createSingleMatrix(tNow, parameters);
+                    jac = AfspFull.createSingleMatrix(tNow+1e-6, parameters);
                 % else
                     % jac = AfspFull.createSingleMatrix(tNow);
                 % end
@@ -395,7 +395,11 @@ while (tNow < maxOutputTime)
             if odeSolver == "expokit"
                 solver = ssit.fsp_ode_solvers.Expokit();
             elseif odeSolver == "expokitPiecewise"
-                solver = ssit.fsp_ode_solvers.ExpokitPiecewise();
+                if constantJacobian
+                    solver = ssit.fsp_ode_solvers.Expokit();
+                else
+                    solver = ssit.fsp_ode_solvers.ExpokitPiecewise();
+                end
             else
 %                 if ~isempty(hybridOptions)
 %                     solver = ssit.fsp_ode_solvers.OdeSuite(relTol, absTol);

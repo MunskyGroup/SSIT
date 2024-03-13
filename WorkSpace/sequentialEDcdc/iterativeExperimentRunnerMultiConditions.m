@@ -1,4 +1,4 @@
-function [saveExpName] = iterativeExperimentRunner(example,data,sampleType,nExptRounds,...
+function [saveExpName] = iterativeExperimentRunnerMultiConditions(example,data,sampleType,nExptRounds,...
     rngSeed,ind,incrementAdd,numCellsPerExperiment,initialExperiment,...
     nFIMsamples,truePars,saveFileName,initialParameterGuess,...
     inputLibrary)
@@ -34,7 +34,7 @@ if ~isempty(rngSeed)
     rng(rngSeed)
 end
 
-showPlots = true;
+showPlots = false;
 
 %% Define Model
 switch lower(example)
@@ -42,27 +42,41 @@ switch lower(example)
         ModelTrue = SSIT;
         ModelTrue.species = {'rna'};
         ModelTrue.initialCondition = 0;
-        ModelTrue.propensityFunctions = {'kr';'gr*rna'};
+        ModelTrue.propensityFunctions = {'kr*IDex/(kD+IDex)';'gr*rna'};
         ModelTrue.stoichiometry = [1,-1];
         if isempty(truePars)
-            truePars = ({'kr',10;'gr',0.3});
+            truePars = {'kr',10;'gr',0.3;'kD',5};
         end
         ModelTrue.parameters = truePars;
-        ModelTrue = ModelTrue.formPropensitiesGeneral(['Poiss_',num2str(ind)],true);
         dataToFit = {'rna','exp1_s1'};
-        fitParameters = [1:2];
+        fitParameters = [1:3];
         nT = 21;
         ModelTrue.tSpan = linspace(0,10,nT);
         fimMetric = 'Determinant';
         nSamplesMH = 1000; % Number of MH Samples to run
         
         %% Prior
-        % muLog10Prior = [0,0];
-        % sigLog10Prior = [0.1 0.1];
-        % ModelTrue.fittingOptions.modelVarsToFit = fitParameters;
-        % ModelTrue.fittingOptions.logPrior = @(p)-(log10(p(:))-muLog10Prior').^2./(2*sigLog10Prior'.^2);
-        % ModelTrue.fittingOptions.logPriorCovariance = diag(sigLog10Prior.^2*log(10^2));
-        
+        muLog10Prior = [0,0,0];
+        sigLog10Prior = [1 1 1];
+        ModelTrue.fittingOptions.modelVarsToFit = fitParameters;
+        ModelTrue.fittingOptions.logPrior = @(p)-(log10(p(:))-muLog10Prior').^2./(2*sigLog10Prior'.^2);
+        ModelTrue.fittingOptions.logPriorCovariance = diag(sigLog10Prior.^2*log(10^2));
+
+        if isempty(inputLibrary)
+            ModelTrue.inputExpressions = {'IDex','5'};
+            ModelTrue = ModelTrue.formPropensitiesGeneral(['poisson_',num2str(ind)],true);
+            ModelTrue = {ModelTrue};
+        else
+            TMP = cell(1,length(inputLibrary));
+            for iInput = 1:length(inputLibrary)
+                TMP{iInput} = ModelTrue;
+                TMP{iInput}.inputExpressions = inputLibrary{iInput};
+                TMP{iInput} = TMP{iInput}.formPropensitiesGeneral(['poisson_',num2str(iInput)],true);
+            end
+            ModelTrue = TMP;
+        end
+
+
     case 'burst'
         ModelTrue = SSIT;
         ModelTrue.species = {'on';'off';'rna'};
@@ -213,7 +227,9 @@ switch lower(example)
         ModelTrue = SSIT;
         ModelTrue.species = {'cytGR';'nucGR'};
         ModelTrue.initialCondition = [20;1];
-        ModelTrue.propensityFunctions = {'(kcn0 + kcn1*IDex) * cytGR';'knc*nucGR';...
+        ModelTrue.fspOptions.bounds = [0,0,30,30];
+        ModelTrue.fspOptions.verbose = true;
+        ModelTrue.propensityFunctions = {'(kcn0 + (t>0)*kcn1*IDex/(MDex+IDex)) * cytGR';'knc*nucGR';...
             'kg1';'gnuc*nucGR'};
         ModelTrue.stoichiometry = [-1,1,1,0;...
             1,-1,0,-1];
@@ -225,63 +241,74 @@ switch lower(example)
 
         ModelTrue.parameters = truePars;
 
-        if isempty(inputLibrary)
-            ModelTrue.inputExpressions = {'IDex','(100/(MDex+100))*(t>0)'};
-            ModelTrue = ModelTrue.formPropensitiesGeneral(['dexgr_',num2str(ind)],true);
-        else
-            TMP = cell(1,length(inputLibrary));
-            for iInput = 1:length(inputLibrary)
-                TMP{iInput} = ModelTrue;
-                TMP{iInput}.inputExpressions = inputLibrary{iInput};
-                TMP{iInput} = TMP{iInput}.formPropensitiesGeneral(['dexgr_',num2str(iInput)],true);
-            end
-        end
+        ModelTrue.fspOptions.initApproxSS = true;
+        ModelTrue.fspOptions.usePiecewiseFSP = true;
+        ModelTrue.fspOptions.constantJacobian = true;
+        ModelTrue.fspOptions.constantJacobianTime = 1.1;
 
-        ModelTrue = ModelTrue.formPropensitiesGeneral(['dexgr_',num2str(ind)],true);
         dataToFit = {'cytGR','exp1_s1';'nucGR','exp1_s2'};
         fitParameters = [1:6];
-        nT = 61;
-        ModelTrue.tSpan = linspace(0,180,nT);
+        nT = 7;
+        ModelTrue.tSpan = [0,10,30,50,75,150,180];
         fimMetric = 'Determinant';
-        nSamplesMH = 500; % Number of MH Samples to run
-        
+        nSamplesMH = 1000; % Number of MH Samples to run
+
         %% Prior
         muLog10Prior = [-2 -1 -1 -2 -2 1];
         sigLog10Prior = 2*ones(1,6);
         ModelTrue.fittingOptions.modelVarsToFit = fitParameters;
         ModelTrue.fittingOptions.logPrior = @(p)-(log10(p(:))-muLog10Prior').^2./(2*sigLog10Prior'.^2);
         ModelTrue.fittingOptions.logPriorCovariance = diag(sigLog10Prior.^2*log(10^2));
-        
+       
+        if isempty(inputLibrary)
+            ModelTrue.inputExpressions = {'IDex','100'};
+            ModelTrue = ModelTrue.formPropensitiesGeneral(['grdex_',num2str(ind)],true);
+            ModelTrue = {ModelTrue};
+        else
+            TMP = cell(1,length(inputLibrary));
+            for iInput = 1:length(inputLibrary)
+                TMP{iInput} = ModelTrue;
+                TMP{iInput}.inputExpressions = inputLibrary{iInput};
+                TMP{iInput} = TMP{iInput}.formPropensitiesGeneral(['grdex_',num2str(iInput)],true);
+            end
+            ModelTrue = TMP;
+        end
+
 end
 
-ModelTrue.fspOptions.fspTol = 1e-6;
+nInputs = length(inputLibrary);
+ModelSolution = cell(1,nInputs);
+fimTrue = {};
+for iInput = 1:nInputs
+    ModelTrue{iInput}.fspOptions.fspTol = 1e-6;
 
-%% Generate Model Propensity Functions and Solve True Model
-[ModelSolution,ModelTrue.fspOptions.bounds] = ModelTrue.solve;
+    %% Generate Model Propensity Functions and Solve True Model
+    [ModelSolution{iInput},ModelTrue{iInput}.fspOptions.bounds] = ModelTrue{iInput}.solve;
 
-%% FIM options
-fimScale = 'log'; % Maximize fim for log parameters
+    %% FIM options
+    fimScale = 'log'; % Maximize fim for log parameters
 
-%% True Model FIM
-fimTrue = ModelTrue.computeFIM([],fimScale);
+    %% True Model FIM
+    fimTrue = [fimTrue;ModelTrue{iInput}.computeFIM([],fimScale)];
 
-%% Verify that the true model and simulated data look correct.
-if showPlots
-    dataFile = ['FakeExperiment_',saveFileName,'_',num2str(ind),'.csv'];
-    nextExperiment = 100*ones(1,nT);
-    ModelTrue.ssaOptions.nSimsPerExpt = max(nextExperiment);
-    ModelTrue.ssaOptions.Nexp = 1;
-    ModelTrue.sampleDataFromFSP(ModelSolution,dataFile)
-    ModelTMP = ModelTrue.loadData(dataFile,dataToFit);
-    ModelTMP.makeFitPlot
+    %% Verify that the true model and simulated data look correct.
+    if showPlots
+        dataFile = ['FakeExperiment_',saveFileName,'_',num2str(iInput),'.csv'];
+        nextExperiment = 100*ones(1,nT);
+        ModelTrue{iInput}.ssaOptions.nSimsPerExpt = max(nextExperiment);
+        ModelTrue{iInput}.ssaOptions.Nexp = 1;
+        ModelTrue{iInput}.sampleDataFromFSP(ModelSolution{iInput},dataFile)
+        ModelTMP = ModelTrue{iInput}.loadData(dataFile,dataToFit);
+        ModelTMP.makeFitPlot([],1);
+    end
 end
 
 %% Set Rules for Experiment Designs and Iterations
 % Possible Time points for Experiments.
     
 % MLE Fitting Options
-maxFitIter = 2000;
-nFitRounds = 5;
+maxFitIter = 200;
+nFitRounds = 3;
 
 % Metropolis Hastings Properties
 nThinMH = 2; % Thin rate for MH sampling
@@ -289,8 +316,8 @@ nBurnMH = 100; % Number for MH burn in
 
 % Definition of initial experiment
 if isempty(initialExperiment)
-    initialExperiment = zeros(1,nT);
-    initialExperiment([1,round(nT/3),round(2*nT/3),nT]) = round(numCellsPerExperiment/4);
+    initialExperiment = zeros(nInputs,nT);
+    initialExperiment(1,[1,round(nT/3),round(2*nT/3),nT]) = round(numCellsPerExperiment/4);
 end
 
 nextExperiment = initialExperiment;
@@ -299,33 +326,32 @@ mhPlotScale = 'log10';  % Show MH and FIM plots in log10 scale.
 
 %% Experiment Design Definitions
 N = numCellsPerExperiment/incrementAdd; % needs to be int
-randomCell = zeros(nExptRounds,nT);
+randomCell = zeros(nExptRounds,nInputs*nT);
 for i = 1:nExptRounds
-    n = randi(nT,1,N);
+    n = randi(nT*nInputs,1,N);
     for j = n
         randomCell(i,j) = randomCell(i,j) + incrementAdd;
     end
 end
 
-uniformCell = floor(ones(nExptRounds,nT)*numCellsPerExperiment/nT);
+uniformCell = floor(ones(nExptRounds,nInputs*nT)*numCellsPerExperiment/(nInputs*nT));
 for i=1:nExptRounds
     if sum(uniformCell(i,:))<numCellsPerExperiment
         uniformCell(i,1:numCellsPerExperiment-sum(uniformCell(i,:)))=...
             uniformCell(i,1:numCellsPerExperiment-sum(uniformCell(i,:)))+1;
     end
 end
-%%
-% Create Model for Estimate.
-ModelTrue.fittingOptions.modelVarsToFit = fitParameters;
-ModelGuess = ModelTrue;
 
-% Randomize the initial parameter set.
-if ~ isempty(initialParameterGuess)
-    ModelGuess.parameters(fitParameters,2) = ...
-        num2cell(initialParameterGuess);
+%% Create Model for Estimate.
+ModelGuess = cell(1,nInputs);
+for iInput = 1:nInputs
+    ModelTrue{iInput}.fittingOptions.modelVarsToFit = fitParameters;
+    ModelGuess{iInput} = ModelTrue{iInput};
 end
+% Randomize the initial parameter set.
+newPars = initialParameterGuess;
 
-%% Initialize cells for saved results
+%% Initialize cells for saving results
 covMH = cell(1,nExptRounds);
 covLogMH = cell(1,nExptRounds);
 covLogFIM_Prediction = cell(1,nExptRounds);
@@ -335,100 +361,168 @@ exptDesigns = cell(1,nExptRounds);
 FIMpredNextExpt = cell(1,nExptRounds);
 FIMcurrentExptSaved = cell(1,nExptRounds);
 FIMcurrentExptTrueSaved = cell(1,nExptRounds);
-
 MHResultsSaved = cell(1,nExptRounds);
 
 %% Loop over subsequent experiments
-allDataSoFar = [];
-nTotalCells = zeros(1,nT);  
+allDataSoFar = cell(1,nInputs);
+nTotalCells = zeros(nInputs,nT);
 
 for iExpt = 1:nExptRounds
-    
+    clc
+    disp(['Round: ',num2str(iExpt)])
     nTotalCells = nTotalCells + nextExperiment;
-    
+ 
     switch data
         case 'real'
             % Sample from real data
-            [simData,csvFile] = sampleExperimentSim('../ExampleData/DUSP1_Dex_100nM_Rep1_Rep2.csv',timeDUSP1,nTotalCells);
-            dataFile = csvFile;
-            dataToFit = {'x2','RNA_nuc'};
+            [simData,dataFile,allDataSoFar] = sampleGRExperiment('ExampleData/Gated_dataframe_Ron_030624_NormalizedGR_bins.csv',...
+                ModelTrue{1}.tSpan,[1,10,100],nTotalCells,iExpt);
+            dataToFit = {'cytGR','normgrcyt';'nucGR','normgrnuc'};
         case 'simulated'
             % Generate "Fake" data
-            dataFile = ['FakeExperiment_',saveFileName,'_',num2str(ind),'.csv'];
+            dataFile = cell(1,nInputs);
+            for iInput = 1:nInputs
+                dataFile{iInput} = ['FakeExperiment_',saveFileName,'_',num2str(iInput),'.csv'];
 
-            ModelTrue.ssaOptions.nSimsPerExpt = max(nextExperiment);
-            ModelTrue.ssaOptions.Nexp = 1;
-            ModelTrue.sampleDataFromFSP(ModelSolution,dataFile)
-        
-            % DownSelect fake data to specified number of cells at each time
-            X = importdata(dataFile);
-            for iT = 1:length(ModelTrue.tSpan)
-                if nextExperiment(iT)>0
-                    J = find(X.data(:,1)==ModelTrue.tSpan(iT),nextExperiment(iT));
-                    
-                    % Add new data to previous data set
-                    allDataSoFar = [allDataSoFar;X.data(J,:)];
+                ModelTrue{iInput}.ssaOptions.nSimsPerExpt = max(nextExperiment(iInput,:));
+                ModelTrue{iInput}.ssaOptions.Nexp = 1;
+                if ModelTrue{iInput}.ssaOptions.nSimsPerExpt>0
+                    ModelTrue{iInput}.sampleDataFromFSP(ModelSolution{iInput},dataFile{iInput})
+
+                    % DownSelect fake data to specified number of cells at each time
+                    X = importdata(dataFile{iInput});
+                    for iT = 1:length(ModelTrue{iInput}.tSpan)
+                        if nextExperiment(iInput,iT)>0
+                            J = find(X.data(:,1)==ModelTrue{iInput}.tSpan(iT),nextExperiment(iInput,iT));
+
+                            % Add new data to previous data set
+                            allDataSoFar{iInput} = [allDataSoFar{iInput};X.data(J,:)];
+                        end
+                    end
+                end
+                % Save generated data to file.
+                A = table;
+                if ~isempty(allDataSoFar{iInput})
+                    for j=1:length(X.colheaders)
+                        A.(X.colheaders{j}) = allDataSoFar{iInput}(:,j);
+                        writetable(A,dataFile{iInput})
+                    end
                 end
             end
-        
-            % Save generated data to file.
-            A = table;
-            for j=1:length(X.colheaders)
-                A.(X.colheaders{j}) = allDataSoFar(:,j);
-                writetable(A,dataFile)
-            end
+
     end
 
     % Add Data to Model
-    ModelGuess = ModelGuess.loadData(dataFile,dataToFit);
-            
+    hasData = zeros(1,nInputs,'logical');
+    for iInput = 1:nInputs
+        if ~isempty(allDataSoFar{iInput})
+            hasData(iInput) = true;
+            ModelGuess{iInput} = ModelGuess{iInput}.loadData(dataFile{iInput},dataToFit);
+            ModelGuess{iInput}.tSpan = ModelTrue{iInput}.tSpan;
+            ModelGuess{iInput}.fspOptions.fspTol = inf;
+        end
+    end
+
+    % Call function to assemble total likelihood function
+    objFunc = @(x)-getObjective(x,ModelGuess,hasData);
+
     % Fit Model to data.
     fitOptions = optimset('Display','none','MaxIter',maxFitIter);
     for iFitIter=1:nFitRounds
-        fitPars = ModelGuess.maximizeLikelihood([],fitOptions);
-        ModelGuess.parameters(fitParameters,2) = num2cell(fitPars);
-        [~,ModelGuess.fspOptions.bounds] = ModelGuess.solve;
+        newPars = exp(fminsearch(objFunc,log(newPars),fitOptions));
+        for i = 1:nInputs
+            ModelGuess{iInput}.parameters(fitParameters,2) = num2cell(newPars);
+            ModelGuess{iInput}.fspOptions.fspTol = 1e-6;
+            [~,ModelGuess{iInput}.fspOptions.bounds] = ModelGuess{iInput}.solve;
+        end
     end
     
+    % Show fit plotsif requested.
     if showPlots
-        ModelGuess.makeFitPlot
+        for iInput = 1:nInputs
+            if ~isempty(allDataSoFar{iInput})
+                ModelGuess{iInput}.makeFitPlot([],1);
+            end
+        end
     end
 
-    % Run Metropolis Hastings
-    MHFitOptions.thin=nThinMH;
-    MHFitOptions.numberOfSamples=nSamplesMH;
-    MHFitOptions.burnIn=nBurnMH;
-    MHFitOptions.progress=true;
-    MHFitOptions.useFIMforMetHast=true;
-    MHFitOptions.CovFIMscale = 1.0;
-    MHFitOptions.numChains = 1;
+   % Run Metropolis Hastings
+    disp('Starting MH Chain')
+    MHFitOptions.progress=false;
     MHFitOptions.saveFile = ['TMPMHChain_',saveFileName,'_',num2str(ind),'.mat'];
     delete(MHFitOptions.saveFile) 
-    [newPars,~,MHResults] = ModelGuess.maximizeLikelihood(...
-        [], MHFitOptions, 'MetropolisHastings');
-    ModelGuess.parameters(ModelGuess.fittingOptions.modelVarsToFit,2) = num2cell(newPars);
+
+    % Call function to assemble total likelihood function
+    for iInput = 1:nInputs
+        ModelGuess{iInput}.fspOptions.fspTol = inf;
+    end
+    OBJmh = @(x)getObjective(x,ModelGuess,hasData);
+
+    %% Compute FIM for use in MH Proposal Function
+
+    fimResults = {};
+    nCellsVec = [];
+    for iInput = 1:nInputs
+        % if ~isempty(allDataSoFar{iInput})
+            fimResults =  [fimResults;ModelGuess{iInput}.computeFIM([],'log')];
+            nCellsVec = [nCellsVec,nTotalCells(iInput,:)];
+        % end
+    end
+
+    % % Call function to assemble full FIM from cell
+    % % counts and prior covariance information.
+    FIM = ModelGuess{1}.evaluateExperiment(fimResults,nCellsVec,ModelGuess{1}.fittingOptions.logPriorCovariance);
+    % 
+    FIMfree = FIM{1}(ModelGuess{1}.fittingOptions.modelVarsToFit,ModelGuess{1}.fittingOptions.modelVarsToFit);
+    % 
+    if min(eig(FIMfree))<1
+        disp('Warning -- FIM has one or more small eigenvalues.  Reducing proposal width to 10x in those directions. MH Convergence may be slow.')
+        FIMfree = FIMfree + 1*eye(length(FIMfree));
+    end
+    % 
+    covFree = FIMfree^-1;
+    covFree = (covFree+covFree')/2;
+    proposalDistribution=@(x)mvnrnd(x,covFree);
+
+    %% Run MH Algorithm
+    [MHResults.mhSamples,MHResults.mhAcceptance,MHResults.mhValue,x0] = ...
+        ssit.parest.metropolisHastingsSample(log(newPars),nSamplesMH,...
+        'logpdf',OBJmh,'proprnd',proposalDistribution,...
+        'symmetric',true,...
+        'thin',nThinMH,'nchain',1,'burnin',nBurnMH,...
+        'progress',MHFitOptions.progress,...
+        'saveFileName',MHFitOptions.saveFile);
+
+    newPars = exp(x0);
+  
+    for iInputs = 1:nInputs
+        ModelGuess{iInput}.fspOptions.fspTol = 1e-6;
+        ModelGuess{iInput}.parameters(ModelGuess{iInput}.fittingOptions.modelVarsToFit,2) = num2cell(newPars);
+        [~,ModelGuess{iInput}.fspOptions.bounds] = ModelGuess{iInput}.solve;
+    end
     delete(MHFitOptions.saveFile)
 
     % Compute FIM for subsampling of MH results.
     J = floor(linspace(nSamplesMH/2,nSamplesMH,nFIMsamples));
     MHSamplesForFIM = exp(MHResults.mhSamples(J,:));
-    ModelGuess.tSpan = ModelTrue.tSpan;
-
-%     ModelGuess.evaluateExperiment(fimResults,nTotalCells,SIGprior); %%%%%%%%%%%%%%%%%%%
-    fimResults = ModelGuess.computeFIM([],fimScale,MHSamplesForFIM);
-
+    
+    fimResults = {};
+    for iInput = 1:nInputs
+        fimResults =  [fimResults;ModelGuess{iInput}.computeFIM([],fimScale,MHSamplesForFIM)];
+    end
+ 
     % FIM current experiment
-    FIMCurrentExpt = ModelGuess.totalFim(fimResults,nTotalCells,ModelGuess.fittingOptions.logPriorCovariance);
+    FIMCurrentExpt = ModelGuess{1}.totalFim(fimResults,nCellsVec,ModelGuess{1}.fittingOptions.logPriorCovariance);
 
     % True FIM for chosen experiment
-    FIMCurrentExpt_True = ModelTrue.totalFim(fimTrue,nTotalCells,ModelGuess.fittingOptions.logPriorCovariance);
+    FIMCurrentExpt_True = ModelTrue{1}.totalFim(fimTrue,nCellsVec,ModelTrue{1}.fittingOptions.logPriorCovariance);
     
     switch lower(sampleType)
         case 'fimopt'
             % Find optimal NEXT experiment design given parameter sets
-            nextExperiment = ModelGuess.optimizeCellCounts(fimResults,numCellsPerExperiment,fimMetric,...
-                [],nTotalCells,[],'mean',...
-                ModelGuess.fittingOptions.logPriorCovariance,...
+            nextExperiment = ModelGuess{1}.optimizeCellCounts(fimResults,numCellsPerExperiment,fimMetric,...
+                [],nCellsVec,[],'mean',...
+                ModelGuess{1}.fittingOptions.logPriorCovariance,...
                 incrementAdd);
             
         case 'random'
@@ -440,7 +534,7 @@ for iExpt = 1:nExptRounds
         case 'uniform'
             nextExperiment = uniformCell(iExpt,:);
     end
-    FIMOptNextExpt = ModelGuess.totalFim(fimResults,nextExperiment+nTotalCells,ModelGuess.fittingOptions.logPriorCovariance);
+    FIMOptNextExpt = ModelGuess{1}.totalFim(fimResults,nextExperiment+nCellsVec,ModelGuess{1}.fittingOptions.logPriorCovariance);
 
     % Compute and Save Covariance from MH from CURRENT stage.
     parametersFound{iExpt} = newPars;
@@ -458,33 +552,34 @@ for iExpt = 1:nExptRounds
         covFIM_Prediction{iExpt}{jFIM} = inv(FIMOptNextExpt{jFIM});
     end
 
+    nextExperiment = reshape(nextExperiment',[nT,nInputs])';
     exptDesigns{iExpt} = nextExperiment;
 
     % make figures if requested.
     if showPlots
         FIMOptNextExptReduced = cell(size(FIMOptNextExpt));
         for i = 1:nFIMsamples
-            FIMOptNextExptReduced{i} = FIMOptNextExpt{i}(ModelGuess.fittingOptions.modelVarsToFit,...
-                ModelGuess.fittingOptions.modelVarsToFit); %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+            FIMOptNextExptReduced{i} = FIMOptNextExpt{i}(ModelGuess{1}.fittingOptions.modelVarsToFit,...
+                ModelGuess{1}.fittingOptions.modelVarsToFit); %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         end
         
         f = figure;
         f.Name = ['Current MH Results and Next FIM Prediction (Round ',num2str(iExpt),')'];
-        ModelGuess.plotMHResults(MHResults,FIMOptNextExptReduced,fimScale,mhPlotScale,f)
+        ModelGuess{1}.plotMHResults(MHResults,FIMOptNextExptReduced,fimScale,mhPlotScale,f)
 
         if iExpt>1
             f = figure;
             f.Name = ['Current MH Results and Previous FIM Prediction (Round ',num2str(iExpt),')'];
-            ModelGuess.plotMHResults(MHResults,FIMpredNextExpt{iExpt-1},fimScale,mhPlotScale,f)
+            ModelGuess{1}.plotMHResults(MHResults,FIMpredNextExpt{iExpt-1},fimScale,mhPlotScale,f)
         end
 
         f = figure;
         f.Name = ['Current MH Results and Perfect FIM Prediction (Round ',num2str(iExpt),')'];
-        ModelTrue.plotMHResults(MHResults,FIMCurrentExpt_True,fimScale,mhPlotScale,f)
+        ModelTrue{1}.plotMHResults(MHResults,FIMCurrentExpt_True,fimScale,mhPlotScale,f)
 
         figure;
         title(['Number of cells Measured at each Time Point (Round ',num2str(iExpt),')']);
-        bar(ModelGuess.tSpan,nTotalCells,'BarWidth', 0.4)
+        bar(ModelGuess{1}.tSpan,nTotalCells,0.4, 'stacked')
         ylabel('Number of Cells Measured');
         xlabel('time [min]');
         ylim([0 300]);
@@ -496,4 +591,20 @@ for iExpt = 1:nExptRounds
 
 end
 
+
+function objFun = getObjective(x,Mods,hasData,stateSpace,prior)
+arguments
+    x
+    Mods
+    hasData
+    stateSpace = []
+    prior = @(x)0
+end
+objFun = 0;
+for i = 1:length(Mods)
+    if hasData(i)
+        objFun = objFun + Mods{i}.computeLikelihood(exp(x),stateSpace);
+    end
+end
+objFun = objFun + prior(exp(x));
 
