@@ -1,4 +1,4 @@
-function [simData,csvFile,allDataSoFar] = sampleGRExperiment(dataFileName,times,Dex,NCells,iExpt)
+function [simData,csvFile,allDataSoFar,maxAvailable] = sampleGRExperiment(dataFileName,times,Dex,NCells,iExpt)
 
 if iExpt == 1
     % Randomize data order
@@ -7,7 +7,6 @@ if iExpt == 1
     J = randperm(size(Xtable,1));
     Xtable = Xtable(J,:);
     writetable(Xtable,[dataFileName(1:end-4),'_permuted.csv']);
-
 end
 dataFileName = [dataFileName(1:end-4),'_permuted.csv'];
 
@@ -17,6 +16,16 @@ Xtable = readtable(dataFileName);
 indTime=find(ismember(X.textdata,'time'));
 indDex=find(ismember(X.textdata,'Dex_Conc'));
 
+
+% Find number of cells available for each experiment
+maxAvailable = zeros(1,length(Dex)*length(times));
+for j = 1:length(Dex)
+    for i = 1:length(times)
+        maxAvailable(i+(j-1)*length(times)) = ...
+            sum(((X.data(:,indTime) == times(i)).*(X.data(:,indDex) == Dex(j))));
+    end
+end
+
 % Pick 'NCells' random cells for simmulated experiment
 for j = 1:length(Dex)
     simData = [];
@@ -24,7 +33,7 @@ for j = 1:length(Dex)
         c = find((X.data(:,indTime) == times(i)).*...
             (X.data(:,indDex) == Dex(j)));
         if isempty(c)
-            error(['No Cells at timepoint t = ',num2str(timeMatrix(i))])
+            error(['No Cells left at timepoint t = ',num2str(times(i))])
         else
             if length(c) < NCells(j,i)
                 error(['Not enough cells in experiment for measuring ',num2str(NCells(j,i)), ' cells at time t = ',num2str(timeMatrix(i))])

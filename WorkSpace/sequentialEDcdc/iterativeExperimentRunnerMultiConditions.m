@@ -36,6 +36,9 @@ end
 
 showPlots = false;
 
+% Maximum number of cells is infinite unless specified otherwise.e
+maxAvailable = []; 
+
 %% Define Model
 switch lower(example)
     case 'poisson'
@@ -293,7 +296,7 @@ for iInput = 1:nInputs
 
     %% Verify that the true model and simulated data look correct.
     if showPlots
-        dataFile = ['FakeExperiment_',saveFileName,'_',num2str(iInput),'.csv'];
+        dataFile = ['simData/FakeExperiment_',saveFileName,'_',num2str(iInput),'.csv'];
         nextExperiment = 100*ones(1,nT);
         ModelTrue{iInput}.ssaOptions.nSimsPerExpt = max(nextExperiment);
         ModelTrue{iInput}.ssaOptions.Nexp = 1;
@@ -375,14 +378,14 @@ for iExpt = 1:nExptRounds
     switch data
         case 'real'
             % Sample from real data
-            [simData,dataFile,allDataSoFar] = sampleGRExperiment('ExampleData/Gated_dataframe_Ron_030624_NormalizedGR_bins.csv',...
+            [simData,dataFile,allDataSoFar,maxAvailable] = sampleGRExperiment('ExampleData/Gated_dataframe_Ron_030624_NormalizedGR_bins.csv',...
                 ModelTrue{1}.tSpan,[1,10,100],nTotalCells,iExpt);
             dataToFit = {'cytGR','normgrcyt';'nucGR','normgrnuc'};
         case 'simulated'
             % Generate "Fake" data
             dataFile = cell(1,nInputs);
             for iInput = 1:nInputs
-                dataFile{iInput} = ['FakeExperiment_',saveFileName,'_',num2str(iInput),'.csv'];
+                dataFile{iInput} = ['simData/FakeExperiment_',saveFileName,'_',num2str(iInput),'.csv'];
 
                 ModelTrue{iInput}.ssaOptions.nSimsPerExpt = max(nextExperiment(iInput,:));
                 ModelTrue{iInput}.ssaOptions.Nexp = 1;
@@ -521,7 +524,7 @@ for iExpt = 1:nExptRounds
         case 'fimopt'
             % Find optimal NEXT experiment design given parameter sets
             nextExperiment = ModelGuess{1}.optimizeCellCounts(fimResults,numCellsPerExperiment,fimMetric,...
-                [],nCellsVec,[],'mean',...
+                [],nCellsVec,maxAvailable,'mean',...
                 ModelGuess{1}.fittingOptions.logPriorCovariance,...
                 incrementAdd);
             
