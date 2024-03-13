@@ -6,7 +6,7 @@
 #SBATCH --nodes=1
 #SBATCH --cpus-per-task=1
 
-module load matlab  # Load MATLAB module if necessary
+module load matlab-2022b  # Load MATLAB module if necessary
 
 # Write MATLAB script to a temporary file
 echo "$MATLAB_SCRIPT" > func.m
