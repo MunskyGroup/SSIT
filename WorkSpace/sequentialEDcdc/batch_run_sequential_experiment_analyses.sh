@@ -2,7 +2,6 @@
 #SBATCH --job-name=my_matlab_job
 #SBATCH --output=my_matlab_job.out
 #SBATCH --error=my_matlab_job.err
-#SBATCH --nodes=1
 #SBATCH --cpus-per-task=1
 #SBATCH --partition=all
 
@@ -15,5 +14,6 @@ for i in {1..3}; do
     	    LOG_FILE="log_${i}_${j}_${k}.txt"
         	# Submit MATLAB job to Slurm for each combination
         	matlab -nojvm -nodisplay -r "sequentialExptDesignBatchRunner($i, $j, $k); exit;" > "$LOG_FILE" &
+     	done
      done
 done
