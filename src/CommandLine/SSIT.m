@@ -1202,8 +1202,28 @@ classdef SSIT
             end
             
             if isempty(NcGuess)
+                % Distributed avaliable cells among experiments.
                 NcGuess = NcFixed;
-                NcGuess(1)=NcGuess(1)+nCellsTotalNew;
+                iExpt = 1;
+                while nCellsTotalNew>0&&iExpt<=length(NcGuess)
+                    avblSlots = NcMax(iExpt) - NcFixed(iExpt);
+                    if avblSlots>=nCellsTotalNew
+                        NcGuess(iExpt) = NcGuess(iExpt) + nCellsTotalNew;
+                        iExpt = inf;
+                    else
+                        while avblSlots >= incrementAdd
+                            NcGuess(iExpt) = NcGuess(iExpt) + incrementAdd;
+                            nCellsTotalNew = nCellsTotalNew - incrementAdd;
+                            avblSlots = avblSlots - incrementAdd;
+                        end
+                        iExpt = iExpt + 1;
+                        if iExpt>length(NcGuess)&&nCellsTotalNew>=0
+                            NcDNewDesign = NcGuess - NcFixed;
+                            warning('All cells have been distributed.')
+                            return
+                        end
+                    end
+                end
             else
                 NcGuess = NcFixed+NcGuess;
             end
@@ -1419,6 +1439,17 @@ classdef SSIT
         end
 
         function [logL,gradient,fitSolutions] = computeLikelihood(obj,pars,stateSpace,computeSensitivity)
+            % This function computes the log likelihood of the data given
+            % the model. 
+            % obj -- (SSIT class)
+            % pars -- parameters of model in linear space.  Matches the
+            %   order in obj.parameters, and downselected to the free
+            %   parameters in obj.fittingOptions.modelVarsToFit.
+            % stateSpace -- (optional) statespace for FSP solution.
+            %   providing increases efficiency.
+            % computeSensitivity -- (false) flag to request
+            %   sensitivity of loglkelihood functon wrt parameters as a
+            %   returned variable. 
             arguments
                 obj
                 pars = [];
@@ -1426,10 +1457,13 @@ classdef SSIT
                 computeSensitivity = false;
             end
 
+            % Reset state space if it has inconsistencies
             if ~isempty(stateSpace)&&size(stateSpace.states,2)~=stateSpace.state2indMap.Count
                 stateSpace =[];
             end
 
+            % select which parameters to consider in likelihood function
+            % first for the model parameters
             if strcmp(obj.fittingOptions.modelVarsToFit,'all')
                 indsParsToFit = [1:length(obj.parameters)];
             else
@@ -1437,6 +1471,7 @@ classdef SSIT
             end
             nModelPars = length(indsParsToFit);
 
+            % then for PDO parameters
             if strcmp(obj.fittingOptions.pdoVarsToFit,'all')
                 indsPdoParsToFit = [1:length(obj.pdoOptions.props.ParameterGuess)];
             else
@@ -1444,48 +1479,63 @@ classdef SSIT
             end
             nPdoPars = length(indsPdoParsToFit);
 
+            % if parameters are not provided, use the ones stored in the
+            % SSIT object.
             if isempty(pars)
                 pars = [obj.parameters{indsParsToFit,2}];
             end
 
+            % if there is no logprior, use zero.
             if ~isempty(obj.fittingOptions.logPrior)
                 logPrior = sum(obj.fittingOptions.logPrior(pars));
             else
                 logPrior = 0;
             end
 
+            % save original parameters
             originalPars = obj.parameters;
-            %             obj.tSpan = unique([obj.initialTime,obj.dataSet.times]);
+
+            % remove duplicates from time span
             obj.tSpan = unique([obj.initialTime,obj.tSpan]);
 
             % Update Model and PDO parameters using supplied guess
             obj.parameters(indsParsToFit,2) =  num2cell(pars(1:nModelPars));
 
+            % Call routines to find the FSP solution with or without
+            % sensitivity.
             if computeSensitivity&&nargout>=2
-                obj.solutionScheme = 'fspSens'; % Chosen solutuon scheme ('FSP','SSA')
+                obj.solutionScheme = 'fspSens'; % Chosen solution scheme 
                 [solutions] = obj.solve(stateSpace);  % Solve the FSP analysis
             else
-                obj.solutionScheme = 'FSP'; % Chosen solutuon scheme ('FSP','SSA')
+                obj.solutionScheme = 'FSP'; % Chosen solution scheme 
                 [solutions] = obj.solve(stateSpace);  % Solve the FSP analysis
             end
             obj.parameters =  originalPars;
 
+            % Formulate PDO if one is used and it has adjustable
+            % parameters.
             if ~isempty(pars)&&nPdoPars>0
                 obj.pdoOptions.props.ParameterGuess(indsPdoParsToFit) = pars(nModelPars+1:end);
                 obj.pdoOptions.PDO = obj.generatePDO(obj.pdoOptions,[],solutions.fsp); % call method to generate the PDO.
             end
 
-            %% Project FSP result onto species of interest.
+            % Separate out stochastic species if using a hybrid ode/fsp
+            % model.
             if obj.useHybrid
                 speciesStochastic = setdiff(obj.species,obj.hybridOptions.upstreamODEs);
             else
                 speciesStochastic = obj.species;
             end
+            
+            % Record which species of interest are linked to data.
+            % TODO - this might lead to errors if names are not fully
+            % unique.  Need to check.
             Nd = length(speciesStochastic);
             for i=Nd:-1:1
                 indsPlots(i) = max(contains(obj.dataSet.linkedSpecies(:,1),speciesStochastic(i)));
             end
 
+            % Find max lengths of FSP tensors in every species.
             szP = zeros(1,Nd);
             for it = length(obj.tSpan):-1:1
                 if ~computeSensitivity||nargout<2
@@ -1495,10 +1545,16 @@ classdef SSIT
                 end
             end
 
+            % Create a full tensor with the results of the FSP solution.
+            % TODO - there must be an easir tensor-based solution to do
+            % this.
+            % Start by initializing the tensor to appropriate size.
             P = zeros([length(obj.tSpan),szP(indsPlots)]);
             for it = length(obj.tSpan):-1:1
+                % Find inds that are marginalized over.
                 INDS = setdiff([1:Nd],find(indsPlots));
                 if ~computeSensitivity||nargout<2
+                    % get FSP solution for current time.
                     px = solutions.fsp{it}.p;
                 else
                     if computeSensitivity&&nargout>=2
@@ -1524,12 +1580,15 @@ classdef SSIT
                     end
                 end
 
+                % Sum over the marginalization indices (if any). The return
+                % result as a double vector.
                 if ~isempty(INDS)
                     d = double(px.sumOver(INDS).data);
                 else
                     d = double(px.data);
                 end
 
+                % Copy over the non-zero numbers
                 P(it,d~=0) = d(d~=0);
 
                 if computeSensitivity&&nargout>=2
@@ -1542,14 +1601,20 @@ classdef SSIT
                         S{iPar}(it,d~=0) = d(d~=0);
                     end
                 end
-                %             end
             end
 
-            %% Padd P or Data to match sizes of tensors.
+            % Padd P or Data to match sizes of tensors.
             NP = size(P);
             PD = obj.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor;
             NDat = size(PD);
+            % Make sure the tensors have the same rank (matlab truncated
+            % singleton dimensions).
             if length(NP)<Nd; NP(end+1:Nd)=1; end
+            
+            % Pad if data longer than model.
+            % TODO - this logic is clunky.  Could be made morre
+            % understadable and more efficient. All we are doing here is
+            % adding zeros to pad the tensors to be the same size.
             if max(NDat(2:end)-NP(2:length(NDat)))>0   % Pad if data longer than model
                 NP(2:length(NDat)) = max(NP(2:length(NDat)),NDat(2:end));
                 tmp = 'P(end';
@@ -1565,6 +1630,8 @@ classdef SSIT
                     end
                 end
             end
+
+            % Now, pad the data tensor if the model tensor is longer.
             if max(NP(2:length(NDat))-NDat(2:end))>0   % Pad if model longer than data
                 NDat(2:length(NDat)) = max(NP(2:length(NDat)),NDat(2:end));
                 tmp = 'PD(end';
@@ -1600,13 +1667,19 @@ classdef SSIT
             %                 end
             %             end
 
+            % Set minimum value of model distribution at 10^-10.
             P = max(P,1e-10);
+            % Remove imaginary entries and send warning to user.
             if ~isreal(P)
                 P = real(P);
                 disp('removed imagionary elements of FSP solution')
             end
 
-            %% Data times for fitting
+            % Find data times for fitting, and then downselect data to just
+            % those times. 
+            % TODO - this approach is clunky.  All we are doing is slizing
+            % a tensor.  Unfortunately, matlab sometimes removes singleton
+            % dimensions resulting in the wrong tensor size.
             if strcmp(obj.fittingOptions.timesToFit,'all')
                 times = obj.dataSet.times;
                 fitSolutions.ParEstFitTimesList = obj.dataSet.app.ParEstFitTimesList;
@@ -1622,9 +1695,11 @@ classdef SSIT
                 elseif ndims(PD)==4
                     PD = PD(find(obj.fittingOptions.timesToFit),:,:,:);
                 end
-
             end
-            %% Compute log likelihood using equal sized P and Data tensors.
+
+            % Store data and model information for use in other routines.
+            % The format used here is chosen to match an existing object in
+            % the SSIT GUI.
             if nargout>=3
                 sz = size(P);
                 fitSolutions.DataLoadingAndFittingTabOutputs.fitResults.current = zeros([length(times),sz(2:end)]);
@@ -1644,23 +1719,30 @@ classdef SSIT
                 fitSolutions.DataLoadingAndFittingTabOutputs.fittingOptions.fit_times = times;
             end
 
+            % Initialize sensitivity derivative if needed.
             if computeSensitivity&&nargout>=2
                 dlogL_dPar = zeros(parCount,length(times));
             end
+            
+            % Initialize log likelihood at zero for all times.
             LogLk = zeros(1,length(times));
             KS = zeros(1,length(times));
             numCells = zeros(1,length(times));
+
+            % LogL for idealized models 
             perfectMod = zeros(1,length(times));
             perfectModSmoothed = zeros(1,length(times));
+
             for i=1:length(times)
-                [~,j] = min(abs(obj.tSpan-times(i)));
-                % if length(times)>1
-                    Jind = PD.subs(:,1) == i;
-                    SpInds = PD.subs(Jind,:);
-                % else
-                %     Jind = ones(size(PD.subs,1),1,'logical');
-                %     SpInds = [ones(length(Jind),1),PD.subs(Jind,:)];
-                % end
+                % Find the closes time index 
+                [diffTime,j] = min(abs(obj.tSpan-times(i)));
+                if diffTime~=0
+                    warning('Exact match not found for time. Inaccuracies possible.')
+                end
+                
+                Jind = PD.subs(:,1) == i;
+                SpInds = PD.subs(Jind,:);
+
                 SpVals = PD.vals(Jind);
                 H = sptensor([ones(length(SpVals),1),SpInds(:,2:end)],SpVals,[1,NDat(2:end)]);
                 H = double(H);
@@ -1677,7 +1759,7 @@ classdef SSIT
                 if nargout>=3
                     Q = H(:)/sum(H(:));
                     KS(i) = max(abs(cumsum(Q(:))-cumsum(Pt(:))));
-                    smQ = smooth(Q);
+                    smQ = smooth(Q); smQ=smQ/sum(smQ);
                     logQ = log(Q); logQ(H==0)=1;
                     logSmQ = log(smQ); logSmQ(H==0)=1;
                     perfectMod(i) = sum(H(:).*logQ);

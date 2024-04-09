@@ -1,4 +1,4 @@
-function [simData,csvFile,allDataSoFar,maxAvailable] = sampleGRExperiment(dataFileName,times,Dex,NCells,iExpt)
+function [simData,csvFile,allDataSoFar,maxAvailable] = sampleGRExperiment(dataFileName,times,Dex,NCells,iExpt,fname)
 
 if iExpt == 1
     % Randomize data order
@@ -6,9 +6,9 @@ if iExpt == 1
     Xtable = readtable(dataFileName);
     J = randperm(size(Xtable,1));
     Xtable = Xtable(J,:);
-    writetable(Xtable,[dataFileName(1:end-4),'_permuted.csv']);
+    writetable(Xtable,[dataFileName(1:end-4),'_',fname,'_permuted.csv']);
 end
-dataFileName = [dataFileName(1:end-4),'_permuted.csv'];
+dataFileName = [dataFileName(1:end-4),'_',fname,'_permuted.csv'];
 
 % load data
 X = importdata(dataFileName);
@@ -47,15 +47,15 @@ for j = 1:length(Dex)
     end
 
     % Save simmulated experiment results
-    n=1;
-    while exist(['ExampleData/purposeExp','_v',num2str(n),'.csv'])
-        n=n+1;
-    end
     Xnew=Xtable(simData,:);
-    writetable(Xnew,['ExampleData/purposeExp','_v',num2str(n),'.csv']);
-    csvFile{j} = ['ExampleData/purposeExp','_v',num2str(n),'.csv'];
+    f = ['ExampleData/proposedExp_',fname,'_r',num2str(j),'.csv'];
+    writetable(Xnew,f);
+    csvFile{j} = f;
 
-    allDataSoFar{j} = NCells(j,:);
+    if sum(NCells(j,:))>0
+        allDataSoFar{j} = NCells(j,:);
+    end
+
 end
 
 end
