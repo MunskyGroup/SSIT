@@ -1,0 +1,19 @@
+% Gene Expression System Controller Class Definition
+classdef (Abstract) GeneExprSysController < handle
+    properties (SetAccess = private)
+        EstimatedModel (1,1) GeneExprSysModel
+        
+    end
+
+    methods
+        function c = GeneExprSysController(model, rounds)
+            c.EstimatedModel = model;
+
+        end
+    end
+
+    methods(Abstract, Access = ?GeneExprSysController)
+        experiment = SelectNextExperiment(controller)
+        updateModel(controller, data) 
+    end
+end
