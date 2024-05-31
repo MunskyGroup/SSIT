@@ -2,7 +2,7 @@
 classdef GeneExprSysExperiment
     properties
         NCells (1,1) integer {mustBePositive}       
-        InputIdx (1,1) integer {mustBePositive} % MATLAB indices start at 1
+        Input (1,1) string {mustBeNonempty}
         NextTimeDelta (1,1) integer {mustBePositive}       
     end
 end

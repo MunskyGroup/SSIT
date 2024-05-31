@@ -1,9 +1,5 @@
 % Gene Expression System Plant Class Definition
-classdef (Abstract) GeneExprSysPlant < matlab.mixin.Heterogeneous
-    % Inheriting from matlab.mixin.Heterogeneous means you can make arrays
-    % of objects from the subclasses, with different subclasses in the same
-    % array.
-
+classdef (Abstract) GeneExprSysPlant < handle
     properties (SetAccess = private)
         InputLibrary (1,:) cell
         TrueModel (1,1) GeneExprSysModel

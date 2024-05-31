@@ -6,11 +6,10 @@ classdef GeneExprSysFSPPlant < GeneExprSysPlant
                 plant GeneExprSysPlant
                 experiment GeneExprSysExperiment
             end
-            inputIdx = experiment.InputIdx;
             curModel = plant.TrueModel; % Clone the model
-            curModel.inputExpressions = plant.InputLibrary{inputIdx};
+            curModel.inputExpressions = experiment.Input;
             curModel = curModel.formPropensitiesGeneral(...
-                [saveFileName,'_s',num2str(iInput)],true);
+                [saveFileName,'_s',experiment.Input], true);
             fitOptions = optimset('Display','none','MaxIter',maxFitIter);
             curModel.fspOptions.fspTol = 1e-4;
 
