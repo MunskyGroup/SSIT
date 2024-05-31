@@ -1100,7 +1100,9 @@ classdef SSIT
             end
         end
 
-        function [NcDNewDesign] = optimizeCellCounts(obj,fims,nCellsTotalNew,FIMMetric,NcGuess,NcFixed,NcMax)
+        function [NcDNewDesign] = optimizeCellCounts(obj, fims, ...
+                nCellsTotalNew, optimalityCriterion, ...
+                NcGuess, NcFixed, NcMax)
             % This function optimizes the number of cells per time point
             % according to the user-provide metric. 
             % 
@@ -1114,20 +1116,8 @@ classdef SSIT
             % 'nCellsTotalNew' is the total number of cells the user wishes to
             % measure, spead out among the Nt time points.
             % 
-            % 'FIMmetric' is the type of optimization that the user
-            % desires. Allowable metrics are:
-            %   'Determinant' - maximize the expected determinant of the FIM
-            %   'DetCovariance' - minimize the expected determinant of MLE covariance. 
-            %   'Smallest Eigenvalue' - maximize the smallest e.val of the
-            %       FIM
-            %   'Trace' - maximize the trace of the FIM
-            %   '[<i1>,<i2>,...]' - minimize the determinant of the inverse
-            %       FIM for the specified indices. All other parameters are
-            %       assumed to be free.
-            %   'TR[<i1>,<i2>,...]' - maximize the determinant of the  FIM
-            %       for the specified indices. Only the parameters in
-            %       obj.fittingOptions.modelVarsToFit are assumed to be
-            %       free.
+            % 'optimalityCriterion' is the utility function that the 
+            % user seeks to optimize.         
             %
             % 'Nc' is an optimal guess for the optimal experiment design.
             %
@@ -1148,31 +1138,14 @@ classdef SSIT
                 obj
                 fims
                 nCellsTotalNew
-                FIMMetric = 'Smallest Eigenvalue';
+                optimalityCriterion (1,1) FIMOptimalityCriterion
                 NcGuess = [];
                 NcFixed = [];
                 NcMax = []
             end
-            switch FIMMetric
-                case 'Determinant'
-                    met = @(A)-det(A);
-                case 'DetCovariance'
-                    met = @(A)det(inv(A));
-                case 'Smallest Eigenvalue'
-                    met = @(A)-min(eig(A));
-                case 'Trace'
-                    met = @(A)-trace(A);
-                otherwise
-                    if strcmp(FIMMetric(1:2),'TR')
-                        k = eval(FIMMetric(3:end));
-                        met = @(A)det(inv(A(k,k)));
-                    else  % all parameters are free.
-                        k = eval(FIMMetric);
-                        ek = zeros(length(k),length(fims{1}));
-                        ek(1:length(k),k) = eye(length(k));
-                        met = @(A)det(ek*inv(A)*ek');
-                    end
-            end
+
+            metric_func = optimalityCriterion.getMetricFunction;
+            
             NT = size(fims,1);
             NS = size(fims,2);
 
@@ -1198,7 +1171,7 @@ classdef SSIT
                     while NcGuess(i)>NcFixed(i)
                         Ncp = NcGuess;
                         Ncp(i) = Ncp(i)-1;
-                        k = SSIT.findBestMove(fims,Ncp,met,NcMax);
+                        k = SSIT.findBestMove(fims,Ncp,metric_func,NcMax);
                         if k==i
                             break
                         end
