@@ -540,11 +540,18 @@ classdef SSIT
             end
 
             lambda = [];
-            maxSize = zeros(1,length(obj.species));
+
+            if isfield(obj.hybridOptions,'upstreamODEs')
+                speciesStochastic = setdiff(obj.species,obj.hybridOptions.upstreamODEs);
+            else
+                speciesStochastic = obj.species;
+            end
+            
+            maxSize = zeros(1,length(speciesStochastic));
             options = optimset('display','none');
-            for i=1:length(obj.species)
-                if sum(strcmp(measuredSpecies,obj.species{i}))==1
-                    k = find(strcmp(measuredSpecies,obj.species{i}));
+            for i=1:length(speciesStochastic)
+                if sum(strcmp(measuredSpecies,speciesStochastic{i}))==1
+                    k = find(strcmp(measuredSpecies,speciesStochastic{i}));
                     jTrue = find(strcmp(dataNames,trueColumns{k}));
                     jObsv = find(strcmp(dataNames,measuredColumns{k}));
                     xTrue = [DATA{:,jTrue}]';
@@ -585,11 +592,18 @@ classdef SSIT
             app.DistortionTypeDropDown.Value = pdoOptions.type;
             app.FIMTabOutputs.PDOProperties.props = pdoOptions.props;
             % Separate into observed and unobserved species.
-            Nd = length(obj.species);
+            
+            if isfield(obj.hybridOptions,'upstreamODEs')
+                speciesStochastic = setdiff(obj.species,obj.hybridOptions.upstreamODEs);
+            else
+                speciesStochastic = obj.species;
+            end
+            Nd = length(speciesStochastic);
+                  
             indsUnobserved=[];
             indsObserved=[];
             for i=1:Nd
-                if ~isempty(obj.pdoOptions.unobservedSpecies)&&max(contains(obj.pdoOptions.unobservedSpecies,obj.species{i}))
+                if ~isempty(obj.pdoOptions.unobservedSpecies)&&max(contains(obj.pdoOptions.unobservedSpecies,speciesStochastic{i}))
                     indsUnobserved=[indsUnobserved,i];
                 else
                     indsObserved=[indsObserved,i];
@@ -1010,11 +1024,16 @@ classdef SSIT
                 end
 
                 % Separate into observed and unobserved species.
-                Nd = length(obj.species);
+                if isfield(obj.hybridOptions,'upstreamODEs')
+                    speciesStochastic = setdiff(obj.species,obj.hybridOptions.upstreamODEs);
+                else
+                    speciesStochastic = obj.species;
+                end
+                Nd = length(speciesStochastic);
                 indsUnobserved=[];
                 indsObserved=[];
                 for i=1:Nd
-                    if ~isempty(obj.pdoOptions.unobservedSpecies)&&max(contains(obj.pdoOptions.unobservedSpecies,obj.species{i}))
+                    if ~isempty(obj.pdoOptions.unobservedSpecies)&&max(contains(obj.pdoOptions.unobservedSpecies,speciesStochastic{i}))
                         indsUnobserved=[indsUnobserved,i];
                     else
                         indsObserved=[indsObserved,i];
@@ -1166,6 +1185,9 @@ classdef SSIT
                     if strcmp(FIMMetric(1:2),'TR')
                         k = eval(FIMMetric(3:end));
                         met = @(A)det(inv(A(k,k)));
+                    elseif strcmp(FIMMetric(1:2),'tr')
+                        k = eval(FIMMetric(3:end));
+                        met = @(A)-det((A(k,k)));
                     else  % all parameters are free.
                         k = eval(FIMMetric);
                         ek = zeros(length(k),length(fims{1}));

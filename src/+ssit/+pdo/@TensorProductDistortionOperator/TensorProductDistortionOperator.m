@@ -63,9 +63,10 @@ classdef TensorProductDistortionOperator < ssit.pdo.AbstractDistortionOperator
             % probability distribution of distorted measurements.
 
             speciesBounds = size(px.data);
-            speciesCount = length(speciesBounds);
+            speciesCount = length(obj.conditionalPmfs);
             pdoFactors = cell(speciesCount, 1);
             for iSpecies = 1:speciesCount
+                % speciesBounds = size(obj.conditionalPmfs{iSpecies},2)
                 pdoFactors{iSpecies} = obj.conditionalPmfs{iSpecies}(:,1:speciesBounds(iSpecies));
                 nonZeroRows = find(sum(pdoFactors{iSpecies},2)~=0,1,'last');
                 pdoFactors{iSpecies} = obj.conditionalPmfs{iSpecies}(1:nonZeroRows,1:speciesBounds(iSpecies));
