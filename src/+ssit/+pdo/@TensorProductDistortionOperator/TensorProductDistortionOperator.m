@@ -47,7 +47,7 @@ classdef TensorProductDistortionOperator < ssit.pdo.AbstractDistortionOperator
 %             obj.observationDomains = observationDomains;
         end
 
-        function py = computeObservationDist(obj, px)
+        function py = computeObservationDist(obj, px, INDS)
             % Compute the probability distribution of
             %distorted single-cell observations using the FSP-approximated
             %probability distribution of true single-cell molecular counts.
@@ -61,15 +61,26 @@ classdef TensorProductDistortionOperator < ssit.pdo.AbstractDistortionOperator
             % -------
             % py: :mat:class:`~+ssit.@FspVector.FspVector`
             % probability distribution of distorted measurements.
+            arguments
+                obj
+                px
+                INDS=[]
+            end
 
             speciesBounds = size(px.data);
-            speciesCount = length(obj.conditionalPmfs);
+            speciesCount = length(speciesBounds);
             pdoFactors = cell(speciesCount, 1);
+            kSpecies = 0;
             for iSpecies = 1:speciesCount
-                % speciesBounds = size(obj.conditionalPmfs{iSpecies},2)
-                pdoFactors{iSpecies} = obj.conditionalPmfs{iSpecies}(:,1:speciesBounds(iSpecies));
-                nonZeroRows = find(sum(pdoFactors{iSpecies},2)~=0,1,'last');
-                pdoFactors{iSpecies} = obj.conditionalPmfs{iSpecies}(1:nonZeroRows,1:speciesBounds(iSpecies));
+                if min(abs(INDS-iSpecies))==0
+                    pdoFactors{iSpecies} = ones(1,speciesBounds(iSpecies));
+                else
+                    kSpecies = kSpecies+1;
+                    % speciesBounds = size(obj.conditionalPmfs{iSpecies},2)
+                    pdoFactors{iSpecies} = obj.conditionalPmfs{kSpecies}(:,1:speciesBounds(iSpecies));
+                    nonZeroRows = find(sum(pdoFactors{iSpecies},2)~=0,1,'last');
+                    pdoFactors{iSpecies} = obj.conditionalPmfs{kSpecies}(1:nonZeroRows,1:speciesBounds(iSpecies));            
+                end
             end
             if numel(px.data)>1
                 py = ssit.FspVector(ttm(px.data, pdoFactors));

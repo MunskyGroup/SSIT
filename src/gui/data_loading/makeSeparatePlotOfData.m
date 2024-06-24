@@ -152,7 +152,11 @@ tArrayModel = eval(app.FspPrintTimesField.Value);
 for iTime = 1:length(tArrayModel)
     for j=1:NdDat
         soInds = find(~strcmp(app.SpeciesForFitPlot.Items,app.SpeciesForFitPlot.Value{j}));
-        Z = double(app.FspTabOutputs.solutions{iTime}.p.sumOver(soInds).data);
+        px = app.FspTabOutputs.solutions{iTime}.p;
+        if ~isempty(app.FIMTabOutputs.distortionOperator)
+            px = app.FIMTabOutputs.distortionOperator.computeObservationDist(px,soInds);
+        end        
+        Z = double(px.sumOver(soInds).data);
         mnsMod(iTime,j) = [0:length(Z)-1]*Z;
         mns2Mod(iTime,j) = [0:length(Z)-1].^2*Z;
     end

@@ -276,3 +276,7 @@ set(gca,'FontSize',16,'TickLabelInterpreter','latex',...
     'xtick',[0.5:1:5.5],'XTickLabel',[0,10,30,50,75,180]);
 xlabel('Measurement Time (min)','Interpreter','latex')
 ylabel('Input ($\mu$M)','Interpreter','latex')
+
+
+%% Reformatting for the titration plot
+set(gca,'xtick',10.^[-3:4],'ylim',[-5,150])

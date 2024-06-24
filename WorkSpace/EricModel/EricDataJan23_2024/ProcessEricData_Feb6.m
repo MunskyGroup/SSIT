@@ -1,3 +1,4 @@
+%% Load original data
 Orig = readtable('Complete_dataframe_Ron_010224.csv');
 X = Orig;
 X.Properties.VariableNames
@@ -25,6 +26,9 @@ nucHigh = sortNA(ceil(0.75*length(sortNA)));
 J = X.Nuc_Area>=nucLow&X.Nuc_Area<=nucHigh;
 X = X(J,:);
 
+%% Save Copy of all data after nuc size gating.
+writetable(X,'Data010224_Gated_On_Nuc.csv')
+
 %% Estimate volume ratio between nucleus and cytoplasm (using segemented cells)
 sortNA = sort(NucAreas);
 nucLow = sortNA(floor(0.25*length(sortNA)));
@@ -33,7 +37,6 @@ J = NucAreas>=nucLow&NucAreas<=nucHigh;
 ratio = mean(NucAreas(J))/mean(CytoAreas(J))
 
 %% Compute "normalized" GR concentrations in nuc and cytoplasm.
-
 figure(2); clf;
 J = contains(X.Condition,'GR_timesweep');
 GRDat = X(J,:);
@@ -70,7 +73,6 @@ nucGRnorm = round(binsCyt*max(0,min(1,(GRnucLevel-minThreshold)/(maxCytGR-minThr
 subplot(1,3,1);histogram(round(nucGRnorm),'BinEdges',[0:max(round(nucGRnorm))])
 GRDat.normgrnuc = nucGRnorm;
 title('Nuclear Distribution')
-
 
 %% Randomly assign zero minute timepoints to other GR data.
 jZero = find(GRDat.Dex_Conc == 0);

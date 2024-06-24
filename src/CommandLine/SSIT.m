@@ -561,7 +561,7 @@ classdef SSIT
                     lambdaNew = fminsearch(objPDO,lambdaTemplate,options);
                     if showPlot
                         [~,PDO] = obj.findPdoError(pdoType,lambdaNew,xTrue,xObsv);
-                        Z = max(-200,log10(PDO));
+                        Z = max(-25,log10(PDO));
                         figure
                         contourf([0:size(PDO,2)-1],[0:size(PDO,1)-1],Z);
                         colorbar
@@ -625,7 +625,11 @@ classdef SSIT
 
             if nargin<=2
                 switch pdoType
+                    case 'LinPoiss'
+                        logL = [0.1, 1];
                     case 'AffinePoiss'
+                        logL = [1 5 0.5];
+                    case 'QuadPoiss'
                         logL = [1 5 0.5];
                 end
                 return
@@ -637,15 +641,23 @@ classdef SSIT
             NmaxObs = max(Distorted);
 
             switch pdoType
+                case 'LinPoiss'
+                    Np = ceil(max(NmaxObs,lambda(1)+lambda(2)*NmaxTrue));
                 case 'AffinePoiss'
                     Np = ceil(max(NmaxObs,lambda(2)+lambda(3)*NmaxTrue));
+                case 'QuadPoiss'
+                    Np = ceil(max(NmaxObs,lambda(2)+lambda(3)*NmaxTrue+lambda(4)*NmaxTrue^2));
             end
             P = zeros(Np+1,NmaxTrue+1);
 
             for xi = 0:NmaxTrue
                 switch pdoType
+                    case 'LinPoiss'
+                        P(1:Np+1,xi+1) = pdf('poiss',[0:Np]',max(lambda(1),lambda(2)*xi));
                     case 'AffinePoiss'
                         P(1:Np+1,xi+1) = pdf('poiss',[0:Np]',max(lambda(1),lambda(2)+lambda(3)*xi));
+                    case 'QuadPoiss'
+                        P(1:Np+1,xi+1) = pdf('poiss',[0:Np]',max(lambda(1),lambda(2)+lambda(3)*xi+lambda(4)*xi^2));
                 end
             end
 
@@ -658,6 +670,8 @@ classdef SSIT
 
             % apply constraints
             switch pdoType
+                case 'LinPoiss'
+                    logL = logL-1e4*(lambda(1)<0);
                 case 'AffinePoiss'
                     logL = logL-1e4*(lambda(1)<0);
             end
@@ -1519,10 +1533,10 @@ classdef SSIT
                 % Add effect of PDO.
                 if ~isempty(obj.pdoOptions.PDO)
                     try
-                        px = obj.pdoOptions.PDO.computeObservationDist(px);
+                        px = obj.pdoOptions.PDO.computeObservationDist(px,INDS);
                     catch
                         obj.pdoOptions.PDO = obj.generatePDO(obj.pdoOptions,[],solutions.fsp); % call method to generate the PDO.
-                        px = obj.pdoOptions.PDO.computeObservationDist(px);
+                        px = obj.pdoOptions.PDO.computeObservationDist(px,INDS);
                     end
                 end
 
