@@ -100,7 +100,7 @@ for i=1:length(ModelGRfit)
     %  Update parameters in original models.
     ModelGRfit{i} = combinedGRModel.SSITModels{i};
     ModelGRfit{i}.tSpan = sort(unique([ModelGRfit{i}.tSpan,linspace(0,180,30)]));
-    ModelGRfit{i}.makeFitPlot([],1)
+    ModelGRfit{i}.makeFitPlot([],1,[],true,'STD')
 end
 
 %% Extend Model to Include DUSP1 Activation, Production, and Degradation
@@ -161,7 +161,7 @@ for i = 1:5
 end
 
 %%    Plot predictions for other Dex concentrations.
-showCases = [1,1,1,0];
+showCases = [1,0,0,0];
 makePlotsDUSP1(ModelDusp1Fit,ModelGRDusp,DUSP1pars,Dusp1FitCases,showCases)
 %% Sample uncertainty for Dusp1 Parameters
 %%    Compute sensitivity of the fSP solution

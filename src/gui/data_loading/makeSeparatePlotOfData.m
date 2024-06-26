@@ -1,9 +1,11 @@
-function makeSeparatePlotOfData(app,smoothWindow,fignums,usePanels)
+function makeSeparatePlotOfData(app,smoothWindow,fignums,usePanels,varianceType,IQRrange)
 arguments
     app
     smoothWindow = 5;
     fignums = [];
     usePanels=true;
+    varianceType = 'STD';
+    IQRrange = 0.25
 end
 
 %% This function creates a histogram from the loaded data.
@@ -138,7 +140,11 @@ end
 if isempty(fignums); figHandle = figure;
 else; figHandle = figure(fignums(3));
 end
-set(figHandle,'Name','Mean +/- STD vs. time')
+
+switch varianceType
+    case 'STD'
+        set(figHandle,'Name','Mean +/- STD vs. time')
+end
 
 meanVarTrajAxis = gca;
 
@@ -156,9 +162,20 @@ for iTime = 1:length(tArrayModel)
         if ~isempty(app.FIMTabOutputs.distortionOperator)
             px = app.FIMTabOutputs.distortionOperator.computeObservationDist(px,soInds);
         end        
-        Z = double(px.sumOver(soInds).data);
+        Z = double(px.sumOver(soInds).data);      
         mnsMod(iTime,j) = [0:length(Z)-1]*Z;
         mns2Mod(iTime,j) = [0:length(Z)-1].^2*Z;
+
+        % Compute the 25% and 75% range from model.
+        sumZ = cumsum(Z);
+        [~,I] = unique(sumZ);
+        
+        if sumZ(1)>IQRrange
+            lowIQRmod(iTime,j) = 0;
+        else
+            lowIQRmod(iTime,j) = interp1(sumZ(I),I-1,IQRrange);
+        end
+        highIQRmod(iTime,j) = interp1(sumZ(I),I-1,1-IQRrange);
     end
 end
 
@@ -191,14 +208,20 @@ cols2 = [.90 .90  1.00; 1.00 .90 .90; .90 1.00 .90; .60 .60  1.00; 1.00 .60 .60;
 LG = {};
 for iplt=1:NdDat
     % if Plts_to_make(iplt)
-        BD = [mnsMod(:,iplt)'+sqrt(vars(:,iplt)'),mnsMod(end:-1:1,iplt)'-sqrt(vars(end:-1:1,iplt)')];
-        TT = [tArrayModel(1:end),tArrayModel(end:-1:1)];
-        fill(meanVarTrajAxis,TT,BD,cols2(iplt,:));
-        hold(meanVarTrajAxis,'on');
-        plot(meanVarTrajAxis,tArrayModel,mnsMod(:,iplt),cols(iplt),'linewidth',2);
-        LG{end+1} = [char(app.NameTable.Data(iplt,2)),' Model Mean \pm std'];
-        LG{end+1} = [char(app.NameTable.Data(iplt,2)),' Model Mean'];
-    % end
+    switch varianceType
+        case 'STD'
+            BD = [mnsMod(:,iplt)'+sqrt(vars(:,iplt)'),mnsMod(end:-1:1,iplt)'-sqrt(vars(end:-1:1,iplt)')];
+        case 'IQR'
+            BD = [highIQRmod(:,iplt)',lowIQRmod(end:-1:1,iplt)'];
+
+    end
+    TT = [tArrayModel(1:end),tArrayModel(end:-1:1)];
+    fill(meanVarTrajAxis,TT,BD,cols2(iplt,:));
+    hold(meanVarTrajAxis,'on');
+    plot(meanVarTrajAxis,tArrayModel,mnsMod(:,iplt),cols(iplt),'linewidth',2);
+    LG{end+1} = [char(app.NameTable.Data(iplt,2)),' Model Mean \pm std'];
+    LG{end+1} = [char(app.NameTable.Data(iplt,2)),' Model Mean'];
+    % endc
 end
 title('Trajectory of means and standard deviations')
 
@@ -207,14 +230,33 @@ for iTime = 1:numTimes
     for j=1:NdDat
         mnsDat(iTime,j) = [0:length(dataHistTime{iTime,j})-1]*dataHistTime{iTime,j};
         mns2Dat(iTime,j) = [0:length(dataHistTime{iTime,j})-1].^2*dataHistTime{iTime,j};
+        % Compute the 25% and 75% range from data.
+        
+        sumZ = cumsum(dataHistTime{iTime,j});
+        [~,I] = unique(sumZ);
+        
+        if sumZ(1)>0.25
+            lowIQRmod(iTime,j) = 0;
+        else
+            lowIQRdat(iTime,j) = interp1(sumZ(I),I-1,0.25);
+            highIQRdat(iTime,j) = interp1(sumZ(I),I-1,0.75);
+        end
+    
     end
 end
 varDat = mns2Dat-mnsDat.^2;
 T_array = app.DataLoadingAndFittingTabOutputs.fittingOptions.dataTimes;
 for j=1:NdDat
-    errorbar(meanVarTrajAxis,T_array,...
-        mnsDat(:,j),sqrt(varDat(:,j)),[cols(j),...
-        'o'],'MarkerSize',12,'MarkerFaceColor',cols(j),'linewidth',3)
+    switch varianceType
+        case 'STD'
+            errorbar(meanVarTrajAxis,T_array,...
+                mnsDat(:,j),sqrt(varDat(:,j)),[cols(j),...
+                'o'],'MarkerSize',12,'MarkerFaceColor',cols(j),'linewidth',3)
+        case 'IQR'
+            errorbar(meanVarTrajAxis,T_array,...
+                mnsDat(:,j),(mnsDat(:,j)-lowIQRdat(:,j)),(highIQRdat(:,j)-mnsDat(:,j)),[cols(j),...
+                'o'],'MarkerSize',12,'MarkerFaceColor',cols(j),'linewidth',3)
+    end
     LG{end+1} = [char(app.NameTable.Data(j,2)),' Data mean \pm std'];
 end
 

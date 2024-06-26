@@ -2298,18 +2298,21 @@ classdef SSIT
             end
         end
 
-        function makeFitPlot(obj,fitSolution,smoothWindow,fignums)
+        function makeFitPlot(obj,fitSolution,smoothWindow,fignums,usePanels,varianceType,IQRrange)
             % Produces plots to compare model to experimental data.
             arguments
                 obj
                 fitSolution =[];
                 smoothWindow = 5;
                 fignums = [];
+                usePanels=true;
+                varianceType = 'STD';
+                IQRrange = 0.25;
             end
-            if isempty(fitSolution)
+            if isempty(fitSolution)     
                 [~,~,fitSolution] = obj.computeLikelihood;
             end
-            makeSeparatePlotOfData(fitSolution,smoothWindow,fignums)
+            makeSeparatePlotOfData(fitSolution,smoothWindow,fignums,usePanels,varianceType,IQRrange)
         end
 
         function plotMHResults(obj,mhResults,FIM,fimScale,mhPlotScale,scatterFig)
