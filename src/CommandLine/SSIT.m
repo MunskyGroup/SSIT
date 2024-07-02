@@ -43,7 +43,7 @@ classdef SSIT
     end
 
     methods
-        function obj = SSIT(modelFile)
+        function obj = SSIT(modelFile,modelName,modelSettings)
             % SSIT - create an instance of the SSIT class.
             % Arguments:
             %   modelFile (optional) -- create  from specified template:
@@ -57,13 +57,29 @@ classdef SSIT
             %   F = SSIT('CentralDogma'); % Generate model for
             %                           %transcription and translation.
             arguments
-                modelFile = [];
+                modelFile = []
+                modelName = []
+                modelSettings = []
             end
             % SSIT Construct an instance of the SSIT class
             addpath(genpath('../src'));
             if ~isempty(modelFile)
-                obj = pregenModel(obj,modelFile);
+                if length(modelFile)>4 && strcmp(modelFile(end-3:end),'.mat')
+                    % Load existing model from .mat file.
+                    TMP = load(modelFile,modelName);
+                    obj = TMP.(modelName);
+                else
+                    % Create model from template
+                    obj = pregenModel(obj,modelFile);
+                end
             end
+
+            if ~isempty(modelSettings)
+                run(modelSettings)
+                outputs = executeRoutine(obj);
+                obj = outputs.model;
+            end
+
         end
 
         function Pars_container = get.pars_container(obj)
