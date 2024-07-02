@@ -439,6 +439,55 @@ for i = 1:4
 end
 set(gca,'fontsize',15,'ylim',10.^[-12.,-9],'xlim',10.^[3,5])
 
+%% Stochastic Simulation of Full Model
+% Form version of full model to run with SSA.  This will allow us to run
+% the full model and test to see if it matches to the FSP Model.
+SSAModel = ModelGRDusp100nM;
+SSAModel.solutionScheme = 'SSA';
+SSAModel.useHybrid = false;
+SSAModel.ssaOptions.useParalel = true;
+SSAModel.inputExpressions = {'IDex','Dex0*exp(-gDex*t)*(t>=0)'};
+SSAModel.tSpan = [-100,ModelGRDusp100nM.tSpan];
+SSAModel.initialCondition = [2;0;10;3;20];
+SSAModel.initialTime = -100;
+SSAModel = SSAModel.formPropensitiesGeneral('SSAEric');
+%% Plot model
+tic
+ssaSoln = SSAModel.solve;
+toc
+% Plot SSA results
+SSAModel.makePlot(ssaSoln,'meansAndDevs')
+
+%% Extend model to include cytoplasmic mRNA
+SSAModelCytoDusp1 = SSAModel;
+SSAModelCytoDusp1.species = {'offGene';'onGene';'cytGR';'nucGR';'rna';'rCyt'};
+SSAModelCytoDusp1.initialCondition = [2;0;24;1;5;50];
+SSAModelCytoDusp1.propensityFunctions = {'kon*offGene*nucGR';'koff*onGene';
+    '(kcn0 + (t>0)*kcn1*IDex/(MDex+IDex)) * cytGR';'knc*nucGR';'kg1';'gg1*cytGR';'gg2*nucGR';...
+    'kr*onGene';'gnuc*rna';...
+    'ktr*rna';'gcyt*rCyt'};
+SSAModelCytoDusp1.parameters(4,:) = {'gnuc',0.01}; % add parameter for cytoplasmic decay
+SSAModelCytoDusp1.parameters(14,:) = {'gcyt',0.005}; % add parameter for cytoplasmic decay
+SSAModelCytoDusp1.parameters(15,:) = {'ktr',0.01896}; % add parameter for cytoplasmic decay
+SSAModelCytoDusp1.stoichiometry = [-1,1,0,0,0,0,0,0,0,0,0;...
+                         1,-1,0,0,0,0,0,0,0,0,0;...
+                         0,0,-1,1,1,-1,0,0,0,0,0;...
+                         0,0,1,-1,0,0,-1,0,0,0,0;...
+                         0,0,0,0,0,0,0,1,-1,-1,0;...
+                         0,0,0,0,0,0,0,0,0,1,-1];
+
+SSAModelCytoDusp1 = SSAModelCytoDusp1.formPropensitiesGeneral('SSAEricCyt');
+ssaSolnCyt = SSAModelCytoDusp1.solve;
+
+SSAModelCytoDusp1.makePlot(ssaSolnCyt,'meansAndDevs')
+
+%% Make plots of cytoplasmic RNA.
+tempCytModel = ModelGRDusp100nM;
+tempCytModel = tempCytModel.loadData('EricDataJan23_2024/pdoCalibrationData_EricIntensity_DexSweeps.csv',...
+        {'rna','RNA_DUSP1_cyto'},...
+        {'Dex_Conc','100'}); 
+tempCytModel.makeFitPlot
+
 %% Sandbox for Predicting Other Behaviors
 % SBModel = ModelGRDusp;
 % SBModel.parameters(13,:) = {'Dex0',100};
