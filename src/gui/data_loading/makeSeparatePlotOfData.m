@@ -179,7 +179,11 @@ for iTime = 1:length(tArrayModel)
         else
             lowIQRmod(iTime,j) = interp1(sumZ(I),I-1,IQRrange);
         end
-        highIQRmod(iTime,j) = interp1(sumZ(I),I-1,1-IQRrange);
+        if sumZ(1)>1-IQRrange
+            highIQRmod(iTime,j) = 0;
+        else
+            highIQRmod(iTime,j) = interp1(sumZ(I),I-1,1-IQRrange);
+        end        
     end
 end
 
