@@ -164,7 +164,7 @@ end
 showCases = [1,0,0,0];
 makePlotsDUSP1(ModelDusp1Fit,ModelGRDusp,DUSP1pars,Dusp1FitCases,showCases)
 %% Sample uncertainty for Dusp1 Parameters
-%%    Compute sensitivity of the fSP solution
+%%    Compute sensitivity of the FSP solution
 ModelGRDusp100nM.solutionScheme = 'fspSens';
 sensSoln = ModelGRDusp100nM.solve();
 ModelGRDusp100nM.solutionScheme = 'FSP';
@@ -174,6 +174,11 @@ ModelGRDusp100nM.pdoOptions.unobservedSpecies = {'offGene';'onGene'};
 
 % compute the FIM
 fimResults = ModelGRDusp100nM.computeFIM(sensSoln.sens,'log');
+
+% In the following, the log-prior is used as a prior co-variance matrix.
+% This will be used in the FIM calculation as an FIM without new evidence 
+% being set equal to the inverse of this covariance matrix.  More rigorous
+% justification is needed to support this heuristic.
 fimTotal = ModelGRDusp100nM.evaluateExperiment(fimResults,ModelGRDusp100nM.dataSet.nCells,...
     diag(log10PriorStd.^2));
 
@@ -277,6 +282,10 @@ ModelPDOIntensEric = ModelPDOIntensEric.calibratePDO('EricDataJan23_2024/pdoCali
 %%  With PDO for MCP/smFISH
 fimsPDOSpot = ModelPDOSpots.computeFIM(sensSoln.sens,'log');
 fimPDOSpots = ModelPDOSpots.evaluateExperiment(fimsPDOSpot,nCellsOpt,diag(log10PriorStd.^2));
+
+nCellsOptPDOspots = ModelPDOSpots.optimizeCellCounts(fimsPDOSpot,nTotal,'tr[1:4]');
+
+
 figNew = figure;
 ModelGRDusp100nM.plotMHResults(MHResultsDusp1,[fimOpt,fimPDOSpots,fimTotal],'log',[],figNew);
 for i = 1:3
@@ -296,6 +305,9 @@ end
 %%  With PDO for Intensity only
 fimsPDOIntens = ModelPDOIntensEric.computeFIM(sensSoln.sens,'log');
 fimPDOIntens = ModelPDOIntensEric.evaluateExperiment(fimsPDOIntens,nCellsOpt,diag(log10PriorStd.^2));
+
+nCellsOptPDOintens = ModelPDOSpots.optimizeCellCounts(fimsPDOIntens,nTotal,'tr[1:4]');
+
 fimPDOIntensAvail = ModelPDOIntensEric.evaluateExperiment(fimsPDOIntens,nCellsOptAvail,diag(log10PriorStd.^2));
 figNew = figure; clf;
 ModelGRDusp100nM.plotMHResults(MHResultsDusp1,[fimOpt,fimPDOSpots,fimTotal,fimPDOIntens],'log',[],figNew);
