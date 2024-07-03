@@ -244,7 +244,7 @@ classdef Propensity
             oneSym = str2sym('1');
 
             % change to parfor?
-            for iRxn = 1:n_reactions
+            parfor iRxn = 1:n_reactions
                 prop_vars = symvar(symbolicExpression{iRxn});
                 hybridFactor =[];
                 prefixNameLocal = [prefixName,'_',num2str(iRxn)];
@@ -432,7 +432,7 @@ classdef Propensity
                     
                     if computeSens
                         for iPar = 1:n_pars
-                            expr_tx_vec_sens(iRxn,iPar) = signHybridFactor*diff(expr_tx,nonXTpars{iPar,1});
+                            expr_tx_vec_sens(iRxn,iPar) = diff(expr_tx,nonXTpars{iPar,1});
                         end                   
                     end
 

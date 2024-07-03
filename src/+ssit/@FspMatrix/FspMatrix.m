@@ -204,6 +204,7 @@ classdef FspMatrix
                     A = wt(1)*obj.terms{1}.matrix;
                 end
             else
+                wt = obj.terms{1}.propensity.hybridFactorVector(t,parameters);
                 A = ssit.FspMatrixTerm.generateTimeVaryingMatrixTerm(t, obj.terms{1}.propensity, obj.terms{1}.matrix, parameters, obj.terms{1}.numConstraints, modRedTransformMatrices);
             end
 

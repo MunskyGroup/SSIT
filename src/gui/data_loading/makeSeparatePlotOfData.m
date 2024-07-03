@@ -162,7 +162,11 @@ for iTime = 1:length(tArrayModel)
         if ~isempty(app.FIMTabOutputs.distortionOperator)
             px = app.FIMTabOutputs.distortionOperator.computeObservationDist(px,soInds);
         end        
-        Z = double(px.sumOver(soInds).data);      
+        if isempty(soInds)
+            Z = double(px.data);
+        else
+            Z = double(px.sumOver(soInds).data);
+        end
         mnsMod(iTime,j) = [0:length(Z)-1]*Z;
         mns2Mod(iTime,j) = [0:length(Z)-1].^2*Z;
 
