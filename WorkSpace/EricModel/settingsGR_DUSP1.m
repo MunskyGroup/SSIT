@@ -1,7 +1,5 @@
 %% Model Settings for SSIT Command Line Run
-
 %% Import data into SSIT Model.
-fileName = 'EricDataJan23_2024/pdoCalibrationData_EricIntensity_DexSweeps.csv';
 linkedSpecies = {'rna','RNA_DUSP1_nuc'};
 conditions = {'Dex_Conc','100'};
 obj = obj.loadData(fileName, linkedSpecies, conditions);

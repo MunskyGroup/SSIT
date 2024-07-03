@@ -69,6 +69,8 @@ classdef SSIT
                 if length(modelFile)>4 && strcmp(modelFile(end-3:end),'.mat')
                     % Load existing model from .mat file.
                     TMP = load(modelFile,modelName);
+                    
+                    
                     obj = TMP.(modelName);
                     
                     % Test to see if propensity functions are available. If
@@ -94,9 +96,16 @@ classdef SSIT
 
             if ~isempty(modelSettings)
                 run(modelSettings)
-                outputs = executeRoutine(obj);
-                eval([modelName,'=outputs.model;']);
-                save(saveName,"outputs",modelName)
+                if exist("combinedModel","var")
+                    outputs = executeRoutine(combinedModel);                    
+                    combinedModel=outputs.model;
+                    eval([modelName,'=outputs.model.SSITModels{1};']);
+                    save(saveName,"outputs",modelName,'combinedModel')
+                else
+                    outputs = executeRoutine(obj);
+                    eval([modelName,'=outputs.model;']);
+                    save(saveName,"outputs",modelName)
+                end
             end
 
         end

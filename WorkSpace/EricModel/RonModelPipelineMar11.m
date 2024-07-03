@@ -25,8 +25,8 @@ ModelGR.parameters = ({'koff',0.1;'kon',0.1;'kr',1;'gr',0.02;...
     'gg1',1e-5;'gg2',1e-6;'MDex',5;'Dex0',100});
 
 log10PriorMean = [-1 -1 0 -2,...
-    -1 -3 -2 -1 -2 -2 -2 0.5];
-log10PriorStd = ones(1,12);
+    -1 -3 -2 -1 -2 -2 -2 0.5, 2];
+log10PriorStd = ones(1,13);
 
 ModelGR.fspOptions.initApproxSS = true;
 
@@ -168,28 +168,57 @@ for i = 1:size(Dusp1FitCases,1)
 end
 DUSP1pars = [ModelDusp1Fit{i}.parameters{ModelGRDusp.fittingOptions.modelVarsToFit,2}];
 
+%%
+ModelGRDusp100nM = ModelGRDusp.loadData('EricDataJan23_2024/DUSP1_fit_flitered_data_100nM_030624.csv',...
+        {'rna','RNA_DUSP1_nuc'}); 
 %%    Fit DUSP1 model(s) with single parameter set.
-for i = 1:5
-    fitOptions = optimset('Display','iter','MaxIter',50);
+duspLogPrior = @(x)-sum((log10(x(:))'-log10PriorMean(1:4)).^2./(2*log10PriorStd(1:4).^2));
+ModelGRDusp100nM.fittingOptions.logPrior = duspLogPrior;
+for i = 1%:5
+    fitOptions = optimset('Display','iter','MaxIter',100);
     fitOptions.suppressFSPExpansion = true;
-    combinedDusp1Model = SSITMultiModel(ModelDusp1Fit,ModelDusp1parameterMap);
-    combinedDusp1Model = combinedDusp1Model.initializeStateSpaces({[0;0;0;2;2;400]});
-    DUSP1pars = combinedDusp1Model.maximizeLikelihood(...
+    % combinedDusp1Model = SSITMultiModel(ModelDusp1Fit,ModelDusp1parameterMap,duspLogPrior);
+    % combinedDusp1Model = combinedDusp1Model.initializeStateSpaces({[0;0;0;2;2;400]});
+    DUSP1pars = ModelGRDusp100nM.maximizeLikelihood(...
         DUSP1pars, fitOptions);
+    ModelGRDusp100nM.parameters(1:4,2) = num2cell(DUSP1pars);
     ModelGRDusp.parameters(1:4,2) = num2cell(DUSP1pars);
-    save('EricModelDusp1_MMDex','DUSP1pars') 
+    % save('EricModelDusp1_MMDex','DUSP1pars') 
 end
 
 %% Sample uncertainty for Dusp1 Parameters
-% MHFitOptions.thin=1;
-% MHFitOptions.numberOfSamples=100;
-% MHFitOptions.burnIn=0;
-% MHFitOptions.progress=true;
-% MHFitOptions.proposalDistribution=@(x)x+0.01*randn(size(x));
-% MHFitOptions.numChains = 1;
-% MHFitOptions.saveFile = 'TMPEricMHDusp1.mat';
-% [~,~,MHResultsDusp1] = combinedDusp1Model.maximizeLikelihood(...
-%     DUSP1pars, MHFitOptions, 'MetropolisHastings');
+% specify prior on parameter values
+
+%      Compute FIM
+% fignums = [211,221,201,231];
+% combinedDusp1Model = combinedDusp1Model.updateModels(DUSP1pars,false,fignums);
+fimResults = ModelGRDusp100nM.computeFIM([],'log');
+fimTotal = ModelGRDusp100nM.evaluateExperiment(fimResults,ModelGRDusp100nM.dataSet.nCells,...
+    diag(log10PriorStd))
+
+% Run Metropolis Hastings Search
+FIMfree = fimTotal{1}(1:4,1:4);
+if min(eig(FIMfree))<1
+    disp('Warning -- FIM has one or more small eigenvalues.  Reducing proposal width to 10x in those directions. MH Convergence may be slow.')
+    FIMfree = FIMfree + 1*eye(length(FIMfree));
+end
+covFree = FIMfree^-1;
+covFree = 0.5*(covFree+covFree');
+%%
+MHFitOptions.proposalDistribution=@(x)mvnrnd(x,covFree);
+MHFitOptions.thin=1;
+MHFitOptions.numberOfSamples=100;
+MHFitOptions.burnIn=0;
+MHFitOptions.progress=true;
+MHFitOptions.numChains = 1;
+MHFitOptions.saveFile = 'TMPEricMHDusp1.mat';
+[DUSP1pars,~,MHResultsDusp1] = ModelGRDusp100nM.maximizeLikelihood(...
+    [], MHFitOptions, 'MetropolisHastings');
+delete('TMPEricMHDusp1.mat')
+%
+ModelGRDusp100nM.parameters(1:4,2) = num2cell(DUSP1pars);
+figNew = figure;
+ModelGRDusp100nM.plotMHResults(MHResultsDusp1,[FIMfree],'log',[],figNew)
 
 %%    Make Plots of DUSP1 FIT Results
 fignums = [211,221,201,231];
