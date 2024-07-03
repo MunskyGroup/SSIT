@@ -43,7 +43,7 @@ classdef SSIT
     end
 
     methods
-        function obj = SSIT(modelFile,modelName,modelSettings)
+        function obj = SSIT(modelFile,modelName,modelSettings,fileName,saveName)
             % SSIT - create an instance of the SSIT class.
             % Arguments:
             %   modelFile (optional) -- create  from specified template:
@@ -60,6 +60,8 @@ classdef SSIT
                 modelFile = []
                 modelName = []
                 modelSettings = []
+                fileName = []
+                saveName = []
             end
             % SSIT Construct an instance of the SSIT class
             addpath(genpath('../src'));
@@ -68,6 +70,22 @@ classdef SSIT
                     % Load existing model from .mat file.
                     TMP = load(modelFile,modelName);
                     obj = TMP.(modelName);
+                    
+                    % Test to see if propensity functions are available. If
+                    % not, create them.
+                    if ~isempty(obj.propensitiesGeneral)
+                        try
+                            fieldsPropens2Test = {'timeDependentFactor','stateDependentFactor','jointDependentFactor','hybridFactor'};
+                            for field = fieldsPropens2Test
+                                if ~isempty(obj.propensitiesGeneral{1}.(field{1}))
+                                    obj.propensitiesGeneral{1}.(field{1})(0)
+                                end
+                            end
+                        catch
+                            disp(['Propensity functions are missing -- regenerating now with name: ',modelName])
+                            obj = obj.formPropensitiesGeneral(modelName);
+                        end
+                    end
                 else
                     % Create model from template
                     obj = pregenModel(obj,modelFile);
@@ -77,7 +95,7 @@ classdef SSIT
             if ~isempty(modelSettings)
                 run(modelSettings)
                 outputs = executeRoutine(obj);
-                obj = outputs.model;
+                save(saveName,"outputs")
             end
 
         end
