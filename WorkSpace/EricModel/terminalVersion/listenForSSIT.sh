@@ -57,6 +57,6 @@ do
         echo "/Applications/MATLAB_R2023a.app/bin/matlab -nojvm -nodisplay -nosplash -nodesktop -r \"addpath(genpath('$pathtoSSIT')); addpath(genpath('../tmpPropensityFunctions')); SSIT('$model_template', '$model_name', '$ssit_method', '$data_set', '$save_name'); exit &\""
 
         # Run the matlab function SSIT with the arguments model_template, model_name, data_set, ssit_method, and save_name
-        /Applications/MATLAB_R2023a.app/bin/matlab -nojvm -nodisplay -nosplash -nodesktop -r "addpath(genpath('$pathtoSSIT')); addpath(genpath('../tmpPropensityFunctions')); SSIT('$model_template', '$model_name', '$ssit_method', '$data_set', '$save_name'); exit"
+        /Applications/MATLAB_R2023a.app/bin/matlab -nojvm -nodisplay -nosplash -nodesktop -r "addpath(genpath('$pathtoSSIT')); addpath(genpath('../tmpPropensityFunctions')); SSIT('$model_template', '$model_name', '$ssit_method', '$data_set', '$save_name'); exit" > log.txt 2>&1 &
     done
 done
