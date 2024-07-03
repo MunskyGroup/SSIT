@@ -78,7 +78,7 @@ classdef SSIT
                             fieldsPropens2Test = {'timeDependentFactor','stateDependentFactor','jointDependentFactor','hybridFactor'};
                             for field = fieldsPropens2Test
                                 if ~isempty(obj.propensitiesGeneral{1}.(field{1}))
-                                    obj.propensitiesGeneral{1}.(field{1})(0)
+                                    obj.propensitiesGeneral{1}.(field{1})(0);
                                 end
                             end
                         catch
@@ -95,7 +95,8 @@ classdef SSIT
             if ~isempty(modelSettings)
                 run(modelSettings)
                 outputs = executeRoutine(obj);
-                save(saveName,"outputs")
+                eval([modelName,'=outputs.model;']);
+                save(saveName,"outputs",modelName)
             end
 
         end
