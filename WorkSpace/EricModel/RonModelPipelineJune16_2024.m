@@ -32,7 +32,8 @@ log10PriorStd = 2*ones(1,13);
 ModelGR.fspOptions.initApproxSS = true;
 
 ModelGR.fittingOptions.modelVarsToFit = (5:12);
-ModelGR.fittingOptions.logPrior = @(x)-sum((x-log10PriorMean(5:12)).^2./(2*log10PriorStd(5:12).^2));
+ModelGR.fittingOptions.logPrior = [];%@(x)-sum((x-log10PriorMean(5:12)).^2./(2*log10PriorStd(5:12).^2));
+logPriorGR = @(x)-sum((log10(x)-log10PriorMean(5:12)).^2./(2*log10PriorStd(5:12).^2));
 
 ModelGR.inputExpressions = {'IDex','Dex0*exp(-gDex*t)'};
 ModelGR = ModelGR.formPropensitiesGeneral('EricRonModGR');
@@ -71,7 +72,7 @@ end
 for jj = 1:5
     fitOptions = optimset('Display','iter','MaxIter',300);
 
-    combinedGRModel = SSITMultiModel(ModelGRfit,ModelGRparameterMap);
+    combinedGRModel = SSITMultiModel(ModelGRfit,ModelGRparameterMap,logPriorGR);
     combinedGRModel = combinedGRModel.initializeStateSpaces(boundGuesses);
     combinedGRModel = combinedGRModel.updateModels(GRpars,false);
     GRpars = combinedGRModel.maximizeLikelihood(...
