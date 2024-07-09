@@ -76,24 +76,7 @@ classdef (Abstract) GeneExprSysSEDController < GeneExprSysController
             if controller.CompletedRounds > 0
                 newTimeSpan = newTimeSpan - controller.EstimatedModel.tSpan(...
                     controller.CompletedRounds);
-            end
-
-            %% Create model variants for possible inputs
-            
-            % Generate simulated data
-            
-                
-
-            % 
-            
-            for iInput = 1:controller.nInputs
-                
-            end
-
-            
-            
-
-            
+            end 
         end % SelectNextExperiment
 
         function updateModel(controller, data)
