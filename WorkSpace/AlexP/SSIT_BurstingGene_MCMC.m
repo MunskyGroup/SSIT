@@ -13,7 +13,7 @@ function F1 = setupAndSolveModel()
 
     %% Solve using FSP
     F1 = F1.formPropensitiesGeneral('BurstingGene');
-    F1.tSpan = [1:1:20];
+    F1.tSpan = [1:0.1:5];
     F1.initialTime = 0;
     F1.solutionScheme = 'FSP';    % Set solutions scheme to FSP.
     [FSPsoln, F1.fspOptions.bounds] = F1.solve;  % Solve the FSP analysis
@@ -152,8 +152,14 @@ F1 = setupAndSolveModel();
 
 % Get computation time for MCMC
 tic
-MHResults = performMLEandMCMC(F1,true,0.1,3000);
+MHResults = performMLEandMCMC(F1,false,0.1,1500);
 toc
+
+tic
+logMHResults = performMLEandMCMC(F1,true,0.1,1500);
+toc
+
+transformed_logMHSamples = exp(logMHResults.mhSamples);
 
 % Assume MHResults.mhSamples is a 1000x4 matrix
 samples = MHResults.mhSamples;
