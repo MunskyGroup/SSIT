@@ -4,9 +4,9 @@ classdef SSIT
         parameters = {'k',10; 'g',0.2};   % List of parameters and their values.
         species = {'x1'}; % List of species to be used in model (x1,x2,...)
         stoichiometry = [1,-1]; % Stoichiometry matrix
-        propensityFunctions = {'k'; 'g*x1'} % List of proensity functions
+        propensityFunctions = {'k'; 'g*x1'} % List of propensity functions
         inputExpressions = {}; % List of time varying input signals (I1,I2,...)
-        customConstraintFuns = {}; % User suppled constraint functions for FSP.
+        customConstraintFuns = {}; % User supplied constraint functions for FSP.
         fspOptions = struct('fspTol',0.001,'fspIntegratorRelTol',1e-2,...
             'fspIntegratorAbsTol',1e-4, 'odeSolver','auto', 'verbose',false,...
             'bounds',[],'usePiecewiseFSP',false,...
@@ -1579,7 +1579,7 @@ classdef SSIT
             P = max(P,1e-10);
             if ~isreal(P)
                 P = real(P);
-                disp('removed imagionary elements of FSP solution')
+                disp('removed imaginary elements of FSP solution')
             end
 
             %% Data times for fitting
@@ -1720,8 +1720,8 @@ classdef SSIT
                 plot(pars0(1)*scalingRange(J),pars0(2)*scalingRange(I(J)),'ro','MarkerSize',20,'MarkerFaceColor','r')
             end
         end
-
-        function [pars,likelihood,otherResults] = maximizeLikelihood(obj,parGuess,fitOptions,fitAlgorithm)
+                               % WARNING: returns height of posterior instead of likelihood if priors are specified
+        function [pars,likelihood,otherResults] = maximizeLikelihood(obj,parGuess,fitOptions,fitAlgorithm) 
             arguments
                 obj
                 parGuess = [];
