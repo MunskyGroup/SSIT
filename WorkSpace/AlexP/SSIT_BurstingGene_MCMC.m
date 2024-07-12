@@ -29,8 +29,12 @@ function F1 = setupAndSolveModel()
     % Set the seed (will always give same random data)
     rng(123); 
 
-    dataFile = 'BurstingGene_data.csv';
-    F1.sampleDataFromFSP(FSPsoln, dataFile); % Sample some data from FSP solution
+    % Sample some data from FSP solution
+    dataFile = 'BurstingGene_data_FSP.csv';
+    F1.sampleDataFromFSP(FSPsoln, dataFile); 
+
+    %% Alt: Read in SSA sample used in Stan (for comparison)
+    %dataFile = 'BurstingGene_data_SSA.csv';
 
     dataToFit = {'offGene','exp1_s1';'onGene','exp1_s2';'Protein','exp1_s3'};
 
