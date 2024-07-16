@@ -1,4 +1,4 @@
-addpath(genpath('../src'));
+addpath(genpath('../../src/Commandline/'));
 
 function F1 = setupAndSolveModel()
     %% Create Bursting Gene Model
