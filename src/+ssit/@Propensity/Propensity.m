@@ -375,7 +375,6 @@ classdef Propensity
                         else
                             TmpHybridFactor = subs(expr_t,t,rand);
                             TmpHybridFactor = double(subs(TmpHybridFactor,nonXTpars(:,1),rand(size(nonXTpars(:,2)))));
-                            % TmpHybridFactor =  hybridFactor(rand,[nonXTpars{:,2}]');
                         end
                     end
 

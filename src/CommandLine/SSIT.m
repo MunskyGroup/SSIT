@@ -2388,7 +2388,7 @@ classdef SSIT
                             end
                         case 'means'
                             figure(figureNums(kfig)); kfig=kfig+1;
-                            plot(solution.T_array(indTimes),squeeze(mean(solution.trajs(:,indTimes,:),3)));
+                            plot(solution.T_array(indTimes),squeeze(mean(solution.trajs(:,indTimes,:),3)),lineProps{:});
                         case 'meansAndDevs'
                             figure(figureNums(kfig)); kfig=kfig+1;
                             vars = var(solution.trajs(:,indTimes,:),[],3);
