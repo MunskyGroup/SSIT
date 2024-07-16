@@ -34,7 +34,7 @@ if useSSIC
      x0b = fsolve(FUN,x0,OPTIONS);
 %     if min(x0b)<0
         FUN = @(t,x)ode_rhs(0,x);
-        [~,ode_solutions] = ode45(FUN,max(tspan)*[0,500,1000],x0b);
+        [~,ode_solutions] = ode23s(FUN,(tspan(end)-tspan(1))*[0,500,1000],x0b);
         x0b = ode_solutions(end,:);
 %     else
 %         b = pinv(stoichMatrix)*(x0b-x0);
