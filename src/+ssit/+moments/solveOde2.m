@@ -23,6 +23,7 @@ arguments
 end
 
 %% Define the right hand side of the ODE model
+clear ode_rhs
 ode_rhs = @(t,x)stoichMatrix*propensities{1}.hybridFactorVector(t,parameters,x');
 % ode_rhs = @(t, x) stoichMatrix*generate_propensity_vector(t, x, propensities, parameters);
 % ode_jac = @(t,x)stoichMatrix*propensities{1}.DhybridFactorDodesVec(t,parameters,x');
@@ -31,7 +32,8 @@ ode_rhs = @(t,x)stoichMatrix*propensities{1}.hybridFactorVector(t,parameters,x')
 if useSSIC
      OPTIONS = optimoptions('fsolve','display','none','OptimalityTolerance',1e-8,'MaxIterations',2000);
      FUN = @(x)ode_rhs(0,x);
-     x0b = fsolve(FUN,x0,OPTIONS);
+     % x0b = fsolve(FUN,x0,OPTIONS)
+     x0b = x0;
 %     if min(x0b)<0
         FUN = @(t,x)ode_rhs(0,x);
         [~,ode_solutions] = ode23s(FUN,(tspan(end)-tspan(1))*[0,500,1000],x0b);
