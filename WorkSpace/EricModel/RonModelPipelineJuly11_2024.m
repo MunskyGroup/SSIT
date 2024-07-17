@@ -400,7 +400,7 @@ extendedMod10 = extendedMod.loadData('EricData/pdoCalibrationData_EricIntensity_
     {'rna','RNA_DUSP1_nuc'; ...
     'rCyt','RNA_DUSP1_cyto'},...
     {'Dex_Conc','10'});
-extendedMod10.parameters(13,:) = {'Dex0',1.0};
+extendedMod10.parameters(13,:) = {'Dex0',10};
 
 %
 plotODEresults(extendedMod0p3,extendedMod0p3.solve,ModelGRfit{1},101)
@@ -446,15 +446,15 @@ SSAModel_10 = SSAModel_100;
 SSAModel_10.parameters(13,:) = {'Dex0',10};
 SSAModel_10.tSpan = [-500,extendedMod10.tSpan];
 ssaSoln_10 = SSAModel_10.solve;
-%%    STEP 3.F.4. --  Make resulting plots
+%%    STEP 3.F.4. -- Make resulting plots
 makeCytDistPlots(ssaSoln_0p3,extendedMod0p3,201,[2:8],[1:7],6,2)
 makeCytDistPlots(ssaSoln_1,extendedMod1,202,[3:8],[1:6],6,2)
 makeCytDistPlots(ssaSoln_10,extendedMod10,203,[3:8],[1:6],6,2)
 
 %%
 %%
-%%
-%%  STEP XX -- Explore Optimal Designs Using FIM Add FIM to MH UQ Plots (ALEX Paper)
+%% Additonal Codes for FIM and PDO analyses (ALEX Paper)
+%%  STEP XX -- Explore Optimal Designs Using FIM Add FIM to MH UQ Plots 
 %%    STEP XX.A. -- FIM Analyses
 %%      STEP XX.A.1. -- Plot UQ from FIM compared to MH
 figNew = figure;
