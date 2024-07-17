@@ -30,11 +30,11 @@ function F1 = setupAndSolveModel()
     rng(123); 
 
     % Sample some data from FSP solution
-    dataFile = 'BurstingGene_data_FSP.csv';
-    F1.sampleDataFromFSP(FSPsoln, dataFile); 
+    %dataFile = 'BurstingGene_data_FSP.csv';
+    %F1.sampleDataFromFSP(FSPsoln, dataFile); 
 
     %% Alt: Read in SSA sample used in Stan (for comparison)
-    %dataFile = 'BurstingGene_data_SSA.csv';
+    dataFile = 'BurstingGene_data_SSA.csv';
 
     dataToFit = {'offGene','exp1_s1';'onGene','exp1_s2';'Protein','exp1_s3'};
 
@@ -53,7 +53,7 @@ function result = performMLEandMCMC(F1,logSpace,stepSize,chainLength)
     %   Setting priors means that the "maximizeLikelihood" function 
     %   will return the peak of the posterior, not the likelihood!  
     %% Comment out the priors to return the max log-likelihood.
-    log10PriorMean = [-1 -0.5 0 -1];
+    log10PriorMean = [-1 -0.5 1 -1];
     log10PriorStd = 2*ones(1,4);
 
     F1.fittingOptions.modelVarsToFit = (1:4);
@@ -75,9 +75,14 @@ function result = performMLEandMCMC(F1,logSpace,stepSize,chainLength)
 
     %%
     % Randomize the initial parameter set.
-    % np = size(F1.parameters,1);
-    % F1.parameters(:,2) = ...
-    %    num2cell([F1.parameters{:,2}]'.*(1+0.5*randn(np,1)));
+    % Custom initialization using log-normal distribution
+    np = size(F1.parameters, 1);
+    if logSpace
+        F1.parameters(:, 2) = num2cell(exp(randn(np, 1)));  % log-normal(0, 1)
+    else
+        F1.parameters(:,2) = ...
+        num2cell([F1.parameters{:,2}]'.*(abs(randn(np,1)))); % normal - CHECK
+    end
 
     % Fit Model to data.
     fitOptions = optimset('Display','none','MaxIter',maxFitIter);
@@ -154,13 +159,15 @@ end
 
 F1 = setupAndSolveModel();
 
-% Get computation time for MCMC
-tic
-MHResults = performMLEandMCMC(F1,false,0.1,1500);
-toc
+%% Get computation time for MCMC
+% linear space - careful! change the intialization!
+%tic
+%MHResults = performMLEandMCMC(F1,false,0.1,15000);
+%toc
 
+% log space
 tic
-logMHResults = performMLEandMCMC(F1,true,0.1,1500);
+logMHResults = performMLEandMCMC(F1,true,0.1,15000);
 toc
 
 transformed_logMHSamples = exp(logMHResults.mhSamples);
