@@ -185,8 +185,16 @@ classdef SSIT
                 Data(i,:) = {['-x',num2str(i)],'<',0};
                 Data(nSpecies+i,:) = {['x',num2str(i)],'<',1};
             end
-            for i = 1:length(obj.customConstraintFuns)
-                Data(2*nSpecies+i,:) = {obj.customConstraintFuns{i},'<',1};
+            
+            if ~isempty(obj.customConstraintFuns)
+                [~,J] = sort(cellfun('length',obj.species),'descend');                
+                for i = 1:length(obj.customConstraintFuns)
+                    constraintStr = obj.customConstraintFuns{i};
+                    for j = 1:length(J)
+                        constraintStr = strrep(constraintStr,obj.species{j},['x',num2str(J(j))]);
+                    end
+                    Data(2*nSpecies+i,:) = {constraintStr,'<',1};
+                end
             end
             constraints.f = readConstraintsForAdaptiveFsp([], stochasticSpecies, Data);
             if isempty(obj.fspOptions.bounds)||size(Data,1)~=length(obj.fspOptions.bounds)
