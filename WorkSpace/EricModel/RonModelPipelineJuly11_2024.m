@@ -86,6 +86,8 @@ else
     end
 end
 
+%%
+%%
 %% STEP 1 -- GR Model
 %%     STEP 1.A. -- Combine all three GR models and fit using a single parameter set.
 for jj = 1:fitIters
@@ -117,6 +119,8 @@ fimGR_withPrior = combinedGRModel.FIM.totalFIM+... % the FIM in log space.
 %%     STEP 1.D. -- Make Plots of GR Fit Results
 ModelGRfit = makeGRPlots(ModelGRfit,GRpars)
 
+%%
+%%
 %%  STEP 2 -- Extend Model to Include DUSP1 Activation, Production, and Degradation
 if ~loadPrevious
     %% STEP 2.A.1. -- Add DUSP1 to the existing GR model.
@@ -237,6 +241,8 @@ end
 
 
 
+%%
+%%
 %%  STEP 3. -- Model Extensions using ODE Analyses
 %%    STEP 3.A.1 -- Extend model to include nuclear and cytoplasmic RNA
 extendedMod = ModelGRDusp100nM;
@@ -345,7 +351,13 @@ Organization = {ModelGRfit{1},[5:12],[5:12],'computeLikelihood',1;...
     ModelGRfit{3},[5:12],[5:12],'computeLikelihood',1;...
     ModelGRDusp100nM_ext_red,[1:12,14],[1:13],'computeLikelihood',1;...
     extendedMod,[1:12,14:15],[1:14],'computeLikelihoodODE',0.01};
-fullPars = [extendedMod.parameters{[1:12,14,15],2}];
+
+if ~loadPrevious
+    fullPars = [extendedMod.parameters{[1:12,14,15],2}];
+    % otherewise, we will use the set that was saved in the data dump from
+    % the older workspace.
+end
+
 Organization = getTotalFitErr(Organization,fullPars,true);
 getTotalFitErr(Organization,fullPars,false)
 
@@ -439,6 +451,9 @@ makeCytDistPlots(ssaSoln_0p3,extendedMod0p3,201,[2:8],[1:7],6,2)
 makeCytDistPlots(ssaSoln_1,extendedMod1,202,[3:8],[1:6],6,2)
 makeCytDistPlots(ssaSoln_10,extendedMod10,203,[3:8],[1:6],6,2)
 
+%%
+%%
+%%
 %%  STEP XX -- Explore Optimal Designs Using FIM Add FIM to MH UQ Plots (ALEX Paper)
 %%    STEP XX.A. -- FIM Analyses
 %%      STEP XX.A.1. -- Plot UQ from FIM compared to MH
