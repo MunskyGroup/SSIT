@@ -53,6 +53,7 @@ else
     ModelGR.inputExpressions = {'IDex','Dex0*exp(-gDex*t)'};
     ModelGR = ModelGR.formPropensitiesGeneral('EricRonModGR');
     ModelGR.customConstraintFuns = {'cytGR+nucGR'};
+    % TODO - Alex - Constraints for removing stiff dimensions.
     
     [FSPGrSoln,ModelGR.fspOptions.bounds] = ModelGR.solve;
     [FSPGrSoln,ModelGR.fspOptions.bounds] = ModelGR.solve(FSPGrSoln.stateSpace);
@@ -72,8 +73,11 @@ else
         ModelGRfit{i} = ModelGR.loadData("EricData/Gated_dataframe_Ron_020224_NormalizedGR_bins.csv",...
             {'nucGR','normgrnuc';'cytGR','normgrcyt'},...
             {'Condition','GR_timesweep';'Dex_Conc',GRfitCases{i,2}});
-        ModelGRfit{i}.parameters{13,2} = str2num(GRfitCases{i,1});
+        ModelGRfit{i}.parameters(13,:) = {'Dex0', str2num(GRfitCases{i,1})};
         ModelGRparameterMap(i) = {(1:8)};
+        % parameters 1 - 8 refer to the parameter set that is relevant to
+        % the entire class of models.  In this case, these refer to
+        % global parameters 5:15 (GR parameters).
     end
 
     %% STEP 0.B.4. -- Make Guesses for the FSP bounds
@@ -83,6 +87,8 @@ else
     ModelGR.customConstraintFuns = {'cytGR+nucGR'};
     for i = 1:3
         boundGuesses{i} = [0;0;30;30;30];
+        % First N are lower bounds.  Next N is upper bound.  Remaining are
+        % custom.
     end
 end
 
@@ -117,7 +123,7 @@ fimGR_withPrior = combinedGRModel.FIM.totalFIM+... % the FIM in log space.
 % delete(MHFitOptions.saveFile)
  
 %%     STEP 1.D. -- Make Plots of GR Fit Results
-ModelGRfit = makeGRPlots(ModelGRfit,GRpars)
+makeGRPlots(combinedGRModel,GRpars)
 
 %%
 %%
@@ -147,7 +153,7 @@ if ~loadPrevious
 
     %% STEP 2.A.2. -- Load pre-fit parameters into model.
     load('EricModelDusp1_MMDex','DUSP1pars')
-    ModelGRDusp.parameters(1:4,2) = num2cell(DUSP1pars);
+    ModelGRDusp.parameters(ModelGRDusp.fittingOptions.modelVarsToFit,2) = num2cell(DUSP1pars);
 
     %% STEP 2.A.3. -- Load and Associate with DUSP1 smFISH Data (100nM Dex Only)
     % The commented code below would be needed to fit multiple conditions,
@@ -195,6 +201,7 @@ ModelGRDusp100nM.solutionScheme = 'FSP';
 %%    STEP 2.D.2. -- Compute FIM
 % define which species in model are not observed.
 ModelGRDusp100nM.pdoOptions.unobservedSpecies = {'offGene';'onGene'};
+% TODO - Make this automated when you load data.
 
 % compute the FIM
 fimResults = ModelGRDusp100nM.computeFIM(sensSoln.sens,'log');
@@ -345,7 +352,7 @@ log10PriorMean = [-1 -1 0 -2,... %dusp1 pars
 log10PriorStd = 2*ones(1,15);
 logPriorAll = @(x)-sum((log10(x)-log10PriorMean([1:12,14,15])).^2./(2*log10PriorStd([1:12,14,15]).^2));
 
-extendedMod.fittingOptions.modelVarsToFit = [1:12,14,15];
+% extendedMod.fittingOptions.modelVarsToFit = [1:12,14,15];
 Organization = {ModelGRfit{1},[5:12],[5:12],'computeLikelihood',1;...
     ModelGRfit{2},[5:12],[5:12],'computeLikelihood',1;...
     ModelGRfit{3},[5:12],[5:12],'computeLikelihood',1;...
@@ -453,7 +460,7 @@ makeCytDistPlots(ssaSoln_10,extendedMod10,603,[3:8],[1:6],6,2)
 %%  STEP 4. -- Extend analysis to TS dynamics
 % Load data that includes the TS.
 allData = readtable('EricData/pdoCalibrationData_EricIntensity_DexSweeps.csv');
-%%
+
 % Create Copy of the prevous model
 ModelTS = ModelGRDusp100nM_ext_red;
 % This model can use all parameters except for the cytoplasmic degradation
