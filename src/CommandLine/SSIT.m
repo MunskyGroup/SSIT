@@ -631,6 +631,35 @@ classdef SSIT
             obj.pdoOptions.props.PDOpars = lambda;
             obj.pdoOptions.PDO = obj.generatePDO(obj.pdoOptions,lambda,[],[],maxSize);
         end
+
+        function obj = setICfromFspVector(obj,stateSpace,fspVector)
+            % This function converts an FSP vector to initial states 
+            % and initial probabilities.
+            nSpecies = length(obj.species);
+            nStates = size(stateSpace.states,2);
+            if obj.useHybrid
+                jStochastic = find(~contains(obj.species,obj.hybridOptions.upstreamODEs));
+                jUpstreamODE = find(contains(obj.species,obj.hybridOptions.upstreamODEs));
+                nUpstream = length(obj.hybridOptions.upstreamODEs);
+                upStreamInit = [fspVector.upstreamODEs,zeros(nUpstream,nStates-1)];
+            elseif ~isempty(fspVector.upstreamODEs)
+                upStreamInit = repmat(fspVector.upstreamODEs,1,nStates);                
+                jStochastic = find(~contains(obj.species,obj.hybridOptions.upstreamODEs));
+                jUpstreamODE = find(contains(obj.species,obj.hybridOptions.upstreamODEs));
+            else
+                upStreamInit = [];
+                jStochastic = [1:nSpecies];
+                jUpstreamODE = [];
+            end
+            
+            obj.initialCondition = zeros(nSpecies,nStates);
+            obj.initialCondition(jStochastic,:) = fspVector.p.data.subs'-1;
+            obj.initialCondition(jUpstreamODE,:) = upStreamInit;
+            obj.initialProbs = zeros(nStates,1);         
+            obj.initialProbs = fspVector.p.data.vals;
+            
+        end
+
         
         function [pdo] = generatePDO(obj,pdoOptions,paramsPDO,fspSoln,variablePDO,maxSize)
             arguments
@@ -2293,6 +2322,12 @@ classdef SSIT
                     figureNums = (1:10);
                 end      
             end
+            if obj.useHybrid
+                specNames = setdiff(obj.species,obj.hybridOptions.upstreamODEs);
+            else
+                specNames = obj.species;
+            end
+
             kfig = 1;
             switch obj.solutionScheme
                 case 'FSP'
@@ -2321,13 +2356,13 @@ classdef SSIT
                             for i = 1:Nd
                                 subplot(Nd,1,i); hold on
                                 errorbar(solution.T_array(indTimes),solution.Means(indTimes,i),sqrt(solution.Var(indTimes,i)),lineProps{:});
-                                ylabel(obj.species{i})
+                                ylabel(specNames{i})
                             end
                             xlabel('time')
                         case 'marginals'
                             for j = 1:Nd
                                 f = figure(figureNums(kfig)); kfig=kfig+1;
-                                f.Name = ['Marginal Distributions of ',obj.species{j}];
+                                f.Name = ['Marginal Distributions of ',specNames{j}];
                                 Nr = ceil(sqrt(Nt));
                                 Nc = ceil(Nt/Nr);
                                 for i = 1:Nt
@@ -2345,7 +2380,7 @@ classdef SSIT
                                 for j1 = 1:Nd
                                     for j2 = j1+1:Nd
                                         h = figure(figureNums(kfig)); kfig=kfig+1;
-                                        h.Name = ['Joint Distribution of ',obj.species{j1},' and ',obj.species{j2}];
+                                        h.Name = ['Joint Distribution of ',specNames{j1},' and ',specNames{j2}];
                                         Nr = ceil(sqrt(Nt));
                                         Nc = ceil(Nt/Nr);
                                         for i = 1:Nt
@@ -2423,7 +2458,7 @@ classdef SSIT
                     else
                         app.ReactionsTabOutputs.parameters = [];
                     end
-                    app.ReactionsTabOutputs.varNames = obj.species;
+                    app.ReactionsTabOutputs.varNames = specNames;
                     solution.plotable = exportSensResults(app);
 
                     Np = size(solution.plotable.sensmdist,1);

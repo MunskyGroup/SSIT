@@ -8,7 +8,7 @@ end
 
 if init
     for i=1:size(Organization,1)
-        Organization{i,1}.fittingOptions.modelVarsToFit = Organization{i,2};   
+        Organization{i,1}.fittingOptions.modelVarsToFit = Organization{i,2};
         Organization{i,1}.fittingOptions.logPrior = [];
     end
     output = Organization;
@@ -23,5 +23,5 @@ else
         newJ(i) =  Organization{i,5}*Organization{i,1}.(Organization{i,4})(parsLocal)
     end
     output = sum(newJ);
-    end
+end
 end

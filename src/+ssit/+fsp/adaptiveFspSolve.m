@@ -158,8 +158,8 @@ if useHybrid
     jUpstreamODE = find(contains(speciesNames,hybridOptions.upstreamODEs));
     odeStoichs = stoichMatrix(jUpstreamODE,:);
     stoichMatrix = stoichMatrix(jStochastic,:);
-    initODEs = initStates(jUpstreamODE);
-    initStates = initStates(jStochastic);
+    initODEs = initStates(jUpstreamODE,1);
+    initStates = initStates(jStochastic,:);
     speciesNames = speciesNames(jStochastic);
     numODEs = length(jUpstreamODE);
 else

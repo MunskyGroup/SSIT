@@ -363,7 +363,7 @@ getTotalFitErr(Organization,fullPars,false)
 
 %%    STEP 3.F.2. -- Fit all objective functions at once.
 objAll = @(x)-getTotalFitErr(Organization,exp(x),false)-logPriorAll(exp(x));
-for jj = 1:5
+for jj = 1:8
     fullParsLog = log(fullPars);
     fullPars = exp(fminsearch(objAll,fullParsLog,fitOptions));
 end
@@ -380,7 +380,7 @@ makePlotsDUSP1({ModelGRDusp100nM_ext_red},ModelGRDusp100nM_ext_red,fullPars([1:1
 % Plot ODE Cyt FIT Results at 100nM Dex
 extendedMod.parameters([1:12,14,15],2) = num2cell(fullPars);
 soln100 = extendedMod.solve;
-plotODEresults(extendedMod,soln100,ModelGRfit{3},100)
+plotODEresults(extendedMod,soln100,ModelGRfit{3},500)
 set(gcf,'Name','ODE Fits -- 100nM Dex')
 
 % Plot ODE Predictions at other DEX concentrations
@@ -402,14 +402,10 @@ extendedMod10 = extendedMod.loadData('EricData/pdoCalibrationData_EricIntensity_
     {'Dex_Conc','10'});
 extendedMod10.parameters(13,:) = {'Dex0',10};
 
-%
-plotODEresults(extendedMod0p3,extendedMod0p3.solve,ModelGRfit{1},101)
-set(gcf,'Name','ODE Predictions -- 0.3nM Dex')
-
-plotODEresults(extendedMod0p3,extendedMod1.solve,ModelGRfit{1},102)
+plotODEresults(extendedMod1,extendedMod1.solve,ModelGRfit{1},501)
 set(gcf,'Name','ODE Predictions -- 1.0nM Dex')
 
-plotODEresults(extendedMod0p3,extendedMod10.solve,ModelGRfit{1},103)
+plotODEresults(extendedMod10,extendedMod10.solve,ModelGRfit{2},502)
 set(gcf,'Name','ODE Predictions -- 10nM Dex')
 
 %%    STEP 3.G.1. -- Create SSA model to predict cytoplasmic distributions
@@ -427,7 +423,7 @@ SSAModel_100 = SSAModel_100.formPropensitiesGeneral('SSAExtendedModel');
 ssaSoln_100 = SSAModel_100.solve;
 %%    STEP 3.G.3. -- Plot SSA Results for Cytoplasmic Distributions (100nM Dex)
 % Plot Fits for 100nM Dex 
-makeCytDistPlots(ssaSoln_100,extendedMod,200,[2:10],[1:9],6,2)
+makeCytDistPlots(ssaSoln_100,extendedMod,600,[2:10],[1:9],6,2)
 
 %%    STEP 3.F.1. -- Predict Cyt distributions for other 0.3nM Dex 
 SSAModel_0p3 = SSAModel_100;
@@ -447,11 +443,108 @@ SSAModel_10.parameters(13,:) = {'Dex0',10};
 SSAModel_10.tSpan = [-500,extendedMod10.tSpan];
 ssaSoln_10 = SSAModel_10.solve;
 %%    STEP 3.F.4. -- Make resulting plots
-makeCytDistPlots(ssaSoln_0p3,extendedMod0p3,201,[2:8],[1:7],6,2)
-makeCytDistPlots(ssaSoln_1,extendedMod1,202,[3:8],[1:6],6,2)
-makeCytDistPlots(ssaSoln_10,extendedMod10,203,[3:8],[1:6],6,2)
+makeCytDistPlots(ssaSoln_0p3,extendedMod0p3,601,[2:8],[1:7],6,2)
+makeCytDistPlots(ssaSoln_1,extendedMod1,602,[3:8],[1:6],6,2)
+makeCytDistPlots(ssaSoln_10,extendedMod10,603,[3:8],[1:6],6,2)
 
 %%
+%%
+
+%%  STEP 4. -- Extend analysis to TS dynamics
+% Load data that includes the TS.
+allData = readtable('EricData/pdoCalibrationData_EricIntensity_DexSweeps.csv');
+%%
+% Create Copy of the prevous model
+ModelTS = ModelGRDusp100nM_ext_red;
+% This model can use all parameters except for the cytoplasmic degradation
+ModelTS.fittingOptions.modelVarsToFit = [1:3];
+%%     STEP 4.B. -- Set up model fitting to now include the TS analysis.
+% Objective function for just the TS analyses -- see function below.
+objTS = @(x)-computeTSlikelihood(x,ModelTS,allData,100,false);
+
+ModelGRDusp100nM_ext_red.fittingOptions.modelVarsToFit = [1:4,14];
+extendedMod.fittingOptions.modelVarsToFit = [1:4,14:15];
+Organization = {ModelGRDusp100nM_ext_red,[1:4,14],[1:5],'computeLikelihood',1;...
+    extendedMod,[1:4,14:15],[1:6],'computeLikelihoodODE',0.01};
+
+
+% Create prior for all parameters
+log10PriorMean = [-1 -1 0 -2,... %dusp1 pars
+    -1 -3 -2 -1 -2 -2 -2 0.5, ...%GR pars
+    NaN, ... % Dex concentration -- known
+    -2, -3, ... % dusp1 transport, cyt RNA degradation
+    0.7]; %elongation time (about 5 min)
+log10PriorStd = 2*ones(1,16);
+% logPriorAll = @(x)-sum((log10(x)-log10PriorMean([1:12,14,15,16])).^2./(2*log10PriorStd([1:12,14,15,16]).^2));
+logPriorAll = @(x)-sum((log10(x)-log10PriorMean([1:4,14,15,16])).^2./(2*log10PriorStd([1:4,14,15,16]).^2));
+
+% Objective function for all analyses -- same as before but now with the
+% transcription site analysis.
+objAllwithTS = @(x)-getTotalFitErr(Organization,exp(x),false)-logPriorAll(exp(x))...
+    +objTS(exp(x([1:3,7])));
+
+% The set of parameters is one longer - corresponding to elongation time.
+parsAllandTS = [fullPars([1:4,13:14]),5];
+
+%%
+% parsAllandTS([1:3,7]) = [111;0.0316;426;1.09];
+objAllwithTS(log(parsAllandTS))
+
+%%    STEP 4.C. -- Run the fit.
+for i = 1:3
+    parsAllandTS = exp(fminsearch(objAllwithTS,log(parsAllandTS),fitOptions));
+end
+%%    STEP 4.D. -- Update the parameter set and make plots of results
+ModelTS.parameters(ModelTS.fittingOptions.modelVarsToFit,2) = num2cell(parsAllandTS(1:3));
+dex = 100;
+[TSLikelihood,modelResults,dataResults] = computeTSlikelihood(parsAllandTS([1:3,7]),ModelTS,allData,dex); 
+
+figure(702); clf
+TSthresh = 4;
+for iT = 1:12
+    P=modelResults.Psaved{iT};
+    P(1:TSthresh) = sum(P(1:TSthresh))/4;   
+    
+    subplot(4,3,iT)
+    plot([0:length(P)-1],P,'linewidth',3)
+    set(gca,'fontsize',16,'ylim',[0,0.02],'xlim',[0,150])
+    if iT>9
+        xlabel('Number nascent RNA')
+    end
+    if mod(iT-1,3)==0
+        ylabel('Probability')
+    end   
+end
+
+figure(703); clf
+subplot(2,1,1)
+plot(ModelTS.tSpan,modelResults.meanNascentMod,'linewidth',3);
+set(gca,'fontsize',16)
+ylabel('Mean Nascent RNA')
+
+subplot(2,1,2)
+plot(ModelTS.tSpan,modelResults.fracTSMod,'linewidth',3);
+set(gca,'fontsize',16)
+ylabel('Fraction with TS')
+xlabel('time (min)')
+%
+%     STEP 4.C.2. -- Add data to plots
+figure(702)
+for iT = 1:12
+    subplot(4,3,iT); hold on
+    histogram(dataResults.TS_counts{iT},[0,TSthresh:150],'Normalization','pdf');
+end
+
+figure(703)
+subplot(2,1,1)
+hold on
+plot(ModelTS.tSpan,dataResults.meanNascentDat,'s','markersize',16,'linewidth',3,'MarkerFaceColor','k');
+
+subplot(2,1,2)
+hold on
+plot(ModelTS.tSpan,dataResults.fracTSDat,'s','markersize',16,'linewidth',3,'MarkerFaceColor','k');
+
+
 %%
 %% Additonal Codes for FIM and PDO analyses (ALEX Paper)
 %%  STEP XX -- Explore Optimal Designs Using FIM Add FIM to MH UQ Plots 
@@ -798,3 +891,79 @@ for i = 1:length(timeIndsMod)
 end
 end
 
+function [TSLikelihood,modelResults,dataResults] = computeTSlikelihood(x,ModelTS,allData,dex,makeFit)
+arguments
+    x
+    ModelTS
+    allData
+    dex = 100
+    makeFit = false
+end
+
+tau_elong = x(end);  % Time for elongation and processing of mRNA (assume deterministic)
+
+% The rest of the parameters go into the model
+x = x(1:end-1);
+ModelTS.parameters(ModelTS.fittingOptions.modelVarsToFit,2) = num2cell(x);
+ModelTS.parameters(13,:) = {'Dex0',dex};
+
+% create past model only used to get distribution of states for when
+% elongation would begin.
+ModelTSPast = ModelTS;
+ModelTSPast.parameters(3,:) = {'kr',0};  % Turn off transcription.
+ModelTSPast.initialCondition(5) = 0;
+
+ModelTSPast.tSpan = ModelTS.tSpan - tau_elong;
+ModelTSPast.initialTime = ModelTSPast.tSpan(1);
+TSPastSoln = ModelTSPast.solve;
+
+% for the prsent model we start one elongation period in the past and then 
+% integrate forward in time.
+ModelTSPresent = ModelTS;
+ModelTSPresent.parameters(4,:) = {'knuc2cyt',0};
+ModelTSPresent.parameters(14,:) = {'knucdeg',0};
+
+ModelTSPresent.fspOptions.initApproxSS = false;
+
+NT = length(TSPastSoln.fsp);
+nascentDistributions.stateSpace = TSPastSoln.stateSpace;
+% we need to solve once for each time point, where the initial condition is
+% defined by the past model.
+for iT = 1:NT
+    ModelTSPresent = ModelTSPresent.setICfromFspVector(TSPastSoln.stateSpace,TSPastSoln.fsp{iT});
+    ModelTSPresent.tSpan = ModelTSPast.tSpan(iT)+[0,tau_elong/2,tau_elong];
+    ModelTSPresent.initialTime = ModelTSPast.tSpan(iT);
+    tsPresentSoln = ModelTSPresent.solve;
+    nascentDistributions.fsp(iT) = tsPresentSoln.fsp(end); 
+end
+
+% summarize the model results
+modelResults.meanNascentMod = zeros(12,1);
+modelResults.fracTSMod = zeros(12,1);
+TSthresh = 4;
+for iT = NT:-1:1
+    P=double(nascentDistributions.fsp{iT}.p.sumOver([1,2]).data);
+    P(1:TSthresh) = [sum(P(1:TSthresh));zeros(TSthresh-1,1)]; 
+    modelResults.Psaved{iT} = P;
+    modelResults.meanNascentMod(iT) = [TSthresh:length(P)-1]*P(TSthresh+1:end);
+    modelResults.fracTSMod(iT) = sum(P(TSthresh+1:end));
+end
+
+for iT = NT:-1:1
+    time = ModelTS.tSpan(iT);
+    redData = allData(allData.Dex_Conc==dex&allData.Time_index==time,:);
+    TS_counts0 = redData.DUSP1_ts_size_0;
+    TS_counts1 = redData.DUSP1_ts_size_1;    
+    TS_counts0(isnan(TS_counts0)) = 0;
+    TS_counts1(isnan(TS_counts1)) = 0;
+    dataResults.TS_counts{iT} = TS_counts0+TS_counts1; 
+    dataResults.meanNascentDat(iT) = mean(dataResults.TS_counts{iT});
+    dataResults.fracTSDat(iT) = sum(dataResults.TS_counts{iT}>=TSthresh)/length(dataResults.TS_counts{iT});
+end
+
+TSLikelihood=0;
+for iT=1:NT
+    modelResults.Psaved{iT} = max(1e-10,modelResults.Psaved{iT});
+    TSLikelihood = TSLikelihood + sum(log(modelResults.Psaved{iT}(dataResults.TS_counts{iT}+1)));
+end
+end
