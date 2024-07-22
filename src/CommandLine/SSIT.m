@@ -636,7 +636,7 @@ classdef SSIT
             % This function converts an FSP vector to initial states 
             % and initial probabilities.
             nSpecies = length(obj.species);
-            nStates = size(stateSpace.states,2);
+            nStates = size(fspVector.p.data.subs,1);
             if obj.useHybrid
                 jStochastic = find(~contains(obj.species,obj.hybridOptions.upstreamODEs));
                 jUpstreamODE = find(contains(obj.species,obj.hybridOptions.upstreamODEs));
@@ -656,7 +656,7 @@ classdef SSIT
             obj.initialCondition(jStochastic,:) = fspVector.p.data.subs'-1;
             obj.initialCondition(jUpstreamODE,:) = upStreamInit;
             obj.initialProbs = zeros(nStates,1);         
-            obj.initialProbs = fspVector.p.data.vals;
+            obj.initialProbs = max(0,real(fspVector.p.data.vals));
             
         end
 

@@ -67,7 +67,7 @@ if showCases(3)
         % Change Dex concentration in the model.
         ModelPredDexTtr.parameters(13,1:2) = {'Dex0',str2num(DecConcStr{i})};
 
-        ModelPredDexTtr = ModelPredDexTtr.formPropensitiesGeneral(['EricModDusp1_',num2str(i),'_TtrPred']);
+        % ModelPredDexTtr = ModelPredDexTtr.formPropensitiesGeneral(['EricModDusp1_',num2str(i),'_TtrPred']);
         ModelPredDexTtrSoln = ModelPredDexTtr.solve;
 
         DataHist = double(ModelPredDexTtr.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor);

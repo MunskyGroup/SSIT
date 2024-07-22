@@ -4,21 +4,31 @@
 %   1) the analysis considers different experimental conditions (e.g.,
 %   different time points, different inducer concentrations, different
 %   genetic mutations).
-%   2) replica to replica variations are expected that would result in
+%   2) replica to replica variations are exp cted that would result in
 %   slightly different parameter combinations
 close all 
 clear all
 addpath(genpath('../../src'));
 
 loadPrevious = true;
+savedWorkspace = 'workspaceJuly22';
+addpath('tmpPropensityFunctions');
 
 %% STEP 0 -- Preliminaries.
 if loadPrevious
     %% STEP 0.A -- Option to load previous workspace from file -- just for testing.
-    savedWorkspace = 'EricJuly17Workspace';
-    load(savedWorkspace)
+    varNames = {'ModelGR',
+    'GRfitCases'
+    'log10PriorMean'
+    'log10PriorStd'
+    'GRpars'
+    'ModelGRparameterMap'
+    'ModelGRfit'
+    'boundGuesses'};
+
+    load(savedWorkspace,varNames{:})
     fitOptions = optimset('Display','iter','MaxIter',10);
-    fitIters = 1;
+    fitIters = 1;    
 else
     fitOptions = optimset('Display','iter','MaxIter',300);
     %% STEP 0.B.1. -- Create Base Model for GR Only
@@ -39,7 +49,6 @@ else
     log10PriorMean = [-1 -1 0 -2,...
         -1 -3 -2 -1 -2 -2 -2 0.5, 2];
     log10PriorStd = 2*ones(1,13);
-    logPriorGR = @(x)-sum((log10(x)-log10PriorMean(5:12)).^2./(2*log10PriorStd(5:12).^2));
     % the log prior will be applied to the fit to multiple models as an
     % additional constraint.
     
@@ -68,7 +77,7 @@ else
 
     ModelGRparameterMap = cell(1,size(GRfitCases,1));
     ModelGRfit = cell(1,size(GRfitCases,1));
-    ModelGRODEfit = cell(1,size(GRfitCases,1));
+    % ModelGRODEfit = cell(1,size(GRfitCases,1));
     for i=1:3
         ModelGRfit{i} = ModelGR.loadData("EricData/Gated_dataframe_Ron_020224_NormalizedGR_bins.csv",...
             {'nucGR','normgrnuc';'cytGR','normgrcyt'},...
@@ -79,7 +88,6 @@ else
         % the entire class of models.  In this case, these refer to
         % global parameters 5:15 (GR parameters).
     end
-
     %% STEP 0.B.4. -- Make Guesses for the FSP bounds
     % This is sometimes necessary when using an uninduced steady state as the
     % initial condition. You need to guess a reasonalbe statespace or the
@@ -91,11 +99,14 @@ else
         % custom.
     end
 end
-
-%%
 %%
 %% STEP 1 -- GR Model
 %%     STEP 1.A. -- Combine all three GR models and fit using a single parameter set.
+for i = 1:3
+    ModelGRfit{i}.tSpan = ModelGRfit{i}.dataSet.times;
+end
+
+logPriorGR = @(x)-sum((log10(x)-log10PriorMean(5:12)).^2./(2*log10PriorStd(5:12).^2));
 for jj = 1:fitIters
     combinedGRModel = SSITMultiModel(ModelGRfit,ModelGRparameterMap,logPriorGR);
     combinedGRModel = combinedGRModel.initializeStateSpaces(boundGuesses);
@@ -104,7 +115,6 @@ for jj = 1:fitIters
         GRpars, fitOptions);
     save('EricModel_MMDex','GRpars') 
 end
-
 %%     STEP 1.B. -- Compute FIM for GR parameters.
 combinedGRModel = combinedGRModel.computeFIMs([],'log');
 fimGR_withPrior = combinedGRModel.FIM.totalFIM+... % the FIM in log space.
@@ -126,9 +136,22 @@ fimGR_withPrior = combinedGRModel.FIM.totalFIM+... % the FIM in log space.
 makeGRPlots(combinedGRModel,GRpars)
 
 %%
-%%
 %%  STEP 2 -- Extend Model to Include DUSP1 Activation, Production, and Degradation
-if ~loadPrevious
+if loadPrevious
+    varNamesDUSP1 = {'ModelGRDusp'
+    'ModelGRDusp100nM'
+    'GRfitCases'
+    'log10PriorMean'
+    'log10PriorStd'
+    'duspLogPrior'
+    'DUSP1pars'
+    'Dusp1FitCases'};
+    load(savedWorkspace,varNamesDUSP1{:})
+
+    fitOptions = optimset('Display','iter','MaxIter',10);
+    fitIters = 1;
+else
+
     %% STEP 2.A.1. -- Add DUSP1 to the existing GR model.
     % Copy parameters from the 100nM Dex stim case in GR.
     ModelGRDusp = ModelGRfit{3};
@@ -180,7 +203,7 @@ if ~loadPrevious
     DUSP1pars = [ModelGRDusp100nM.parameters{ModelGRDusp100nM.fittingOptions.modelVarsToFit,2}];
 end
 
-%%  STEP 2.B. -- Fit DUSP1 model at 100nM Dex.
+%%    STEP 2.B. -- Fit DUSP1 model at 100nM Dex.
 for i = 1:fitIters
     fitOptions.suppressFSPExpansion = true;
     DUSP1pars = ModelGRDusp100nM.maximizeLikelihood(...
@@ -190,15 +213,15 @@ for i = 1:fitIters
     save('EricModelDusp1_MMDex','GRpars','DUSP1pars') 
 end
 
-%%  STEP 2.C. -- Plot predictions for other Dex concentrations.
+%%    STEP 2.C. -- Plot predictions for other Dex concentrations.
 showCases = [1,1,1,0];
 makePlotsDUSP1({ModelGRDusp100nM},ModelGRDusp,DUSP1pars,Dusp1FitCases,showCases)
-%%  STEP 2.D. -- Sample uncertainty for Dusp1 Parameters
-%%    STEP 2.D.1. -- Compute sensitivity of the FSP solution
+%%    STEP 2.D. -- Sample uncertainty for Dusp1 Parameters
+%%      STEP 2.D.1. -- Compute sensitivity of the FSP solution
 ModelGRDusp100nM.solutionScheme = 'fspSens';
 sensSoln = ModelGRDusp100nM.solve();
 ModelGRDusp100nM.solutionScheme = 'FSP';
-%%    STEP 2.D.2. -- Compute FIM
+%%      STEP 2.D.2. -- Compute FIM
 % define which species in model are not observed.
 ModelGRDusp100nM.pdoOptions.unobservedSpecies = {'offGene';'onGene'};
 % TODO - Make this automated when you load data.
@@ -211,7 +234,7 @@ fimResults = ModelGRDusp100nM.computeFIM(sensSoln.sens,'log');
 % being set equal to the inverse of this covariance matrix.  More rigorous
 % justification is needed to support this heuristic.
 fimTotal = ModelGRDusp100nM.evaluateExperiment(fimResults,ModelGRDusp100nM.dataSet.nCells,...
-    diag(log10PriorStd.^2));
+    diag(log10PriorStd(1:13).^2));
 
 FIMfree = fimTotal{1}(1:4,1:4);
 if min(eig(FIMfree))<1
@@ -221,20 +244,24 @@ end
 covFree = FIMfree^-1;
 covFree = 0.5*(covFree+covFree');
 %
-%%    STEP 2.D.3. -- Run Metropolis Hastings Search
-MHFitOptions.proposalDistribution=@(x)mvnrnd(x,covFree);
-MHFitOptions.thin=1;
-MHFitOptions.numberOfSamples=10000;
-MHFitOptions.burnIn=0;
-MHFitOptions.progress=true;
-MHFitOptions.numChains = 1;
-MHFitOptions.saveFile = 'TMPEricMHDusp1.mat';
-[DUSP1pars,~,MHResultsDusp1] = ModelGRDusp100nM.maximizeLikelihood(...
-    [], MHFitOptions, 'MetropolisHastings');
-delete('TMPEricMHDusp1.mat')
-ModelGRDusp100nM.parameters(1:4,2) = num2cell(DUSP1pars);
-
-%%    STEP 2.D.4. -- Plot the MH results
+%%      STEP 2.D.3. -- Run Metropolis Hastings Search
+if loadPrevious
+    MHDusp1File = 'MHDusp1_Jul22';
+    load(MHDusp1File)
+else
+    MHFitOptions.proposalDistribution=@(x)mvnrnd(x,covFree);
+    MHFitOptions.thin=1;
+    MHFitOptions.numberOfSamples=10000;
+    MHFitOptions.burnIn=0;
+    MHFitOptions.progress=true;
+    MHFitOptions.numChains = 1;
+    MHFitOptions.saveFile = 'TMPEricMHDusp1.mat';
+    [DUSP1pars,~,MHResultsDusp1] = ModelGRDusp100nM.maximizeLikelihood(...
+        [], MHFitOptions, 'MetropolisHastings');
+    delete('TMPEricMHDusp1.mat')
+    ModelGRDusp100nM.parameters(1:4,2) = num2cell(DUSP1pars);
+end
+%%      STEP 2.D.4. -- Plot the MH results
 figNew = figure;
 ModelGRDusp100nM.plotMHResults(MHResultsDusp1,[],'log',[],figNew)
 for i = 1:3
@@ -246,103 +273,116 @@ for i = 1:3
     end
 end
 
-
-
-%%
 %%
 %%  STEP 3. -- Model Extensions using ODE Analyses
-%%    STEP 3.A.1 -- Extend model to include nuclear and cytoplasmic RNA
-extendedMod = ModelGRDusp100nM;
-extendedMod = extendedMod.addSpecies({'rCyt'},0);
+if loadPrevious
+    vaNamesExtended = {'ModelGRfit'
+        'extendedMod'
+        'ModelGRDusp100nM_ext_red'
+        'fullPars'
+        };
+    load(savedWorkspace,vaNamesExtended{:})
+else
+    %%    STEP 3.A.1 -- Extend model to include nuclear and cytoplasmic RNA
+    extendedMod = ModelGRDusp100nM;
+    extendedMod = extendedMod.addSpecies({'rCyt'},0);
 
-% Adjust the final reaction to be nuc -> cyt transport.
-extendedMod.propensityFunctions{9,1} = 'knuc2cyt*rna';
-extendedMod.parameters{4,1} = 'knuc2cyt';
-extendedMod.stoichiometry(:,9) = 0;
-extendedMod.stoichiometry([5,6],9) = [-1;1];
+    % Adjust the final reaction to be nuc -> cyt transport.
+    extendedMod.propensityFunctions{9,1} = 'knuc2cyt*rna';
+    extendedMod.parameters{4,1} = 'knuc2cyt';
+    extendedMod.stoichiometry(:,9) = 0;
+    extendedMod.stoichiometry([5,6],9) = [-1;1];
 
-% Add nuc degradation reaction.
-extendedMod.propensityFunctions{10,1} = 'knucdeg*rna';
-extendedMod.stoichiometry(:,10) = 0;
-extendedMod.stoichiometry(5,10) = -1;
-extendedMod.parameters(14,:) = {'knucdeg',0.001};
+    % Add nuc degradation reaction.
+    extendedMod.propensityFunctions{10,1} = 'knucdeg*rna';
+    extendedMod.stoichiometry(:,10) = 0;
+    extendedMod.stoichiometry(5,10) = -1;
+    extendedMod.parameters(14,:) = {'knucdeg',0.001};
 
-% Add cytoplasmic degradation as a reaction
-extendedMod.propensityFunctions{11,1} = 'degCyt*rCyt';
-extendedMod.stoichiometry(:,11) = 0;
-extendedMod.stoichiometry(6,11) = -1;
-extendedMod.parameters(15,:) = {'degCyt',100};
+    % Add cytoplasmic degradation as a reaction
+    extendedMod.propensityFunctions{11,1} = 'degCyt*rCyt';
+    extendedMod.stoichiometry(:,11) = 0;
+    extendedMod.stoichiometry(6,11) = -1;
+    extendedMod.parameters(15,:) = {'degCyt',100};
 
-% The following code can be used to verify that the model changes so far
-% are consistent with the previous FSP model.  
-% This is useful to verify before changing the reactions too much.
-% However, we do not expec tthe FSP analysis to be very fast just yet, so
-% it would not make much sense to run this for fitting.
-if false
-    extendedMod.initialCondition(6) = 1;
-    extendedMod.fspOptions.bounds = [0;0;0;0;2;2;400;1]
-    extendedMod.fspOptions.verbose = 1;
-    extendedMod = extendedMod.formPropensitiesGeneral('extendedModel');
-    [~,extendedMod.fspOptions.bounds] = extendedMod.solve;
+    % The following code can be used to verify that the model changes so far
+    % are consistent with the previous FSP model.
+    % This is useful to verify before changing the reactions too much.
+    % However, we do not expec tthe FSP analysis to be very fast just yet, so
+    % it would not make much sense to run this for fitting.
+    if false
+        extendedMod.initialCondition(6) = 1;
+        extendedMod.fspOptions.bounds = [0;0;0;0;2;2;400;1]
+        extendedMod.fspOptions.verbose = 1;
+        extendedMod = extendedMod.formPropensitiesGeneral('extendedModel');
+        [~,extendedMod.fspOptions.bounds] = extendedMod.solve;
+        extendedMod = extendedMod.loadData('EricData/pdoCalibrationData_EricIntensity_DexSweeps.csv',...
+            {'rna','RNA_DUSP1_nuc'; ...
+            'rCyt','RNA_DUSP1_cyto'},...
+            {'Dex_Conc','100'});
+        extendedMod.makeFitPlot
+    end
+    %%    STEP 3.A.2 -- Create reduced model for Nuclear DUSP1 but with same parameters as new model
+    ModelGRDusp100nM_ext_red = ModelGRDusp100nM;
+
+    % Adjust the final reaction to be nuc -> cyt transport.
+    ModelGRDusp100nM_ext_red.propensityFunctions{9,1} = 'knuc2cyt*rna';
+    ModelGRDusp100nM_ext_red.parameters{4,1} = 'knuc2cyt';
+    ModelGRDusp100nM_ext_red.stoichiometry(:,9) = 0;
+    ModelGRDusp100nM_ext_red.stoichiometry(5,9) = -1;
+
+    % Add nuc degradation reaction.
+    ModelGRDusp100nM_ext_red.propensityFunctions{10,1} = 'knucdeg*rna';
+    ModelGRDusp100nM_ext_red.stoichiometry(:,10) = 0;
+    ModelGRDusp100nM_ext_red.stoichiometry(5,10) = -1;
+    ModelGRDusp100nM_ext_red.parameters(14,:) = {'knucdeg',0.001};
+
+    ModelGRDusp100nM_ext_red = ModelGRDusp100nM_ext_red.formPropensitiesGeneral('ModelGRDusp100nM_ext_red');
+    ModelGRDusp100nM_ext_red.fittingOptions.modelVarsToFit = [1:4,14];
+    ModelGRDusp100nM_ext_red.makeFitPlot
+
+
+    %%    STEP 3.B.1 -- Load data into the model
     extendedMod = extendedMod.loadData('EricData/pdoCalibrationData_EricIntensity_DexSweeps.csv',...
         {'rna','RNA_DUSP1_nuc'; ...
         'rCyt','RNA_DUSP1_cyto'},...
         {'Dex_Conc','100'});
-    extendedMod.makeFitPlot
+
+    %%    STEP 3.B.2 -- Switch solver to ODE and generate model codes
+    extendedMod.solutionScheme = 'ode';
+    extendedMod.useHybrid = false;
+    extendedMod = extendedMod.formPropensitiesGeneral('ODEEricCyt');
+
+    %%    STEP 3.C. -- Change parameters manually, solve, and make plots
+    extendedMod.parameters(4,:) = {'knuc2cyt',0.027};
+    extendedMod.parameters(14,:) = {'knucdeg',0.001};
+    extendedMod.parameters(15,:) = {'degCyt',0.01};
+    soln = extendedMod.solve;
+    plotODEresults(extendedMod,soln,ModelGRfit{3})
+    %%    STEP 3.D.1. -- Fit new parameters to match all ODE data.
+    extendedMod.fittingOptions.modelVarsToFit = [4,14,15];
+    extendedMod.fittingOptions.logPrior = [];
+    pars = [extendedMod.parameters{extendedMod.fittingOptions.modelVarsToFit,2}];
+    pars = extendedMod.maximizeLikelihood(pars,fitOptions);
+    %%    STEP 3.D.2. -- Plot ODE fit results.
+    extendedMod.parameters(extendedMod.fittingOptions.modelVarsToFit,2) = num2cell(pars);
+    soln = extendedMod.solve;
+    plotODEresults(extendedMod,soln,ModelGRfit{3})
+    %%    STEP 3.F.1. -- Create New Objective Function Combining all of the previous ones.
+    % Remove all priors from individual models.
+    ModelGRDusp100nM_ext_red.fittingOptions.logPrior = [];
+    for i=1:3
+        ModelGRfit{1}.fittingOptions.logPrior = [];
+        ModelGRfit{1}.tSpan = ModelGRfit{1}.dataSet.times;
+    end
+    extendedMod.fittingOptions.logPrior = [];
+
+    fullPars = [extendedMod.parameters{[1:12,14,15],2}];
+    % otherewise, we will use the set that was saved in the data dump from
+    % the older workspace.
+
 end
-%%    STEP 3.A.2 -- Create reduced model for Nuclear DUSP1 but with same parameters as new model
-ModelGRDusp100nM_ext_red = ModelGRDusp100nM;
-
-% Adjust the final reaction to be nuc -> cyt transport.
-ModelGRDusp100nM_ext_red.propensityFunctions{9,1} = 'knuc2cyt*rna';
-ModelGRDusp100nM_ext_red.parameters{4,1} = 'knuc2cyt';
-ModelGRDusp100nM_ext_red.stoichiometry(:,9) = 0;
-ModelGRDusp100nM_ext_red.stoichiometry(5,9) = -1;
-
-% Add nuc degradation reaction.
-ModelGRDusp100nM_ext_red.propensityFunctions{10,1} = 'knucdeg*rna';
-ModelGRDusp100nM_ext_red.stoichiometry(:,10) = 0;
-ModelGRDusp100nM_ext_red.stoichiometry(5,10) = -1;
-ModelGRDusp100nM_ext_red.parameters(14,:) = {'knucdeg',0.001};
-
-ModelGRDusp100nM_ext_red = ModelGRDusp100nM_ext_red.formPropensitiesGeneral('ModelGRDusp100nM_ext_red');
-ModelGRDusp100nM_ext_red.fittingOptions.modelVarsToFit = [1:4,14];
-ModelGRDusp100nM_ext_red.makeFitPlot
-
-
-%%    STEP 3.B.1 -- Load data into the model
-extendedMod = extendedMod.loadData('EricData/pdoCalibrationData_EricIntensity_DexSweeps.csv',...
-    {'rna','RNA_DUSP1_nuc'; ...
-    'rCyt','RNA_DUSP1_cyto'},...
-    {'Dex_Conc','100'});
-
-%%    STEP 3.B.2 -- Switch solver to ODE and generate model codes
-extendedMod.solutionScheme = 'ode';
-extendedMod.useHybrid = false;
-extendedMod = extendedMod.formPropensitiesGeneral('ODEEricCyt');
-
-%%    STEP 3.C. -- Change parameters manually, solve, and make plots
-extendedMod.parameters(4,:) = {'knuc2cyt',0.027};
-extendedMod.parameters(14,:) = {'knucdeg',0.001};
-extendedMod.parameters(15,:) = {'degCyt',0.01};
-soln = extendedMod.solve;
-plotODEresults(extendedMod,soln,ModelGRfit{3})
-%%    STEP 3.D.1. -- Fit new parameters to match all ODE data.
-extendedMod.fittingOptions.modelVarsToFit = [4,14,15];
-extendedMod.fittingOptions.logPrior = [];
-pars = [extendedMod.parameters{extendedMod.fittingOptions.modelVarsToFit,2}];
-pars = extendedMod.maximizeLikelihood(pars,fitOptions);
-%%    STEP 3.D.2. -- Plot ODE fit results.
-extendedMod.parameters(extendedMod.fittingOptions.modelVarsToFit,2) = num2cell(pars);
-soln = extendedMod.solve;
-plotODEresults(extendedMod,soln,ModelGRfit{3})
-%%    STEP 3.F.1. -- Create New Objective Function Combining all of the previous ones.
-% Remove all priors from individual models.
-ModelGRDusp100nM_ext_red.fittingOptions.logPrior = [];
-for i=1:3
-    ModelGRfit{1}.fittingOptions.logPrior = [];
-end
-extendedMod.fittingOptions.logPrior = [];
+%%    STEP 3.F.2. -- Fit all objective functions at once.
 
 % Create prior for all parameters
 log10PriorMean = [-1 -1 0 -2,... %dusp1 pars
@@ -359,18 +399,11 @@ Organization = {ModelGRfit{1},[5:12],[5:12],'computeLikelihood',1;...
     ModelGRDusp100nM_ext_red,[1:12,14],[1:13],'computeLikelihood',1;...
     extendedMod,[1:12,14:15],[1:14],'computeLikelihoodODE',0.01};
 
-if ~loadPrevious
-    fullPars = [extendedMod.parameters{[1:12,14,15],2}];
-    % otherewise, we will use the set that was saved in the data dump from
-    % the older workspace.
-end
-
 Organization = getTotalFitErr(Organization,fullPars,true);
 getTotalFitErr(Organization,fullPars,false)
 
-%%    STEP 3.F.2. -- Fit all objective functions at once.
 objAll = @(x)-getTotalFitErr(Organization,exp(x),false)-logPriorAll(exp(x));
-for jj = 1:8
+for jj = 1:fitIters
     fullParsLog = log(fullPars);
     fullPars = exp(fminsearch(objAll,fullParsLog,fitOptions));
 end
@@ -382,6 +415,7 @@ makeGRPlots(combinedGRModel,fullPars(5:12))
 % Plot DUSP1 100nm FIT and other PREDICTED distributions
 showCases = [1,1,1,0];
 ModelGRDusp100nM_ext_red.fittingOptions.modelVarsToFit = [1:12,14];
+ModelGRDusp100nM_ext_red.parameters([1:12,14],2) = num2cell(fullPars([1:13]));
 makePlotsDUSP1({ModelGRDusp100nM_ext_red},ModelGRDusp100nM_ext_red,fullPars([1:13]),Dusp1FitCases,showCases)
 
 % Plot ODE Cyt FIT Results at 100nM Dex
@@ -455,102 +489,227 @@ makeCytDistPlots(ssaSoln_1,extendedMod1,602,[3:8],[1:6],6,2)
 makeCytDistPlots(ssaSoln_10,extendedMod10,603,[3:8],[1:6],6,2)
 
 %%
-%%
-
 %%  STEP 4. -- Extend analysis to TS dynamics
 % Load data that includes the TS.
 allData = readtable('EricData/pdoCalibrationData_EricIntensity_DexSweeps.csv');
+outlierThresh = 50;
+fitGRinclude = true;
 
-% Create Copy of the prevous model
-ModelTS = ModelGRDusp100nM_ext_red;
-% This model can use all parameters except for the cytoplasmic degradation
-ModelTS.fittingOptions.modelVarsToFit = [1:3];
-%%     STEP 4.B. -- Set up model fitting to now include the TS analysis.
-% Objective function for just the TS analyses -- see function below.
-objTS = @(x)-computeTSlikelihood(x,ModelTS,allData,100,false);
+indsDuspMod = [1:12,14];
+indsDuspDat = [1:12,13];
+if loadPrevious
+    vaNamesTS = {'ModelGRDusp100nM_ext_red'
+        'parsAll_GR_Dusp1_TS'
+        };
+    load(savedWorkspace,vaNamesTS{:})
+    if fitGRinclude
+        % The set of parameters, including elongation time at the end.
+        parsAllandTS = parsAll_GR_Dusp1_TS([1:12,14:16]);
+    else
+        parsAllandTS = parsAll_GR_Dusp1_TS([1:4,14:16]);
+    end
+else
+    if fitGRinclude
+        % The set of parameters, including elongation time at the end.
+        parsAllandTS = [fullPars([1:12,13:14]),5];
+    else
+        parsAllandTS = [fullPars([1:4,13:14]),5];
+    end
+end
 
-ModelGRDusp100nM_ext_red.fittingOptions.modelVarsToFit = [1:4,14];
-extendedMod.fittingOptions.modelVarsToFit = [1:4,14:15];
-Organization = {ModelGRDusp100nM_ext_red,[1:4,14],[1:5],'computeLikelihood',1;...
-    extendedMod,[1:4,14:15],[1:6],'computeLikelihoodODE',0.01};
-
-
-% Create prior for all parameters
+if fitGRinclude
+    % The set of parameters, including elongation time at the end.
+    indsDuspMod = [1:12,14];
+    indsDuspDat = [1:13];
+    indsTSmod = [1:12];
+    indsTSpars = [1:12,15];
+    indsODEmod = [1:12,14:15];
+    indsODEdat = [1:14];
+else
+    indsDuspMod = [1:4,14];
+    indsDuspDat = [1:4,5];
+    indsTSmod = [1:3];
+    indsTSpars = [1:3,7];
+    indsODEmod = [1:4,14:15];
+    indsODEdat = [1:6];
+end
+%%    STEP 4.A.1. -- Set up objective function to now include the TS analysis.
+% Create prior for all parameters (just adding the elongation time to the
+% previous list).
 log10PriorMean = [-1 -1 0 -2,... %dusp1 pars
     -1 -3 -2 -1 -2 -2 -2 0.5, ...%GR pars
     NaN, ... % Dex concentration -- known
     -2, -3, ... % dusp1 transport, cyt RNA degradation
     0.7]; %elongation time (about 5 min)
 log10PriorStd = 2*ones(1,16);
-% logPriorAll = @(x)-sum((log10(x)-log10PriorMean([1:12,14,15,16])).^2./(2*log10PriorStd([1:12,14,15,16]).^2));
-logPriorAll = @(x)-sum((log10(x)-log10PriorMean([1:4,14,15,16])).^2./(2*log10PriorStd([1:4,14,15,16]).^2));
+
+if fitGRinclude
+    % Set parameters to be free during search.
+    % This group allows the GR and DUSP1 parameters.
+    ModelGRDusp100nM_ext_red.fittingOptions.modelVarsToFit = indsDuspMod;
+    extendedMod.fittingOptions.modelVarsToFit = indsODEmod;
+    
+    for i = 1:3
+        ModelGRfit{i}.tSpan = unique([0,ModelGRfit{i}.dataSet.times]);
+    end
+
+    Organization = {ModelGRfit{1},[5:12],[5:12],'computeLikelihood',1;...
+        ModelGRfit{2},[5:12],[5:12],'computeLikelihood',1;...
+        ModelGRfit{3},[5:12],[5:12],'computeLikelihood',1;...
+        ModelGRDusp100nM_ext_red,indsDuspMod,indsDuspDat,'computeLikelihood',1;...
+        extendedMod,indsODEmod,indsODEdat,'computeLikelihoodODE',0.01};
+    logPriorAll = @(x)-sum((log10(x)-log10PriorMean([1:12,14,15,16])).^2./(2*log10PriorStd([1:12,14,15,16]).^2));
+else
+    % Set parameters to be free during search.
+    % This group allows just the DUSP1 parameters to change and only fits
+    % the DUSP1 data.
+    ModelGRDusp100nM_ext_red.fittingOptions.modelVarsToFit = indsDuspMod;
+    ModelGRDusp100nM_ext_red.fspOptions.fspTol = inf;
+    extendedMod.fittingOptions.modelVarsToFit = indsODEmod;
+    Organization = {ModelGRDusp100nM_ext_red,indsDuspMod,indsDuspDat,'computeLikelihood',1;...
+        extendedMod,indsODEmod,indsODEdat,'computeLikelihoodODE',0.01};
+    logPriorAll = @(x)-sum((log10(x)-log10PriorMean([1:4,14,15,16])).^2./(2*log10PriorStd([1:4,14,15,16]).^2));
+end
+
+% Create Copy of the prevous model
+ModelTS = ModelGRDusp100nM_ext_red;
+% This model can use all parameters except for the cytoplasmic degradation
+ModelTS.fittingOptions.modelVarsToFit = indsTSmod;
+
+% Objective function for just the TS analyses -- see function description
+% below. 
+objTS = @(x)computeTSlikelihood(x,ModelTS,allData,100,outlierThresh);
 
 % Objective function for all analyses -- same as before but now with the
 % transcription site analysis.
-objAllwithTS = @(x)-getTotalFitErr(Organization,exp(x),false)-logPriorAll(exp(x))...
-    +objTS(exp(x([1:3,7])));
+extraObjs(1,:) = {objTS,indsTSpars};
+objAllwithTS = @(x)-getTotalFitErr(Organization,exp(x),false,extraObjs)-logPriorAll(exp(x));
 
-% The set of parameters is one longer - corresponding to elongation time.
-parsAllandTS = [fullPars([1:4,13:14]),5];
-
-%%
-% parsAllandTS([1:3,7]) = [111;0.0316;426;1.09];
-objAllwithTS(log(parsAllandTS))
-
-%%    STEP 4.C. -- Run the fit.
-for i = 1:3
+%%    STEP 4.A.2. --  Test that the objective function works.
+% This should take about 1s, and the value should be about 107700 with a
+% good choice of parameters (when fitting all data including GR, DUSP1
+% and TS). 
+tic
+    objAllwithTS(log(parsAllandTS))
+toc
+%%    STEP 4.B.1 -- Run the fit with fminsearch
+fitOptions.MaxIter = 300;
+fitOptions.UseParallel = true;
+for i = 1:8
     parsAllandTS = exp(fminsearch(objAllwithTS,log(parsAllandTS),fitOptions));
+    bestObj = objAllwithTS(log(parsAllandTS));
 end
-%%    STEP 4.D. -- Update the parameter set and make plots of results
-ModelTS.parameters(ModelTS.fittingOptions.modelVarsToFit,2) = num2cell(parsAllandTS(1:3));
-dex = 100;
-[TSLikelihood,modelResults,dataResults] = computeTSlikelihood(parsAllandTS([1:3,7]),ModelTS,allData,dex); 
+%%    STEP 4.B.2 -- Run the fit again with particle swarm
 
-figure(702); clf
+% % This code could be used to run a particle swarm for optimization.  This
+% works okay, but seems slower than the other approaches and did not reach
+% as good an optimum as that found using the fminsearch routine.  I am
+% leaving it here because it makes good use of parallel analyses, and might
+% work better on a larger computer.
+% LB = log(parsAllandTS)-log(20);
+% UB = log(parsAllandTS)+log(20); 
+% options = optimoptions('particleswarm', 'Display', 'iter');
+% options.UseParallel = true;
+% options.MaxIterations = 200; 
+% options.SwarmSize = 200;
+% X = exp(particleswarm(objAllwithTS,length(parsAllandTS),LB,UB,options));
+% 
+% Xobj = objAllwithTS(log(X))
+% if Xobj<bestObj
+%     parsAllandTS = X;
+%     bestObj
+% end
+
+
+%%    STEP 4.C. -- Update the parameter set and make plots of results
+%%      STEP 4.C.1. -- Make plots of the GR Dynamics.
+if fitGRinclude
+    makeGRPlots(combinedGRModel,parsAllandTS(5:12));
+end
+%%      STEP 4.C.2. -- Make plots of the Nucelar DUSP1 Dynamics.
+ModelGRDusp100nM_ext_red.parameters(indsDuspMod,2) = num2cell(parsAllandTS(indsDuspDat));
+showCases = [0,0,1,0];
+makePlotsDUSP1({ModelGRDusp100nM_ext_red},ModelGRDusp100nM_ext_red,parsAllandTS(indsDuspDat),Dusp1FitCases,showCases)
+
+%%      STEP 4.C.3. -- Make plots of the TS Dynamics.
 TSthresh = 4;
-for iT = 1:12
-    P=modelResults.Psaved{iT};
-    P(1:TSthresh) = sum(P(1:TSthresh))/4;   
+ModelTS.parameters(indsTSmod,2) = num2cell(parsAllandTS(indsTSpars(1:end-1)));
+% plot 100nm Fit Results
+dex = 100;
+[TSLikelihood,modelResults,dataResults] = computeTSlikelihood(parsAllandTS(indsTSpars),ModelTS,allData,dex,52,true); 
+makeTSPlots(modelResults,dataResults,ModelTS,TSthresh,[700,701])
+
+dex = 10;
+[~,modelResults10,dataResults10] = computeTSlikelihood(parsAllandTS(indsTSpars),ModelTS,allData,dex,52,true); 
+makeTSPlots(modelResults10,dataResults10,ModelTS,TSthresh,[702,703])
+
+dex = 1;
+[~,modelResults1,dataResults1] = computeTSlikelihood(parsAllandTS(indsTSpars),ModelTS,allData,dex,52,true); 
+makeTSPlots(modelResults1,dataResults1,ModelTS,TSthresh,[704,705])
+
+for f = 701:2:705
+    figure(f)
+    subplot(2,1,1)
+    set(gca,'ylim',[0,4])
+    subplot(2,1,2)
+    set(gca,'ylim',[0,0.5])
+end
+
+%%      STEP 4.C.4. -- Make plots of the TS Dynamics for titration
+ModelTS75 = ModelTS;
+ModelTS75.tSpan = [0,75];
+dexV = unique(allData.Dex_Conc);
+% modTitration
+% datTitration
+for i = 1:length(dexV)
+    dex = dexV(i);
+    AllDatRed = allData(allData.Time_index==75&allData.Dex_Conc==dex,:);
+    [~,mod,dat] = computeTSlikelihood(parsAllandTS(indsTSpars),ModelTS75,AllDatRed,dex,52,true); 
+    tmp.tSpan(i) = dex;
+    modTitration.meanNascentMod(i) = mod.meanNascentMod(2);  
+    modTitration.fracTSMod(i) = mod.fracTSMod(2);  
+    modTitration.Psaved(i) = mod.Psaved(2); 
+
+    datTitration.meanNascentDat(i) = dat.meanNascentDat(2);  
+    datTitration.fracTSDat(i) = dat.fracTSDat(2);  
+    datTitration.TS_counts(i) = dat.TS_counts(2);  
     
-    subplot(4,3,iT)
-    plot([0:length(P)-1],P,'linewidth',3)
-    set(gca,'fontsize',16,'ylim',[0,0.02],'xlim',[0,150])
-    if iT>9
-        xlabel('Number nascent RNA')
-    end
-    if mod(iT-1,3)==0
-        ylabel('Probability')
-    end   
+    % reps = unique(AllDatRed.Replica);
+    % frac = [];
+    % mn = [];
+    % for j = 1:length(reps)
+    %     AllDatRedReps = AllDatRed(strcmp(AllDatRed.Replica,reps{j}),:);
+    %     frac(j) = sum(AllDatRedReps.DUSP1_ts_size_0>0)/size(AllDatRedReps,1);
+    %     mn(j) = (sum(AllDatRedReps.DUSP1_ts_size_0(AllDatRedReps.DUSP1_ts_size_0>0))+...
+    %          sum(AllDatRedReps.DUSP1_ts_size_1(AllDatRedReps.DUSP1_ts_size_1>0)))/size(AllDatRedReps,1);
+    % end
+    datTitration.fracTSDatstd(i) = dat.fracTSDatstd(2);
+    datTitration.meanNascentDatstd(i) = dat.meanNascentDatstd(2);
 end
-
-figure(703); clf
+makeTSPlots(modTitration,datTitration,tmp,TSthresh,[706,707])
+figure(707)
 subplot(2,1,1)
-plot(ModelTS.tSpan,modelResults.meanNascentMod,'linewidth',3);
-set(gca,'fontsize',16)
-ylabel('Mean Nascent RNA')
-
+set(gca,'xscale','log','ylim',[0,4])
 subplot(2,1,2)
-plot(ModelTS.tSpan,modelResults.fracTSMod,'linewidth',3);
-set(gca,'fontsize',16)
-ylabel('Fraction with TS')
-xlabel('time (min)')
-%
-%     STEP 4.C.2. -- Add data to plots
-figure(702)
-for iT = 1:12
-    subplot(4,3,iT); hold on
-    histogram(dataResults.TS_counts{iT},[0,TSthresh:150],'Normalization','pdf');
-end
+set(gca,'xscale','log','ylim',[0,0.5])
+xlabel('Dex Concentration (nM)')
 
-figure(703)
-subplot(2,1,1)
-hold on
-plot(ModelTS.tSpan,dataResults.meanNascentDat,'s','markersize',16,'linewidth',3,'MarkerFaceColor','k');
+%%      STEP 4.C.5. -- Make plots of the Cytoplasmic DUSP1 Dynamics.
+plotODEresults(extendedMod,extendedMod.solve,ModelGRfit{3},500)
 
-subplot(2,1,2)
-hold on
-plot(ModelTS.tSpan,dataResults.fracTSDat,'s','markersize',16,'linewidth',3,'MarkerFaceColor','k');
+extendedMod1 = extendedMod.loadData('EricData/pdoCalibrationData_EricIntensity_DexSweeps.csv',...
+    {'rna','RNA_DUSP1_nuc'; ...
+    'rCyt','RNA_DUSP1_cyto'},...
+    {'Dex_Conc','1'});
+extendedMod1.parameters(13,:) = {'Dex0',1.0};
+plotODEresults(extendedMod1,extendedMod1.solve,ModelGRfit{1},501)
 
+extendedMod10 = extendedMod.loadData('EricData/pdoCalibrationData_EricIntensity_DexSweeps.csv',...
+    {'rna','RNA_DUSP1_nuc'; ...
+    'rCyt','RNA_DUSP1_cyto'},...
+    {'Dex_Conc','10'});
+extendedMod10.parameters(13,:) = {'Dex0',10};
+plotODEresults(extendedMod10,extendedMod10.solve,ModelGRfit{2},502)
 
 %%
 %% Additonal Codes for FIM and PDO analyses (ALEX Paper)
@@ -898,13 +1057,19 @@ for i = 1:length(timeIndsMod)
 end
 end
 
-function [TSLikelihood,modelResults,dataResults] = computeTSlikelihood(x,ModelTS,allData,dex,makeFit)
+function [TSLikelihood,modelResults,dataResults] = computeTSlikelihood(x,ModelTS,allData,dex,outlierThresh,reportErrors)
 arguments
     x
     ModelTS
     allData
     dex = 100
-    makeFit = false
+    outlierThresh = 50;  
+    reportErrors = false
+    % The outlierThresh input sets an outlier threshold for the nascent RNA
+    % at the TS.  Data with observed counts more than this value will be
+    % trincated to this value.  Model predictions for counts higher than
+    % this value will also be integrated into a single bin "more than
+    % outlierThresh".
 end
 
 tau_elong = x(end);  % Time for elongation and processing of mRNA (assume deterministic)
@@ -914,48 +1079,64 @@ x = x(1:end-1);
 ModelTS.parameters(ModelTS.fittingOptions.modelVarsToFit,2) = num2cell(x);
 ModelTS.parameters(13,:) = {'Dex0',dex};
 
-% create past model only used to get distribution of states for when
+% set upper bound on FSP solution
+ModelTS.fspOptions.bounds(6) = outlierThresh*1.5;
+
+% turn off FSP expansion routine
+ModelTS.fspOptions.fspTol = inf;
+
+% Create past model only used to get distribution of states for when
 % elongation would begin.
 ModelTSPast = ModelTS;
 ModelTSPast.parameters(3,:) = {'kr',0};  % Turn off transcription.
 ModelTSPast.initialCondition(5) = 0;
 
+% Shift solution time points back by tau_elong.
 ModelTSPast.tSpan = ModelTS.tSpan - tau_elong;
+ModelTSPast.tSpan = [ModelTSPast.tSpan(1)-10,ModelTSPast.tSpan];
 ModelTSPast.initialTime = ModelTSPast.tSpan(1);
+
+% Solve for distributions at t - tau_elong.
 TSPastSoln = ModelTSPast.solve;
 
-% for the prsent model we start one elongation period in the past and then 
+% For the prsent model we start one elongation period in the past and then 
 % integrate forward in time.
 ModelTSPresent = ModelTS;
 ModelTSPresent.parameters(4,:) = {'knuc2cyt',0};
 ModelTSPresent.parameters(14,:) = {'knucdeg',0};
 
+% We will NOT use steady state initial conditions -- rather, we use the
+% computed distributions from previous time step.
 ModelTSPresent.fspOptions.initApproxSS = false;
-
-NT = length(TSPastSoln.fsp);
-nascentDistributions.stateSpace = TSPastSoln.stateSpace;
-% we need to solve once for each time point, where the initial condition is
+% We need to solve once for each time point, where the initial condition is
 % defined by the past model.
+NT = length(TSPastSoln.fsp)-1;
+fsp = cell(1,NT);
 for iT = 1:NT
-    ModelTSPresent = ModelTSPresent.setICfromFspVector(TSPastSoln.stateSpace,TSPastSoln.fsp{iT});
-    ModelTSPresent.tSpan = ModelTSPast.tSpan(iT)+[0,tau_elong/2,tau_elong];
-    ModelTSPresent.initialTime = ModelTSPast.tSpan(iT);
-    tsPresentSoln = ModelTSPresent.solve;
-    nascentDistributions.fsp(iT) = tsPresentSoln.fsp(end); 
+    tmpModelTSPresent = ModelTSPresent.setICfromFspVector(TSPastSoln.stateSpace,TSPastSoln.fsp{iT+1});
+    tmpModelTSPresent.tSpan = ModelTSPast.tSpan(iT+1)+[0,tau_elong/2,tau_elong];
+    tmpModelTSPresent.initialTime = tmpModelTSPresent.tSpan(1);
+    tsPresentSoln = tmpModelTSPresent.solve;
+    fsp(iT) = tsPresentSoln.fsp(end); 
 end
 
-% summarize the model results
-modelResults.meanNascentMod = zeros(12,1);
-modelResults.fracTSMod = zeros(12,1);
+% Summarize the model results for plotting and for likelihood function
+% calculations.
+modelResults.meanNascentMod = zeros(NT,1);
+modelResults.fracTSMod = zeros(NT,1);
 TSthresh = 4;
 for iT = NT:-1:1
-    P=double(nascentDistributions.fsp{iT}.p.sumOver([1,2]).data);
+    P=double(fsp{iT}.p.sumOver([1,2]).data);
+    P = max(0,P);
+    if sum(P)>1
+        P = P/sum(P);
+    end
     P(1:TSthresh) = [sum(P(1:TSthresh));zeros(TSthresh-1,1)]; 
     modelResults.Psaved{iT} = P;
-    modelResults.meanNascentMod(iT) = [TSthresh:length(P)-1]*P(TSthresh+1:end);
-    modelResults.fracTSMod(iT) = sum(P(TSthresh+1:end));
 end
 
+% Summarize the data for plotting and for likelihood function
+% calculations.
 for iT = NT:-1:1
     time = ModelTS.tSpan(iT);
     redData = allData(allData.Dex_Conc==dex&allData.Time_index==time,:);
@@ -966,11 +1147,119 @@ for iT = NT:-1:1
     dataResults.TS_counts{iT} = TS_counts0+TS_counts1; 
     dataResults.meanNascentDat(iT) = mean(dataResults.TS_counts{iT});
     dataResults.fracTSDat(iT) = sum(dataResults.TS_counts{iT}>=TSthresh)/length(dataResults.TS_counts{iT});
+
+    if reportErrors
+        reps = unique(redData.Replica);
+        frac = [];
+        mn = [];
+        for j = 1:length(reps)
+            AllDatRedReps = redData(strcmp(redData.Replica,reps{j}),:);
+            frac(j) = sum(AllDatRedReps.DUSP1_ts_size_0>0)/size(AllDatRedReps,1);
+            mn(j) = (sum(AllDatRedReps.DUSP1_ts_size_0(AllDatRedReps.DUSP1_ts_size_0>0))+...
+                sum(AllDatRedReps.DUSP1_ts_size_1(AllDatRedReps.DUSP1_ts_size_1>0)))/size(AllDatRedReps,1);
+        end
+        dataResults.fracTSDatstd(iT) = std(frac);
+        dataResults.meanNascentDatstd(iT) = std(mn);
+    end
 end
 
+
+% Adjust to account for partial transcripts.
+nRNAmax = floor(ModelTS.fspOptions.bounds(6)+1);
+PDO_partial_transcripts = zeros(nRNAmax,nRNAmax);
+for i = 1:nRNAmax
+    PDO_partial_transcripts(1:i,i) = binopdf(0:i-1,i-1,0.5);
+end
+
+% Calculate the likelihood function from the TS data.
 TSLikelihood=0;
 for iT=1:NT
     modelResults.Psaved{iT} = max(1e-10,modelResults.Psaved{iT});
-    TSLikelihood = TSLikelihood + sum(log(modelResults.Psaved{iT}(dataResults.TS_counts{iT}+1)));
+    
+    % Remove outliers from data and set to threshold.
+    countsRNA = dataResults.TS_counts{iT};
+    countsRNA(countsRNA>outlierThresh) = outlierThresh;
+   
+    % Apply PDO to account for partial transcripts.
+    try
+        modelResults.Psaved{iT} = PDO_partial_transcripts*modelResults.Psaved{iT};
+    catch
+        1+1
+    end
+    % Bin outlier predictions for model
+    P = modelResults.Psaved{iT};
+
+    P(outlierThresh+1) = sum(P(outlierThresh+1:end));
+    P = P(1:outlierThresh+1);
+
+    modelResults.meanNascentMod(iT) = [TSthresh:length(P)-1]*P(TSthresh+1:end);
+    modelResults.fracTSMod(iT) = sum(P(TSthresh+1:end));
+
+    TSLikelihood = TSLikelihood + sum(log(P(countsRNA+1)));
 end
+end
+
+function makeTSPlots(modelResults,dataResults,ModelTS,TSthresh,figNum)
+arguments
+    modelResults
+    dataResults
+    ModelTS
+    TSthresh = 4;
+    figNum = [700,701];
+end
+figure(figNum(1)); clf
+NT = length(modelResults.meanNascentMod);
+for iT = 1:NT
+    P=modelResults.Psaved{iT};
+   
+    % Lump predictions less than detection limit at zero.
+    P(1:TSthresh) = sum(P(1:TSthresh))/4;  
+    % P(1:TSthresh) = [sum(P(1:TSthresh));zeros(TSthresh-1,1)];   
+    
+    subplot(4,3,iT)
+    % stairs([0:length(P)-1],cumsum(P),'linewidth',3)
+    stairs([0:length(P)-1],(P),'linewidth',3)
+    set(gca,'fontsize',16,'ylim',[0,1],'xlim',[0,50])
+    set(gca,'fontsize',16,'ylim',[0,0.02],'xlim',[0,50])
+    if iT>9
+        xlabel('Number nascent RNA')
+    end
+    if mod(iT-1,3)==0
+        ylabel('Probability')
+    end   
+end
+
+figure(figNum(2)); clf
+subplot(2,1,1)
+plot(ModelTS.tSpan,modelResults.meanNascentMod,'linewidth',3);
+set(gca,'fontsize',16,'ylim',[0,3])
+ylabel('Mean Nascent RNA')
+
+subplot(2,1,2)
+plot(ModelTS.tSpan,modelResults.fracTSMod,'linewidth',3);
+set(gca,'fontsize',16,'ylim',[0,0.3])
+ylabel('Fraction with TS')
+xlabel('time (min)')
+%
+%    STEP 4.C.2. -- Add data to plots
+figure(figNum(1))
+for iT = 1:NT
+    subplot(4,3,iT); hold on
+    histogram(dataResults.TS_counts{iT},[0,TSthresh:52],'Normalization','pdf','DisplayStyle','bar','LineWidth',1);
+    % histogram(dataResults.TS_counts{iT},[0,TSthresh:52],'Normalization','cdf','DisplayStyle','stairs','LineWidth',3);
+    % nCount(iT) = length(dataResults.TS_counts{iT});
+    % semCount(iT) = std(dataResults.TS_counts{iT})/sqrt(nCount(iT)-1);
+end
+
+figure(figNum(2))
+subplot(2,1,1)
+hold on
+% plot(ModelTS.tSpan,dataResults.meanNascentDat,'s','markersize',16,'linewidth',3,'MarkerFaceColor','k');
+errorbar(ModelTS.tSpan,dataResults.meanNascentDat,dataResults.meanNascentDatstd,'s','markersize',16,'linewidth',3,'MarkerFaceColor','k');
+
+subplot(2,1,2)
+hold on
+% stdFrac = sqrt(nCount.*dataResults.fracTSDat.*(1-dataResults.fracTSDat))./nCount;
+% plot(ModelTS.tSpan,dataResults.fracTSDat,'s','markersize',16,'linewidth',3,'MarkerFaceColor','k');
+errorbar(ModelTS.tSpan,dataResults.fracTSDat,dataResults.fracTSDatstd,'s','markersize',16,'linewidth',3,'MarkerFaceColor','k');
 end

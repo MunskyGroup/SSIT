@@ -1,9 +1,9 @@
-function output = getTotalFitErr(Organization,pars,init)
+function output = getTotalFitErr(Organization,pars,init,extraObjs)
 arguments
     Organization
     pars = []
     init = false
-
+    extraObjs = [];
 end
 
 if init
@@ -14,13 +14,18 @@ if init
     output = Organization;
     return
 else
-    parfor i=1:size(Organization,1)
-        if isempty(pars)
-            parsLocal = [Organization{i,1}.parameters{Organization{i,2},2}];
+    for i=1:size(Organization,1)+size(extraObjs,1)
+        if i<=size(Organization,1)
+            if isempty(pars)
+                parsLocal = [Organization{i,1}.parameters{Organization{i,2},2}];
+            else
+                parsLocal = pars(Organization{i,3});
+            end
+            newJ(i) =  Organization{i,5}*Organization{i,1}.(Organization{i,4})(parsLocal);
         else
-            parsLocal = pars(Organization{i,3});
+            parsLocal = pars(extraObjs{i-size(Organization,1),2});
+            newJ(i) =  extraObjs{i-size(Organization,1),1}(parsLocal);
         end
-        newJ(i) =  Organization{i,5}*Organization{i,1}.(Organization{i,4})(parsLocal)
     end
     output = sum(newJ);
 end
