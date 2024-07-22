@@ -495,8 +495,6 @@ allData = readtable('EricData/pdoCalibrationData_EricIntensity_DexSweeps.csv');
 outlierThresh = 50;
 fitGRinclude = true;
 
-indsDuspMod = [1:12,14];
-indsDuspDat = [1:12,13];
 if loadPrevious
     vaNamesTS = {'ModelGRDusp100nM_ext_red'
         'parsAll_GR_Dusp1_TS'
@@ -593,7 +591,7 @@ tic
     objAllwithTS(log(parsAllandTS))
 toc
 %%    STEP 4.B.1 -- Run the fit with fminsearch
-fitOptions.MaxIter = 300;
+fitOptions.MaxIter = 1000;
 fitOptions.UseParallel = true;
 for i = 1:8
     parsAllandTS = exp(fminsearch(objAllwithTS,log(parsAllandTS),fitOptions));
@@ -705,6 +703,8 @@ set(gca,'xscale','log','ylim',[0,0.5])
 xlabel('Dex Concentration (nM)')
 
 %%      STEP 4.C.5. -- Make plots of the Cytoplasmic DUSP1 Dynamics.
+extendedMod.parameters(indsODEmod,2) = num2cell(parsAllandTS(indsODEdat));
+
 plotODEresults(extendedMod,extendedMod.solve,ModelGRfit{3},500)
 
 extendedMod1 = extendedMod.loadData('EricData/pdoCalibrationData_EricIntensity_DexSweeps.csv',...
@@ -720,6 +720,34 @@ extendedMod10 = extendedMod.loadData('EricData/pdoCalibrationData_EricIntensity_
     {'Dex_Conc','10'});
 extendedMod10.parameters(13,:) = {'Dex0',10};
 plotODEresults(extendedMod10,extendedMod10.solve,ModelGRfit{2},502)
+
+%% Save Results for Easier Use in subsequent runs.
+parsAll_GR_Dusp1_TS = [extendedMod.parameters{:,2}];
+
+varNames = unique({'ModelGR',
+    'GRfitCases'
+    'log10PriorMean'
+    'log10PriorStd'
+    'GRpars'
+    'ModelGRparameterMap'
+    'ModelGRfit'
+    'boundGuesses'
+    'ModelGRDusp'
+    'ModelGRDusp100nM'
+    'GRfitCases'
+    'log10PriorMean'
+    'log10PriorStd'
+    'duspLogPrior'
+    'DUSP1pars'
+    'Dusp1FitCases'
+    'ModelGRfit'
+    'extendedMod'
+    'ModelGRDusp100nM_ext_red'
+    'fullPars'
+    'parsAll_GR_Dusp1_TS'
+    });
+
+save('workspaceJuly22',varNames{:})
 
 %%
 %% Additonal Codes for FIM and PDO analyses (ALEX Paper)
