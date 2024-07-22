@@ -640,11 +640,21 @@ dex = 100;
 makeTSPlots(modelResults,dataResults,ModelTS,TSthresh,[700,701])
 
 dex = 10;
-[~,modelResults10,dataResults10] = computeTSlikelihood(parsAllandTS(indsTSpars),ModelTS,allData,dex,52,true); 
+[~,modelResults10,dataResults10] = computeTSlikelihood(parsAllandTS(indsTSpars),ModelTS,allData,dex,52,true);
+dataResults10.meanNascentDat(1) = dataResults.meanNascentDat(1);
+dataResults10.TS_counts(1) = dataResults.TS_counts(1);
+dataResults10.fracTSDat(1) = dataResults.fracTSDat(1);
+dataResults10.fracTSDatstd(1) = dataResults.fracTSDatstd(1);
+dataResults10.meanNascentDatstd(1) = dataResults.meanNascentDatstd(1);
 makeTSPlots(modelResults10,dataResults10,ModelTS,TSthresh,[702,703])
 
 dex = 1;
 [~,modelResults1,dataResults1] = computeTSlikelihood(parsAllandTS(indsTSpars),ModelTS,allData,dex,52,true); 
+dataResults1.meanNascentDat(1) = dataResults.meanNascentDat(1);
+dataResults1.TS_counts(1) = dataResults.TS_counts(1);
+dataResults1.fracTSDat(1) = dataResults.fracTSDat(1);
+dataResults1.fracTSDatstd(1) = dataResults.fracTSDatstd(1);
+dataResults1.meanNascentDatstd(1) = dataResults.meanNascentDatstd(1);
 makeTSPlots(modelResults1,dataResults1,ModelTS,TSthresh,[704,705])
 
 for f = 701:2:705
