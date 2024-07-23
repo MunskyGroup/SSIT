@@ -28,7 +28,15 @@ if loadPrevious
 
     load(savedWorkspace,varNames{:})
     fitOptions = optimset('Display','iter','MaxIter',10);
-    fitIters = 1;    
+    fitIters = 1; 
+
+    try
+        ModelGRfit{1}.propensitiesGeneral{1}.stateDependentFactor(0);
+    catch
+        for i=1:length(ModelGRfit)
+            ModelGRfit{i} = ModelGRfit{i}.formPropensitiesGeneral('GR_Model');
+        end
+    end
 else
     fitOptions = optimset('Display','iter','MaxIter',300);
     %% STEP 0.B.1. -- Create Base Model for GR Only
@@ -150,6 +158,12 @@ if loadPrevious
 
     fitOptions = optimset('Display','iter','MaxIter',10);
     fitIters = 1;
+
+    try
+        ModelGRDusp100nM.propensitiesGeneral{1}.stateDependentFactor(0);
+    catch
+        ModelGRDusp100n = ModelGRDusp100nM.formPropensitiesGeneral('DUSP1_Model');
+    end
 else
 
     %% STEP 2.A.1. -- Add DUSP1 to the existing GR model.
@@ -626,7 +640,7 @@ if fitGRinclude
 end
 %%      STEP 4.C.2. -- Make plots of the Nucelar DUSP1 Dynamics.
 ModelGRDusp100nM_ext_red.parameters(indsDuspMod,2) = num2cell(parsAllandTS(indsDuspDat));
-showCases = [0,1,1,0];
+showCases = [0,0,0,1];
 makePlotsDUSP1({ModelGRDusp100nM_ext_red},ModelGRDusp100nM_ext_red,parsAllandTS(indsDuspDat),Dusp1FitCases,showCases)
 
 %%      STEP 4.C.3. -- Make plots of the TS Dynamics.
