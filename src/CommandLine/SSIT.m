@@ -1434,10 +1434,10 @@ classdef SSIT
             end
 
             % set up conditionals
-            obj.dataSet.app.DataLoadingAndFittingTabOutputs.conditionOnArray = string(zeros(1,length(nCol)));
+            obj.dataSet.app.DataLoadingAndFittingTabOutputs.conditionOnArray = {};
             for i=1:size(conditions,1)
                 J = find(strcmp(obj.dataSet.dataNames,conditions{i,1}));
-                obj.dataSet.app.DataLoadingAndFittingTabOutputs.conditionOnArray(J) = conditions{i,2};
+                obj.dataSet.app.DataLoadingAndFittingTabOutputs.conditionOnArray(end+1,:) = {J,conditions{i,2}};
             end
 
             % set to marginalize over everything else
