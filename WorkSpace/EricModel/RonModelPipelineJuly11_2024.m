@@ -305,6 +305,13 @@ if loadPrevious
     catch
         ModelGRDusp100nM_ext_red = ModelGRDusp100nM_ext_red.formPropensitiesGeneral('ExtModel100nm');
     end
+    try
+        ModelGRfit{1}.propensitiesGeneral{1}.stateDependentFactor(0)
+    catch
+        for i=1:length(ModelGRfit)
+            ModelGRfit{i} = ModelGRfit{i}.formPropensitiesGeneral('ExtModel100nm');
+        end
+    end
 
 else
     %%    STEP 3.A.1 -- Extend model to include nuclear and cytoplasmic RNA
