@@ -162,7 +162,7 @@ if loadPrevious
     try
         ModelGRDusp100nM.propensitiesGeneral{1}.stateDependentFactor(0);
     catch
-        ModelGRDusp100n = ModelGRDusp100nM.formPropensitiesGeneral('DUSP1_Model');
+        ModelGRDusp100nM = ModelGRDusp100nM.formPropensitiesGeneral('DUSP1_Model');
     end
 else
 
