@@ -303,7 +303,7 @@ if loadPrevious
     try
         ModelGRDusp100nM_ext_red.propensitiesGeneral{1}.stateDependentFactor(0)
     catch
-        ModelGRDusp100nM_ext_red = ModelGRDusp100nM_ext_red.formPropensitiesGeneral('NucCyt_Model');
+        ModelGRDusp100nM_ext_red = ModelGRDusp100nM_ext_red.formPropensitiesGeneral('ExtModel100nm');
     end
 
 else
