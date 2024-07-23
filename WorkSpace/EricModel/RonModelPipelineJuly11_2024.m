@@ -307,7 +307,7 @@ if loadPrevious
     end
     try
         for i=1:length(ModelGRfit)
-            ModelGRfit{1}.propensitiesGeneral{1}.stateDependentFactor(0);
+            ModelGRfit{i}.propensitiesGeneral{1}.stateDependentFactor(0);
         end
     catch
         for i=1:length(ModelGRfit)
@@ -536,6 +536,11 @@ if loadPrevious
         parsAllandTS = parsAll_GR_Dusp1_TS([1:12,14:16]);
     else
         parsAllandTS = parsAll_GR_Dusp1_TS([1:4,14:16]);
+    end
+    try
+        ModelGRDusp100nM_ext_red.propensitiesGeneral{1}.stateDependentFactor(0);
+    catch
+        ModelGRDusp100nM_ext_red = ModelGRDusp100nM_ext_red.formPropensitiesGeneral('ExtModel100nm');
     end
 else
     if fitGRinclude
