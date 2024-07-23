@@ -33,6 +33,16 @@ if showCases(2)
 
         ModelPred{i}.tSpan = sort(unique([ModelPred{i}.tSpan,linspace(0,180,30)]));
 
+        if str2num(PredictionCases{i,2})~=100
+            % ModelPred{i}.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor = ...
+            NT = size(ModelPred{i}.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor,1)+1;
+            NS = size(ModelPred{i}.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor,2);
+            TMP(1,:) = double(ModelGRDusp.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor(1,:));
+            TMP(2:NT,1:NS) = double(ModelPred{i}.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor); 
+            ModelPred{i}.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor = sptensor(TMP);
+            ModelPred{i}.dataSet.times = unique([0,ModelPred{i}.dataSet.times]);
+        end
+
         % Set model parameters to those supplied
         ModelPred{i}.parameters(ModelPred{i}.fittingOptions.modelVarsToFit,2) = num2cell(DUSP1pars);
         % Change Dex concentraion in the model.

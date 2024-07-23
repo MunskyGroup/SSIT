@@ -626,7 +626,7 @@ if fitGRinclude
 end
 %%      STEP 4.C.2. -- Make plots of the Nucelar DUSP1 Dynamics.
 ModelGRDusp100nM_ext_red.parameters(indsDuspMod,2) = num2cell(parsAllandTS(indsDuspDat));
-showCases = [0,0,1,0];
+showCases = [0,1,1,0];
 makePlotsDUSP1({ModelGRDusp100nM_ext_red},ModelGRDusp100nM_ext_red,parsAllandTS(indsDuspDat),Dusp1FitCases,showCases)
 
 %%      STEP 4.C.3. -- Make plots of the TS Dynamics.
@@ -723,7 +723,7 @@ plotODEresults(extendedMod10,extendedMod10.solve,ModelGRfit{2},502)
 
 %% Save Results for Easier Use in subsequent runs.
 parsAll_GR_Dusp1_TS = [extendedMod.parameters{:,2}];
-
+parsAll_GR_Dusp1_TS(indsODEmod) = parsAllandTS;
 varNames = unique({'ModelGR',
     'GRfitCases'
     'log10PriorMean'
