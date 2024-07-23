@@ -228,7 +228,7 @@ for i = 1:fitIters
 end
 
 %%    STEP 2.C. -- Plot predictions for other Dex concentrations.
-showCases = [1,1,1,0];
+showCases = [0,1,1,0];
 makePlotsDUSP1({ModelGRDusp100nM},ModelGRDusp,DUSP1pars,Dusp1FitCases,showCases)
 %%    STEP 2.D. -- Sample uncertainty for Dusp1 Parameters
 %%      STEP 2.D.1. -- Compute sensitivity of the FSP solution
