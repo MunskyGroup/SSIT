@@ -226,7 +226,7 @@ for i = 1:fitIters
 end
 
 %%    STEP 2.C. -- Plot predictions for other Dex concentrations.
-showCases = [1,1,1,0];
+showCases = [0,0,0,1];
 makePlotsDUSP1({ModelGRDusp100nM},ModelGRDusp100nM,DUSP1pars,Dusp1FitCases,showCases)
 %%    STEP 2.D. -- Sample uncertainty for Dusp1 Parameters
 %%      STEP 2.D.1. -- Compute sensitivity of the FSP solution
@@ -444,7 +444,7 @@ end
 makeGRPlots(combinedGRModel,fullPars(5:12))
 
 % Plot DUSP1 100nm FIT and other PREDICTED distributions
-showCases = [1,1,1,0];
+showCases = [0,0,0,1];
 ModelGRDusp100nM_ext_red.fittingOptions.modelVarsToFit = [1:12,14];
 ModelGRDusp100nM_ext_red.parameters([1:12,14],2) = num2cell(fullPars([1:13]));
 makePlotsDUSP1({ModelGRDusp100nM_ext_red},ModelGRDusp100nM_ext_red,fullPars([1:13]),Dusp1FitCases,showCases)
@@ -662,7 +662,7 @@ if fitGRinclude
 end
 %%      STEP 4.C.2. -- Make plots of the Nucelar DUSP1 Dynamics.
 ModelGRDusp100nM_ext_red.parameters(indsDuspMod,2) = num2cell(parsAllandTS(indsDuspDat));
-showCases = [0,0,0,1];
+showCases = [1,1,1,0];
 makePlotsDUSP1({ModelGRDusp100nM_ext_red},ModelGRDusp100nM_ext_red,parsAllandTS(indsDuspDat),Dusp1FitCases,showCases)
 
 %%      STEP 4.C.3. -- Make plots of the TS Dynamics.
@@ -757,6 +757,56 @@ extendedMod10 = extendedMod.loadData('EricData/pdoCalibrationData_EricIntensity_
 extendedMod10.parameters(13,:) = {'Dex0',10};
 plotODEresults(extendedMod10,extendedMod10.solve,ModelGRfit{2},502)
 
+%%
+%%  STEP 5 -- Tryptolide Peturbation
+%%    STEP 5.A. -- DUSP1 Model
+ktptl = log(2)/4;
+ModelGRDusp100nM_ext_red_TPL = ModelGRDusp100nM_ext_red;
+ModelGRDusp100nM_ext_red_TPL.propensityFunctions{8} = 'kr*onGene*Itrpt';
+% [0,20,75,150,180] % choose the time of the TPT treatment.
+tptlTime = '75';
+ModelGRDusp100nM_ext_red_TPL.inputExpressions(2,:) = {'Itrpt',['(t<=',tptlTime,') + (t>',tptlTime,')*exp(-ktptl*(t-',tptlTime,'))']};
+ModelGRDusp100nM_ext_red_TPL.parameters(15,:) = {'degCyt',NaN};
+ModelGRDusp100nM_ext_red_TPL.parameters(16,:) = {'ktptl',ktptl};
+ModelGRDusp100nM_ext_red_TPL.dataSet = [];
+ModelGRDusp100nM_ext_red_TPL = ModelGRDusp100nM_ext_red_TPL.loadData('EricData/TryptolideData.csv',...
+            {'rna','RNA_DUSP1_nuc'},...
+            {'Time_TPL',tptlTime});
+ModelGRDusp100nM_ext_red_TPL = ModelGRDusp100nM_ext_red_TPL.formPropensitiesGeneral('TrptModel');
+ModelGRDusp100nM_ext_red_TPL.makeFitPlot
+
+%%    STEP 5.B. -- Nuc/Cyt ODE Model 
+extendedMod_tptl = extendedMod;
+extendedMod_tptl.propensityFunctions{8} = 'kr*onGene*Itrpt';
+extendedMod_tptl.inputExpressions(2,:) = {'Itrpt',['(t<=',tptlTime,') + (t>',tptlTime,')*exp(-ktptl*(t-',tptlTime,'))']};
+extendedMod_tptl.parameters(16,:) = {'ktptl',ktptl};
+extendedMod_tptl.dataSet = [];
+extendedMod_tptl = extendedMod_tptl.loadData('EricData/TryptolideData.csv',...
+            {'rna','RNA_DUSP1_nuc';...
+            'rCyt','RNA_DUSP1_cyto'},...
+            {'Time_TPL',tptlTime});
+extendedMod_tptl = extendedMod_tptl.formPropensitiesGeneral('TrptModelODE');
+plotODEresults(extendedMod_tptl,extendedMod_tptl.solve,ModelGRfit{3},501)
+
+%%    STEP 5.C. -- TS after Tryptolide
+TSMod_tptl = ModelTS;
+TSMod_tptl.propensityFunctions{8} = 'kr*onGene*Itrpt';
+TSMod_tptl.inputExpressions(2,:) = {'Itrpt',['(t<=',tptlTime,') + (t>',tptlTime,')*exp(-ktptl*(t-',tptlTime,'))']};
+TSMod_tptl.parameters(15,:) = {'degCyt',NaN};
+TSMod_tptl.parameters(16,:) = {'ktptl',ktptl};  % Rate of diffusion of TPT to nucleus.
+TSMod_tptl = TSMod_tptl.formPropensitiesGeneral('TrptModelODE');
+TSMod_tptl.tSpan
+
+dex = 100;
+allData = readtable('EricData/TryptolideData.csv');
+allData = allData(allData.Time_TPL==str2double(tptlTime),:);
+
+TSMod_tptl.tSpan = unique(allData.Time_index)';
+
+[TSLikelihood,modelResults,dataResults] = computeTSlikelihood(parsAllandTS(indsTSpars),TSMod_tptl,allData,dex,52,true); 
+makeTSPlots(modelResults,dataResults,TSMod_tptl,TSthresh,[1200,1201])
+
+%%
 %% Save Results for Easier Use in subsequent runs.
 parsAll_GR_Dusp1_TS = [extendedMod.parameters{:,2}];
 parsAll_GR_Dusp1_TS(indsODEmod) = parsAllandTS;
@@ -1289,7 +1339,7 @@ for iT = 1:NT
     P(1:TSthresh) = sum(P(1:TSthresh))/4;  
     % P(1:TSthresh) = [sum(P(1:TSthresh));zeros(TSthresh-1,1)];   
     
-    subplot(4,3,iT)
+    subplot(ceil(NT/3),3,iT)
     % stairs([0:length(P)-1],cumsum(P),'linewidth',3)
     stairs([0:length(P)-1],(P),'linewidth',3)
     set(gca,'fontsize',16,'ylim',[0,1],'xlim',[0,50])
@@ -1310,14 +1360,14 @@ ylabel('Mean Nascent RNA')
 
 subplot(2,1,2)
 plot(ModelTS.tSpan,modelResults.fracTSMod,'linewidth',3);
-set(gca,'fontsize',16,'ylim',[0,0.3])
+set(gca,'fontsize',16,'ylim',[0,0.5])
 ylabel('Fraction with TS')
 xlabel('time (min)')
 %
 %    STEP 4.C.2. -- Add data to plots
 figure(figNum(1))
 for iT = 1:NT
-    subplot(4,3,iT); hold on
+    subplot(ceil(NT/3),3,iT); hold on
     histogram(dataResults.TS_counts{iT},[0,TSthresh:52],'Normalization','pdf','DisplayStyle','bar','LineWidth',1);
     % histogram(dataResults.TS_counts{iT},[0,TSthresh:52],'Normalization','cdf','DisplayStyle','stairs','LineWidth',3);
     % nCount(iT) = length(dataResults.TS_counts{iT});
