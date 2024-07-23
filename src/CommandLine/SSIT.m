@@ -1547,7 +1547,8 @@ classdef SSIT
             tmp = solutions.ode(IA,J);
             vm(:) = tmp(:);
             
-            vd = zeros(nt*nds,1); vd(:) = obj.dataSet.mean(:);
+            vd = zeros(nt*nds,1); 
+            vd(:) = obj.dataSet.mean(:);
             
             vm = real(vm);
 

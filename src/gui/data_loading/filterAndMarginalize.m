@@ -32,8 +32,16 @@ end
 % not yet for more complicated conditions -- will require future testing.
 
 % this part determines which variables are conditioned over
-histDataStr = cellfun(@num2str,histDataRaw,'UniformOutput',false);                     % convert double in cell to str
-loopCond = [app.DataLoadingAndFittingTabOutputs.conditionOnArray{:,1}];
+try
+    histDataStr = cellfun(@num2str,histDataRaw,'UniformOutput',false);
+catch
+end
+% convert double in cell to str
+if ~isempty(app.DataLoadingAndFittingTabOutputs.conditionOnArray)
+    loopCond = [app.DataLoadingAndFittingTabOutputs.conditionOnArray{:,1}];
+else
+    loopCond=[];
+end
 
 if ~isempty(loopCond)
     for iC = 1:length(loopCond)
