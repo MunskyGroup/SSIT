@@ -296,22 +296,22 @@ if loadPrevious
     load(savedWorkspace,vaNamesExtended{:})
 
     try
-        extendedMod.propensitiesGeneral{1}.stateDependentFactor(0)
+        extendedMod.propensitiesGeneral{1}.stateDependentFactor(0);
     catch
         extendedMod = extendedMod.formPropensitiesGeneral('NucCyt_Model');
     end
     try
-        ModelGRDusp100nM_ext_red.propensitiesGeneral{1}.stateDependentFactor(0)
+        ModelGRDusp100nM_ext_red.propensitiesGeneral{1}.stateDependentFactor(0);
     catch
         ModelGRDusp100nM_ext_red = ModelGRDusp100nM_ext_red.formPropensitiesGeneral('ExtModel100nm');
     end
     try
         for i=1:length(ModelGRfit)
-            ModelGRfit{1}.propensitiesGeneral{1}.stateDependentFactor(0)
+            ModelGRfit{1}.propensitiesGeneral{1}.stateDependentFactor(0);
         end
     catch
         for i=1:length(ModelGRfit)
-            ModelGRfit{i} = ModelGRfit{i}.formPropensitiesGeneral(['ExtModel100nm_',num2str(i)]);
+            ModelGRfit{i} = ModelGRfit{i}.formPropensitiesGeneral(['GRModB_',num2str(i)]);
         end
     end
 else
