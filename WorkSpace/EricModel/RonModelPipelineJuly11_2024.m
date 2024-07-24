@@ -11,7 +11,7 @@ clear all
 addpath(genpath('../../src'));
 
 loadPrevious = true;
-savedWorkspace = 'workspaceJuly22';
+savedWorkspace = 'workspaceJuly24';
 addpath('tmpPropensityFunctions');
 
 %% STEP 0 -- Preliminaries.
@@ -836,8 +836,14 @@ log10PriorStd(17) = 2;
 logPriorAll = @(x)-sum((log10(x)-log10PriorMean([1:12,14:17])).^2./(2*log10PriorStd([1:12,14:17]).^2));
 
 objTPL = @(x)-getTotalFitErr(OrganizationTPL,exp(x),false,extraObjs)-logPriorAll(exp(x));
-parsTPL=parsAllandTS;
-parsTPL(16) = log(2)/5;
+
+if loadPrevious
+     varNamesTPL = {'parsTPL'};
+     load(savedWorkspace,varNamesTPL{:})
+else
+    parsTPL=parsAllandTS;
+    parsTPL(16) = log(2)/5;
+end
 
 % Check that the function works.
 tic
@@ -861,8 +867,8 @@ makePlotsDUSP1({ModelGRDusp100nM_ext_red},ModelGRDusp100nM_ext_red,parsTPL([inds
 %%
 %% Save Results for Easier Use in subsequent runs.
 parsAll_GR_Dusp1_TS = [extendedMod.parameters{:,2}];
-parsAll_GR_Dusp1_TS(indsODEmod) = parsAllandTS;
-varNames = unique({'ModelGR',
+parsAll_GR_Dusp1_TS(16) = parsAllandTS(end);
+varNames = unique({'ModelGR'
     'GRfitCases'
     'log10PriorMean'
     'log10PriorStd'
@@ -882,9 +888,10 @@ varNames = unique({'ModelGR',
     'ModelGRDusp100nM_ext_red'
     'fullPars'
     'parsAll_GR_Dusp1_TS'
+    'parsTPL'
     });
 
-save('workspaceJuly22',varNames{:})
+save('workspaceJuly24',varNames{:})
 
 %%
 %% Additonal Codes for FIM and PDO analyses (ALEX Paper)
