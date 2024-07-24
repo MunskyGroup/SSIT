@@ -226,7 +226,7 @@ for i = 1:fitIters
 end
 
 %%    STEP 2.C. -- Plot predictions for other Dex concentrations.
-showCases = [0,0,0,1];
+showCases = [1,1,1,1];
 makePlotsDUSP1({ModelGRDusp100nM},ModelGRDusp100nM,DUSP1pars,Dusp1FitCases,showCases)
 %%    STEP 2.D. -- Sample uncertainty for Dusp1 Parameters
 %%      STEP 2.D.1. -- Compute sensitivity of the FSP solution
@@ -444,7 +444,7 @@ end
 makeGRPlots(combinedGRModel,fullPars(5:12))
 
 % Plot DUSP1 100nm FIT and other PREDICTED distributions
-showCases = [0,0,0,1];
+showCases = [1,1,1,1];
 ModelGRDusp100nM_ext_red.fittingOptions.modelVarsToFit = [1:12,14];
 ModelGRDusp100nM_ext_red.parameters([1:12,14],2) = num2cell(fullPars([1:13]));
 makePlotsDUSP1({ModelGRDusp100nM_ext_red},ModelGRDusp100nM_ext_red,fullPars([1:13]),Dusp1FitCases,showCases)
@@ -627,9 +627,9 @@ tic
     objAllwithTS(log(parsAllandTS))
 toc
 %%    STEP 4.B.1 -- Run the fit with fminsearch
-fitOptions.MaxIter = 1000;
+fitOptions.MaxIter = 10;
 fitOptions.UseParallel = true;
-for i = 1:8
+for i = 1:1
     parsAllandTS = exp(fminsearch(objAllwithTS,log(parsAllandTS),fitOptions));
     bestObj = objAllwithTS(log(parsAllandTS));
 end
@@ -662,7 +662,7 @@ if fitGRinclude
 end
 %%      STEP 4.C.2. -- Make plots of the Nucelar DUSP1 Dynamics.
 ModelGRDusp100nM_ext_red.parameters(indsDuspMod,2) = num2cell(parsAllandTS(indsDuspDat));
-showCases = [1,1,1,0];
+showCases = [1,1,1,1];
 makePlotsDUSP1({ModelGRDusp100nM_ext_red},ModelGRDusp100nM_ext_red,parsAllandTS(indsDuspDat),Dusp1FitCases,showCases)
 
 %%      STEP 4.C.3. -- Make plots of the TS Dynamics.
@@ -759,8 +759,8 @@ plotODEresults(extendedMod10,extendedMod10.solve,ModelGRfit{2},502)
 
 %%
 %%  STEP 5 -- Tryptolide Peturbation
-%%    STEP 5.A. -- DUSP1 Model
 ktptl = log(2)/4;
+%%    STEP 5.A. -- DUSP1 Model
 ModelGRDusp100nM_ext_red_TPL = ModelGRDusp100nM_ext_red;
 ModelGRDusp100nM_ext_red_TPL.propensityFunctions{8} = 'kr*onGene*Itrpt';
 % [0,20,75,150,180] % choose the time of the TPT treatment.
@@ -787,7 +787,6 @@ extendedMod_tptl = extendedMod_tptl.loadData('EricData/TryptolideData.csv',...
             {'Time_TPL',tptlTime});
 extendedMod_tptl = extendedMod_tptl.formPropensitiesGeneral('TrptModelODE');
 plotODEresults(extendedMod_tptl,extendedMod_tptl.solve,ModelGRfit{3},501)
-
 %%    STEP 5.C. -- TS after Tryptolide
 TSMod_tptl = ModelTS;
 TSMod_tptl.propensityFunctions{8} = 'kr*onGene*Itrpt';
@@ -795,7 +794,6 @@ TSMod_tptl.inputExpressions(2,:) = {'Itrpt',['(t<=',tptlTime,') + (t>',tptlTime,
 TSMod_tptl.parameters(15,:) = {'degCyt',NaN};
 TSMod_tptl.parameters(16,:) = {'ktptl',ktptl};  % Rate of diffusion of TPT to nucleus.
 TSMod_tptl = TSMod_tptl.formPropensitiesGeneral('TrptModelODE');
-TSMod_tptl.tSpan
 
 dex = 100;
 allData = readtable('EricData/TryptolideData.csv');
@@ -805,6 +803,60 @@ TSMod_tptl.tSpan = unique(allData.Time_index)';
 
 [TSLikelihood,modelResults,dataResults] = computeTSlikelihood(parsAllandTS(indsTSpars),TSMod_tptl,allData,dex,52,true); 
 makeTSPlots(modelResults,dataResults,TSMod_tptl,TSthresh,[1200,1201])
+
+%%    STEP 5.D. -- Add ODE model after TPL to Objective Function
+% Remove redundant times from TPL model.
+% Currently this doesn not seem to be working.   Need to ignore some time
+% poitns.  the folloiwing should give two different results with the
+% seconde being smaller.
+ModelGRDusp100nM_ext_red_TPL_fit = ModelGRDusp100nM_ext_red_TPL;
+
+% Remove redundant times from the data set (all times before application
+% of TPL);
+tptlTime = '75';
+ModelGRDusp100nM_ext_red_TPL_fit.inputExpressions(2,:) = {'Itrpt',['(t<=',tptlTime,') + (t>',tptlTime,')*exp(-ktptl*(t-',tptlTime,'))']};
+[~,J] = intersect(ModelGRDusp100nM_ext_red_TPL_fit.dataSet.times,[85;90;105;135]);
+ModelGRDusp100nM_ext_red_TPL_fit.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor = ...
+ModelGRDusp100nM_ext_red_TPL.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor(J,:);
+ModelGRDusp100nM_ext_red_TPL_fit.dataSet.times = ModelGRDusp100nM_ext_red_TPL.dataSet.times(J);
+ModelGRDusp100nM_ext_red_TPL_fit.tSpan = unique([0,ModelGRDusp100nM_ext_red_TPL_fit.dataSet.times]);
+ModelGRDusp100nM_ext_red_TPL_fit.dataSet.nCells = ModelGRDusp100nM_ext_red_TPL.dataSet.nCells(J);
+ModelGRDusp100nM_ext_red_TPL_fit.dataSet.mean = ModelGRDusp100nM_ext_red_TPL.dataSet.mean(J);
+
+OrganizationTPL = {ModelGRfit{1},[5:12],[5:12],'computeLikelihood',1;...
+    ModelGRfit{2},[5:12],[5:12],'computeLikelihood',1;...
+    ModelGRfit{3},[5:12],[5:12],'computeLikelihood',1;...
+    ModelGRDusp100nM_ext_red,indsDuspMod,indsDuspDat,'computeLikelihood',1;...
+    ModelGRDusp100nM_ext_red_TPL_fit,[indsDuspMod,16],[indsDuspDat,15],'computeLikelihood',1;...
+    extendedMod,indsODEmod,indsODEdat,'computeLikelihoodODE',0.01;...
+    };
+
+log10PriorMean(17) = -1; % tpl effectivity rate
+log10PriorStd(17) = 2;
+logPriorAll = @(x)-sum((log10(x)-log10PriorMean([1:12,14:17])).^2./(2*log10PriorStd([1:12,14:17]).^2));
+
+objTPL = @(x)-getTotalFitErr(OrganizationTPL,exp(x),false,extraObjs)-logPriorAll(exp(x));
+parsTPL=parsAllandTS;
+parsTPL(16) = log(2)/5;
+
+% Check that the function works.
+tic
+    objTPL(log(parsTPL))
+toc
+%%    STEP 5.E. -- Run the fit with fminsearch
+fitOptions.MaxIter = 1000;
+fitOptions.UseParallel = true;
+for i = 1:5
+    parsTPL = exp(fminsearch(objTPL,log(parsTPL),fitOptions));
+    bestObj = objTPL(log(parsTPL));
+end
+
+%%
+ModelGRDusp100nM_ext_red_TPL.parameters([indsDuspMod,16],2) = num2cell(parsTPL([indsDuspDat,15]));
+% ModelGRDusp100nM_ext_red_TPL.makeFitPlot
+
+showCases = [0,0,0,1];
+makePlotsDUSP1({ModelGRDusp100nM_ext_red},ModelGRDusp100nM_ext_red,parsTPL([indsDuspDat]),Dusp1FitCases,showCases,parsTPL([16]))
 
 %%
 %% Save Results for Easier Use in subsequent runs.
@@ -999,7 +1051,7 @@ for i = 1:1
 end
 
 %%      STEP XX.D.2. -- Plot fit and predicitons using FIM suggested conditions.
-showCases = [1,1,1,0];
+showCases = [1,1,1,1];
 makePlotsDUSP1({ModelGRDusp100nM},ModelGRDusp100nM,DUSP1parsFIMDesign,Dusp1FitCases,showCases)
 
 %%      STEP XX.D.3. -- Fit the DISTORTED intensity measurements at ALL times.
@@ -1021,7 +1073,7 @@ for i = 1:fitIters
     save('EricModelDusp1_MMDex','GRpars','DUSP1pars','DUSP1parsFIMDesign','DUSP1parsIntensity','DUSP1parsFIMDesignIntensity') 
 end
 %%        STEP XX.D.3.a. -- Plot predictions when fit to distorted data at ALL times.
-showCases = [1,1,1,0];
+showCases = [1,1,1,1];
 makePlotsDUSP1({ModelGRDusp100nM},ModelGRDusp100nM,DUSP1parsIntensity,Dusp1FitCases,showCases)
 
 %%      STEP XX.D.4. -- Fit the DISTORTED intensity measurements at FIM selected times.
@@ -1046,7 +1098,7 @@ for i = 1:5
     save('EricModelDusp1_MMDex','GRpars','DUSP1pars','DUSP1parsFIMDesign','DUSP1parsFIMDesignIntensity') 
 end
 %%        STEP XX.D.5.a. -- Plot predictions when fit to distorted data at FIM times.
-showCases = [1,1,1,0];
+showCases = [1,1,1,1];
 makePlotsDUSP1({ModelGRDusp100nM},ModelGRDusp100nM,DUSP1parsFIMDesignIntensity,Dusp1FitCases,showCases)
 
 %%    STEP XX.E. -- Plot Information vs. Expt Design, PDO, and Number of Cells

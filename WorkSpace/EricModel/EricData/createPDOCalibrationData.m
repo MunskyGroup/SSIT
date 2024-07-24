@@ -71,3 +71,29 @@ totNucRNA(~isnan(TMP.DUSP1_ts_size_3)) = totNucRNA(~isnan(TMP.DUSP1_ts_size_3)) 
 TMP.totalNucRNA = totNucRNA;
 
 writetable(TMP,'pdoCalibrationData_EricIntensity_ConcHigh.csv')
+
+%%  Process TPL data
+allData = readtable('Data010224_Gated_On_Nuc.csv');
+allData = allData(~isnan(allData.RNA_DUSP1_nuc),:);
+allData.Dex_Conc(~isnan(allData.Time_TPL)) = 100;
+tpl_Times = unique(allData.Time_TPL(~isnan(allData.Time_TPL)));
+
+All_TPL_Data = table;
+for itpl = 1:length(tpl_Times)
+    TMP = allData;
+    TMP = TMP(TMP.Dex_Conc==100|TMP.Time_index==0,:);
+    TMP = TMP(strcmp(TMP.Condition,'DUSP1_timesweep')|strcmp(TMP.Condition,'DUSP1_TPL'),:);
+    TMP = TMP(TMP.Time_TPL==tpl_Times(itpl)|(isnan(TMP.Time_TPL)&TMP.Time_index<=tpl_Times(itpl)),:);
+    TMP.Time_TPL(:) = tpl_Times(itpl);
+    TMP.Dex_Conc(:) = 100;
+    All_TPL_Data = [All_TPL_Data;TMP];
+end
+
+totNucRNA = All_TPL_Data.RNA_DUSP1_nuc;
+totNucRNA(~isnan(All_TPL_Data.DUSP1_ts_size_0)) = totNucRNA(~isnan(All_TPL_Data.DUSP1_ts_size_0)) + All_TPL_Data.DUSP1_ts_size_0(~isnan(All_TPL_Data.DUSP1_ts_size_0));
+totNucRNA(~isnan(All_TPL_Data.DUSP1_ts_size_1)) = totNucRNA(~isnan(All_TPL_Data.DUSP1_ts_size_1)) + All_TPL_Data.DUSP1_ts_size_1(~isnan(All_TPL_Data.DUSP1_ts_size_1));
+totNucRNA(~isnan(All_TPL_Data.DUSP1_ts_size_2)) = totNucRNA(~isnan(All_TPL_Data.DUSP1_ts_size_2)) + All_TPL_Data.DUSP1_ts_size_2(~isnan(All_TPL_Data.DUSP1_ts_size_2));
+totNucRNA(~isnan(All_TPL_Data.DUSP1_ts_size_3)) = totNucRNA(~isnan(All_TPL_Data.DUSP1_ts_size_3)) + All_TPL_Data.DUSP1_ts_size_3(~isnan(All_TPL_Data.DUSP1_ts_size_3));
+All_TPL_Data.totalNucRNA = totNucRNA;
+
+writetable(All_TPL_Data,'TryptolideData.csv')
