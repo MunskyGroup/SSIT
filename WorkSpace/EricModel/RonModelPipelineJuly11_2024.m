@@ -4,7 +4,7 @@
 %   1) the analysis considers different experimental conditions (e.g.,
 %   different time points, different inducer concentrations, different
 %   genetic mutations).
-%   2) replica to replica variations are exp cted that would result in
+%   2) replica to replica variations are expected that would result in
 %   slightly different parameter combinations
 close all 
 clear all
