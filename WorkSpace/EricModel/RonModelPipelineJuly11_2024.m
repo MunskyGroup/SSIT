@@ -894,7 +894,7 @@ varNames = unique({'ModelGR'
 save('workspaceJuly24',varNames{:})
 
 %%
-%% Additonal Codes for FIM and PDO analyses (ALEX Paper)
+%% Additional Codes for FIM and PDO analyses (ALEX Paper)
 %%  STEP XX -- Explore Optimal Designs Using FIM Add FIM to MH UQ Plots 
 %%    STEP XX.A. -- FIM Analyses
 %%      STEP XX.A.1. -- Plot UQ from FIM compared to MH
