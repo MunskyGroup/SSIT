@@ -900,8 +900,10 @@ save('workspaceJuly24',varNames{:})
 %%      STEP XX.A.1. -- Plot UQ from FIM compared to MH
 figNew = figure;
 
+GRDusp1_log10PriorStd = log10PriorStd(1:13);
+
 fimTotal = ModelGRDusp100nM.evaluateExperiment(fimResults,ModelGRDusp100nM.dataSet.nCells,...
-    diag(log10PriorStd.^2));
+    diag(GRDusp1_log10PriorStd.^2));
 ModelGRDusp100nM.plotMHResults(MHResultsDusp1,[fimTotal],'log',[],figNew)
 for i = 1:3
     for j = i:3
@@ -916,10 +918,10 @@ end
 
 %%      STEP XX.A.2. -- Find optimal experiment design (same number of cells)
 nTotal = sum(ModelGRDusp100nM.dataSet.nCells);
-nCellsOpt = ModelGRDusp100nM.optimizeCellCounts(fimResults,nTotal,'tr[1:4]');
+nCellsOpt = ModelGRDusp100nM.optimizeCellCounts(fimResults,nTotal,'tr[1:4]'); % min. inv determinant <x^{-1}> (all other parameters are known and fixed)
 nCellsOptAvail = min(nCellsOpt,ModelGRDusp100nM.dataSet.nCells')
-fimOpt = ModelGRDusp100nM.evaluateExperiment(fimResults,nCellsOpt,diag(log10PriorStd.^2));
-fimOptAvail = ModelGRDusp100nM.evaluateExperiment(fimResults,nCellsOptAvail,diag(log10PriorStd.^2));
+fimOpt = ModelGRDusp100nM.evaluateExperiment(fimResults,nCellsOpt,diag(GRDusp1_log10PriorStd.^2));
+fimOptAvail = ModelGRDusp100nM.evaluateExperiment(fimResults,nCellsOptAvail,diag(GRDusp1_log10PriorStd.^2));
 figNew = figure;
 ModelGRDusp100nM.plotMHResults(MHResultsDusp1,[fimOpt,fimTotal],'log',[],figNew);
 figNew = figure;
@@ -966,7 +968,7 @@ ModelPDOIntensEric = ModelPDOIntensEric.calibratePDO('EricData/pdoCalibrationDat
 %%    STEP XX.C. -- FIM + PDO Analyses
 %%      STEP XX.C.1. -- Analyze FIM with PDO for MCP/smFISH
 fimsPDOSpot = ModelPDOSpots.computeFIM(sensSoln.sens,'log');
-fimPDOSpots = ModelPDOSpots.evaluateExperiment(fimsPDOSpot,nCellsOpt,diag(log10PriorStd.^2));
+fimPDOSpots = ModelPDOSpots.evaluateExperiment(fimsPDOSpot,nCellsOpt,diag(GRDusp1_log10PriorStd.^2));
 
 nCellsOptPDOspots = ModelPDOSpots.optimizeCellCounts(fimsPDOSpot,nTotal,'tr[1:4]');
 
@@ -989,11 +991,11 @@ for i = 1:3
 end
 %%      STEP XX.C.2. -- Analyze FIM with PDO for Intensity only
 fimsPDOIntens = ModelPDOIntensEric.computeFIM(sensSoln.sens,'log');
-fimPDOIntens = ModelPDOIntensEric.evaluateExperiment(fimsPDOIntens,nCellsOpt,diag(log10PriorStd.^2));
+fimPDOIntens = ModelPDOIntensEric.evaluateExperiment(fimsPDOIntens,nCellsOpt,diag(GRDusp1_log10PriorStd.^2));
 
 nCellsOptPDOintens = ModelPDOSpots.optimizeCellCounts(fimsPDOIntens,nTotal,'tr[1:4]');
 
-fimPDOIntensAvail = ModelPDOIntensEric.evaluateExperiment(fimsPDOIntens,nCellsOptAvail,diag(log10PriorStd.^2));
+fimPDOIntensAvail = ModelPDOIntensEric.evaluateExperiment(fimsPDOIntens,nCellsOptAvail,diag(GRDusp1_log10PriorStd.^2));
 figNew = figure; clf;
 ModelGRDusp100nM.plotMHResults(MHResultsDusp1,[fimOpt,fimPDOSpots,fimTotal,fimPDOIntens],'log',[],figNew);
 % figNew = figure; clf;
@@ -1017,7 +1019,7 @@ end
 
 %%      STEP XX.C.3. -- Analyze FIM with PDO for Intensity only more cells
 nTimes = 3.71;
-fimPDOIntens2x = ModelPDOIntensEric.evaluateExperiment(fimsPDOIntens,nCellsOpt*nTimes,diag(log10PriorStd.^2));
+fimPDOIntens2x = ModelPDOIntensEric.evaluateExperiment(fimsPDOIntens,nCellsOpt*nTimes,diag(GRDusp1_log10PriorStd.^2));
 det(fimOpt{1}(1:4,1:4))/det(fimPDOIntens2x{1}(1:4,1:4))
 figNew = figure;
 ModelGRDusp100nM.plotMHResults(MHResultsDusp1,[fimOpt,fimPDOSpots,fimTotal,fimPDOIntens,fimPDOIntens2x],'log',[],figNew);
