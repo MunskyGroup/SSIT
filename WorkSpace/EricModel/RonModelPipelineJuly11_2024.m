@@ -1051,7 +1051,7 @@ ModelGRDusp100nM_FIMDesign = ModelGRDusp100nM;
 % FIM analysis:
 ModelGRDusp100nM_FIMDesign.fittingOptions.timesToFit = nCellsOpt>0;
 % Refit the model, but now with only those time points.
-% DUSP1parsFIMDesign = DUSP1pars;
+DUSP1parsFIMDesign = DUSP1pars;
 for i = 1:1
     DUSP1parsFIMDesign = ModelGRDusp100nM_FIMDesign.maximizeLikelihood(...
         DUSP1parsFIMDesign, fitOptions);
