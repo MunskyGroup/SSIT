@@ -141,7 +141,7 @@ fimGR_withPrior = combinedGRModel.FIM.totalFIM+... % the FIM in log space.
 % delete(MHFitOptions.saveFile)
  
 %%     STEP 1.D. -- Make Plots of GR Fit Results
-makeGRPlots(combinedGRModel,GRpars)
+extraGRFunctions.makeGRPlots(combinedGRModel,GRpars)
 
 %%
 %%  STEP 2 -- Extend Model to Include DUSP1 Activation, Production, and Degradation
@@ -441,7 +441,7 @@ end
 
 %%    STEP 3.F.3. -- Plot all results
 % Plot GR Distribution
-makeGRPlots(combinedGRModel,fullPars(5:12))
+GR_plot_functions.makeGRPlots(combinedGRModel,fullPars(5:12))
 
 % Plot DUSP1 100nm FIT and other PREDICTED distributions
 showCases = [1,1,1,1];
@@ -543,23 +543,23 @@ varNames = unique({'ModelGR'
     'ModelGRDusp100nM_ext_red'
     'fullPars'
     'fimResults'
-    'DUSP1parsIntensity'
+    %'DUSP1parsIntensity'
     });
 
 save('workspaceJuly24',varNames{:})
 
 %% Extra Functions
-function makeGRPlots(combinedModel,GRpars)
-combinedGRModel = combinedModel.updateModels(GRpars,false);
-nMods = length(combinedGRModel.SSITModels);
-ModelGroup = cell(nMods,1);
-for i=1:nMods
+%function makeGRPlots(combinedModel,GRpars)
+%combinedGRModel = combinedModel.updateModels(GRpars,false);
+%nMods = length(combinedGRModel.SSITModels);
+%ModelGroup = cell(nMods,1);
+%for i=1:nMods
     %  Update parameters in original models.
-    ModelGroup{i} = combinedGRModel.SSITModels{i};
-    ModelGroup{i}.tSpan = sort(unique([ModelGroup{i}.tSpan,linspace(0,180,30)]));
-    ModelGroup{i}.makeFitPlot([],1,[],true,'STD')
-end
-end
+%    ModelGroup{i} = combinedGRModel.SSITModels{i};
+%    ModelGroup{i}.tSpan = sort(unique([ModelGroup{i}.tSpan,linspace(0,180,30)]));
+%    ModelGroup{i}.makeFitPlot([],1,[],true,'STD')
+%end
+%end
 
 function plotODEresults(extendedMod,soln,modeWithGRData,fignum)
 arguments
