@@ -98,7 +98,7 @@ else
     end
     %% STEP 0.B.4. -- Make Guesses for the FSP bounds
     % This is sometimes necessary when using an uninduced steady state as the
-    % initial condition. You need to guess a reasonalbe statespace or the
+    % initial condition. You need to guess a reasonable statespace or the
     % computation of the SS can be inaccurate.
     ModelGR.customConstraintFuns = {'cytGR+nucGR'};
     for i = 1:3
