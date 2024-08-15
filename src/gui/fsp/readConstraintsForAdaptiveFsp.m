@@ -59,7 +59,7 @@ end
 function str2 = convertFormat(str1,numSpecies)
 % Convert a string of the form 'x1 * x2' into 'x(1).*x(2)'
 str2 = str1;
-for i = 1:numSpecies
+for i = numSpecies : -1 : 1
     str2 = strrep(str2, ['x', num2str(i)], ['x(', num2str(i), ',:)']);
 end
 
