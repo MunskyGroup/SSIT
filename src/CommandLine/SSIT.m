@@ -1013,6 +1013,11 @@ classdef SSIT
         end
 
         function sampleDataFromFSP(obj,fspSoln,saveFile)
+            % Function to create simulated single-cell snapshot data by
+            % sampling from the FSP solution.  
+            % Arguments:
+            %       fspSoln -- solution of current model using FSP.
+            %       saveFile -- filename (.csv) to save data.
             Solution.T_array = obj.tSpan;
             Nt = length(Solution.T_array);
             nSims = obj.ssaOptions.nSimsPerExpt*obj.ssaOptions.Nexp;
@@ -1949,7 +1954,7 @@ classdef SSIT
             arguments
                 obj
                 parGuess = [];
-                fitOptions = optimset('Display','iter','MaxIter',10);
+                fitOptions = optimset('Display','iter','MaxIter',400);
                 fitAlgorithm = 'fminsearch';
             end
 
@@ -2552,7 +2557,17 @@ classdef SSIT
 
         end
 
-        function plotMHResults(obj,mhResults,FIM,fimScale,mhPlotScale,scatterFig)
+        function plotMHResults(obj,mhResults,FIM,fimScale,mhPlotScale,scatterFig,showConvergence)
+            arguments
+                obj
+                mhResults = [];
+                FIM =[];
+                fimScale = 'lin';
+                mhPlotScale = 'log10';
+                scatterFig = [];
+                showConvergence = true
+            end
+
             obj.plotMHResultsStatic(obj,mhResults,FIM,fimScale,mhPlotScale,scatterFig)
         end
     end
