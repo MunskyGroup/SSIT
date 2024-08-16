@@ -32,7 +32,8 @@ log10PriorStd = 2*ones(1,13);
 ModelGR.fspOptions.initApproxSS = true;
 
 ModelGR.fittingOptions.modelVarsToFit = (5:12);
-ModelGR.fittingOptions.logPrior = @(x)-sum((log10(x)-log10PriorMean(5:12)).^2./(2*log10PriorStd(5:12).^2));
+ModelGR.fittingOptions.logPrior = [];%@(x)-sum((x-log10PriorMean(5:12)).^2./(2*log10PriorStd(5:12).^2));
+logPriorGR = @(x)-sum((log10(x)-log10PriorMean(5:12)).^2./(2*log10PriorStd(5:12).^2));
 
 ModelGR.inputExpressions = {'IDex','Dex0*exp(-gDex*t)'};
 ModelGR = ModelGR.formPropensitiesGeneral('EricRonModGR');
@@ -52,7 +53,7 @@ ModelGRparameterMap = cell(1,size(GRfitCases,1));
 ModelGRfit = cell(1,size(GRfitCases,1));
 ModelGRODEfit = cell(1,size(GRfitCases,1));
 for i=1:3
-    ModelGRfit{i} = ModelGR.loadData("EricDataJan23_2024/Gated_dataframe_Ron_030624_NormalizedGR_bins.csv",...
+    ModelGRfit{i} = ModelGR.loadData("EricData/Gated_dataframe_Ron_020224_NormalizedGR_bins.csv",...
         {'nucGR','normgrnuc';'cytGR','normgrcyt'},...
         {'Condition','GR_timesweep';'Dex_Conc',GRfitCases{i,2}});
     ModelGRfit{i}.parameters{13,2} = str2num(GRfitCases{i,1});    
@@ -71,7 +72,7 @@ end
 for jj = 1:5
     fitOptions = optimset('Display','iter','MaxIter',300);
 
-    combinedGRModel = SSITMultiModel(ModelGRfit,ModelGRparameterMap);
+    combinedGRModel = SSITMultiModel(ModelGRfit,ModelGRparameterMap,logPriorGR);
     combinedGRModel = combinedGRModel.initializeStateSpaces(boundGuesses);
     combinedGRModel = combinedGRModel.updateModels(GRpars,false);
     GRpars = combinedGRModel.maximizeLikelihood(...
@@ -100,7 +101,7 @@ for i=1:length(ModelGRfit)
     %  Update parameters in original models.
     ModelGRfit{i} = combinedGRModel.SSITModels{i};
     ModelGRfit{i}.tSpan = sort(unique([ModelGRfit{i}.tSpan,linspace(0,180,30)]));
-    ModelGRfit{i}.makeFitPlot([],1)
+    ModelGRfit{i}.makeFitPlot([],1,[],true,'STD')
 end
 
 %% Extend Model to Include DUSP1 Activation, Production, and Degradation
@@ -135,8 +136,8 @@ ModelDusp1Fit = cell(size(Dusp1FitCases,1),1);
 ModelDusp1parameterMap = cell(1,size(GRfitCases,1));
 for i = 1:size(Dusp1FitCases,1)
     % TODo - Adjust for newly processed data.
-    ModelDusp1Fit{i} = ModelGRDusp.loadData('EricDataJan23_2024/pdoCalibrationData_EricIntensity_DexSweeps.csv',...
-        {'rna','RNA_DUSP1_nuc'},...
+    ModelDusp1Fit{i} = ModelGRDusp.loadData('EricData/pdoCalibrationData_EricIntensity_DexSweeps.csv',...
+        {'rna','totalNucRNA'},...
         {'Dex_Conc','100'}); 
     ModelDusp1Fit{i}.inputExpressions = {'IDex','Dex0*exp(-gDex*t)'};
 
@@ -147,8 +148,8 @@ for i = 1:size(Dusp1FitCases,1)
 end
 DUSP1pars = [ModelDusp1Fit{i}.parameters{ModelGRDusp.fittingOptions.modelVarsToFit,2}];
 
-ModelGRDusp100nM = ModelGRDusp.loadData('EricDataJan23_2024/pdoCalibrationData_EricIntensity_DexSweeps.csv',...
-        {'rna','RNA_DUSP1_nuc'},{'Dex_Conc','100'}); 
+ModelGRDusp100nM = ModelGRDusp.loadData('EricData/pdoCalibrationData_EricIntensity_DexSweeps.csv',...
+        {'rna','totalNucRNA'},{'Dex_Conc','100'}); 
 %%    Fit DUSP1 model(s) with single parameter set.
 % Specify prior on parameters.
 for i = 1:5
@@ -161,10 +162,10 @@ for i = 1:5
 end
 
 %%    Plot predictions for other Dex concentrations.
-showCases = [1,1,1,0];
+showCases = [0,0,1,0];
 makePlotsDUSP1(ModelDusp1Fit,ModelGRDusp,DUSP1pars,Dusp1FitCases,showCases)
 %% Sample uncertainty for Dusp1 Parameters
-%%    Compute sensitivity of the fSP solution
+%%    Compute sensitivity of the FSP solution
 ModelGRDusp100nM.solutionScheme = 'fspSens';
 sensSoln = ModelGRDusp100nM.solve();
 ModelGRDusp100nM.solutionScheme = 'FSP';
@@ -174,6 +175,11 @@ ModelGRDusp100nM.pdoOptions.unobservedSpecies = {'offGene';'onGene'};
 
 % compute the FIM
 fimResults = ModelGRDusp100nM.computeFIM(sensSoln.sens,'log');
+
+% In the following, the log-prior is used as a prior co-variance matrix.
+% This will be used in the FIM calculation as an FIM without new evidence 
+% being set equal to the inverse of this covariance matrix.  More rigorous
+% justification is needed to support this heuristic.
 fimTotal = ModelGRDusp100nM.evaluateExperiment(fimResults,ModelGRDusp100nM.dataSet.nCells,...
     diag(log10PriorStd.^2));
 
@@ -218,7 +224,7 @@ ModelGRDusp100nM.plotMHResults(MHResultsDusp1,[fimTotal],'log',[],figNew)
 for i = 1:3
     for j = i:3
         subplot(3,3,(i-1)*3+j)
-        CH = get(gfca,'Children');
+        CH = get(gca,'Children');
         CH(1).Color=[1,0,1];
         CH(1).LineWidth = 3;
         CH(2).Color=[0,0,0];
@@ -271,12 +277,16 @@ ModelPDOSpots = ModelGRDusp100nM.calibratePDO('../../ExampleData/pdoCalibrationD
 
 %%    Calibrate PDO from Eric's DUSP1 Intensity Data.
 ModelPDOIntensEric = ModelGRDusp100nM;
-ModelPDOIntensEric = ModelPDOIntensEric.calibratePDO('EricDataJan23_2024/pdoCalibrationData_EricIntensity_ConcHigh.csv',...
+ModelPDOIntensEric = ModelPDOIntensEric.calibratePDO('EricData/pdoCalibrationData_EricIntensity_ConcHigh.csv',...
     {'rna'},{'RNA_DUSP1_nuc'},{'Nuc_DUSP1_avg_int_tot'},'AffinePoiss',true,[1,230,0.5]);
 
 %%  With PDO for MCP/smFISH
 fimsPDOSpot = ModelPDOSpots.computeFIM(sensSoln.sens,'log');
 fimPDOSpots = ModelPDOSpots.evaluateExperiment(fimsPDOSpot,nCellsOpt,diag(log10PriorStd.^2));
+
+nCellsOptPDOspots = ModelPDOSpots.optimizeCellCounts(fimsPDOSpot,nTotal,'tr[1:4]');
+
+
 figNew = figure;
 ModelGRDusp100nM.plotMHResults(MHResultsDusp1,[fimOpt,fimPDOSpots,fimTotal],'log',[],figNew);
 for i = 1:3
@@ -296,6 +306,9 @@ end
 %%  With PDO for Intensity only
 fimsPDOIntens = ModelPDOIntensEric.computeFIM(sensSoln.sens,'log');
 fimPDOIntens = ModelPDOIntensEric.evaluateExperiment(fimsPDOIntens,nCellsOpt,diag(log10PriorStd.^2));
+
+nCellsOptPDOintens = ModelPDOSpots.optimizeCellCounts(fimsPDOIntens,nTotal,'tr[1:4]');
+
 fimPDOIntensAvail = ModelPDOIntensEric.evaluateExperiment(fimsPDOIntens,nCellsOptAvail,diag(log10PriorStd.^2));
 figNew = figure; clf;
 ModelGRDusp100nM.plotMHResults(MHResultsDusp1,[fimOpt,fimPDOSpots,fimTotal,fimPDOIntens],'log',[],figNew);
@@ -368,7 +381,7 @@ makePlotsDUSP1(ModelDusp1Fit,ModelGRDusp,DUSP1parsFIMDesign,Dusp1FitCases,showCa
 % attempt to identify the model from just that data and at just the times
 % selected by the FIM.
 ModelPDOIntensEric.dataSet = [];
-ModelPDOIntensEric = ModelPDOIntensEric.loadData('EricDataJan23_2024/pdoCalibrationData_EricIntensity_DexSweeps.csv',...
+ModelPDOIntensEric = ModelPDOIntensEric.loadData('EricData/pdoCalibrationData_EricIntensity_DexSweeps.csv',...
         {'rna','Nuc_DUSP1_avg_int_tot'},...
         {'Dex_Conc','100'}); 
 load('EricModelDusp1_MMDex','DUSP1parsIntensity') 
@@ -388,7 +401,7 @@ end
 % selected by the FIM.
 ModelPDOIntensEricFIM = ModelPDOIntensEric;
 ModelPDOIntensEricFIM.dataSet = [];
-ModelPDOIntensEricFIM = ModelPDOIntensEricFIM.loadData('EricDataJan23_2024/pdoCalibrationData_EricIntensity_DexSweeps.csv',...
+ModelPDOIntensEricFIM = ModelPDOIntensEricFIM.loadData('EricData/pdoCalibrationData_EricIntensity_DexSweeps.csv',...
         {'rna','Nuc_DUSP1_avg_int_tot'},...
         {'Dex_Conc','100'}); 
 % Set fitting routine only to consider the time points selected by the FIM.
@@ -438,6 +451,57 @@ for i = 1:4
     loglog(nCellVec,1./fimDetVsNumberMAt(:,i),cols{i},'linewidth',2)
 end
 set(gca,'fontsize',15,'ylim',10.^[-12.,-9],'xlim',10.^[3,5])
+
+%% Stochastic Simulation of Full Model
+% Form version of full model to run with SSA.  This will allow us to run
+% the full model and test to see if it matches to the FSP Model.
+SSAModel = ModelGRDusp100nM;
+SSAModel.solutionScheme = 'SSA';
+SSAModel.useHybrid = false;
+SSAModel.ssaOptions.useParalel = true;
+SSAModel.inputExpressions = {'IDex','Dex0*exp(-gDex*t)*(t>=0)'};
+SSAModel.tSpan = [-100,ModelGRDusp100nM.tSpan];
+SSAModel.initialCondition = [2;0;10;3;20];
+SSAModel.initialTime = -100;
+SSAModel = SSAModel.formPropensitiesGeneral('SSAEric');
+%% Plot model
+tic
+ssaSoln = SSAModel.solve;
+toc
+% Plot SSA results
+SSAModel.makePlot(ssaSoln,'meansAndDevs')
+
+%% Extend model to include cytoplasmic mRNA
+SSAModelCytoDusp1 = SSAModel;
+SSAModelCytoDusp1.ssaOptions.nSimsPerExpt = 20;
+SSAModelCytoDusp1.species = {'offGene';'onGene';'cytGR';'nucGR';'rna';'rCyt'};
+SSAModelCytoDusp1.initialCondition = [2;0;24;1;5;50];
+SSAModelCytoDusp1.propensityFunctions = {'kon*offGene*nucGR';'koff*onGene';
+    '(kcn0 + (t>0)*kcn1*IDex/(MDex+IDex)) * cytGR';'knc*nucGR';'kg1';'gg1*cytGR';'gg2*nucGR';...
+    'kr*onGene';'gnuc*rna/(1+(rna/50)^3)';...
+    'ktr*rna';'gcyt*rCyt'};
+gnuc = 0.00;
+SSAModelCytoDusp1.parameters(4,:) = {'gnuc',gnuc}; % add parameter for cytoplasmic decay
+SSAModelCytoDusp1.parameters(14,:) = {'gcyt',0.01}; % add parameter for cytoplasmic decay
+SSAModelCytoDusp1.parameters(15,:) = {'ktr',DUSP1pars(4)}; % add parameter for cytoplasmic decay
+SSAModelCytoDusp1.stoichiometry = [-1,1,0,0,0,0,0,0,0,0,0;...
+                         1,-1,0,0,0,0,0,0,0,0,0;...
+                         0,0,-1,1,1,-1,0,0,0,0,0;...
+                         0,0,1,-1,0,0,-1,0,0,0,0;...
+                         0,0,0,0,0,0,0,1,-1,-1,0;...
+                         0,0,0,0,0,0,0,0,0,1,-1];
+
+SSAModelCytoDusp1 = SSAModelCytoDusp1.formPropensitiesGeneral('SSAEricCyt');
+ssaSolnCyt = SSAModelCytoDusp1.solve;
+%
+SSAModelCytoDusp1.makePlot(ssaSolnCyt,'meansAndDevs')
+
+%% Make plots of cytoplasmic RNA.
+tempCytModel = ModelGRDusp100nM;
+tempCytModel = tempCytModel.loadData('EricData/pdoCalibrationData_EricIntensity_DexSweeps.csv',...
+        {'rna','RNA_DUSP1_cyto'},...
+        {'Dex_Conc','100'}); 
+tempCytModel.makeFitPlot
 
 %% Sandbox for Predicting Other Behaviors
 % SBModel = ModelGRDusp;

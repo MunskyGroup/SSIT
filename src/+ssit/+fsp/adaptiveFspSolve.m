@@ -158,8 +158,8 @@ if useHybrid
     jUpstreamODE = find(contains(speciesNames,hybridOptions.upstreamODEs));
     odeStoichs = stoichMatrix(jUpstreamODE,:);
     stoichMatrix = stoichMatrix(jStochastic,:);
-    initODEs = initStates(jUpstreamODE);
-    initStates = initStates(jStochastic);
+    initODEs = initStates(jUpstreamODE,1);
+    initStates = initStates(jStochastic,:);
     speciesNames = speciesNames(jStochastic);
     numODEs = length(jUpstreamODE);
 else
@@ -225,7 +225,7 @@ if initApproxSS
             AfspFull = ssit.FspMatrix(propensities, parameters, stateSpace, constraintCount, speciesNames);
         end
 
-        jac = AfspFull.createSingleMatrix(outputTimes(1),parameters);
+        jac = AfspFull.createSingleMatrix(outputTimes(1)-1e-6,parameters);
     end
     jac = jac(1:end-constraintCount,1:end-constraintCount);
 
@@ -364,7 +364,7 @@ while (tNow < maxOutputTime)
         else
             if isTimeInvariant==1 % If no parameters are functions of time.
                 % if ~isempty(parameters)
-                    jac = AfspFull.createSingleMatrix(tNow, parameters);
+                    jac = AfspFull.createSingleMatrix(tNow+1e-6, parameters);
                 % else
                     % jac = AfspFull.createSingleMatrix(tNow);
                 % end
@@ -393,9 +393,13 @@ while (tNow < maxOutputTime)
             end
 
             if odeSolver == "expokit"
-                solver = ssit.fsp_ode_solvers.Expokit();
+                solver = ssit.fsp_ode_solvers.Expokit(30,absTol);
             elseif odeSolver == "expokitPiecewise"
-                solver = ssit.fsp_ode_solvers.ExpokitPiecewise();
+                if constantJacobian
+                    solver = ssit.fsp_ode_solvers.Expokit(30,absTol);
+                else
+                    solver = ssit.fsp_ode_solvers.ExpokitPiecewise();
+                end
             else
 %                 if ~isempty(hybridOptions)
 %                     solver = ssit.fsp_ode_solvers.OdeSuite(relTol, absTol);

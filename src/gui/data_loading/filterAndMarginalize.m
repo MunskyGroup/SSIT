@@ -32,19 +32,20 @@ end
 % not yet for more complicated conditions -- will require future testing.
 
 % this part determines which variables are conditioned over
-histDataStr = cellfun(@num2str,histDataRaw,'un',0);                     % convert double in cell to str
-if ~isa(app.DataLoadingAndFittingTabOutputs.conditionOnArray,'double')                                      % Check if user wants to filter for specified conditions
-    loopCond = cellfun(@(s) ~contains('0',s),app.DataLoadingAndFittingTabOutputs.conditionOnArray);
-    loopCond = find(loopCond);
+try
+    histDataStr = cellfun(@num2str,histDataRaw,'UniformOutput',false);
+catch
+end
+% convert double in cell to str
+if ~isempty(app.DataLoadingAndFittingTabOutputs.conditionOnArray)
+    loopCond = [app.DataLoadingAndFittingTabOutputs.conditionOnArray{:,1}];
 else
-    loopCond = 0;
+    loopCond=[];
 end
 
-% this part finds the data that obeys all conditions and removes the rest
-% from the data set.
-if loopCond
+if ~isempty(loopCond)
     for iC = 1:length(loopCond)
-        condStr = app.DataLoadingAndFittingTabOutputs.conditionOnArray(loopCond(iC));                       % find string to condition on
+        condStr = app.DataLoadingAndFittingTabOutputs.conditionOnArray{iC,2}; % find string to condition on
         condCell = cellstr(condStr);                                    % convert string to cell
         condIndLoc = ismember(histDataStr(:,loopCond(iC)),condCell)';
         histDataStr = histDataStr(condIndLoc,:);                        % only keep idx rows
