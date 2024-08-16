@@ -1473,8 +1473,9 @@ classdef SSIT
             % Calculate the means
             obj.dataSet.mean = zeros(sz(1),length(sz)-1);
             for i=1:sz(1)
+                tmpInt = cell(1, length(sz) - 1);
                 for j=2:length(sz)
-                    tmpInt{j-1} = [1:sz(j)];
+                    tmpInt{j-1} = 1:sz(j);
                 end
                 TMP = squeeze(double(obj.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor(i,tmpInt{:})));
                 for j = 1:length(sz)-1
