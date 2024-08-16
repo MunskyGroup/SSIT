@@ -1628,10 +1628,10 @@ classdef SSIT
             % sensitivity.
             if computeSensitivity&&nargout>=2
                 obj.solutionScheme = 'fspSens'; % Chosen solution scheme 
-                [solutions] = obj.solve(stateSpace);  % Solve the FSP analysis
+                [solutions,obj.fspOptions.bounds] = obj.solve(stateSpace);  % Solve the FSP analysis
             else
                 obj.solutionScheme = 'FSP'; % Chosen solution scheme 
-                [solutions] = obj.solve(stateSpace);  % Solve the FSP analysis
+                [solutions,obj.fspOptions.bounds] = obj.solve(stateSpace);  % Solve the FSP analysis
             end
             obj.parameters =  originalPars;
 
@@ -1925,7 +1925,7 @@ classdef SSIT
             Ngrid=length(scalingRange);
             fitErrors = zeros(Ngrid,Ngrid);
             for i = 1:Ngrid
-                for j = 1:Ngrid
+                parfor j = 1:Ngrid
                     pars = pars0.*scalingRange([i,j]);
                     fitErrors(i,j) = obj.computeLikelihood(pars);
                 end
@@ -1954,7 +1954,7 @@ classdef SSIT
             arguments
                 obj
                 parGuess = [];
-                fitOptions = optimset('Display','iter','MaxIter',400);
+                fitOptions = optimset('Display','none','MaxIter',400);
                 fitAlgorithm = 'fminsearch';
             end
 
@@ -2529,6 +2529,8 @@ classdef SSIT
             end
             if isempty(figNum)
                 gcf;
+            else
+                figure(figNum)
             end
 
             CIp = round(CI*100);
