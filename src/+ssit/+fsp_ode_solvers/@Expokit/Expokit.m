@@ -77,7 +77,7 @@ classdef Expokit
         tryAgain=1;
         if ~exist('m','var'); m=15; end
         fspTol = fspErrorCondition.fspTol;
-        expvTol = min(fspTol/1e5,1e-6);
+        expvTol = min(fspTol/1e5,1e-5);
         nSinks = fspErrorCondition.nSinks;
         
         if strcmp(obj.version,'mexpv_modified_2')
