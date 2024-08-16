@@ -179,8 +179,8 @@ Model.summarizeModel
 replicates = 1:4;
 initial_monomer_concentration = [5, 4, 3.5, 3, 2.5, 2, 1.75, 1.5, 1.35, 1.1];
 initial_monomer_population = 1000 * initial_monomer_concentration;
-ModelList = {};
-ParameterList = {};
+ModelList = cell(1, length(initial_monomer_population));
+ParameterList = cell(1, length(initial_monomer_population));
 
 %% Create models and load data:
 
@@ -208,8 +208,8 @@ for counter = 1 : length(initial_monomer_population)
     % Add the model to the list of all models, and add a corresponding
     % entry of all parameters to that list:
 
-    ModelList{end+1} = newModel;
-    ParameterList{end+1} = 1:length(newModel.parameters);
+    ModelList{counter} = newModel;
+    ParameterList{counter} = 1:length(newModel.parameters);
 end
 
 %% Set fitting options:
@@ -220,7 +220,7 @@ fitOptions = optimset('Display', 'final', 'MaxIter', 500);
 
 combinedModelDependent = SSITMultiModel(ModelList, ParameterList);
 combinedModelDependent = combinedModelDependent.initializeStateSpaces;
-allParsDependent = ([Model1.parameters{:,2}]);
+allParsDependent = ([Model.parameters{:,2}]);
 allParsDependent = combinedModelDependent.maximizeLikelihood(...
     allParsDependent, fitOptions, fitAlgorithm);
 combinedModelDependent = combinedModelDependent.updateModels(allParsDependent);
