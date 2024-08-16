@@ -26,6 +26,13 @@ INITIAL_MONOMER_POPULATION = 100;
 assert(INITIAL_MONOMER_POPULATION >= MIN_NUCLEUS_SIZE, ...
     'There must be sufficiently many monomers to form one nucleus')
 
+%% Define whether we are in "aggregate mass" mode:
+% Experimentally, this is what is typically measured; namely, the total
+% aggregate mass concentration as a function of time. The aggregate mass is
+% defined as M(t) = sum(i*xi) for all i in [nc, MAX_NUCLEUS_SIZE].
+
+aggregate_mass_mode = true;
+
 %% Add species: xk denotes a k-mer, from 1 up to the maximum considered.
 
 for i = 1 : MAX_NUCLEUS_SIZE
@@ -35,6 +42,10 @@ for i = 1 : MAX_NUCLEUS_SIZE
     else
         Model = Model.addSpecies(['x', num2str(i)], 0);
     end
+end
+
+if aggregate_mass_mode
+    Model = Model.addSpecies('M', 0);
 end
 
 %% Add parameters
@@ -56,6 +67,10 @@ stoichTempl = zeros(size(Model.species, 1), 1);
 stoichPN = stoichTempl;
 stoichPN(1) = -1 * nc; % n_c monomers are consumed to make the nucleus
 stoichPN(nc) = 1; % One oligomer of size n_c is produced
+if aggregate_mass_mode
+    % The total aggregate mass increases by nc (one aggregate of mass nc):
+    stoichPN(end) = nc;
+end
 Model = Model.addReaction(['kn*x1^', num2str(nc)], stoichPN);
 
 % Fragmentation reactions
@@ -70,6 +85,22 @@ for l = nc : MAX_NUCLEUS_SIZE
         stoichF(i) = 1; % One oligomer of length i is produced
         stoichF(l-i) = 1; % One oligomer of length l-i is produced
         stoichF(l) = -1; % One oligomer of length l is consumed
+        if aggregate_mass_mode
+            % The total aggregate mass changes based on the oligomers
+            % produced and consumed and whether they are sufficiently
+            % large to be nuclei. Since l >= nc, we know that the mass will
+            % decrease by that much, but it may also increase based upon
+            % the sizes of the product nuclei:
+
+            delta_aggregate_mass = -l;
+            if i >= nc
+                delta_aggregate_mass = delta_aggregate_mass + i;
+            end
+            if (l-i) >= nc
+                delta_aggregate_mass = delta_aggregate_mass + (l-i);
+            end
+            stoichF(end) = delta_aggregate_mass;
+        end
 
         % The propensity will depend on the number of locations in the
         % chain where an equivalent fragmentation could occur. For an
@@ -99,6 +130,11 @@ for l = nc : (MAX_NUCLEUS_SIZE - n2)
     stoichSN(l) = -1; % One oligomer of length l is consumed
     stoichSN(1) = -n2; % n2 monomers are consumed
     stoichSN(l+n2) = 1; % One oligomer of length l+n2 is produced
+    if aggregate_mass_mode
+        % The total aggregate mass increases by n2 (one aggregate of mass
+        % l is replaced by one of mass l+n2):
+        stoichSN(end) = n2;
+    end
 
     % The propensity will depend on the number of locations in the
     % chain where an equivalent attachment could occur. We assume that
@@ -125,6 +161,11 @@ for l = nc : (MAX_NUCLEUS_SIZE - 1)
     stoichE(l) = -1; % One oligomer of length l is consumed
     stoichE(1) = -1; % One monomer is consumed
     stoichE(l+1) = 1; % One oligomer of length l+1 is produced
+    if aggregate_mass_mode
+        % The total aggregate mass increases by 1 (one aggregate of mass
+        % l is replaced by one of mass l+1):
+        stoichE(end) = 1;
+    end
 
     propensity = ['2*kplus*x1*x', num2str(l)];
 
@@ -133,85 +174,53 @@ end % for l = nc : (MAX_NUCLEUS_SIZE - 1) ...
 
 Model.summarizeModel
 
-%% Generate Equations for Propensities
-Model = Model.formPropensitiesGeneral('FibrilFormation');
+%% Multi-model fitting:
 
-%% Solve the FSP
-Model.fspOptions.verbose = true;
-[fspSoln,Model.fspOptions.bounds] = Model.solve;
+replicates = 1:4;
+initial_monomer_concentration = [5, 4, 3.5, 3, 2.5, 2, 1.75, 1.5, 1.35, 1.1];
+initial_monomer_population = 1000 * initial_monomer_concentration;
+ModelList = {};
+ParameterList = {};
 
-%% Generate In Silico Data
-Model.ssaOptions.nSimsPerExpt = 10;
-Model.ssaOptions.Nexp = 1;
-Model.tSpan = linspace(0,2,9);
-Model.sampleDataFromFSP(fspSoln,'InSilicoData.csv')
+%% Create models and load data:
 
-%%
-Model = Model.loadData('InSilicoData.csv',{'G','exp1_s6'});
-Model.makeFitPlot
+% We will create a series of models that will all share the same
+% parameters. The difference will be that they will different initial
+% monomoer populations.
 
-%%
-% fitOptions = optimset('Display','iter','MaxIter',1000);
-% fitOptions.SIG = [];
-% for i=1:3
-%     fitPars = Model.maximizeLikelihood([],fitOptions);
-%     Model.parameters(:,2) = num2cell(fitPars);
-% end
+for counter = 1 : length(initial_monomer_population)
+    % Clone the template model:
 
-%%
-% run Metropolis Hastings
-MHFitOptions.thin=1;
-MHFitOptions.numberOfSamples=1000;
-MHFitOptions.burnIn=0;
-MHFitOptions.progress=true;
-MHFitOptions.useFIMforMetHast =true;
-MHFitOptions.suppressFSPExpansion = true;
-MHFitOptions.CovFIMscale = 1;
-MHFitOptions.numChains = 1;
-MHFitOptions.saveFile = 'TMPMHChain.mat';
-Model.fittingOptions.modelVarsToFit = [1:8];
-delete('TMPMHChain.mat')
-[newPars,~,MHResults] = Model.maximizeLikelihood(...
-    [], MHFitOptions, 'MetropolisHastings');
-Model.parameters(Model.fittingOptions.modelVarsToFit,2) = num2cell(newPars);
-delete('TMPMHChain.mat')
+    newModel = Model;
+    
+    % Update the initial monomer population:
 
-%%
-Model.plotMHResults(MHResults)
+    newModel.initialCondition(1) = ...
+        initial_monomer_population(counter);
 
-%%  FIM Calculation
-%%       Solve FSP Sensitivity
-Model.solutionScheme = 'fspSens'; % Set solutions scheme to FSP Sensitivity
-[sensSoln,bounds] = Model.solve(fspSoln.stateSpace);  % Solve the sensitivity problem
+    % For now, we will only use data from the first replicate:
 
-% Set model to ignore unobservable species.
+    column_to_use = ...
+        ['Ab42_rep1_', num2str(initial_monomer_concentration(counter)), 'uM'];
+    newModel = newModel.loadData('AmyloidData.csv', ...
+        {'M', column_to_use});
 
-% Compute the FIM for each time point
-fimResults = Model.computeFIM(sensSoln.sens);
+    % Add the model to the list of all models, and add a corresponding
+    % entry of all parameters to that list:
 
-% Choose experiment design (number of measurements per time for each time).
-cellCounts = 100*ones(size(Model.tSpan));
+    ModelList{end+1} = newModel;
+    ParameterList{end+1} = 1:length(newModel.parameters);
+end
 
-% Compute the total FIM:
-[fimTotal,mleCovEstimate,fimMetrics] = ...
-    Model.evaluateExperiment(fimResults,cellCounts);
+%% Set fitting options:
+fitAlgorithm = 'fminsearch';
+fitOptions = optimset('Display', 'final', 'MaxIter', 500);
 
-% Compare to the MH results
-Model.plotMHResults(MHResults,fimTotal)
+%% Combine all models:
 
-% Optimize to find the best experiment for same number of spot/cells
-allowableCellNumber = 2100;
-OptimumExperiment = Model.optimizeCellCounts(fimResults,allowableCellNumber,...
-    'Determinant',[],[],[]);
-
-% Compute the total FIM:
-fimTotalOptimized = Model.evaluateExperiment(fimResults,OptimumExperiment);
-
-% Compare to the MH results
-Model.plotMHResults(MHResults,[fimTotal,fimTotalOptimized])
-
-%% trouble shooting unidentifiable models
-[Vecs,Vals] = eig(full(fimTotal{1}));
-JUncertain = find(diag(Vals) < 1e-9);
-figure
-bar(Vecs(:,JUncertain))
+combinedModelDependent = SSITMultiModel(ModelList, ParameterList);
+combinedModelDependent = combinedModelDependent.initializeStateSpaces;
+allParsDependent = ([Model1.parameters{:,2}]);
+allParsDependent = combinedModelDependent.maximizeLikelihood(...
+    allParsDependent, fitOptions, fitAlgorithm);
+combinedModelDependent = combinedModelDependent.updateModels(allParsDependent);
