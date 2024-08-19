@@ -84,13 +84,13 @@ classdef Expokit
             while tryAgain==1
                 SINKS = [length(initSolution)-nSinks+1:length(initSolution)-fspErrorCondition.nEscapeSinks];
                 fspSINKS = [length(initSolution)-nSinks+1 : length(initSolution)];
-                [~, ~, ~, tExport, solutionsNow, ~, tryAgain, te, ye] = ssit.fsp_ode_solvers.mexpv_modified_2(tOut(end), jac, initSolution, fspTol/1e5, m,...
+                [~, ~, ~, tExport, solutionsNow, ~, tryAgain, te, ye] = ssit.fsp_ode_solvers.mexpv_modified_2(tOut(end), jac, initSolution, expvTol, m,...
                     [], tOut, fspTol, SINKS, tStart, fspErrorCondition);
                 if tryAgain==0;break;end
                 if m>300
                 SINKS = [length(initSolution)-nSinks+1:length(initSolution)-fspErrorCondition.nEscapeSinks];
                     warning('Expokit expansion truncated at 300');
-                    [~, ~, ~, tExport, solutionsNow, ~, tryAgain, te, ye] = ssit.fsp_ode_solvers.mexpv_modified_2(tOut(end), jac, initSolution, fspTol/1e5, m,...
+                    [~, ~, ~, tExport, solutionsNow, ~, tryAgain, te, ye] = ssit.fsp_ode_solvers.mexpv_modified_2(tOut(end), jac, initSolution, expvTol, m,...
                         [], tOut, fspTol, SINKS, tStart, fspErrorCondition);
                 end
                 m=m+5;
@@ -105,7 +105,7 @@ classdef Expokit
                 if m>300
                     warning('Expokit expansion truncated at 300');
                     [~, ~, ~, tExport, solutionsNow, ~, tryAgain, te, ye] = ...
-                        expv_modified(tOut(end), jac, initSolution, fspTol/1e5, m,...
+                        expv_modified(tOut(end), jac, initSolution, expvTol, m,...
                         [], tOut,fspTol,[],tStart,fspErrorCondition);
                 end
                 m=m+5;
