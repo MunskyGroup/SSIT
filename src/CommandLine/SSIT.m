@@ -1158,6 +1158,13 @@ classdef SSIT
                     fimResults{it,1} = F;
                 end
 
+                % TODO -- We need to add capability for the PDO parameters
+                % to be included in the FIM calculation in log space.
+                % Right now, the following will give an error because the
+                % dimensions will not match when PDO parameters are
+                % included.  Also, the current code does not allow for some
+                % PDO parameters to be free while others are fixed.
+
                 if strcmp(scale,'log')
                     for it=length(sensSoln.data):-1:1
                         fimResults{it,1} = diag([obj.parameters{:,2}])*...
@@ -1675,7 +1682,7 @@ classdef SSIT
             P = zeros([length(obj.tSpan),szP(indsPlots)]);
             for it = length(obj.tSpan):-1:1
                 % Find inds that are marginalized over.
-                INDS = setdiff([1:Nd],find(indsPlots));
+                indsIgnore = setdiff([1:Nd],find(indsPlots));
                 if ~computeSensitivity||nargout<2
                     % get FSP solution for current time.
                     px = solutions.fsp{it}.p;
@@ -1696,17 +1703,17 @@ classdef SSIT
                 % Add effect of PDO.
                 if ~isempty(obj.pdoOptions.PDO)
                     try
-                        px = obj.pdoOptions.PDO.computeObservationDist(px,INDS);
+                        px = obj.pdoOptions.PDO.computeObservationDist(px,indsIgnore);
                     catch
                         obj.pdoOptions.PDO = obj.generatePDO(obj.pdoOptions,[],solutions.fsp); % call method to generate the PDO.
-                        px = obj.pdoOptions.PDO.computeObservationDist(px,INDS);
+                        px = obj.pdoOptions.PDO.computeObservationDist(px,indsIgnore);
                     end
                 end
 
                 % Sum over the marginalization indices (if any). The return
                 % result as a double vector.
-                if ~isempty(INDS)
-                    d = double(px.sumOver(INDS).data);
+                if ~isempty(indsIgnore)
+                    d = double(px.sumOver(indsIgnore).data);
                 else
                     d = double(px.data);
                 end
@@ -1716,8 +1723,8 @@ classdef SSIT
 
                 if computeSensitivity&&nargout>=2
                     for iPar = parCount:-1:1
-                        if ~isempty(INDS)
-                            d = double(Sx(iPar).sumOver(INDS).data);
+                        if ~isempty(indsIgnore)
+                            d = double(Sx(iPar).sumOver(indsIgnore).data);
                         else
                             d = double(Sx(iPar).data);
                         end
@@ -1935,7 +1942,10 @@ classdef SSIT
                 if length(parIndices)>2
                     disp('plots are only created for first two parameters')
                 end
-                contourf(scalingRange*pars0(1),scalingRange*pars0(2),fitErrors,30)
+                
+                % Set minimum contour at -300
+                lkhMin = max(fitErrors,[],'all')-300;
+                contourf(scalingRange*pars0(1),scalingRange*pars0(2),max(fitErrors,lkhMin),30)
                 set(gca,'fontsize',15)
                 xlabel(obj.parameters{obj.fittingOptions.modelVarsToFit(1)});
                 ylabel(obj.parameters{obj.fittingOptions.modelVarsToFit(2)});
@@ -1954,7 +1964,7 @@ classdef SSIT
             arguments
                 obj
                 parGuess = [];
-                fitOptions = optimset('Display','none','MaxIter',400);
+                fitOptions = optimset('Display','none','MaxIter',200);
                 fitAlgorithm = 'fminsearch';
             end
 
@@ -2278,7 +2288,8 @@ classdef SSIT
         end
 
         %% Plotting/Visualization Functions
-        function makePlot(obj,solution,plotType,indTimes,includePDO,figureNums,lineProps)
+        function makePlot(obj,solution,plotType,indTimes,includePDO,figureNums,... ...
+                lineProps,movieName,maxY,movieSpecies)
             % SSIT.makePlot -- tool to make plot of the FSP or SSA results.
             % arguments:
             %   solution -- solution structure from SSIT.
@@ -2319,6 +2330,9 @@ classdef SSIT
                 includePDO = false;
                 figureNums = [];
                 lineProps = {'linewidth',2};
+                movieName = 'defaultMovie.mp4'
+                maxY = []
+                movieSpecies = []
             end
             if isempty(figureNums)
                 h =  findobj('type','figure');
@@ -2379,6 +2393,39 @@ classdef SSIT
                                     title(['t = ',num2str(solution.T_array(i2),2)])
                                 end
                             end
+                        case 'margmovie'
+                            f = figure(figureNums(1)); clf;
+                            set(f,'Position',[ 1000         980         528         258])
+                            
+                            if isempty(maxY)
+                                maxY = -inf*ones(1,Nd);
+                                for j = 1:Nd
+                                    for i = 1:Nt
+                                        maxY = max(maxY,max(solution.Marginals{i}{j}));
+                                    end
+                                end
+                            end
+                            
+                            mov = VideoWriter(movieName,'MPEG-4');
+                            open(mov);
+
+                            if isempty(movieSpecies)
+                                movieSpecies = [1:Nd];
+                            end
+
+                            for i = 1:Nt
+                                for j = 1:length(movieSpecies)
+                                    subplot(1,length(movieSpecies),j); 
+                                    bar([0:length(solution.Marginals{i}{movieSpecies(j)})-1],...
+                                        solution.Marginals{i}{movieSpecies(j)},lineProps{:});
+                                    set(gca,'fontsize',15,'ylim',[0,maxY(movieSpecies(j))])
+                                    title([obj.species{movieSpecies(j)}])
+                                end
+                                writeVideo(mov,getframe(f))
+                            end
+                            close(mov)
+                            disp(['Movie saved as ', movieName]);
+
                         case 'joints'
                             if Nd<2
                                 error('Joint distributions only avaialble for 2 or more species.')

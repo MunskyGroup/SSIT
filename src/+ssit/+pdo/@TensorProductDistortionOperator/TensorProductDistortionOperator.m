@@ -47,7 +47,7 @@ classdef TensorProductDistortionOperator < ssit.pdo.AbstractDistortionOperator
 %             obj.observationDomains = observationDomains;
         end
 
-        function py = computeObservationDist(obj, px, INDS)
+        function py = computeObservationDist(obj, px, indsIgnore)
             % Compute the probability distribution of
             %distorted single-cell observations using the FSP-approximated
             %probability distribution of true single-cell molecular counts.
@@ -64,18 +64,27 @@ classdef TensorProductDistortionOperator < ssit.pdo.AbstractDistortionOperator
             arguments
                 obj
                 px
-                INDS=[]
+                indsIgnore=[] % indices to ignore due to missing observations
             end
 
             speciesBounds = size(px.data);
             speciesCount = length(speciesBounds);
             pdoFactors = cell(speciesCount, 1);
             kSpecies = 0;
+
+            allPDOsProvided = speciesCount == length(obj.conditionalPmfs);
+            % Check to see if all PDOs are provided, or just an orderred
+            % subset.
+
             for iSpecies = 1:speciesCount
-                if min(abs(INDS-iSpecies))==0
+                if min(abs(indsIgnore-iSpecies))==0
                     pdoFactors{iSpecies} = ones(1,speciesBounds(iSpecies));
                 else
-                    kSpecies = kSpecies+1;
+                    if allPDOsProvided
+                        kSpecies = iSpecies; % All PDOS are provided.
+                    else
+                        kSpecies = kSpecies+1; % Use th next in the provided list.
+                    end
                     % speciesBounds = size(obj.conditionalPmfs{iSpecies},2)
                     pdoFactors{iSpecies} = obj.conditionalPmfs{kSpecies}(:,1:speciesBounds(iSpecies));
                     nonZeroRows = find(sum(pdoFactors{iSpecies},2)~=0,1,'last');
