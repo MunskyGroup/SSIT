@@ -65,6 +65,14 @@ B{2} = A.loadData('ToggleSSAData50Expts.csv',{'lacI','exp1_s1_Distorted';'lambda
 B{2}.pdoOptions.PDO = [];  % Do not use PDO.
 B{3} = A.loadData('ToggleSSAData50Expts.csv',{'lacI','exp1_s1_Distorted';'lambdaCI','exp1_s2_Distorted'});
 
+%% Sweep over Parameters to Plot Likelihood Function Landscape
+fitErrorsB1 = B{1}.likelihoodSweep([2,3],linspace(.5,1.5,11),true);
+title('Ideal data. Original FSP.')
+fitErrorsB2 = B{2}.likelihoodSweep([2,3],linspace(.5,1.5,11),true);
+title('Binomial data distortion. Original FSP.')
+fitErrorsB3 = B{3}.likelihoodSweep([2,3],linspace(.5,1.5,11),true);
+title('Binomial data distortion. FSP+PDO.')
+
 %% Plot Results
 for m=1:3; [fit_error,fitSolutuions] = B{m}.computeLikelihood; B{m}.makeFitPlot(fitSolutuions); end
 
@@ -80,6 +88,9 @@ for iExp = 1:A.ssaOptions.Nexp
         else; x0 = squeeze(MLE(m,:,iExp-1)); end
         [MLE(m,:,iExp),fMLE(m,:,iExp)] = B{m}.maximizeLikelihood(x0);
     end
+    % [MLE2{iExp},fMLE2(iExp)] = b2.maximizeLikelihood(x0);
+    % [MLE3{iExp},fMLE3(iExp)] = b3.maximizeLikelihood(x0);
+    % MLE1{iExp}
 end
 
 %% Compute FIM

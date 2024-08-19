@@ -197,8 +197,15 @@ while tNow < t_out && i_prt<=length(Time_array)
     if k1 ~= 0
         H(m+2,m+1) = 1;
         avnorm = norm(A*V(:,m+1));
+    else
+        avnorm = 0;
     end
     ireject = 0;
+
+    % Define defaults for variables (needed for C conversion).
+    F = zeros(size(H));
+    err_loc = 0;
+
     while ireject <= mxrej
         mx = mb + k1;
         F = expm(sgn*t_step*H(1:mx,1:mx));
