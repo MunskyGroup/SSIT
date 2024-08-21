@@ -2,9 +2,7 @@
 % Example script to show SSIT application to a simple bursting gene
 % expression model that ios being fit to smFISH data for DUSP1 upon
 % stimulation with Dexamethsone.
-clear all
-clc
-close all
+clear all; clc; close all
 addpath(genpath('../src'));
 
 %% STEP1 == Define SSIT Model
@@ -40,7 +38,8 @@ Model1.makePlot(Mod1FSPsoln,'margmovie',[],false,[101],{'linewidth',2},'movie.mp
 %% STEP3 == Solve Sensitivity using FSP
 Model1.solutionScheme = 'fspSens'; % Set solutions scheme to FSP Sensitivity
 Mod1SensSoln = Model1.solve(Mod1FSPsoln.stateSpace);  % Solve the sensitivity problem
-Model1.makePlot(Mod1SensSoln,'marginals',[],false,[4,5,6],{'linewidth',2}) % Plot marginal sensitivities
+Model1.makePlot(Mod1SensSoln,'marginals',[1:100:301],false,[3+(1:12)],{'linewidth',2}) % Plot marginal sensitivities
+Model1.makePlot(Mod1SensSoln,'margmovie',[],false,[101],{'linewidth',2},'sensMovie.mp4',[-1,-1,-0.015;1,1,0.015],[3],[3])  % Plot marginal distributions
 
 %% STEP4 == Define Binomial Probabilistic Distortion Operator
 Model2 = Model1;  % Make a copy of the original model
@@ -48,21 +47,32 @@ Model2.pdoOptions.type = 'Binomial';
 Model2.pdoOptions.props.CaptureProbabilityS1 = 0;  % Distortion for OFF species (unobserved)
 Model2.pdoOptions.props.CaptureProbabilityS2 = 0;  % Distortion for ON species (unobserved)
 Model2.pdoOptions.props.CaptureProbabilityS3 = 0.7;% Distortion for RNA species
-Model2.pdoOptions.PDO = Model2.generatePDO(Model2.pdoOptions,[0,0,0.7],Mod1FSPsoln.fsp,true);
-figure(20); contourf(log10(Model2.pdoOptions.PDO.conditionalPmfs{3})); colorbar
+Model2.pdoOptions.PDO = Model2.generatePDO(Model2.pdoOptions,[],Mod1SensSoln.sens.data,true);
+figure(20); contourf(log10(Model2.pdoOptions.PDO.conditionalPmfs{3}),30); colorbar
 xlabel('"true" number of mRNA'); ylabel('observed number of mRNA'); set(gca,'fontsize',15);
 
 %% STEP5 == Apply PDO to FSP and Sensitivity Calculations
 Model2.solutionScheme = 'FSP'; % Set solution scheme to FSP.
-Model2.makePlot(Mod1FSPsoln,'marginals',[],true,[1,2,3],{'linewidth',2})  % Plot Distorted Marginals
+Model2.makePlot(Mod1FSPsoln,'marginals',[1:100:301],true,[1,2,3],{'linewidth',2})  % Plot Distorted Marginals
 Model2.solutionScheme = 'fspSens'; % Set solution scheme to Sensitivity
-Model2.makePlot(Mod1SensSoln,'marginals',[],true,[4,5,6],{'linewidth',2})    % Plot Distorted Sensitivities
+Model2.makePlot(Mod1SensSoln,'marginals',[1:100:301],true,[3+(1:12)],{'linewidth',2})    % Plot Distorted Sensitivities
 
 %% STEP6 == Generate Simulated Data for Fitting
-Model2.ssaOptions.Nexp = 10;   % Number of independent data sets to generate.
+Model2.tSpan = [0,60,120,180]; % Set the times at which to generate data.
+Model2.solutionScheme = 'FSP'; % Set solution scheme to FSP.
+Mod2FSPsoln = Model2.solve; % Solve Model
+Model2.ssaOptions.Nexp = 50;   % Number of independent data sets to generate.
 Model2.ssaOptions.nSimsPerExpt = 200; % Number of cells to include at each time point for each data set.
-Model2.ssaOptions.applyPDO = true; % Include the distortion in the SSA data.
-Model2.sampleDataFromFSP(Mod1FSPsoln,'DUSP1SSAData50Expts.csv')  % Generate and save all data.
+Model2.ssaOptions.applyPDO = true;    % Include the distortion in the data.
+dataTable = Model2.sampleDataFromFSP(Mod2FSPsoln,'DUSP1SSAData50Expts.csv'); % Generate and save data.
+
+% Plot data as histograms
+tPlot = [0,60,120,180];
+for i = 1:4
+    subplot(2,2,i)  % Switch to current subplot.
+    histogram(dataTable.exp1_s3(dataTable.time==tPlot(i)),30,"DisplayStyle","stairs"); hold on;
+    histogram(dataTable.exp1_s3_Distorted(dataTable.time==tPlot(i)),30,"DisplayStyle","stairs");
+end
 
 %% STEP7 == Associate Datasets with FSP Models
 Model2.solutionScheme = 'FSP';  % Set solution scheme back to FSP.
@@ -71,104 +81,95 @@ B{1}.pdoOptions.PDO = [];  % Do not use PDO.
 B{2} = Model2.loadData('DUSP1SSAData50Expts.csv',{'rna','exp1_s3_Distorted'});
 B{2}.pdoOptions.PDO = [];  % Do not use PDO.
 B{3} = Model2.loadData('DUSP1SSAData50Expts.csv',{'rna','exp1_s3_Distorted'});
-% B{3}.pdoOptions.unobservedSpecies = {'offGene';'onGene'};
 
 %% STEP8 == Sweep overParameters and Plot Likelihood Functions
-fitErrorsB1 = B{1}.likelihoodSweep([3,4],linspace(.5,1.5,11),true);
+fitErrorsB1 = B{1}.likelihoodSweep([2,3],linspace(.5,1.5,11),true);
 title('Ideal data. Original FSP.')
-fitErrorsB2 = B{2}.likelihoodSweep([3,4],linspace(.5,1.5,11),true);
+fitErrorsB2 = B{2}.likelihoodSweep([2,3],libttnspace(.5,1.5,11),true);
 title('Binomial data distortion. Original FSP.')
-fitErrorsB3 = B{3}.likelihoodSweep([3,4],linspace(.5,1.5,11),true);
+fitErrorsB3 = B{3}.likelihoodSweep([2,3],linspace(.5,1.5,11),true);
 title('Binomial data distortion. FSP+PDO.')
 
 %% STEP9 == Find MLEs for Simulated Datasets
-clear MLE fMLE
 for iExp = 1:Model2.ssaOptions.Nexp
     for m = 1:3
-        switch m
-            case 1
-                b = B{1}.loadData('DUSP1SSAData50Expts.csv',{'rna',['exp',num2str(iExp),'_s3']}); % Link non-distorted data.
-            case 2
-                b = B{2}.loadData('DUSP1SSAData50Expts.csv',{'rna',['exp',num2str(iExp),'_s3_Distorted']}); % Link non-distorted data.
-            case 3
-                b = B{3}.loadData('DUSP1SSAData50Expts.csv',{'rna',['exp',num2str(iExp),'_s3_Distorted']}); % Link non-distorted data.
+        switch m % Link appropriate data sets
+            case 1; b = B{1}.loadData('DUSP1SSAData50Expts.csv',{'rna',['exp',num2str(iExp),'_s3']}); 
+            case 2; b = B{2}.loadData('DUSP1SSAData50Expts.csv',{'rna',['exp',num2str(iExp),'_s3_Distorted']}); 
+            case 3; b = B{3}.loadData('DUSP1SSAData50Expts.csv',{'rna',['exp',num2str(iExp),'_s3_Distorted']});
         end
-        b.fittingOptions.modelVarsToFit = [2,3];  
-        x0 = [b.parameters{b.fittingOptions.modelVarsToFit,2}]';
-        [MLE(m,:,iExp),fMLE(m,iExp)] = b.maximizeLikelihood(x0);
-        [iExp;m;squeeze(MLE(m,:,iExp))']
+        b.fittingOptions.modelVarsToFit = [2,3];   % Only fit two of the parameters
+        x0 = [b.parameters{b.fittingOptions.modelVarsToFit,2}]';  % Initial parameter guess
+        [MLE(m,:,iExp),fMLE(m,iExp)] = b.maximizeLikelihood(x0);  % Run fitting code
     end
-
 end
 
 %% STEP10 == Compute FIM and Compare to MLE Spread
 for m=1:3
-    fimResults{m} = B{m}.computeFIM; 
-    % Compute the FIM for full observations and no distortion.
-    FIM{m} = B{m}.evaluateExperiment(fimResults{m},B{1}.dataSet.nCells);
-    fimFreePars = FIM{m}{1}(b.fittingOptions.modelVarsToFit,b.fittingOptions.modelVarsToFit);
-    b.makeMleFimPlot(squeeze(MLE_tmp(m,:,:)),fimFreePars,[1,2],0.95,100+m,[0.002,1])
+    fimResults{m} = B{m}.computeFIM;  % Compute FIM for individual times
+    % Compute the FIM for full observations
+    FIM{m} = B{m}.evaluateExperiment(fimResults{m},B{m}.dataSet.nCells);
+    iVars = b.fittingOptions.modelVarsToFit; % Indices of free variables.
+    fimFreePars = FIM{m}{1}(iVars,iVars);    % Select FIM for parameters of interest
+    b.makeMleFimPlot(squeeze(MLE(m,:,:)),fimFreePars,[1,2],.95,100+m,[0.002,1]) % Plot results
 end
 
-%% STEP11 == Optimize Experiment (no Distortion)
-Model3=Model1;            % Make copy of original model
-Model3.tSpan = [0:1:180]; % Set allowable experiment times
-nCellsIntuitive = 100*ones(size(Model3.tSpan)); % Set Intuitive Expt Design
-nCellsTotal = sum(nCellsIntuitive); % Compute total number of cells
+%% STEP11 == Add real data to the model
+mReal = Model1;  % Make copy of previous model
+mReal = mReal.loadData('../ExampleData/Dusp1Data.csv',...
+    {'rna','RNA_DUSP1_nuc'},{'Dex_Conc','100'}); % Load data into model
 
-Model3.fittingOptions.modelVarsToFit = 'all'; % Allow Model parameters to be free
-fimResults = Model3.computeFIM; % Compute FIM at all Times
+%% STEP12 == Specify Bayesian Prior and fit.
+% Specify Prior as log-normal distribution with wide uncertainty
+mu_log10 = [-1,-2,0,-2,1,-1,-1];  % Prior log-mean
+sig_log10 = 2*ones(1,7);          % Prior log-standard deviation
+mReal.fittingOptions.logPrior = @(x)-sum((log10(x)-mu_log10).^2./(2*sig_log10.^2));
 
-% Optimize cell counts for different objectives
-nCellsOptDet  = Model3.optimizeCellCounts(fimResults,nCellsTotal,'Determinant');
-nCellsOpt1234 = Model3.optimizeCellCounts(fimResults,nCellsTotal,'[1:4]');
+mReal.fittingOptions.modelVarsToFit = [1:7]; % Choose parameters to search
+DUSP1pars = [mReal.parameters{:,2}];         % Create first parameter guess
+DUSP1pars = mReal.maximizeLikelihood(DUSP1pars); % Fit to maximize likelihood
+mReal.parameters(:,2) = num2cell(DUSP1pars); % Update new parameters.
+mReal.makeFitPlot  % Plot fitting results
+% You may need to re-run this multiple times until converged.
+% I got a MLE of -52,454.1 after a few runs. 
 
-% Compute total FIM under different designs
-FIMintuit = Model3.evaluateExperiment(fimResults,nCellsIntuitive);
-FIMoptDet = Model3.evaluateExperiment(fimResults,nCellsOptDet);
-FIMoptDet1234= Model3.evaluateExperiment(fimResults,nCellsOpt1234);
+%% STEP13 == Compute FIM, Run Metropolis Hastings
+fimResults = mReal.computeFIM([],'log'); % Compute individual FIMs
+fimTotal = mReal.evaluateExperiment(fimResults,mReal.dataSet.nCells,...
+    diag(sig_log10.^2)); % Compute total FIM including effect of prior.
+mReal.fittingOptions.modelVarsToFit = [1:4]; % Choose parameters to search
+FIMfree = fimTotal{1}([1:4],[1:4]); % Select FIM for free parameters.
+COVfree = (1/2*(FIMfree+FIMfree'))^(-1);  % Estimate Covariance using CRLB.
 
-% Plot results
-pars = Model3.parameters{:,2};
-for i=1:6
-    for j = i+1:7
-        subplot(6,6,(i-1)*6+j-1)
-        Model3.makeMleFimPlot([],FIMintuit{1},[j,i],0.95,1,pars); hold on
-        Model3.makeMleFimPlot([],FIMoptDet{1},[j,i],0.95,1,pars)
-        Model3.makeMleFimPlot([],FIMoptDet1234{1},[j,i],0.95,1,pars)
-        legend("off")
-    end
-end
-legend('Intuitive','D-Optimality','$\min \det(\Sigma_{\rm DUSP1})$','interpreter','latex')
-%% STEP12 == Optimize Experiment (including Distortion)
-Model4=Model2;            % Make copy of original model
-Model4.tSpan = [0:1:180]; % Set allowable experiment times
-nCellsIntuitive = 100*ones(size(Model4.tSpan)); % Set Intuitive Expt Design
-nCellsTotal = sum(nCellsIntuitive); % Compute total number of cells
+% Define Metropolis Hasting Settings.
+mReal.fittingOptions.logPrior = @(x)-sum((log10(x)-mu_log10([1:4])).^2./(2*sig_log10([1:4]).^2));
+MHFitOptions = struct('proposalDistribution',@(x)mvnrnd(x,COVfree),...
+    'numberOfSamples',5000);
+[DUSP1pars,~,MHResultsDusp1] = mReal.maximizeLikelihood(...
+    [], MHFitOptions, 'MetropolisHastings'); % Run Metropolis Hastings
+mReal.parameters([1:4],2) = num2cell(DUSP1pars);
 
-Model4.fittingOptions.modelVarsToFit = 'all'; % Allow Model parameters to be free
-Model4.fittingOptions.pdoVarsToFit = [3]; % Allow PDO parameter (RNA) to be free
-fimResults = Model4.computeFIM; % Compute FIM at all Times
+mReal.plotMHResults(MHResultsDusp1,FIMfree,'log',[])
 
-% Optimize cell counts for different objectives
-nCellsOptDet  = Model4.optimizeCellCounts(fimResults,nCellsTotal,'tr[1:7,10]');
+%% STEP14 == Optimize Experiment 
+nCellsOriginal = mReal.dataSet.nCells; % Original Expt Design
+nCellsTotal = sum(nCellsOriginal); % Compute total number of cells
+% Optimize cell counts to minimize uncertainty in parameters 1-4.
+nCellsOpt = mReal.optimizeCellCounts(fimResults,nCellsTotal,'Determinant',...
+    [],[],[],[],diag(sig_log10.^2));
 
-% Compute total FIM under different designs
-FIMintuit = Model4.evaluateExperiment(fimResults,nCellsIntuitive);
-FIMoptDet = Model4.evaluateExperiment(fimResults,nCellsOptDet);
+% Plot experiment designs
+figure()
+bar([1:12],nCellsOriginal,0.4); hold on;
+bar([1:12]+0.5,nCellsOpt,0.4); hold on;
+set(gca,'fontsize',15,'xtick',[1:12]+.25,'xticklabel',mReal.tSpan)
 
-% Plot results
-pars = [[Model4.parameters{:,2}],0.7];
-for i=1:7
-    for j = i+1:8
-        subplot(7,7,(i-1)*7+j-1)
-        F = FIMintuit{1}([1:7,10],[1:7,10]);
-        Model4.makeMleFimPlot([],F,[j,i],0.95,1,pars); hold on
+%% STEP15 == Fit reduced data set
+mRealReduced = mReal;   % Copy previous model
+mRealReduced.fittingOptions.timesToFit = nCellsOpt>0; % Ignore discarded timepoints.
+parsRed = [mRealReduced.parameters{:,2}];  % Create first parameter guess
+parsRed = mRealReduced.maximizeLikelihood(parsRed); % Fit to maximize likelihood
+mRealReduced.parameters(:,2) = num2cell(parsRed);   % Update new parameters.
 
-        F = FIMoptDet{1}([1:7,10],[1:7,10]);
-        Model4.makeMleFimPlot([],F,[j,i],0.95,1,pars)
-
-        legend("off")
-    end
-end
-legend('Intuitive','D-Optimality','$\min \det(\Sigma_{\rm DUSP1})$','interpreter','latex')
+mRealReduced.fittingOptions.timesToFit = ones(size(nCellsOpt),'logical');
+mRealReduced.makeFitPlot  % Plot fitting results
