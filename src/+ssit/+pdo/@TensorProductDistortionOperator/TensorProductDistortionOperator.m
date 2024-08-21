@@ -85,6 +85,7 @@ classdef TensorProductDistortionOperator < ssit.pdo.AbstractDistortionOperator
                     else
                         kSpecies = kSpecies+1; % Use th next in the provided list.
                     end
+
                     % speciesBounds = size(obj.conditionalPmfs{iSpecies},2)
                     pdoFactors{iSpecies} = obj.conditionalPmfs{kSpecies}(:,1:speciesBounds(iSpecies));
                     nonZeroRows = find(sum(pdoFactors{iSpecies},2)~=0,1,'last');
@@ -109,15 +110,17 @@ classdef TensorProductDistortionOperator < ssit.pdo.AbstractDistortionOperator
 
         function dCdLtimesPx = computeDiffPdoPx(obj, px, ~, parameter_idx)
             % Compute the partial derivative PDO times px.
-%             speciesBounds = size(px.data);
-%             speciesCount = length(speciesBounds);
-%             pdoFactors = cell(speciesCount, 1);
-%             for iSpecies = 1:speciesCount
-%                 pdoFactors{iSpecies} = obj.dCdLam{parameter_idx,iSpecies}(:,1:speciesBounds(iSpecies));
-%                 nonZeroRows = find(sum(pdoFactors{iSpecies},2)~=0,1,'last');
-%                 pdoFactors{iSpecies} = obj.dCdLam{parameter_idx,iSpecies}(1:nonZeroRows,1:speciesBounds(iSpecies));
-%             end
+            speciesBounds = size(px.data);
+            speciesCount = length(speciesBounds);
+            
             pdoFactors = obj.dCdLam(:,parameter_idx);
+
+            for iSpecies = 1:speciesCount
+                if ~isempty(pdoFactors{iSpecies})
+                    pdoFactors{iSpecies} = pdoFactors{iSpecies}(:,1:speciesBounds(iSpecies));
+                end
+            end
+            
             pdoParCount = size(pdoFactors,1);
             for iSpecies = 1:pdoParCount
                 sz(iSpecies) = ~isempty(pdoFactors{iSpecies});

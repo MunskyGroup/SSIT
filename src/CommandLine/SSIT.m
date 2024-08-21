@@ -1012,7 +1012,7 @@ classdef SSIT
             end
         end
 
-        function sampleDataFromFSP(obj,fspSoln,saveFile)
+        function A = sampleDataFromFSP(obj,fspSoln,saveFile)
             % Function to create simulated single-cell snapshot data by
             % sampling from the FSP solution.  
             % Arguments:
@@ -1153,7 +1153,21 @@ classdef SSIT
                         for ir = 1:length(redS)
                             redS(ir) = sensSoln.data{it}.S(ir).sumOver(indsUnobserved);
                         end
-                        F = ssit.fim.computeSingleCellFim(sensSoln.data{it}.p.sumOver(indsUnobserved), redS, obj.pdoOptions.PDO);
+
+                        % Truncate to remove PDOs for unobserved species.
+                        PDO = obj.pdoOptions.PDO;
+                        if ~isempty(PDO)&&(length(PDO.conditionalPmfs)>length(obj.species)-length(indsUnobserved))
+                            if length(PDO.conditionalPmfs)==length(obj.species)
+                                PDO.conditionalPmfs = PDO.conditionalPmfs(indsObserved);
+                                if ~isempty(PDO.dCdLam)
+                                    PDO.dCdLam = PDO.dCdLam(indsObserved,indsObserved);
+                                end
+                            else
+                                error('Not clear how to specify PDO for observed species')
+                            end
+                        end
+
+                        F = ssit.fim.computeSingleCellFim(sensSoln.data{it}.p.sumOver(indsUnobserved), redS, PDO);
                     end
                     fimResults{it,1} = F;
                 end
@@ -1493,6 +1507,9 @@ classdef SSIT
                     obj.dataSet.mean(i,j) = sum([0:length(H)-1]'.*H(:))/sum(H);
                 end
             end
+
+            %% Automatically set unobserved species based on loaded data.
+            obj.pdoOptions.unobservedSpecies = setdiff(obj.species,linkedSpecies(:,1))';
 
         end
 
@@ -1929,12 +1946,18 @@ classdef SSIT
             end
             obj.fittingOptions.modelVarsToFit = parIndices;  % Choose which parameters to vary.
             pars0 = [obj.parameters{obj.fittingOptions.modelVarsToFit,2}];
+            
+            fspSoln = obj.solve(); 
+            stateSpace = fspSoln.stateSpace;
+            
             Ngrid=length(scalingRange);
             fitErrors = zeros(Ngrid,Ngrid);
+
+            likeFunction = @(pars)obj.computeLikelihood(pars,stateSpace);
             for i = 1:Ngrid
                 parfor j = 1:Ngrid
                     pars = pars0.*scalingRange([i,j]);
-                    fitErrors(i,j) = obj.computeLikelihood(pars);
+                    fitErrors(i,j) = likeFunction(pars);
                 end
             end
             if makePlot
@@ -1945,7 +1968,7 @@ classdef SSIT
                 
                 % Set minimum contour at -300
                 lkhMin = max(fitErrors,[],'all')-300;
-                contourf(scalingRange*pars0(1),scalingRange*pars0(2),max(fitErrors,lkhMin),30)
+                contourf(scalingRange*pars0(1),scalingRange*pars0(2),max(fitErrors',lkhMin),30)
                 set(gca,'fontsize',15)
                 xlabel(obj.parameters{obj.fittingOptions.modelVarsToFit(1)});
                 ylabel(obj.parameters{obj.fittingOptions.modelVarsToFit(2)});
@@ -1956,7 +1979,7 @@ classdef SSIT
                 [~,J] = max(tmp);
                 plot(scalingRange([1,Ngrid])*pars0(1),pars0(2)*[1,1],'k--','linewidth',3)
                 plot(pars0(1)*[1,1],scalingRange([1,Ngrid])*pars0(2),'k--','linewidth',3)
-                plot(pars0(1)*scalingRange(J),pars0(2)*scalingRange(I(J)),'ro','MarkerSize',20,'MarkerFaceColor','r')
+                plot(pars0(1)*scalingRange(I(J)),pars0(2)*scalingRange(J),'ro','MarkerSize',20,'MarkerFaceColor','r')
             end
         end
                                % WARNING: returns height of posterior instead of likelihood if priors are specified
@@ -1964,7 +1987,7 @@ classdef SSIT
             arguments
                 obj
                 parGuess = [];
-                fitOptions = optimset('Display','none','MaxIter',200);
+                fitOptions = optimset('Display','iter','MaxIter',2000);
                 fitAlgorithm = 'fminsearch';
             end
 
@@ -2061,8 +2084,8 @@ classdef SSIT
                     defaultFitOptions.isPropDistSymmetric=true;
                     defaultFitOptions.thin=1;
                     defaultFitOptions.numberOfSamples=1000;
-                    defaultFitOptions.burnIn=100;
-                    defaultFitOptions.progress=false;
+                    defaultFitOptions.burnIn=0;
+                    defaultFitOptions.progress=true;
                     defaultFitOptions.proposalDistribution=@(x)x+0.1*randn(size(x));
                     defaultFitOptions.numChains = 1;
                     defaultFitOptions.useFIMforMetHast = false;
@@ -2289,7 +2312,7 @@ classdef SSIT
 
         %% Plotting/Visualization Functions
         function makePlot(obj,solution,plotType,indTimes,includePDO,figureNums,... ...
-                lineProps,movieName,maxY,movieSpecies)
+                lineProps,movieName,maxY,movieSpecies,senseVars)
             % SSIT.makePlot -- tool to make plot of the FSP or SSA results.
             % arguments:
             %   solution -- solution structure from SSIT.
@@ -2333,6 +2356,7 @@ classdef SSIT
                 movieName = 'defaultMovie.mp4'
                 maxY = []
                 movieSpecies = []
+                senseVars = []
             end
             if isempty(figureNums)
                 h =  findobj('type','figure');
@@ -2419,7 +2443,7 @@ classdef SSIT
                                     bar([0:length(solution.Marginals{i}{movieSpecies(j)})-1],...
                                         solution.Marginals{i}{movieSpecies(j)},lineProps{:});
                                     set(gca,'fontsize',15,'ylim',[0,maxY(movieSpecies(j))])
-                                    title([obj.species{movieSpecies(j)}])
+                                    title([obj.species{movieSpecies(j)},'; t = ',num2str(solution.T_array(i),'%.0f')])
                                 end
                                 writeVideo(mov,getframe(f))
                             end
@@ -2496,6 +2520,15 @@ classdef SSIT
                         if ~isempty(obj.pdoOptions.PDO)
                             for i=1:length(solution.sens.data)
                                 for j=1:length(solution.sens.data{i}.S)
+
+                                    % Make sure defined PDO has sufficient input range.
+                                    % tensorSizeSens = size(solution.sens.data{i}.S(j).data);
+                                    % for iSp = 1:length(specNames)
+                                    %     if tensorSizeSens(iSp)>size(obj.pdoOptions.PDO.conditionalPmfs{iSp},2)
+                                    %         obj.pdoOptions.PDO = obj.generatePDO(obj.pdoOptions,[],solution.sens.data,true);
+                                    %     end
+                                    % end
+
                                     solution.sens.data{i}.S(j) = obj.pdoOptions.PDO.computeObservationDist(solution.sens.data{i}.S(j));
                                 end
                             end
@@ -2517,7 +2550,11 @@ classdef SSIT
                     Np = size(solution.plotable.sensmdist,1);
                     Nd = size(solution.plotable.sensmdist,2);
                     if isempty(indTimes)
-                        indTimes = length(solution.plotable.T_array);
+                        if strcmp(plotType,'margmovie')
+                            indTimes = solution.plotable.T_array;
+                        else
+                            indTimes = length(solution.plotable.T_array);
+                        end
                     end
                     Nt = length(indTimes);
                     Nr = ceil(sqrt(Np));
@@ -2543,6 +2580,50 @@ classdef SSIT
                                     end
                                 end
                             end
+                        case 'margmovie'
+                            f = figure(figureNums(1)); clf;
+                            set(f,'Position',[ 1000         985         419         253])
+                            
+                            if isempty(maxY)
+                                maxY = [inf*ones(1,Nd);-inf*ones(1,Nd)];
+                                for j = 1:Nd
+                                    for i = 1:Nt
+                                        for k = 1:size(solution.plotable.sensmdist,2)
+                                        maxY(1,j) = min(maxY(1,j),min(solution.plotable.sensmdist{k,j,i}));
+                                        maxY(2,j) = max(maxY(2,j),max(solution.plotable.sensmdist{k,j,i}));
+                                        end
+                                    end
+                                end
+                            end
+
+                            if isempty(senseVars)
+                                senseVars = [1:size(obj.parameters,1)];
+                            end
+                            
+                            mov = VideoWriter(movieName,'MPEG-4');
+                            open(mov);
+
+                            if isempty(movieSpecies)
+                                movieSpecies = [1:Nd];
+                            end
+
+                            for i = 1:Nt
+                                for j = 1:length(movieSpecies)
+                                    for k = 1:length(senseVars)
+                                        jPlot = (k-1)*length(movieSpecies)+j;
+                                        subplot(length(senseVars),length(movieSpecies),jPlot); 
+                                        bar([0:length(solution.plotable.sensmdist{senseVars(k),movieSpecies(j),i})-1],...
+                                        solution.plotable.sensmdist{senseVars(k),movieSpecies(j),i},lineProps{:});
+                                        set(gca,'fontsize',15,'ylim',[maxY(1,movieSpecies(j)),maxY(2,movieSpecies(j))])
+                                        % title([obj.species{movieSpecies(j)},'; t = ',num2str(solution.T_array(i),'%.0f')])
+                                    end
+                                end
+                                writeVideo(mov,getframe(f))
+                            end
+                            close(mov)
+                            disp(['Movie saved as ', movieName]);
+
+
                     end
             end
         end
@@ -2721,7 +2802,7 @@ classdef SSIT
                 for j = i+1:Np
                     subplot(Np-1,Np-1,(i-1)*(Np-1)+j-1);
 
-                    if ~isempty(mhResultsSecondHalf)
+                    if exist('mhResultsSecondHalf','var')&&~isempty(mhResultsSecondHalf)
                         scatter(smplDone(:,j)/log(10),smplDone(:,i)/log(10),20,valDoneSorted,'filled'); hold on;
                         par0 = mean(smplDone(:,[j,i])/log(10));
                         cov12 = cov(smplDone(:,j)/log(10),smplDone(:,i)/log(10));
@@ -2730,11 +2811,10 @@ classdef SSIT
                         for iFIM = 1:length(covFIM)
                             ssit.parest.ellipse(parsScaled([j,i]),icdf('chi2',0.9,2)*covFIM{iFIM}([j,i],[j,i]),fimCols{mod(iFIM,5)+1},'linewidth',2); hold on;
                             plot(parsScaled(j),parsScaled(i),'ks','MarkerSize',15)
-                            plot(smplDone(end,j)/log(10),smplDone(end,i)/log(10),'cs','MarkerSize',15)
-
+                            % plot(smplDone(end,j)/log(10),smplDone(end,i)/log(10),'cs','MarkerSize',15)
                         end
                     end
-                    if ~isempty(mhResultsSecondHalf)
+                    if exist('mhResultsSecondHalf','var')&&~isempty(mhResultsSecondHalf)
                         ssit.parest.ellipse(par0,icdf('chi2',0.9,2)*cov12,'m--','linewidth',2);  hold on;
                     end
                     xlabel(['log_{10}(',parNames{j},')']);
@@ -2772,6 +2852,9 @@ classdef SSIT
                 statistic='mean'
                 covPrior=[]
                 incrementAdd=1
+            end
+            if isempty(statistic)
+                statistic='mean';
             end
             Nt = size(fims,1);
             if isempty(NcMax)
