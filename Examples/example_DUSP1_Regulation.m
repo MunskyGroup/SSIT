@@ -85,7 +85,7 @@ B{3} = Model2.loadData('DUSP1SSAData50Expts.csv',{'rna','exp1_s3_Distorted'});
 %% STEP8 == Sweep overParameters and Plot Likelihood Functions
 fitErrorsB1 = B{1}.likelihoodSweep([2,3],linspace(.5,1.5,11),true);
 title('Ideal data. Original FSP.')
-fitErrorsB2 = B{2}.likelihoodSweep([2,3],libttnspace(.5,1.5,11),true);
+fitErrorsB2 = B{2}.likelihoodSweep([2,3],linspace(.5,1.5,11),true);
 title('Binomial data distortion. Original FSP.')
 fitErrorsB3 = B{3}.likelihoodSweep([2,3],linspace(.5,1.5,11),true);
 title('Binomial data distortion. FSP+PDO.')
