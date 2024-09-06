@@ -1210,7 +1210,7 @@ classdef SSIT
 
             % Add the prior covariance into the FIM calculation if
             % provided. The prior covariance should be in the same scale as
-            % the parameters (e.g.m linear, log, or log10).
+            % the parameters (e.g. linear, log, or log10).
             if isempty(priorCoVariance)
                 PriorFIM = zeros(Np);
             else
