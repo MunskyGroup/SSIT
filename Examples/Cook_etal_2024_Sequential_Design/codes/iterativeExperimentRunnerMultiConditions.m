@@ -48,6 +48,14 @@ showPlots = false;
 maxAvailable = []; 
 
 
+% File to save data to.
+datFileName = saveFileName;
+J = strfind(datFileName,'/');
+if ~isempty(J)
+    datFileName=datFileName(J(end)+1:end);
+end
+
+
 %% Define Model
 switch lower(example)
     case 'poisson'
@@ -76,14 +84,14 @@ switch lower(example)
 
         if isempty(inputLibrary)
             ModelTrue.inputExpressions = {'IDex','5'};
-            ModelTrue = ModelTrue.formPropensitiesGeneral([saveFileName,'_S',num2str(ind)],true);
+            ModelTrue = ModelTrue.formPropensitiesGeneral([datFileName,'_S',num2str(ind)],true);
             ModelTrue = {ModelTrue};
         else
             TMP = cell(1,length(inputLibrary));
             for iInput = 1:length(inputLibrary)
                 TMP{iInput} = ModelTrue;
                 TMP{iInput}.inputExpressions = inputLibrary{iInput};
-                TMP{iInput} = TMP{iInput}.formPropensitiesGeneral([saveFileName,'_s',num2str(iInput)],true);
+                TMP{iInput} = TMP{iInput}.formPropensitiesGeneral(datFileName,true);
             end
             ModelTrue = TMP;
         end
@@ -156,14 +164,14 @@ switch lower(example)
 
         if isempty(inputLibrary)
             ModelTrue.inputExpressions = {'IDex','1'};
-            ModelTrue = ModelTrue.formPropensitiesGeneral([saveFileName,'_S',num2str(ind)],true);
+            ModelTrue = ModelTrue.formPropensitiesGeneral([datFileName,'_S',num2str(ind)],true);
             ModelTrue = {ModelTrue};
         else
             TMP = cell(1,length(inputLibrary));
             for iInput = 1:length(inputLibrary)
                 TMP{iInput} = ModelTrue;
                 TMP{iInput}.inputExpressions = inputLibrary{iInput};
-                TMP{iInput} = TMP{iInput}.formPropensitiesGeneral([saveFileName,'_s',num2str(iInput)],true);
+                TMP{iInput} = TMP{iInput}.formPropensitiesGeneral([datFileName,'_s',num2str(iInput)],true);
             end
             ModelTrue = TMP;
         end
@@ -206,14 +214,14 @@ switch lower(example)
 
         if isempty(inputLibrary)
             ModelTrue.inputExpressions = {'IDex','1'};
-            ModelTrue = ModelTrue.formPropensitiesGeneral([saveFileName,'_S',num2str(ind)],true);
+            ModelTrue = ModelTrue.formPropensitiesGeneral([datFileName,'_S',num2str(ind)],true);
             ModelTrue = {ModelTrue};
         else
             TMP = cell(1,length(inputLibrary));
             for iInput = 1:length(inputLibrary)
                 TMP{iInput} = ModelTrue;
                 TMP{iInput}.inputExpressions = inputLibrary{iInput};
-                TMP{iInput} = TMP{iInput}.formPropensitiesGeneral([saveFileName,'_s',num2str(iInput)],true);
+                TMP{iInput} = TMP{iInput}.formPropensitiesGeneral([datFileName,'_s',num2str(iInput)],true);
             end
             ModelTrue = TMP;
         end
@@ -241,7 +249,7 @@ switch lower(example)
         % end
         %
         % ModelTrue.parameters = truePars;
-        % ModelTrue = ModelTrue.formPropensitiesGeneral(saveFileName,true);
+        % ModelTrue = ModelTrue.formPropensitiesGeneral(datFileName,true);
         % dataToFit = {'rna','exp1_s3'};
         % ModelTrue.pdoOptions.unobservedSpecies = {'on','off'};
         % fitParameters = [1:5];
@@ -281,7 +289,7 @@ switch lower(example)
 
         nSamplesMH = 5000; % Number of MH Samples to run
 
-        ModelTrue = ModelTrue.formPropensitiesGeneral([saveFileName,'_S',num2str(ind)],true);
+        ModelTrue = ModelTrue.formPropensitiesGeneral([datFileName,'_S',num2str(ind)],true);
 
     case 'dusp1'
         ModelTrue = SSIT; % Rename SSIT code to make changes with out changing the original code
@@ -341,7 +349,7 @@ switch lower(example)
             0 0 0 0 40 0 40 0 0 40 0 0;
             80 0 0 0 40 0 0 0 0 0 0 0];
 
-        ModelTrue = ModelTrue.formPropensitiesGeneral([saveFileName,'_S',num2str(ind)],true);
+        ModelTrue = ModelTrue.formPropensitiesGeneral([datFileName,'_S',num2str(ind)],true);
 
     case 'dexgr'
         ModelTrue = SSIT;
@@ -385,14 +393,14 @@ switch lower(example)
         % Create Separate Models for each Provided Input Signal
         if isempty(inputLibrary)
             ModelTrue.inputExpressions = {'IDex','100'};
-            ModelTrue = ModelTrue.formPropensitiesGeneral([saveFileName,'_S',num2str(ind)],true);
+            ModelTrue = ModelTrue.formPropensitiesGeneral([datFileName,'_S',num2str(ind)],true);
             ModelTrue = {ModelTrue};
         else
             TMP = cell(1,length(inputLibrary));
             for iInput = 1:length(inputLibrary)
                 TMP{iInput} = ModelTrue;
                 TMP{iInput}.inputExpressions = inputLibrary{iInput};
-                TMP{iInput} = TMP{iInput}.formPropensitiesGeneral([saveFileName,'_s',num2str(iInput)],true);
+                TMP{iInput} = TMP{iInput}.formPropensitiesGeneral([datFileName,'_s',num2str(iInput)],true);
             end
             ModelTrue = TMP;
         end
@@ -438,14 +446,14 @@ switch lower(example)
         % Create Separate Models for each Provided Input Signal
         if isempty(inputLibrary)
             ModelTrue.inputExpressions = {'IDex','100'};
-            ModelTrue = ModelTrue.formPropensitiesGeneral([saveFileName,'_S',num2str(ind)],true);
+            ModelTrue = ModelTrue.formPropensitiesGeneral([datFileName,'_S',num2str(ind)],true);
             ModelTrue = {ModelTrue};
         else
             TMP = cell(1,length(inputLibrary));
             for iInput = 1:length(inputLibrary)
                 TMP{iInput} = ModelTrue;
                 TMP{iInput}.inputExpressions = inputLibrary{iInput};
-                TMP{iInput} = TMP{iInput}.formPropensitiesGeneral([saveFileName,'_s',num2str(iInput)],true);
+                TMP{iInput} = TMP{iInput}.formPropensitiesGeneral([datFileName,'_s',num2str(iInput)],true);
             end
             ModelTrue = TMP;
         end
@@ -490,14 +498,14 @@ switch lower(example)
         % Create Separate Models for each Provided Input Signal
         if isempty(inputLibrary)
             ModelTrue.inputExpressions = {'IDex','100'};
-            ModelTrue = ModelTrue.formPropensitiesGeneral([saveFileName,'_S',num2str(ind)],true);
+            ModelTrue = ModelTrue.formPropensitiesGeneral([datFileName,'_S',num2str(ind)],true);
             ModelTrue = {ModelTrue};
         else
             TMP = cell(1,length(inputLibrary));
             for iInput = 1:length(inputLibrary)
                 TMP{iInput} = ModelTrue;
                 TMP{iInput}.inputExpressions = inputLibrary{iInput};
-                TMP{iInput} = TMP{iInput}.formPropensitiesGeneral([saveFileName,'_s',num2str(iInput)],true);
+                TMP{iInput} = TMP{iInput}.formPropensitiesGeneral([datFileName,'_s',num2str(iInput)],true);
             end
             ModelTrue = TMP;
         end
@@ -550,14 +558,14 @@ switch lower(example)
         % Create Separate Models for each Provided Input Signal
         if isempty(inputLibrary)
             ModelTrue.inputExpressions = {'IDex','100'};
-            ModelTrue = ModelTrue.formPropensitiesGeneral([saveFileName,'_S',num2str(ind)],true);
+            ModelTrue = ModelTrue.formPropensitiesGeneral([datFileName,'_S',num2str(ind)],true);
             ModelTrue = {ModelTrue};
         else
             TMP = cell(1,length(inputLibrary));
             for iInput = 1:length(inputLibrary)
                 TMP{iInput} = ModelTrue;
                 TMP{iInput}.inputExpressions = inputLibrary{iInput};
-                TMP{iInput} = TMP{iInput}.formPropensitiesGeneral([saveFileName,'_s',num2str(iInput)],true);
+                TMP{iInput} = TMP{iInput}.formPropensitiesGeneral([datFileName,'_s',num2str(iInput)],true);
             end
             ModelTrue = TMP;
         end
@@ -608,11 +616,11 @@ for iInput = 1:nInputs
 
     %% Verify that the true model and simulated data look correct.
     if showPlots
-        dataFile = ['simData/FakeExperiment_',saveFileName,'_',num2str(iInput),'.csv'];
+        dataFile = ['simData/FakeExperiment_',datFileName,'_',num2str(iInput),'.csv'];
         nextExperiment = 100*ones(1,nT);
         ModelTrue{iInput}.ssaOptions.nSimsPerExpt = max(nextExperiment);
         ModelTrue{iInput}.ssaOptions.Nexp = 1;
-        ModelTrue{iInput}.sampleDataFromFSP(ModelSolution{iInput},dataFile)
+        ModelTrue{iInput}.sampleDataFromFSP(ModelSolution{iInput},dataFile);
         ModelTMP = ModelTrue{iInput}.loadData(dataFile,dataToFit);
         ModelTMP.makeFitPlot([],1);
     end
@@ -684,7 +692,7 @@ for iExpt = 1:nExptRounds
         case 'real'
             % Sample from real data
             [~,dataFile,allDataSoFar,maxAvailable] = sampleGRExperiment('ExampleData/Gated_dataframe_Ron_030624_NormalizedGR_bins.csv',...
-                ModelTrue{1}.tSpan,[1,10,100],nTotalCells,iExpt,saveFileName);
+                ModelTrue{1}.tSpan,[1,10,100],nTotalCells,iExpt,datFileName);
             dataToFit = {'cytGR','normgrcyt';'nucGR','normgrnuc'};
         case 'simulated'
             % Generate "Fake" data
@@ -695,8 +703,7 @@ for iExpt = 1:nExptRounds
                     error('Length of tSpan does not match experiment time points.')
                 end
 
-                % File to save data to.
-                dataFile{iInput} = ['simData/FakeExperiment_',saveFileName,'_',num2str(iInput),'.csv'];
+                dataFile{iInput} = ['simData/FakeExperiment_',datFileName,'_',num2str(iInput),'.csv'];
 
                 % Experiment settings - number of sims and 1 replica
                 ModelTrue{iInput}.ssaOptions.nSimsPerExpt = max(nextExperiment(iInput,:));
@@ -705,7 +712,7 @@ for iExpt = 1:nExptRounds
                 if ModelTrue{iInput}.ssaOptions.nSimsPerExpt>0
                     % Sample and save the simulated data
                     ModelTrue{iInput}.sampleDataFromFSP(ModelSolution{iInput},...
-                        dataFile{iInput})
+                        dataFile{iInput});
 
                     % DownSelect fake data to specified number of cells at each time
                     X = importdata(dataFile{iInput});
@@ -737,7 +744,7 @@ for iExpt = 1:nExptRounds
     hasData = zeros(1,nInputs,'logical');
     stateSpaces = cell(1,nInputs);
     for iInput = 1:nInputs
-        if ~isempty(allDataSoFar{iInput})&&sum(allDataSoFar{iInput})>0
+        if ~isempty(allDataSoFar{iInput})&&max(sum(allDataSoFar{iInput}))>0
             hasData(iInput) = true;
             ModelGuess{iInput} = ModelGuess{iInput}.loadData(dataFile{iInput},dataToFit);
             ModelGuess{iInput}.tSpan = ModelTrue{iInput}.tSpan;
@@ -790,7 +797,7 @@ for iExpt = 1:nExptRounds
         nThinMH = 2; % Thin rate for MH sampling
         nBurnMH = 1; % Number for MH burn in
         MHFitOptions.progress=false;
-        MHFitOptions.saveFile = ['TMPMHChain_',saveFileName,'_',num2str(ind),'.mat'];
+        MHFitOptions.saveFile = ['TMPMHChain_',datFileName,'_',num2str(ind),'.mat'];
 
         % Delete old file if it exists.
         delete(MHFitOptions.saveFile)

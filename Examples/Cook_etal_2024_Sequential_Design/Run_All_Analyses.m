@@ -10,7 +10,7 @@ addpath(genpath('../../src'));
 addpath('codes')
 
 %% Specific which figures to generate and then run script.
-Figure_to_Generate = 3;
+Figure_to_Generate = 1;
 switch Figure_to_Generate
     case 1  % Figure 1.
         %%   Generate (or load saved) results
