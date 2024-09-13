@@ -91,91 +91,12 @@ switch lower(example)
             for iInput = 1:length(inputLibrary)
                 TMP{iInput} = ModelTrue;
                 TMP{iInput}.inputExpressions = inputLibrary{iInput};
-                TMP{iInput} = TMP{iInput}.formPropensitiesGeneral(datFileName,true);
-            end
-            ModelTrue = TMP;
-        end
-
-
-    case 'burst'
-        ModelTrue = SSIT;
-        ModelTrue.species = {'on';'off';'rna'};
-        ModelTrue.initialCondition = [0;1;0];
-        ModelTrue.propensityFunctions = {'kon*off';'koff*on';'kr*on';'gr*rna'};
-        ModelTrue.stoichiometry = [1,-1,0,0;...
-            -1,1,0,0;...
-            0,0,1,-1];
-        if isempty(truePars)
-            truePars = ({'kon',0.1;'koff',0.2;'kr',10;'gr',0.3});
-        end
-        ModelTrue.parameters = truePars;
-        ModelTrue = ModelTrue.formPropensitiesGeneral([saveFileName,'_S',num2str(ind)],true);
-        dataToFit = {'rna','exp1_s3'};
-        fitParameters = [1:4];
-        nT = 61;
-        ModelTrue.tSpan = linspace(0,30,nT);
-        fimMetric = 'DetCovariance'; %'Determinant'';
-        nSamplesMH = 5000; % Number of MH Samples to run
-        ModelTrue.pdoOptions.unobservedSpecies = {'on','off'};
-
-        %% Prior
-        muLog10Prior = [0,0,0,0];
-        sigLog10Prior = [2 2 2 2];
-        ModelTrue.fittingOptions.modelVarsToFit = fitParameters;
-        ModelTrue.fittingOptions.logPrior = @(p)-(log10(p(:))-muLog10Prior').^2./(2*sigLog10Prior'.^2);
-        ModelTrue.fittingOptions.logPriorCovariance = diag(sigLog10Prior.^2*log(10^2));
-
-    case 'uncertainburst'
-        ModelTrue = SSIT;
-        ModelTrue.species = {'on';'off';'rna'};
-        ModelTrue.initialCondition = [0;1;0];
-        ModelTrue.propensityFunctions = {...
-            'kon*((1-2*atan(alph)/pi) + 2*atan(alph)/pi*((1e-6+IDex*(t>0))/(M+((0.1+IDex*(t>0))))))*off';...
-            'koff*(2*atan(alph)/pi + (1-2*atan(alph)/pi) / (((1e-6+IDex*(t>0))/(M+((0.1+IDex*(t>0)))))))*on';...
-            'kr*on';'gr*rna'};
-        ModelTrue.stoichiometry = [1,-1,0,0;...
-            -1,1,0,0;...
-            0,0,1,-1];
-
-        ModelTrue.fspOptions.initApproxSS = false;
-        ModelTrue.fspOptions.usePiecewiseFSP = true;
-        ModelTrue.fspOptions.constantJacobian = true;
-        ModelTrue.fspOptions.constantJacobianTime = 1.1;
-        ModelTrue.fspOptions.bounds = [0;0;0;1;1;75];
-
-        if isempty(truePars)
-            truePars = ({'kon',0.1;'koff',0.2;'kr',10;'gr',0.3;'M',4;'alph',1e-4});
-        end
-        ModelTrue.parameters = truePars;
-        dataToFit = {'rna','exp1_s3'};
-        ModelTrue.pdoOptions.unobservedSpecies = {'on','off'};
-        fitParameters = [1:6];
-        nT = 61;
-        ModelTrue.tSpan = linspace(0,30,nT);
-        fimMetric = 'GR1:5'; %'Determinant'';
-        nSamplesMH = 5000; % Number of MH Samples to run
-
-        %% Prior
-        muLog10Prior = [0,0,0,0,0,0];
-        sigLog10Prior = [2 2 2 2 2,2];
-        ModelTrue.fittingOptions.modelVarsToFit = fitParameters;
-        ModelTrue.fittingOptions.logPrior = @(p)-(log10(p(:))-muLog10Prior').^2./(2*sigLog10Prior'.^2);
-        ModelTrue.fittingOptions.logPriorCovariance = diag(sigLog10Prior.^2*log(10^2));
-
-        if isempty(inputLibrary)
-            ModelTrue.inputExpressions = {'IDex','1'};
-            ModelTrue = ModelTrue.formPropensitiesGeneral([datFileName,'_S',num2str(ind)],true);
-            ModelTrue = {ModelTrue};
-        else
-            TMP = cell(1,length(inputLibrary));
-            for iInput = 1:length(inputLibrary)
-                TMP{iInput} = ModelTrue;
-                TMP{iInput}.inputExpressions = inputLibrary{iInput};
                 TMP{iInput} = TMP{iInput}.formPropensitiesGeneral([datFileName,'_s',num2str(iInput)],true);
             end
             ModelTrue = TMP;
         end
-    case 'uncertainburst2'
+   
+    case 'burst'
         ModelTrue = SSIT;
         ModelTrue.species = {'on';'off';'rna'};
         ModelTrue.initialCondition = [0;1;0];
@@ -187,10 +108,6 @@ switch lower(example)
             -1,1,0,0;...
             0,0,1,-1];
 
-        % ModelTrue.fspOptions.initApproxSS = false;
-        % ModelTrue.fspOptions.usePiecewiseFSP = true;
-        % ModelTrue.fspOptions.constantJacobian = true;
-        % ModelTrue.fspOptions.constantJacobianTime = 1.1;
         ModelTrue.fspOptions.bounds = [0;0;0;1;1;75];
 
         if isempty(truePars)
@@ -230,239 +147,7 @@ switch lower(example)
         maxFitIter = 2000;
         nFitRounds = 5;
 
-    case 'feedbackburst'
-        % ModelTrue = SSIT;
-        % ModelTrue.species = {'on';'off';'rna'};
-        % ModelTrue.initialCondition = [0;1;0];
-        % ModelTrue.propensityFunctions = {'kon*((1-2*atan(alph)/pi)+2*atan(alph)/pi*Iu_on)*off';...
-        %     'koff*(2*atan(alph)/pi+(1-2*atan(alph)/pi)*Iu_off)*on';...
-        %     'kr*on';'gr*rna'};
-        % ModelTrue.stoichiometry = [1,-1,0,0;...
-        %     -1,1,0,0;...
-        %     0,0,1,-1];
-        %
-        % ModelTrue.inputExpressions = {'Iu_on','(t>0)*(t^2/(10^2+t^2))';...
-        %     'Iu_off','(t>0)*(10^2/(10^2+t^2))'};
-        %
-        % if isempty(truePars)
-        %     truePars = ({'kon',0.1;'koff',0.2;'kr',10;'gr',0.3;'alph',1e-4});
-        % end
-        %
-        % ModelTrue.parameters = truePars;
-        % ModelTrue = ModelTrue.formPropensitiesGeneral(datFileName,true);
-        % dataToFit = {'rna','exp1_s3'};
-        % ModelTrue.pdoOptions.unobservedSpecies = {'on','off'};
-        % fitParameters = [1:5];
-        % nT = 61;
-        % ModelTrue.tSpan = linspace(0,30,nT);
-        % fimMetric = 'DetCovariance'; %'Determinant'';
-        % nSamplesMH = 1000; % Number of MH Samples to run
-        %
-        % %% Prior
-        % muLog10Prior = [0,0,0,0,0];
-        % sigLog10Prior = [2 2 2 2 2];
-        % ModelTrue.fittingOptions.modelVarsToFit = fitParameters;
-        % ModelTrue.fittingOptions.logPrior = @(p)-(log10(p(:))-muLog10Prior').^2./(2*sigLog10Prior'.^2);
-        % ModelTrue.fittingOptions.logPriorCovariance = diag(sigLog10Prior.^2*log(10^2));
-        %
-
-    case 'toggle'
-        ModelTrue = SSIT;
-        if isempty(truePars)
-            truePars = {'kb',10;'ka',80;'M',20;'g',1};
-        end
-        ModelTrue.parameters = truePars;
-        ModelTrue.species = {'lacI';'lambdaCI'};
-        ModelTrue.stoichiometry = [1,-1,0, 0;...
-            0, 0,1,-1];
-        ModelTrue.propensityFunctions = {'kb+ka*M^3/(M^3+lambdaCI^3)';...
-            'g*lacI';...
-            'kb+ka*M^3/(M^3+lacI^3)';...
-            'g*lambdaCI'};
-        ModelTrue.initialCondition = [0;0];
-        ModelTrue.customConstraintFuns = {'(x1-3).^2.*(x2-3).^2'};
-        dataToFit = {'lacI','exp1_s1';'lambdaCI','exp1_s2'};
-        fitParameters = [1:4];
-        nT = 21;
-        ModelTrue.tSpan = linspace(0,10,nT);
-        fimMetric = 'DetCovariance'; %'Determinant'';
-
-        nSamplesMH = 5000; % Number of MH Samples to run
-
-        ModelTrue = ModelTrue.formPropensitiesGeneral([datFileName,'_S',num2str(ind)],true);
-
-    case 'dusp1'
-        ModelTrue = SSIT; % Rename SSIT code to make changes with out changing the original code
-        ModelTrue.species = {'x1';'x2'}; % x1: number of on alleles,  x2: mRNA
-        ModelTrue.initialCondition = [0;0]; % Set initial conditions
-        ModelTrue.propensityFunctions = {'kon*IGR*(2-x1)';'koff*x1';'kr*x1';'gr*x2'}; % Set the propensity functions of the 4 reactions
-        % Associated stoichiometry of the four reactions
-        stoich = [1,0;   % Gene allele switching to on state
-            -1,0;   % Gene allele switching to off state
-            0,1;   % mRNA production
-            0,-1]; % mRNA degredation
-        ModelTrue.stoichiometry = transpose(stoich);
-        % Input expression for time varying signals
-        ModelTrue.inputExpressions = {'IGR','kcn0/knc+(t>=0)*kcn1/(r1-knc)*(exp(-knc*t)-exp(-r1*t))'};
-        % Defining the values of each parameter used
-
-        %ModelTrue.parameters = ({'koff',0.14;'kon',1;'kr',1;'gr',0.01;...
-        %                   'kcn0',0.01;'kcn1',0.1;'knc',1;'r1',0.01});
-        if isempty(truePars)
-            truePars = load('SGRS_model_v1.mat').SGRS_Model.parameters;
-        end
-        ModelTrue.parameters = truePars;
-        ModelTrue.fspOptions.initApproxSS = true;
-
-        dataToFit = {'x2','exp1_s2'};
-        fitParameters = [1:4];
-        timeDUSP1 = [0 10 20 30 40 50 60 75 90 120 150 180];
-        nT = length(timeDUSP1);
-        ModelTrue.tSpan = timeDUSP1;
-        ModelTrue.fspOptions.bounds(3:4) = [2.1,100];
-        fimMetric = 'TR1:4';
-        ModelTrue.pdoOptions.unobservedSpecies = {'x1'};
-
-        muLog10Prior = [-1 -1 -1 -2 -2 -2 -2 -2];
-        sigLog10Prior = [2 2 2 2 2 2 2 2];
-        ModelTrue.fittingOptions.modelVarsToFit = fitParameters;
-        muLog10Prior = muLog10Prior(ModelTrue.fittingOptions.modelVarsToFit);
-        sigLog10Prior = sigLog10Prior(ModelTrue.fittingOptions.modelVarsToFit);
-        ModelTrue.fittingOptions.logPrior = @(p)-(log10(p(:))-muLog10Prior').^2./(2*sigLog10Prior'.^2);
-
-        nSamplesMH = 5000; % Number of MH Samples to run
-
-        %         intuitiveDesign = [50 0 50 0 50 0 50 0 50 0 0 50;
-        %                              75 0 0 75 0 0 75 0 0 0 75 0;
-        %                              0 0 0 100 0 0 100 0 0 100 0 0;
-        %                              0 0 0 100 0 0 0 100 0 100 0 0;
-        %                              0 0 0 0 100 0 100 0 0 100 0 0];
-
-        intuitiveDesign = [20 0 20 0 20 0 20 0 20 0 0 20;
-            30 0 0 30 0 0 30 0 0 0 30 0;
-            0 0 0 40 0 0 40 0 0 40 0 0;
-            0 0 0 40 0 0 0 40 0 40 0 0;
-            0 0 0 0 40 0 40 0 0 40 0 0;
-            0 0 40 0 40 0 0 40 0 0 0 0;
-            40 0 0 0 40 0 0 0 0 0 0 0;
-            0 0 0 40 0 0 0 40 0 40 0 0;
-            0 0 0 0 40 0 40 0 0 40 0 0;
-            80 0 0 0 40 0 0 0 0 0 0 0];
-
-        ModelTrue = ModelTrue.formPropensitiesGeneral([datFileName,'_S',num2str(ind)],true);
-
-    case 'dexgr'
-        ModelTrue = SSIT;
-        ModelTrue.species = {'cytGR';'nucGR'};
-        ModelTrue.initialCondition = [20;1];
-        ModelTrue.fspOptions.bounds = [0,0,30,30];
-        ModelTrue.fspOptions.verbose = false;
-        ModelTrue.fspOptions.fspIntegratorAbsTol = 1e-10;
-        ModelTrue.propensityFunctions = {'(kcn0 + (t>0)*kcn1*IDex/(MDex+IDex)) * cytGR';...
-            'knc*nucGR';...
-            'kg1';'gnuc*nucGR'};
-        ModelTrue.stoichiometry = [-1,1,1,0;...
-            1,-1,0,-1];
-        ModelTrue.customConstraintFuns = {'x1+x2'};
-
-        if isempty(truePars)
-            truePars = {'kcn0',0.005;'kcn1',0.08;'knc',0.014;...
-                'kg1',0.012;'gnuc',0.005;'MDex',10.44};
-        end
-        ModelTrue.parameters = truePars;
-
-        ModelTrue.fspOptions.initApproxSS = true;
-        ModelTrue.fspOptions.usePiecewiseFSP = true;
-        ModelTrue.fspOptions.constantJacobian = true;
-        ModelTrue.fspOptions.constantJacobianTime = 0.1;
-
-        dataToFit = {'cytGR','exp1_s1';'nucGR','exp1_s2'};
-        % dataToFit = {'cytGR','exp1_s1'};
-        fitParameters = [1:6];
-        nT = 6;
-        ModelTrue.tSpan = [0,10,30,50,75,180];
-        fimMetric = 'DetCovariance'; %'Determinant'';
-
-        %% Prior
-        muLog10Prior = [-2 -1 -2 -2 -2 1];
-        sigLog10Prior = 2*ones(1,6);
-        ModelTrue.fittingOptions.modelVarsToFit = fitParameters;
-        ModelTrue.fittingOptions.logPrior = @(p)-(log10(p(:))-muLog10Prior').^2./(2*sigLog10Prior'.^2);
-        ModelTrue.fittingOptions.logPriorCovariance = diag(sigLog10Prior.^2*log(10^2));
-
-        % Create Separate Models for each Provided Input Signal
-        if isempty(inputLibrary)
-            ModelTrue.inputExpressions = {'IDex','100'};
-            ModelTrue = ModelTrue.formPropensitiesGeneral([datFileName,'_S',num2str(ind)],true);
-            ModelTrue = {ModelTrue};
-        else
-            TMP = cell(1,length(inputLibrary));
-            for iInput = 1:length(inputLibrary)
-                TMP{iInput} = ModelTrue;
-                TMP{iInput}.inputExpressions = inputLibrary{iInput};
-                TMP{iInput} = TMP{iInput}.formPropensitiesGeneral([datFileName,'_s',num2str(iInput)],true);
-            end
-            ModelTrue = TMP;
-        end
-
-        % MLE Fitting Options
-        nSamplesMH = 5000; % Number of MH Samples to run
-        maxFitIter = 2000;
-        nFitRounds = 5;
-
-    case 'dexgr_simplified'
-        ModelTrue = SSIT;
-        ModelTrue.species = {'cytGR';'nucGR'};
-        ModelTrue.initialCondition = [20;1];
-        ModelTrue.fspOptions.bounds = [0,0,30,30];
-        ModelTrue.fspOptions.verbose = false;
-        ModelTrue.fspOptions.fspIntegratorAbsTol = 1e-10;
-        ModelTrue.propensityFunctions = {'(kcn0 + (t>0)*kcn1*IDex/(MDex+IDex)) * cytGR';...
-            'knc*nucGR'; 'kg1';'0.005*nucGR'};
-        ModelTrue.stoichiometry = [-1,1,1,0;...
-            1,-1,0,-1];
-        ModelTrue.customConstraintFuns = {'x1+x2'};
-
-        ModelTrue.parameters = truePars;
-        ModelTrue.fspOptions.initApproxSS = true;
-        ModelTrue.fspOptions.usePiecewiseFSP = true;
-        ModelTrue.fspOptions.constantJacobian = true;
-        ModelTrue.fspOptions.constantJacobianTime = 0.1;
-
-        dataToFit = {'cytGR','exp1_s1';'nucGR','exp1_s2'};
-        % dataToFit = {'cytGR','exp1_s1'};
-        fitParameters = [1:5];
-        nT = 6;
-        ModelTrue.tSpan = [0,10,30,50,75,180];
-        fimMetric = 'DetCovariance'; %'Determinant'';
-
-        %% Prior
-        muLog10Prior = [-2 -1 -2 -2 1];
-        sigLog10Prior = 2*ones(1,5);
-        ModelTrue.fittingOptions.modelVarsToFit = fitParameters;
-        ModelTrue.fittingOptions.logPrior = @(p)-(log10(p(:))-muLog10Prior').^2./(2*sigLog10Prior'.^2);
-        ModelTrue.fittingOptions.logPriorCovariance = diag(sigLog10Prior.^2*log(10^2));
-
-        % Create Separate Models for each Provided Input Signal
-        if isempty(inputLibrary)
-            ModelTrue.inputExpressions = {'IDex','100'};
-            ModelTrue = ModelTrue.formPropensitiesGeneral([datFileName,'_S',num2str(ind)],true);
-            ModelTrue = {ModelTrue};
-        else
-            TMP = cell(1,length(inputLibrary));
-            for iInput = 1:length(inputLibrary)
-                TMP{iInput} = ModelTrue;
-                TMP{iInput}.inputExpressions = inputLibrary{iInput};
-                TMP{iInput} = TMP{iInput}.formPropensitiesGeneral([datFileName,'_s',num2str(iInput)],true);
-            end
-            ModelTrue = TMP;
-        end
-
-        % MLE Fitting Options
-        nSamplesMH = 1000; % Number of MH Samples to run
-        maxFitIter = 500;
-        nFitRounds = 5;
-    case 'dexgr_simplified_gr'
+    case 'gr'
         ModelTrue = SSIT;
         ModelTrue.species = {'cytGR';'nucGR'};
         ModelTrue.initialCondition = [20;1];
@@ -515,72 +200,12 @@ switch lower(example)
         maxFitIter = 1000;
         nFitRounds = 5;
 
-    case 'dexgr_obsvcyt'
-        ModelTrue = SSIT;
-        ModelTrue.species = {'cytGR';'nucGR'};
-        ModelTrue.initialCondition = [20;1];
-        ModelTrue.fspOptions.bounds = [0,0,30,30];
-        ModelTrue.fspOptions.verbose = false;
-        ModelTrue.fspOptions.fspIntegratorAbsTol = 1e-10;
-        ModelTrue.propensityFunctions = {'(kcn0 + (t>0)*kcn1*IDex/(MDex+IDex)) * cytGR';...
-            'knc*nucGR';...
-            'kg1';'gnuc*nucGR'};
-        ModelTrue.stoichiometry = [-1,1,1,0;...
-            1,-1,0,-1];
-        ModelTrue.customConstraintFuns = {'x1+x2'};
-
-        if isempty(truePars)
-            truePars = {'kcn0',0.005;'kcn1',0.08;'knc',0.014;...
-                'kg1',0.012;'gnuc',0.005;'MDex',10.44};
-        end
-        ModelTrue.parameters = truePars;
-
-        ModelTrue.fspOptions.initApproxSS = true;
-        ModelTrue.fspOptions.usePiecewiseFSP = true;
-        ModelTrue.fspOptions.constantJacobian = true;
-        ModelTrue.fspOptions.constantJacobianTime = 0.1;
-
-        dataToFit = {'cytGR','exp1_s1'};
-        ModelTrue.pdoOptions.unobservedSpecies = {'nucGR'};
-
-        fitParameters = [1:6];
-        nT = 6;
-        ModelTrue.tSpan = [0,10,30,50,75,180];
-        fimMetric = 'DetCovariance'; %'Determinant'';
-
-        %% Prior
-        muLog10Prior = [-2 -1 -2 -2 -2 1];
-        sigLog10Prior = 2*ones(1,6);
-        ModelTrue.fittingOptions.modelVarsToFit = fitParameters;
-        ModelTrue.fittingOptions.logPrior = @(p)-(log10(p(:))-muLog10Prior').^2./(2*sigLog10Prior'.^2);
-        ModelTrue.fittingOptions.logPriorCovariance = diag(sigLog10Prior.^2*log(10^2));
-
-        % Create Separate Models for each Provided Input Signal
-        if isempty(inputLibrary)
-            ModelTrue.inputExpressions = {'IDex','100'};
-            ModelTrue = ModelTrue.formPropensitiesGeneral([datFileName,'_S',num2str(ind)],true);
-            ModelTrue = {ModelTrue};
-        else
-            TMP = cell(1,length(inputLibrary));
-            for iInput = 1:length(inputLibrary)
-                TMP{iInput} = ModelTrue;
-                TMP{iInput}.inputExpressions = inputLibrary{iInput};
-                TMP{iInput} = TMP{iInput}.formPropensitiesGeneral([datFileName,'_s',num2str(iInput)],true);
-            end
-            ModelTrue = TMP;
-        end
-
-        % MLE Fitting Options
-        nSamplesMH = 5000; % Number of MH Samples to run
-        maxFitIter = 2000;
-        nFitRounds = 5;
-
 end
 % Shut down the parallel pool to do rest of the work on the CPU.
 % delete(gcp('nocreate'));
 
 nInputs = length(inputLibrary);
-fitOptions = optimset('Display','none','MaxIter',maxFitIter);
+fitOptions = optimset('Display','iter','MaxIter',maxFitIter);
 
 if testing
     % When testing, use exact parameters 
@@ -775,7 +400,7 @@ for iExpt = 1:nExptRounds
     % Show fit plots if requested.
     if showPlots
         for iInput = 1:nInputs
-            if ~isempty(allDataSoFar{iInput})&&sum(allDataSoFar{iInput})>0
+            if ~isempty(allDataSoFar{iInput})&&max(sum(allDataSoFar{iInput}))>0
                 ModelGuess{iInput}.fspOptions.fspTol = 1e-8;
                 ModelGuess{iInput}.makeFitPlot([],1);
                 % ModelGuess{iInput}.fspOptions.fspTol = inf;
@@ -834,9 +459,9 @@ for iExpt = 1:nExptRounds
     
         FIMfree = FIM{1}(ModelGuess{1}.fittingOptions.modelVarsToFit,ModelGuess{1}.fittingOptions.modelVarsToFit);
      
-        if min(eig(FIMfree))<0.5
+        if min(eig(FIMfree))<0.1
             disp('Warning -- FIM has one or more small eigenvalues.  Reducing proposal in those directions. MH Convergence may be slow.')
-            FIMfree = FIMfree + 0.5*eye(length(FIMfree));
+            FIMfree = FIMfree + 0.1*eye(length(FIMfree));
         end
      
         % Use FIM to define MHA proposal function (FIM -> covariance of MVN)

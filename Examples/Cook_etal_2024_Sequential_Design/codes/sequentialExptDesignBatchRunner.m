@@ -12,8 +12,6 @@ nRounds = 8;
 initialExperiment = [];
 nFIMsamples = 10;
 
-jobID = 1000*iModel+100*iDesign+rngSeed;
-
 switch iDesign
     case 1
         design = 'fimopt';
@@ -42,14 +40,9 @@ switch iModel
     case 'Burst' % Uncertain Burst
         %% Burst Model With Unknown Control Mechanism
         truePars = ({'kon',0.1;'koff',0.2;'kr',10;'gr',0.3;'M',4;'alph',1e-4});
-        % inputLibrary = {{'IDex','0.1+1*(t>=0)'},{'IDex','0.1+2*(t>=0)'},...
-        %     {'IDex','0.1+3*(t>=0)'},{'IDex','0.1+4*(t>=0)'},...
-        %     {'IDex','0.1+5*(t>=0)'},{'IDex','0.1+6*(t>=0)'},...
-        %     {'IDex','0.1+7*(t>=0)'},{'IDex','0.1+8*(t>=0)'},...
-        %     {'IDex','0.1+9*(t>=0)'},{'IDex','0.1+10*(t>=0)'}};
         inputLibrary = {{'IDex','1'},{'IDex','2'},{'IDex','3'},{'IDex','4'},{'IDex','5'},{'IDex','6'},...
             {'IDex','7'},{'IDex','8'},{'IDex','9'},{'IDex','10'}};
-        model = 'uncertainBurst2';
+        model = 'burst';
         numCellsPerExperiment = 300;
         initialParGuess = 10.^[-1 -1 1 -1 1 0];
         % initialParGuess = [truePars{:,2}];
@@ -68,7 +61,7 @@ switch iModel
 
         inputLibrary = {{'IDex','1'},{'IDex','10'},{'IDex','100'}};
         initialParGuess = 10.^[-2 1 -2 -2 -2 1];
-        model = 'GR';
+        model = 'gr';
         numCellsPerExperiment = 300;
         datType = 'real';
 
@@ -82,6 +75,7 @@ switch iModel
         iModel = 8;
 end
 
+jobID = 1000*iModel+100*iDesign+rngSeed;
 
 TestCases = struct('model',{model},...
     'expDesign',{design},...

@@ -1307,9 +1307,9 @@ classdef SSIT
             end
             switch FIMMetric
                 case 'Determinant'
-                    met = @(A)-det(A);
+                    met = @(A)-max(0,det(A));
                 case 'DetCovariance'
-                    met = @(A)det(inv(A));
+                    met = @(A)max(0,det(inv(A)));
                 case 'Smallest Eigenvalue'
                     met = @(A)-min(eig(A));
                 case 'Trace'
@@ -1317,20 +1317,20 @@ classdef SSIT
                 otherwise
                     if strcmp(FIMMetric(1:2),'TR')
                         k = eval(FIMMetric(3:end));
-                        met = @(A)det(inv(A(k,k)));
+                        met = @(A)max(0,det(inv(A(k,k))));
                     elseif strcmp(FIMMetric(1:2),'tr')
                         k = eval(FIMMetric(3:end));
-                        met = @(A)-det((A(k,k)));
+                        met = @(A)-max(0,det((A(k,k))));
                     elseif strcmp(FIMMetric(1:2),'GR')
                         k = eval(FIMMetric(3:end));
                         ek = zeros(length(k),length(fims{1}));
                         ek(1:length(k),k) = eye(length(k));
-                        met = @(A)det(ek*inv(A)*ek');
+                        met = @(A)max(0,det(ek*inv(A)*ek'));
                     else  % all parameters are free.
                         k = eval(FIMMetric);
                         ek = zeros(length(k),length(fims{1}));
                         ek(1:length(k),k) = eye(length(k));
-                        met = @(A)det(ek*inv(A)*ek');
+                        met = @(A)max(0,det(ek*inv(A)*ek'));
                     end
             end
             NT = size(fims,1);
