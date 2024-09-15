@@ -34,3 +34,6 @@ jobs:
       - name: Verify complete success
         if: ${{ failure() }}
         run: echo "::error::Setup and/or tests failed"          
+  my-job-completed:
+    name: Verify Complete Success
+    needs: my-job
