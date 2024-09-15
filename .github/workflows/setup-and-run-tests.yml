@@ -28,3 +28,6 @@ jobs:
           test-results-junit: test-results/results.xml
           code-coverage-cobertura: code-coverage/coverage.xml
           source-folder: src
+      - name: Verify complete success
+        if: ${{ failure() }}
+        run: exit 1          
