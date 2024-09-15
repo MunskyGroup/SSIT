@@ -33,4 +33,4 @@ jobs:
           source-folder: src
       - name: Verify complete success
         if: ${{ failure() }}
-        run: exit 1          
+        run: echo "::error::Setup and/or tests failed"          
