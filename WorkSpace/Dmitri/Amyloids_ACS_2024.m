@@ -211,7 +211,8 @@ for counter = 1 : length(initial_monomer_population)
     ModelList{counter} = newModel;
     ParameterList{counter} = 1:length(newModel.parameters);
 end
-
+%%
+newModel.solve
 %% Set fitting options:
 fitAlgorithm = 'fminsearch';
 fitOptions = optimset('Display', 'final', 'MaxIter', 500);
