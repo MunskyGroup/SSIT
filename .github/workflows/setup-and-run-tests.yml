@@ -7,9 +7,7 @@ jobs:
     continue-on-error: true
     strategy:
       matrix:
-        release: [R2023a
-        #, R2023b TODO: There is currently a bug affecting one test on R2023b
-        ]  
+        release: [R2023a, R2023b, R2024a, latest]  
     steps:
       - name: Check out repository
         uses: actions/checkout@v4
