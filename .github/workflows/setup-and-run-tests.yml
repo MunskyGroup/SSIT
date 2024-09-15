@@ -14,6 +14,11 @@ jobs:
       - name: Set up MATLAB
         uses: matlab-actions/setup-matlab@v2
         with:
+          products: >
+            Global_Optimization_Toolbox
+            Image_Processing_Toolbox
+            SimBiology
+            Symbolic_Math_Toolbox        
           release: ${{ matrix.release }}
       - name: Add paths
         uses: matlab-actions/run-command@v2
