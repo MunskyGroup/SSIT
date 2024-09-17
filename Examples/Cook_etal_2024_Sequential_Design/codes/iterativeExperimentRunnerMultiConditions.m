@@ -160,7 +160,13 @@ switch lower(example)
             1,-1,0,-1];
         ModelTrue.customConstraintFuns = {'x1+x2'};
 
-        ModelTrue.parameters = truePars;
+        % Provide parameter guess -- not used, but needed to create model.
+        if isempty(truePars)
+            truePars = {'kcn0',0.005;'kcn1',0.08;'knc',0.014;...
+                'kg1',0.012;'gnuc',0.005;'MDex',10.44};
+            ModelTrue.parameters = truePars;
+        end
+        
         ModelTrue.fspOptions.initApproxSS = true;
         ModelTrue.fspOptions.usePiecewiseFSP = true;
         ModelTrue.fspOptions.constantJacobian = true;
@@ -316,7 +322,7 @@ for iExpt = 1:nExptRounds
     switch data
         case 'real'
             % Sample from real data
-            [~,dataFile,allDataSoFar,maxAvailable] = sampleGRExperiment('ExampleData/Gated_dataframe_Ron_030624_NormalizedGR_bins.csv',...
+            [~,dataFile,allDataSoFar,maxAvailable] = sampleGRExperiment('ExampleData/Data.csv',...
                 ModelTrue{1}.tSpan,[1,10,100],nTotalCells,iExpt,datFileName);
             dataToFit = {'cytGR','normgrcyt';'nucGR','normgrnuc'};
         case 'simulated'

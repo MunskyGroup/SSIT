@@ -2,7 +2,6 @@ function [simData,csvFile,allDataSoFar,maxAvailable] = sampleGRExperiment(dataFi
 
 if iExpt == 1
     % Randomize data order
-    X = importdata(dataFileName);
     Xtable = readtable(dataFileName);
     J = randperm(size(Xtable,1));
     Xtable = Xtable(J,:);
