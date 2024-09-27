@@ -119,7 +119,34 @@ mReal = Model1;  % Make copy of previous model
 mReal = mReal.loadData('../ExampleData/Dusp1Data.csv',...
     {'rna','RNA_DUSP1_nuc'},{'Dex_Conc','100'}); % Load data into model
 
-%% STEP12 == Specify Bayesian Prior and fit.
+%% STEP12a == Compute FIM, Run Metropolis Hastings
+% Specify Prior as log-normal distribution with wide uncertainty
+mu_log10 = [-1,-2,0,-2,1,-1,-1];  % Prior log-mean
+sig_log10 = 2*ones(1,7);          % Prior log-standard deviation
+mReal.fittingOptions.logPrior = @(x)-sum((log10(x)-mu_log10).^2./(2*sig_log10.^2));
+
+mReal.fittingOptions.modelVarsToFit = [1:7]; % Choose parameters to search
+DUSP1pars = [mReal.parameters{:,2}];         % Create first parameter guess
+
+
+fimResults = mReal.computeFIM([],'log'); % Compute individual FIMs
+fimTotal = mReal.evaluateExperiment(fimResults,mReal.dataSet.nCells,...
+    diag(sig_log10.^2)); % Compute total FIM including effect of prior.
+mReal.fittingOptions.modelVarsToFit = [1:4]; % Choose parameters to search
+FIMfree = fimTotal{1}([1:4],[1:4]); % Select FIM for free parameters.
+COVfree = (1/2*(FIMfree+FIMfree'))^(-1);  % Estimate Covariance using CRLB.
+
+% Define Metropolis Hasting Settings.
+mReal.fittingOptions.logPrior = @(x)-sum((log10(x)-mu_log10([1:4])).^2./(2*sig_log10([1:4]).^2));
+MHFitOptions = struct('proposalDistribution',@(x)mvnrnd(x,COVfree),...
+    'numberOfSamples',5000);
+[DUSP1pars,~,MHResultsDusp1] = mReal.maximizeLikelihood(...
+    [], MHFitOptions, 'MetropolisHastings'); % Run Metropolis Hastings
+mReal.parameters([1:4],2) = num2cell(DUSP1pars);
+
+mReal.plotMHResults(MHResultsDusp1,FIMfree,'log',[])
+
+%% STEP12b == Specify Bayesian Prior and fit.
 % Specify Prior as log-normal distribution with wide uncertainty
 mu_log10 = [-1,-2,0,-2,1,-1,-1];  % Prior log-mean
 sig_log10 = 2*ones(1,7);          % Prior log-standard deviation
@@ -167,9 +194,18 @@ set(gca,'fontsize',15,'xtick',[1:12]+.25,'xticklabel',mReal.tSpan)
 %% STEP15 == Fit reduced data set
 mRealReduced = mReal;   % Copy previous model
 mRealReduced.fittingOptions.timesToFit = nCellsOpt>0; % Ignore discarded timepoints.
+mu_log10 = [-1,-2,0,-2,1,-1,-1];  % Prior log-mean
+sig_log10 = 2*ones(1,7);          % Prior log-standard deviation
+mRealReduced.fittingOptions.logPrior = @(x)-sum((log10(x)-mu_log10).^2./(2*sig_log10.^2));
 parsRed = [mRealReduced.parameters{:,2}];  % Create first parameter guess
 parsRed = mRealReduced.maximizeLikelihood(parsRed); % Fit to maximize likelihood
 mRealReduced.parameters(:,2) = num2cell(parsRed);   % Update new parameters.
 
 mRealReduced.fittingOptions.timesToFit = ones(size(nCellsOpt),'logical');
-mRealReduced.makeFitPlot  % Plot fitting results
+%%
+%mRealReduced.makeFitPlot()  % Plot fitting results
+
+%% STEP16 == Calibrate PDO from Eric's DUSP1 Intensity Data
+ModelPDOIntensEric = mReal;
+ModelPDOIntensEric = ModelPDOIntensEric.calibratePDO('../ExampleData/Dusp1Data.csv',...
+    {'rna'},{'RNA_DUSP1_nuc'},{'Nuc_DUSP1_avg_int_tot'},'AffinePoiss',true,[1,230,0.5]);
