@@ -18,7 +18,7 @@ Model1.parameters = ({'kr',100;'gr',0.5;...
 % Here we will calculate the time until the protein concentration reaches
 % 50.
 Model1.tSpan = linspace(0,5,100);
-Model1.fspOptions.escapeSinks.f = {'x2'};
+Model1.fspOptions.escapeSinks.f = {'rna'};
 Model1.fspOptions.verbose = false;
 Model1.fspOptions.escapeSinks.b = 50;
 [fspSoln1,Model1.fspOptions.bounds] = Model1.solve;

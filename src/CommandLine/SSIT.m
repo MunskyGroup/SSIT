@@ -189,10 +189,7 @@ classdef SSIT
             if ~isempty(obj.customConstraintFuns)
                 [~,J] = sort(cellfun('length',obj.species),'descend');                
                 for i = 1:length(obj.customConstraintFuns)
-                    constraintStr = obj.customConstraintFuns{i};
-                    for j = 1:length(J)
-                        constraintStr = strrep(constraintStr,obj.species{j},['x',num2str(J(j))]);
-                    end
+                    constraintStr = SSIT.replaceSpeciesNames(obj.customConstraintFuns{i},obj.species);
                     Data(2*nSpecies+i,:) = {constraintStr,'<',1};
                 end
             end
@@ -208,7 +205,8 @@ classdef SSIT
                 nEscape = length(obj.fspOptions.escapeSinks.f);
                 escapeData = cell(nEscape,3);
                 for i = 1:nEscape
-                    escapeData(i,:) = {obj.fspOptions.escapeSinks.f{i},'<',1};
+                    constraintStr = SSIT.replaceSpeciesNames(obj.fspOptions.escapeSinks.f{i},obj.species);
+                    escapeData(i,:) = {constraintStr,'<',1};
                 end
                 constraints.fEscape = readConstraintsForAdaptiveFsp([], stochasticSpecies, escapeData);
                 constraints.bEscape = obj.fspOptions.escapeSinks.b;
@@ -2904,6 +2902,27 @@ classdef SSIT
                     propensities{i}.hybridJointFactor = @(t,x,v)GenProps{i}.hybridJointFactor(t,x,Parset,v');
                 end
             end
+        end
+        function str = replaceSpeciesNames(str,species)
+            % Check if species are named 'x1','x2', etc, and if not, find
+            % order of species names longest to shortest. 
+            namedXi = true;
+            Len = NaN*ones(length(species));
+            for i = 1:length(species)
+                Len(i) = length(species{i});
+                if ~strcmp(species{i},['x',num2str(i)])
+                    namedXi = false;
+                end
+            end
+            if namedXi % No need to change string.
+                return
+            end
+
+            [~,order] = sort(Len,'descend');
+            for i = 1:length(order)
+                str = strrep(str,species{order(i)},['x',num2str(i)]);
+            end
+
         end
     end
 end
