@@ -21,9 +21,9 @@ Model1.tSpan = linspace(0,5,100);
 Model1.fspOptions.escapeSinks.f = {'rna'};
 Model1.fspOptions.verbose = false;
 Model1.fspOptions.escapeSinks.b = 50;
+Model1 = Model1.formPropensitiesGeneral('Model1');
 [fspSoln1,Model1.fspOptions.bounds] = Model1.solve;
 Model1.makePlot(fspSoln1,'escapeTimes',[],[],10)
-Model1 = Model1.formPropensitiesGeneral('Model1');
 
 %% Example 2 - escape time with time varying transcription rate
 % First let's copy and adjust the previous mdoel to add a time varying

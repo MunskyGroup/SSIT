@@ -657,7 +657,6 @@ classdef SSIT
             obj.initialProbs = max(0,real(fspVector.p.data.vals));
             
         end
-
         
         function [pdo] = generatePDO(obj,pdoOptions,paramsPDO,fspSoln,variablePDO,maxSize)
             arguments
@@ -865,7 +864,7 @@ classdef SSIT
             switch obj.solutionScheme
                 case 'FSP'
                     if ~isempty(stateSpace)&&size(stateSpace.states,2)~=stateSpace.state2indMap.Count
-                        error('HERE')
+                        error('Mismatch in statespace definition.')
                     end
 
                     % specificPropensities = SSIT.parameterizePropensities(obj.propensitiesGeneral,[obj.parameters{:,2}]');

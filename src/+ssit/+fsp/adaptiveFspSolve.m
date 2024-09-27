@@ -147,7 +147,7 @@ maxOutputTime = max(outputTimes);
 outputTimeCount = length(outputTimes);
 outputTimes = unique(outputTimes);
 if (outputTimeCount ~= length(outputTimes))
-    disp('Warning: input tspan contains repeated elements. Converted tspan to vector of unique values');
+    disp('Warning: input tspan contains repeated elements. Truncating tspan to vector of unique values');
     outputTimeCount = length(outputTimes);
 end
 
