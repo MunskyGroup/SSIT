@@ -2,9 +2,9 @@
 % In this script, we are going to show how to create, solve and fit a CME
 % model to some single-cell smFISH data.  For this example, we will use
 % some data collected in Dr. Gregor Neuert's laboratory at Vanderbilt.
-clear all
-close all
-clc
+%clear all
+%close all
+%clc
 addpath(genpath('../../src'));
 
 %% Create SSIT Model
@@ -34,9 +34,9 @@ Model.inputExpressions = {'IHog',...
 iModel  = 2;
 switch iModel
     case 1
-        Model.propensityFunctions = {'k12*(gene==0)*(IHog)+k23*(gene==1)+k34*(gene==2)';
-            'k21*(gene==1)+k32*(gene==2)+k43*(gene==3)';
-            'kr1*(gene==0)+kr2*(gene==1)+kr3*(gene==2)+kr4*(gene==3)';
+        Model.propensityFunctions = {'k12*(gene==0)*(IHog) + k23*(gene==1) + k34*(gene==2)';
+            'k21*(gene==1) + k32*(gene==2) + k43*(gene==3)';
+            'kr1*(gene==0) + kr2*(gene==1) + kr3*(gene==2) + kr4*(gene==3)';
             'deg*rna'};
         Model.parameters = ({'k12',0.1;
             'k23',.1;
@@ -50,11 +50,11 @@ switch iModel
             'kr4',0.1; ...
             'deg',0.05;
             'A',9.3e9;'M',2.2e-2;'r1',6.1e-3*60;'r2',6.9e-3*60;'eta',5.9;'t0',2.6e-1/60});
-        Model.fittingOptions.modelVarsToFit = [1:11];
+        Model.fittingOptions.modelVarsToFit = 1:11;
     case 2
-        Model.propensityFunctions = {'k12*(gene==0)+k23*(gene==1)+k34*(gene==2)';
-            'max(0,k21a-k21b*(IHog))*(gene==1)+k32*(gene==2)+k43*(gene==3)';
-            'kr1*(gene==0)+kr2*(gene==1)+kr3*(gene==2)+kr4*(gene==3)';
+        Model.propensityFunctions = {'k12*(gene==0) + k23*(gene==1) + k34*(gene==2)';
+            'max(0,((k21a-k21b)*(IHog)))*(gene==1) + k32*(gene==2) + k43*(gene==3)';
+            'kr1*(gene==0) + kr2*(gene==1) + kr3*(gene==2) + kr4*(gene==3)';
             'deg*rna'};
         Model.parameters = ({'k12',2.6e-3*60;
             'k23',7.6e-3*60;
@@ -69,14 +69,14 @@ switch iModel
             'kr4',3e-2*60; ...
             'deg',8.3e-3*60;
             'A',9.3e9;'M',2.2e-2;'r1',6.1e-3*60;'r2',6.9e-3*60;'eta',5.9;'t0',2.6e-1/60});
-        Model.fittingOptions.modelVarsToFit = [1:12];
+        Model.fittingOptions.modelVarsToFit = 1:12;
 end
 
 % Set initial condition:
 Model.initialCondition = [1;0]; 
 
 % Set times (s) at which to compute distributions:
-Model.tSpan = [0:5:60]; 
+Model.tSpan = 0:5:60; 
 
 %% Plot the TF/MAPK signal
 % Next, we have to guess some initial guesses for parameters.
@@ -101,7 +101,7 @@ Model.fspOptions.bounds(4) = 120;
 
 % Next we make plots of the marginal distributions at time points 3, 5, 7,
 % 9, 11, 13 and plot these in figures 1:3 for the three different species.
-Model.makePlot(FSPsoln,'marginals',[1:4:16],false,(1:2))    % Plot marginal distributions
+Model.makePlot(FSPsoln,'marginals',1:4:16,false,(1:2))    % Plot marginal distributions
 
 % We can also plot the means and standard deviations versus time in figure
 % 100:
@@ -117,12 +117,7 @@ Model.makePlot(FSPsoln,'meansAndDevs',[],false,100)    % Plot marginal distribut
 % In this section, we load some data to compare to the model.  For this
 % example, we are going to use some data that Gregor Neuert collected.
 
-% TODO -- The following line is much too slow -- we need to break up the
-% data set better so that we can use it more easilly.
-% Also, right now we are fitting just the cyto here. We should fit the
-% total RNA, but that is not currently in the provided data.  We will need
-% to add up the nuclear and cytoplasmic data to get this.
-Model = Model.loadData('pdoCalibrationData_NeuertLab_240925.csv',{'rna','RNA_STL1_cyto_TS3Full'},...
+Model = Model.loadData('filtered_data_2M_NaCl_Step.csv',{'rna','RNA_STL1_total_TS3Full'},...
     {'Condition','0.2M_NaCl_Step'});
 
 %%
@@ -189,7 +184,7 @@ return
 Model.solutionScheme = 'fspSens'; % Set solutions scheme to FSP Sensitivity
 Model.sensOptions.solutionMethod = 'finiteDifference';
 [sensSoln] = Model.solve;  % Solve the sensitivity problem
-Model.makePlot(sensSoln,'marginals',[],false,[11:13]) % Plot marginal sensitivities
+Model.makePlot(sensSoln,'marginals',[],false,11:13) % Plot marginal sensitivities
 % This will results in a few plots that show how chainging each of the
 % model parameters would result in changes to the species' distributions.
 
@@ -213,7 +208,7 @@ covLog = FIMlog^-1;
 % distribution is a multi-variate gaussian with a covariance that is
 % proportional to the inverse FIM.  Here, we set up the MH parameters:
 Model.solutionScheme = 'FSP'; % Set solutions scheme to FSP Sensitivity
-Model.fittingOptions.modelVarsToFit = [1:7];
+Model.fittingOptions.modelVarsToFit = 1:7;
 MHOptions = struct('numberOfSamples',1000,'burnin',0,'thin',3);
 proposalWidthScale = 0.002;
 MHOptions.proposalDistribution  = @(x)mvnrnd(x,proposalWidthScale*(covLog+covLog')/2);
@@ -306,4 +301,3 @@ nCellsOptDetB = Model.optimizeCellCounts(fimResults,nCellsTotal,'[1:3]');
 FIMOptA = Model.evaluateExperiment(fimResults,nCellsOptDetA);
 FIMOptB = Model.evaluateExperiment(fimResults,nCellsOptDetB);
 [diag(FIMOptA^-1),diag(FIMOptB^-1)]
-
