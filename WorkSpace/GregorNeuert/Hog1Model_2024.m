@@ -53,7 +53,7 @@ switch iModel
         Model.fittingOptions.modelVarsToFit = 1:11;
     case 2
         Model.propensityFunctions = {'k12*(gene==0) + k23*(gene==1) + k34*(gene==2)';
-            'max(0,((k21a-k21b)*(IHog)))*(gene==1) + k32*(gene==2) + k43*(gene==3)';
+            'max(0,(k21a-k21b*(IHog)))*(gene==1) + k32*(gene==2) + k43*(gene==3)';
             'kr1*(gene==0) + kr2*(gene==1) + kr3*(gene==2) + kr4*(gene==3)';
             'deg*rna'};
         Model.parameters = ({'k12',2.6e-3*60;
