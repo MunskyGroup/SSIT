@@ -6,14 +6,17 @@ data = pd.read_csv(file_path)
 
 # Filter the data based on Condition = '2M_NaCl_Step'
 filtered_data = data.loc[data['Condition'].str.contains('2M_NaCl_Step', case=False, na=False), 
-                         ['Cell_id', 'Condition', 'Replica', 'Conc_mM', 'Time_index_min', 'RNA_STL1_cyto_TS3Full']]
+                         ['Cell_id', 'Condition', 'Replica', 'Conc_mM', 'Time_index_min', 
+                          'RNA_STL1_cyto_TS3Full', 'RNA_STL1_nuc_TS3Full']]
 
+# Sum 'RNA_STL1_cyto_TS3Full' and 'RNA_STL1_nuc_TS3Full' into new column 'RNA_STL1_total_TS3Full'
+filtered_data['RNA_STL1_total_TS3Full'] = filtered_data['RNA_STL1_cyto_TS3Full'] + filtered_data['RNA_STL1_nuc_TS3Full']
+
+# Replace 'Time_index_min' with 'time' to be read by SSIT.m
 filtered_data.rename(columns={'Time_index_min': 'time'}, inplace=True)
-
 
 # Define the output file path
 output_file = 'filtered_data_2M_NaCl_Step.csv'
-
 
 # Save the filtered data to a new CSV file
 filtered_data.to_csv(output_file, index=False)
