@@ -304,9 +304,9 @@ classdef FspMatrixTerm
             k = 1;
             for c = 1:state_set.numConstraints
                 ninsert = nnz(state_set.outboundTransitions(:, c + state_set.numConstraints*(ireaction-1)));
-                isinks(k:k+ninsert-1) = n_states + c;
-                jsinks(k:k+ninsert-1) = find(state_set.outboundTransitions(:,c + state_set.numConstraints*(ireaction-1)));
-                aijsinks(k:k+ninsert-1) = prop_val(jsinks(k:k+ninsert-1))./n_constrs_failed(jsinks(k:k+ninsert-1));
+                isinks(k:k+ninsert-1,1) = n_states + c;
+                jsinks(k:k+ninsert-1,1) = find(state_set.outboundTransitions(:,c + state_set.numConstraints*(ireaction-1)));
+                aijsinks(k:k+ninsert-1,1) = prop_val(jsinks(k:k+ninsert-1))./n_constrs_failed(jsinks(k:k+ninsert-1));
 
                 k = k + ninsert;
             end
