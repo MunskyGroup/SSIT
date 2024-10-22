@@ -9,8 +9,8 @@
 close all 
 addpath(genpath('../../src'));
 
-loadPrevious = true;
-savedWorkspace = 'workspaceJuly24';
+loadPrevious = false;
+savedWorkspace = 'workspaceOct22_2024';
 addpath('tmpPropensityFunctions');
 
 %% STEP 0 -- Preliminaries.
@@ -88,7 +88,7 @@ else
     for i=1:3
         ModelGRfit{i} = ModelGR.loadData("EricData/Gated_dataframe_Ron_020224_NormalizedGR_bins.csv",...
             {'nucGR','normgrnuc';'cytGR','normgrcyt'},...
-            {'Condition','GR_timesweep';'Dex_Conc',GRfitCases{i,2}});
+            {'Dex_Conc',GRfitCases{i,2}});
         ModelGRfit{i}.parameters(13,:) = {'Dex0', str2num(GRfitCases{i,1})};
         ModelGRparameterMap(i) = {(1:8)};
         % parameters 1 - 8 refer to the parameter set that is relevant to
@@ -180,6 +180,7 @@ else
     ModelGRDusp100nM.useHybrid = true;
     ModelGRDusp100nM.hybridOptions.upstreamODEs = {'cytGR','nucGR'};
     ModelGRDusp100nM.solutionScheme = 'FSP';
+    ModelGRDusp100nM.customConstraintFuns = [];
     ModelGRDusp100nM.fspOptions.bounds = [0;0;0;2;2;400];
     ModelGRDusp100nM.fittingOptions.modelVarsToFit = 1:4;
     ModelGRDusp100nM = ModelGRDusp100nM.formPropensitiesGeneral('EricModDusp1');
@@ -235,7 +236,6 @@ ModelGRDusp100nM.solutionScheme = 'FSP';
 %%      STEP 2.D.2. -- Compute FIM
 % define which species in model are not observed.
 ModelGRDusp100nM.pdoOptions.unobservedSpecies = {'offGene';'onGene'};
-% TODO - Make this automated when you load data.
 
 % compute the FIM
 fimResults = ModelGRDusp100nM.computeFIM(sensSoln.sens,'log');
@@ -262,7 +262,7 @@ if loadPrevious
 else
     MHFitOptions.proposalDistribution=@(x)mvnrnd(x,covFree);
     MHFitOptions.thin=1;
-    MHFitOptions.numberOfSamples=10000;
+    MHFitOptions.numberOfSamples=1000;
     MHFitOptions.burnIn=0;
     MHFitOptions.progress=true;
     MHFitOptions.numChains = 1;
@@ -545,7 +545,7 @@ varNames = unique({'ModelGR'
     %'DUSP1parsIntensity'
     });
 
-save('workspaceJuly24',varNames{:})
+save('workspaceOct22_2024',varNames{:})
 
 %% Extra Function
 

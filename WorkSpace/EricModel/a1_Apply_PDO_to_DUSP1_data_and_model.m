@@ -5,10 +5,10 @@
 addpath(genpath('../../src'));
 
 loadPrevious = true;
-savedWorkspace = 'workspaceJuly24';
+savedWorkspace = 'workspaceOct22_2024';
 addpath('tmpPropensityFunctions');
 
-load('workspaceJuly24.mat');
+load(savedWorkspace);
 
 figNew = figure;
 
@@ -168,7 +168,7 @@ for i = 1:1
     DUSP1parsFIMDesign = ModelGRDusp100nM_FIMDesign.maximizeLikelihood(...
         DUSP1parsFIMDesign, fitOptions);
     ModelGRDusp100nM_FIMDesign.parameters(1:4,2) = num2cell(DUSP1parsFIMDesign);
-    save('EricModelDusp1_MMDex','GRpars','DUSP1pars','DUSP1parsFIMDesign') 
+    save('EricModelDusp1_MMDex_PDO','GRpars','DUSP1pars','DUSP1parsFIMDesign') 
 end
 
 %%      STEP XX.D.2. -- Plot fit and predicitons using FIM suggested conditions.
@@ -183,7 +183,7 @@ ModelPDOIntensEric.dataSet = [];
 ModelPDOIntensEric = ModelPDOIntensEric.loadData('EricData/pdoCalibrationData_EricIntensity_DexSweeps.csv',...
         {'rna','Nuc_DUSP1_avg_int_tot'},...
         {'Dex_Conc','100'}); 
-load('EricModelDusp1_MMDex','DUSP1parsIntensity') 
+load('EricModelDusp1_MMDex_PDO','DUSP1parsIntensity') 
 
 ModelPDOIntensEric.parameters(1:4,2) = num2cell(DUSP1parsIntensity);
 
@@ -191,7 +191,7 @@ for i = 1:fitIters
     DUSP1parsIntensity = ModelPDOIntensEric.maximizeLikelihood(...
         DUSP1parsIntensity, fitOptions);
     ModelPDOIntensEric.parameters(1:4,2) = num2cell(DUSP1parsIntensity);
-    save('EricModelDusp1_MMDex','GRpars','DUSP1pars','DUSP1parsFIMDesign','DUSP1parsIntensity','DUSP1parsFIMDesignIntensity') 
+    save('EricModelDusp1_MMDex_PDO','GRpars','DUSP1pars','DUSP1parsFIMDesign','DUSP1parsIntensity','DUSP1parsFIMDesignIntensity') 
 end
 %%        STEP XX.D.3.a. -- Plot predictions when fit to distorted data at ALL times.
 showCases = [1,1,1,1];
@@ -209,14 +209,14 @@ ModelPDOIntensEricFIM = ModelPDOIntensEricFIM.loadData('EricData/pdoCalibrationD
 % Set fitting routine only to consider the time points selected by the FIM.
 ModelPDOIntensEricFIM.fittingOptions.timesToFit = nCellsOpt>0;
 % Refit the model, but now with only those time points.
-load('EricModelDusp1_MMDex','DUSP1parsFIMDesignIntensity') 
+load('EricModelDusp1_MMDex_PDO','DUSP1parsFIMDesignIntensity') 
 ModelPDOIntensEricFIM.parameters(1:4,2) = num2cell(DUSP1parsFIMDesignIntensity);
 
 for i = 1:5
     DUSP1parsFIMDesignIntensity = ModelPDOIntensEricFIM.maximizeLikelihood(...
         DUSP1parsFIMDesignIntensity, fitOptions);
     ModelPDOIntensEricFIM.parameters(1:4,2) = num2cell(DUSP1parsFIMDesignIntensity);
-    save('EricModelDusp1_MMDex','GRpars','DUSP1pars','DUSP1parsFIMDesign','DUSP1parsFIMDesignIntensity') 
+    save('EricModelDusp1_MMDex_PDO','GRpars','DUSP1pars','DUSP1parsFIMDesign','DUSP1parsFIMDesignIntensity') 
 end
 %%        STEP XX.D.5.a. -- Plot predictions when fit to distorted data at FIM times.
 showCases = [1,1,1,1];
