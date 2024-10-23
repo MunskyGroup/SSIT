@@ -9,7 +9,7 @@
 close all 
 addpath(genpath('../../src'));
 
-loadPrevious = false;
+loadPrevious = true;
 savedWorkspace = 'workspaceOct22_2024';
 addpath('tmpPropensityFunctions');
 
@@ -113,7 +113,7 @@ for i = 1:3
     ModelGRfit{i}.tSpan = ModelGRfit{i}.dataSet.times;
 end
 
-logPriorGR = @(x)-sum((log10(x)-log10PriorMean(5:12)).^2./(2*log10PriorStd(5:12).^2));
+logPriorGR = @(x)-sum((log10(x)-log10PriorMean(5:12)').^2./(2*log10PriorStd(5:12)'.^2));
 for jj = 1:fitIters
     combinedGRModel = SSITMultiModel(ModelGRfit,ModelGRparameterMap,logPriorGR);
     combinedGRModel = combinedGRModel.initializeStateSpaces(boundGuesses);
@@ -128,16 +128,16 @@ fimGR_withPrior = combinedGRModel.FIM.totalFIM+... % the FIM in log space.
     diag(1./(log10PriorStd(ModelGR.fittingOptions.modelVarsToFit)*log(10)).^2);  % Add prior in log space.
 
 %%     STEP 1.C. -- Run MH on GR Models.
-% MHFitOptions.thin=1;
-% MHFitOptions.numberOfSamples=100;
-% MHFitOptions.burnIn=0;
-% MHFitOptions.progress=true;
-% MHFitOptions.numChains = 1;
-% MHFitOptions.useFIMforMetHast = true;
-% MHFitOptions.saveFile = 'TMPEricMHGR.mat';
-% [~,~,MHResultsGR] = combinedGRModel.maximizeLikelihood(...
-%     GRpars, MHFitOptions, 'MetropolisHastings');
-% delete(MHFitOptions.saveFile)
+MHFitOptions.thin=1;
+MHFitOptions.numberOfSamples=100;
+MHFitOptions.burnIn=0;
+MHFitOptions.progress=true;
+MHFitOptions.numChains = 1;
+MHFitOptions.useFIMforMetHast = true;
+MHFitOptions.saveFile = 'TMPEricMHGR.mat';
+[~,~,MHResultsGR] = combinedGRModel.maximizeLikelihood(...
+    GRpars, MHFitOptions, 'MetropolisHastings');
+delete(MHFitOptions.saveFile)
  
 %%     STEP 1.D. -- Make Plots of GR Fit Results
 makeGRPlots(combinedGRModel,GRpars)
