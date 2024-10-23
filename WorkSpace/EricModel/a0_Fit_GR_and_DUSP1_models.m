@@ -129,7 +129,7 @@ fimGR_withPrior = combinedGRModel.FIM.totalFIM+... % the FIM in log space.
 
 %%     STEP 1.C. -- Run MH on GR Models.
 MHFitOptions.thin=1;
-MHFitOptions.numberOfSamples=100;
+MHFitOptions.numberOfSamples=1000;
 MHFitOptions.burnIn=0;
 MHFitOptions.progress=true;
 MHFitOptions.numChains = 1;
@@ -138,6 +138,18 @@ MHFitOptions.saveFile = 'TMPEricMHGR.mat';
 [~,~,MHResultsGR] = combinedGRModel.maximizeLikelihood(...
     GRpars, MHFitOptions, 'MetropolisHastings');
 delete(MHFitOptions.saveFile)
+%%
+figNew = figure;
+ModelGR.plotMHResults(MHResultsGR,[],'log',[],figNew)
+for i = 1:7
+    for j = i+1:7
+        subplot(7,7,(i-1)*7+j-1)
+        CH = get(gca,'Children');
+        CH(1).Color=[1,0,1]; %
+        CH(1).LineWidth = 3;
+    end
+end
+
  
 %%     STEP 1.D. -- Make Plots of GR Fit Results
 makeGRPlots(combinedGRModel,GRpars)
