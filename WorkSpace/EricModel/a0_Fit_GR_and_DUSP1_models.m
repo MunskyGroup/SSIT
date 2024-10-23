@@ -9,7 +9,7 @@
 close all 
 addpath(genpath('../../src'));
 
-loadPrevious = true;
+loadPrevious = false;
 savedWorkspace = 'workspaceOct22_2024';
 addpath('tmpPropensityFunctions');
 
@@ -37,6 +37,7 @@ if loadPrevious
         end
     end
 else
+    fitIters = 10;
     fitOptions = optimset('Display','iter','MaxIter',300);
     %% STEP 0.B.1. -- Create Base Model for GR Only
     % Here, I set up the model for the GR translocation dynamics.
