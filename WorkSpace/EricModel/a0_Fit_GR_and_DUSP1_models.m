@@ -7,15 +7,16 @@
 %   2) replica to replica variations are expected that would result in
 %   slightly different parameter combinations
 close all 
+clear
 addpath(genpath('../../src'));
 
 loadPrevious = false;
-savedWorkspace = 'workspaceOct22_2024';
+savedWorkspace = 'workspaceOctober24';
 addpath('tmpPropensityFunctions');
 
 %% STEP 0 -- Preliminaries.
 if loadPrevious
-    %% STEP 0.A -- Option to load previous workspace from file -- just for testing.
+    % STEP 0.A -- Option to load previous workspace from file -- just for testing.
     varNames = {'ModelGR',
     'GRfitCases'
     'log10PriorMean'
@@ -75,8 +76,12 @@ else
     [FSPGrSoln,ModelGR.fspOptions.bounds] = ModelGR.solve;
     [FSPGrSoln,ModelGR.fspOptions.bounds] = ModelGR.solve(FSPGrSoln.stateSpace);
     %% STEP 0.B.2. -- Load previously fit parameter values (optional)
-    load('EricModel_MMDex','GRpars')
-    ModelGR.parameters(5:12,2) = num2cell([GRpars]);
+    if loadPrevious
+        load('EricModel_MMDex','GRpars')
+        ModelGR.parameters(5:12,2) = num2cell([GRpars]);
+    else
+        GRpars = cell2mat(ModelGR.parameters(5:12,2));
+    end    
 
     %% STEP 0.B.3. -- Associate GR Data with Different Instances of Model (10,100nm Dex)
     GRfitCases = {'1','1',101,'GR Fit (1nM Dex)';...
