@@ -11,7 +11,7 @@ clear
 addpath(genpath('../../src'));
 
 loadPrevious = false;
-savedWorkspace = 'workspaceOctober24';
+savedWorkspace = 'workspaceJuly24';
 addpath('tmpPropensityFunctions');
 
 %% STEP 0 -- Preliminaries.
@@ -28,7 +28,6 @@ if loadPrevious
 
     load(savedWorkspace,varNames{:})
     fitOptions = optimset('Display','iter','MaxIter',10);
-    fitIters = 1; 
 
     try
         ModelGRfit{1}.propensitiesGeneral{1}.stateDependentFactor(0);
@@ -38,7 +37,6 @@ if loadPrevious
         end
     end
 else
-    fitIters = 10;
     fitOptions = optimset('Display','iter','MaxIter',300);
     %% STEP 0.B.1. -- Create Base Model for GR Only
     % Here, I set up the model for the GR translocation dynamics.
@@ -77,10 +75,13 @@ else
     [FSPGrSoln,ModelGR.fspOptions.bounds] = ModelGR.solve(FSPGrSoln.stateSpace);
     %% STEP 0.B.2. -- Load previously fit parameter values (optional)
     if loadPrevious
+        fitIters = 1;
         load('EricModel_MMDex','GRpars')
         ModelGR.parameters(5:12,2) = num2cell([GRpars]);
     else
         GRpars = cell2mat(ModelGR.parameters(5:12,2));
+        fitIters = 3;
+        GRpars = cell2mat(ModelGR.parameters(5:12,2))';
     end    
 
     %% STEP 0.B.3. -- Associate GR Data with Different Instances of Model (10,100nm Dex)
