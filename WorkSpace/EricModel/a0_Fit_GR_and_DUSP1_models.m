@@ -13,9 +13,10 @@ loadPrevious = false;
 savedWorkspace = 'workspaceJuly24';
 addpath('tmpPropensityFunctions');
 
-%% STEP 0 -- Preliminaries.
+%% GR model
+%% STEP 0 -- Preliminaries: Load previously computed data or define GR model from scratch
 if loadPrevious
-    % STEP 0.A -- Option to load previous workspace from file -- just for testing.
+    % STEP 0.A. -- Option to load previous workspace from file -- just for testing.
     varNames = {'ModelGR',
     'GRfitCases'
     'log10PriorMean'
@@ -39,27 +40,41 @@ if loadPrevious
     GRpars
     %GRpars = GRpars';
 else
+    %% STEP 0.B. -- Create Base Model for GR Only
+    %    Here, I set up the model for the GR translocation dynamics.
     fitOptions = optimset('Display','iter','MaxIter',300);
-    %% STEP 0.B.1. -- Create Base Model for GR Only
-    % Here, I set up the model for the GR translocation dynamics.
+
+    % Create blank SSIT model.
     ModelGR = SSIT;
+
+    % Set species names.
     ModelGR.species = {'cytGR';'nucGR'};
+
+    % Set initial condition.
     ModelGR.initialCondition = [20;1];
+
+    % Define propensity functions and input signals:
     ModelGR.propensityFunctions = {'(kcn0 + (t>0)*kcn1*IDex/(MDex+IDex)) * cytGR';'knc*nucGR';...
         'kg1';'gg1*cytGR';'gg2*nucGR'};
+
+    % Define stoichiometry.
     ModelGR.stoichiometry = [-1,1,1,-1,0;...
         1,-1,0,0,-1];
+    
+    % Specify parameter guesses.
     ModelGR.parameters = ({'koff',0.1;'kon',0.1;'kr',1;'gr',0.02;...
         'kcn0',0.005;'kcn1',0.02;'gDex',0.003;'knc',0.01;'kg1',14e-5;...
         'gg1',1e-5;'gg2',1e-6;'MDex',5;'Dex0',100});
+
+
     log10PriorMean = [-1 -1 0 -2,...
         -1 -3 -2 -1 -2 -2 -2 0.5, 2];
     log10PriorStd = 2*ones(1,13);
     % the log prior will be applied to the fit to multiple models as an
     % additional constraint.
-    
     ModelGR.fittingOptions.logPrior = [];  
     % So it is left out of the prior, since we only want it to be calculated once.
+    
     ModelGR.fspOptions.initApproxSS = true;
     ModelGR.fittingOptions.modelVarsToFit = (5:12);
     
@@ -70,10 +85,12 @@ else
     
     [FSPGrSoln,ModelGR.fspOptions.bounds] = ModelGR.solve;
     [FSPGrSoln,ModelGR.fspOptions.bounds] = ModelGR.solve(FSPGrSoln.stateSpace);
-    %% STEP 0.B.2. -- Load previously fit parameter values (optional)
+
+    % STEP 0.B.2. -- Define GR parameters
     fitIters = 3;
-    GRpars = cell2mat(ModelGR.parameters(5:12,2))';   
-    %% STEP 0.B.3. -- Associate GR Data with Different Instances of Model (10,100nm Dex)
+    GRpars = cell2mat(ModelGR.parameters(5:12,2))';  
+
+    % STEP 0.B.3. -- Associate GR Data with Different Instances of Model (10,100nm Dex)
     GRfitCases = {'1','1',101,'GR Fit (1nM Dex)';...
         '10','10',102,'GR Fit (10nM Dex)';...
         '100','100',103,'GR Fit (100nM Dex)'};
@@ -90,7 +107,8 @@ else
         % the entire class of models.  In this case, these refer to
         % global parameters 5:15 (GR parameters).
     end
-    %% STEP 0.B.4. -- Make Guesses for the FSP bounds
+    
+    % STEP 0.B.4. -- Make Guesses for the FSP bounds
     % This is sometimes necessary when using an uninduced steady state as the
     % initial condition. You need to guess a reasonable statespace or the
     % computation of the SS can be inaccurate.
@@ -101,58 +119,212 @@ else
         % custom.
     end
 end
-%%
-%% STEP 1 -- GR Model
-%%     STEP 1.A. -- Combine all three GR models and fit using a single parameter set.
+
+%% STEP 1 -- Fit GR Models
+% STEP 1.A. -- Specify dataset time points.
 for i = 1:3
     ModelGRfit{i}.tSpan = ModelGRfit{i}.dataSet.times;
 end
-%%
-%%     STEP 1.A. -- Run MH on GR Models.
-%GRpars = GRpars';
-%MHFitOptions.thin=1;
-%MHFitOptions.numberOfSamples=1000;
-%MHFitOptions.burnIn=0;
-%MHFitOptions.progress=true;
-%MHFitOptions.numChains = 1;
-%MHFitOptions.useFIMforMetHast = true;
-%[~,~,MHResultsGR] = ModelGRfit{1}.maximizeLikelihood(...
-%    GRpars, MHFitOptions, 'MetropolisHastings');
-%%
-%figNew = figure;
-%ModelGR.plotMHResults(MHResultsGR,[],'log',[],figNew)
-%for i = 1:7
-%    for j = i+1:7
-%        subplot(7,7,(i-1)*7+j-1)
-%        CH = get(gca,'Children');
-%        CH(1).Color=[1,0,1]; %
-%        CH(1).LineWidth = 3;
-%    end
-%end
-%%
-logPriorGR = @(x)-sum((log10(x)-log10PriorMean(5:12)').^2./(2*log10PriorStd(5:12)'.^2));
+
+% STEP 1.B. -- Specify log prior (NOTE: must transpose due to Matlab update that
+%     no longer correctly assumes format when adding single value vector to
+%     column vector).
+%logPriorGR = @(x)-sum((log10(x)-log10PriorMean(5:12)').^2./(2*log10PriorStd(5:12)'.^2));
+
+% STEP 1.C. -- Combine all three GR models and fit using a single parameter set.
 for jj = 1:fitIters
-    combinedGRModel = SSITMultiModel(ModelGRfit,ModelGRparameterMap,logPriorGR);
+    %combinedGRModel = SSITMultiModel(ModelGRfit,ModelGRparameterMap,logPriorGR);
+    combinedGRModel = SSITMultiModel(ModelGRfit,ModelGRparameterMap);
     combinedGRModel = combinedGRModel.initializeStateSpaces(boundGuesses);
     combinedGRModel = combinedGRModel.updateModels(GRpars,false);
     GRpars = combinedGRModel.maximizeLikelihood(...
         GRpars, fitOptions);
     save('EricModel_MMDex','GRpars') 
 end
-%%     STEP 1.B. -- Compute FIM for GR parameters.
-%combinedGRModel = combinedGRModel.computeFIMs([],'log');
-%fimGR_withPrior = combinedGRModel.FIM.totalFIM+... % the FIM in log space.
-%    diag(1./(log10PriorStd(ModelGR.fittingOptions.modelVarsToFit)*log(10)).^2);  % Add prior in log space.
-%%     STEP 1.C. -- Run MH on GR Models.
+
+%% STEP 1.D. -- Compute FIM for GR parameters.
+combinedGRModel = combinedGRModel.computeFIMs([],'log');
+fimGR_withPrior = combinedGRModel.FIM.totalFIM+... % the FIM in log space.
+    diag(1./(log10PriorStd(ModelGR.fittingOptions.modelVarsToFit)*log(10)).^2);  % Add prior in log space.
+
+%% STEP 1.C. -- Run MH on GR Models.
 %GRpars = GRpars';
-MHFitOptions.thin=3;
-MHFitOptions.numberOfSamples=3000;
+MHFitOptions.thin=1;
+MHFitOptions.numberOfSamples=1000;
 MHFitOptions.burnIn=0;
 MHFitOptions.progress=true;
 MHFitOptions.numChains = 1;
 MHFitOptions.useFIMforMetHast = false;
 MHFitOptions.saveFile = 'TMPEricMHGR.mat';
 [~,~,MHResultsGR] = combinedGRModel.maximizeLikelihood(...
+    GRpars, MHFitOptions, 'MetropolisHastings');
+delete(MHFitOptions.saveFile)
+%%
+figNew = figure;
+ModelGR.plotMHResults(MHResultsGR,[],'log',[],figNew)
+for i = 1:7
+    for j = i+1:7
+        subplot(7,7,(i-1)*7+j-1)
+        CH = get(gca,'Children');
+        CH(1).Color=[1,0,1]; %
+        CH(1).LineWidth = 3;
+    end
+end
+ 
+%%     STEP 1.D. -- Make Plots of GR Fit Results
+makeGRPlots(combinedGRModel,GRpars)
+
+%%  STEP 2 -- Extend Model to Include DUSP1 Activation, Production, and Degradation
+if loadPrevious
+    varNamesDUSP1 = {'ModelGRDusp100nM'
+    'GRfitCases'
+    'log10PriorMean'
+    'log10PriorStd'
+    'duspLogPrior'
+    'DUSP1pars'
+    'Dusp1FitCases'};
+    load(savedWorkspace,varNamesDUSP1{:})
+    fitOptions = optimset('Display','iter','MaxIter',10);
+    fitIters = 1;
+    try
+        ModelGRDusp100nM.propensitiesGeneral{1}.stateDependentFactor(0);
+    catch
+        ModelGRDusp100nM = ModelGRDusp100nM.formPropensitiesGeneral('DUSP1_Model');
+    end
+else
+    %% STEP 2.A.1. -- Add DUSP1 to the existing GR model.
+    % Copy parameters from the 100nM Dex stim case in GR.
+    fitIters = 3;
+    ModelGRDusp100nM = ModelGRfit{3};
+    ModelGRDusp100nM.species = {'offGene';'onGene';'cytGR';'nucGR';'rna'};
+    ModelGRDusp100nM.initialCondition = [2;0;24;1;5];
+    ModelGRDusp100nM.propensityFunctions = {'kon*offGene*nucGR';'koff*onGene';
+        '(kcn0 + (t>0)*kcn1*IDex/(MDex+IDex)) * cytGR';'knc*nucGR';'kg1';'gg1*cytGR';'gg2*nucGR';...
+        'kr*onGene';'gr*rna'};
+    ModelGRDusp100nM.stoichiometry = [-1,1,0,0,0,0,0,0,0;...
+        1,-1,0,0,0,0,0,0,0;...
+        0,0,-1,1,1,-1,0,0,0;...
+        0,0,1,-1,0,0,-1,0,0;...
+        0,0,0,0,0,0,0,1,-1];
+    ModelGRDusp100nM.useHybrid = true;
+    ModelGRDusp100nM.hybridOptions.upstreamODEs = {'cytGR','nucGR'};
+    ModelGRDusp100nM.solutionScheme = 'FSP';
+    ModelGRDusp100nM.customConstraintFuns = [];
+    ModelGRDusp100nM.fspOptions.bounds = [0;0;0;2;2;400];
+    ModelGRDusp100nM.fittingOptions.modelVarsToFit = 1:4;
+    ModelGRDusp100nM = ModelGRDusp100nM.formPropensitiesGeneral('EricModDusp1');
+    duspLogPrior = @(x)-sum((log10(x(:))'-log10PriorMean(1:4)).^2./(2*log10PriorStd(1:4).^2));
+    ModelGRDusp100nM.fittingOptions.logPrior = duspLogPrior;
+    
+    %% STEP 2.A.2. -- Load pre-fit parameters into model.
+    if loadPrevious
+        load('EricModelDusp1_MMDex','DUSP1pars')
+    else
+        %% Pull the DUSP1 parameters from the Model
+        % Find the indices of the desired parameter names
+        knc_idx = find(strcmp(ModelGRDusp100nM.parameters(:,1), 'knc'));
+        kg1_idx = find(strcmp(ModelGRDusp100nM.parameters(:,1), 'kg1'));
+        gg1_idx = find(strcmp(ModelGRDusp100nM.parameters(:,1), 'gg1'));
+        gg2_idx = find(strcmp(ModelGRDusp100nM.parameters(:,1), 'gg2'));
+
+        % Extract the values and store them in DUSP1pars
+        DUSP1pars = [ModelGRDusp100nM.parameters{knc_idx, 2}, ...
+                    ModelGRDusp100nM.parameters{kg1_idx, 2}, ...
+                    ModelGRDusp100nM.parameters{gg1_idx, 2}, ...
+                    ModelGRDusp100nM.parameters{gg2_idx, 2}]; 
+    end
+    ModelGRDusp100nM.parameters(ModelGRDusp100nM.fittingOptions.modelVarsToFit,2) = num2cell(DUSP1pars);
+    %% STEP 2.A.3. -- Load and Associate with DUSP1 smFISH Data (100nM Dex Only)
+    % The commented code below would be needed to fit multiple conditions,
+    % but that is not used in this case.  It is left here in case it is
+    % needed in later stages of the project.
+    % % % Dusp1FitCases = {'100','100',201,'DUSP1 Fit (100nM Dex)'};
+    % % % ModelDusp1Fit = cell(size(Dusp1FitCases,1),1);
+    % % % ModelDusp1parameterMap = cell(1,size(GRfitCases,1));
+    % % % for i = 1:size(Dusp1FitCases,1)
+    % % %     ModelDusp1Fit{i} = ModelGRDusp100nM.loadData('EricData/pdoCalibrationData_EricIntensity_DexSweeps.csv',...
+    % % %         {'rna','totalNucRNA'},...
+    % % %         {'Dex_Conc','100'});
+    % % %     ModelDusp1Fit{i}.inputExpressions = {'IDex','Dex0*exp(-gDex*t)'};
+    % % % 
+    % % %     ModelDusp1parameterMap{i} = (1:4);
+    % % %     % Set Dex concentration.
+    % % %     ModelDusp1Fit{i}.parameters{13,2} = str2num(Dusp1FitCases{i,1});
+    % % %     ModelDusp1Fit{i} = ModelDusp1Fit{i}.formPropensitiesGeneral(['EricModDusp1_',num2str(i),'_FSP']);
+    % % % end
+    % % % DUSP1pars = [ModelDusp1Fit{i}.parameters{ModelGRDusp100nM.fittingOptions.modelVarsToFit,2}];
+    ModelGRDusp100nM = ModelGRDusp100nM.loadData('EricData/pdoCalibrationData_EricIntensity_DexSweeps.csv',...
+        {'rna','totalNucRNA'},{'Dex_Conc','100'});
+    DUSP1pars = [ModelGRDusp100nM.parameters{ModelGRDusp100nM.fittingOptions.modelVarsToFit,2}];
+end
+%%    STEP 2.B. -- Fit DUSP1 model at 100nM Dex.
+for i = 1:fitIters
+    fitOptions.suppressFSPExpansion = true;
+    DUSP1pars = ModelGRDusp100nM.maximizeLikelihood(...
+        DUSP1pars, fitOptions);
+    ModelGRDusp100nM.parameters(1:4,2) = num2cell(DUSP1pars);
+    save('EricModelDusp1_MMDex','GRpars','DUSP1pars') 
+end
+%%    STEP 2.C. -- Plot predictions for other Dex concentrations.
+showCases = [1,1,1,1];
+makePlotsDUSP1({ModelGRDusp100nM},ModelGRDusp100nM,DUSP1pars,Dusp1FitCases,showCases)
+
+%% STEP 2.D. -- Sample uncertainty for Dusp1 Parameters
+%   STEP 2.D.1. -- Compute sensitivity of the FSP solution
+ModelGRDusp100nM.solutionScheme = 'fspSens';
+sensSoln = ModelGRDusp100nM.solve();
+ModelGRDusp100nM.solutionScheme = 'FSP';
+%   STEP 2.D.2. -- Compute FIM
+%       define which species in model are not observed.
+ModelGRDusp100nM.pdoOptions.unobservedSpecies = {'offGene';'onGene'};
+% compute the FIM
+fimResults = ModelGRDusp100nM.computeFIM(sensSoln.sens,'log');
+% In the following, the log-prior is used as a prior co-variance matrix.
+% This will be used in the FIM calculation as an FIM without new evidence 
+% being set equal to the inverse of this covariance matrix.  More rigorous
+% justification is needed to support this heuristic.
+fimTotal = ModelGRDusp100nM.evaluateExperiment(fimResults,ModelGRDusp100nM.dataSet.nCells,...
+    diag(log10PriorStd(1:13).^2));
+FIMfree = fimTotal{1}(1:4,1:4);
+if min(eig(FIMfree))<1
+    disp('Warning -- FIM has one or more small eigenvalues. Reducing proposal width to 10x in those directions. MH Convergence may be slow.')
+    FIMfree = FIMfree + 1*eye(length(FIMfree));
+end
+covFree = FIMfree^-1;
+covFree = 0.5*(covFree+covFree');
+
+%%      STEP 2.D.3. -- Run Metropolis Hastings Search
+if loadPrevious
+    MHDusp1File = 'MHDusp1_Jul22';
+    load(MHDusp1File)
+else
+    MHFitOptions.proposalDistribution=@(x)mvnrnd(x,covFree);
+    MHFitOptions.thin=1;
+    MHFitOptions.numberOfSamples=1000;
+    MHFitOptions.burnIn=0;
+    MHFitOptions.progress=true;
+    MHFitOptions.numChains = 1;
+    MHFitOptions.saveFile = 'TMPEricMHDusp1.mat';
+    [DUSP1pars,~,MHResultsDusp1] = ModelGRDusp100nM.maximizeLikelihood(...
+        [], MHFitOptions, 'MetropolisHastings');
+    delete('TMPEricMHDusp1.mat')
+    ModelGRDusp100nM.parameters(1:4,2) = num2cell(DUSP1pars);
+end
+%%     STEP 1.B. -- Compute FIM for GR parameters.
+combinedGRModel = combinedGRModel.computeFIMs([],'log');
+fimGR_withPrior = combinedGRModel.FIM.totalFIM+... % the FIM in log space.
+    diag(1./(log10PriorStd(ModelGR.fittingOptions.modelVarsToFit)*log(10)).^2);  % Add prior in log space.
+%%     STEP 1.C. -- Run MH on GR Models.
+%GRpars = GRpars';
+MHFitOptions.proposalDistribution=@(x)mvnrnd(x,covFree);
+MHFitOptions.thin=1;
+MHFitOptions.numberOfSamples=1000;
+MHFitOptions.burnIn=0;
+MHFitOptions.progress=true;
+MHFitOptions.numChains = 1;
+MHFitOptions.useFIMforMetHast = true;
+MHFitOptions.saveFile = 'TMPEricMHGR.mat';
+[GRpars,~,MHResultsGR] = combinedGRModel.maximizeLikelihood(...
     GRpars, MHFitOptions, 'MetropolisHastings');
 delete(MHFitOptions.saveFile)
 %%
