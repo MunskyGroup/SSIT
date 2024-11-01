@@ -258,21 +258,24 @@ else
     % The commented code below would be needed to fit multiple conditions,
     % but that is not used in this case.  It is left here in case it is
     % needed in later stages of the project.
-    % % % Dusp1FitCases = {'100','100',201,'DUSP1 Fit (100nM Dex)'};
-    % % % ModelDusp1Fit = cell(size(Dusp1FitCases,1),1);
-    % % % ModelDusp1parameterMap = cell(1,size(GRfitCases,1));
-    % % % for i = 1:size(Dusp1FitCases,1)
-    % % %     ModelDusp1Fit{i} = ModelGRDusp100nM.loadData('EricData/pdoCalibrationData_EricIntensity_DexSweeps.csv',...
-    % % %         {'rna','totalNucRNA'},...
-    % % %         {'Dex_Conc','100'});
-    % % %     ModelDusp1Fit{i}.inputExpressions = {'IDex','Dex0*exp(-gDex*t)'};
-    % % % 
-    % % %     ModelDusp1parameterMap{i} = (1:4);
-    % % %     % Set Dex concentration.
-    % % %     ModelDusp1Fit{i}.parameters{13,2} = str2num(Dusp1FitCases{i,1});
-    % % %     ModelDusp1Fit{i} = ModelDusp1Fit{i}.formPropensitiesGeneral(['EricModDusp1_',num2str(i),'_FSP']);
-    % % % end
-    % % % DUSP1pars = [ModelDusp1Fit{i}.parameters{ModelGRDusp100nM.fittingOptions.modelVarsToFit,2}];
+
+    if ~loadPrevious
+        Dusp1FitCases = {'100','100',201,'DUSP1 Fit (100nM Dex)'};
+        ModelDusp1Fit = cell(size(Dusp1FitCases,1),1);
+        ModelDusp1parameterMap = cell(1,size(GRfitCases,1));
+        for i = 1:size(Dusp1FitCases,1)
+             ModelDusp1Fit{i} = ModelGRDusp100nM.loadData('EricData/pdoCalibrationData_EricIntensity_DexSweeps.csv',...
+                 {'rna','totalNucRNA'},...
+                 {'Dex_Conc','100'});
+             ModelDusp1Fit{i}.inputExpressions = {'IDex','Dex0*exp(-gDex*t)'};
+             ModelDusp1parameterMap{i} = (1:4);
+             % Set Dex concentration.
+             ModelDusp1Fit{i}.parameters{13,2} = str2num(Dusp1FitCases{i,1});
+             ModelDusp1Fit{i} = ModelDusp1Fit{i}.formPropensitiesGeneral(['EricModDusp1_',num2str(i),'_FSP']);
+        end
+        DUSP1pars = [ModelDusp1Fit{i}.parameters{ModelGRDusp100nM.fittingOptions.modelVarsToFit,2}];
+    end
+
     ModelGRDusp100nM = ModelGRDusp100nM.loadData('EricData/pdoCalibrationData_EricIntensity_DexSweeps.csv',...
         {'rna','totalNucRNA'},{'Dex_Conc','100'});
     DUSP1pars = [ModelGRDusp100nM.parameters{ModelGRDusp100nM.fittingOptions.modelVarsToFit,2}];
@@ -321,7 +324,7 @@ if loadPrevious
 else
     MHFitOptions.proposalDistribution=@(x)mvnrnd(x,covFree);
     MHFitOptions.thin=1;
-    MHFitOptions.numberOfSamples=1000;
+    MHFitOptions.numberOfSamples=2000;
     MHFitOptions.burnIn=0;
     MHFitOptions.progress=true;
     MHFitOptions.numChains = 1;
@@ -331,6 +334,39 @@ else
     delete('TMPEricMHDusp1.mat')
     ModelGRDusp100nM.parameters(1:4,2) = num2cell(DUSP1pars);
 end
+
+%%      STEP 2.D.4. -- Plot the MH results
+figNew = figure;
+ModelGRDusp100nM.plotMHResults(MHResultsDusp1,[],'log',[],figNew)
+for i = 1:3
+    for j = i:3
+        subplot(3,3,(i-1)*3+j)
+        CH = get(gca,'Children');
+        CH(1).Color=[1,0,1]; %
+        CH(1).LineWidth = 3;
+    end
+end
+
+%% Save results
+varNames = unique({'ModelGR'
+    'GRfitCases'
+    'log10PriorMean'
+    'log10PriorStd'
+    'GRpars'
+    'ModelGRparameterMap'
+    'ModelGRfit'
+    'boundGuesses'
+    'ModelGRDusp100nM'
+    'GRfitCases'
+    'log10PriorMean'
+    'log10PriorStd'
+    'duspLogPrior'
+    'DUSP1pars'
+    'ModelGRfit'
+    'fimResults'
+    });
+
+save('workspaceOct22_2024',varNames{:})
 
 %%  STEP 3. -- Model Extensions using ODE Analyses
 if loadPrevious
