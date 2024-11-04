@@ -2,13 +2,17 @@
 %%  STEP XX -- Explore Optimal Designs Using FIM Add FIM to MH UQ Plots 
 %%    STEP XX.A. -- FIM Analyses
 %%      STEP XX.A.1. -- Plot UQ from FIM compared to MH
+close all
+clear
 addpath(genpath('../../src'));
 
 loadPrevious = true;
 savedWorkspace = 'workspaceOct22_2024';
 addpath('tmpPropensityFunctions');
 
-load(savedWorkspace);
+if loadPrevious
+    load(savedWorkspace);
+end
 
 figNew = figure;
 
@@ -74,12 +78,12 @@ ModelPDOSpots = ModelGRDusp100nM.calibratePDO('../../ExampleData/pdoCalibrationD
 
 %%      STEP XX.B.2. -- Calibrate PDO from Eric's DUSP1 Intensity Data.
 ModelPDOIntensEric = ModelGRDusp100nM;
-ModelPDOIntensEric = ModelPDOIntensEric.calibratePDO('EricData/pdoCalibrationData_EricIntensity_ConcHigh.csv',...
+ModelPDOIntensEric = ModelPDOIntensEric.calibratePDO('EricData/pdoCalibrationData_EricIntensity_DexSweeps.csv',...
     {'rna'},{'RNA_DUSP1_nuc'},{'Nuc_DUSP1_avg_int_tot'},'AffinePoiss',true,[1,230,0.5]);
 
 %%    STEP XX.C. -- FIM + PDO Analyses
 %%      STEP XX.C.1. -- Analyze FIM with PDO for MCP/smFISH
-fimsPDOSpot = ModelPDOSpots.computeFIM(sensSoln.sens,'log');
+fimsPDOSpot = ModelPDOSpots.computeFIM([],'log');
 fimPDOSpots = ModelPDOSpots.evaluateExperiment(fimsPDOSpot,nCellsOpt,diag(GRDusp1_log10PriorStd.^2));
 
 nCellsOptPDOspots = ModelPDOSpots.optimizeCellCounts(fimsPDOSpot,nTotal,'tr[1:4]');
@@ -102,39 +106,59 @@ for i = 1:3
     end
 end
 %%      STEP XX.C.2. -- Analyze FIM with PDO for Intensity only
-fimsPDOIntens = ModelPDOIntensEric.computeFIM(sensSoln.sens,'log');
+fimsPDOIntens = ModelPDOIntensEric.computeFIM([],'log');
 fimPDOIntens = ModelPDOIntensEric.evaluateExperiment(fimsPDOIntens,nCellsOpt,diag(GRDusp1_log10PriorStd.^2));
 
 nCellsOptPDOintens = ModelPDOSpots.optimizeCellCounts(fimsPDOIntens,nTotal,'tr[1:4]');
-
+ 
 fimPDOIntensAvail = ModelPDOIntensEric.evaluateExperiment(fimsPDOIntens,nCellsOptAvail,diag(GRDusp1_log10PriorStd.^2));
-figNew = figure; clf;
-ModelGRDusp100nM.plotMHResults(MHResultsDusp1,[fimOpt,fimPDOSpots,fimTotal,fimPDOIntens],'log',[],figNew);
+%%
+figInt = figure; clf;
+ModelGRDusp100nM.plotMHResults(MHResultsDusp1,[fimPDOSpots,fimTotal,fimPDOIntensAvail],'log',[],figInt);
 % figNew = figure; clf;
 % ModelGRDusp100nM.plotMHResults(MHResultsDusp1,[fimOpt,fimTotal,fimPDOIntensAvail],'log',[],figNew);
 for i = 1:3
     for j = i:3
         subplot(3,3,(i-1)*3+j)
         CH = get(gca,'Children');
-        CH(1).Color=[1,0,1];
+        CH(1).Color=[0,0,0];   % MH - black
         CH(1).LineWidth = 3;
-        CH(3).Color=[0,0,0];
-        CH(3).LineWidth = 3;
-        CH(5).Color=[0,1,1];
-        CH(5).LineWidth = 3;
-        CH(4).Color=[0,0,1];
-        CH(4).LineWidth = 3;
-        CH(2).Color=[0,1,0];
+        CH(2).Color=[0,0,0];   % MLE - black
         CH(2).LineWidth = 3;
+        CH(3).Color=[0,0,1];   % fimPDOSpots - cyan
+        CH(3).LineWidth = 3;
+        CH(4).Color=[0,1,1];   % fimTotal - blue
+        CH(4).LineWidth = 3;
+        CH(5).Color=[1,0,1];   % fimPDOIntensAvail - magenta
+        CH(5).LineWidth = 3;
     end
 end
+
+% figNew = figure; clf;
+% ModelGRDusp100nM.plotMHResults(MHResultsDusp1,[fimOpt,fimTotal,fimPDOIntens],'log',[],figNew);
+%for i = 1:3
+%    for j = i:3
+%        subplot(3,3,(i-1)*3+j)
+%        CH = get(gca,'Children');
+%        CH(1).Color=[0,0,0];   % MH - black
+%        CH(1).LineWidth = 3;
+%        CH(2).Color=[0,0,0];   % MLE - black
+%        CH(2).LineWidth = 3;
+%        CH(3).Color=[0,0,1];   % fimPDOSpots - cyan
+%        CH(3).LineWidth = 3;
+%        CH(4).Color=[0,1,1];   % fimTotal - blue
+%        CH(4).LineWidth = 3;
+%        CH(5).Color=[1,0,1];   % fimPDOIntens - magenta
+%        CH(5).LineWidth = 3;
+%    end
+%end
 
 %%      STEP XX.C.3. -- Analyze FIM with PDO for Intensity only more cells
 nTimes = 3.71;
 fimPDOIntens2x = ModelPDOIntensEric.evaluateExperiment(fimsPDOIntens,nCellsOpt*nTimes,diag(GRDusp1_log10PriorStd.^2));
 det(fimOpt{1}(1:4,1:4))/det(fimPDOIntens2x{1}(1:4,1:4))
-figNew = figure;
-ModelGRDusp100nM.plotMHResults(MHResultsDusp1,[fimOpt,fimPDOSpots,fimTotal,fimPDOIntens,fimPDOIntens2x],'log',[],figNew);
+figIntMoreCells = figure;
+ModelGRDusp100nM.plotMHResults(MHResultsDusp1,[fimOpt,fimPDOSpots,fimTotal,fimPDOIntens,fimPDOIntens2x],'log',[],figIntMoreCells);
 for i = 1:3
     for j = i:3
         subplot(3,3,(i-1)*3+j)
