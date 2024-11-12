@@ -7,7 +7,7 @@ clear
 addpath(genpath('../../src'));
 
 loadPrevious = true;
-savedWorkspace = 'workspaceOct22_2024';
+savedWorkspace = '../AlexP/workspaceOct22_2024';
 addpath('tmpPropensityFunctions');
 
 if loadPrevious
@@ -76,6 +76,14 @@ legend('Intuitive Design','Optimal Design')
 ModelPDOSpots = ModelGRDusp100nM.calibratePDO('../../ExampleData/pdoCalibrationData.csv',...
     {'rna'},{'nTotal'},{'nSpots0'},'AffinePoiss',true);
 
+%% STEP PDO.B.1.a -- Calibrate PDO from single (and 5-9) z-stacks
+ModelPDO_single_Z = ModelGRDusp100nM;
+ModelPDO_5thru9_Zs = ModelGRDusp100nM;
+ModelPDO_single_Z = ModelPDO_single_Z.calibratePDO('../AlexP/SpotCountingByCellAndByZ/merged_dataframe_A549_DUSP1_100nM_10min_062723.csv',...
+    {'rna'},{'Spot_Count'},{'Z_7'},'AffinePoiss',true);
+ModelPDO_5thru9_Zs = ModelPDO_5thru9_Zs.calibratePDO('../AlexP/SpotCountingByCellAndByZ/merged_dataframe_A549_DUSP1_100nM_10min_062723.csv',...
+    {'rna'},{'Spot_Count'},{'Z_5_9'},'AffinePoiss',true,[1,230,0.5]);
+
 %%      STEP PDO.B.2. -- Calibrate PDO from Eric's DUSP1 Intensity Data.
 ModelPDOIntensEric = ModelGRDusp100nM;
 ModelPDOIntensEric = ModelPDOIntensEric.calibratePDO('EricData/pdoCalibrationData_EricIntensity_DexSweeps.csv',...
@@ -107,6 +115,58 @@ for i = 1:3
         CH(5).LineWidth = 3;
     end
 end
+
+%%      STEP PDO.C.1.a. -- Analyze FIM with PDO for single Z and Zs 5-9
+%fimsPDO_single_Z = ModelPDO_single_Z.computeFIM([],'log');
+%fimPDO_single_Z = ModelPDO_single_Z.evaluateExperiment(fimsPDO_single_Z,nCellsOpt,diag(GRDusp1_log10PriorStd.^2));
+
+%nCellsOptPDO_single_Zs = ModelPDO_single_Z.optimizeCellCounts(fimsPDO_single_Z,nTotal,'tr[1:4]');
+
+
+%fig_single_Z = figure;
+%ModelGRDusp100nM.plotMHResults(MHResultsDusp1,[fimPDO_single_Z,fimTotal,fimOpt],'log',[],fig_single_Z);
+%for i = 1:3
+%    for j = i:3
+%        subplot(3,3,(i-1)*3+j)
+%        CH = get(gca,'Children');
+%        CH(1).Color=[0,0,0];   % MH - black
+%        CH(1).LineWidth = 3;
+%        CH(2).Color=[0,0,0];   % MLE - black
+%        CH(2).LineWidth = 3;
+%        CH(3).Color=[0,0,1];   % fimPDOSpots - cyan
+%       CH(3).LineWidth = 3;
+%        CH(4).Color=[0,1,1];   % fimTotal - blue 
+%        CH(4).LineWidth = 3;
+%        CH(5).Color=[1,0,1];   % fimOpt - magenta
+%        CH(5).LineWidth = 3;
+%    end
+%end
+
+fimsPDO_5thru9_Zs = ModelPDO_5thru9_Zs.computeFIM([],'log');
+fimPDO_5thru9_Zs = ModelPDO_5thru9_Zs.evaluateExperiment(fimsPDO_5thru9_Zs,nCellsOpt,diag(GRDusp1_log10PriorStd.^2));
+
+nCellsOptPDO_5thru9_Zs = ModelPDO_5thru9_Zs.optimizeCellCounts(fimsPDO_5thru9_Zs,nTotal,'tr[1:4]');
+
+
+fig_Zs_5thru9 = figure;
+ModelGRDusp100nM.plotMHResults(MHResultsDusp1,[fimPDO_5thru9_Zs,fimTotal,fimOpt],'log',[],fig_Zs_5thru9);
+for i = 1:3
+    for j = i:3
+        subplot(3,3,(i-1)*3+j)
+        CH = get(gca,'Children');
+        CH(1).Color=[0,0,0];   % MH - black
+        CH(1).LineWidth = 3;
+        CH(2).Color=[0,0,0];   % MLE - black
+        CH(2).LineWidth = 3;
+        CH(3).Color=[0,0,1];   % fimPDOSpots - cyan
+        CH(3).LineWidth = 3;
+        CH(4).Color=[0,1,1];   % fimTotal - blue 
+        CH(4).LineWidth = 3;
+        CH(5).Color=[1,0,1];   % fimOpt - magenta
+        CH(5).LineWidth = 3;
+    end
+end
+
 %%      STEP PDO.C.2. -- Analyze FIM with PDO for Intensity only
 fimsPDOIntens = ModelPDOIntensEric.computeFIM([],'log');
 fimPDOIntens = ModelPDOIntensEric.evaluateExperiment(fimsPDOIntens,nCellsOpt,diag(GRDusp1_log10PriorStd.^2));
