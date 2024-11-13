@@ -3,10 +3,11 @@
 %%    STEP PDO.A. -- FIM Analyses
 %%      STEP PDO.A.1. -- Plot UQ from FIM compared to MH
 close all
-clear
+%clear
 addpath(genpath('../../src'));
 
 loadPrevious = true;
+%savedWorkspace = 'workspaceJuly24';
 savedWorkspace = '../AlexP/workspaceOct22_2024';
 addpath('tmpPropensityFunctions');
 
@@ -82,7 +83,7 @@ ModelPDO_5thru9_Zs = ModelGRDusp100nM;
 ModelPDO_single_Z = ModelPDO_single_Z.calibratePDO('../AlexP/SpotCountingByCellAndByZ/merged_dataframe_A549_DUSP1_100nM_10min_062723.csv',...
     {'rna'},{'Spot_Count'},{'Z_7'},'AffinePoiss',true);
 ModelPDO_5thru9_Zs = ModelPDO_5thru9_Zs.calibratePDO('../AlexP/SpotCountingByCellAndByZ/merged_dataframe_A549_DUSP1_100nM_10min_062723.csv',...
-    {'rna'},{'Spot_Count'},{'Z_5_9'},'AffinePoiss',true,[1,230,0.5]);
+    {'rna'},{'Spot_Count'},{'Z_5_9'},'AffinePoiss',true);
 
 %%      STEP PDO.B.2. -- Calibrate PDO from Eric's DUSP1 Intensity Data.
 ModelPDOIntensEric = ModelGRDusp100nM;
@@ -146,7 +147,6 @@ fimsPDO_5thru9_Zs = ModelPDO_5thru9_Zs.computeFIM([],'log');
 fimPDO_5thru9_Zs = ModelPDO_5thru9_Zs.evaluateExperiment(fimsPDO_5thru9_Zs,nCellsOpt,diag(GRDusp1_log10PriorStd.^2));
 
 nCellsOptPDO_5thru9_Zs = ModelPDO_5thru9_Zs.optimizeCellCounts(fimsPDO_5thru9_Zs,nTotal,'tr[1:4]');
-
 
 fig_Zs_5thru9 = figure;
 ModelGRDusp100nM.plotMHResults(MHResultsDusp1,[fimPDO_5thru9_Zs,fimTotal,fimOpt],'log',[],fig_Zs_5thru9);

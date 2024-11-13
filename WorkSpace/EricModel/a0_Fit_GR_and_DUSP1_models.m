@@ -673,7 +673,7 @@ varNames = unique({'ModelGR'
     'fimResults'
     'MHResultsGR'
     'MHResultsDusp1'
-    'sensSoln.sens'
+    'sensSoln'
     });
 
 save('workspaceOct22_2024',varNames{:})
