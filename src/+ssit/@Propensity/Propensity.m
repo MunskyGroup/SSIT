@@ -701,7 +701,14 @@ end
 exprStr = char(symbolicExpression);
 
 % Get rid of  max rules.
-exprStr = char(strrep(exprStr,", [], 2, 'omitnan', false",""));
+k = strfind(exprStr,', ''omitnan');
+if ~isempty(k)
+    exprStr = [exprStr(1:k-1),')'];
+end
+
+% exprStr = char(strrep(exprStr,", [], 2, 'omitnan', false",""));
+
+
 
 opVar = {'*','/','^'};
 for i = 1:length(opVar)
