@@ -7,6 +7,7 @@
 %   2) replica to replica variations are expected that would result in
 %   slightly different parameter combinations
 close all 
+clear
 addpath(genpath('../../src'));
 loadPrevious = false;
 savedWorkspace = 'workspaceOct22_2024';

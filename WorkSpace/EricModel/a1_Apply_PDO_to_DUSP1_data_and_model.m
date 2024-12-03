@@ -3,13 +3,13 @@
 %%    STEP PDO.A. -- FIM Analyses
 %%      STEP PDO.A.1. -- Plot UQ from FIM compared to MH
 close all
-%clear
+clear
 addpath(genpath('../../src'));
+addpath(genpath('tmpPropensityFunctions'));
 
 loadPrevious = true;
 %savedWorkspace = 'workspaceJuly24';
-savedWorkspace = '../AlexP/workspaceOct22_2024';
-addpath('tmpPropensityFunctions');
+savedWorkspace = 'workspaceOct22_2024';
 
 if loadPrevious
     load(savedWorkspace);
@@ -118,30 +118,29 @@ for i = 1:3
 end
 
 %%      STEP PDO.C.1.a. -- Analyze FIM with PDO for single Z and Zs 5-9
-%fimsPDO_single_Z = ModelPDO_single_Z.computeFIM([],'log');
-%fimPDO_single_Z = ModelPDO_single_Z.evaluateExperiment(fimsPDO_single_Z,nCellsOpt,diag(GRDusp1_log10PriorStd.^2));
+fimsPDO_single_Z = ModelPDO_single_Z.computeFIM([],'log');
+fimPDO_single_Z = ModelPDO_single_Z.evaluateExperiment(fimsPDO_single_Z,nCellsOpt,diag(GRDusp1_log10PriorStd.^2));
 
-%nCellsOptPDO_single_Zs = ModelPDO_single_Z.optimizeCellCounts(fimsPDO_single_Z,nTotal,'tr[1:4]');
+nCellsOptPDO_single_Zs = ModelPDO_single_Z.optimizeCellCounts(fimsPDO_single_Z,nTotal,'tr[1:4]');
 
-
-%fig_single_Z = figure;
-%ModelGRDusp100nM.plotMHResults(MHResultsDusp1,[fimPDO_single_Z,fimTotal,fimOpt],'log',[],fig_single_Z);
-%for i = 1:3
-%    for j = i:3
-%        subplot(3,3,(i-1)*3+j)
-%        CH = get(gca,'Children');
-%        CH(1).Color=[0,0,0];   % MH - black
-%        CH(1).LineWidth = 3;
-%        CH(2).Color=[0,0,0];   % MLE - black
-%        CH(2).LineWidth = 3;
-%        CH(3).Color=[0,0,1];   % fimPDOSpots - cyan
-%       CH(3).LineWidth = 3;
-%        CH(4).Color=[0,1,1];   % fimTotal - blue 
-%        CH(4).LineWidth = 3;
-%        CH(5).Color=[1,0,1];   % fimOpt - magenta
-%        CH(5).LineWidth = 3;
-%    end
-%end
+fig_single_Z = figure;
+ModelGRDusp100nM.plotMHResults(MHResultsDusp1,[fimPDO_single_Z,fimTotal,fimOpt],'log',[],fig_single_Z);
+for i = 1:3
+    for j = i:3
+        subplot(3,3,(i-1)*3+j)
+        CH = get(gca,'Children');
+        CH(1).Color=[0,0,0];   % MH - black
+        CH(1).LineWidth = 3;
+        CH(2).Color=[0,0,0];   % MLE - black
+        CH(2).LineWidth = 3;
+        CH(3).Color=[0,0,1];   % fimPDOSpots - cyan
+       CH(3).LineWidth = 3;
+        CH(4).Color=[0,1,1];   % fimTotal - blue 
+        CH(4).LineWidth = 3;
+        CH(5).Color=[1,0,1];   % fimOpt - magenta
+        CH(5).LineWidth = 3;
+    end
+end
 
 fimsPDO_5thru9_Zs = ModelPDO_5thru9_Zs.computeFIM([],'log');
 fimPDO_5thru9_Zs = ModelPDO_5thru9_Zs.evaluateExperiment(fimsPDO_5thru9_Zs,nCellsOpt,diag(GRDusp1_log10PriorStd.^2));
