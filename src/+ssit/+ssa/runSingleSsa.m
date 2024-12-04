@@ -1,5 +1,5 @@
 function [X_array] = runSingleSsa(x0, S, W, T_array, isTimeVarying, ...
-    signalUpdateRate, delayedReactions, parameters)
+    signalUpdateRate, parameters, delayedReactions)
 
 % Start the simulation.
 
