@@ -56,7 +56,6 @@ if (strcmp(method, 'forward'))
         computableSensitivities = ones(1,n_pars,'logical');
         relTol=1.0e-10 ;
         absTol=1.0e-6 ;
-        % initialSensitivities = zeros(size(initialStates,2)*sum(computableSensitivities), 1);
         initialSensitivities = zeros(size(initialStates,2)*n_pars);
         [Outputs,constraintBounds,stateSpace] = ssit.sensitivity.adaptiveFspForwardSens(tout, initialStates,...
             initialProbabilities, initialSensitivities,...
