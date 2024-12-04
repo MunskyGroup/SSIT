@@ -1,5 +1,12 @@
-function [X_array] = runSingleSsa(x0,S,W,T_array,isTimeVarying,signalUpdateRate,parameters)
+function [X_array] = runSingleSsa(x0, S, W, T_array, isTimeVarying, ...
+    signalUpdateRate, delayedReactions, parameters)
+
 % Start the simulation.
+
+%% Step 1: Initialization
+% Input values for the initial state from the provided vector, set time t
+% to be the initial time of simulation, and set the reaction counter i = 1.
+
 t = min(T_array);   % initial time of simulation.
 x = x0;
 iprint = 1;  % The next time at which to record results.
@@ -7,6 +14,14 @@ Nsp = size(S,1);  %Number of species.
 Nt = length(T_array);
 X_array = zeros(Nsp,Nt);
 props = [];
+
+hasDelayedReactions = ~isempty(delayedReactions);
+
+% To avoid hints/warnings, we will initialize an array that will hold a
+% record of delayed reactions: the first column will contain the scheduled
+% time; the second, the reaction number.
+scheduledDelayedReactions = [NaN, NaN];
+
 if isTimeVarying
         S = [zeros(Nsp,1),S];
         props(1) = signalUpdateRate;
@@ -17,49 +32,110 @@ end
 
 isAFun = isa(W{1}, 'function_handle');
     
-while t<max(T_array)
-
-    %% Choose time of reaction
+while t < max(T_array)
+    %% Step 2: Compute propensities for all reactions
     if ~isAFun
-        %% Command Line Code Approach
+        % Command Line Code Approach
         WT = W{1}.hybridFactorVector(t,parameters);
         for i=length(W):-1:1
+            % Evaluate the propensity functions at the current state:
             if ~W{i}.isTimeDependent||W{i}.isFactorizable
-                props(i+jt) = WT(i)*W{i}.stateDependentFactor(x,parameters);     % evaluate the propensity functions at the current state.
+                props(i+jt) = WT(i)*W{i}.stateDependentFactor(x,parameters);     
             else
-                props(i+jt) = W{i}.jointDependentFactor(t,x,parameters);     % evaluate the propensity functions at the current state.
+                props(i+jt) = W{i}.jointDependentFactor(t,x,parameters);
             end
         end
     else
-        %% GUI approach
+        % GUI approach
         for i=length(W):-1:1
-            props(i+jt) = W{i}(x,t);     % evaluate the propensity functions at the current state.
+            % Evaluate the propensity functions at the current state.
+            props(i+jt) = W{i}(x,t);     
         end
     end
-    w0 = sum(props);  % sum the propensity functions (inverse of ave. waiting time).
-    tau = -1/w0*log(rand); % The time until the next reaction.
+    
+    %% Step 3: Generate uniform random number(s) in [0, 1].
+    u1 = rand;
+    u2 = rand;
 
-    %% update time
-    t = t+tau;  % The time of the next reaction.
-    
-    while iprint<=Nt&&t>T_array(iprint)
-        X_array(:,iprint) = x;
-        iprint=iprint+1;
-    end  
-        
-    if t>max(T_array)
-        break;
-    end
-    
-    %% Choose which reaction.
-    r2 = w0*rand;    % this is a uniform r.v. betweeen zero and w0;
-    j = 1;
-    while sum(props(1:j))<r2
-        j=j+1;
-    end
-    % At this point j is the chosen reaction.
-    
-    %% Update state
-    x = x + S(:,j);
-end
+    %% Step 4: Compute the time interval until the next reaction:
+    % Note that the sum of the propensities is the inverse of the average
+    % waiting time. 
 
+    delta_t = -1 * log(u1) / sum(props);
+
+    if (t + delta_t) > max(T_array)
+        break % Do not simulate beyond the time boundaries.
+    end
+
+    %% Step 5: Are there upcoming delayed reactions in [t, t + delta_t]?
+    
+    scheduledDelayedReactions = sortrows(scheduledDelayedReactions);
+    delayedReactionTimes = scheduledDelayedReactions(:, 1);
+    rows = find(...
+        delayedReactionTimes >= t & delayedReactionTimes <= (t + delta_t));
+    rowsize = size(rows);
+    if rowsize(1, 1) > 0
+        % There IS a delayed reaction in that time interval.
+        % Advance t to the time of the next scheduled delayed reaction.
+
+        t = scheduledDelayedReactions(rows, 1);
+        rxn = scheduledDelayedReactions(rows, 2);
+
+        % Add the current state to the record of states for all intervening
+        % times:
+        while (iprint <= Nt) & (t > T_array(iprint))
+            X_array(:, iprint) = x;
+            iprint = iprint + 1;
+        end
+
+        % Update the state according to the delayed reaction:
+
+        x = x + S(:, rxn);
+    else % rowsize(1, 1) > 0
+        %% Step 6: Find the channel of the next reaction:
+
+        threshold = u2 * sum(props); % threshold is in [0, sum(props)]
+        rxn = 1;
+        while sum(props(1: rxn)) < threshold
+            rxn = rxn + 1;
+        end
+        % At this point, rxn is the number of the chosen reaction.
+
+        %% Step 7: Determine whether the next reaction is delayed:
+
+        rxnIsDelayed = false;
+        rxnDelayIndex = 0;
+        if hasDelayedReactions
+            rxnDelayIndex = find(delayedReactions(:, 1) == rxn, 1);
+            rxnIsDelayed = ~isempty(rxnDelayIndex);
+        end
+
+        if rxnIsDelayed
+            % If the reaction is delayed, postpone the update to
+            % t_d = t + tau, where tau is the delay corresponding to the
+            % reaction.
+
+            nextRxn = [t + delayedReactions(rxnDelayIndex, 1), rxn];
+            scheduledDelayedReactions = ... 
+                [scheduledDelayedReactions; nextRxn];
+        else
+            % If the reaction is not delayed, perform it; i.e.
+
+            % Add the current state to the record of states for all
+            % intervening times:
+
+            while (iprint <= Nt) & (t > T_array(iprint))
+                X_array(:, iprint) = x;
+                iprint = iprint + 1;
+            end
+
+            % Update the state according to the reaction:
+
+            x = x + S(:, rxn);
+
+            % Advance t to the time of the reaction:
+
+            t = t + delta_t;
+        end % Step 7 ...
+    end % rowsize(1, 1) == 0 [No delayed reactions were upcoming]
+end % while t < max(T_array) ...
