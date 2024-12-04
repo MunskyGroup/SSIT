@@ -244,7 +244,7 @@ classdef Propensity
             oneSym = str2sym('1');
 
             % change to parfor?
-            for iRxn = 1:n_reactions
+            parfor iRxn = 1:n_reactions
                 prop_vars = symvar(symbolicExpression{iRxn});
                 hybridFactor =[];
                 prefixNameLocal = [prefixName,'_',num2str(iRxn)];
@@ -419,7 +419,6 @@ classdef Propensity
                     for i2=1:length(upstreamODEs)
                         expr_tx = subs(expr_tx,upstreamODEs{i2},varODEs(i2));
                     end
-
                     [obj{iRxn}.(jntFactorName),expr_dt_vec_dodei] = ...
                         sym2propfun(expr_tx, true, true, nonXTpars(:,1), speciesStoch, varODEs, logicTerms(iRxn), true);
                     obj{iRxn}.isTimeDependent = true;
@@ -565,33 +564,31 @@ classdef Propensity
             n = [0,0,0];
             stNew = st;
             for i=1:3
-                while ~isempty(strfind(stNew,logTypes{i}))
-                    J = strfind(stNew,logTypes{i});
-                    for j = 1%:length(J)
-                        K = strfind(stNew,'(');
-                        k1 = max(K(K<J(j)));
-                        K = strfind(stNew,')');
-                        k2 = min(K(K>J(j)));
-                        logE = stNew(k1:k2);
-                        if contains(logE,'t')&&max(contains(logE,species))
-                            n(1)=n(1)+1;
-                            logicTerms.logJ{n(1),1} = logE;
-                            counter = counter+1;
-                            logicTerms.logJ{n(1),2} = ['logJ',num2str(counter)];
-                            stNew = strrep(stNew,logE,['(',logicTerms.logJ{n(1),2},')']);
-                        elseif contains(logE,'t')
-                            n(2)=n(2)+1;
-                            logicTerms.logT{n(2),1} = logE;
-                            counter = counter+1;
-                            logicTerms.logT{n(2),2} = ['logT',num2str(counter)];
-                            stNew = strrep(stNew,logE,['(',logicTerms.logT{n(2),2},')']);
-                        elseif max(contains(logE,species))
-                            n(3)=n(3)+1;
-                            logicTerms.logX{n(3),1} = logE;
-                            counter = counter+1;
-                            logicTerms.logX{n(3),2} = ['logX',num2str(counter)];
-                            stNew = strrep(stNew,logE,['(',logicTerms.logX{n(3),2},')']);
-                        end
+                J = strfind(stNew,logTypes{i});
+                for j = 1:length(J)
+                    K = strfind(stNew,'(');
+                    k1 = max(K(K<J(j)));
+                    K = strfind(stNew,')');
+                    k2 = min(K(K>J(j)));
+                    logE = stNew(k1:k2);
+                    if contains(logE,'t')&&max(contains(logE,species))
+                        n(1)=n(1)+1;
+                        logicTerms.logJ{n(1),1} = logE;
+                        counter = counter+1;
+                        logicTerms.logJ{n(1),2} = ['logJ',num2str(counter)];
+                        stNew = strrep(stNew,logE,['(',logicTerms.logJ{n(1),2},')']);
+                    elseif contains(logE,'t')
+                        n(2)=n(2)+1;
+                        logicTerms.logT{n(2),1} = logE;
+                        counter = counter+1;
+                        logicTerms.logT{n(2),2} = ['logT',num2str(counter)];
+                        stNew = strrep(stNew,logE,['(',logicTerms.logT{n(2),2},')']);
+                    elseif max(contains(logE,species))
+                        n(3)=n(3)+1;
+                        logicTerms.logX{n(3),1} = logE;
+                        counter = counter+1;
+                        logicTerms.logX{n(3),2} = ['logX',num2str(counter)];
+                        stNew = strrep(stNew,logE,['(',logicTerms.logX{n(3),2},')']);
                     end
                 end
             end
@@ -680,13 +677,6 @@ end
 
 % import ssit.fsp.*
 varNames = string(symvar(symbolicExpression));
-varNames = unique([varNames,species{:}]);
-% len = zeros(1,length(varNames));
-% for i = 1:length(varNames)
-%     len(i) = length(varNames{i});
-% end
-% [~,J] = sort(len,'descend');
-% varNames = varNames(J);
 % sort(varNames, 'descend');
 
 if jacobian&&~isempty(varODEs)
@@ -699,17 +689,6 @@ else
 end
 
 exprStr = char(symbolicExpression);
-
-% Get rid of  max rules.
-k = strfind(exprStr,', ''omitnan');
-if ~isempty(k)
-    exprStr = [exprStr(1:k-1),')'];
-end
-
-% exprStr = char(strrep(exprStr,", [], 2, 'omitnan', false",""));
-
-
-
 opVar = {'*','/','^'};
 for i = 1:length(opVar)
     op = opVar{i};
