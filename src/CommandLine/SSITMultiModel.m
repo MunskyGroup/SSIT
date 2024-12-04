@@ -154,7 +154,7 @@ classdef SSITMultiModel
 
             % Apply prior constraints.
             if ~isempty(SMM.parameterConstraints)
-                totalLogLikelihood = totalLogLikelihood + SMM.parameterConstraints(parameterGuess);
+                totalLogLikelihood = totalLogLikelihood + SMM.parameterConstraints(parameterGuess(:));
             end
         end
 
