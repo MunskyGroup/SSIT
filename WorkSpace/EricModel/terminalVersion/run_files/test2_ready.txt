@@ -1,5 +1,0 @@
-../savedGRDusp1Model.mat
-ModelGRDusp100nM
-settingsGR_DUSP1_MultipleDex
-../EricDataJan23_2024/pdoCalibrationData_EricIntensity_DexSweeps.csv
-testModelMulti2
