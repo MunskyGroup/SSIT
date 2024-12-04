@@ -173,9 +173,9 @@ fimPDOIntens = ModelPDOIntensEric.evaluateExperiment(fimsPDOIntens,nCellsOpt,dia
 nCellsOptPDOintens = ModelPDOSpots.optimizeCellCounts(fimsPDOIntens,nTotal,'tr[1:4]');
  
 fimPDOIntensAvail = ModelPDOIntensEric.evaluateExperiment(fimsPDOIntens,nCellsOptAvail,diag(GRDusp1_log10PriorStd.^2));
-%%
+
 figInt = figure; clf;
-ModelGRDusp100nM.plotMHResults(MHResultsDusp1,[fimPDOSpots,fimTotal,fimPDOIntensAvail],'log',[],figInt);
+ModelGRDusp100nM.plotMHResults(MHResultsDusp1,[fimPDOSpots,fimPDOIntens,fimPDOIntensAvail],'log',[],figInt);
 % figNew = figure; clf;
 % ModelGRDusp100nM.plotMHResults(MHResultsDusp1,[fimOpt,fimTotal,fimPDOIntensAvail],'log',[],figNew);
 for i = 1:3
@@ -188,7 +188,7 @@ for i = 1:3
         CH(2).LineWidth = 3;
         CH(3).Color=[0,0,1];   % fimPDOSpots - cyan
         CH(3).LineWidth = 3;
-        CH(4).Color=[0,1,1];   % fimTotal - blue
+        CH(4).Color=[0,1,1];   % fimPDOIntens - blue
         CH(4).LineWidth = 3;
         CH(5).Color=[1,0,1];   % fimPDOIntensAvail - magenta
         CH(5).LineWidth = 3;
