@@ -115,7 +115,7 @@ while t < max(T_array)
             % t_d = t + tau, where tau is the delay corresponding to the
             % reaction.
 
-            nextRxn = [t + delayedReactions(rxnDelayIndex, 1), rxn];
+            nextRxn = [t + delayedReactions(rxnDelayIndex, 2), rxn];
             scheduledDelayedReactions = ... 
                 [scheduledDelayedReactions; nextRxn];
         else
