@@ -265,7 +265,8 @@ while tNow < t_out && i_prt<=length(Time_array)
     
     tNow = tNow + t_step;
     %% Changes by Brian Munsky
-    if max(w(SINKS))*length(SINKS)>fspTol*(tNow-fspErrorCondition.tInit)/max(Time_array-fspErrorCondition.tInit)
+    tolCalc = fspTol*(tNow-fspErrorCondition.tInit)/(fspErrorCondition.tFinal-fspErrorCondition.tInit);
+    if sum(w(SINKS)) > tolCalc
         P_lost=w(SINKS);
         err=[];
         hump=[];

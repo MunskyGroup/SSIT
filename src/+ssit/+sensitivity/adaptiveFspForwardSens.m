@@ -126,8 +126,11 @@ if isempty(stateSpace)
 end
 stateCount = stateSpace.getNumStates();
 
-% Generate the time-varying FSP operator
-fspMatrix = ssit.FspMatrix(propensities, [parameters{:,2}]', stateSpace, constraintCount, varNames, modRedTransformMatrices, true);
+% Generate the time-varying FSP operator. This should already have the full
+% dimension of the forward sensitivy ODE (that is, its dimension should be
+% (Npars+1)*Nstates.
+computeSens = true;
+fspMatrix = ssit.FspMatrix(propensities, [parameters{:,2}]', stateSpace, constraintCount, varNames, modRedTransformMatrices, computeSens);
 
 probabilityVec = zeros(stateCount + constraintCount, 1);
 probabilityVec(1:size(initialStates,2)) = initialProbabilities;

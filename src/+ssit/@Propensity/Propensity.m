@@ -126,7 +126,7 @@ classdef Propensity
                 parameters
                 varNames=[];
                 computeSens = false
-                ipar  = [];
+                ipar  = 1;
             end
             if isempty(varNames)
                 varNames={'x1','x2','x3','x4'};
@@ -136,7 +136,8 @@ classdef Propensity
             end
             if computeSens
                 if ~isempty(parameters)
-                    y = obj.sensStateFactor{ipar}(x,parameters);
+                    y = obj.sensStateFactor{ipar}(x,parameters)+zeros(length(parameters),size(x,2));
+                    y = y(ipar,:);
                 else
                     y = 0;
                 end
@@ -475,7 +476,7 @@ classdef Propensity
                         end
                     end
                     for ipar = 1:n_pars
-                        prefixNameLocal = [prefixName,'_',num2str(iRxn),'_',num2str(ipar)];
+                        prefixNameLocal = [prefixName,'_v_',num2str(1),'_',num2str(ipar)];
                         obj{1}.sensTimeFactorVec{ipar} = sym2mFun(expr_t_vec_sens(:,ipar), true, false, nonXTpars(:,1), speciesStoch, varODEs, false, true, prefixNameLocal);
                     end
                 end

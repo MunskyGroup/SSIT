@@ -189,10 +189,7 @@ classdef SSIT
             if ~isempty(obj.customConstraintFuns)
                 [~,J] = sort(cellfun('length',obj.species),'descend');                
                 for i = 1:length(obj.customConstraintFuns)
-                    constraintStr = obj.customConstraintFuns{i};
-                    for j = 1:length(J)
-                        constraintStr = strrep(constraintStr,obj.species{j},['x',num2str(J(j))]);
-                    end
+                    constraintStr = SSIT.replaceSpeciesNames(obj.customConstraintFuns{i},obj.species);
                     Data(2*nSpecies+i,:) = {constraintStr,'<',1};
                 end
             end
@@ -208,7 +205,8 @@ classdef SSIT
                 nEscape = length(obj.fspOptions.escapeSinks.f);
                 escapeData = cell(nEscape,3);
                 for i = 1:nEscape
-                    escapeData(i,:) = {obj.fspOptions.escapeSinks.f{i},'<',1};
+                    constraintStr = SSIT.replaceSpeciesNames(obj.fspOptions.escapeSinks.f{i},obj.species);
+                    escapeData(i,:) = {constraintStr,'<',1};
                 end
                 constraints.fEscape = readConstraintsForAdaptiveFsp([], stochasticSpecies, escapeData);
                 constraints.bEscape = obj.fspOptions.escapeSinks.b;
@@ -659,7 +657,6 @@ classdef SSIT
             obj.initialProbs = max(0,real(fspVector.p.data.vals));
             
         end
-
         
         function [pdo] = generatePDO(obj,pdoOptions,paramsPDO,fspSoln,variablePDO,maxSize)
             arguments
@@ -867,7 +864,7 @@ classdef SSIT
             switch obj.solutionScheme
                 case 'FSP'
                     if ~isempty(stateSpace)&&size(stateSpace.states,2)~=stateSpace.state2indMap.Count
-                        error('HERE')
+                        error('Mismatch in statespace definition.')
                     end
 
                     % specificPropensities = SSIT.parameterizePropensities(obj.propensitiesGeneral,[obj.parameters{:,2}]');
@@ -1167,6 +1164,22 @@ classdef SSIT
                             end
                         end
 
+                        % Update conditionalPmfs input size for calibrated PDO
+                        if size(PDO.conditionalPmfs{1},2) <= size(redS(1).data)
+                            max_xTrue = size(PDO.conditionalPmfs{1},2);
+                            PDO_input = size(redS(1).data);                            
+                            if PDO_input > max_xTrue
+                            % Padding
+                                disp("Padding conditionalPmfs input to increase size for PDO: " + max_xTrue + " to " + PDO_input)
+                                padding = zeros(size(PDO.conditionalPmfs{1}, 1), PDO_input - max_xTrue);
+                                PDO.conditionalPmfs{1} = [PDO.conditionalPmfs{1}, padding];
+                            elseif PDO_input < max_xTrue
+                            % Cropping 
+                                disp("Warning! Cropping conditionalPmfs input size ? " + max_xTrue + " to " + PDO_input)
+                                PDO.conditionalPmfs{1} = PDO.conditionalPmfs{1}(:, 1:PDO_input);
+                            end
+                        end
+
                         F = ssit.fim.computeSingleCellFim(sensSoln.data{it}.p.sumOver(indsUnobserved), redS, PDO);
                     end
                     fimResults{it,1} = F;
@@ -1307,9 +1320,9 @@ classdef SSIT
             end
             switch FIMMetric
                 case 'Determinant'
-                    met = @(A)-det(A);
+                    met = @(A)-max(0,det(A));
                 case 'DetCovariance'
-                    met = @(A)det(inv(A));
+                    met = @(A)max(0,det(inv(A)));
                 case 'Smallest Eigenvalue'
                     met = @(A)-min(eig(A));
                 case 'Trace'
@@ -1317,20 +1330,20 @@ classdef SSIT
                 otherwise
                     if strcmp(FIMMetric(1:2),'TR')
                         k = eval(FIMMetric(3:end));
-                        met = @(A)det(inv(A(k,k)));
+                        met = @(A)max(0,det(inv(A(k,k))));
                     elseif strcmp(FIMMetric(1:2),'tr')
                         k = eval(FIMMetric(3:end));
-                        met = @(A)-det((A(k,k)));
+                        met = @(A)-max(0,det((A(k,k))));
                     elseif strcmp(FIMMetric(1:2),'GR')
                         k = eval(FIMMetric(3:end));
                         ek = zeros(length(k),length(fims{1}));
                         ek(1:length(k),k) = eye(length(k));
-                        met = @(A)det(ek*inv(A)*ek');
+                        met = @(A)max(0,det(ek*inv(A)*ek'));
                     else  % all parameters are free.
                         k = eval(FIMMetric);
                         ek = zeros(length(k),length(fims{1}));
                         ek(1:length(k),k) = eye(length(k));
-                        met = @(A)det(ek*inv(A)*ek');
+                        met = @(A)max(0,det(ek*inv(A)*ek'));
                     end
             end
             NT = size(fims,1);
@@ -2904,6 +2917,27 @@ classdef SSIT
                     propensities{i}.hybridJointFactor = @(t,x,v)GenProps{i}.hybridJointFactor(t,x,Parset,v');
                 end
             end
+        end
+        function str = replaceSpeciesNames(str,species)
+            % Check if species are named 'x1','x2', etc, and if not, find
+            % order of species names longest to shortest. 
+            namedXi = true;
+            Len = NaN*ones(length(species));
+            for i = 1:length(species)
+                Len(i) = length(species{i});
+                if ~strcmp(species{i},['x',num2str(i)])
+                    namedXi = false;
+                end
+            end
+            if namedXi % No need to change string.
+                return
+            end
+
+            [~,order] = sort(Len,'descend');
+            for i = 1:length(order)
+                str = strrep(str,species{order(i)},['x',num2str(i)]);
+            end
+
         end
     end
 end
