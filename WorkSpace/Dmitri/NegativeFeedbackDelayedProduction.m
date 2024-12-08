@@ -27,9 +27,16 @@ Model.stoichiometry = [...
     ];
 
 % The only delayed reaction in the system is the third, with a delay equal
-% to tau:
+% to tau. It has a single reactant, one Dempty, so we must include it in
+% the delayed-reaction scheduling stochiometries:
 
 Model.delayedReactions = [3, Model.parameters{5,2}];
+
+Model.delayedReactionSchedulingS = [...
+     0,  0, -1,  0; ... % Dempty
+     0,  0,  0,  0; ... % Dfull
+     0,  0,  0,  0 ... % X
+    ];
 
 Model.tSpan = linspace(0, 400, 401);
 

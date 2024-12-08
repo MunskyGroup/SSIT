@@ -1,5 +1,6 @@
 function [X_array] = runSingleSsa(x0, S, W, T_array, isTimeVarying, ...
-    signalUpdateRate, parameters, delayedReactions)
+    signalUpdateRate, parameters, ...
+    delayedReactions, delayedReactionSchedulingS)
 
 % Start the simulation.
 
@@ -63,10 +64,6 @@ while t < max(T_array)
 
     delta_t = -1 * log(u1) / sum(props);
 
-    if (t + delta_t) > max(T_array)
-        break % Do not simulate beyond the time boundaries.
-    end
-
     %% Step 5: Are there upcoming delayed reactions in [t, t + delta_t]?
     
     scheduledDelayedReactions = sortrows(scheduledDelayedReactions);
@@ -88,9 +85,16 @@ while t < max(T_array)
             iprint = iprint + 1;
         end
 
-        % Update the state according to the delayed reaction:
+        if (t + delta_t) > max(T_array)
+            break % Do not simulate beyond the time boundaries.
+        end
 
-        x = x + S(:, rxn);
+        % Update the state according to the delayed reaction. First, undo
+        % the subtraction of reactants initially performed when the
+        % reaction was first scheduled; then apply the stochiometry of the
+        % overall reaction.
+
+        x = x - delayedReactionSchedulingS(:, rxn) + S(:, rxn);
     else % rowsize(1, 1) > 0
         %% Step 6: Find the channel of the next reaction:
 
@@ -113,8 +117,11 @@ while t < max(T_array)
         if rxnIsDelayed
             % If the reaction is delayed, postpone the update to
             % t_d = t + tau, where tau is the delay corresponding to the
-            % reaction.
+            % reaction. However, subtract the reactants from the state
+            % immediately, so that they cannot be involved in any other
+            % reactions in the interim.
 
+            x = x + delayedReactionSchedulingS(:, rxn);
             nextRxn = [t + delayedReactions(rxnDelayIndex, 2), rxn];
             scheduledDelayedReactions = ... 
                 [scheduledDelayedReactions; nextRxn];
@@ -127,6 +134,10 @@ while t < max(T_array)
             while (iprint <= Nt) & (t > T_array(iprint))
                 X_array(:, iprint) = x;
                 iprint = iprint + 1;
+            end
+
+            if (t + delta_t) > max(T_array)
+                break % Do not simulate beyond the time boundaries.
             end
 
             % Update the state according to the reaction:

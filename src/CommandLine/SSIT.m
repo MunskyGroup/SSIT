@@ -36,7 +36,8 @@ classdef SSIT
         useHybrid = false
         hybridOptions = struct('upstreamODEs',[]);
         propensitiesGeneral = [];% Processed propensity functions for use in solvers
-        delayedReactions = [];
+        delayedReactions = []; % An n-by-2 matrix listing the number of each delayed reaction followed by its delay
+        delayedReactionSchedulingS = []; % Stoichiometries only including removal of reactants from delayed reactions
     end
 
     properties (Dependent)
@@ -915,7 +916,8 @@ classdef SSIT
                                 obj.ssaOptions.isTimeVarying,...
                                 obj.ssaOptions.signalUpdateRate,...                                
                                 [obj.parameters{:,2}]', ...
-                                obj.delayedReactions);
+                                obj.delayedReactions, ...
+                                obj.delayedReactionSchedulingS);
                         end
                         Solution.trajs = trajs;
                     else
@@ -929,7 +931,8 @@ classdef SSIT
                                 obj.ssaOptions.isTimeVarying,...
                                 obj.ssaOptions.signalUpdateRate,...
                                 [obj.parameters{:,2}]', ...
-                                obj.delayedReactions);
+                                obj.delayedReactions, ...
+                                obj.delayedReactionSchedulingS);
                         end
                     end
                     disp([num2str(nSims),' SSA Runs Completed'])
