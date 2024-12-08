@@ -1,3 +1,5 @@
+%% Initial Setup
+
 close all
 clear all
 addpath(genpath('../../src'));
@@ -10,7 +12,7 @@ Model.parameters = ({...
     'kMinus', 1; ... % Rate of protein degradation
     'kMinus1', 2; ... % Rate of operator site emptying
     'k1', 1000; ... % Rate of operator site filling
-    'tau', 50 ... % Delay in protein production
+    'tau', 2 ... % Delay in protein production
     });
 
 Model.propensityFunctions = {
@@ -38,7 +40,14 @@ Model.delayedReactionSchedulingS = [...
      0,  0,  0,  0 ... % X
     ];
 
-Model.tSpan = linspace(0, 400, 401);
+%% Configure and run SSA
+
+%Model.tSpan = linspace(0, 400, 401);
+Model.tSpan = linspace(0, 9, 10);
+Model = Model.formPropensitiesGeneral('NFDP');
 
 Model.solutionScheme = 'SSA';
 SSASoln = Model.solve;
+
+%% Plot trajectories
+Model.makePlot(SSASoln,'trajectories',[],[],4) % Make some plots.
