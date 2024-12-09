@@ -63,7 +63,6 @@ end
 % We use a simplified DUSP2 model where there is an upstream transcription
 % factor (GR) that activates a gene.  Once active, the gene can transcribe
 % nuclear RNA, which can later decay or leave the nucleus.
-clear
 DUSP1 = SSIT; 
 DUSP1.species = {'offGene';'onGene';'rna'}; 
 DUSP1.initialCondition = [2;0;0];         
