@@ -139,7 +139,7 @@ classdef Propensity
                     y = obj.sensStateFactor{ipar}(x,parameters)+zeros(length(parameters),size(x,2));
                     y = y(ipar,:);
                 else
-                    y = 0;
+                    y = zeros(length(parameters),size(x,2));
                 end
             else
                 if ~isempty(parameters)
