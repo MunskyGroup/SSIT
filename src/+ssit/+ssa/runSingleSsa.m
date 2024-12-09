@@ -140,7 +140,7 @@ while t < max(T_array)
                 iprint = iprint + 1;
             end
 
-            if (t + delta_t) > max(T_array)
+            if t > max(T_array)
                 break % Do not simulate beyond the time boundaries.
             end
 
