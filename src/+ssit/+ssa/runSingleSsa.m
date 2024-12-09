@@ -128,6 +128,10 @@ while t < max(T_array)
         else
             % If the reaction is not delayed, perform it; i.e.
 
+            % Advance t to the time of the reaction:
+
+            t = t + delta_t;
+
             % Add the current state to the record of states for all
             % intervening times:
 
@@ -142,11 +146,7 @@ while t < max(T_array)
 
             % Update the state according to the reaction:
 
-            x = x + S(:, rxn);
-
-            % Advance t to the time of the reaction:
-
-            t = t + delta_t;
+            x = x + S(:, rxn);          
         end % Step 7 ...
     end % rowsize(1, 1) == 0 [No delayed reactions were upcoming]
 end % while t < max(T_array) ...
