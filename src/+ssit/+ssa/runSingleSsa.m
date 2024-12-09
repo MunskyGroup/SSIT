@@ -68,6 +68,11 @@ while t < max(T_array)
     
     scheduledDelayedReactions = sortrows(scheduledDelayedReactions);
     delayedReactionTimes = scheduledDelayedReactions(:, 1);
+    
+    % This call will find the first row with a time in [t, t + delta_t], if
+    % one exists. As the matrix has been sorted by time, this will be the
+    % earliest such time in the interval.
+
     rows = find(...
         delayedReactionTimes >= t & delayedReactionTimes <= (t + delta_t));
     rowsize = size(rows);
@@ -78,6 +83,12 @@ while t < max(T_array)
         t = scheduledDelayedReactions(rows, 1);
         rxn = scheduledDelayedReactions(rows, 2);
 
+        % Having extracted the next scheduled delayed reaction, remove it
+        % and all earlier rows from the record.
+
+        scheduledDelayedReactions = ...
+            scheduledDelayedReactions((rows + 1): end, :);
+
         % Add the current state to the record of states for all intervening
         % times:
         while (iprint <= Nt) & (t > T_array(iprint))
@@ -85,7 +96,7 @@ while t < max(T_array)
             iprint = iprint + 1;
         end
 
-        if (t + delta_t) > max(T_array)
+        if t > max(T_array)
             break % Do not simulate beyond the time boundaries.
         end
 
