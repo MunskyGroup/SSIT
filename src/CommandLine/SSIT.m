@@ -2512,6 +2512,8 @@ classdef SSIT
                             for i=1:Nd
                                 subplot(Nd,1,i)
                                 plot(solution.T_array(indTimes),squeeze(solution.trajs(i,indTimes,:)));
+                                xlabel('Time (arbitrary units)')
+                                ylabel(obj.species{i})
                             end
                         case 'means'
                             figure(figureNums(kfig)); kfig=kfig+1;
