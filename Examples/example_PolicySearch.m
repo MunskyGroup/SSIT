@@ -28,16 +28,15 @@ for i = 1:100
     fspFIM = TT.computeFIM(SensSoln.sens);
 end
 
-
 %% Transcription and Translation Policy Search
 TT_PS = TT;
 TT_PS.fspOptions.usePiecewiseFSP = true;
 TT_PS.solutionScheme = 'FSP';
-TT_PS.parameters = {'kr',0.5; 'gr1',0.1; 'gr2',0.1; 'gr3',0.1; 'kp',0.5; 'gp',0.1}; 
+TT_PS.parameters = {'kr',1; 'gr1',0.1; 'gr2',0.1; 'gr3',0.1; 'kp',2; 'gp',1}; 
 TT_PS.propensityFunctions = {'kr'; 'gr1*rna*(t<5)+gr2*rna*(t>=5)*(t<10)+gr3*rna*(t>=10)'; 'kp*rna'; 'gp*protein'};
 TT_PS = TT_PS.formPropensitiesGeneral('TT', true);
 
-Target = [0,1,2,3]; 
+Target = [0,1.5,0.5,1.5]; 
 
 logPolicy = zeros(1,3);
 loss = @(logPolicy)computeLoss(logPolicy,TT_PS,Target);
