@@ -28,7 +28,7 @@ classdef poissonTest < matlab.unittest.TestCase
             delete 'testData.csv'
             testCase1.Poiss.ssaOptions.nSimsPerExpt = 1000;
             testCase1.Poiss.ssaOptions.Nexp = 1;
-            testCase1.Poiss.sampleDataFromFSP(testCase1.PoissSolution,'testData.csv')
+            testCase1.Poiss.sampleDataFromFSP(testCase1.PoissSolution,'testData.csv');
 
             testCase1.Poiss = testCase1.Poiss.loadData('testData.csv',{'rna','exp1_s1'});
 
@@ -130,7 +130,7 @@ classdef poissonTest < matlab.unittest.TestCase
             delete 'testData.csv'
             testCase.Poiss.ssaOptions.nSimsPerExpt = 1000;
             testCase.Poiss.ssaOptions.Nexp = 1;
-            testCase.Poiss.sampleDataFromFSP(testCase.PoissSolution,'testData.csv')
+            testCase.Poiss.sampleDataFromFSP(testCase.PoissSolution,'testData.csv');
             testCase.verifyEqual(exist('testData.csv','file'), 2, ...
                 'FSP Data Not Generated');
             

@@ -70,3 +70,6 @@ WorkSpace/sequentialEDcdc/simData/*
 WorkSpace/sequentialEDcdc/simData/FakeExperiment_poisson_fimopt_10.csv
 WorkSpace/EricModel/terminalVersion/log.txt
 WorkSpace/EricModel/EricData/Gated_dataframe_Ron_020224_NormalizedGR_binsB.csv
+Examples/reformatFiguresACS2024.m
+Examples/Cook_etal_2024_Sequential_Design/simData/*.csv
+Examples/Cook_etal_2024_Sequential_Design/TMPMHChain*
