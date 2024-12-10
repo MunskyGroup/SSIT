@@ -1165,18 +1165,20 @@ classdef SSIT
                         end
 
                         % Update conditionalPmfs input size for calibrated PDO
-                        if size(PDO.conditionalPmfs{1},2) <= size(redS(1).data)
-                            max_xTrue = size(PDO.conditionalPmfs{1},2);
-                            PDO_input = size(redS(1).data);                            
-                            if PDO_input > max_xTrue
-                            % Padding
-                                disp("Padding conditionalPmfs input to increase size for PDO: " + max_xTrue + " to " + PDO_input)
-                                padding = zeros(size(PDO.conditionalPmfs{1}, 1), PDO_input - max_xTrue);
-                                PDO.conditionalPmfs{1} = [PDO.conditionalPmfs{1}, padding];
-                            elseif PDO_input < max_xTrue
-                            % Cropping 
-                                disp("Warning! Cropping conditionalPmfs input size ? " + max_xTrue + " to " + PDO_input)
-                                PDO.conditionalPmfs{1} = PDO.conditionalPmfs{1}(:, 1:PDO_input);
+                        if ~isempty(PDO)
+                            if size(PDO.conditionalPmfs{1},2) <= size(redS(1).data)
+                                max_xTrue = size(PDO.conditionalPmfs{1},2);
+                                PDO_input = size(redS(1).data);                            
+                                if PDO_input > max_xTrue
+                                % Padding
+                                    disp("Padding conditionalPmfs input to increase size for PDO: " + max_xTrue + " to " + PDO_input)
+                                    padding = zeros(size(PDO.conditionalPmfs{1}, 1), PDO_input - max_xTrue);
+                                    PDO.conditionalPmfs{1} = [PDO.conditionalPmfs{1}, padding];
+                                elseif PDO_input < max_xTrue
+                                % Cropping 
+                                    disp("Warning! Cropping conditionalPmfs input size ? " + max_xTrue + " to " + PDO_input)
+                                    PDO.conditionalPmfs{1} = PDO.conditionalPmfs{1}(:, 1:PDO_input);
+                                end
                             end
                         end
 
