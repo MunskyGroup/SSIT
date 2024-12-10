@@ -65,14 +65,15 @@ tic;
 SSAsoln = Model.solve;
 SSAtime = toc;
 
-save("SSAsoln", SSAsoln);
+save SSAtime.mat SSAtime
+save SSAsoln.mat SSAsoln
 
 %% Plot trajectories
 Model.makePlot(SSAsoln,'trajectories',[],[]) % Make some plots.
 
 %% Protein intermediates
 
-piFSPtimes = zerosLike(M);
+piFSPtimes = zeros(1, length(M));
 for Mcntr = 1:length(M)
     curM = M(Mcntr);
     piModel = getNFModelWithProteinIntermediates(...
@@ -89,7 +90,7 @@ end
 
 %% Operator intermediates
 
-opFSPtimes = zerosLike(M);
+opFSPtimes = zeros(1, length(M));
 for Mcntr = 1:length(M)
     curM = M(Mcntr);
     opModel = getNFModelWithOperatorIntermediates(...
@@ -105,6 +106,6 @@ for Mcntr = 1:length(M)
 end
 
 disp(piFSPtimes)
-save("piFSPtimes", piFSPtimes);
+save piFSPtimes.mat piFSPtimes
 disp(opFSPtimes)
-save("opFSPtimes", opFSPtimes);
+save opFSPtimes.mat opFSPtimes
