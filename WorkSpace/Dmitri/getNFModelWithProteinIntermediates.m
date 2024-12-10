@@ -1,9 +1,17 @@
-function model = getNFModelWithProteinIntermediates(M)
+function model = getNFModelWithProteinIntermediates(...
+    M, initialCondition, parameters)
     arguments
-        M (1,1) integer {mustBePositive}
+        M (1,1) double {mustBeInteger, mustBePositive}
+        initialCondition (3,1) double {mustBeInteger, mustBeNonnegative}
+        parameters (5,2) cell
     end
     
     model = SSIT;
+    model.species = {};
+    model.initialCondition = [];
+    model.propensityFunctions = {};
+    model.stoichiometry = [];
+    model.parameters = {};
     
     % Add all species, including the protein intermediates.
     % Each Xi will have species number i; X will therefore have number
@@ -36,25 +44,36 @@ function model = getNFModelWithProteinIntermediates(M)
         % X(i+1).
         stoichForwardProgress([xCntr, xCntr + 1]) = [1, -1];
         model = model.addReaction(...
-            ['M*X', num2str(xCntr + 1), '*', num2str(M), '/tau'], ...
+            ['X', num2str(xCntr + 1), '*', num2str(M), '/tau'], ...
             stoichForwardProgress);
     end
 
+    stoichForwardProgress = zeros(size(model.species, 1), 1);
+    % The final forward-progress reaction produces one X and consumes one
+    % X1.
+    stoichForwardProgress(1) = -1;
+    stoichForwardProgress(M + 1) = 1;
+    model = model.addReaction(['X1*', num2str(M), '/tau'], ...
+        stoichForwardProgress);
+
     stoichProduction = zeros(size(model.species, 1), 1);
     stoichProduction(M) = 1; % One XM is produced.
-    model = model.addReaction('Kplus*Dempty', stoichProduction);
+    model = model.addReaction('kPlus*Dempty', stoichProduction);
 
     stoichDegradation = zeros(size(model.species, 1), 1);
     stoichDegradation(M + 1) = -1; % One X is consumed.
-    model = model.addReaction('Kminus*X', stoichDegradation);
+    model = model.addReaction('kMinus*X', stoichDegradation);
 
     stoichActivation = zeros(size(model.species, 1), 1);
     stoichActivation([M + 2, M + 3]) = [1, -1]; % Dfull -> Dempty.
-    model = model.addReaction('Kon*Dfull', stoichActivation);
+    model = model.addReaction('kOn*Dfull', stoichActivation);
 
     stoichDeactivation = zeros(size(model.species, 1), 1);
     stoichDeactivation([M + 2, M + 3]) = [-1, 1]; % Dempty -> Dfull.
-    model = model.addReaction('Koff*Dempty*X', stoichDeactivation);
+    model = model.addReaction('kOff*Dempty*X', stoichDeactivation);
 
-    model.summarizeModel
+    model.initialCondition = initialCondition;
+    model.parameters = parameters;
+    
+    model = model.formPropensitiesGeneral(['NFProtein', num2str(M)]);
 end

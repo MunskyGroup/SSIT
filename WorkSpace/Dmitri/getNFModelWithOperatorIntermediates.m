@@ -1,9 +1,17 @@
-function model = getNFModelWithOperatorIntermediates(M)
+function model = getNFModelWithOperatorIntermediates(...
+    M, initialCondition, parameters)
     arguments
-        M (1,1) integer {mustBePositive}
+        M (1,1) double {mustBeInteger, mustBePositive}
+        initialCondition (3,1) double {mustBeInteger, mustBeNonnegative}
+        parameters (5,2) cell
     end
     
     model = SSIT;
+    model.species = {};
+    model.initialCondition = [];
+    model.propensityFunctions = {};
+    model.stoichiometry = [];
+    model.parameters = {};
     
     % Add all species, including the operator intermediates.
     % Each DemptyI will have species number I; X will therefore have number
@@ -20,16 +28,6 @@ function model = getNFModelWithOperatorIntermediates(M)
     model = model.addSpecies('Dfull', 0);
 
     model.stoichiometry = [];
-
-    % Add parameters:
-
-    model.parameters = ({...
-        'kPlus', 100; ... % (Delayed) rate of protein production
-        'kMinus', 1; ... % Rate of protein degradation
-        'kOn', 2; ... % Rate of operator site emptying
-        'kOff', 1000; ... % Rate of operator site filling
-        'tau', 50 ... % Delay in protein production
-    });
     
     % Add reactions:
 
@@ -54,5 +52,8 @@ function model = getNFModelWithOperatorIntermediates(M)
     stoichActivation(M + 2) = -1; % One Dfull is consumed.
     model = model.addReaction('Kon*Dfull', stoichActivation);
 
-    model.summarizeModel
+    model.initialCondition = initialCondition;
+    model.parameters = parameters;
+    
+    model = model.formPropensitiesGeneral(['NFOperator', num2str(M)]);
 end
