@@ -4,7 +4,7 @@ close all
 clear all
 addpath(genpath('../../src'));
 
-M = [1 2 3 6 10]; % Number of intermediate states
+M = [1 2 3 6]; % Number of intermediate states
 
 kOn = 0.1;
 kOff = kOn * 1000 / 2;
@@ -16,8 +16,8 @@ tSpan = linspace(0, tau * delayPeriods, 1 + delayPeriods);
 Model = SSIT;
 Model.species = {'Dempty'; 'Dfull'; 'X'};
 
-initialCondition = [1; 0; randi(50)];
-Model.initialCondition = initialCondition;
+initialConditionX = randi(50);
+Model.initialCondition = [1; 0; initialConditionX];
 
 parameters = ({...
     'kPlus', 100; ... % (Delayed) rate of protein production
@@ -77,7 +77,7 @@ piFSPtimes = zeros(1, length(M));
 for Mcntr = 1:length(M)
     curM = M(Mcntr);
     piModel = getNFModelWithProteinIntermediates(...
-        curM, initialCondition, parameters);
+        curM, initialConditionX, parameters);
     piModel.tSpan = tSpan;
     piModel.solutionScheme = 'FSP';
     tic;
@@ -88,24 +88,25 @@ for Mcntr = 1:length(M)
     piModel.makePlot(piFSPsoln,'marginals',[],[]) % Make plot of marginals
 end
 
+disp(piFSPtimes)
+save piFSPtimes.mat piFSPtimes
+
 %% Operator intermediates
 
 opFSPtimes = zeros(1, length(M));
 for Mcntr = 1:length(M)
     curM = M(Mcntr);
     opModel = getNFModelWithOperatorIntermediates(...
-        curM, initialCondition, parameters);
+        curM, initialConditionX, parameters);
     opModel.tSpan = tSpan;
     opModel.solutionScheme = 'FSP';
     tic;
-    [piFSPsoln, opModel.fspOptions.bounds] = opModel.solve;
+    [opFSPsoln, opModel.fspOptions.bounds] = opModel.solve;
     opFSPtimes(Mcntr) = toc;
 
-    opModel.makePlot(piFSPsoln,'meansAndDevs',[],[]) % Make plot of mean vs. time.
-    opModel.makePlot(piFSPsoln,'marginals',[],[]) % Make plot of marginals
+    opModel.makePlot(opFSPsoln,'meansAndDevs',[],[]) % Make plot of mean vs. time.
+    opModel.makePlot(opFSPsoln,'marginals',[],[]) % Make plot of marginals
 end
 
-disp(piFSPtimes)
-save piFSPtimes.mat piFSPtimes
 disp(opFSPtimes)
 save opFSPtimes.mat opFSPtimes
