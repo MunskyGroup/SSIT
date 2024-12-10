@@ -1,9 +1,14 @@
 function model = getNFModelWithOperatorIntermediates(M)
     arguments
-        M (1,1) integer {mustBePositive}
+        M (1,1) double {mustBeInteger, mustBePositive}
     end
     
     model = SSIT;
+    model.species = {};
+    model.initialCondition = [];
+    model.propensityFunctions = {};
+    model.stoichiometry = [];
+    model.parameters = {};
     
     % Add all species, including the operator intermediates.
     % Each DemptyI will have species number I; X will therefore have number
@@ -33,7 +38,7 @@ function model = getNFModelWithOperatorIntermediates(M)
     
     % Add reactions:
 
-    for dEmptyCntr = 1:M
+    for dEmptyCntr = 1:M-1
         % Each production reaction produces one X and shifts the operator
         % state, consuming one DemptyI and producing one Dempty(I+1).
         stoichProduction = zeros(size(model.species, 1), 1);
@@ -45,14 +50,26 @@ function model = getNFModelWithOperatorIntermediates(M)
             stoichProduction);
     end
 
+    % The final production reaction produces one X and shifts the operator
+    % state, consuming one DemptyM and producing one Dfull.
+
+    stoichProduction = zeros(size(model.species, 1), 1);
+    stoichProduction(M) = -1; % DemptyM
+    stoichProduction(M + 1) = 1; % X
+    stoichProduction(M + 2) = 1; % Dfull
+
+    model = model.addReaction(...
+        ['kPlus*Dempty', num2str(M), '*', num2str(M), '/tau'], ...
+        stoichProduction);
+
     stoichDegradation = zeros(size(model.species, 1), 1);
     stoichDegradation(M + 1) = -1; % One X is consumed.
-    model = model.addReaction('Kminus*X', stoichDegradation);
+    model = model.addReaction('kMinus*X', stoichDegradation);
 
     stoichActivation = zeros(size(model.species, 1), 1);
     stoichActivation(1) = 1; % One Dempty1 is produced.
     stoichActivation(M + 2) = -1; % One Dfull is consumed.
-    model = model.addReaction('Kon*Dfull', stoichActivation);
+    model = model.addReaction('kOn*Dfull', stoichActivation);
 
-    model.summarizeModel
+    model = model.formPropensitiesGeneral(['NFOperator', num2str(M)]);
 end

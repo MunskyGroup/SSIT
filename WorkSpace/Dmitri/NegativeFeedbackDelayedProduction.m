@@ -4,20 +4,31 @@ close all
 clear all
 addpath(genpath('../../src'));
 
+kOn = 0.1;
+kOff = kOn * 1000 / 2;
+
+tau = 50;
+delayPeriods = 30;
+tSpan = linspace(0, tau * delayPeriods, 1 + delayPeriods);
+
 Model = SSIT;
 Model.species = {'Dempty'; 'Dfull'; 'X'};
-Model.initialCondition = [1; 0; 0];
-Model.parameters = ({...
+
+initialCondition = [1; 0; randi(50)];
+Model.initialCondition = initialCondition;
+
+parameters = ({...
     'kPlus', 100; ... % (Delayed) rate of protein production
     'kMinus', 1; ... % Rate of protein degradation
-    'kMinus1', 2; ... % Rate of operator site emptying
-    'k1', 1000; ... % Rate of operator site filling
-    'tau', 2 ... % Delay in protein production
+    'kOn', kOn; ... % Rate of operator site emptying / activation
+    'kOff', kOff; ... % Rate of operator site filling / deactivation
+    'tau', tau ... % Delay in protein production
     });
+Model.parameters = parameters;
 
 Model.propensityFunctions = {
-    'kMinus1*Dfull', ... % Operator site emptying
-    'k1*Dempty*X', ... % Operator site filling
+    'kOn*Dfull', ... % Operator site emptying
+    'kOff*Dempty*X', ... % Operator site filling
     'kPlus*Dempty', ... % (Delayed) protein production
     'kMinus*X' ... % Protein degradation
     };
@@ -42,12 +53,43 @@ Model.delayedReactionSchedulingS = [...
 
 %% Configure and run SSA
 
-%Model.tSpan = linspace(0, 400, 401);
-Model.tSpan = linspace(0, 9, 10);
+Model.tSpan = tSpan;
 Model = Model.formPropensitiesGeneral('NFDP');
 
 Model.solutionScheme = 'SSA';
-SSASoln = Model.solve;
+tic;
+SSAsoln = Model.solve;
+SSAtime = toc;
 
 %% Plot trajectories
-Model.makePlot(SSASoln,'trajectories',[],[],4) % Make some plots.
+Model.makePlot(SSAsoln,'trajectories',[],[],5) % Make some plots.
+
+%% Protein intermediates - 3
+
+pi3 = getNFModelWithProteinIntermediates(3, initialCondition, parameters);
+
+%% FSP Solution
+pi3.tSpan = tSpan;
+pi3.solutionScheme = 'FSP';
+tic;
+[pi3FSPsoln, pi3.fspOptions.bounds] = pi3.solve;
+pi3FSPtime = toc;
+
+%% Plot FSP solution
+pi3.makePlot(pi3FSPsoln,'meansAndDevs',[],[],1,{'linewidth',3,'color',[0,1,1]}) % Make plot of mean vs. time.
+pi3.makePlot(pi3FSPsoln,'marginals',[],[],2,{'linewidth',3,'color',[0,0,1]}) % Make plot of mean vs. time.
+
+%% Operator intermediates - 3
+
+oi3 = getNFModelWithOperatorIntermediates(3, initialCondition, parameters);
+
+%% FSP solution
+oi3.tSpan = tSpan;
+oi3.solutionScheme = 'FSP';
+tic;
+[oi3FSPsoln, oi3.fspOptions.bounds] = oi3.solve;
+oi3FSPtime = toc;
+
+%% Plot FSP solution
+oi3.makePlot(oi3FSPsoln,'meansAndDevs',[],[],3,{'linewidth',3,'color',[0,1,1]}) % Make plot of mean vs. time.
+oi3.makePlot(oi3FSPsoln,'marginals',[],[],4,{'linewidth',3,'color',[0,0,1]}) % Make plot of mean vs. time.
