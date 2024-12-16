@@ -580,7 +580,20 @@ classdef SSIT
             %             app.FIMTabOutputs.PDOProperties.props = obj.pdoOptions.props;
 
             Tab = readtable(dataFileName);
+            
+            % Convert float values in trueColumns and measuredColumns
+            Tab.(trueColumns{1}) = double(int64(Tab.(trueColumns{1})));
+            Tab.(measuredColumns{1}) = double(int64(Tab.(measuredColumns{1})));
+
             dataNames = Tab.Properties.VariableNames;
+
+            % Check that the data column being asked for actually exists in the file and throw an error if not.
+            % TODO - make this type of check accessible to all of SSIT, not just calibratePDO
+            present = any(cellfun(@(y) strcmp(y, measuredColumns{1}),dataNames));
+            if ~present
+                error(measuredColumns + " does not exist in the data file.");
+            end
+
             DATA = table2cell(Tab);
 
             if isempty(parGuess)

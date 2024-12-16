@@ -136,14 +136,14 @@ else
         % First N are lower bounds.  Next N is upper bound.  Remaining are
         % custom.
     end
-    % Set for STEP1 -- Fit GR Models
-    fitIters = 30;
 end
 
 %% STEP 1 -- Fit GR Models.  
 % STEP 1 will need to be rerun until satisfied.  Use fitMHiters as needed.
 % TODO: Automate with statistics.
-fitMHiters = 2;
+% Set for STEP1 -- Fit GR Models
+fitIters = 30;
+fitMHiters = 20;
 
 for GR = 1:fitMHiters
     % STEP 1.A. -- Specify dataset time points.    
@@ -216,7 +216,7 @@ end
 makeGRPlots(combinedGRModel,GRpars)
 
 save('EricModelGR_MMDex','GRpars','combinedGRModel','MHResultsGR') 
-save('workspaceOct22_2024.mat','GRpars', 'ModelGRfit', 'combinedGRModel','MHResultsGR', 'log10PriorStd')
+save('workspaceDec9_2024.mat','GRpars', 'ModelGRfit', 'combinedGRModel','MHResultsGR', 'log10PriorStd')
 
 %%  STEP 2 -- Extend Model to Include DUSP1 Activation, Production, and Degradation
 if loadPrevious
