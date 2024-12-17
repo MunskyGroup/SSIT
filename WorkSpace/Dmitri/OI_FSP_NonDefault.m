@@ -64,7 +64,7 @@ fitTimes = zeros(length(M), length(datasetSizes));
 
 %% %% Operator intermediates
 
-paramsToFit = [1, 5]; % kPlus, tau
+paramsToFit = 1:5; % Test all of them
 
 fitParamValues = zeros(length(M), length(datasetSizes), length(paramsToFit));
 
