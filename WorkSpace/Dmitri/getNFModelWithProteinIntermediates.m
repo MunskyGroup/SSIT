@@ -1,8 +1,8 @@
 function model = getNFModelWithProteinIntermediates(...
-    M, initialCondition, parameters)
+    M, initialConditionX, parameters)
     arguments
         M (1,1) double {mustBeInteger, mustBePositive}
-        initialCondition (3,1) double {mustBeInteger, mustBeNonnegative}
+        initialConditionX (1,1) double {mustBeInteger, mustBeNonnegative}
         parameters (5,2) cell
     end
     
@@ -20,21 +20,11 @@ function model = getNFModelWithProteinIntermediates(...
     for xCntr = 1:M
         model = model.addSpecies(['X', num2str(xCntr)], 0);
     end
-    model = model.addSpecies('X', 0);
+    model = model.addSpecies('X', initialConditionX);
     model = model.addSpecies('Dempty', 1);
     model = model.addSpecies('Dfull', 0);
 
     model.stoichiometry = [];
-
-    % Add parameters:
-
-    model.parameters = ({...
-        'kPlus', 100; ... % (Delayed) rate of protein production
-        'kMinus', 1; ... % Rate of protein degradation
-        'kOn', 2; ... % Rate of operator site emptying
-        'kOff', 1000; ... % Rate of operator site filling
-        'tau', 50 ... % Delay in protein production
-    });
     
     % Add reactions:
 
@@ -72,7 +62,6 @@ function model = getNFModelWithProteinIntermediates(...
     stoichDeactivation([M + 2, M + 3]) = [-1, 1]; % Dempty -> Dfull.
     model = model.addReaction('kOff*Dempty*X', stoichDeactivation);
 
-    model.initialCondition = initialCondition;
     model.parameters = parameters;
     
     model = model.formPropensitiesGeneral(['NFProtein', num2str(M)]);

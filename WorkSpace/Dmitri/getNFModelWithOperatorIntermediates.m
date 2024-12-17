@@ -1,6 +1,9 @@
-function model = getNFModelWithOperatorIntermediates(M)
+function model = getNFModelWithOperatorIntermediates(...
+    M, initialConditionX, parameters)
     arguments
         M (1,1) double {mustBeInteger, mustBePositive}
+        initialConditionX (1,1) double {mustBeInteger, mustBeNonnegative}
+        parameters (5,2) cell
     end
     
     model = SSIT;
@@ -14,27 +17,21 @@ function model = getNFModelWithOperatorIntermediates(M)
     % Each DemptyI will have species number I; X will therefore have number
     % M+1; Dfull, M+2.
 
+    initialConditions = zeros(1, M);
+    initialConditions(1) = 1; % Only Dempty1 will be present initially.
     for dEmptyCntr = 1:M
-        initialConditions = zeros(M, 1);
-        initialConditions(1) = 1; % Only Dempty1 will be present initially.
         model = model.addSpecies(...
             ['Dempty', num2str(dEmptyCntr)], ...
             initialConditions(dEmptyCntr));
     end
-    model = model.addSpecies('X', 0);    
+    model = model.addSpecies('X', initialConditionX);    
     model = model.addSpecies('Dfull', 0);
 
     model.stoichiometry = [];
 
     % Add parameters:
 
-    model.parameters = ({...
-        'kPlus', 100; ... % (Delayed) rate of protein production
-        'kMinus', 1; ... % Rate of protein degradation
-        'kOn', 2; ... % Rate of operator site emptying
-        'kOff', 1000; ... % Rate of operator site filling
-        'tau', 50 ... % Delay in protein production
-    });
+    model.parameters = parameters;
     
     % Add reactions:
 

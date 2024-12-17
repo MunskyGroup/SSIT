@@ -4,18 +4,20 @@ close all
 clear all
 addpath(genpath('../../src'));
 
+M = [1 2 3 6]; % Number of intermediate states
+
 kOn = 0.1;
 kOff = kOn * 1000 / 2;
 
 tau = 50;
-delayPeriods = 30;
+delayPeriods = 10;
 tSpan = linspace(0, tau * delayPeriods, 1 + delayPeriods);
 
 Model = SSIT;
 Model.species = {'Dempty'; 'Dfull'; 'X'};
 
-initialCondition = [1; 0; randi(50)];
-Model.initialCondition = initialCondition;
+initialConditionX = randi(50);
+Model.initialCondition = [1; 0; initialConditionX];
 
 parameters = ({...
     'kPlus', 100; ... % (Delayed) rate of protein production
@@ -57,39 +59,54 @@ Model.tSpan = tSpan;
 Model = Model.formPropensitiesGeneral('NFDP');
 
 Model.solutionScheme = 'SSA';
+Model.ssaOptions.Nexp = 2;   % Number of independent data sets to generate.
+Model.ssaOptions.nSimsPerExpt = 1000; % Number of cells to include at each time point for each data set.
 tic;
 SSAsoln = Model.solve;
 SSAtime = toc;
 
+save SSAtime.mat SSAtime
+save SSAsoln.mat SSAsoln
+
 %% Plot trajectories
-Model.makePlot(SSAsoln,'trajectories',[],[],5) % Make some plots.
+Model.makePlot(SSAsoln,'trajectories',[],[]) % Make some plots.
 
-%% Protein intermediates - 3
+%% Protein intermediates
 
-pi3 = getNFModelWithProteinIntermediates(3, initialCondition, parameters);
+piFSPtimes = zeros(1, length(M));
+for Mcntr = 1:length(M)
+    curM = M(Mcntr);
+    piModel = getNFModelWithProteinIntermediates(...
+        curM, initialConditionX, parameters);
+    piModel.tSpan = tSpan;
+    piModel.solutionScheme = 'FSP';
+    tic;
+    [piFSPsoln, piModel.fspOptions.bounds] = piModel.solve;
+    piFSPtimes(Mcntr) = toc;
 
-%% FSP Solution
-pi3.tSpan = tSpan;
-pi3.solutionScheme = 'FSP';
-tic;
-[pi3FSPsoln, pi3.fspOptions.bounds] = pi3.solve;
-pi3FSPtime = toc;
+    piModel.makePlot(piFSPsoln,'meansAndDevs',[],[]) % Make plot of mean vs. time.
+    piModel.makePlot(piFSPsoln,'marginals',[],[]) % Make plot of marginals
+end
 
-%% Plot FSP solution
-pi3.makePlot(pi3FSPsoln,'meansAndDevs',[],[],1,{'linewidth',3,'color',[0,1,1]}) % Make plot of mean vs. time.
-pi3.makePlot(pi3FSPsoln,'marginals',[],[],2,{'linewidth',3,'color',[0,0,1]}) % Make plot of mean vs. time.
+disp(piFSPtimes)
+save piFSPtimes.mat piFSPtimes
 
-%% Operator intermediates - 3
+%% Operator intermediates
 
-oi3 = getNFModelWithOperatorIntermediates(3, initialCondition, parameters);
+opFSPtimes = zeros(1, length(M));
+for Mcntr = 1:length(M)
+    curM = M(Mcntr);
+    opModel = getNFModelWithOperatorIntermediates(...
+        curM, initialConditionX, parameters);
+    opModel.tSpan = tSpan;
+    opModel.solutionScheme = 'FSP';
+    tic;
+    [opFSPsoln, opModel.fspOptions.bounds] = opModel.solve;
+    opFSPtimes(Mcntr) = toc;
 
-%% FSP solution
-oi3.tSpan = tSpan;
-oi3.solutionScheme = 'FSP';
-tic;
-[oi3FSPsoln, oi3.fspOptions.bounds] = oi3.solve;
-oi3FSPtime = toc;
+    opModel.makePlot(opFSPsoln,'meansAndDevs',[],[]) % Make plot of mean vs. time.
+    opModel.makePlot(opFSPsoln,'marginals',[],[]) % Make plot of marginals
+end
 
-%% Plot FSP solution
-oi3.makePlot(oi3FSPsoln,'meansAndDevs',[],[],3,{'linewidth',3,'color',[0,1,1]}) % Make plot of mean vs. time.
-oi3.makePlot(oi3FSPsoln,'marginals',[],[],4,{'linewidth',3,'color',[0,0,1]}) % Make plot of mean vs. time.
+disp(opFSPtimes)
+save opFSPtimes.mat opFSPtimes
