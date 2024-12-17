@@ -98,7 +98,7 @@ for Mcntr = 1:length(M)
             num2cell(fitParameters);
         for paramCntr = 1:length(paramsToFit)
             fitParamValues(Mcntr, dsCntr, paramCntr) = ...
-                curModel.parameters(paramsToFit(paramCntr), 2);
+                curModel.parameters{paramsToFit(paramCntr), 2};
         end
     end % for dsCntr = 1:length(datasetSizes) ...
 
