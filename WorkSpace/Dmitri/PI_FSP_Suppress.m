@@ -69,11 +69,14 @@ paramsToFit = [1, 4, 5]; % kPlus, kOff, tau
 fitParamValues = zeros(length(M), length(datasetSizes), length(paramsToFit));
 
 for Mcntr = 1:length(M)
+    lenM = length(M);
     curM = M(Mcntr);
     piModel = getNFModelWithProteinIntermediates(...
         curM, initialConditionX, parameters);
     piModel.tSpan = tSpan;
     piModel.solutionScheme = 'FSP';
+    piModel.fspOptions.bounds(lenM + 4: 2 * lenM + 6) = ...
+        [10 * ones(1, lenM), initialConditionX, 1, 1];
     tic;
     [piFSPsoln, piModel.fspOptions.bounds] = piModel.solve;
     fspTimes(Mcntr) = toc;

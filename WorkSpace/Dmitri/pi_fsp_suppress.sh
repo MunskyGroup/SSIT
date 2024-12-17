@@ -5,8 +5,8 @@
 #SBATCH --partition=csu
 #SBATCH --qos=normal
 #SBATCH --ntasks=32
-#SBATCH --job-name=PI_FSP_Suppress
-#SBATCH --output=PI_FSP_Suppress.out
+#SBATCH --job-name=PI_FSP_Suppress_Bounds
+#SBATCH --output=PI_FSP_Suppress_Bounds.out
 #SBATCH --mail-type=ALL
 #SBATCH --mail-user=svetlov@colostate.edu
 
