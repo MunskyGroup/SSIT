@@ -7,14 +7,14 @@ classdef modelBuilder
             Bursty.species = {'offGene';'onGene';'rna'}; 
             Bursty.initialCondition = [1;0;0];           
             Bursty.propensityFunctions = {'kon*offGene';'koff*onGene';'kr*onGene';'gr*rna'};         
-            %Bursty.inputExpressions = {'IGR','1+a1*exp(-r1*t)*(1-exp(-r2*t))*(t>0)'}; 
+            Bursty.inputExpressions = {'IGR','1+a1*exp(-r1*t)*(1-exp(-r2*t))*(t>0)'}; 
             Bursty.stoichiometry = [-1,1,0,0;1,-1,0,0;0,0,1,-1]; 
             Bursty.parameters = ({'kon',0.6;'koff',2;'kr',0.3;'gr',0.04});  
             Bursty.summarizeModel;                         
             [BurstyFSPSoln,Bursty.fspOptions.bounds] = Bursty.solve;
             [BurstyFSPSoln,Bursty.fspOptions.bounds] = Bursty.solve(BurstyFSPSoln.stateSpace); 
         end
-        function [Poiss, PoissSolution] = buildPoissModel()
+        function [Poiss, PoissSolution, PoissODE] = buildPoissModel()
             addpath(genpath('../src'));
             %% a simple Poisson (Birth-Death) model
             Poiss = SSIT;

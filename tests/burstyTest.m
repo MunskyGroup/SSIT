@@ -1,35 +1,13 @@
 classdef burstyTest < matlab.unittest.TestCase
     properties
-        Bursty
-        BurstyFSPSoln
+         Bursty
+         BurstyFSPSoln
     end
-
     methods (TestClassSetup)
         % Shared setup for the entire test class
-        function createTestModel1(testCase1)
-            addpath(genpath('../src'));
-            testCase1.Bursty = SSIT;  
-            testCase1.Bursty.species = {'offGene';'onGene';'rna'}; 
-            testCase1.Bursty.initialCondition = [2;0;0];           
-            testCase1.Bursty.propensityFunctions = {'kon*IGR*offGene';'koff*onGene';'kr*onGene';'gr*rna'};         
-            testCase1.Bursty.inputExpressions = {'IGR','1+a1*exp(-r1*t)*(1-exp(-r2*t))*(t>0)'}; 
-            testCase1.Bursty.stoichiometry = [-1,1,0,0;1,-1,0,0;0,0,1,-1]; 
-            testCase1.Bursty.parameters = ({'koff',0.014;'kon',0.002;'kr',1;'gr',0.004;...
-                                            'a1',20;'r1',0.04;'r2',0.1});  
-            testCase1.Bursty.fspOptions.initApproxSS = true;  % Set Initial Distribution to Steady State.
-            testCase1.Bursty.summarizeModel                   % Print visual summary of model            
-            [testCase1.BurstyFSPSoln,testCase1.Bursty.fspOptions.bounds] = testCase1.Bursty.solve;
-            tic
-            [testCase1.BurstyFSPSoln,testCase1.Bursty.fspOptions.bounds] = testCase1.Bursty.solve(testCase1.BurstyFSPSoln.stateSpace); 
-            testCase1.BurstyFSPSoln.time = toc;
-
-            delete 'testData.csv'
-            testCase1.Bursty.ssaOptions.nSimsPerExpt = 1000;
-            testCase1.Bursty.ssaOptions.Nexp = 1;
-            testCase1.Bursty.sampleDataFromFSP(testCase1.BurstyFSPSoln,'testData.csv');
-
-            testCase1.Bursty = testCase1.Bursty.loadData('testData.csv',{'rna','exp1_s1'});
-         end  
+         function setupModel(testCase)
+             [testCase.Bursty, testCase.BurstyFSPSoln] = modelBuilder.buildBurstyModel();
+         end
     end
 
     methods (TestMethodSetup)
