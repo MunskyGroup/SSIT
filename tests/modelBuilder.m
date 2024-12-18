@@ -43,6 +43,36 @@ classdef modelBuilder
             PoissODE = Poiss;
             PoissODE.solutionScheme = 'ode';
             PoissODE = PoissODE.formPropensitiesGeneral('PoissODE');  
-         end  
+        end  
+        function [Tog, TogFSPSoln, TogfspFIM, TogSensSoln] = buildTogSwitchModel()
+            addpath(genpath('../src'));
+            %% a simple Toggle Switch model
+            Tog = SSIT;
+            Tog.species = {'lacI'; 'lambdaCI'};
+            Tog.initialCondition = [4;0];
+            Tog.parameters = {'p1', 0.7455; 'p2', 0.3351; 'p3', 0.0078; 'p4', 0.4656; 'p5', 0.0193; ...
+                                'p6', 0.2696; 'p7', 2.5266; 'p8', 0.4108; 'p9', 0.6880; ...
+                                'xi1', 0.9276; 'xi2', 0.2132; 'xi3', 0.8062; 'xi4', 0.3897};
+            Tog.inputExpressions = {'IUV','xi1*(t<5)+xi2*(t>=5)*(t<10)+xi3*(t>=10)*(t<15)+xi4*(t>=15)' };
+            Tog.fspOptions.usePiecewiseFSP = true;
+            Tog.propensityFunctions = {'p1+(p3/(1+(p6*(lambdaCI)^p8)))';
+                                    'p2+(p4/(1+(p5*(lacI)^p7)))'; 'p9*lacI'; 'IUV*lambdaCI'};
+            Tog.stoichiometry = [1,0,-1,0; 0,1,0,-1];
+            Tog.tSpan = [0,5,10,15,20];
+            Tog.fspOptions.fspTol = 1e-5;
+            Tog = Tog.formPropensitiesGeneral('Tog', true);
+            Tog.solutionScheme = 'FSP';
+            Tog.fspOptions.fspTol = 1e-7;
+            [TogFSPSoln, Tog.fspOptions.bounds] = Tog.solve;
+            Tog.solutionScheme = 'fspSens';
+            Tog.fspOptions.fspTol = 1e-6;
+            OrigPars = [Tog.parameters{:,2}]';
+            Tog.sensOptions.solutionMethod = 'finiteDifference';
+            for i = 1:10
+                Tog.parameters(:,2) = num2cell(OrigPars.*(1+0.1*randn(size(OrigPars))));
+                [TogSensSoln, Tog.fspOptions.bounds] = Tog.solve;
+                TogfspFIM = Tog.computeFIM(SensSoln.sens);
+            end
+        end
     end
 end
