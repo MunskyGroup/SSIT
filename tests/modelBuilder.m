@@ -2,6 +2,7 @@ classdef modelBuilder
     methods (Static)
         function [Bursty, BurstyFSPSoln] = buildBurstyModel()
             addpath(genpath('../src'));
+            %% a simple Bursting Gene model
             Bursty = SSIT;  
             Bursty.species = {'offGene';'onGene';'rna'}; 
             Bursty.initialCondition = [1;0;0];           
@@ -13,35 +14,35 @@ classdef modelBuilder
             [BurstyFSPSoln,Bursty.fspOptions.bounds] = Bursty.solve;
             [BurstyFSPSoln,Bursty.fspOptions.bounds] = Bursty.solve(BurstyFSPSoln.stateSpace); 
         end
-        function createTestModel1(testCase1)
+        function [Poiss, PoissSolution] = buildPoissModel()
             addpath(genpath('../src'));
-            %% Test Case 1 - a simple Poisson model
-            testCase1.Poiss = SSIT;
-            testCase1.Poiss.species = {'rna'};
-            testCase1.Poiss.initialCondition = 0;
-            testCase1.Poiss.propensityFunctions = {'kr';'gr*rna'};
-            testCase1.Poiss.stoichiometry = [1,-1];
-            testCase1.Poiss.parameters = ({'kr',10;'gr',1});
-            testCase1.Poiss.tSpan = linspace(0,2,21);
-            testCase1.Poiss.fspOptions.fspTol = 1e-5;
-            testCase1.Poiss = testCase1.Poiss.formPropensitiesGeneral('Poiss',true);
+            %% a simple Poisson (Birth-Death) model
+            Poiss = SSIT;
+            Poiss.species = {'rna'};
+            Poiss.initialCondition = 0;
+            Poiss.propensityFunctions = {'kr';'gr*rna'};
+            Poiss.stoichiometry = [1,-1];
+            Poiss.parameters = ({'kr',10;'gr',1});
+            Poiss.tSpan = linspace(0,2,21);
+            Poiss.fspOptions.fspTol = 1e-5;
+            Poiss = Poiss.formPropensitiesGeneral('Poiss',true);
 
-            [testCase1.PoissSolution,testCase1.Poiss.fspOptions.bounds] = testCase1.Poiss.solve;
+            [PoissSolution,Poiss.fspOptions.bounds] = Poiss.solve;
             tic
-            [testCase1.PoissSolution,testCase1.Poiss.fspOptions.bounds] = testCase1.Poiss.solve(testCase1.PoissSolution.stateSpace);
-            testCase1.PoissSolution.time = toc;
+            [PoissSolution,Poiss.fspOptions.bounds] = Poiss.solve(PoissSolution.stateSpace);
+            PoissSolution.time = toc;
 
             delete 'testData.csv'
-            testCase1.Poiss.ssaOptions.nSimsPerExpt = 1000;
-            testCase1.Poiss.ssaOptions.Nexp = 1;
-            testCase1.Poiss.sampleDataFromFSP(testCase1.PoissSolution,'testData.csv');
+            Poiss.ssaOptions.nSimsPerExpt = 1000;
+            Poiss.ssaOptions.Nexp = 1;
+            Poiss.sampleDataFromFSP(PoissSolution,'testData.csv');
 
-            testCase1.Poiss = testCase1.Poiss.loadData('testData.csv',{'rna','exp1_s1'});
+            Poiss = Poiss.loadData('testData.csv',{'rna','exp1_s1'});
 
             %% ODE model for Poisson process
-            testCase1.PoissODE = testCase1.Poiss;
-            testCase1.PoissODE.solutionScheme = 'ode';
-            testCase1.PoissODE = testCase1.PoissODE.formPropensitiesGeneral('PoissODE');  
+            PoissODE = Poiss;
+            PoissODE.solutionScheme = 'ode';
+            PoissODE = PoissODE.formPropensitiesGeneral('PoissODE');  
          end  
     end
 end
