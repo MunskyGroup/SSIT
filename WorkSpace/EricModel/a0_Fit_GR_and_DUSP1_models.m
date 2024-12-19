@@ -9,7 +9,7 @@
 close all 
 clear
 addpath(genpath('../../src'));
-loadPrevious = true;
+loadPrevious = false;
 savedWorkspace = 'workspaceDec9_2024';
 addpath('tmpPropensityFunctions');
 
@@ -87,7 +87,7 @@ else
 
     %% The log prior will be applied to the fit to multiple models as an additional constraint.
     log10PriorMean = [-1 -1 0 -2,...
-        -1 -3 -2 -1 -2 -2 -2 0.5, 2];
+        -1 -3 -2 -1 -2 -2 -2 0.5 2];
     log10PriorStd = 2*ones(1,13);
     
     % So it is left out of the prior, since we only want it to be calculated once.
