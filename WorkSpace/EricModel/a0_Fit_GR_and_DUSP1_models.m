@@ -142,8 +142,8 @@ end
 % STEP 1 will need to be rerun until satisfied.  Use fitMHiters as needed.
 % TODO: Automate with statistics.
 % Set for STEP1 -- Fit GR Models
-fitIters = 30;
-fitMHiters = 20;
+fitIters = 3;
+fitMHiters = 2;
 
 for GR = 1:fitMHiters
     % STEP 1.A. -- Specify dataset time points.    
