@@ -123,7 +123,7 @@ else
         ModelGRparameterMap(i) = {(1:8)};
         % parameters 1 - 8 refer to the parameter set that is relevant to
         % the entire class of models.  In this case, these refer to
-        % global parameters 5:15 (GR parameters).
+        % global parameters 5:13 (GR parameters).
     end
     
     % STEP 0.B.4. -- Make Guesses for the FSP bounds
