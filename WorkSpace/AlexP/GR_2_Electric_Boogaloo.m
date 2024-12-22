@@ -274,3 +274,35 @@ makeGRPlots(combinedGRModel,GR_a_pars)
 
 save('EricModelGR_MMDex','GR_a_pars','combinedGRModel','MHResultsGR') 
 save('workspaceDec9_2024.mat', 'GR_a_pars', 'GR_b_pars', 'ModelGR_a_fit', 'ModelGR_b_fit', 'combinedGRModel','MHResultsGR', 'log10PriorStd')
+
+%% Convolution
+
+for fsp = 1:size(FSP_GR_a_Soln.fsp,1)
+    a = FSP_GR_a_Soln.fsp{i}.p.data;
+end
+
+for fsp = 1:size(FSP_GR_b_Soln.fsp,1)
+    b = FSP_GR_b_Soln.fsp{i}.p.data;
+end
+
+a_dims = size(a); % Get the size of the sptensor as a vector
+a_nrows = a_dims(1); % Number of rows
+a_ncols = a_dims(2); % Number of columns
+
+% Linearize the sparse tensor into a vector
+a_linear_indices = sub2ind([a_nrows, a_ncols], a.subs(:,1), a.subs(:,2)); % Convert subscripts to linear indices
+a_vector = zeros(a_nrows * a_ncols, 1); % Initialize a zero vector
+a_vector(a_linear_indices) = a.vals; % Assign the nonzero values to their correct positions
+aa = a_vector;
+
+b_dims = size(b); % Get the size of the sptensor as a vector
+b_nrows = dims(1); % Number of rows
+b_ncols = dims(2); % Number of columns
+
+% Linearize the sparse tensor into a vector
+b_linear_indices = sub2ind([b_nrows, b_ncols], b.subs(:,1), b.subs(:,2)); % Convert subscripts to linear indices
+b_vector = zeros(nrows * ncols, 1); % Initialize a zero vector
+b_vector(b_linear_indices) = b.vals; % Assign the nonzero values to their correct positions
+bb = b_vector;
+
+Pz = conv(a_vector,b_vector);
