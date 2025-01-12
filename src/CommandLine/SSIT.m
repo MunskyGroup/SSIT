@@ -1165,7 +1165,7 @@ classdef SSIT
                         end
 
                         % Update conditionalPmfs input size for calibrated PDO
-                        if size(PDO.conditionalPmfs{1},2) <= size(redS(1).data)
+                        if ~isempty(PDO)&&size(PDO.conditionalPmfs{1},2) <= size(redS(1).data)
                             max_xTrue = size(PDO.conditionalPmfs{1},2);
                             PDO_input = size(redS(1).data);                            
                             if PDO_input > max_xTrue
