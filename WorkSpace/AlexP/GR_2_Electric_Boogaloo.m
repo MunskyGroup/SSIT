@@ -1,0 +1,308 @@
+%% Using the SSIT to fit Multiple Models and Data sets with Shared Parameters
+% In this script, we show how multiple SSIT models and data sets can be fit
+% simultaneously.  This is most useful in situations where:
+%   1) the analysis considers different experimental conditions (e.g.,
+%   different time points, different inducer concentrations, different
+%   genetic mutations).
+%   2) replica to replica variations are expected that would result in
+%   slightly different parameter combinations
+
+%% TEST NEW GR MODELS
+
+close all 
+clear
+addpath(genpath('../../src'));
+loadPrevious = false;
+savedWorkspace = 'workspace_Boogaloo';
+%addpath('tmpPropensityFunctions');
+
+fitOptions = optimset('Display','iter','MaxIter',300);
+
+% GR-alpha (base model) setup
+ModelGR_a = SSIT;
+ModelGR_a.species = {'cytGR_a';'nucGR_a'};
+ModelGR_a.initialCondition = [20;1];
+ModelGR_a.propensityFunctions = {'(kcn0 + (t>0)*kcn1*IDex/(MDex+IDex)) * cytGR_a'; 'ba1'; 'da1 * cytGR_a'; ...
+                                 'ka1 * nucGR_a'; 'da2 * nucGR_a'};
+ModelGR_a.stoichiometry = [-1,1,-1,1,0;...
+                            1,0,0,-1,-1];
+ModelGR_a.parameters = ({'MDex',5;'Dex0',100;'gDex',0.003;'kcn0',0.005;'kcn1',0.02;...
+                         'ka1',0.01;'ba1',14e-5;'da1',1e-5;'da2',1e-6});
+ModelGR_a.inputExpressions = {'IDex','Dex0*exp(-gDex*t)'};
+ModelGR_a.summarizeModel
+
+% The log prior will be applied to the fit to multiple models as an additional constraint.
+log10PriorMean_a = [0.5 2 -3 -2 -2 -2 -4 -5 -6];
+log10PriorStd_a = 2*ones(1,9);
+
+% So it is left out of the prior, since we only want it to be calculated once.
+ModelGR_a.fittingOptions.logPrior = [];  
+    
+ModelGR_a.fspOptions.initApproxSS = true;
+ModelGR_a.fittingOptions.modelVarsToFit = (3:9);
+        
+ModelGR_a = ModelGR_a.formPropensitiesGeneral('EricRonModGR_a');
+ModelGR_a.customConstraintFuns = {'cytGR_a + nucGR_a'};
+% TODO - Alex - Constraints for removing stiff dimensions.
+    
+[FSP_GR_a_Soln,ModelGR_a.fspOptions.bounds] = ModelGR_a.solve;
+[FSP_GR_a_Soln,ModelGR_a.fspOptions.bounds] = ModelGR_a.solve(FSP_GR_a_Soln.stateSpace);
+
+% STEP 0.B.2. -- Define GR parameters
+GR_a_pars = cell2mat(ModelGR_a.parameters(3:9,2))';  
+
+% STEP 0.B.3. -- Associate GR Data with Different Instances of Model (10,100nm Dex)
+GRfitCases = {'1','1',101,'GR Fit (1nM Dex)';...
+              '10','10',102,'GR Fit (10nM Dex)';...
+              '100','100',103,'GR Fit (100nM Dex)'};
+ModelGR_a_parameterMap = cell(1,size(GRfitCases,1));
+ModelGR_a_fit = cell(1,size(GRfitCases,1));
+% ModelGRODEfit = cell(1,size(GRfitCases,1));
+for i=1:3
+    ModelGR_a_fit{i} = ModelGR_a.loadData("../EricModel/EricData/Gated_dataframe_Ron_020224_NormalizedGR_bins.csv",...
+                                         {'nucGR_a','normgrnuc';'cytGR_a','normgrcyt'},...
+                                         {'Dex_Conc',GRfitCases{i,2}});
+    ModelGR_a_fit{i}.parameters(9,:) = {'Dex0', str2num(GRfitCases{i,1})};
+    ModelGR_a_parameterMap(i) = {(1:7)};
+        % parameters 3 - 9 refer to the parameter set that is relevant to
+        % the entire class of models.  
+end
+    
+% STEP 0.B.4. -- Make Guesses for the FSP bounds
+% This is sometimes necessary when using an uninduced steady state as the
+% initial condition. You need to guess a reasonable statespace or the
+% computation of the SS can be inaccurate.
+ModelGR_a.customConstraintFuns = {'cytGR_a + nucGR_a'};
+for i = 1:3
+    boundGuesses{i} = [0;0;30;30;30];
+    % First N are lower bounds.  Next N is upper bound.  Remaining are custom.
+end
+
+%% STEP 1 -- Fit GR Models.  
+% STEP 1 will need to be rerun until satisfied.  Use fitMHiters as needed.
+% TODO: Automate with statistics.
+% Set for STEP1 -- Fit GR Models
+fitIters = 3;
+fitMHiters = 2;
+
+for gr = 1:fitMHiters
+    % STEP 1.A. -- Specify dataset time points.    
+    for i = 1:3
+        ModelGR_a_fit{i}.tSpan = ModelGR_a_fit{i}.dataSet.times;
+    end
+
+    % STEP 1.B. -- Specify log prior (NOTE: must transpose due to Matlab update that
+    %     no longer correctly assumes format when adding single value vector to
+    %     column vector).
+
+    logPriorGR_a = @(x)-sum((log10(x)-log10PriorMean_a(1:7)').^2./(2*log10PriorStd_a(1:7)'.^2));
+
+    % STEP 1.C. -- Combine all three GR models and fit using a single parameter set.
+    for jj = 1:fitIters
+        combinedGRModel = SSITMultiModel(ModelGR_a_fit,ModelGR_a_parameterMap,logPriorGR_a);
+        combinedGRModel = combinedGRModel.initializeStateSpaces(boundGuesses);
+        combinedGRModel = combinedGRModel.updateModels(GR_a_pars,false);
+        GR_a_pars = combinedGRModel.maximizeLikelihood(GR_a_pars, fitOptions);
+        save('EricModel_MMDex_GR2a','GR_a_pars') 
+    end
+
+    save('EricModelGR_MMDex_GR2a','GR_a_pars','combinedGRModel', 'ModelGR_a_fit', 'log10PriorStd_a') 
+
+    %% STEP 1.D. -- Compute FIM for GR parameters.
+    combinedGRModel = combinedGRModel.computeFIMs([],'log');
+    fimGR_a_withPrior = combinedGRModel.FIM.totalFIM+... % the FIM in log space.
+        diag(1./(log10PriorStd_a(ModelGR_a.fittingOptions.modelVarsToFit)*log(10)).^2);  % Add prior in log space.
+
+    if min(eig(fimGR_a_withPrior))<1
+        disp('Warning -- FIM has one or more small eigenvalues. Reducing proposal width to 10x in those directions. MH Convergence may be slow.')
+        fimGR_a_withPrior = fimGR_a_withPrior + 1*eye(length(fimGR_a_withPrior));
+    end
+    covFree = fimGR_a_withPrior^-1;
+    covFree = 0.5*(covFree+covFree');
+
+    %% STEP 1.E. -- Run MH on GR Models.
+    %GRpars = GRpars';
+    MHFitOptions.thin=1;
+    MHFitOptions.numberOfSamples=3000;
+    MHFitOptions.burnIn=1000;
+    MHFitOptions.progress=true;
+    MHFitOptions.numChains = 1;
+
+    % Use FIM computed above rather than making SSIT call 'useFIMforMetHast'
+    % which forces SSIT.m to compute it within (no prior, etc.)
+    MHFitOptions.useFIMforMetHast = false;
+    MHFitOptions.proposalDistribution=@(x)mvnrnd(x,covFree);
+
+    MHFitOptions.saveFile = 'TMPEricMHGR.mat';
+    [~,~,MHResultsGR_a] = combinedGRModel.maximizeLikelihood(...
+        GR_a_pars, MHFitOptions, 'MetropolisHastings');
+    %delete(MHFitOptions.saveFile)
+    %MHResultsGR
+    %%
+    figNew = figure;
+    ModelGR_a.plotMHResults(MHResultsGR_a,[],'log',[],figNew)
+    for i = 1:7
+        for j = i+1:7
+            subplot(7,7,(i-1)*7+j-1)
+            CH = get(gca,'Children');
+            %CH(1).Color=[1,0,1]; %
+            %CH(1).LineWidth = 3;
+        end
+    end
+end 
+%%
+GR = input('(0) GR-alpha only (base model);\n(0) PDO (GR-beta treated as distortion to GR-alpha data);\n(1) Convolve P(GR-alpha) and P(GR-beta);\n(1) The whole kit & caboodle (GR-alpha + GR-beta).\nChoose your destiny: ');
+
+switch GR
+    case 0
+        disp('You have chosen the base model, GR-alpha.')
+    case 1
+    % GR-beta setup
+        disp('You have chosen to convolve P(GR-alpha) + P(GR-beta).')
+        ModelGR_b = SSIT;
+        ModelGR_b.species = {'cytGR_b';'nucGR_b'};
+        ModelGR_b.initialCondition = [10;11];
+        ModelGR_b.propensityFunctions = {'bb1'; 'db1 * cytGR_b'; 'kb1 * cytGR_b'; 'kb2 * nucGR_b'; 'db2 * nucGR_b'};
+        ModelGR_b.stoichiometry = [1,-1,-1,1,0;...
+                                   0,0,1,-1,-1];
+        ModelGR_b.parameters = ({'kb1',0.01;'kb2',0.01;'bb1',14e-5;'db1',1e-5;'db2',1e-6});
+        ModelGR_b.summarizeModel
+
+        % The log prior will be applied to the fit to multiple models as an additional constraint.
+        log10PriorMean_b = [-1 -1 -4 -5 -6];
+        log10PriorStd_b = 2*ones(1,5);
+
+        % So it is left out of the prior, since we only want it to be calculated once.
+        ModelGR_b.fittingOptions.logPrior = [];  
+    
+        ModelGR_b.fspOptions.initApproxSS = true;
+        ModelGR_b.fittingOptions.modelVarsToFit = (1:5);
+        
+        %ModelGR_b = ModelGR_b.formPropensitiesGeneral('EricRonModGR_b');
+        ModelGR_b.customConstraintFuns = {'cytGR_b + nucGR_b'};
+        % TODO - Alex - Constraints for removing stiff dimensions.
+    
+        [FSP_GR_b_Soln,ModelGR_b.fspOptions.bounds] = ModelGR_b.solve;
+        [FSP_GR_b_Soln,ModelGR_b.fspOptions.bounds] = ModelGR_b.solve(FSP_GR_b_Soln.stateSpace);
+
+        % STEP 0.B.2. -- Define GR parameters
+        GR_b_pars = cell2mat(ModelGR_b.parameters(1:5,2))';
+
+        ModelGR_b_fit = ModelGR_b.loadData("../EricModel/EricData/Gated_dataframe_Ron_020224_NormalizedGR_bins.csv",...
+                                          {'nucGR_b','normgrnuc';'cytGR_b','normgrcyt'});
+        ModelGR_b_parameterMap(i) = {(1:5)};
+        % parameters 3 - 9 refer to the parameter set that is relevant to
+        % the entire class of models.  
+    
+        % STEP 0.B.4. -- Make Guesses for the FSP bounds
+        % This is sometimes necessary when using an uninduced steady state as the
+        % initial condition. You need to guess a reasonable statespace or the
+        % computation of the SS can be inaccurate.
+        ModelGR_b.customConstraintFuns = {'cytGR_b + nucGR_b'};
+
+        %% STEP 1 -- Fit GR Models.  
+        % STEP 1 will need to be rerun until satisfied.  
+        % TODO: Automate with statistics.
+        % Set for STEP1 -- Fit GR Models
+        fitIters = 3;
+
+        % STEP 1.A. -- Specify dataset time points.    
+        ModelGR_b_fit.tSpan = ModelGR_b_fit.dataSet.times;
+
+        % STEP 1.B. -- Specify log prior (NOTE: must transpose due to Matlab update that
+        %     no longer correctly assumes format when adding single value vector to
+        %     column vector).
+
+        logPriorGR_b = @(x)-sum((log10(x)-log10PriorMean_b(1:5)').^2./(2*log10PriorStd_b(1:5)'.^2));
+
+        x0 = [ModelGR_b_fit.parameters{ModelGR_b_fit.fittingOptions.modelVarsToFit,2}]';
+
+        % STEP 1.C. -- Combine all three GR models and fit using a single parameter set.
+        for jj = 1:fitIters
+            [GR_b_pars,likelihood] = ModelGR_b_fit.maximizeLikelihood(x0, fitOptions);
+            ModelGR_b_fit.parameters(ModelGR_b.fittingOptions.modelVarsToFit,2) = num2cell(GR_b_pars);
+            save('EricModel_MMDex_GR2b','GR_b_pars') 
+        end
+
+        save('EricModelGR_MMDex_GR2b','GR_b_pars','ModelGR_b', 'ModelGR_b_fit', 'log10PriorStd_b') 
+
+        %% STEP 1.D. -- Compute FIM for GR parameters.
+        ModelGR_b = ModelGR_b.computeFIM([],'log');
+        fimGR_b_withPrior = ModelGR_b.FIM.totalFIM+... % the FIM in log space.
+        diag(1./(log10PriorStd_b(ModelGR_b.fittingOptions.modelVarsToFit)*log(10)).^2);  % Add prior in log space.
+
+        if min(eig(fimGR_b_withPrior))<1
+            disp('Warning -- FIM has one or more small eigenvalues. Reducing proposal width to 10x in those directions. MH Convergence may be slow.')
+            fimGR_b_withPrior = fimGR_b_withPrior + 1*eye(length(fimGR_b_withPrior));
+        end
+        covFree = fimGR_b_withPrior^-1;
+        covFree = 0.5*(covFree+covFree');
+
+        %% STEP 1.E. -- Run MH on GR Models.
+        MHFitOptions.thin=1;
+        MHFitOptions.numberOfSamples=3000;
+        MHFitOptions.burnIn=1000;
+        MHFitOptions.progress=true;
+        MHFitOptions.numChains = 1;
+
+        % Use FIM computed above rather than making SSIT call 'useFIMforMetHast'
+        % which forces SSIT.m to compute it within (no prior, etc.)
+        MHFitOptions.useFIMforMetHast = false;
+        MHFitOptions.proposalDistribution=@(x)mvnrnd(x,covFree);
+
+        MHFitOptions.saveFile = 'TMPEricMHGR.mat';
+        [~,~,MHResultsGR_b] = combinedGRModel.maximizeLikelihood(...
+                GR_b_pars, MHFitOptions, 'MetropolisHastings');
+        %delete(MHFitOptions.saveFile)
+        %MHResultsGR
+        %%
+        figNew = figure;
+        ModelGR_b.plotMHResults(MHResultsGR_b,[],'log',[],figNew)
+        for i = 1:7
+            for j = i+1:7
+                subplot(7,7,(i-1)*7+j-1)
+                CH = get(gca,'Children');
+                %CH(1).Color=[1,0,1]; %
+                %CH(1).LineWidth = 3;
+            end
+        end
+end  
+    
+
+%%     STEP 1.F. -- Make Plots of GR Fit Results
+makeGRPlots(combinedGRModel,GR_a_pars)
+
+save('EricModelGR_MMDex','GR_a_pars','combinedGRModel','MHResultsGR') 
+save('workspaceDec9_2024.mat', 'GR_a_pars', 'GR_b_pars', 'ModelGR_a_fit', 'ModelGR_b_fit', 'combinedGRModel','MHResultsGR', 'log10PriorStd')
+
+%% Convolution
+
+for fsp = 1:size(FSP_GR_a_Soln.fsp,1)
+    a = FSP_GR_a_Soln.fsp{i}.p.data;
+end
+
+for fsp = 1:size(FSP_GR_b_Soln.fsp,1)
+    b = FSP_GR_b_Soln.fsp{i}.p.data;
+end
+
+a_dims = size(a); % Get the size of the sptensor as a vector
+a_nrows = a_dims(1); % Number of rows
+a_ncols = a_dims(2); % Number of columns
+
+% Linearize the sparse tensor into a vector
+a_linear_indices = sub2ind([a_nrows, a_ncols], a.subs(:,1), a.subs(:,2)); % Convert subscripts to linear indices
+a_vector = zeros(a_nrows * a_ncols, 1); % Initialize a zero vector
+a_vector(a_linear_indices) = a.vals; % Assign the nonzero values to their correct positions
+aa = a_vector;
+
+b_dims = size(b); % Get the size of the sptensor as a vector
+b_nrows = dims(1); % Number of rows
+b_ncols = dims(2); % Number of columns
+
+% Linearize the sparse tensor into a vector
+b_linear_indices = sub2ind([b_nrows, b_ncols], b.subs(:,1), b.subs(:,2)); % Convert subscripts to linear indices
+b_vector = zeros(nrows * ncols, 1); % Initialize a zero vector
+b_vector(b_linear_indices) = b.vals; % Assign the nonzero values to their correct positions
+bb = b_vector;
+
+Pz = conv(a_vector,b_vector);

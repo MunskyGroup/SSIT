@@ -10,7 +10,7 @@ close all
 clear
 addpath(genpath('../../src'));
 loadPrevious = false;
-savedWorkspace = 'workspaceOct22_2024';
+savedWorkspace = 'workspaceDec9_2024';
 addpath('tmpPropensityFunctions');
 
 %% GR model
@@ -87,7 +87,7 @@ else
 
     %% The log prior will be applied to the fit to multiple models as an additional constraint.
     log10PriorMean = [-1 -1 0 -2,...
-        -1 -3 -2 -1 -2 -2 -2 0.5, 2];
+        -1 -3 -2 -1 -2 -2 -2 0.5 2];
     log10PriorStd = 2*ones(1,13);
     
     % So it is left out of the prior, since we only want it to be calculated once.
@@ -123,7 +123,7 @@ else
         ModelGRparameterMap(i) = {(1:8)};
         % parameters 1 - 8 refer to the parameter set that is relevant to
         % the entire class of models.  In this case, these refer to
-        % global parameters 5:15 (GR parameters).
+        % global parameters 5:13 (GR parameters).
     end
     
     % STEP 0.B.4. -- Make Guesses for the FSP bounds
@@ -136,13 +136,13 @@ else
         % First N are lower bounds.  Next N is upper bound.  Remaining are
         % custom.
     end
-    % Set for STEP1 -- Fit GR Models
-    fitIters = 30;
 end
 
 %% STEP 1 -- Fit GR Models.  
 % STEP 1 will need to be rerun until satisfied.  Use fitMHiters as needed.
 % TODO: Automate with statistics.
+% Set for STEP1 -- Fit GR Models
+fitIters = 3;
 fitMHiters = 2;
 
 for GR = 1:fitMHiters
@@ -216,7 +216,7 @@ end
 makeGRPlots(combinedGRModel,GRpars)
 
 save('EricModelGR_MMDex','GRpars','combinedGRModel','MHResultsGR') 
-save('workspaceOct22_2024.mat','GRpars', 'ModelGRfit', 'combinedGRModel','MHResultsGR', 'log10PriorStd')
+save('workspaceDec9_2024.mat','GRpars', 'ModelGRfit', 'combinedGRModel','MHResultsGR', 'log10PriorStd')
 
 %%  STEP 2 -- Extend Model to Include DUSP1 Activation, Production, and Degradation
 if loadPrevious
@@ -360,7 +360,7 @@ for DS = 1:fitMHiters
 
     %%      STEP 2.D.3. -- Run Metropolis Hastings Search
     if loadPrevious
-        MHDusp1File = 'MHDusp1_Jul22';
+        MHDusp1File = 'MHDusp1_Dec92024';
         load(MHDusp1File)
     else
         MHFitOptions.proposalDistribution=@(x)mvnrnd(x,covFree);
@@ -376,7 +376,7 @@ for DS = 1:fitMHiters
         ModelGRDusp100nM.parameters(1:4,2) = num2cell(DUSP1pars);
     end
     
-    save('workspaceOct22_2024.mat','ModelGRDusp100nM','DUSP1pars','fimTotal','sensSoln','combinedGRModel','MHResultsDusp1')
+    save('workspaceDec9_2024.mat','ModelGRDusp100nM','DUSP1pars','fimTotal','sensSoln','combinedGRModel','MHResultsDusp1')
 
     %%      STEP 2.D.4. -- Plot the MH results
     figNew = figure;
@@ -413,7 +413,7 @@ varNames = unique({'ModelGR'
     'sensSoln'
     });
 
-save('workspaceOct22_2024',varNames{:}) % WARNING: THIS OVERWRITE THE PREVIOUSLY SAVED WORKSPACE - TODO: FIX
+save('workspaceDec9_2024',varNames{:}) % WARNING: THIS OVERWRITE THE PREVIOUSLY SAVED WORKSPACE - TODO: FIX
 
 %%  STEP 3. -- Model Extensions using ODE Analyses
 if loadPrevious
@@ -677,7 +677,7 @@ varNames = unique({'ModelGR'
     'sensSoln'
     });
 
-save('workspaceOct22_2024',varNames{:})
+save('workspaceDec9_2024',varNames{:})
 
 %% Extra Function
 
