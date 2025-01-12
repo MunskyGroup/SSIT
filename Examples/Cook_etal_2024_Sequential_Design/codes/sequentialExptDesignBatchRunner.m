@@ -8,6 +8,8 @@ arguments
     plotTimes = []
 end
 
+addpath(genpath('../../../src'));
+
 nRounds = 8;
 initialExperiment = [];
 nFIMsamples = 10;
@@ -18,7 +20,6 @@ switch iDesign
     case 2
         design = 'random';
 end
-incrementAdd = 10;
 switch iModel
     case 'Poisson' % Poisson
         %% Poisson Model With Chainging Input
@@ -36,6 +37,25 @@ switch iModel
 
         parset = [1:size(truePars,1)];
         iModel = 1;
+        incrementAdd = 10;
+
+    case 'PoissonFewer' % Poisson
+        %% Poisson Model With Chainging Input
+        truePars = {'kr',10;'gr',0.3;'kD',5};
+        inputLibrary = {{'IDex','1'},{'IDex','2'},{'IDex','3'},{'IDex','4'},{'IDex','5'},{'IDex','6'},...
+            {'IDex','7'},{'IDex','8'},{'IDex','9'},{'IDex','10'}};
+        model = 'poissonfewer';
+        numCellsPerExperiment = 20;
+        initialParGuess = ones(1,3);
+        datType = 'simulated';
+        nInputs = length(inputLibrary);
+        nT = 21;
+        initialExperiment = zeros(nInputs,nT);
+        initialExperiment(1,[1,7,14,21]) = round(numCellsPerExperiment/4);
+
+        parset = [1:size(truePars,1)];
+        iModel = 2;
+        incrementAdd = 5;
 
     case 'Burst' % Uncertain Burst
         %% Burst Model With Unknown Control Mechanism
@@ -54,6 +74,24 @@ switch iModel
 
         parset = [1:5];
         iModel = 5;
+    case 'BurstFewer' % Uncertain Burst
+        %% Burst Model With Unknown Control Mechanism
+        truePars = ({'kon',0.1;'koff',0.2;'kr',10;'gr',0.3;'M',4;'alph',1e-4});
+        inputLibrary = {{'IDex','1'},{'IDex','2'},{'IDex','3'},{'IDex','4'},{'IDex','5'},{'IDex','6'},...
+            {'IDex','7'},{'IDex','8'},{'IDex','9'},{'IDex','10'}};
+        model = 'burstfewer';
+        numCellsPerExperiment = 60;
+        initialParGuess = 10.^[-1 -1 1 -1 1 0];
+        % initialParGuess = [truePars{:,2}];
+        datType = 'simulated';
+        nInputs = length(inputLibrary);
+        nT = 31;
+        initialExperiment = zeros(nInputs,nT);
+        initialExperiment([2,6,10],[1,16]) = 10;
+        incrementAdd = 10;
+
+        parset = [1:5];
+        iModel = 6;
     case 'GR' % GR Reduced
          %% GR Model (Real Data)
         nRounds = 8;
@@ -73,6 +111,44 @@ switch iModel
 
         parset = [2,5,6];
         iModel = 8;
+    case 'GRFewerInitialCells'
+         %% GR Model (Real Data)
+        nRounds = 8;
+        truePars = [];
+
+        inputLibrary = {{'IDex','1'},{'IDex','10'},{'IDex','100'}};
+        initialParGuess = 10.^[-2 1 -2 -2 -2 1];
+        model = 'GRFewerInitialCells';
+        numCellsPerExperiment = 100;
+        datType = 'real';
+
+        incrementAdd = 25;
+
+        initialExperiment = zeros(3,6);
+        initialExperiment(3,6) = 50;
+        initialExperiment(1,[1,3,6]) = 50;
+
+        parset = [2,5,6];
+        iModel = 9;
+    case 'GRFewestInitialCells'
+         %% GR Model (Real Data)
+        nRounds = 8;
+        truePars = [];
+
+        inputLibrary = {{'IDex','1'},{'IDex','10'},{'IDex','100'}};
+        initialParGuess = 10.^[-2 1 -2 -2 -2 1];
+        model = 'GRFewestInitialCells';
+        numCellsPerExperiment = 60;
+        datType = 'real';
+
+        incrementAdd = 10;
+
+        initialExperiment = zeros(3,6);
+        initialExperiment(3,[1,3,6]) = 10;
+        initialExperiment(1,[1,3,6]) = 10;
+
+        parset = [2,5,6];
+        iModel = 7;
 end
 
 jobID = 1000*iModel+100*iDesign+rngSeed;
@@ -114,7 +190,11 @@ while nRounds<length(covLogMH)&&~isempty(covLogMH{nRounds+1})
 end
 
 for iRound = 1:nRounds
-    TestCases.detCov(iRound) = det(covLogMH{iRound}(parset,parset));
+    
+    covLogMHround = cov(MHResultsSaved{iRound}.mhSamples(1:end/2,:));
+
+    TestCases.detCov(iRound) = det(covLogMHround(parset,parset));
+    % TestCases.detCov(iRound) = det(covLogMH{iRound}(parset,parset));
     TestCases.pars(iRound,:) = parametersFound{iRound};
 
     TestCases.FIMpredNextExpt = FIMpredNextExpt;

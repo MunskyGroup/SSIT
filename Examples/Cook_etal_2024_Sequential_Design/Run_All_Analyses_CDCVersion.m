@@ -16,11 +16,11 @@ for Figure_to_Generate = 3
             %%   Generate (or load saved) results
             [TestCasesBFBD,finalExperimentDesignBFBD] = sequentialExptDesignBatchRunner('Poisson',1,1,true,false,[4]);
             [TestCasesRD,finalExperimentDesignRD] = sequentialExptDesignBatchRunner('Poisson',2,1,true,false,[4]);
-            close(1,2,3,4,103)
+            close(1,2,3,4,203)
             %%   Reformat Figure 1B Results (Convergence of |COV|).
-            f = figure(101);
+            f = figure(201);
             set(f,'Position',[ 616   659   429   259])
-            set(gca,'ylim',[1e-9,1e-4],'xlim',[1.5,8],'XTick',[2:8])
+            set(gca,'ylim',[1e-9,1e-3],'xlim',[1.5,8],'XTick',[2:8])
             grid on
 
             legs = {'BFBD: MHA','BFBD: FIM$_{\rm Est}^{-1}$','BFBD: FIM$_{\rm True}^{-1}$',...
@@ -94,8 +94,8 @@ for Figure_to_Generate = 3
             close all
 
             %%   Generate or load data
-            [TestCasesBFBD,finalExperimentDesignBFBD] = sequentialExptDesignBatchRunner('BurstFewer',1,2,true,false,[4]);
-            [TestCasesRD,finalExperimentDesignRD] = sequentialExptDesignBatchRunner('BurstFewer',2,2,true,false,[4]);
+            [TestCasesBFBD,finalExperimentDesignBFBD] = sequentialExptDesignBatchRunner('BurstFewer',1,2,true,false,[2]);
+            [TestCasesRD,finalExperimentDesignRD] = sequentialExptDesignBatchRunner('BurstFewer',2,2,true,false,[2]);
             close(1,2,3,4,503)
             %%   Figure 2B (Convergence of |COV|)
             f = figure(501);
@@ -167,13 +167,13 @@ for Figure_to_Generate = 3
             clear all
             close all
             %%   Generate or load data
-            [TestCasesBFBD,finalExperimentDesignBFBD] = sequentialExptDesignBatchRunner('GRFewestInitialCells',1,2,true,false,[5]);
-            [TestCasesRD,finalExperimentDesignRD] = sequentialExptDesignBatchRunner('GRFewestInitialCells',2,2,true,false,[5]);
+            [TestCasesBFBD,finalExperimentDesignBFBD] = sequentialExptDesignBatchRunner('GR',1,2,true,false,[3]);
+            [TestCasesRD,finalExperimentDesignRD] = sequentialExptDesignBatchRunner('GRFewerInitialCells',2,3,true,false,[3]);
 
             %%   Figure 3B (Convergence of |COV|)
-            f = figure(701);
+            f = figure(901);
             set(f,'Position',[ 616   659   429   259])
-            set(gca,'xlim',[1,6],'XTick',[2:6],'YLim',10.^[-7,-2])
+            set(gca,'xlim',[1,8],'XTick',[2:8],'YLim',10.^[-8,-4])
             grid on
             legs = {'BFBD: MHA','BFBD: FIM$_{\rm Pre}^{-1}$','BFBD: FIM$_{\rm Post}^{-1}$',...
                 'RD: MHA','RD: FIM$_{\rm Pre}^{-1}$','RD: FIM$_{\rm Post}^{-1}$'};
@@ -204,17 +204,17 @@ for Figure_to_Generate = 3
             ylabel('Input ($\mu$M)','Interpreter','latex')
 
             %%   Figure 3C (Scatter plots MHA, Round 4)
-            fs = [722];
+            fs = [724,731];
             for i = fs
                 f122 = figure(i);
 
                 set(f122,'Position',[389         143        1155         852])
-                lx{1} = [-2.4 -2.1];
-                lx{2} = [1.1, 1.25];
-                lx{3} = [-2 -1.7];
-                lx{4} = [-1.95 -1.75];
-                lx{5} = [-2.35 -2.2];
-                lx{6} = [0.9 1.1];
+                lx{1} = [-2.7 -1.5];
+                lx{2} = [1., 1.7];
+                lx{3} = [-2.4 -1];
+                lx{4} = [-2.2 -1.6];
+                lx{5} = [-2.6 -2.1];
+                lx{6} = [0.8 1.6];
 
                 labs = {'k_{\rm cn}^0';'k_{\rm cn}^{1}';'k_{\rm nc}';'k';'\gamma_{\rm nuc}';'M_{\rm Dex}'};
 
@@ -249,7 +249,7 @@ for Figure_to_Generate = 3
                 'kg1',1;'gnuc',1;'MDex',1};
 
             % Update to fitted parameters.
-            round4Predictions = 6;
+            round4Predictions = 4;
             ModelTrue.parameters(:,2) = num2cell(TestCasesBFBD.pars(round4Predictions,:));
             ModelTrue.inputExpressions = {'IDex','10'};
 
@@ -269,7 +269,7 @@ for Figure_to_Generate = 3
                 {'Dex_Conc','10'});
 
             %%       Make  figures.
-            close(1,2,3,4,903,930)
+            close(1,2,3,4);%,703,730)
             ModelTrue.makeFitPlot([],1);
             %%       Reformat Fig 3F,Bottom (Nuclear Distributions)
             origFigs = [2];
@@ -376,7 +376,7 @@ for Figure_to_Generate = 3
             %% Show data for fitting
             dexConc = {'1','10','100'};
             for iExpt = 1:3
-                ModelFit{iExpt} = ModelTrue.loadData(['ExampleData/proposedExp_mod_GRFewerInitialCells_1fimopt_2seed_r',num2str(iExpt),'.csv'],...
+                ModelFit{iExpt} = ModelTrue.loadData(['ExampleData/proposedExp_mod_GRFewestInitialCells_1fimopt_2seed_r',num2str(iExpt),'.csv'],...
                     {'nucGR','normgrnuc';'cytGR','normgrcyt'},...
                     {'Dex_Conc',dexConc{iExpt}});
                 ModelFit{iExpt}.makeFitPlot([],1)

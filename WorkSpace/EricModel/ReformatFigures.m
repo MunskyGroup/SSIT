@@ -27,9 +27,12 @@ for idex = 1:3
     for ich=1:3
         h.Children(ich).YData = h.Children(ich).YData/ratio;
     end
+    h.Children(1).YNegativeDelta = h.Children(1).YNegativeDelta/ratio;
+    h.Children(1).YPositiveDelta = h.Children(1).YPositiveDelta/ratio;
+
 
     legend('','','','Model \mu \pm \sigma','Model \mu','Data \mu \pm \sigma ')
-    set(gca,'fontsize',16)
+    set(gca,'fontsize',16,'ylim',[0,30])
     xlabel('')
     title('')
     ylabel('')

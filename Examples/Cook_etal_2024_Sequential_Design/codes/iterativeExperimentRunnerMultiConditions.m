@@ -31,6 +31,14 @@ saveExpName = lower([saveFileName,'.mat']);
 if exist(saveExpName,'file')
     warning('Save File Already Exists -- Skipping Calculations')
     return
+else
+    dirJ = strfind(saveExpName,'/');
+    for i=1:length(dirJ)
+        if ~exist(saveExpName(1:dirJ(i)-1),"dir")
+            mkdir(saveExpName(1:dirJ(i)-1));
+        end
+    end
+
 end
 
 addpath(genpath('../../src'));
@@ -58,7 +66,7 @@ end
 
 %% Define Model
 switch lower(example)
-    case 'poisson'
+    case {'poisson','poissonfewer'}
         ModelTrue = SSIT;
         ModelTrue.species = {'rna'};
         ModelTrue.initialCondition = 0;
@@ -96,7 +104,7 @@ switch lower(example)
             ModelTrue = TMP;
         end
    
-    case 'burst'
+    case {'burst','burstfewer'}
         ModelTrue = SSIT;
         ModelTrue.species = {'on';'off';'rna'};
         ModelTrue.initialCondition = [0;1;0];
@@ -147,13 +155,14 @@ switch lower(example)
         maxFitIter = 2000;
         nFitRounds = 5;
 
-    case 'gr'
+    case {'gr','grfewerinitialcells','grfewestinitialcells'}
         ModelTrue = SSIT;
         ModelTrue.species = {'cytGR';'nucGR'};
         ModelTrue.initialCondition = [20;1];
         ModelTrue.fspOptions.bounds = [0,0,30,30];
         ModelTrue.fspOptions.verbose = false;
         ModelTrue.fspOptions.fspIntegratorAbsTol = 1e-10;
+        ModelTrue.sensOptions.solutionMethod = 'finiteDifference';
         ModelTrue.propensityFunctions = {'kcn0*(1 + (t>0)*kcn1*IDex/(MDex+IDex)) * cytGR';...
             'knc*nucGR'; 'kg1';'gnuc*nucGR'};
         ModelTrue.stoichiometry = [-1,1,1,0;...
@@ -211,7 +220,7 @@ end
 % delete(gcp('nocreate'));
 
 nInputs = length(inputLibrary);
-fitOptions = optimset('Display','iter','MaxIter',maxFitIter);
+fitOptions = optimset('Display','none','MaxIter',maxFitIter);
 
 if testing
     % When testing, use exact parameters 
@@ -223,7 +232,7 @@ if testing
     % And short inference runs.
     nSamplesMH = 500; % Number of MH Samples to run
     nFitRounds = 1;
-    fitOptions.Display = 'iter';
+    fitOptions.Display = 'none';
     fitOptions.MaxIter = 200;
 end
 
@@ -498,7 +507,7 @@ for iExpt = 1:nExptRounds
             % Update models and statespaces
             for iInput = 1:nInputs
                 ModelGuess{iInput}.fspOptions.fspTol = 1e-4;
-                ModelGuess{iInput}.parameters(ModelGuess{iInput}.fittingOptions.modelVarsToFit,2) = num2cell(newPars);
+                ModelGuess{iInput}.parameters(fitParameters,2) = num2cell(newPars);
                 [fspSoln,ModelGuess{iInput}.fspOptions.bounds] = ModelGuess{iInput}.solve;
                 stateSpaces{iInput} = fspSoln.stateSpace;
                 % ModelGuess{iInput}.fspOptions.fspTol = inf;
@@ -548,7 +557,7 @@ for iExpt = 1:nExptRounds
         % Update models and statespaces
         for iInput = 1:nInputs
             ModelGuess{iInput}.fspOptions.fspTol = 1e-4;
-            ModelGuess{iInput}.parameters(ModelGuess{iInput}.fittingOptions.modelVarsToFit,2) = num2cell(newPars);
+            ModelGuess{iInput}.parameters(fitParameters,2) = num2cell(newPars);
             [fspSoln,ModelGuess{iInput}.fspOptions.bounds] = ModelGuess{iInput}.solve;
             stateSpaces{iInput} = fspSoln.stateSpace;
             % ModelGuess{iInput}.fspOptions.fspTol = inf;
