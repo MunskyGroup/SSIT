@@ -23,7 +23,7 @@ F1 = F1.formPropensitiesGeneral('BasicModel');
 F1.tSpan = [-1:1:10];
 F1.initialTime = -1;
 F1.solutionScheme = 'FSP';    % Set solutions scheme to FSP.
-[FSPsoln,F1.fspOptions.bounds] = F1.solve;  % Solve the FSP analysis
+[FSPsoln,F1.fspOptions.bounds] = F1.solve([], 'fsp_out.csv');  % Solve the FSP analysis
 
 %%          (2A.1) Solve FSP Model again using the bounds from the last solution
 % If we start with the bounds computed in the first analysis, the solution is
@@ -37,7 +37,9 @@ F1.makePlot(FSPsoln,'marginals',[],[],2,{'linewidth',3,'color',[0,0,1]}) % Make 
 %%      (2B) Solve using SSA
 F2 = F1;
 F2.solutionScheme = 'SSA';
-SSASoln = F2.solve;
+F2.ssaOptions.Nexp = 2;
+F2.ssaOptions.nSimsPerExpt = 200;
+SSASoln = F2.solve([], 'ssa_out3.csv');
 
 %%          (2B.1) Make plots of SSA solution
 F2.makePlot(SSASoln,'trajectories',[],[],4) % Make some plots.

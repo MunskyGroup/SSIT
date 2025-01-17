@@ -59,14 +59,19 @@ Model.tSpan = tSpan;
 Model = Model.formPropensitiesGeneral('NFDP');
 
 Model.solutionScheme = 'SSA';
-Model.ssaOptions.Nexp = 2;   % Number of independent data sets to generate.
-Model.ssaOptions.nSimsPerExpt = 1000; % Number of cells to include at each time point for each data set.
+
+% Number of independent data sets to generate.
+Model.ssaOptions.Nexp = 1;   
+
+% Number of cells to include at each time point for each data set.
+Model.ssaOptions.nSimsPerExpt = 200; 
+
 tic;
-SSAsoln = Model.solve;
+SSAsoln = Model.solve([], 'ssa_out.csv');
 SSAtime = toc;
 
-save SSAtime.mat SSAtime
-save SSAsoln.mat SSAsoln
+%save SSAtime.mat SSAtime
+%save SSAsoln.mat SSAsoln
 
 %% Plot trajectories
 Model.makePlot(SSAsoln,'trajectories',[],[]) % Make some plots.
@@ -84,8 +89,8 @@ for Mcntr = 1:length(M)
     [piFSPsoln, piModel.fspOptions.bounds] = piModel.solve;
     piFSPtimes(Mcntr) = toc;
 
-    piModel.makePlot(piFSPsoln,'meansAndDevs',[],[]) % Make plot of mean vs. time.
-    piModel.makePlot(piFSPsoln,'marginals',[],[]) % Make plot of marginals
+    %piModel.makePlot(piFSPsoln,'meansAndDevs',[],[]) % Make plot of mean vs. time.
+    %piModel.makePlot(piFSPsoln,'marginals',[],[]) % Make plot of marginals
 end
 
 disp(piFSPtimes)
@@ -104,8 +109,8 @@ for Mcntr = 1:length(M)
     [opFSPsoln, opModel.fspOptions.bounds] = opModel.solve;
     opFSPtimes(Mcntr) = toc;
 
-    opModel.makePlot(opFSPsoln,'meansAndDevs',[],[]) % Make plot of mean vs. time.
-    opModel.makePlot(opFSPsoln,'marginals',[],[]) % Make plot of marginals
+    %opModel.makePlot(opFSPsoln,'meansAndDevs',[],[]) % Make plot of mean vs. time.
+    %opModel.makePlot(opFSPsoln,'marginals',[],[]) % Make plot of marginals
 end
 
 disp(opFSPtimes)
