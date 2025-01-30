@@ -232,12 +232,9 @@ switch GR
 
         [FSPsoln_b,ModelGR_b.fspOptions.bounds] = ModelGR_b.solve;
         [FSPsoln_b,ModelGR_b.fspOptions.bounds] = ModelGR_b.solve(FSPsoln_b.stateSpace);
-
-        % because ModelGR_a and ModelGR_b have same size FSP data array
-        solnTensor = {size(FSPsoln_b.fsp)};
         
         %% Convolution
-        for f=1:size(FSPsoln_b.fsp)
+        for f=1:(max(numel(FSPsoln_a.fsp),numel(FSPsoln_b.fsp)))
             % f is time point, so solution tensors are FSP probabilities across states for each time point
             conv2solnTensor{f} = conv2(double(FSPsoln_a.fsp{f}.p.data),double(FSPsoln_b.fsp{f}.p.data));
             figure(f)
@@ -261,34 +258,24 @@ switch GR
         %% Next (TODO): compute probabilities on data, compare to model prediction
         
         %% sample fake data
-        % N = 100;
-        % PAs = zeros(size(solnTensor));
-        % for i = 1:N
-	    %     r = rand;
-	    %     j = 1;
-	    %     while sum(solnTensor(1:j))<r
-    	% 	        j = j+1;
-	    %     end
-	    %     PAs(j) = PAs(j)+1;
-	    %     % [kA1,kA2] = ind2sub(size(PAs),j);
-        % end 
+         N = 100;
+         PAs = zeros(numel(conv2solnTensor{f}));
+         for i = 1:N
+	         r = rand;
+	         j = 1;
+	         while sum(conv2solnTensor{f}(1:j))<r
+    	 	        j = j+1;
+	         end
+	         PAs(j) = PAs(j)+1;
+	         % [kA1,kA2] = ind2sub(size(PAs),j);
+         end 
         %% add scatter points to plot.
-        % hold on
-        % [rows,cols,vals] = find(PAs);
-        % scatter(rows,cols,20,vals,'r','filled') 
+         hold on
+         [rows,cols,vals] = find(PAs);
+         scatter(rows,cols,20,vals,'r','filled') 
                 
         %% compute likelihood
-        % logLikelihood = sum(log(solnTensor(PAs>0)).*PAs((PAs>0)),"all");
-
-        %%
-        % 
-        % 
-        % for i = 1:3
-        %     ModelGRfit_a{i}.tSpan = ModelGRfit_a{i}.dataSet.times;
-        % end
-        % for i = 1:3
-        %     ModelGRfit_b{i}.tSpan = ModelGRfit_b{i}.dataSet.times;
-        % end
+        logLikelihood = sum(log(conv2solnTensor{f}(PAs>0)).*PAs((PAs>0)),"all");
 
         %% Fit GR_a to 
         %% Define GR parameters
@@ -315,21 +302,22 @@ switch GR
 
         % ModelGRODEfit = cell(1,size(GRfitCases,1));
         
-        % Load data and fit Dex conc to GR-alpha
+        % Load data, fit 3 Dex concentrations to GR-alpha's 'Dex0' parameter,
+        % and set solution scheme to FSP.
         for i=1:3
             ModelGRfit_a{i} = ModelGR_a.loadData("../EricModel/EricData/Gated_dataframe_Ron_020224_NormalizedGR_bins.csv",...
                 {'nucGR_a','normgrnuc';'cytGR_a','normgrcyt'},...
                 {'Dex_Conc',GRfitCases{i,2}});
             ModelGRfit_a{i}.parameters(9,:) = {'Dex0', str2num(GRfitCases{i,1})};
-            ModelGRparameterMap_a(i) = {(1:8)};
-            % Parameters 1:8 refers to all ModelGR_a parameters with the exception of Dex0. 
+            ModelGRparameterMap_a(i) = {(1:8)}; % Parameters 1:8 refers to all ModelGR_a parameters with the exception of Dex0. 
         end
 
-        % Load data for GR-beta
-        ModelGR_b.loadData("../EricModel/EricData/Gated_dataframe_Ron_020224_NormalizedGR_bins.csv",...
-                {'nucGR_b','normgrnuc';'cytGR_b','normgrcyt'},{'Dex_Conc','100'});
+        ModelGRfit_b = cell(1,1);
 
-        
+        % Load data for GR-beta
+        ModelGRfit_b{1} = ModelGR_b.loadData("../EricModel/EricData/Gated_dataframe_Ron_020224_NormalizedGR_bins.csv",...
+                {'nucGR_b','normgrnuc';'cytGR_b','normgrcyt'},{'Dex_Conc','100'});
+ 
         % Make Guesses for the FSP bounds
         % This is sometimes necessary when using an uninduced steady state as the
         % initial condition. You need to guess a reasonable statespace or the
@@ -348,12 +336,14 @@ switch GR
     fitMHiters = 2;
     
     for GR = 1:fitMHiters
-        % Specify dataset time points.    
+        % Specify dataset time points for GR-alpha.    
         for i = 1:3
             ModelGRfit_a{i}.tSpan = ModelGRfit_a{i}.dataSet.times;
         end
 
-    
+        % Specify dataset time points for GR-beta.
+        ModelGRfit_b{1}.tSpan = ModelGRfit_b{1}.dataSet.times;
+
         % Specify log prior (NOTE: must transpose due to Matlab update that
         %     no longer correctly assumes format when adding single value vector to
         %     column vector).
@@ -361,18 +351,53 @@ switch GR
         logPriorGR_a = @(x)-sum((log10(x)-log10PriorMean_a(1:8)').^2./(2*log10PriorStd_a(1:8)'.^2));
         logPriorGR_b = @(x)-sum((log10(x)-log10PriorMean_b(1:5)').^2./(2*log10PriorStd_b(1:5)'.^2));
     
-        %% Combine all three GR models and fit using a single parameter set.
+        %% Solve for combined GR-alpha model for three Dex_Conc=Dex0 and fit using a single parameter set.
         for jj = 1:fitIters
+            % Solve
             combinedGRModel_a = SSITMultiModel(ModelGRfit_a,ModelGRparameterMap_a,logPriorGR_a);
             combinedGRModel_a = combinedGRModel_a.initializeStateSpaces(boundGuesses);
             combinedGRModel_a = combinedGRModel_a.updateModels(GRpars_a,false);
-            GRpars_a = combinedGRModel_a.maximizeLikelihood(...
-                GRpars_a, fitOptions);
+            GRpars_a = combinedGRModel_a.maximizeLikelihood(GRpars_a, fitOptions);
             save('combinedGR_a','GRpars_a') 
         end
+        
+        %% Solve for GR-beta model.
+        ModelGRfit_b{1}.fspOptions.fspTol = 1e-4;
+        ModelGRfit_b{1}.fspOptions.bounds = boundGuesses{1};
+        for jj = 1:fitIters
+            [GR_b_fspSoln,ModelGRfit_b{1}.fspOptions.bounds] = ModelGRfit_b{1}.solve;
+            [GR_b_fspSoln,ModelGRfit_b{1}.fspOptions.bounds] = ModelGRfit_b{1}.solve(GR_b_fspSoln.stateSpace);
+            GRpars_b = ModelGRfit_b{1}.maximizeLikelihood(GRpars_b, fitOptions);
+            save('ModelGRfit_b','GRpars_b','GR_b_fspSoln')             
+        end
     end
-   
-    save('combinedGR_a','GRpars_a','combinedGRModel_a', 'ModelGRfit_a')
+
+    save('combinedGR_a','GRpars_a','combinedGRModel_a', 'ModelGRfit_a','ModelGRfit_b','GRpars_b','GR_b_fspSoln')
+
+    % because ModelGR_a and ModelGR_b have same size FSP data array
+        solnTensor = {size(FSPsoln_b.fsp)};
+        
+        %% Convolution
+        for f=1:size(FSPsoln_b.fsp)
+            % f is time point, so solution tensors are FSP probabilities across states for each time point
+            conv2solnTensor{f} = conv2(double(FSPsoln_a.fsp{f}.p.data),double(FSPsoln_b.fsp{f}.p.data));
+            figure(f)
+            contourf(log10(conv2solnTensor{f}))
+            hold on
+        end
+        % check
+        for g=1:3
+            fspsoln_sptensor_a{g} = double(FSPsoln_a.fsp{g}.p.data);
+            fspsoln_sptensor_b{g} = double(FSPsoln_b.fsp{g}.p.data);
+            figure(g)
+            subplot(1,3,1)
+            contourf(log10(fspsoln_sptensor_a{g}))
+            subplot(1,3,2)
+            contourf(log10(fspsoln_sptensor_b{g}))
+            subplot(1,3,3)
+            contourf(log10(conv2solnTensor{f}))
+            hold on
+        end
 
     case 2
         %% Solve ODEs for fancy GR models
