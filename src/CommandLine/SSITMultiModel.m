@@ -74,6 +74,7 @@ classdef SSITMultiModel
                 boundGuesses = [];
             end
             nMod = length(SMM.SSITModels);
+            fspSolnData = struct(); % Allocate structure to store solutions
             for i = 1:nMod
                 %% Solve the model using the FSP
                 Model = SMM.SSITModels{i};
@@ -86,9 +87,14 @@ classdef SSITMultiModel
 
                 if strcmp(Model.solutionScheme,'FSP')
                     [fspSoln,SMM.SSITModels{i}.fspOptions.bounds] = Model.solve;
+                    for f=1:numel(fspSoln.fsp)
+                        fspSoln_p_data = fspSoln.fsp{f}.p.data;
+                        fspSolnData(i, f).p_data = fspSoln.fsp{f}.p.data;
+                    end
                     SMM.fspStateSpaces{i} = fspSoln.stateSpace;
                 end
             end
+            save('combinedGR_a_fspSolns.mat', 'fspSolnData'); % Save fspSolns for accessibility
         end
 
         function SMM = updateModels(SMM,parameters,makeplot, fignums)
