@@ -242,7 +242,7 @@ switch GR
             hold on
         end
         %% check
-        for g=1:3
+        for g=1:f % f is number of time points 
             fspsoln_sptensor_a{g} = double(FSPsoln_a.fsp{g}.p.data);
             fspsoln_sptensor_b{g} = double(FSPsoln_b.fsp{g}.p.data);
             figure(g)
@@ -259,17 +259,17 @@ switch GR
 
         data = readtable('../EricModel/EricData/Gated_dataframe_Ron_020224_NormalizedGR_bins.csv');
 
-        % Filter the data for Time_index = 20 and Dex_Conc = 10
-        filteredData = data(data.time == 20 & data.Dex_Conc == 10, :);
+        % Filter the data if desired for particular Time_index and/or Dex_Conc
+        filteredData = data(data.time == 180 & data.Dex_Conc == 100, :);
 
-        % Randomly sample 100 points from the filtered data
-        numSamples = min(100, height(filteredData)); % Ensure we don’t sample more than available data
+        % Randomly sample 1000 points from the filtered data
+        numSamples = min(1000, height(filteredData)); % Ensure we don’t sample more than available data
         randomIndices = randperm(height(filteredData), numSamples);
         normgrnuc = filteredData.normgrnuc(randomIndices);
         normgrcyt = filteredData.normgrcyt(randomIndices);
 
         % Plot contourf figures and add scatter points
-        for g=1:3
+        for g=1:f
             fspsoln_sptensor_a{g} = double(FSPsoln_a.fsp{g}.p.data);
             fspsoln_sptensor_b{g} = double(FSPsoln_b.fsp{g}.p.data);
     
@@ -278,51 +278,18 @@ switch GR
             subplot(1,3,1)
             contourf(log10(fspsoln_sptensor_a{g}))
             hold on
-            scatter(normgrnuc, normgrcyt, 'r', 'filled') % Red dots
+            scatter(normgrcyt, normgrnuc, 'r', 'filled') % Red dots
     
             subplot(1,3,2)
             contourf(log10(fspsoln_sptensor_b{g}))
             hold on
-            scatter(normgrnuc, normgrcyt, 'r', 'filled') % Red dots
+            scatter(normgrcyt, normgrnuc, 'r', 'filled') % Red dots
     
             subplot(1,3,3)
             contourf(log10(conv2solnTensor{g}))
             hold on
-            scatter(normgrnuc, normgrcyt, 'r', 'filled') % Red dots
+            scatter(normgrcyt, normgrnuc, 'r', 'filled') % Red dots
         end
-
-        %% sample data
-         N = 100;
-         PAs = zeros(size(conv2solnTensor{f}));
-         for i = 1:N
-	         r = rand;
-	         j = 1;
-	         while sum(conv2solnTensor{f}(1:j))<r
-    	 	        j = j+1;
-	         end
-	         PAs(j) = PAs(j)+1;
-	         % [kA1,kA2] = ind2sub(size(PAs),j);
-         end 
-        %% add scatter points to plot.
-         [rows,cols,vals] = find(PAs);
-         scatter(rows,cols,20,vals,'r','filled') 
-        
-        % %% sample fake data
-        %  N = 100;
-        %  PAs = zeros(numel(conv2solnTensor{f}));
-        %  for i = 1:N
-	    %      r = rand;
-	    %      j = 1;
-	    %      while sum(conv2solnTensor{f}(1:j))<r
-    	%  	        j = j+1;
-	    %      end
-	    %      PAs(j) = PAs(j)+1;
-	    %      % [kA1,kA2] = ind2sub(size(PAs),j);
-        %  end 
-        % %% add scatter points to plot.
-        %  hold on
-        %  [rows,cols,vals] = find(PAs);
-        %  scatter(rows,cols,20,vals,'r','filled') 
                 
         %% compute likelihood
         logLikelihood = sum(log(conv2solnTensor{f}(PAs>0)).*PAs((PAs>0)),"all")
@@ -423,29 +390,60 @@ switch GR
 
     save('GRpars_a','combinedGRModel_a', 'ModelGRfit_a','ModelGRfit_b','GRpars_b','GR_b_fspSoln')
     
-    %% Convolution
-    for c=1:max(numel(fspSolnData(3).fsp),numel(GR_b_fspSoln.fsp))
-            % f is time point, so solution tensors are FSP probabilities across states for each time point
-            conv2solnTensor_postData{c} = conv2(double(fspSolnData(3).fsp{c}.p.data),double(GR_b_fspSoln.fsp{c}.p.data));
-            figure(c)
-            contourf(log10(conv2solnTensor_postData{c}))
+    %% Convolution, contour plots, and scattered data
+    load('combinedGR_a_fspSolns.mat')
+    data = readtable('../EricModel/EricData/Gated_dataframe_Ron_020224_NormalizedGR_bins.csv'); 
+
+    tspan = [0,10,30,50,75,150,180];
+
+    for model=1:size(GRfitCases,1)
+        dataDex = data(data.Dex_Conc == str2double(GRfitCases{model}), :);
+        for t=1:max(numel(fspSolnsSMM(model).fsp),numel(GR_b_fspSoln.fsp))
+            % Figure index
+            figIndex = (model - 1) * 7 + t;
+            % Filter data           
+            dataDexTime = dataDex(dataDex.time == tspan(t),:);
+
+            % Randomly sample 1000 points from the filtered data
+            numSamples = min(1000, height(dataDexTime)); % Ensure we don’t sample more than available data
+            % check
+            if numSamples==0
+                GRfitCases{model}
+                tspan(t)
+            end
+            randomIndices = randperm(height(dataDexTime), numSamples);
+            normgrnuc = dataDexTime.normgrnuc(randomIndices);
+            normgrcyt = dataDexTime.normgrcyt(randomIndices);
+                
+            % t is time point, so solution tensors are FSP probabilities across states for each time point
+            conv2solnTensor_postData{t} = conv2(double(fspSolnsSMM(model).fsp{t}.p.data),double(GR_b_fspSoln.fsp{t}.p.data));
+            figure(figIndex)
+            contourf(log10(conv2solnTensor_postData{t}))
+            hold on 
+            scatter(normgrcyt, normgrnuc, 'r', 'filled')
+
+            % Add subplots (can be commented out)
+            fspsoln_sptensor_a_postData{t} = double(fspSolnsSMM(model).fsp{t}.p.data);
+            fspsoln_sptensor_b_postData{t} = double(GR_b_fspSoln.fsp{t}.p.data);
+
+            subplot(1,3,1)
+            contourf(log10(fspsoln_sptensor_a_postData{t}))
             hold on
-    end
-    % check
-    for h=1:max(numel(fspSolnData(3).fsp),numel(GR_b_fspSoln.fsp))
-        fspsoln_sptensor_a_postData{h} = double(fspSolnData(3).fsp{h}.p.data);
-        fspsoln_sptensor_b_postData{h} = double(GR_b_fspSoln.fsp{h}.p.data);
-        figure(h)
-        subplot(1,3,1)
-        contourf(log10(fspsoln_sptensor_a_postData{h}))
-        subplot(1,3,2)
-        contourf(log10(fspsoln_sptensor_b_postData{h}))
-        subplot(1,3,3)
-        contourf(log10(conv2solnTensor_postData{h}))
-        hold on
+            scatter(normgrcyt, normgrnuc, 'r', 'filled') % Red dots
+    
+            subplot(1,3,2)
+            contourf(log10(fspsoln_sptensor_b_postData{t}))
+            hold on
+            scatter(normgrcyt, normgrnuc, 'r', 'filled') % Red dots
+    
+            subplot(1,3,3)
+            contourf(log10(conv2solnTensor_postData{t}))
+            hold on
+            scatter(normgrcyt, normgrnuc, 'r', 'filled') % Red dots
+        end
     end
 
-    save('conv2solnTensor_postData','GRpars_a','combinedGRModel_a', 'ModelGRfit_a','ModelGRfit_b','GRpars_b','GR_b_fspSoln')
+    save('conv2solnTensor_postData','GRpars_a','combinedGRModel_a', 'ModelGRfit_a','ModelGRfit_b','GRpars_b','GR_b_fspSoln', 'fspSolnsSMM')
 
     case 2
         %% Solve ODEs for fancy GR models
