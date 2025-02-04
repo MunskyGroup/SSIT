@@ -291,8 +291,6 @@ switch GR
             scatter(normgrcyt, normgrnuc, 'r', 'filled') % Red dots
         end
                 
-        %% compute likelihood
-        logLikelihood = sum(log(conv2solnTensor{f}(PAs>0)).*PAs((PAs>0)),"all")
 
         %% Fit GR_a to 
         %% Define GR parameters
@@ -343,13 +341,21 @@ switch GR
             % First N are lower bounds.  Next N is upper bound.  Remaining are
             % custom.
         end
+
+    % Specify log prior (NOTE: must transpose due to Matlab update that
+    %     no longer correctly assumes format when adding single value vector to
+    %     column vector).
+
+    logPriorGR_a = @(x)-sum((log10(x)-log10PriorMean_a(1:8)').^2./(2*log10PriorStd_a(1:8)'.^2));
+    logPriorGR_b = @(x)-sum((log10(x)-log10PriorMean_b(1:5)').^2./(2*log10PriorStd_b(1:5)'.^2));
+    
     
     %% Fit GR Models.  
     % This step will need to be rerun until satisfied.  Use fitMHiters as needed.
     % TODO: Automate with statistics.
 
-    fitIters = 3;
-    fitMHiters = 2;
+    fitIters = 3; % 3 concentrations of Dex (1,10,100nM)
+    fitMHiters = 2; % Adjust as needed
     
     for GR = 1:fitMHiters
         % Specify dataset time points for GR-alpha.    
@@ -360,13 +366,6 @@ switch GR
         % Specify dataset time points for GR-beta.
         ModelGRfit_b{1}.tSpan = ModelGRfit_b{1}.dataSet.times;
 
-        % Specify log prior (NOTE: must transpose due to Matlab update that
-        %     no longer correctly assumes format when adding single value vector to
-        %     column vector).
-    
-        logPriorGR_a = @(x)-sum((log10(x)-log10PriorMean_a(1:8)').^2./(2*log10PriorStd_a(1:8)'.^2));
-        logPriorGR_b = @(x)-sum((log10(x)-log10PriorMean_b(1:5)').^2./(2*log10PriorStd_b(1:5)'.^2));
-    
         %% Solve for combined GR-alpha model for three Dex_Conc=Dex0 and fit using a single parameter set.
         for jj = 1:fitIters
             % Solve
@@ -380,16 +379,13 @@ switch GR
         %% Solve for GR-beta model.
         ModelGRfit_b{1}.fspOptions.fspTol = 1e-4;
         ModelGRfit_b{1}.fspOptions.bounds = boundGuesses{1};
-        for jj = 1:fitIters
-            [GR_b_fspSoln,ModelGRfit_b{1}.fspOptions.bounds] = ModelGRfit_b{1}.solve;
-            [GR_b_fspSoln,ModelGRfit_b{1}.fspOptions.bounds] = ModelGRfit_b{1}.solve(GR_b_fspSoln.stateSpace);
-            GRpars_b = ModelGRfit_b{1}.maximizeLikelihood(GRpars_b, fitOptions);
-            save('ModelGRfit_b','GRpars_b','GR_b_fspSoln')             
-        end
-    end
+        [GR_b_fspSoln,ModelGRfit_b{1}.fspOptions.bounds] = ModelGRfit_b{1}.solve;
+        [GR_b_fspSoln,ModelGRfit_b{1}.fspOptions.bounds] = ModelGRfit_b{1}.solve(GR_b_fspSoln.stateSpace);
+        GRpars_b = ModelGRfit_b{1}.maximizeLikelihood(GRpars_b, fitOptions);
+        save('ModelGRfit_b','GRpars_b','GR_b_fspSoln')             
 
     save('GRpars_a','combinedGRModel_a', 'ModelGRfit_a','ModelGRfit_b','GRpars_b','GR_b_fspSoln')
-    
+
     %% Convolution, contour plots, and scattered data
     load('combinedGR_a_fspSolns.mat')
     data = readtable('../EricModel/EricData/Gated_dataframe_Ron_020224_NormalizedGR_bins.csv'); 
@@ -444,6 +440,72 @@ switch GR
     end
 
     save('conv2solnTensor_postData','GRpars_a','combinedGRModel_a', 'ModelGRfit_a','ModelGRfit_b','GRpars_b','GR_b_fspSoln', 'fspSolnsSMM')
+
+        %% Compute FIM for ModelGR_a parameters.
+        combinedGRModel_a = combinedGRModel_a.computeFIMs([],'log');
+
+        fimGR_a_withPrior = combinedGRModel_a.FIM.totalFIM+... % the FIM in log space.
+            diag(1./(log10PriorStd_a(ModelGR_a.fittingOptions.modelVarsToFit)*log(10)).^2);  % Add prior in log space.
+
+        %% Compute FIM for ModelGR_b parameters.
+        ModelGR_b_fimResults = ModelGRfit_b{1}.computeFIM([],'log'); % Compute individual FIMs
+
+        fimGR_b_withPrior = ModelGRfit_b{1}.totalFim(ModelGR_b_fimResults,ModelGRfit_b{1}.dataSet.nCells,diag(1./(log10PriorStd_b(ModelGRfit_b{1}.fittingOptions.modelVarsToFit)*log(10)).^2));  % Add prior in log space.
+
+        %%
+        if min(eig(fimGR_a_withPrior))<1
+            disp('Warning -- FIM has one or more small eigenvalues. Reducing proposal width to 10x in those directions. MH Convergence may be slow.')
+            fimGR_a_withPrior = fimGR_a_withPrior + 1*eye(length(fimGR_a_withPrior));
+        end
+        fimGR_a_covFree = fimGR_a_withPrior^-1;
+        fimGR_a_covFree = 0.5*(fimGR_a_covFree+fimGR_a_covFree');
+
+        if min(eig(fimGR_b_withPrior{1}))<1
+            disp('Warning -- FIM has one or more small eigenvalues. Reducing proposal width to 10x in those directions. MH Convergence may be slow.')
+            fimGR_b_withPrior{1} = fimGR_b_withPrior{1} + 1*eye(length(fimGR_b_withPrior{1}));
+        end
+        fimGR_b_covFree = fimGR_b_withPrior{1}^-1;
+        fimGR_b_covFree = 0.5*(fimGR_b_covFree+fimGR_b_covFree');
+    
+        %% STEP 1.E. -- Run MH on GR Models.
+        %GRpars = GRpars';
+        MHFitOptions.thin=1;
+        MHFitOptions.numberOfSamples=1000;
+        MHFitOptions.burnIn=100;
+        MHFitOptions.progress=true;
+        MHFitOptions.numChains = 1;
+    
+        % Use FIM computed above rather than making SSIT call 'useFIMforMetHast'
+        % which forces SSIT.m to compute it within (no prior, etc.)
+        MHFitOptions.useFIMforMetHast = false;
+        MHFitOptions.proposalDistribution=@(x)mvnrnd(x,fimGR_a_covFree);
+    
+        MHFitOptions.saveFile = 'TMPEricMHGR.mat';
+        [~,~,MHResultsGR_a] = combinedGRModel_a.maximizeLikelihood(...
+            GRpars_a, MHFitOptions, 'MetropolisHastings');
+        %delete(MHFitOptions.saveFile)
+        %MHResultsGR
+        %%
+        figNew = figure;
+        combinedGRModel_a.plotMHResults(MHResultsGR_a,[],'log',[],figNew)
+        for i = 1:7
+            for j = i+1:7
+                subplot(7,7,(i-1)*7+j-1)
+                CH = get(gca,'Children');
+                CH(1).Color=[1,0,1]; %
+                CH(1).LineWidth = 3;
+            end
+        end
+    end
+
+    save('conv2solnTensor_postData','GRpars_a','combinedGRModel_a', 'ModelGRfit_a','ModelGRfit_b','GRpars_b','GR_b_fspSoln', 'fspSolnsSMM',...
+        'fimGR_a_withPrior','fimGR_b_withPrior','ModelGR_b_fimResults','fimGR_a_covFree','fimGR_b_covFree','MHResultsGR_a','MHFitOptions');
+    
+    
+
+    %% compute likelihood
+    %    logLikelihood = sum(log(conv2solnTensor{f}(PAs>0)).*PAs((PAs>0)),"all");
+    %logLikelihood = sum(log(conv2solnTensor_postData{t}(fspsoln_sptensor_a_postData{t}>0)).*fspsoln_sptensor_a_postData{t}((fspsoln_sptensor_a_postData{t}>0)),"all");
 
     case 2
         %% Solve ODEs for fancy GR models
