@@ -1,12 +1,12 @@
 %% Spatial Compartement FIM Comparison
 clear
 close all 
-addpath(genpath('../../../src'));
+addpath(genpath('../../../../src'));
 
 %% Compare Determinate of the Different Models Parameter Uncertanty
 % Params
 rng('shuffle');
-numSamplesToGenerate = 2;
+numSamplesToGenerate = 1000;
 
 % Generate Sample for Single Spatial Model
 GaussianSampler_4D = @SampleUniformDistribution;
