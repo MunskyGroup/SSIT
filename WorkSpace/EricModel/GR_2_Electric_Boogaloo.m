@@ -38,8 +38,8 @@ switch GR
                                     1,0,0,-1,-1];
         ModelGR_b.stoichiometry = [-1,1,-1,1,0;...
                                     1,0,0,-1,-1];
-        ModelGR_a.parameters = ({'Dex0',100;'kn2c',0.01;'dc',1e-5;'dn',1e-6;'ba1',14e-5;...
-                                'MDex',5;'gDex',0.003;'kcn0',0.005;'kcn1',0.02});
+        ModelGR_a.parameters = ({'kn2c',0.01;'dc',1e-5;'dn',1e-6;'ba1',14e-5;...
+                                'MDex',5;'gDex',0.003;'kcn0',0.005;'kcn1',0.02;'Dex0',100});
         ModelGR_b.parameters = ({'kn2c',0.01;'dc',1e-5;'dn',1e-6;'kb1',0.01;'bb1',14e-5});
         ModelGR_a.inputExpressions = {'IDex','Dex0*exp(-gDex*t)'};
         disp('The GR-alpha model is: ')
@@ -50,7 +50,7 @@ switch GR
         ModelGR_a.fspOptions.initApproxSS = true;
         ModelGR_b.fspOptions.initApproxSS = true;
 
-        ModelGR_a.fittingOptions.modelVarsToFit = (2:9);
+        ModelGR_a.fittingOptions.modelVarsToFit = (1:8);
         ModelGR_b.fittingOptions.modelVarsToFit = (1:5);
          
         ModelGR_a = ModelGR_a.formPropensitiesGeneral('GR_a');
@@ -128,7 +128,7 @@ switch GR
 
         %% Fit GR_a to 
         %% Define GR parameters
-        GRpars_a = cell2mat(ModelGR_a.parameters(2:9,2))'; 
+        GRpars_a = cell2mat(ModelGR_a.parameters(1:8,2))'; 
         GRpars_b = cell2mat(ModelGR_b.parameters(1:5,2))';
 
 
@@ -163,8 +163,8 @@ switch GR
             ModelGRfit_a{i} = ModelGR_a.loadData("../EricModel/EricData/Gated_dataframe_Ron_020224_NormalizedGR_bins.csv",...
                 {'nucGR_a','normgrnuc';'cytGR_a','normgrcyt'},...
                 {'Dex_Conc',GRfitCases{i,2}});
-            ModelGRfit_a{i}.parameters(1,:) = {'Dex0', str2num(GRfitCases{i,1})};
-            ModelGRparameterMap_a(i) = {(2:9)}; 
+            ModelGRfit_a{i}.parameters(9,:) = {'Dex0', str2num(GRfitCases{i,1})};
+            ModelGRparameterMap_a(i) = {(1:8)}; 
         end
  
         % Make Guesses for the FSP bounds
@@ -370,158 +370,55 @@ switch GR
     switch dusp1
         case 0
             % Extend model for DUSP1
-            ModelGRDusp100nM_a = ModelGRfit_a{3};
-            ModelGRDusp100nM_b = ModelGRfit_b{1};
-            ModelGRDusp100nM_a = ModelGRDusp100nM_a.addSpecies({'offGene'},2);
-            ModelGRDusp100nM_a = ModelGRDusp100nM_a.addSpecies({'onGene'},0);
-            ModelGRDusp100nM_a = ModelGRDusp100nM_a.addSpecies({'rna'},5);
-            ModelGRDusp100nM_b = ModelGRDusp100nM_b.addSpecies({'offGene'},2);
-            ModelGRDusp100nM_b = ModelGRDusp100nM_b.addSpecies({'onGene'},0);
-            ModelGRDusp100nM_b = ModelGRDusp100nM_b.addSpecies({'rna'},5);
-            ModelGRDusp100nM_a.propensityFunctions{6,1} = 'kon*offGene*nucGR_a';
-            ModelGRDusp100nM_a.propensityFunctions{7,1} = 'koff*onGene';
-            ModelGRDusp100nM_a.propensityFunctions{8,1} = 'kr*onGene';
-            ModelGRDusp100nM_a.propensityFunctions{9,1} = 'dr*rna';
-            ModelGRDusp100nM_b.propensityFunctions{5,1} = 'kon*offGene';
-            ModelGRDusp100nM_b.propensityFunctions{6,1} = 'koff*onGene*nucGR_b';
-            ModelGRDusp100nM_b.propensityFunctions{7,1} = 'kr*onGene';
-            ModelGRDusp100nM_b.propensityFunctions{8,1} = 'dr*rna';
-            ModelGRDusp100nM_a.stoichiometry = [-1,1,-1,1,0,0,0,0,0;...
-                                        1,0,0,-1,-1,0,0,0,0;...
-                                        0,0,0,0,0,-1,1,0,0;...
-                                        0,0,0,0,0,1,-1,0,0;...
-                                        0,0,0,0,0,0,0,1,-1];
-            ModelGRDusp100nM_b.stoichiometry = [-1,1,-1,1,0,0,0,0,0;...
-                                        1,0,0,-1,-1,0,0,0,0;...
-                                        0,0,0,0,0,-1,1,0,0;...
-                                        0,0,0,0,0,1,-1,0,0;...
-                                        0,0,0,0,0,0,0,1,-1];
-            ModelGRDusp100nM_a.parameters(10,:) = {'koff',0.1};
-            ModelGRDusp100nM_a.parameters(11,:) = {'kon',0.1};
-            ModelGRDusp100nM_a.parameters(12,:) = {'kr',1};
-            ModelGRDusp100nM_a.parameters(13,:) = {'dr',0.02};
-            ModelGRDusp100nM_b.parameters(6,:) = {'koff',0.1};
-            ModelGRDusp100nM_b.parameters(7,:) = {'kon',0.1};
-            ModelGRDusp100nM_b.parameters(8,:) = {'kr',1};
-            ModelGRDusp100nM_b.parameters(9,:) = {'dr',0.02};
-            ModelGRDusp100nM_a.fspOptions.bounds = [0;0;0;2;2;400];
-            ModelGRDusp100nM_b.fspOptions.bounds = [0;0;0;2;2;400];
-            ModelGRDusp100nM_a.fittingOptions.modelVarsToFit = 10:13;
-            ModelGRDusp100nM_b.fittingOptions.modelVarsToFit = 6:9;
-            ModelGRDusp100nM_a = ModelGRDusp100nM_a.formPropensitiesGeneral('EricModDusp1_a');
-            ModelGRDusp100nM_b = ModelGRDusp100nM_b.formPropensitiesGeneral('EricModDusp1_b');
-            % The log prior will be applied to the fit to multiple models as an additional constraint.            
-            log10PriorMean_a = [-2 -5 -6 -5 0.5 -3 -3 -2 -1 -1 0 -2];
-            log10PriorMean_b = [-2 -5 -6 -2 -5 -1 -1 0 -2];
-            log10PriorStd_a = 2*ones(1,12);
-            log10PriorStd_b = 2*ones(1,9);
-            duspLogPrior_a = @(x)-sum((log10(x(:))'-log10PriorMean_a(10:13)).^2./(2*log10PriorStd_a(10:13).^2));
-            duspLogPrior_b = @(x)-sum((log10(x(:))'-log10PriorMean_b(6:9)).^2./(2*log10PriorStd_b(6:9).^2));
-            ModelGRDusp100nM_a.fittingOptions.logPrior = duspLogPrior_a;
-            ModelGRDusp100nM_b.fittingOptions.logPrior = duspLogPrior_b;
-              
-            %log10PriorMean = [-1 -1 0 -2,...
-            %    -1 -3 -2 -1 -2 -2 -2 0.5, 2];
-            % log10PriorMean = [-1 -1 0 -2,... %dusp1 pars
-            %                   -1 -3 -2 -1 -2 -2 -2 0.5, ...%GR pars
-            %                    2, ... % Dex concentration -- known
-            %                   -2, -3]; % dusp1 transport, cyt RNA degradation
-            % log10PriorStd = 2*ones(1,14);
-            % ModelGRDusp100nM_ext_red.fittingOptions.logPrior = @(x)-sum((log10(x)-log10PriorMean([1:4,14])).^2./(2*log10PriorStd([1:4,14]).^2));
-            % ModelGRDusp100nM_ext_red.makeFitPlot
-        
-            %% Load data into the model
-            ModelGRDusp100nM_a = ModelGRDusp100nM_a.loadData('EricData/pdoCalibrationData_EricIntensity_DexSweeps.csv',...
-                                                            {'rna','RNA_DUSP1_nuc'},{'Dex_Conc','100'});
-            ModelGRDusp100nM_b = ModelGRDusp100nM_b.loadData('EricData/pdoCalibrationData_EricIntensity_DexSweeps.csv',...
-                                                            {'rna','RNA_DUSP1_nuc'},{'Dex_Conc','100'});
-            %% Switch solver to ODE and generate model codes
-            ModelGRDusp100nM_a.solutionScheme = 'ode';
-            ModelGRDusp100nM_b.solutionScheme = 'ode';
-            ModelGRDusp100nM_a.useHybrid = false;
-            ModelGRDusp100nM_b.useHybrid = false;
-            ModelGRDusp100nM_a = ModelGRDusp100nM_a.formPropensitiesGeneral('ODEDUSP1_a');
-            ModelGRDusp100nM_a = ModelGRDusp100nM_a.formPropensitiesGeneral('ODEDUSP1_b');
-            %% Change parameters manually, solve, and make plots
-            Dusp_soln_a = ModelGRDusp100nM_a.solve;
-            Dusp_soln_b = ModelGRDusp100nM_b.solve;
-            plotODEresults(extendedMod,Dusp_soln_a,ModelGRfit_a{3})
-            plotODEresults(extendedMod,Dusp_soln_b,ModelGRfit_b{1})
-            %%    STEP 3.D.1. -- Fit new parameters to match all ODE data.
-            extendedMod.fittingOptions.modelVarsToFit = [4,14,15];
-            extendedMod.fittingOptions.logPrior = [];
-            pars = [extendedMod.parameters{extendedMod.fittingOptions.modelVarsToFit,2}];
-            pars = extendedMod.maximizeLikelihood(pars,fitOptions);
-            %%    STEP 3.D.2. -- Plot ODE fit results.
-            extendedMod.parameters(extendedMod.fittingOptions.modelVarsToFit,2) = num2cell(pars);
-            soln = extendedMod.solve;
-            plotODEresults(extendedMod,soln,ModelGRfit{3})
-            %%    STEP 3.F.1. -- Create New Objective Function Combining all of the previous ones.
-            % Remove all priors from individual models.
-            ModelGRDusp100nM_ext_red.fittingOptions.logPrior = [];
-            for i=1:3
-                ModelGRfit{1}.fittingOptions.logPrior = [];
-                ModelGRfit{1}.tSpan = ModelGRfit{1}.dataSet.times;
-            end
-            extendedMod.fittingOptions.logPrior = [];
-            fullPars = [extendedMod.parameters{[1:12,14,15],2}];
-            % otherewise, we will use the set that was saved in the data dump from
-            % the older workspace.
-        
-        save('workspaceDec9_2024',varNames{:}) % WARNING: THIS OVERWRITE THE PREVIOUSLY SAVED WORKSPACE - TODO: FIX
-        case 1
-        %% STEP 2.A.1. -- Add DUSP1 to the existing GR model.
-            % Copy parameters from the 100nM Dex stim case in GR.
-            fitIters = 3;
             ModelGRDusp100nM = ModelGRfit_a{3};
-            ModelGRDusp100nM.species = {'offGene';'onGene';'cytGR_a';'nucGR_a';
-                'rna';'cytGR_b';'nucGR_b'};
-            ModelGRDusp100nM.initialCondition = [2;0;24;1;5;12;12];
-            ModelGRDusp100nM.propensityFunctions = {'kon*offGene*nucGR_a';'koff*onGene';
-                '(kcn0 + (t>0)*kcn1*IDex/(MDex+IDex))*cytGR_a';'knc*nucGR_a';
-                'ba1';'dc*cytGR_a';'dn*nucGR_a';'kr*onGene';'gr*rna';
-                'kcn2*cyt_b';'kn2c*nucGR_b';'bb1';'dc*cytGR_b';'dn*nucGR_b'};
-            ModelGRDusp100nM.stoichiometry = [-1,1,0,0,0,0,0,0,0,0,0,0,0,0;...
-                1,-1,0,0,0,0,0,0,0,0,0,0,0,0;...
-                0,0,-1,1,1,-1,0,0,0,0,0,0,0,0;...
-                0,0,1,-1,0,0,-1,0,0,0,0,0,0,0;...
-                0,0,0,0,0,0,0,1,-1,0,0,0,0,0;...
-                0,0,0,0,0,0,0,0,0,-1,1,1,-1,0;...
-                0,0,0,0,0,0,0,0,0,1,-1,0,0,-1];
+            ModelGRDusp100nM = ModelGRDusp100nM.addSpecies({'offGene'},2);
+            ModelGRDusp100nM = ModelGRDusp100nM.addSpecies({'onGene'},0);
+            ModelGRDusp100nM = ModelGRDusp100nM.addSpecies({'rna'},5);
+            ModelGRDusp100nM = ModelGRDusp100nM.addSpecies({'cytGR_b'},5);
+            ModelGRDusp100nM = ModelGRDusp100nM.addSpecies({'nucGR_b'},1);
+
+            ModelGRDusp100nM.propensityFunctions{6,1} = 'kon*offGene*nucGR_a';
+            ModelGRDusp100nM.propensityFunctions{7,1} = 'koff*onGene*nucGR_b';
+            ModelGRDusp100nM.propensityFunctions{8,1} = 'kr*onGene';
+            ModelGRDusp100nM.propensityFunctions{9,1} = 'dr*rna';
+            ModelGRDusp100nM.propensityFunctions{10,1} = 'kb1 * cytGR_b';
+            ModelGRDusp100nM.propensityFunctions{11,1} = 'bb1'; 
+            ModelGRDusp100nM.propensityFunctions{12,1} = 'dc * cytGR_b';
+            ModelGRDusp100nM.propensityFunctions{13,1} = 'kn2c * nucGR_b';
+            ModelGRDusp100nM.propensityFunctions{14,1} = 'dn * nucGR_b';
+
+            ModelGRDusp100nM.stoichiometry = [-1,1,-1,1,0,0,0,0,0,0,0,0,0,0;...
+                                               1,0,0,-1,-1,0,0,0,0,0,0,0,0,0;...
+                                               0,0,0,0,0,-1,1,0,0,0,0,0,0,0;...
+                                               0,0,0,0,0,1,-1,0,0,0,0,0,0,0;...
+                                               0,0,0,0,0,0,0,1,-1,0,0,0,0,0;...
+                                               0,0,0,0,0,0,0,0,0,-1,1,-1,1,0;...
+                                               0,0,0,0,0,0,0,0,0,1,0,0,-1,-1];
+
+            ModelGRDusp100nM.parameters(10,:) = {'koff',0.1};
+            ModelGRDusp100nM.parameters(11,:) = {'kon',0.1};
+            ModelGRDusp100nM.parameters(12,:) = {'kr',1};
+            ModelGRDusp100nM.parameters(13,:) = {'dr',0.02};
+
+            ModelGRDusp100nM.parameters(14,:) = {'kb1',GRpars_b(4)};
+            ModelGRDusp100nM.parameters(15,:) = {'bb1',GRpars_b(5)};
+
             ModelGRDusp100nM.useHybrid = true;
             ModelGRDusp100nM.hybridOptions.upstreamODEs = {'cytGR_a','nucGR_a','cytGR_b','nucGR_b'};
+
             ModelGRDusp100nM.solutionScheme = 'FSP';
             ModelGRDusp100nM.customConstraintFuns = [];
-            ModelGRDusp100nM.fspOptions.bounds = [0;0;0;2;2;2;2;400];
+            %ModelGRDusp100nM.fspOptions.bounds = [0;0;0;2;2;400];
             ModelGRDusp100nM.fittingOptions.modelVarsToFit = 10:13;
-            ModelGRDusp100nM = ModelGRDusp100nM.formPropensitiesGeneral('EricModDusp1');
-            duspLogPrior = @(x)-sum((log10(x(:))'-log10PriorMean(10:13)).^2./(2*log10PriorStd(10:13).^2));
+            ModelGRDusp100nM = ModelGRDusp100nM.formPropensitiesGeneral('EricModDusp1_1');
+            log10PriorMean = [-2 -5 -6 -5 0.5 -3 -3 -2 -1 -1 0 -2 -2 -5];
+            log10PriorStd = 2*ones(1,15);
+            duspLogPrior = @(x)-sum((log10(x(:))'-log10PriorMean(9:12)).^2./(2*log10PriorStd(9:12).^2));
             ModelGRDusp100nM.fittingOptions.logPrior = duspLogPrior;
-        
-        %% STEP 2.A.2. -- Load pre-fit parameters into model.
-        if loadPrevious
-            load('EricModelDusp1_MMDex','DUSP1pars')
-        else
-            %% Pull the DUSP1 parameters from the Model
-            % Find the indices of the desired parameter names
-            knc_idx = find(strcmp(ModelGRDusp100nM.parameters(:,1), 'knc'));
-            kg1_idx = find(strcmp(ModelGRDusp100nM.parameters(:,1), 'kg1'));
-            gg1_idx = find(strcmp(ModelGRDusp100nM.parameters(:,1), 'gg1'));
-            gg2_idx = find(strcmp(ModelGRDusp100nM.parameters(:,1), 'gg2'));
-    
-            % Extract the values and store them in DUSP1pars
-            DUSP1pars = [ModelGRDusp100nM.parameters{knc_idx, 2}, ...
-                        ModelGRDusp100nM.parameters{kg1_idx, 2}, ...
-                        ModelGRDusp100nM.parameters{gg1_idx, 2}, ...
-                        ModelGRDusp100nM.parameters{gg2_idx, 2}]; 
-        end
-        ModelGRDusp100nM.parameters(ModelGRDusp100nM.fittingOptions.modelVarsToFit,2) = num2cell(DUSP1pars);
-        %% STEP 2.A.3. -- Load and Associate with DUSP1 smFISH Data (100nM Dex Only)
-        % The commented code below would be needed to fit multiple conditions,
-        % but that is not used in this case.  It is left here in case it is
-        % needed in later stages of the project.
-    
-        if ~loadPrevious
+
+            ModelGRDusp100nM.summarizeModel
+
+        %% 
             Dusp1FitCases = {'100','100',201,'DUSP1 Fit (100nM Dex)'};
             ModelDusp1Fit = cell(size(Dusp1FitCases,1),1);
             ModelDusp1parameterMap = cell(1,size(GRfitCases,1));
@@ -536,15 +433,14 @@ switch GR
                  ModelDusp1Fit{i} = ModelDusp1Fit{i}.formPropensitiesGeneral(['EricModDusp1_',num2str(i),'_FSP']);
             end
             DUSP1pars = [ModelDusp1Fit{i}.parameters{ModelGRDusp100nM.fittingOptions.modelVarsToFit,2}];
-        end
+
+        %% Load data
+            ModelGRDusp100nM = ModelGRDusp100nM.loadData('EricData/pdoCalibrationData_EricIntensity_DexSweeps.csv',...
+                                                            {'rna','RNA_DUSP1_nuc'},{'Dex_Conc','100'});
+            DUSP1pars = [ModelGRDusp100nM.parameters{ModelGRDusp100nM.fittingOptions.modelVarsToFit,2}];
     
-        ModelGRDusp100nM = ModelGRDusp100nM.loadData('EricData/pdoCalibrationData_EricIntensity_DexSweeps.csv',...
-            {'rna','totalNucRNA'},{'Dex_Conc','100'});
-        DUSP1pars = [ModelGRDusp100nM.parameters{ModelGRDusp100nM.fittingOptions.modelVarsToFit,2}];
-    
-        %%    STEP 2.B. -- Fit DUSP1 model at 100nM Dex.  
-        % This will likely need to be rerun after Metropolis-Hastings Search (STEP 2.D.3).
-        
+        %% Fit DUSP1 model at 100nM Dex.  
+        % This will likely need to be rerun after Metropolis-Hastings Search .
         % Use fitMHiters to run until satisfied. TODO: Automate by computing statistics.
         fitMHiters = 2;
         
@@ -553,8 +449,174 @@ switch GR
                 fitOptions.suppressFSPExpansion = true;
                 DUSP1pars = ModelGRDusp100nM.maximizeLikelihood(...
                     DUSP1pars, fitOptions);
+                ModelGRDusp100nM.parameters(10:13,2) = num2cell(DUSP1pars);
+                save('EricModelDusp1_MMDex','GRpars_a','GRpars_b','DUSP1pars') 
+            end
+        
+            %%    STEP 2.C. -- Plot predictions for other Dex concentrations.
+            showCases = [1,1,1,1];
+            makePlotsDUSP1({ModelGRDusp100nM},ModelGRDusp100nM,DUSP1pars,Dusp1FitCases,showCases)
+        
+            %% STEP 2.D. -- Sample uncertainty for Dusp1 Parameters
+            %   STEP 2.D.1. -- Compute sensitivity of the FSP solution
+            ModelGRDusp100nM.solutionScheme = 'fspSens';
+            sensSoln = ModelGRDusp100nM.solve();
+            ModelGRDusp100nM.solutionScheme = 'FSP';
+            %   STEP 2.D.2. -- Compute FIM
+            %       define which species in model are not observed.
+            ModelGRDusp100nM.pdoOptions.unobservedSpecies = {'offGene';'onGene'};
+            % compute the FIM
+            fimResults = ModelGRDusp100nM.computeFIM(sensSoln.sens,'log');
+            % In the following, the log-prior is used as a prior co-variance matrix.
+            % This will be used in the FIM calculation as an FIM without new evidence 
+            % being set equal to the inverse of this covariance matrix.  More rigorous
+            % justification is needed to support this heuristic.
+            fimTotal = ModelGRDusp100nM.evaluateExperiment(fimResults,ModelGRDusp100nM.dataSet.nCells,...
+                diag(log10PriorStd(1:13).^2));
+            FIMfree = fimTotal{1}(1:4,1:4);
+            if min(eig(FIMfree))<1
+                disp('Warning -- FIM has one or more small eigenvalues. Reducing proposal width to 10x in those directions. MH Convergence may be slow.')
+                FIMfree = FIMfree + 1*eye(length(FIMfree));
+            end
+            covFree = FIMfree^-1;
+            covFree = 0.5*(covFree+covFree');
+        
+            %% Run Metropolis Hastings Search
+            if loadPrevious
+                MHDusp1File = 'MHDusp1_Dec92024';
+                load(MHDusp1File)
+            else
+                MHFitOptions.proposalDistribution=@(x)mvnrnd(x,covFree);
+                MHFitOptions.thin=1;
+                MHFitOptions.numberOfSamples=2000;
+                MHFitOptions.burnIn=0;
+                MHFitOptions.progress=true;
+                MHFitOptions.numChains = 1;
+                MHFitOptions.saveFile = 'TMPEricMHDusp1.mat';
+                [DUSP1pars,~,MHResultsDusp1] = ModelGRDusp100nM.maximizeLikelihood(...
+                    [], MHFitOptions, 'MetropolisHastings');
+                delete('TMPEricMHDusp1.mat')
                 ModelGRDusp100nM.parameters(1:4,2) = num2cell(DUSP1pars);
-                save('EricModelDusp1_MMDex','GRpars','DUSP1pars') 
+            end
+            
+            save('workspace_Feb4_2024.mat','ModelGRDusp100nM','DUSP1pars','fimTotal','sensSoln','combinedGRModel','MHResultsDusp1')
+        
+            %% Plot the MH results
+            figNew = figure;
+            ModelGRDusp100nM.plotMHResults(MHResultsDusp1,[],'log',[],figNew)
+            for j = 1:3
+                for k = i:3
+                    subplot(3,3,(j-1)*3+k)
+                    CH = get(gca,'Children');
+                    CH(1).Color=[1,0,1]; %
+                    CH(1).LineWidth = 3;
+                end
+            end
+        end
+              
+        % 
+        %     %% Switch solver to ODE and generate model codes
+        %     ModelGRDusp100nM_a.solutionScheme = 'fsp';
+        %     ModelGRDusp100nM_b.solutionScheme = 'fsp';
+        %     ModelGRDusp100nM_a.useHybrid = false;
+        %     ModelGRDusp100nM_b.useHybrid = false;
+        %     ModelGRDusp100nM_a = ModelGRDusp100nM_a.formPropensitiesGeneral('fspDUSP1_a');
+        %     ModelGRDusp100nM_a = ModelGRDusp100nM_a.formPropensitiesGeneral('fspDUSP1_b');
+        %     %% Change parameters manually, solve, and make plots
+        %     [Dusp_soln_a,ModelGRDusp100nM_a.fspOptions.bounds] = ModelGRDusp100nM_a.solve;
+        %     [Dusp_soln_b,ModelGRDusp100nM_b.fspOptions.bounds] = ModelGRDusp100nM_b.solve;
+        %     %plotODEresults(ModelGRDusp100nM_a,Dusp_soln_a,ModelGRfit_a{3})
+        %     %plotODEresults(ModelGRDusp100nM_b,Dusp_soln_b,ModelGRfit_b{1})
+        %     %%    STEP 3.D.1. -- Fit new parameters to match all ODE data.
+        %     extendedMod.fittingOptions.modelVarsToFit = [4,14,15];
+        %     extendedMod.fittingOptions.logPrior = [];
+        %     pars = [extendedMod.parameters{extendedMod.fittingOptions.modelVarsToFit,2}];
+        %     pars = extendedMod.maximizeLikelihood(pars,fitOptions);
+        %     %%    STEP 3.D.2. -- Plot ODE fit results.
+        %     extendedMod.parameters(extendedMod.fittingOptions.modelVarsToFit,2) = num2cell(pars);
+        %     soln = extendedMod.solve;
+        %     plotODEresults(extendedMod,soln,ModelGRfit{3})
+        %     %%    STEP 3.F.1. -- Create New Objective Function Combining all of the previous ones.
+        %     % Remove all priors from individual models.
+        %     ModelGRDusp100nM_ext_red.fittingOptions.logPrior = [];
+        %     for i=1:3
+        %         ModelGRfit{1}.fittingOptions.logPrior = [];
+        %         ModelGRfit{1}.tSpan = ModelGRfit{1}.dataSet.times;
+        %     end
+        %     extendedMod.fittingOptions.logPrior = [];
+        %     fullPars = [extendedMod.parameters{[1:12,14,15],2}];
+        %     % otherewise, we will use the set that was saved in the data dump from
+        %     % the older workspace.
+        % 
+        % save('workspaceDec9_2024',varNames{:}) % WARNING: THIS OVERWRITE THE PREVIOUSLY SAVED WORKSPACE - TODO: FIX
+
+        case 1
+
+        %% Add DUSP1 to the existing GR model.
+            % Copy parameters from the 100nM Dex stim case in GR.
+            fitIters = 3;
+            ModelGRDusp100nM = ModelGRfit_a{3};
+            ModelGRDusp100nM = ModelGRDusp100nM.addSpecies({'offGene'},2);
+            ModelGRDusp100nM = ModelGRDusp100nM.addSpecies({'onGene'},0);
+            ModelGRDusp100nM = ModelGRDusp100nM.addSpecies({'rna'},5);
+            ModelGRDusp100nM.propensityFunctions{6,1} = 'kon*offGene*nucGR_a';
+            ModelGRDusp100nM.propensityFunctions{7,1} = 'koff*onGene';
+            ModelGRDusp100nM.propensityFunctions{8,1} = 'kr*onGene';
+            ModelGRDusp100nM.propensityFunctions{9,1} = 'dr*rna';
+            ModelGRDusp100nM.stoichiometry = [-1,1,-1,1,0,0,0,0,0;...
+                                        1,0,0,-1,-1,0,0,0,0;...
+                                        0,0,0,0,0,-1,1,0,0;...
+                                        0,0,0,0,0,1,-1,0,0;...
+                                        0,0,0,0,0,0,0,1,-1];
+            ModelGRDusp100nM.parameters(10,:) = {'koff',0.1};
+            ModelGRDusp100nM.parameters(11,:) = {'kon',0.1};
+            ModelGRDusp100nM.parameters(12,:) = {'kr',1};
+            ModelGRDusp100nM.parameters(13,:) = {'dr',0.02};
+            ModelGRDusp100nM.useHybrid = true;
+            ModelGRDusp100nM.hybridOptions.upstreamODEs = {'cytGR_a','nucGR_a'};
+            ModelGRDusp100nM.solutionScheme = 'FSP';
+            ModelGRDusp100nM.customConstraintFuns = [];
+            ModelGRDusp100nM.fspOptions.bounds = [0;0;0;2;2;400];
+            ModelGRDusp100nM.fittingOptions.modelVarsToFit = 10:13;
+            ModelGRDusp100nM = ModelGRDusp100nM.formPropensitiesGeneral('EricModDusp1');
+            log10PriorMean = [-2 -5 -6 -5 0.5 -3 -3 -2 -1 -1 0 -2];
+            log10PriorStd = 2*ones(1,12);
+            duspLogPrior = @(x)-sum((log10(x(:))'-log10PriorMean(9:12)).^2./(2*log10PriorStd(9:12).^2));
+            ModelGRDusp100nM.fittingOptions.logPrior = duspLogPrior;
+        
+        %% 
+            Dusp1FitCases = {'100','100',201,'DUSP1 Fit (100nM Dex)'};
+            ModelDusp1Fit = cell(size(Dusp1FitCases,1),1);
+            ModelDusp1parameterMap = cell(1,size(GRfitCases,1));
+            for i = 1:size(Dusp1FitCases,1)
+                 ModelDusp1Fit{i} = ModelGRDusp100nM.loadData('EricData/pdoCalibrationData_EricIntensity_DexSweeps.csv',...
+                     {'rna','totalNucRNA'},...
+                     {'Dex_Conc','100'});
+                 ModelDusp1Fit{i}.inputExpressions = {'IDex','Dex0*exp(-gDex*t)'};
+                 ModelDusp1parameterMap{i} = (1:4);
+                 % Set Dex concentration.
+                 ModelDusp1Fit{i}.parameters{13,2} = str2num(Dusp1FitCases{i,1});
+                 ModelDusp1Fit{i} = ModelDusp1Fit{i}.formPropensitiesGeneral(['EricModDusp1_',num2str(i),'_FSP']);
+            end
+            DUSP1pars = [ModelDusp1Fit{i}.parameters{ModelGRDusp100nM.fittingOptions.modelVarsToFit,2}];
+
+        %%
+        ModelGRDusp100nM = ModelGRDusp100nM.loadData('EricData/pdoCalibrationData_EricIntensity_DexSweeps.csv',...
+            {'rna','totalNucRNA'},{'Dex_Conc','100'});
+        DUSP1pars = [ModelGRDusp100nM.parameters{ModelGRDusp100nM.fittingOptions.modelVarsToFit,2}];
+    
+        %% Fit DUSP1 model at 100nM Dex.  
+        % This will likely need to be rerun after Metropolis-Hastings Search .
+        % Use fitMHiters to run until satisfied. TODO: Automate by computing statistics.
+        fitMHiters = 2;
+        
+        for DS = 1:fitMHiters
+            for i = 1:fitIters
+                fitOptions.suppressFSPExpansion = true;
+                DUSP1pars = ModelGRDusp100nM.maximizeLikelihood(...
+                    DUSP1pars, fitOptions);
+                ModelGRDusp100nM.parameters(10:13,2) = num2cell(DUSP1pars);
+                save('EricModelDusp1_MMDex','GRpars_a','GRpars_b','DUSP1pars') 
             end
         
             %%    STEP 2.C. -- Plot predictions for other Dex concentrations.
@@ -643,14 +705,10 @@ switch GR
         save('workspaceDec9_2024',varNames{:}) % WARNING: THIS OVERWRITE THE PREVIOUSLY SAVED WORKSPACE - TODO: FIX
     end
 
-
-
-
     save('conv2solnTensor_postData','GRpars_a','combinedGRModel_a', 'ModelGRfit_a','ModelGRfit_b','GRpars_b','GR_b_fspSoln', 'fspSolnsSMM',...
         'fimGR_a_withPrior','fimGR_b_withPrior','ModelGR_b_fimResults','fimGR_a_covFree','fimGR_b_covFree','MHResultsGR_a','MHFitOptions','ModelGRfit');
     
     
-
     %% compute likelihood
     %    logLikelihood = sum(log(conv2solnTensor{f}(PAs>0)).*PAs((PAs>0)),"all");
     %logLikelihood = sum(log(conv2solnTensor_postData{t}(fspsoln_sptensor_a_postData{t}>0)).*fspsoln_sptensor_a_postData{t}((fspsoln_sptensor_a_postData{t}>0)),"all");
@@ -822,7 +880,7 @@ switch GR
 
     case 3
 
-        %%    STEP 3.G.1. -- Create SSA model to predict cytoplasmic distributions
+        %% Create SSA model 
         SSAModel_100 = extendedMod;
         SSAModel_100.solutionScheme = 'SSA';
         SSAModel_100.tSpan = [-500,ModelGRDusp100nM.tSpan];
@@ -834,20 +892,20 @@ switch GR
         SSAModel_100.ssaOptions.useParalel = true;
         SSAModel_100 = SSAModel_100.formPropensitiesGeneral('SSAExtendedModel');
         
-        %%    STEP 3.G.2. -- Run SSA Simulations
+        %% Run SSA Simulations
         ssaSoln_100 = SSAModel_100.solve;
         
-        %%    STEP 3.G.3. -- Plot SSA Results for Cytoplasmic Distributions (100nM Dex)
+        %% Plot SSA Results for Cytoplasmic Distributions (100nM Dex)
         % Plot Fits for 100nM Dex 
         makeCytDistPlots(ssaSoln_100,extendedMod,600,[2:10],[1:9],6,2)
         
-        %%    STEP 3.F.1. -- Predict Cyt distributions for other 0.3nM Dex 
+        %% Predict Cyt distributions for other 0.3nM Dex 
         SSAModel_0p3 = SSAModel_100;
         SSAModel_0p3.parameters(13,:) = {'Dex0',0.3};
         SSAModel_0p3.tSpan = [-500,extendedMod0p3.tSpan];
         ssaSoln_0p3 = SSAModel_0p3.solve;
         
-        %%    STEP 3.F.2. -- Predict Cyt distributions for other 1.0nM Dex 
+        %% Predict Cyt distributions for other 1.0nM Dex 
         SSAModel_1 = SSAModel_100;
         SSAModel_1.parameters(13,:) = {'Dex0',1.0};
         SSAModel_1.tSpan = [-500,extendedMod1.tSpan];
@@ -859,7 +917,7 @@ switch GR
         SSAModel_10.tSpan = [-500,extendedMod10.tSpan];
         ssaSoln_10 = SSAModel_10.solve;
         
-        %%    STEP 3.F.4. -- Make resulting plots
+        %% Make resulting plots
         makeCytDistPlots(ssaSoln_0p3,extendedMod0p3,601,[2:8],[1:7],6,2)
         makeCytDistPlots(ssaSoln_1,extendedMod1,602,[3:8],[1:6],6,2)
         makeCytDistPlots(ssaSoln_10,extendedMod10,603,[3:8],[1:6],6,2)
