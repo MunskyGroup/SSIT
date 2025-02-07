@@ -411,7 +411,7 @@ switch GR
             %ModelGRDusp100nM.fspOptions.bounds = [0;0;0;2;2;400];
             ModelGRDusp100nM.fittingOptions.modelVarsToFit = 10:13;
             ModelGRDusp100nM = ModelGRDusp100nM.formPropensitiesGeneral('EricModDusp1_1');
-            log10PriorMean = [-2 -5 -6 -5 0.5 -3 -3 -2 -1 -1 0 -2 -2 -5];
+            log10PriorMean = [-2 -5 -6 -5 0.5 -3 -3 -2 2 -1 -1 0 -2 -2 -5];
             log10PriorStd = 2*ones(1,15);
             duspLogPrior = @(x)-sum((log10(x(:))'-log10PriorMean(9:12)).^2./(2*log10PriorStd(9:12).^2));
             ModelGRDusp100nM.fittingOptions.logPrior = duspLogPrior;
@@ -429,7 +429,7 @@ switch GR
                  ModelDusp1Fit{i}.inputExpressions = {'IDex','Dex0*exp(-gDex*t)'};
                  ModelDusp1parameterMap{i} = (1:4);
                  % Set Dex concentration.
-                 ModelDusp1Fit{i}.parameters{13,2} = str2num(Dusp1FitCases{i,1});
+                 ModelDusp1Fit{i}.parameters{9,2} = str2num(Dusp1FitCases{i,1});
                  ModelDusp1Fit{i} = ModelDusp1Fit{i}.formPropensitiesGeneral(['EricModDusp1_',num2str(i),'_FSP']);
             end
             DUSP1pars = [ModelDusp1Fit{i}.parameters{ModelGRDusp100nM.fittingOptions.modelVarsToFit,2}];
@@ -453,16 +453,16 @@ switch GR
                 save('EricModelDusp1_MMDex','GRpars_a','GRpars_b','DUSP1pars') 
             end
         
-            %%    STEP 2.C. -- Plot predictions for other Dex concentrations.
-            showCases = [1,1,1,1];
-            makePlotsDUSP1({ModelGRDusp100nM},ModelGRDusp100nM,DUSP1pars,Dusp1FitCases,showCases)
+            %%  Plot predictions for other Dex concentrations.
+            %showCases = [1,1,1,1];
+            %makePlotsDUSP1({ModelGRDusp100nM},ModelGRDusp100nM,DUSP1pars,Dusp1FitCases,showCases)
         
-            %% STEP 2.D. -- Sample uncertainty for Dusp1 Parameters
-            %   STEP 2.D.1. -- Compute sensitivity of the FSP solution
+            %% Sample uncertainty for Dusp1 Parameters
+            %   Compute sensitivity of the FSP solution
             ModelGRDusp100nM.solutionScheme = 'fspSens';
             sensSoln = ModelGRDusp100nM.solve();
             ModelGRDusp100nM.solutionScheme = 'FSP';
-            %   STEP 2.D.2. -- Compute FIM
+            %   Compute FIM
             %       define which species in model are not observed.
             ModelGRDusp100nM.pdoOptions.unobservedSpecies = {'offGene';'onGene'};
             % compute the FIM
@@ -470,9 +470,9 @@ switch GR
             % In the following, the log-prior is used as a prior co-variance matrix.
             % This will be used in the FIM calculation as an FIM without new evidence 
             % being set equal to the inverse of this covariance matrix.  More rigorous
-            % justification is needed to support this heuristic.
+            %% justification is needed to support this heuristic.
             fimTotal = ModelGRDusp100nM.evaluateExperiment(fimResults,ModelGRDusp100nM.dataSet.nCells,...
-                diag(log10PriorStd(1:13).^2));
+                diag(log10PriorStd(1:15).^2));
             FIMfree = fimTotal{1}(1:4,1:4);
             if min(eig(FIMfree))<1
                 disp('Warning -- FIM has one or more small eigenvalues. Reducing proposal width to 10x in those directions. MH Convergence may be slow.')
@@ -499,7 +499,7 @@ switch GR
                 ModelGRDusp100nM.parameters(1:4,2) = num2cell(DUSP1pars);
             end
             
-            save('workspace_Feb4_2024.mat','ModelGRDusp100nM','DUSP1pars','fimTotal','sensSoln','combinedGRModel','MHResultsDusp1')
+            save('workspace_Feb4_2024.mat','ModelGRDusp100nM','DUSP1pars','fimTotal','sensSoln','combinedGRModel_a','MHResultsDusp1')
         
             %% Plot the MH results
             figNew = figure;
@@ -514,15 +514,11 @@ switch GR
             end
         end
               
-        % 
-        %     %% Switch solver to ODE and generate model codes
-        %     ModelGRDusp100nM_a.solutionScheme = 'fsp';
-        %     ModelGRDusp100nM_b.solutionScheme = 'fsp';
-        %     ModelGRDusp100nM_a.useHybrid = false;
-        %     ModelGRDusp100nM_b.useHybrid = false;
-        %     ModelGRDusp100nM_a = ModelGRDusp100nM_a.formPropensitiesGeneral('fspDUSP1_a');
-        %     ModelGRDusp100nM_a = ModelGRDusp100nM_a.formPropensitiesGeneral('fspDUSP1_b');
-        %     %% Change parameters manually, solve, and make plots
+             %% Switch solver to ODE
+                ModelGRDusp100nM.solutionScheme = 'fsp';
+                ModelGRDusp100nM.useHybrid = false;
+                ModelGRDusp100nM = ModelGRDusp100nM.formPropensitiesGeneral('fspDUSP1_a');
+             %% Change parameters manually, solve, and make plots
         %     [Dusp_soln_a,ModelGRDusp100nM_a.fspOptions.bounds] = ModelGRDusp100nM_a.solve;
         %     [Dusp_soln_b,ModelGRDusp100nM_b.fspOptions.bounds] = ModelGRDusp100nM_b.solve;
         %     %plotODEresults(ModelGRDusp100nM_a,Dusp_soln_a,ModelGRfit_a{3})
@@ -619,16 +615,16 @@ switch GR
                 save('EricModelDusp1_MMDex','GRpars_a','GRpars_b','DUSP1pars') 
             end
         
-            %%    STEP 2.C. -- Plot predictions for other Dex concentrations.
-            showCases = [1,1,1,1];
-            makePlotsDUSP1({ModelGRDusp100nM},ModelGRDusp100nM,DUSP1pars,Dusp1FitCases,showCases)
+            %% Plot predictions for other Dex concentrations.
+            %showCases = [1,1,1,1];
+            %makePlotsDUSP1({ModelGRDusp100nM},ModelGRDusp100nM,DUSP1pars,Dusp1FitCases,showCases)
         
-            %% STEP 2.D. -- Sample uncertainty for Dusp1 Parameters
-            %   STEP 2.D.1. -- Compute sensitivity of the FSP solution
+            %% Sample uncertainty for Dusp1 Parameters
+            %  Compute sensitivity of the FSP solution
             ModelGRDusp100nM.solutionScheme = 'fspSens';
             sensSoln = ModelGRDusp100nM.solve();
             ModelGRDusp100nM.solutionScheme = 'FSP';
-            %   STEP 2.D.2. -- Compute FIM
+            %  Compute FIM
             %       define which species in model are not observed.
             ModelGRDusp100nM.pdoOptions.unobservedSpecies = {'offGene';'onGene'};
             % compute the FIM
@@ -636,10 +632,10 @@ switch GR
             % In the following, the log-prior is used as a prior co-variance matrix.
             % This will be used in the FIM calculation as an FIM without new evidence 
             % being set equal to the inverse of this covariance matrix.  More rigorous
-            % justification is needed to support this heuristic.
+            %% justification is needed to support this heuristic.
             fimTotal = ModelGRDusp100nM.evaluateExperiment(fimResults,ModelGRDusp100nM.dataSet.nCells,...
-                diag(log10PriorStd(1:13).^2));
-            FIMfree = fimTotal{1}(1:4,1:4);
+                diag(log10PriorStd(1:12).^2));
+            FIMfree = fimTotal{1}(10:13,10:13);
             if min(eig(FIMfree))<1
                 disp('Warning -- FIM has one or more small eigenvalues. Reducing proposal width to 10x in those directions. MH Convergence may be slow.')
                 FIMfree = FIMfree + 1*eye(length(FIMfree));
@@ -649,7 +645,7 @@ switch GR
         
             %%      STEP 2.D.3. -- Run Metropolis Hastings Search
             if loadPrevious
-                MHDusp1File = 'MHDusp1_Dec92024';
+                MHDusp1File = 'MHDusp1_Feb_2025';
                 load(MHDusp1File)
             else
                 MHFitOptions.proposalDistribution=@(x)mvnrnd(x,covFree);
@@ -662,12 +658,12 @@ switch GR
                 [DUSP1pars,~,MHResultsDusp1] = ModelGRDusp100nM.maximizeLikelihood(...
                     [], MHFitOptions, 'MetropolisHastings');
                 delete('TMPEricMHDusp1.mat')
-                ModelGRDusp100nM.parameters(1:4,2) = num2cell(DUSP1pars);
+                ModelGRDusp100nM.parameters(10:13,2) = num2cell(DUSP1pars);
             end
             
             save('workspace_Feb4_2024.mat','ModelGRDusp100nM','DUSP1pars','fimTotal','sensSoln','combinedGRModel','MHResultsDusp1')
         
-            %%      STEP 2.D.4. -- Plot the MH results
+            %% Plot the MH results
             figNew = figure;
             ModelGRDusp100nM.plotMHResults(MHResultsDusp1,[],'log',[],figNew)
             for j = 1:3
@@ -681,33 +677,64 @@ switch GR
         end
         
         %% Save results
-        varNames = unique({'ModelGR'
+        varNames = unique({'ModelGR_a'
+            'ModelGR_b'
             'GRfitCases'
             'log10PriorMean'
             'log10PriorStd'
-            'GRpars'
-            'MHResultsGR'
+            'GRpars_a'
+            'GRpars_b'
             'ModelGRparameterMap'
-            'ModelGRfit'
-            'boundGuesses'
+            'combinedGR_a'
             'ModelGRDusp100nM'
-            'GRfitCases'
-            'log10PriorMean'
-            'log10PriorStd'
             'duspLogPrior'
             'DUSP1pars'
-            'ModelGRfit'
+            'ModelGRfit_a'
+            'ModelGRfit_b'
             'fimResults'
             'MHResultsDusp1'
-            'sensSoln'
+            'ModelGRDusp100nM'
             });
         
-        save('workspaceDec9_2024',varNames{:}) % WARNING: THIS OVERWRITE THE PREVIOUSLY SAVED WORKSPACE - TODO: FIX
+        save('workspace_Feb_2025',varNames{:}) % WARNING: THIS OVERWRITE THE PREVIOUSLY SAVED WORKSPACE - TODO: FIX
     end
 
     save('conv2solnTensor_postData','GRpars_a','combinedGRModel_a', 'ModelGRfit_a','ModelGRfit_b','GRpars_b','GR_b_fspSoln', 'fspSolnsSMM',...
         'fimGR_a_withPrior','fimGR_b_withPrior','ModelGR_b_fimResults','fimGR_a_covFree','fimGR_b_covFree','MHResultsGR_a','MHFitOptions','ModelGRfit');
-    
+
+    %% Create new objective function combining all of the previous ones.
+     % Remove all priors from individual models.
+    for i=1:3
+        ModelGRfit_a{i}.fittingOptions.logPrior = [];
+        ModelGRfit_a{i}.tSpan = ModelGRfit_a{i}.dataSet.times;
+    end
+    ModelGRfit_b{1}.fittingOptions.logPrior = [];
+    ModelGRfit_b{1}.tSpan = ModelGRfit_b{1}.dataSet.times;
+    ModelGRDusp100nM.fittingOptions.logPrior = [];
+    fullPars = [ModelGRDusp100nM.parameters{1:15,2}];
+
+    %% Fit all objective functions at once.
+    log10PriorMean = [-2 -5 -6 ...          % GR pars
+                      -5 0.5 -3 -3 -2 ...   % GR-alpha pars
+                       2 ...              % Dex
+                      -1 -1 0 -2 ...        % Dusp1 pars
+                      -2 -5];               % GR-beta pars
+    log10PriorStd = 2*ones(1,15);
+    %duspLogPrior = @(x)-sum((log10(x(:))'-log10PriorMean(9:12)).^2./(2*log10PriorStd(9:12).^2));
+    logPriorAll = @(x)-sum((log10(x)-log10PriorMean(1:15)).^2./(2*log10PriorStd(1:15).^2));
+
+        % extendedMod.fittingOptions.modelVarsToFit = [1:12,14,15];
+        Organization = {ModelGRfit_a{3},[1:8],[1:8],'computeLikelihood',1;...
+            ModelGRfit_b{1},[1:5],[1:5],'computeLikelihood',1;...
+            ModelGRDusp100nM,[1:8,10:15],[1:8,10:15],'computeLikelihood',1};
+            %extendedMod,[1:12,14:15],[1:14],'computeLikelihoodODE',0.01};
+        Organization = getTotalFitErr(Organization,fullPars,true);
+        getTotalFitErr(Organization,fullPars,false)
+        objAll = @(x)-getTotalFitErr(Organization,exp(x),false)-logPriorAll(exp(x));
+        for jj = 1:fitIters
+            fullParsLog = log(fullPars);
+            fullPars = exp(fminsearch(objAll,fullParsLog,fitOptions));
+        end    
     
     %% compute likelihood
     %    logLikelihood = sum(log(conv2solnTensor{f}(PAs>0)).*PAs((PAs>0)),"all");
@@ -715,7 +742,7 @@ switch GR
 
     case 2
         
-        %%    STEP 3.A.1 -- Extend model to include nuclear and cytoplasmic RNA
+        %% Extend model to include nuclear and cytoplasmic RNA
             extendedMod = ModelGRDusp100nM;
             extendedMod = extendedMod.addSpecies({'rCyt'},0);
             % Adjust the final reaction to be nuc -> cyt transport.
