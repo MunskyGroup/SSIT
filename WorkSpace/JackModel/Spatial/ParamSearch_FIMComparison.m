@@ -6,7 +6,7 @@ addpath(genpath('../../../src'));
 %% Compare Determinate of the Different Models Parameter Uncertanty
 % Params
 rng('shuffle');
-numSamplesToGenerate = 100;
+numSamplesToGenerate = 2;
 
 % Generate Sample for Single Spatial Model
 GaussianSampler_4D = @SampleMultiVariableGaussian;
@@ -22,7 +22,7 @@ mean =  100;
 var = 50;
 GaussianSampler_1D(size(SingleSpatial_Results,1), mean, var);
 model2Generator = @GenerateTwoSpatialStateModel;
-TwoSpatial_Results = GenerateTableFromPairSamples(model2Generator, GaussianSampler_1D, 4, SingleSpatial_Results, {'kon', 'koff', 'kr', 'kd'}, 4);
+TwoSpatial_Results = GenerateTableFromPairSamples(model2Generator, GaussianSampler_1D, [1, 2, 3, 5], SingleSpatial_Results, {'kon', 'koff', 'kr', 'kd'}, 4);
 
 % Generate Samples for Two Component Spatial Model Pair to the first
 GaussianSampler_1D = @SampleMultiVariableGaussian;
@@ -30,7 +30,7 @@ mean =  100;
 var = 50;
 GaussianSampler_1D(size(SingleSpatial_Results,1), mean, var);
 model3Generator = @GenerateThreeSpatialStateModel;
-ThreeSpatial_Results = GenerateTableFromPairSamples(model3Generator, GaussianSampler_1D, [4, 5], TwoSpatial_Results, {'kon', 'koff', 'kr', 'D', 'kd'}, 4);
+ThreeSpatial_Results = GenerateTableFromPairSamples(model3Generator, GaussianSampler_1D, [1, 2, 3, 6], TwoSpatial_Results, {'kon', 'koff', 'kr', 'D', 'kd'}, 4);
 
 
 % Merge Results 
@@ -90,6 +90,22 @@ function points = SampleMultiVariableGaussian(varargin)
     if ~isempty(numSamples) && ~isempty(covMatrix) && ~isempty(means)
         points = mvnrnd(means, covMatrix, numSamples);
         points(points < 0) = 0.0001; 
+    end
+end
+
+function points = SampleUniformDistribution(varargin)
+    persistent numSamples mins maxs;
+    % If this is the first call, initialize the persistent variables
+        % If new parameters are provided, update the persistent variables
+    if nargin == 3
+        numSamples = varargin{1};  % Update number of samples
+        mins = varargin{2};
+        maxs = varargin{3};
+    end
+
+    if ~isempty(numSamples) && ~isempty(mins) && ~isempty(maxs)
+        points = rand(numSamples, length(maxs));
+        points = mins + (maxs-mins) .* points;
     end
 end
 
@@ -176,66 +192,33 @@ end
 
 
 %% Compute Determinates and making them samples
-function determinates = CalcDeterminate(FIMTotal, fimMetrics, paramOfInterestIndex)
+function determinates = CalcDeterminate(FIMTotal, fimMetrics, J)
     % TODO: Add prior to known parameter
     % TODO: play with fimMetric IDK what these are yet
     % TODO: Return a determinate for each parameter unknown known and
     % combos    
-    totalCombinations = sum(1:nchoosek(length(paramOfInterestIndex),1)); % Calculating total elements
-    combinations = cell(1, totalCombinations);  % Preallocate a cell array
-    index = 1;
-    for k = 1:length(paramOfInterestIndex)
-        % Use nchoosek to generate all k-combinations of the vector
-        comb = nchoosek(paramOfInterestIndex, k);
-        
-        % Add each combination as a cell array
-        for i = 1:size(comb, 1)
-            combinations{index} = comb(i, :);
-            index = index + 1; % Move to the next index
-        end
-    end
+    A = cell2mat(FIMTotal);
+    C = inv(A);
+     if isnan(J)
+        % If J is NaN, use the entire matrix
+        B = A;
+        cov_unknown = C;
+    else
+        % Otherwise, use the specified submatrix
+        B = A(J, J);
+        cov_unknown = C(J, J);
+     end
+     cov_known = inv(B);
 
-    totalVarNames = 2*length(combinations);
-    % Initialize an empty cell array for the variable names
-    tempNames = cell(1, totalVarNames); % Start with the base name
-    counter = 1;
-    for i = 1:length(combinations)
-        comboStr = num2str(combinations{i});          % Convert combination to string
-        comboStr = strrep(comboStr, ' ', '');   % Remove spaces from the string
-        tempNames{counter} = [comboStr '-known_param_determinate'];  % Append combination to base name
-        tempNames{counter+1} = [comboStr '-unknown_param_determinate'];  % Append combination to base name
-        counter = counter + 2;
-    end
-    varNames = string(tempNames);
-
-    deter = NaN(1, totalVarNames);
-    count = 1;
-    for j = combinations
-        A = cell2mat(FIMTotal);
-        for i = j
-        % Known and Unknown Parameter determinate for a given j
-            i = i{1};
-            covar_A = inv(A);
-            if ~isnan(paramOfInterestIndex)
-                A = A([1:i-1, i+1:end], [1:i-1, i+1:end]);
-                covar_A = covar_A([1:i-1, i+1:end], [1:i-1, i+1:end]);
-            end
-            covar_B = inv(A);
-        end
-
-        known_param_determinate = det(covar_B);
-        unknown_param_determinate = det(covar_A);
-        deter(1, count) = known_param_determinate;
-        deter(1, count+1) = unknown_param_determinate;
-        count = count + 2;
-    end
-    determinates = array2table(deter, VariableNames=varNames);
+    known_determinate = det(cov_known);
+    unknown_determinate = det(cov_unknown);
+    determinates = table(known_determinate, unknown_determinate);
 end
 
-function sample = GenerateSample(model, paramOfInterestIndex)
+function sample = GenerateSample(model, J)
     [FIMTotal, FSPsoln, bounds, mleCovEstimate, fimMetrics] = GenerateFSP(model);
 
-    determinates = CalcDeterminate(FIMTotal, fimMetrics, paramOfInterestIndex);
+    determinates = CalcDeterminate(FIMTotal, fimMetrics, J);
 
     sample = table(model.parameters{:, 2}, ...
         VariableNames={model.parameters{:, 1}}); % I do not understand matlab indexing {} vs ()
@@ -244,23 +227,22 @@ end
 
 
 %% Calculate many samples and concat them
-function results = GenerateTableFromSampling(modelGenerator, ParameterGenerator, numSampleToGen, paramOfInterestIndex)
+function results = GenerateTableFromSampling(modelGenerator, ParameterGenerator, numSampleToGen, J)
     for i = 1:numSampleToGen
         params = ParameterGenerator(); % Generates an array of parameter
         model = modelGenerator(params); % Generates SSIT model
-        sample = GenerateSample(model, paramOfInterestIndex);
+        sample = GenerateSample(model, J);
 
         if ~exist('results', 'var') % Initial Condition/Preallocate
             width = size(sample, 2);
             results = table(size=[numSampleToGen, width],  VariableNames=sample.Properties.VariableNames, ...
                 VariableTypes=table2cell(varfun(@class, sample)));
         end
-
         results(i,:) = sample;
     end
 end
 
-function results = GenerateTableFromPairSamples(modelGenerator, ParameterGenerator, paramOfInterestIndex, t, fixedParams, nonFixedParamsIndexs)
+function results = GenerateTableFromPairSamples(modelGenerator, ParameterGenerator, J, t, fixedParams, nonFixedParamsIndexs)
     Params = t(:, fixedParams).Variables;
     newParams = ParameterGenerator();
     counter = 1;
@@ -272,7 +254,7 @@ function results = GenerateTableFromPairSamples(modelGenerator, ParameterGenerat
     for i = 1:size(Params, 1)
         paramSet = Params(i, :);
         model = modelGenerator(paramSet); % Generates SSIT model
-        sample = GenerateSample(model, paramOfInterestIndex);
+        sample = GenerateSample(model, J);
 
         if ~exist('results', 'var') % Initial Condition/Preallocate
             width = size(sample, 2);
