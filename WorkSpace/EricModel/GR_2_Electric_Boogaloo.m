@@ -22,10 +22,8 @@ fitOptions = optimset('Display','iter','MaxIter',300);
 GR = input('(1) Convolve GR-alpha + GR-beta;\n(2) ODES for GR-alpha + GR-beta;\n(3) SSAs\nChoose your destiny: ');
 
 switch GR
-
     case 1
     %% GR-alpha + GR-beta setup
-        disp('You have chosen GR-alpha + GR-beta by convolution.  WARNING: UNDER CONSTRUCTION')
         ModelGR_a = SSIT;
         ModelGR_b = SSIT;
         ModelGR_a.species = {'cytGR_a';'nucGR_a'};
@@ -368,8 +366,9 @@ switch GR
     dusp1 = input('(0) GR-beta turns off the DUSP1 gene;\n(1) GR-beta has no effect on DUSP1;\nChoose your destiny: ');
 
     switch dusp1
-        case 0
-            % Extend model for DUSP1
+        case 0 
+            %% Extend model for DUSP1
+            % GR-beta turns off the DUSP1 gene
             ModelGRDusp100nM = ModelGRfit_a{3};
             ModelGRDusp100nM = ModelGRDusp100nM.addSpecies({'offGene'},2);
             ModelGRDusp100nM = ModelGRDusp100nM.addSpecies({'onGene'},0);
@@ -513,40 +512,8 @@ switch GR
                 end
             end
         end
-              
-             %% Switch solver to ODE
-                ModelGRDusp100nM.solutionScheme = 'fsp';
-                ModelGRDusp100nM.useHybrid = false;
-                ModelGRDusp100nM = ModelGRDusp100nM.formPropensitiesGeneral('fspDUSP1_a');
-             %% Change parameters manually, solve, and make plots
-        %     [Dusp_soln_a,ModelGRDusp100nM_a.fspOptions.bounds] = ModelGRDusp100nM_a.solve;
-        %     [Dusp_soln_b,ModelGRDusp100nM_b.fspOptions.bounds] = ModelGRDusp100nM_b.solve;
-        %     %plotODEresults(ModelGRDusp100nM_a,Dusp_soln_a,ModelGRfit_a{3})
-        %     %plotODEresults(ModelGRDusp100nM_b,Dusp_soln_b,ModelGRfit_b{1})
-        %     %%    STEP 3.D.1. -- Fit new parameters to match all ODE data.
-        %     extendedMod.fittingOptions.modelVarsToFit = [4,14,15];
-        %     extendedMod.fittingOptions.logPrior = [];
-        %     pars = [extendedMod.parameters{extendedMod.fittingOptions.modelVarsToFit,2}];
-        %     pars = extendedMod.maximizeLikelihood(pars,fitOptions);
-        %     %%    STEP 3.D.2. -- Plot ODE fit results.
-        %     extendedMod.parameters(extendedMod.fittingOptions.modelVarsToFit,2) = num2cell(pars);
-        %     soln = extendedMod.solve;
-        %     plotODEresults(extendedMod,soln,ModelGRfit{3})
-        %     %%    STEP 3.F.1. -- Create New Objective Function Combining all of the previous ones.
-        %     % Remove all priors from individual models.
-        %     ModelGRDusp100nM_ext_red.fittingOptions.logPrior = [];
-        %     for i=1:3
-        %         ModelGRfit{1}.fittingOptions.logPrior = [];
-        %         ModelGRfit{1}.tSpan = ModelGRfit{1}.dataSet.times;
-        %     end
-        %     extendedMod.fittingOptions.logPrior = [];
-        %     fullPars = [extendedMod.parameters{[1:12,14,15],2}];
-        %     % otherewise, we will use the set that was saved in the data dump from
-        %     % the older workspace.
-        % 
-        % save('workspaceDec9_2024',varNames{:}) % WARNING: THIS OVERWRITE THE PREVIOUSLY SAVED WORKSPACE - TODO: FIX
 
-        case 1
+        case 1  %% GR-beta has no effect on DUSP1
 
         %% Add DUSP1 to the existing GR model.
             % Copy parameters from the 100nM Dex stim case in GR.
@@ -575,9 +542,9 @@ switch GR
             ModelGRDusp100nM.fspOptions.bounds = [0;0;0;2;2;400];
             ModelGRDusp100nM.fittingOptions.modelVarsToFit = 10:13;
             ModelGRDusp100nM = ModelGRDusp100nM.formPropensitiesGeneral('EricModDusp1');
-            log10PriorMean = [-2 -5 -6 -5 0.5 -3 -3 -2 -1 -1 0 -2];
-            log10PriorStd = 2*ones(1,12);
-            duspLogPrior = @(x)-sum((log10(x(:))'-log10PriorMean(9:12)).^2./(2*log10PriorStd(9:12).^2));
+            log10PriorMean = [-2 -5 -6 -5 0.5 -3 -3 -2 2 -1 -1 0 -2];
+            log10PriorStd = 2*ones(1,13);
+            duspLogPrior = @(x)-sum((log10(x(:))'-log10PriorMean(10:13)).^2./(2*log10PriorStd(10:13).^2));
             ModelGRDusp100nM.fittingOptions.logPrior = duspLogPrior;
         
         %% 
@@ -634,7 +601,7 @@ switch GR
             % being set equal to the inverse of this covariance matrix.  More rigorous
             %% justification is needed to support this heuristic.
             fimTotal = ModelGRDusp100nM.evaluateExperiment(fimResults,ModelGRDusp100nM.dataSet.nCells,...
-                diag(log10PriorStd(1:12).^2));
+                diag(log10PriorStd(1:13).^2));
             FIMfree = fimTotal{1}(10:13,10:13);
             if min(eig(FIMfree))<1
                 disp('Warning -- FIM has one or more small eigenvalues. Reducing proposal width to 10x in those directions. MH Convergence may be slow.')
@@ -661,7 +628,7 @@ switch GR
                 ModelGRDusp100nM.parameters(10:13,2) = num2cell(DUSP1pars);
             end
             
-            save('workspace_Feb4_2024.mat','ModelGRDusp100nM','DUSP1pars','fimTotal','sensSoln','combinedGRModel','MHResultsDusp1')
+            save('workspace_Feb4_2024.mat','ModelGRDusp100nM','DUSP1pars','fimTotal','sensSoln','combinedGRModel_a','ModelGRfit_a','ModelGRfit_b','MHResultsDusp1', 'conv2solnTensor_postData')
         
             %% Plot the MH results
             figNew = figure;
@@ -699,8 +666,10 @@ switch GR
         save('workspace_Feb_2025',varNames{:}) % WARNING: THIS OVERWRITE THE PREVIOUSLY SAVED WORKSPACE - TODO: FIX
     end
 
+    %save('conv2solnTensor_postData','GRpars_a','combinedGRModel_a', 'ModelGRfit_a','ModelGRfit_b','GRpars_b','GR_b_fspSoln', 'fspSolnsSMM',...
+    %    'fimGR_a_withPrior','fimGR_b_withPrior','ModelGR_b_fimResults','fimGR_a_covFree','fimGR_b_covFree','MHResultsGR_a','MHFitOptions','ModelGRfit');
     save('conv2solnTensor_postData','GRpars_a','combinedGRModel_a', 'ModelGRfit_a','ModelGRfit_b','GRpars_b','GR_b_fspSoln', 'fspSolnsSMM',...
-        'fimGR_a_withPrior','fimGR_b_withPrior','ModelGR_b_fimResults','fimGR_a_covFree','fimGR_b_covFree','MHResultsGR_a','MHFitOptions','ModelGRfit');
+        'fimGR_a_withPrior','fimGR_a_covFree','MHResultsGR_a','MHFitOptions','ModelGRfit');
 
     %% Create new objective function combining all of the previous ones.
      % Remove all priors from individual models.
@@ -724,7 +693,7 @@ switch GR
     logPriorAll = @(x)-sum((log10(x)-log10PriorMean(1:15)).^2./(2*log10PriorStd(1:15).^2));
 
         % extendedMod.fittingOptions.modelVarsToFit = [1:12,14,15];
-        Organization = {ModelGRfit_a{3},[1:8],[1:8],'computeLikelihood',1;...
+        Organization = {ModelGRfit_a{3},[1:8],[1:8],'computeLikelihood',1;...  %% TODO: get convol. FSP solns to feed in
             ModelGRfit_b{1},[1:5],[1:5],'computeLikelihood',1;...
             ModelGRDusp100nM,[1:8,10:15],[1:8,10:15],'computeLikelihood',1};
             %extendedMod,[1:12,14:15],[1:14],'computeLikelihoodODE',0.01};
@@ -740,96 +709,78 @@ switch GR
     %    logLikelihood = sum(log(conv2solnTensor{f}(PAs>0)).*PAs((PAs>0)),"all");
     %logLikelihood = sum(log(conv2solnTensor_postData{t}(fspsoln_sptensor_a_postData{t}>0)).*fspsoln_sptensor_a_postData{t}((fspsoln_sptensor_a_postData{t}>0)),"all");
 
-    case 2
+    case 2 
+        %% ODEs        
+        ModelGR_a = SSIT;
+        ModelGR_b = SSIT;
+        ModelGR_a.species = {'cytGR_a';'nucGR_a'};
+        ModelGR_b.species = {'cytGR_b';'nucGR_b'};
+        ModelGR_a.initialCondition = [5;1];
+        ModelGR_b.initialCondition = [5;1];
+        ModelGR_a.propensityFunctions = {'(kcn0 + (t>0)*kcn1*IDex/(MDex+IDex)) * cytGR_a'; 'ba1'; 'dc * cytGR_a'; 'kn2c * nucGR_a'; 'dn * nucGR_a'};
+        ModelGR_b.propensityFunctions = {'kb1 * cytGR_b'; 'bb1'; 'dc * cytGR_b'; 'kn2c * nucGR_b'; 'dn * nucGR_b'};
+        ModelGR_a.stoichiometry = [-1,1,-1,1,0;...
+                                    1,0,0,-1,-1];
+        ModelGR_b.stoichiometry = [-1,1,-1,1,0;...
+                                    1,0,0,-1,-1];
+        ModelGR_a.parameters = ({'kn2c',0.01;'dc',1e-5;'dn',1e-6;'ba1',14e-5;...
+                                'MDex',5;'gDex',0.003;'kcn0',0.005;'kcn1',0.02;'Dex0',100});
+        ModelGR_b.parameters = ({'kn2c',0.01;'dc',1e-5;'dn',1e-6;'kb1',0.01;'bb1',14e-5});
+        ModelGR_a.inputExpressions = {'IDex','Dex0*exp(-gDex*t)'};
+        disp('The GR-alpha model is: ')
+        ModelGR_a.summarizeModel
+        disp('and the GR-beta model is: ')
+        ModelGR_b.summarizeModel
+
+        ModelGR_a.fspOptions.initApproxSS = true;
+        ModelGR_b.fspOptions.initApproxSS = true;
+
+        ModelGR_a.fittingOptions.modelVarsToFit = (1:8);
+        ModelGR_b.fittingOptions.modelVarsToFit = (1:5);
+
+        ModelGR_a = ModelGR_a.formPropensitiesGeneral('ODE_GR_a');
+        ModelGR_b = ModelGR_b.formPropensitiesGeneral('ODE_GR_b');
+         
         
-        %% Extend model to include nuclear and cytoplasmic RNA
-            extendedMod = ModelGRDusp100nM;
-            extendedMod = extendedMod.addSpecies({'rCyt'},0);
-            % Adjust the final reaction to be nuc -> cyt transport.
-            extendedMod.propensityFunctions{9,1} = 'knuc2cyt*rna';
-            extendedMod.parameters{4,1} = 'knuc2cyt';
-            extendedMod.stoichiometry(:,9) = 0;
-            extendedMod.stoichiometry([5,6],9) = [-1;1];
-            % Add nuc degradation reaction.
-            extendedMod.propensityFunctions{10,1} = 'knucdeg*rna';
-            extendedMod.stoichiometry(:,10) = 0;
-            extendedMod.stoichiometry(5,10) = -1;
-            extendedMod.parameters(14,:) = {'knucdeg',0.001};
-            % Add cytoplasmic degradation as a reaction
-            extendedMod.propensityFunctions{11,1} = 'degCyt*rCyt';
-            extendedMod.stoichiometry(:,11) = 0;
-            extendedMod.stoichiometry(6,11) = -1;
-            extendedMod.parameters(15,:) = {'degCyt',100};
-            % The following code can be used to verify that the model changes so far
-            % are consistent with the previous FSP model.
-            % This is useful to verify before changing the reactions too much.
-            % However, we do not expect the FSP analysis to be very fast just yet, so
-            % it would not make much sense to run this for fitting.
-            if false
-                extendedMod.initialCondition(6) = 1;
-                extendedMod.fspOptions.bounds = [0;0;0;0;2;2;400;1]
-                extendedMod.fspOptions.verbose = 1;
-                extendedMod = extendedMod.formPropensitiesGeneral('extendedModel');
-                [~,extendedMod.fspOptions.bounds] = extendedMod.solve;
-                extendedMod = extendedMod.loadData('EricData/pdoCalibrationData_EricIntensity_DexSweeps.csv',...
-                    {'rna','RNA_DUSP1_nuc'; ...
-                    'rCyt','RNA_DUSP1_cyto'},...
-                    {'Dex_Conc','100'});
-                extendedMod.makeFitPlot
-            end
-            %%    STEP 3.A.2 -- Create reduced model for Nuclear DUSP1 but with same parameters as new model
-            ModelGRDusp100nM_ext_red = ModelGRDusp100nM;
-            % Adjust the final reaction to be nuc -> cyt transport.
-            ModelGRDusp100nM_ext_red.propensityFunctions{9,1} = 'knuc2cyt*rna';
-            ModelGRDusp100nM_ext_red.parameters{4,1} = 'knuc2cyt';
-            ModelGRDusp100nM_ext_red.stoichiometry(:,9) = 0;
-            ModelGRDusp100nM_ext_red.stoichiometry(5,9) = -1;
-            % Add nuc degradation reaction.
-            ModelGRDusp100nM_ext_red.propensityFunctions{10,1} = 'knucdeg*rna';
-            ModelGRDusp100nM_ext_red.stoichiometry(:,10) = 0;
-            ModelGRDusp100nM_ext_red.stoichiometry(5,10) = -1;
-            ModelGRDusp100nM_ext_red.parameters(14,:) = {'knucdeg',0.001};
-            ModelGRDusp100nM_ext_red = ModelGRDusp100nM_ext_red.formPropensitiesGeneral('ModelGRDusp100nM_ext_red');
-            ModelGRDusp100nM_ext_red.fittingOptions.modelVarsToFit = [1:4,14];
+        %% Load data into the model
+        % Load data for GR-alpha
+        ModelGR_a_ode = ModelGR_a.loadData("../EricModel/EricData/Gated_dataframe_Ron_020224_NormalizedGR_bins.csv",...
+                {'nucGR_a','normgrnuc';'cytGR_a','normgrcyt'},{'Dex_Conc','100'});
+
+        % Load data for GR-beta
+        ModelGR_b_ode = ModelGR_b.loadData("../EricModel/EricData/Gated_dataframe_Ron_020224_NormalizedGR_bins.csv",...
+                {'nucGR_b','normgrnuc';'cytGR_b','normgrcyt'});
+
+        %% Switch solver to ODE and generate model codes
+        ModelGR_a_ode.solutionScheme = 'ode';  % TODO: loop (right now just solve for 100nM Dex)
+        ModelGR_b_ode.solutionScheme = 'ode';
+        ModelGR_a_ode.useHybrid = false;
+        ModelGR_b_ode.useHybrid = false;
         
-            %log10PriorMean = [-1 -1 0 -2,...
-            %    -1 -3 -2 -1 -2 -2 -2 0.5, 2];
-        log10PriorMean = [-1 -1 0 -2,... %dusp1 pars
-            -1 -3 -2 -1 -2 -2 -2 0.5, ...%GR pars
-            2, ... % Dex concentration -- known
-            -2, -3]; % dusp1 transport, cyt RNA degradation
-        log10PriorStd = 2*ones(1,14);
-        ModelGRDusp100nM_ext_red.fittingOptions.logPrior = @(x)-sum((log10(x)-log10PriorMean([1:4,14])).^2./(2*log10PriorStd([1:4,14]).^2));
+        %% Solve and make plots
+        ODEsoln_a = ModelGR_a_ode.solve; % %TODO: fix broken
+        ODEsoln_b = ModelGR_b_ode.solve;
+        %plotODEresults(ODEsoln_a,ODEsoln_a,ModelGRfit_a{3})  % These plots only work if
+        %plotODEresults(ODEsoln_b,ODEsoln_b,ModelGRfit_b{1})  % FSP case was already run.
+                                                              %% Also "plotODEresults" currently 
+                                                              %% only works for "extendedModel"!
+
+        %% Fit new parameters to match all ODE data.
+        ModelGR_a_ode.fittingOptions.modelVarsToFit = 1:8;
+        ModelGR_a_ode.fittingOptions.logPrior = [];
+        GRpars_a_ode = [ModelGR_a_ode.parameters{ModelGR_a_ode.fittingOptions.modelVarsToFit,2}];
+        GRpars_a_ode = ModelGR_a_ode.maximizeLikelihood(GRpars_a_ode,fitOptions);
+
+        ModelGR_b_ode.fittingOptions.modelVarsToFit = 1:5;
+        ModelGR_b_ode.fittingOptions.logPrior = [];
+        GRpars_b_ode = [ModelGR_b_ode.parameters{ModelGR_b_ode.fittingOptions.modelVarsToFit,2}];
+        GRpars_b_ode = ModelGR_b_ode.maximizeLikelihood(GRpars_b_ode,fitOptions);
             
-            ModelGRDusp100nM_ext_red.makeFitPlot
-        
-            %%    STEP 3.B.1 -- Load data into the model
-            extendedMod = extendedMod.loadData('EricData/pdoCalibrationData_EricIntensity_DexSweeps.csv',...
-                {'rna','RNA_DUSP1_nuc'; ...
-                'rCyt','RNA_DUSP1_cyto'},...
-                {'Dex_Conc','100'});
-            %%    STEP 3.B.2 -- Switch solver to ODE and generate model codes
-            extendedMod.solutionScheme = 'ode';
-            extendedMod.useHybrid = false;
-            extendedMod = extendedMod.formPropensitiesGeneral('ODEEricCyt');
-            %%    STEP 3.C. -- Change parameters manually, solve, and make plots
-            %extendedMod.parameters(4,:) = {'knuc2cyt',0.027};
-            %extendedMod.parameters(14,:) = {'knucdeg',0.001};
-            %extendedMod.parameters(15,:) = {'degCyt',0.01};
-            extendedMod.parameters(4,:) = {'knuc2cyt',0.06};
-            extendedMod.parameters(14,:) = {'knucdeg',0.005}; % TODO: check this... elsewhere in log10PriorMean it says the 14th parameter is dusp1 transport.....
-            extendedMod.parameters(15,:) = {'degCyt',0.05};
-            soln = extendedMod.solve;
-            plotODEresults(extendedMod,soln,ModelGRfit{3})
-            %%    STEP 3.D.1. -- Fit new parameters to match all ODE data.
-            extendedMod.fittingOptions.modelVarsToFit = [4,14,15];
-            extendedMod.fittingOptions.logPrior = [];
-            pars = [extendedMod.parameters{extendedMod.fittingOptions.modelVarsToFit,2}];
-            pars = extendedMod.maximizeLikelihood(pars,fitOptions);
-            %%    STEP 3.D.2. -- Plot ODE fit results.
-            extendedMod.parameters(extendedMod.fittingOptions.modelVarsToFit,2) = num2cell(pars);
-            soln = extendedMod.solve;
-            plotODEresults(extendedMod,soln,ModelGRfit{3})
+        %% Plot ODE fit results.
+        %ModelGR_b_ode.parameters(ModelGR_b_ode.fittingOptions.modelVarsToFit,2) = num2cell(GRpars_b_ode);
+        %ODEsoln_b_dataFit = ModelGR_b_ode.solve;
+            %plotODEresults(ModelGR_b_ode,ODEsoln_b_dataFit,ModelGRfit_b{1})
+            
             %%    STEP 3.F.1. -- Create New Objective Function Combining all of the previous ones.
             % Remove all priors from individual models.
             ModelGRDusp100nM_ext_red.fittingOptions.logPrior = [];
@@ -881,104 +832,139 @@ switch GR
         set(gcf,'Name','ODE Fits -- 100nM Dex')
         
         % Plot ODE Predictions at other DEX concentrations
-        extendedMod0p3 = extendedMod.loadData('EricData/pdoCalibrationData_EricIntensity_DexSweeps.csv',...
-            {'rna','RNA_DUSP1_nuc'; ...
-            'rCyt','RNA_DUSP1_cyto'},...
-            {'Dex_Conc','0.3'});
-        extendedMod0p3.parameters(13,:) = {'Dex0',0.3};
-        
-        extendedMod1 = extendedMod.loadData('EricData/pdoCalibrationData_EricIntensity_DexSweeps.csv',...
-            {'rna','RNA_DUSP1_nuc'; ...
-            'rCyt','RNA_DUSP1_cyto'},...
-            {'Dex_Conc','1'});
-        extendedMod1.parameters(13,:) = {'Dex0',1.0};
-        
-        extendedMod10 = extendedMod.loadData('EricData/pdoCalibrationData_EricIntensity_DexSweeps.csv',...
-            {'rna','RNA_DUSP1_nuc'; ...
-            'rCyt','RNA_DUSP1_cyto'},...
-            {'Dex_Conc','10'});
-        extendedMod10.parameters(13,:) = {'Dex0',10};
-        
-        plotODEresults(extendedMod1,extendedMod1.solve,ModelGRfit{1},501)
-        set(gcf,'Name','ODE Predictions -- 1.0nM Dex')
-        
-        plotODEresults(extendedMod10,extendedMod10.solve,ModelGRfit{2},502)
-        set(gcf,'Name','ODE Predictions -- 10nM Dex')
+        % extendedMod0p3 = extendedMod.loadData('EricData/pdoCalibrationData_EricIntensity_DexSweeps.csv',...
+        %     {'rna','RNA_DUSP1_nuc'; ...
+        %     'rCyt','RNA_DUSP1_cyto'},...
+        %     {'Dex_Conc','0.3'});
+        % extendedMod0p3.parameters(13,:) = {'Dex0',0.3};
+        % 
+        % extendedMod1 = extendedMod.loadData('EricData/pdoCalibrationData_EricIntensity_DexSweeps.csv',...
+        %     {'rna','RNA_DUSP1_nuc'; ...
+        %     'rCyt','RNA_DUSP1_cyto'},...
+        %     {'Dex_Conc','1'});
+        % extendedMod1.parameters(13,:) = {'Dex0',1.0};
+        % 
+        % extendedMod10 = extendedMod.loadData('EricData/pdoCalibrationData_EricIntensity_DexSweeps.csv',...
+        %     {'rna','RNA_DUSP1_nuc'; ...
+        %     'rCyt','RNA_DUSP1_cyto'},...
+        %     {'Dex_Conc','10'});
+        % extendedMod10.parameters(13,:) = {'Dex0',10};
+        % 
+        % plotODEresults(extendedMod1,extendedMod1.solve,ModelGRfit{1},501)
+        % set(gcf,'Name','ODE Predictions -- 1.0nM Dex')
+        % 
+        % plotODEresults(extendedMod10,extendedMod10.solve,ModelGRfit{2},502)
+        % set(gcf,'Name','ODE Predictions -- 10nM Dex')
 
-    case 3
-
+    case 3  
         %% Create SSA model 
-        SSAModel_100 = extendedMod;
-        SSAModel_100.solutionScheme = 'SSA';
-        SSAModel_100.tSpan = [-500,ModelGRDusp100nM.tSpan];
+        %SSAModel_100.initialCondition = [2;0;round(soln100.ode(1,3:6))'];
+        %SSAModel_100.initialTime = SSAModel_100.tSpan(1);
+        %% SSAs        
+        SSA_ModelGR_a = SSIT;
+        SSA_ModelGR_b = SSIT;
+        SSA_ModelGR_a.species = {'cytGR_a';'nucGR_a'};
+        SSA_ModelGR_b.species = {'cytGR_b';'nucGR_b'};
+        SSA_ModelGR_a.initialCondition = [5;1];
+        SSA_ModelGR_b.initialCondition = [5;1];
+        SSA_ModelGR_a.propensityFunctions = {'(kcn0 + (t>0)*kcn1*IDex/(MDex+IDex)) * cytGR_a'; 'ba1'; 'dc * cytGR_a'; 'kn2c * nucGR_a'; 'dn * nucGR_a'};
+        SSA_ModelGR_b.propensityFunctions = {'kb1 * cytGR_b'; 'bb1'; 'dc * cytGR_b'; 'kn2c * nucGR_b'; 'dn * nucGR_b'};
+        SSA_ModelGR_a.stoichiometry = [-1,1,-1,1,0;...
+                                    1,0,0,-1,-1];
+        SSA_ModelGR_b.stoichiometry = [-1,1,-1,1,0;...
+                                    1,0,0,-1,-1];
+        SSA_ModelGR_a.parameters = ({'kn2c',0.01;'dc',1e-5;'dn',1e-6;'ba1',14e-5;...
+                                'MDex',5;'gDex',0.003;'kcn0',0.005;'kcn1',0.02;'Dex0',100});
+        SSA_ModelGR_b.parameters = ({'kn2c',0.01;'dc',1e-5;'dn',1e-6;'kb1',0.01;'bb1',14e-5});
+        SSA_ModelGR_a.inputExpressions = {'IDex','Dex0*exp(-gDex*t)'};
+        disp('The GR-alpha model is: ')
+        SSA_ModelGR_a.summarizeModel
+        disp('and the GR-beta model is: ')
+        SSA_ModelGR_b.summarizeModel
+
+        SSA_ModelGR_a.solutionScheme = 'SSA';
+        SSA_ModelGR_b.solutionScheme = 'SSA';
+
+        SSA_ModelGR_a.fittingOptions.modelVarsToFit = (1:8);
+        SSA_ModelGR_b.fittingOptions.modelVarsToFit = (1:5);
+
+        SSA_ModelGR_a = SSA_ModelGR_a.formPropensitiesGeneral('SSA_GR_a');
+        SSA_ModelGR_b = SSA_ModelGR_b.formPropensitiesGeneral('SSA_GR_b');
+
+        SSA_ModelGR_a.tSpan = [-500,SSA_ModelGR_a.tSpan];
         % A negative initial time is needed to allow model to equilibrate before
         % starting.  This causes long run times.
-        SSAModel_100.initialCondition = [2;0;round(soln100.ode(1,3:6))'];
-        SSAModel_100.initialTime = SSAModel_100.tSpan(1);
-        SSAModel_100.useHybrid = false;
-        SSAModel_100.ssaOptions.useParalel = true;
-        SSAModel_100 = SSAModel_100.formPropensitiesGeneral('SSAExtendedModel');
-        
+        SSA_ModelGR_b.tSpan = [-500,SSA_ModelGR_b.tSpan];
+        SSA_ModelGR_a.initialTime = SSA_ModelGR_a.tSpan(1); % Set initial time
+        SSA_ModelGR_b.initialTime = SSA_ModelGR_b.tSpan(1); % Set initial time
+
+        SSA_ModelGR_a.useHybrid = false;
+        SSA_ModelGR_b.useHybrid = false;
+        SSA_ModelGR_a.ssaOptions.useParalel = true;
+        SSA_ModelGR_b.ssaOptions.useParalel = true;
+
         %% Run SSA Simulations
-        ssaSoln_100 = SSAModel_100.solve;
+        ssaSoln_GR_a = SSA_ModelGR_a.solve;
+        ssaSoln_GR_b = SSA_ModelGR_b.solve;
         
         %% Plot SSA Results for Cytoplasmic Distributions (100nM Dex)
         % Plot Fits for 100nM Dex 
-        makeCytDistPlots(ssaSoln_100,extendedMod,600,[2:10],[1:9],6,2)
+        %makeCytDistPlots(ssaSoln_GR_a,GR_a_fspSoln,600,2:10,1:9,6,2)
+        %makeCytDistPlots(ssaSoln_GR_b,GR_b_fspSoln,600,2:10,1:9,6,2)
         
         %% Predict Cyt distributions for other 0.3nM Dex 
-        SSAModel_0p3 = SSAModel_100;
-        SSAModel_0p3.parameters(13,:) = {'Dex0',0.3};
-        SSAModel_0p3.tSpan = [-500,extendedMod0p3.tSpan];
-        ssaSoln_0p3 = SSAModel_0p3.solve;
-        
-        %% Predict Cyt distributions for other 1.0nM Dex 
-        SSAModel_1 = SSAModel_100;
-        SSAModel_1.parameters(13,:) = {'Dex0',1.0};
-        SSAModel_1.tSpan = [-500,extendedMod1.tSpan];
-        ssaSoln_1 = SSAModel_1.solve;
-        
-        %%    STEP 3.F.3. -- Predict Cyt distributions for other 10nM Dex 
-        SSAModel_10 = SSAModel_100;
-        SSAModel_10.parameters(13,:) = {'Dex0',10};
-        SSAModel_10.tSpan = [-500,extendedMod10.tSpan];
-        ssaSoln_10 = SSAModel_10.solve;
-        
-        %% Make resulting plots
-        makeCytDistPlots(ssaSoln_0p3,extendedMod0p3,601,[2:8],[1:7],6,2)
-        makeCytDistPlots(ssaSoln_1,extendedMod1,602,[3:8],[1:6],6,2)
-        makeCytDistPlots(ssaSoln_10,extendedMod10,603,[3:8],[1:6],6,2)
-        
-        %%
-        %% Save Results for Easier Use in subsequent runs.
-        %parsAll_GR_Dusp1_TS = [extendedMod.parameters{:,2}];
-        %parsAll_GR_Dusp1_TS(16) = parsAllandTS(end);
-        varNames = unique({'ModelGR'
-            'GRfitCases'
-            'log10PriorMean'
-            'log10PriorStd'
-            'GRpars'
-            'ModelGRparameterMap'
-            'ModelGRfit'
-            'boundGuesses'
-            'ModelGRDusp100nM'
-            'GRfitCases'
-            'log10PriorMean'
-            'log10PriorStd'
-            'duspLogPrior'
-            'DUSP1pars'
-            'Dusp1FitCases'
-            'ModelGRfit'
-            'extendedMod'
-            'ModelGRDusp100nM_ext_red'
-            'fullPars'
-            'fimResults'
-            'MHResultsGR'
-            'MHResultsDusp1'
-            'sensSoln'
-            });
-        
-        save('workspaceDec9_2024',varNames{:})
+        % SSAModel_0p3 = SSAModel_100;
+        % SSAModel_0p3.parameters(13,:) = {'Dex0',0.3};
+        % SSAModel_0p3.tSpan = [-500,extendedMod0p3.tSpan];
+        % ssaSoln_0p3 = SSAModel_0p3.solve;
+        % 
+        % %% Predict Cyt distributions for other 1.0nM Dex 
+        % SSAModel_1 = SSAModel_100;
+        % SSAModel_1.parameters(13,:) = {'Dex0',1.0};
+        % SSAModel_1.tSpan = [-500,extendedMod1.tSpan];
+        % ssaSoln_1 = SSAModel_1.solve;
+        % 
+        % %%    STEP 3.F.3. -- Predict Cyt distributions for other 10nM Dex 
+        % SSAModel_10 = SSAModel_100;
+        % SSAModel_10.parameters(13,:) = {'Dex0',10};
+        % SSAModel_10.tSpan = [-500,extendedMod10.tSpan];
+        % ssaSoln_10 = SSAModel_10.solve;
+        % 
+        % %% Make resulting plots
+        % makeCytDistPlots(ssaSoln_0p3,extendedMod0p3,601,[2:8],[1:7],6,2)
+        % makeCytDistPlots(ssaSoln_1,extendedMod1,602,[3:8],[1:6],6,2)
+        % makeCytDistPlots(ssaSoln_10,extendedMod10,603,[3:8],[1:6],6,2)
+        % 
+        % %%
+        % %% Save Results for Easier Use in subsequent runs.
+        % %parsAll_GR_Dusp1_TS = [extendedMod.parameters{:,2}];
+        % %parsAll_GR_Dusp1_TS(16) = parsAllandTS(end);
+        % varNames = unique({'ModelGR'
+        %     'GRfitCases'
+        %     'log10PriorMean'
+        %     'log10PriorStd'
+        %     'GRpars'
+        %     'ModelGRparameterMap'
+        %     'ModelGRfit'
+        %     'boundGuesses'
+        %     'ModelGRDusp100nM'
+        %     'GRfitCases'
+        %     'log10PriorMean'
+        %     'log10PriorStd'
+        %     'duspLogPrior'
+        %     'DUSP1pars'
+        %     'Dusp1FitCases'
+        %     'ModelGRfit'
+        %     'extendedMod'
+        %     'ModelGRDusp100nM_ext_red'
+        %     'fullPars'
+        %     'fimResults'
+        %     'MHResultsGR'
+        %     'MHResultsDusp1'
+        %     'sensSoln'
+        %     });
+        % 
+        % save('workspace_Feb_]2024',varNames{:})
 end
 
 %% Extra Function
