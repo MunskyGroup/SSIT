@@ -19,7 +19,7 @@ savedWorkspace = 'workspace_Boogaloo';
 fitOptions = optimset('Display','iter','MaxIter',300);
  
 %%
-GR = input('(1) Convolve GR-alpha + GR-beta;\n(2) ODES for GR-alpha + GR-beta;\n(3) SSAs\nChoose your destiny: ');
+GR = input('(1) Convolve GR-alpha + GR-beta with FSP;\n(2) ODES for GR-alpha + GR-beta;\n(3) SSAs\nChoose your destiny: ');
 
 switch GR
     case 1
@@ -199,6 +199,66 @@ switch GR
         % Specify dataset time points for GR-beta.
         ModelGRfit_b{1}.tSpan = ModelGRfit_b{1}.dataSet.times;
 
+        
+        %%
+        % PA = rand(2); PA = PA/(sum(PA,"all"));
+        % PB = rand(2); PB = PB/(sum(PB,"all"));        
+        % % PA=[.5 .15;.25 .1];PB =PA;
+        % PC = conv2(PA,PB)        
+        % %%       
+        % N = 100000;
+        % PAs = zeros(size(PA));        
+        % PBs = zeros(size(PB));        
+        % PCs = zeros(size(PA,1)+size(PB,1)-1,...        
+        %     size(PA,2)+size(PB,2)-1);        
+        % for i = 1:N        
+        %     r = rand;        
+        %     j = 1;        
+        %     while sum(PA(1:j))<r
+        %         j = j+1;
+        %     end
+        %     PAs(j) = PAs(j) + 1/N;
+        %     [kA1,kA2] = ind2sub(size(PAs),j);        
+        %     r = rand;
+        %     j = 1;
+        %     while sum(PB(1:j))<r        
+        %         j = j+1;       
+        %     end        
+        %     PBs(j) = PBs(j) + 1/N;
+        %     [kB1,kB2] = ind2sub(size(PBs),j);
+        %     PCs(kA1+kB1-1,kA2+kB2-1) = PCs(kA1+kB1-1,kA2+kB2-1)+1/N;
+        % end       
+        % PCs        
+        % PC
+        % 
+        % %% REMOVE
+        % ModelGR_a.solutionScheme = 'FSP';
+        % FSPsoln = ModelGR_a.solve;             
+        % solnTensor = double(FSPsoln.fsp{3}.p.data);
+        % contourf(log10(solnTensor));
+        % 
+        % %% sample fake data        
+        % N = 100;        
+        % PAs = zeros(size(solnTensor));        
+        % for i = 1:N      
+        %     r = rand;        
+        %     j = 1;       
+        %     while sum(solnTensor(1:j))<r        
+        %         j = j+1;       
+        %     end
+        %     PAs(j) = PAs(j)+1;        
+        %     % [kA1,kA2] = ind2sub(size(PAs),j);        
+        % end
+        % 
+        % %% add scatter points to plot.
+        % hold on
+        % [rows,cols,vals] = find(PAs);        
+        % scatter(rows,cols,20,vals,'r','filled')
+        % 
+        % %% compute likelihood
+        % logLikelihood = sum(log(solnTensor(PAs>0)).*PAs((PAs>0)),"all");
+
+
         %% Solve for combined GR-alpha model for three Dex_Conc=Dex0 and fit using a single parameter set.
         for jj = 1:fitIters
             % Solve
@@ -361,6 +421,26 @@ switch GR
         end
     end
 
+    %% resample data if wanted
+
+    data = readtable('../EricModel/EricData/Gated_dataframe_Ron_020224_NormalizedGR_bins.csv');
+
+        % Filter the data if desired for particular Time_index and/or Dex_Conc
+        filteredData = data(data.time == 150 & data.Dex_Conc == 10, :);
+
+        % Randomly sample 1000 points from the filtered data
+        numSamples = min(1000, height(filteredData)); % Ensure we don’t sample more than available data
+        randomIndices = randperm(height(filteredData), numSamples);
+        normgrnuc = filteredData.normgrnuc(randomIndices);
+        normgrcyt = filteredData.normgrcyt(randomIndices);
+
+    %% compute likelihood
+    
+        normgr = [filteredData.normgrcyt,filteredData.normgrnuc];
+        for logL=1:max(size(conv2solnTensor_postData))
+            logLikelihood = sum(log(conv2solnTensor_postData{logL}(normgr>0)).*normgr((normgr>0)),"all")
+        end
+    %%
     save('conv2solnTensor_postData','GRpars_a','combinedGRModel_a', 'ModelGRfit_a','ModelGRfit_b','GRpars_b','GR_b_fspSoln', 'fspSolnsSMM')
 
     dusp1 = input('(0) GR-beta turns off the DUSP1 gene;\n(1) GR-beta has no effect on DUSP1;\nChoose your destiny: ');
@@ -707,7 +787,7 @@ switch GR
     
     %% compute likelihood
     %    logLikelihood = sum(log(conv2solnTensor{f}(PAs>0)).*PAs((PAs>0)),"all");
-    %logLikelihood = sum(log(conv2solnTensor_postData{t}(fspsoln_sptensor_a_postData{t}>0)).*fspsoln_sptensor_a_postData{t}((fspsoln_sptensor_a_postData{t}>0)),"all");
+    %logLikelihood = sum(log(conv2solnTensor_postData{t}(PAs>0)).*PAs((PAs>0)),"all");
 
     case 2 
         %% ODEs        
