@@ -4,7 +4,7 @@
 % other species (i.e., downstream species) evolving in a discrete
 % stochastic manner. 
 close all 
-clear all
+clear
 addpath(genpath('../src'));
 
 %% Example 1 - transcription and translation

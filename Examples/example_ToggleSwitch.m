@@ -1,7 +1,7 @@
 %% example_toggleSwitch
 % Example script to show SSIT application to a simple two species genetic
 % toggle switch.
-clear all
+clear
 close all
 addpath(genpath('../src'));
 

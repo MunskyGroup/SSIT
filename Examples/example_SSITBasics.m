@@ -1,4 +1,4 @@
-clear all
+clear
 close all
 addpath(genpath('../src'));
 

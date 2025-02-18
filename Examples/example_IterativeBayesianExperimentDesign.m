@@ -1,5 +1,5 @@
 close all
-clear all
+clear
 addpath(genpath('../src'));
 
 rng(1)  % Set RNG seed for reproducibility.

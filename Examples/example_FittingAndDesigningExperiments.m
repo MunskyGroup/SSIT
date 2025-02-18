@@ -2,7 +2,7 @@
 % In this script, we show how the SSIT can be used to identify a
 % time-inhomogeneous model for the activation of Dusp1 mRNA expression
 % under Dexamethasome stimulation of Glucocorticoid Receptors.
-clear all
+clear
 clc
 close all
 addpath(genpath('../src'));
