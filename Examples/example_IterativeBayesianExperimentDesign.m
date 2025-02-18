@@ -34,8 +34,6 @@ switch example
         fitParameters = [1:4];
 end
 
-experimentDesignCriteria = 
-
 saveFileName = ['IterativeExperimentResults_',example];
 
 %% Generate Model Propensity Functions and Solve True Model
