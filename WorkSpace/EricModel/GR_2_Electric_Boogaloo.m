@@ -89,16 +89,16 @@ switch GR
          
         %% TODO: clean up scattered data on contour plots
 
-        data = readtable('../EricModel/EricData/Gated_dataframe_Ron_020224_NormalizedGR_bins.csv');
+        data = readtable('../EricModel/EricData/GR_ALL_gated_with_CytoArea_and_normGR_Feb2825_03.csv');
 
-        % Filter the data if desired for particular Time_index and/or Dex_Conc
-        filteredData = data(data.time == 180 & data.Dex_Conc == 100, :);
+        % Filter the data if desired for particular Time_index and/or dex_conc
+        filteredData = data(data.time == 180 & data.dex_conc == 100, :);
 
         % Randomly sample 1000 points from the filtered data
         numSamples = min(1000, height(filteredData)); % Ensure we don’t sample more than available data
         randomIndices = randperm(height(filteredData), numSamples);
-        normgrnuc = filteredData.normgrnuc(randomIndices);
-        normgrcyt = filteredData.normgrcyt(randomIndices);
+        normGRnuc = filteredData.normGRnuc(randomIndices);
+        normGRcyt = filteredData.normGRcyt(randomIndices);
 
         % Plot contourf figures and add scatter points
         for g=1:f
@@ -110,17 +110,17 @@ switch GR
             subplot(1,3,1)
             contourf(log10(fspsoln_sptensor_a{g}))
             hold on
-            scatter(normgrcyt, normgrnuc, 'r', 'filled') % Red dots
+            scatter(normGRcyt, normGRnuc, 'r', 'filled') % Red dots
     
             subplot(1,3,2)
             contourf(log10(fspsoln_sptensor_b{g}))
             hold on
-            scatter(normgrcyt, normgrnuc, 'r', 'filled') % Red dots
+            scatter(normGRcyt, normGRnuc, 'r', 'filled') % Red dots
     
             subplot(1,3,3)
             contourf(log10(conv2solnTensor{g}))
             hold on
-            scatter(normgrcyt, normgrnuc, 'r', 'filled') % Red dots
+            scatter(normGRcyt, normGRnuc, 'r', 'filled') % Red dots
         end
                 
 
@@ -150,17 +150,17 @@ switch GR
         ModelGRfit_b = cell(1,1);
 
         % Load data for GR-beta
-        ModelGRfit_b{1} = ModelGR_b.loadData("../EricModel/EricData/Gated_dataframe_Ron_020224_NormalizedGR_bins.csv",...
-                {'nucGR_b','normgrnuc';'cytGR_b','normgrcyt'},{'Dex_Conc','100'});
+        ModelGRfit_b{1} = ModelGR_b.loadData("../EricModel/EricData/GR_ALL_gated_with_CytoArea_and_normGR_Feb2825_03.csv",...
+                {'nucGR_b','normGRnuc';'cytGR_b','normGRcyt'},{'dex_conc','100'});
 
         % ModelGRODEfit = cell(1,size(GRfitCases,1));
         
         % Load data, fit 3 Dex concentrations to GR-alpha's 'Dex0' parameter,
         % and set solution scheme to FSP.
         for i=1:3
-            ModelGRfit_a{i} = ModelGR_a.loadData("../EricModel/EricData/Gated_dataframe_Ron_020224_NormalizedGR_bins.csv",...
-                {'nucGR_a','normgrnuc';'cytGR_a','normgrcyt'},...
-                {'Dex_Conc',GRfitCases{i,2}});
+            ModelGRfit_a{i} = ModelGR_a.loadData("../EricModel/EricData/GR_ALL_gated_with_CytoArea_and_normGR_Feb2825_03.csv",...
+                {'nucGR_a','normGRnuc';'cytGR_a','normGRcyt'},...
+                {'dex_conc',GRfitCases{i,2}});
             ModelGRfit_a{i}.parameters(9,:) = {'Dex0', str2num(GRfitCases{i,1})};
             ModelGRparameterMap_a(i) = {(1:8)}; 
         end
@@ -259,7 +259,7 @@ switch GR
         % logLikelihood = sum(log(solnTensor(PAs>0)).*PAs((PAs>0)),"all");
 
 
-        %% Solve for combined GR-alpha model for three Dex_Conc=Dex0 and fit using a single parameter set.
+        %% Solve for combined GR-alpha model for three dex_conc=Dex0 and fit using a single parameter set.
         for jj = 1:fitIters
             % Solve
             combinedGRModel_a = SSITMultiModel(ModelGRfit_a,ModelGRparameterMap_a,logPriorGR_a);
@@ -370,12 +370,12 @@ switch GR
 
     %% Convolution, contour plots, and scattered data
     load('combinedGR_a_fspSolns.mat')
-    data = readtable('../EricModel/EricData/Gated_dataframe_Ron_020224_NormalizedGR_bins.csv'); 
+    data = readtable('../EricModel/EricData/GR_ALL_gated_with_CytoArea_and_normGR_Feb2825_03.csv'); 
 
     tspan = [0,10,30,50,75,150,180];
 
     for model=1:size(GRfitCases,1)
-        dataDex = data(data.Dex_Conc == str2double(GRfitCases{model}), :);
+        dataDex = data(data.dex_conc == str2double(GRfitCases{model}), :);
         for t=1:max(numel(fspSolnsSMM(model).fsp),numel(GR_b_fspSoln.fsp))
             % Figure index
             figIndex = (model - 1) * 7 + t;
@@ -390,15 +390,15 @@ switch GR
                 tspan(t)
             end
             randomIndices = randperm(height(dataDexTime), numSamples);
-            normgrnuc = dataDexTime.normgrnuc(randomIndices);
-            normgrcyt = dataDexTime.normgrcyt(randomIndices);
+            normGRnuc = dataDexTime.normGRnuc(randomIndices);
+            normGRcyt = dataDexTime.normGRcyt(randomIndices);
                 
             % t is time point, so solution tensors are FSP probabilities across states for each time point
             conv2solnTensor_postData{t} = conv2(double(fspSolnsSMM(model).fsp{t}.p.data),double(GR_b_fspSoln.fsp{t}.p.data));
             figure(figIndex)
             contourf(log10(conv2solnTensor_postData{t}))
             hold on 
-            scatter(normgrcyt, normgrnuc, 'r', 'filled')
+            scatter(normGRcyt, normGRnuc, 'r', 'filled')
 
             % Add subplots (can be commented out)
             fspsoln_sptensor_a_postData{t} = double(fspSolnsSMM(model).fsp{t}.p.data);
@@ -407,36 +407,36 @@ switch GR
             subplot(1,3,1)
             contourf(log10(fspsoln_sptensor_a_postData{t}))
             hold on
-            scatter(normgrcyt, normgrnuc, 'r', 'filled') % Red dots
+            scatter(normGRcyt, normGRnuc, 'r', 'filled') % Red dots
     
             subplot(1,3,2)
             contourf(log10(fspsoln_sptensor_b_postData{t}))
             hold on
-            scatter(normgrcyt, normgrnuc, 'r', 'filled') % Red dots
+            scatter(normGRcyt, normGRnuc, 'r', 'filled') % Red dots
     
             subplot(1,3,3)
             contourf(log10(conv2solnTensor_postData{t}))
             hold on
-            scatter(normgrcyt, normgrnuc, 'r', 'filled') % Red dots
+            scatter(normGRcyt, normGRnuc, 'r', 'filled') % Red dots
         end
     end
 
     %% resample data if wanted
 
-    data = readtable('../EricModel/EricData/Gated_dataframe_Ron_020224_NormalizedGR_bins.csv');
+    data = readtable('../EricModel/EricData/GR_ALL_gated_with_CytoArea_and_normGR_Feb2825_03.csv');
 
-        % Filter the data if desired for particular Time_index and/or Dex_Conc
-        filteredData = data(data.time == 150 & data.Dex_Conc == 10, :);
+        % Filter the data if desired for particular Time_index and/or dex_conc
+        filteredData = data(data.time == 150 & data.dex_conc == 10, :);
 
         % Randomly sample 1000 points from the filtered data
         numSamples = min(1000, height(filteredData)); % Ensure we don’t sample more than available data
         randomIndices = randperm(height(filteredData), numSamples);
-        normgrnuc = filteredData.normgrnuc(randomIndices);
-        normgrcyt = filteredData.normgrcyt(randomIndices);
+        normGRnuc = filteredData.normGRnuc(randomIndices);
+        normGRcyt = filteredData.normGRcyt(randomIndices);
 
     %% compute likelihood
     
-        normgr = [filteredData.normgrcyt,filteredData.normgrnuc];
+        normgr = [filteredData.normGRcyt,filteredData.normGRnuc];
         for logL=1:max(size(conv2solnTensor_postData))
             logLikelihood = sum(log(conv2solnTensor_postData{logL}(normgr>0)).*normgr((normgr>0)),"all")
         end
@@ -504,7 +504,7 @@ switch GR
             for i = 1:size(Dusp1FitCases,1)
                  ModelDusp1Fit{i} = ModelGRDusp100nM.loadData('EricData/pdoCalibrationData_EricIntensity_DexSweeps.csv',...
                      {'rna','totalNucRNA'},...
-                     {'Dex_Conc','100'});
+                     {'dex_conc','100'});
                  ModelDusp1Fit{i}.inputExpressions = {'IDex','Dex0*exp(-gDex*t)'};
                  ModelDusp1parameterMap{i} = (1:4);
                  % Set Dex concentration.
@@ -515,7 +515,7 @@ switch GR
 
         %% Load data
             ModelGRDusp100nM = ModelGRDusp100nM.loadData('EricData/pdoCalibrationData_EricIntensity_DexSweeps.csv',...
-                                                            {'rna','RNA_DUSP1_nuc'},{'Dex_Conc','100'});
+                                                            {'rna','RNA_DUSP1_nuc'},{'dex_conc','100'});
             DUSP1pars = [ModelGRDusp100nM.parameters{ModelGRDusp100nM.fittingOptions.modelVarsToFit,2}];
     
         %% Fit DUSP1 model at 100nM Dex.  
@@ -634,7 +634,7 @@ switch GR
             for i = 1:size(Dusp1FitCases,1)
                  ModelDusp1Fit{i} = ModelGRDusp100nM.loadData('EricData/pdoCalibrationData_EricIntensity_DexSweeps.csv',...
                      {'rna','totalNucRNA'},...
-                     {'Dex_Conc','100'});
+                     {'dex_conc','100'});
                  ModelDusp1Fit{i}.inputExpressions = {'IDex','Dex0*exp(-gDex*t)'};
                  ModelDusp1parameterMap{i} = (1:4);
                  % Set Dex concentration.
@@ -645,7 +645,7 @@ switch GR
 
         %%
         ModelGRDusp100nM = ModelGRDusp100nM.loadData('EricData/pdoCalibrationData_EricIntensity_DexSweeps.csv',...
-            {'rna','totalNucRNA'},{'Dex_Conc','100'});
+            {'rna','totalNucRNA'},{'dex_conc','100'});
         DUSP1pars = [ModelGRDusp100nM.parameters{ModelGRDusp100nM.fittingOptions.modelVarsToFit,2}];
     
         %% Fit DUSP1 model at 100nM Dex.  
@@ -824,12 +824,12 @@ switch GR
         
         %% Load data into the model
         % Load data for GR-alpha
-        ModelGR_a_ode = ModelGR_a.loadData("../EricModel/EricData/Gated_dataframe_Ron_020224_NormalizedGR_bins.csv",...
-                {'nucGR_a','normgrnuc';'cytGR_a','normgrcyt'},{'Dex_Conc','100'});
+        ModelGR_a_ode = ModelGR_a.loadData("../EricModel/EricData/GR_ALL_gated_with_CytoArea_and_normGR_Feb2825_03.csv",...
+                {'nucGR_a','normGRnuc';'cytGR_a','normGRcyt'},{'dex_conc','100'});
 
         % Load data for GR-beta
-        ModelGR_b_ode = ModelGR_b.loadData("../EricModel/EricData/Gated_dataframe_Ron_020224_NormalizedGR_bins.csv",...
-                {'nucGR_b','normgrnuc';'cytGR_b','normgrcyt'});
+        ModelGR_b_ode = ModelGR_b.loadData("../EricModel/EricData/GR_ALL_gated_with_CytoArea_and_normGR_Feb2825_03.csv",...
+                {'nucGR_b','normGRnuc';'cytGR_b','normGRcyt'});
 
         %% Switch solver to ODE and generate model codes
         ModelGR_a_ode.solutionScheme = 'ode';  % TODO: loop (right now just solve for 100nM Dex)
@@ -915,19 +915,19 @@ switch GR
         % extendedMod0p3 = extendedMod.loadData('EricData/pdoCalibrationData_EricIntensity_DexSweeps.csv',...
         %     {'rna','RNA_DUSP1_nuc'; ...
         %     'rCyt','RNA_DUSP1_cyto'},...
-        %     {'Dex_Conc','0.3'});
+        %     {'dex_conc','0.3'});
         % extendedMod0p3.parameters(13,:) = {'Dex0',0.3};
         % 
         % extendedMod1 = extendedMod.loadData('EricData/pdoCalibrationData_EricIntensity_DexSweeps.csv',...
         %     {'rna','RNA_DUSP1_nuc'; ...
         %     'rCyt','RNA_DUSP1_cyto'},...
-        %     {'Dex_Conc','1'});
+        %     {'dex_conc','1'});
         % extendedMod1.parameters(13,:) = {'Dex0',1.0};
         % 
         % extendedMod10 = extendedMod.loadData('EricData/pdoCalibrationData_EricIntensity_DexSweeps.csv',...
         %     {'rna','RNA_DUSP1_nuc'; ...
         %     'rCyt','RNA_DUSP1_cyto'},...
-        %     {'Dex_Conc','10'});
+        %     {'dex_conc','10'});
         % extendedMod10.parameters(13,:) = {'Dex0',10};
         % 
         % plotODEresults(extendedMod1,extendedMod1.solve,ModelGRfit{1},501)
