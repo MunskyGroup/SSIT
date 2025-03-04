@@ -108,7 +108,7 @@ else
     % STEP 0.B.2. -- Define GR parameters
     GRpars = cell2mat(ModelGR.parameters(5:12,2))';  
 
-    % STEP 0.B.3. -- Associate GR Data with Different Instances of Model (10,100nm Dex)
+    %% STEP 0.B.3. -- Associate GR Data with Different Instances of Model (10,100nm Dex)
     GRfitCases = {'1','1',101,'GR Fit (1nM Dex)';...
         '10','10',102,'GR Fit (10nM Dex)';...
         '100','100',103,'GR Fit (100nM Dex)'};
@@ -116,8 +116,8 @@ else
     ModelGRfit = cell(1,size(GRfitCases,1));
     % ModelGRODEfit = cell(1,size(GRfitCases,1));
     for i=1:3
-        ModelGRfit{i} = ModelGR.loadData("EricData/Gated_dataframe_Ron_020224_NormalizedGR_bins.csv",...
-            {'nucGR','normgrnuc';'cytGR','normgrcyt'},...
+        ModelGRfit{i} = ModelGR.loadData("EricData/GR_ALL_gated_with_CytoArea_and_normGR_Feb2825_03.csv",... %ModelGRfit{i} = ModelGR.loadData("EricData/Gated_dataframe_Ron_020224_NormalizedGR_bins.csv",... %
+            {'nucGR','normGRnuc';'cytGR','normGRcyt'},...
             {'Dex_Conc',GRfitCases{i,2}});
         ModelGRfit{i}.parameters(13,:) = {'Dex0', str2num(GRfitCases{i,1})};
         ModelGRparameterMap(i) = {(1:8)};
@@ -212,11 +212,17 @@ for GR = 1:fitMHiters
     end
 end 
 
+%%
+for i=1:3
+    combinedGRModel.SSITModels{i} = combinedGRModel.SSITModels{i}.loadData("EricData/GR_ALL_gated_with_CytoArea_and_normGR_Feb2825_03.csv",...
+                {'nucGR','normGRnuc';'cytGR','normGRcyt'});
+end
+
 %%     STEP 1.F. -- Make Plots of GR Fit Results
 makeGRPlots(combinedGRModel,GRpars)
 
 save('EricModelGR_MMDex','GRpars','combinedGRModel','MHResultsGR') 
-save('workspaceDec9_2024.mat','GRpars', 'ModelGRfit', 'combinedGRModel','MHResultsGR', 'log10PriorStd')
+save('workspaceMay4_2024.mat','GRpars', 'ModelGRfit', 'combinedGRModel','MHResultsGR', 'log10PriorStd', 'ModelGRparameterMap')
 
 %%  STEP 2 -- Extend Model to Include DUSP1 Activation, Production, and Degradation
 if loadPrevious
