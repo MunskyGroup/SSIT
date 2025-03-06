@@ -10,7 +10,11 @@ classdef modelBuilder
             Bursty.inputExpressions = {'IGR','1+a1*exp(-r1*t)*(1-exp(-r2*t))*(t>0)'}; 
             Bursty.stoichiometry = [-1,1,0,0;1,-1,0,0;0,0,1,-1]; 
             Bursty.parameters = ({'kon',0.6;'koff',2;'kr',0.3;'gr',0.04});  
-            Bursty.summarizeModel;                         
+            Bursty.summarizeModel;    
+            Bursty.fspOptions.initApproxSS = true;  % Set Initial Distribution to Steady State.
+            Bursty.tSpan = linspace(0,2,21);
+            Bursty.fspOptions.fspTol = 1e-5;
+            Bursty = Bursty.formPropensitiesGeneral('Bursty',true);
             [BurstyFSPSoln,Bursty.fspOptions.bounds] = Bursty.solve;
             [BurstyFSPSoln,Bursty.fspOptions.bounds] = Bursty.solve(BurstyFSPSoln.stateSpace); 
         end
