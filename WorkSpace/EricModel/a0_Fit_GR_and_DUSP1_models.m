@@ -58,7 +58,7 @@ if loadPrevious
 else
     %% STEP 0.B. -- Create Base Model for GR Only
     %    Here, I set up the model for the GR translocation dynamics.
-    fitOptions = optimset('Display','iter','MaxIter',300);
+    fitOptions = optimset('Display','iter','MaxIter',200);
 
     % Create blank SSIT model.
     ModelGR = SSIT;
@@ -115,10 +115,28 @@ else
     ModelGRparameterMap = cell(1,size(GRfitCases,1));
     ModelGRfit = cell(1,size(GRfitCases,1));
     % ModelGRODEfit = cell(1,size(GRfitCases,1));
+
+    % OLD GR DATA
+    % ModelGRfit{1} = ModelGR.loadData("EricData/Gated_dataframe_Ron_020224_NormalizedGR_bins_Dex_Conc_1.csv",...
+    %           {'nucGR','normgrnuc';'cytGR','normgrcyt'});
+    % ModelGRfit{2} = ModelGR.loadData("EricData/Gated_dataframe_Ron_020224_NormalizedGR_bins_Dex_Conc_10.csv",...
+    %           {'nucGR','normgrnuc';'cytGR','normgrcyt'});
+    % ModelGRfit{3} = ModelGR.loadData("EricData/Gated_dataframe_Ron_020224_NormalizedGR_bins_Dex_Conc_100.csv",...
+    %           {'nucGR','normgrnuc';'cytGR','normgrcyt'});
+
+    % NEW GR DATA
+    ModelGRfit{1} = ModelGR.loadData("EricData/GR_ALL_gated_with_CytoArea_and_normGR_Feb2825_03_dex_conc_1.csv",...
+              {'nucGR','normGRnuc';'cytGR','normGRcyt'});
+    ModelGRfit{2} = ModelGR.loadData("EricData/GR_ALL_gated_with_CytoArea_and_normGR_Feb2825_03_dex_conc_10.csv",...
+              {'nucGR','normGRnuc';'cytGR','normGRcyt'});
+    ModelGRfit{3} = ModelGR.loadData("EricData/GR_ALL_gated_with_CytoArea_and_normGR_Feb2825_03_dex_conc_100.csv",...
+              {'nucGR','normGRnuc';'cytGR','normGRcyt'});
+    
     for i=1:3
-        ModelGRfit{i} = ModelGR.loadData("EricData/GR_ALL_gated_with_CytoArea_and_normGR_Feb2825_03.csv",... %ModelGRfit{i} = ModelGR.loadData("EricData/Gated_dataframe_Ron_020224_NormalizedGR_bins.csv",... %
-            {'nucGR','normGRnuc';'cytGR','normGRcyt'},...
-            {'Dex_Conc',GRfitCases{i,2}});
+        % ModelGRfit{i} = ModelGR.loadData("EricData/Gated_dataframe_Ron_020224_NormalizedGR_bins.csv",...
+        %     {'nucGR','normgrnuc';'cytGR','normgrcyt'},...
+        %     {'Dex_Conc',GRfitCases{i,2}});        
+        %ModelGRfit{i} = ModelGR.loadData("EricData/GR_ALL_gated_with_CytoArea_and_normGR_Feb2825_03.csv",{'nucGR','normGRnuc';'cytGR','normGRcyt'},
         ModelGRfit{i}.parameters(13,:) = {'Dex0', str2num(GRfitCases{i,1})};
         ModelGRparameterMap(i) = {(1:8)};
         % parameters 1 - 8 refer to the parameter set that is relevant to
@@ -159,12 +177,11 @@ for GR = 1:fitMHiters
 
     % STEP 1.C. -- Combine all three GR models and fit using a single parameter set.
     for jj = 1:fitIters
-        combinedGRModel = SSITMultiModel(ModelGRfit,ModelGRparameterMap,logPriorGR);
-        combinedGRModel = combinedGRModel.initializeStateSpaces(boundGuesses);
-        combinedGRModel = combinedGRModel.updateModels(GRpars,false);
-        GRpars = combinedGRModel.maximizeLikelihood(...
-            GRpars, fitOptions);
-        save('EricModel_MMDex','GRpars') 
+         combinedGRModel = SSITMultiModel(ModelGRfit,ModelGRparameterMap,logPriorGR);
+         combinedGRModel = combinedGRModel.initializeStateSpaces(boundGuesses);
+         combinedGRModel = combinedGRModel.updateModels(GRpars,false);
+         GRpars = combinedGRModel.maximizeLikelihood(GRpars, fitOptions);
+         save('EricModel_MMDex','GRpars') 
     end
 
     save('EricModelGR_MMDex','GRpars','combinedGRModel', 'ModelGRfit', 'log10PriorStd') 
@@ -213,16 +230,39 @@ for GR = 1:fitMHiters
 end 
 
 %%
-for i=1:3
-    combinedGRModel.SSITModels{i} = combinedGRModel.SSITModels{i}.loadData("EricData/GR_ALL_gated_with_CytoArea_and_normGR_Feb2825_03.csv",...
-                {'nucGR','normGRnuc';'cytGR','normGRcyt'});
-end
+% dex_conc_values = [1, 10, 100];
+% 
+% for i = 1:3
+%     % Load the full dataset first
+%     fullData = readtable("EricData/GR_ALL_gated_with_CytoArea_and_normGR_Feb2825_03.csv");
+% 
+%     % Filter based on dex_conc value
+%     filteredData = fullData(fullData.dex_conc == dex_conc_values(i), :);
+% 
+%     % Save filtered data to a temporary file (optional if loadData can take a table directly)
+%     tempFile = sprintf("temp_filtered_data_%d.csv", dex_conc_values(i));
+%     writetable(filteredData, tempFile);
+% 
+%     % Load the filtered data
+%     combinedGRModel.SSITModels{i} = combinedGRModel.SSITModels{i}.loadData(tempFile, ...
+%                 {'nucGR','normGRnuc';'cytGR','normGRcyt'});
+% end
+
 
 %%     STEP 1.F. -- Make Plots of GR Fit Results
 makeGRPlots(combinedGRModel,GRpars)
 
+
+%combinedGRModel = combinedGRModel.updateModels(GRpars,false);
+%for i=1:length(ModelGRfit)
+    %  Update parameters in original models.
+%    ModelGRfit{i} = combinedGRModel.SSITModels{i};
+%    ModelGRfit{i}.tSpan = sort(unique([ModelGRfit{i}.tSpan,linspace(0,180,30)]));
+%    ModelGRfit{i}.makeFitPlot([],1,[],true,'STD')
+%end
+
 save('EricModelGR_MMDex','GRpars','combinedGRModel','MHResultsGR') 
-save('workspaceMay4_2024.mat','GRpars', 'ModelGRfit', 'combinedGRModel','MHResultsGR', 'log10PriorStd', 'ModelGRparameterMap')
+save('workspaceMay4_2025.mat','GRpars', 'ModelGRfit', 'combinedGRModel','MHResultsGR', 'log10PriorStd', 'ModelGRparameterMap')
 
 %%  STEP 2 -- Extend Model to Include DUSP1 Activation, Production, and Degradation
 if loadPrevious

@@ -214,7 +214,10 @@ vars = mns2Mod-mnsMod.^2;
 cols = ['b','r','g','m','c','k'];
 cols2 = [.90 .90  1.00; 1.00 .90 .90; .90 1.00 .90; .60 .60  1.00; 1.00 .60 .60; .60 1.00 .60];
 LG = {};
+
+%% 1:NdDat can be changed to plot species separately (e.g., separate cytGR and nucGR plots)
 for iplt=1:NdDat
+%for iplt=2:2
     % if Plts_to_make(iplt)
     switch varianceType
         case 'STD'
@@ -235,7 +238,9 @@ title('Trajectory of means and standard deviations')
 
 %% Add data to trajectory plot.
 for iTime = 1:numTimes
+    %% 1:NdDat can be changed to plot species separately (e.g., separate cytGR and nucGR plots)
     for j=1:NdDat
+    %for j=2:2 
         mnsDat(iTime,j) = [0:length(dataHistTime{iTime,j})-1]*dataHistTime{iTime,j};
         mns2Dat(iTime,j) = [0:length(dataHistTime{iTime,j})-1].^2*dataHistTime{iTime,j};
         % Compute the 25% and 75% range from data.
@@ -254,7 +259,9 @@ for iTime = 1:numTimes
 end
 varDat = mns2Dat-mnsDat.^2;
 T_array = app.DataLoadingAndFittingTabOutputs.fittingOptions.dataTimes;
+%% 1:NdDat can be changed to plot species separately (e.g., separate cytGR and nucGR plots)
 for j=1:NdDat
+%for j=2:2
     switch varianceType
         case 'STD'
             errorbar(meanVarTrajAxis,T_array,...
