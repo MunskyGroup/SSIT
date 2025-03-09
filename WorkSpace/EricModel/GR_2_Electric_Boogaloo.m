@@ -16,7 +16,7 @@ addpath('tmpPropensityFunctions');
 loadPrevious = false;
 savedWorkspace = 'workspace_Boogaloo';
 
-fitOptions = optimset('Display','iter','MaxIter',300);
+fitOptions = optimset('Display','iter','MaxIter',200);
  
 %%
 GR = input('(1) Convolve GR-alpha + GR-beta with FSP;\n(2) ODES for GR-alpha + GR-beta;\n(3) SSAs\nChoose your destiny: ');
@@ -92,7 +92,7 @@ switch GR
         data = readtable('../EricModel/EricData/GR_ALL_gated_with_CytoArea_and_normGR_Feb2825_03.csv');
 
         % Filter the data if desired for particular Time_index and/or dex_conc
-        filteredData = data(data.time == 180 & data.dex_conc == 100, :);
+        filteredData = data(data.time == 10 & data.dex_conc == 100, :);
 
         % Randomly sample 1000 points from the filtered data
         numSamples = min(1000, height(filteredData)); % Ensure we don’t sample more than available data
@@ -129,7 +129,6 @@ switch GR
         GRpars_a = cell2mat(ModelGR_a.parameters(1:8,2))'; 
         GRpars_b = cell2mat(ModelGR_b.parameters(1:5,2))';
 
-
         % The log prior will be applied to the fit to multiple models as an additional constraint.
         log10PriorMean_a = [-2 -5 -6 -5 0.5 -3 -3 -2];
         log10PriorMean_b = [-2 -5 -6 -2 -5];
@@ -146,23 +145,43 @@ switch GR
             '100','100',103,'GR Fit (100nM Dex)'};
 
         ModelGRparameterMap_a = cell(1,size(GRfitCases,1));
+        ModelGRparameterMap_b = cell(1,size(GRfitCases,1));
         ModelGRfit_a = cell(1,size(GRfitCases,1));
-        ModelGRfit_b = cell(1,1);
+        ModelGRfit_b = cell(1,size(GRfitCases,1));
 
-        % Load data for GR-beta
-        ModelGRfit_b{1} = ModelGR_b.loadData("../EricModel/EricData/GR_ALL_gated_with_CytoArea_and_normGR_Feb2825_03.csv",...
-                {'nucGR_b','normGRnuc';'cytGR_b','normGRcyt'},{'dex_conc','100'});
+        %% Load data for GR-alpha for 3 experimental conditions (Dex concentration 1,10,100nM)
+        % NEW GR DATA
+        ModelGRfit_a{1} = ModelGR_a.loadData("EricData/GR_ALL_gated_with_CytoArea_and_normGR_Feb2825_03_dex_conc_1.csv",...
+                                               {'nucGR_a','normGRnuc';'cytGR_a','normGRcyt'});
+        ModelGRfit_a{2} = ModelGR_a.loadData("EricData/GR_ALL_gated_with_CytoArea_and_normGR_Feb2825_03_dex_conc_10.csv",...
+                                               {'nucGR_a','normGRnuc';'cytGR_a','normGRcyt'});
+        ModelGRfit_a{3} = ModelGR_a.loadData("EricData/GR_ALL_gated_with_CytoArea_and_normGR_Feb2825_03_dex_conc_100.csv",...
+                                               {'nucGR_a','normGRnuc';'cytGR_a','normGRcyt'});
+
+        %% Load data for GR-beta (Dex conc. does not affect GR-beta, but it's easier to compare with GR-alpha
+        %%                          to compare data from each of the 3 conditions)
+        % NEW GR DATA
+        ModelGRfit_b{1} = ModelGR_b.loadData("EricData/GR_ALL_gated_with_CytoArea_and_normGR_Feb2825_03_dex_conc_1.csv",...
+                                               {'nucGR_b','normGRnuc';'cytGR_b','normGRcyt'});
+        ModelGRfit_b{2} = ModelGR_b.loadData("EricData/GR_ALL_gated_with_CytoArea_and_normGR_Feb2825_03_dex_conc_10.csv",...
+                                               {'nucGR_b','normGRnuc';'cytGR_b','normGRcyt'});
+        ModelGRfit_b{3} = ModelGR_b.loadData("EricData/GR_ALL_gated_with_CytoArea_and_normGR_Feb2825_03_dex_conc_100.csv",...
+                                               {'nucGR_b','normGRnuc';'cytGR_b','normGRcyt'});
 
         % ModelGRODEfit = cell(1,size(GRfitCases,1));
         
         % Load data, fit 3 Dex concentrations to GR-alpha's 'Dex0' parameter,
         % and set solution scheme to FSP.
         for i=1:3
-            ModelGRfit_a{i} = ModelGR_a.loadData("../EricModel/EricData/GR_ALL_gated_with_CytoArea_and_normGR_Feb2825_03.csv",...
-                {'nucGR_a','normGRnuc';'cytGR_a','normGRcyt'},...
-                {'dex_conc',GRfitCases{i,2}});
+            %ModelGRfit_a{i} = ModelGR_a.loadData("../EricModel/EricData/GR_ALL_gated_with_CytoArea_and_normGR_Feb2825_03.csv",...
+            %                                    {'nucGR_a','normGRnuc';'cytGR_a','normGRcyt'},...
+            %                                    {'dex_conc',GRfitCases{i,2}});
+            %ModelGRfit_b{i} = ModelGR_b.loadData("../EricModel/EricData/GR_ALL_gated_with_CytoArea_and_normGR_Feb2825_03.csv",...
+            %                                    {'nucGR_b','normGRnuc';'cytGR_b','normGRcyt'},...
+            %                                    {'dex_conc',GRfitCases{i,2}});
             ModelGRfit_a{i}.parameters(9,:) = {'Dex0', str2num(GRfitCases{i,1})};
-            ModelGRparameterMap_a(i) = {(1:8)}; 
+            ModelGRparameterMap_a(i) = {(1:8)};  
+            ModelGRparameterMap_b(i) = {(1:5)};
         end
  
         % Make Guesses for the FSP bounds
@@ -188,16 +207,17 @@ switch GR
     % TODO: Automate with statistics.
 
     fitIters = 3; % 3 concentrations of Dex (1,10,100nM)
-    fitMHiters = 2; % Adjust as needed
+    fitMHiters = 1; % Adjust as needed
     
     for GR = 1:fitMHiters
         % Specify dataset time points for GR-alpha.    
         for i = 1:3
             ModelGRfit_a{i}.tSpan = ModelGRfit_a{i}.dataSet.times;
+            ModelGRfit_b{i}.tSpan = ModelGRfit_b{i}.dataSet.times;
         end
 
         % Specify dataset time points for GR-beta.
-        ModelGRfit_b{1}.tSpan = ModelGRfit_b{1}.dataSet.times;
+        %ModelGRfit_b{1}.tSpan = ModelGRfit_b{1}.dataSet.times;
 
         
         %%
@@ -267,17 +287,23 @@ switch GR
             combinedGRModel_a = combinedGRModel_a.updateModels(GRpars_a,false);
             GRpars_a = combinedGRModel_a.maximizeLikelihood(GRpars_a, fitOptions);
             save('combinedGRModel_a','GRpars_a') 
+            %% Solve for GR-beta model.
+            combinedGRModel_b = SSITMultiModel(ModelGRfit_b,ModelGRparameterMap_b,logPriorGR_b);
+            combinedGRModel_b = combinedGRModel_b.initializeStateSpaces(boundGuesses);
+            combinedGRModel_b = combinedGRModel_b.updateModels(GRpars_b,false);
+            GRpars_b = combinedGRModel_b.maximizeLikelihood(GRpars_b, fitOptions);
+            save('combinedGRModel_b','GRpars_b') 
         end
         
         %% Solve for GR-beta model.
-        ModelGRfit_b{1}.fspOptions.fspTol = 1e-4;
-        ModelGRfit_b{1}.fspOptions.bounds = boundGuesses{1};
-        [GR_b_fspSoln,ModelGRfit_b{1}.fspOptions.bounds] = ModelGRfit_b{1}.solve;
-        [GR_b_fspSoln,ModelGRfit_b{1}.fspOptions.bounds] = ModelGRfit_b{1}.solve(GR_b_fspSoln.stateSpace);
-        GRpars_b = ModelGRfit_b{1}.maximizeLikelihood(GRpars_b, fitOptions);
-        save('ModelGRfit_b','GRpars_b','GR_b_fspSoln')             
-
-        save('GRpars_a','combinedGRModel_a', 'ModelGRfit_a','ModelGRfit_b','GRpars_b','GR_b_fspSoln')
+        % ModelGRfit_b{1}.fspOptions.fspTol = 1e-4;
+        % ModelGRfit_b{1}.fspOptions.bounds = boundGuesses{1};
+        % [GR_b_fspSoln,ModelGRfit_b{1}.fspOptions.bounds] = ModelGRfit_b{1}.solve;
+        % [GR_b_fspSoln,ModelGRfit_b{1}.fspOptions.bounds] = ModelGRfit_b{1}.solve(GR_b_fspSoln.stateSpace);
+        % GRpars_b = ModelGRfit_b{1}.maximizeLikelihood(GRpars_b, fitOptions);
+        % save('ModelGRfit_b','GRpars_b','GR_b_fspSoln')             
+        % 
+        % save('GRpars_a','combinedGRModel_a', 'ModelGRfit_a','ModelGRfit_b','GRpars_b','GR_b_fspSoln')
         
 
         %% Compute FIM 
@@ -288,6 +314,10 @@ switch GR
             diag(1./(log10PriorStd_a(ModelGR_a.fittingOptions.modelVarsToFit)*log(10)).^2);  % Add prior in log space.
 
         % for ModelGR_b parameters.
+        combinedGRModel_b = combinedGRModel_b.computeFIMs([],'log');
+
+        fimGR_b_withPrior = combinedGRModel_b.FIM.totalFIM+... % the FIM in log space.
+            diag(1./(log10PriorStd_b(ModelGR_b.fittingOptions.modelVarsToFit)*log(10)).^2);  % Add prior in log space.
         %ModelGR_b_fimResults = ModelGRfit_b{1}.computeFIM([],'log'); % Compute individual FIMs
 
         %fimGR_b_withPrior = ModelGRfit_b{1}.totalFim(ModelGR_b_fimResults,ModelGRfit_b{1}.dataSet.nCells,diag(1./(log10PriorStd_b(ModelGRfit_b{1}.fittingOptions.modelVarsToFit)*log(10)).^2));  % Add prior in log space.
@@ -300,13 +330,12 @@ switch GR
         fimGR_a_covFree = fimGR_a_withPrior^-1;
         fimGR_a_covFree = 0.5*(fimGR_a_covFree+fimGR_a_covFree');
 
-        % if min(eig(fimGR_b_withPrior{1}))<1
-        %     disp('Warning -- FIM has one or more small eigenvalues. Reducing proposal width to 10x in those directions. MH Convergence may be slow.')
-        %     fimGR_b_withPrior{1} = fimGR_b_withPrior{1} + 1*eye(length(fimGR_b_withPrior{1}));
-        % end
-        % fimGR_b_covFree = fimGR_b_withPrior{1}^-1;
-        % fimGR_b_covFree = 0.5*(fimGR_b_covFree+fimGR_b_covFree');
-
+        if min(eig(fimGR_b_withPrior))<1
+             disp('Warning -- FIM has one or more small eigenvalues. Reducing proposal width to 10x in those directions. MH Convergence may be slow.')
+             fimGR_b_withPrior = fimGR_b_withPrior + 1*eye(length(fimGR_b_withPrior));
+        end
+        fimGR_b_covFree = fimGR_b_withPrior^-1;
+        fimGR_b_covFree = 0.5*(fimGR_b_covFree+fimGR_b_covFree');
     
         %% Run MH on GR Models.
         %GRpars = GRpars';
@@ -339,20 +368,20 @@ switch GR
             end
         end
         %% GR_beta
-        % MHFitOptions_b.thin=1;
-        % MHFitOptions_b.numberOfSamples=1000;
-        % MHFitOptions_b.burnIn=100;
-        % MHFitOptions_b.progress=true;
-        % MHFitOptions_b.numChains = 1;
+        % MHfitOptions_b.thin=1;
+        % MHfitOptions_b.numberOfSamples=1000;
+        % MHfitOptions_b.burnIn=100;
+        % MHfitOptions_b.progress=true;
+        % MHfitOptions_b.numChains = 1;
         % 
         % % Use FIM computed above rather than making SSIT call 'useFIMforMetHast'
         % % which forces SSIT.m to compute it within (no prior, etc.)
-        % MHFitOptions_b.useFIMforMetHast = false;
-        % MHFitOptions_b.proposalDistribution=@(y)mvnrnd(y,fimGR_b_covFree);
+        % MHfitOptions_b.useFIMforMetHast = false;
+        % MHfitOptions_b.proposalDistribution=@(x)mvnrnd(x,fimGR_b_covFree);
         % 
-        % MHFitOptions_b.saveFile = 'TMPEricMHGR_b.mat';
-        % [~,~,MHResultsGR_b] = ModelGRfit_b{1}.maximizeLikelihood(...
-        %     GRpars_b, MHFitOptions_b, 'MetropolisHastings');
+        % MHfitOptions_b.saveFile = 'TMPEricMHGR_b.mat';
+        % [~,~,MHResultsGR_b] = combinedGRModel_b.maximizeLikelihood(...
+        %     GRpars_b, MHfitOptions_b, 'MetropolisHastings');
         % %delete(MHFitOptions.saveFile)
         % %MHResultsGR
         % %
@@ -376,6 +405,7 @@ switch GR
 
     for model=1:size(GRfitCases,1)
         dataDex = data(data.dex_conc == str2double(GRfitCases{model}), :);
+        %for t=1:max(numel(fspSolnsSMM(model).fsp),numel(GR_b_fspSoln.fsp))
         for t=1:max(numel(fspSolnsSMM(model).fsp),numel(GR_b_fspSoln.fsp))
             % Figure index
             figIndex = (model - 1) * 7 + t;
@@ -392,7 +422,7 @@ switch GR
             randomIndices = randperm(height(dataDexTime), numSamples);
             normGRnuc = dataDexTime.normGRnuc(randomIndices);
             normGRcyt = dataDexTime.normGRcyt(randomIndices);
-                
+
             % t is time point, so solution tensors are FSP probabilities across states for each time point
             conv2solnTensor_postData{t} = conv2(double(fspSolnsSMM(model).fsp{t}.p.data),double(GR_b_fspSoln.fsp{t}.p.data));
             figure(figIndex)
@@ -408,12 +438,12 @@ switch GR
             contourf(log10(fspsoln_sptensor_a_postData{t}))
             hold on
             scatter(normGRcyt, normGRnuc, 'r', 'filled') % Red dots
-    
+
             subplot(1,3,2)
             contourf(log10(fspsoln_sptensor_b_postData{t}))
             hold on
             scatter(normGRcyt, normGRnuc, 'r', 'filled') % Red dots
-    
+
             subplot(1,3,3)
             contourf(log10(conv2solnTensor_postData{t}))
             hold on
@@ -426,7 +456,7 @@ switch GR
     data = readtable('../EricModel/EricData/GR_ALL_gated_with_CytoArea_and_normGR_Feb2825_03.csv');
 
         % Filter the data if desired for particular Time_index and/or dex_conc
-        filteredData = data(data.time == 150 & data.dex_conc == 10, :);
+        filteredData = data(data.time == 180 & data.dex_conc == 10, :);
 
         % Randomly sample 1000 points from the filtered data
         numSamples = min(1000, height(filteredData)); % Ensure we don’t sample more than available data
@@ -440,7 +470,14 @@ switch GR
         for logL=1:max(size(conv2solnTensor_postData))
             logLikelihood = sum(log(conv2solnTensor_postData{logL}(normgr>0)).*normgr((normgr>0)),"all")
         end
-    %%
+    %%     STEP 1.F. -- Make Plots of GR Fit Results
+        makeGRPlots(combinedGRModel_a,GRpars_a)
+
+        % ModelGRfit_b{1}.makeFitPlot([],1,[],true,'STD')
+
+        makeGRPlots(combinedGRModel_b,GRpars_b)
+    
+
     save('conv2solnTensor_postData','GRpars_a','combinedGRModel_a', 'ModelGRfit_a','ModelGRfit_b','GRpars_b','GR_b_fspSoln', 'fspSolnsSMM')
 
     dusp1 = input('(0) GR-beta turns off the DUSP1 gene;\n(1) GR-beta has no effect on DUSP1;\nChoose your destiny: ');

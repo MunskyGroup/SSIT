@@ -10,7 +10,7 @@ close all
 clear
 addpath(genpath('../../src'));
 loadPrevious = false;
-savedWorkspace = 'workspaceDec9_2024';
+savedWorkspace = 'workspaceMar9_2025';
 addpath('tmpPropensityFunctions');
 
 %% GR model
@@ -406,7 +406,7 @@ for DS = 1:fitMHiters
 
     %%      STEP 2.D.3. -- Run Metropolis Hastings Search
     if loadPrevious
-        MHDusp1File = 'MHDusp1_Dec92024';
+        MHDusp1File = 'MHDusp1_Dec92025';
         load(MHDusp1File)
     else
         MHFitOptions.proposalDistribution=@(x)mvnrnd(x,covFree);
@@ -422,7 +422,7 @@ for DS = 1:fitMHiters
         ModelGRDusp100nM.parameters(1:4,2) = num2cell(DUSP1pars);
     end
     
-    save('workspaceDec9_2024.mat','ModelGRDusp100nM','DUSP1pars','fimTotal','sensSoln','combinedGRModel','MHResultsDusp1')
+    save('workspaceMar9_2025.mat','ModelGRDusp100nM','DUSP1pars','fimTotal','sensSoln','combinedGRModel','MHResultsDusp1')
 
     %%      STEP 2.D.4. -- Plot the MH results
     figNew = figure;
@@ -459,7 +459,7 @@ varNames = unique({'ModelGR'
     'sensSoln'
     });
 
-save('workspaceDec9_2024',varNames{:}) % WARNING: THIS OVERWRITE THE PREVIOUSLY SAVED WORKSPACE - TODO: FIX
+save('workspaceMar9_2025',varNames{:}) % WARNING: THIS OVERWRITE THE PREVIOUSLY SAVED WORKSPACE - TODO: FIX
 
 %%  STEP 3. -- Model Extensions using ODE Analyses
 if loadPrevious
@@ -723,7 +723,7 @@ varNames = unique({'ModelGR'
     'sensSoln'
     });
 
-save('workspaceDec9_2024',varNames{:})
+save('workspaceMar9_2025',varNames{:})
 
 %% Extra Function
 
