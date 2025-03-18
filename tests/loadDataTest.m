@@ -31,5 +31,6 @@ addpath(genpath('../src'));
                                         {'dex_conc',GRfitCases{i,1}});  
         % Print a few columns of the data, including Dex conc. to see if
         % the filtering (loadData conditions worked)
-        disp(ModelGRfit{i}.dataSet.DATA(1:3,4:6))
+        disp("Model"+i+": time, Dex conc, cytGR, nucGR")
+        disp(ModelGRfit{i}.dataSet.DATA(1:3,[5:6,10:11]))
     end
