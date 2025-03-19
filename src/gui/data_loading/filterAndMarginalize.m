@@ -46,7 +46,11 @@ end
 if ~isempty(loopCond)
     for iC = 1:length(loopCond)
         condStr = app.DataLoadingAndFittingTabOutputs.conditionOnArray{iC,2}; % find string to condition on
-        condCell = cellstr(condStr);                                    % convert string to cell
+        if ischar(condStr)
+            condCell = cellstr(condStr); 
+        elseif isnumeric(condStr)
+            condCell = cellstr(num2str(condStr));
+        end% convert string to cell
         condIndLoc = ismember(histDataStr(:,loopCond(iC)),condCell)';
         histDataStr = histDataStr(condIndLoc,:);                        % only keep idx rows
         clearvars condInd rowNum

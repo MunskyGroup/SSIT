@@ -376,6 +376,42 @@ classdef poissonTest < matlab.unittest.TestCase
             FIMOptExptBase = Model.totalFim(fimResults,NcOptExperimentBase+NcBase);
             Model.plotMHResults(MHResults,[FIM,FIMOptExpt,FIMOptExptBase])
 
-        end  
+        end
+
+        function dataLoading(testCase)
+
+            % create some fake data
+            time = floor([1:1000]'/100);
+            x1 = [1001:2000]';
+            x2 = [2001:3000]';
+            cond1 = 10.^round(3*rand(1000,1));
+            cond2 = 10.^round(3*rand(1000,1));
+            Tab = table(time,x1,x2,cond1,cond2);
+            writetable(Tab,'TMPtable.csv')
+
+            Model = SSIT;
+            Model.species = {'cytGR';'nucGR'};
+
+            %%
+            Model = Model.loadData('TMPtable.csv',...
+                {'cytGR','x1'},...
+                {'cond1','10';'cond2','100'});
+
+            correctAnswers.Q1 = sum(Tab.x1(time==2&cond1==10&cond2==100));
+            answers.Q1 = Model.dataSet.nCells(3)*Model.dataSet.mean(3);
+
+            %%
+            Model = Model.loadData('TMPtable.csv',...
+                {'cytGR','x1'},...
+                {'cond1',10});
+
+            correctAnswers.Q2 = sum(Tab.x1(time==2&cond1==10));
+            answers.Q2 = Model.dataSet.nCells(3)*Model.dataSet.mean(3);
+
+            testCase.verifyEqual(correctAnswers.Q1==answers.Q1,true);
+            testCase.verifyEqual(correctAnswers.Q2==answers.Q2,true);
+            
+
+        end
     end
 end
