@@ -10,7 +10,7 @@ close all
 clear
 addpath(genpath('../../src'));
 loadPrevious = false;
-savedWorkspace = 'workspaceMar9_2025';
+savedWorkspace = 'workspaceDec9_2024';
 addpath('tmpPropensityFunctions');
 
 %% GR model
@@ -125,18 +125,20 @@ else
     %           {'nucGR','normgrnuc';'cytGR','normgrcyt'});
 
     % NEW GR DATA
-    ModelGRfit{1} = ModelGR.loadData("EricData/GR_ALL_gated_with_CytoArea_and_normGR_Feb2825_03_dex_conc_1.csv",...
-              {'nucGR','normGRnuc';'cytGR','normGRcyt'});
-    ModelGRfit{2} = ModelGR.loadData("EricData/GR_ALL_gated_with_CytoArea_and_normGR_Feb2825_03_dex_conc_10.csv",...
-              {'nucGR','normGRnuc';'cytGR','normGRcyt'});
-    ModelGRfit{3} = ModelGR.loadData("EricData/GR_ALL_gated_with_CytoArea_and_normGR_Feb2825_03_dex_conc_100.csv",...
-              {'nucGR','normGRnuc';'cytGR','normGRcyt'});
+    % ModelGRfit{1} = ModelGR.loadData("EricData/GR_ALL_gated_with_CytoArea_and_normGR_Feb2825_03_dex_conc_1.csv",...
+    %            {'nucGR','normGRnuc';'cytGR','normGRcyt'});
+    % ModelGRfit{2} = ModelGR.loadData("EricData/GR_ALL_gated_with_CytoArea_and_normGR_Feb2825_03_dex_conc_10.csv",...
+    %            {'nucGR','normGRnuc';'cytGR','normGRcyt'});
+    % ModelGRfit{3} = ModelGR.loadData("EricData/GR_ALL_gated_with_CytoArea_and_normGR_Feb2825_03_dex_conc_100.csv",...
+    %            {'nucGR','normGRnuc';'cytGR','normGRcyt'});
     
     for i=1:3
         % ModelGRfit{i} = ModelGR.loadData("EricData/Gated_dataframe_Ron_020224_NormalizedGR_bins.csv",...
         %     {'nucGR','normgrnuc';'cytGR','normgrcyt'},...
         %     {'Dex_Conc',GRfitCases{i,2}});        
-        %ModelGRfit{i} = ModelGR.loadData("EricData/GR_ALL_gated_with_CytoArea_and_normGR_Feb2825_03.csv",{'nucGR','normGRnuc';'cytGR','normGRcyt'},
+        ModelGRfit{i} = ModelGR.loadData("EricData/GR_ALL_gated_with_CytoArea_and_normGR_Feb2825_03.csv",...
+                                        {'nucGR','normGRnuc';'cytGR','normGRcyt'},{'dex_conc',GRfitCases{i,2}});
+            disp(ModelGRfit{i}.dataSet.DATA(1:5,6))
         ModelGRfit{i}.parameters(13,:) = {'Dex0', str2num(GRfitCases{i,1})};
         ModelGRparameterMap(i) = {(1:8)};
         % parameters 1 - 8 refer to the parameter set that is relevant to
@@ -161,7 +163,7 @@ end
 % TODO: Automate with statistics.
 % Set for STEP1 -- Fit GR Models
 fitIters = 3;
-fitMHiters = 2;
+fitMHiters = 1;
 
 for GR = 1:fitMHiters
     % STEP 1.A. -- Specify dataset time points.    
@@ -250,16 +252,16 @@ end
 
 
 %%     STEP 1.F. -- Make Plots of GR Fit Results
-makeGRPlots(combinedGRModel,GRpars)
+%makeGRPlots(combinedGRModel,GRpars)
 
 
 %combinedGRModel = combinedGRModel.updateModels(GRpars,false);
-%for i=1:length(ModelGRfit)
+for i=1:length(ModelGRfit)
     %  Update parameters in original models.
-%    ModelGRfit{i} = combinedGRModel.SSITModels{i};
-%    ModelGRfit{i}.tSpan = sort(unique([ModelGRfit{i}.tSpan,linspace(0,180,30)]));
-%    ModelGRfit{i}.makeFitPlot([],1,[],true,'STD')
-%end
+    ModelGRfit{i} = combinedGRModel.SSITModels{i};
+    ModelGRfit{i}.tSpan = sort(unique([ModelGRfit{i}.tSpan,linspace(0,180,30)]));
+    ModelGRfit{i}.makeFitPlot([],1,[],true,'STD')
+end
 
 save('EricModelGR_MMDex','GRpars','combinedGRModel','MHResultsGR') 
 save('workspaceMay4_2025.mat','GRpars', 'ModelGRfit', 'combinedGRModel','MHResultsGR', 'log10PriorStd', 'ModelGRparameterMap')
@@ -406,7 +408,7 @@ for DS = 1:fitMHiters
 
     %%      STEP 2.D.3. -- Run Metropolis Hastings Search
     if loadPrevious
-        MHDusp1File = 'MHDusp1_Dec92025';
+        MHDusp1File = 'MHDusp1_Dec92024';
         load(MHDusp1File)
     else
         MHFitOptions.proposalDistribution=@(x)mvnrnd(x,covFree);
@@ -422,7 +424,7 @@ for DS = 1:fitMHiters
         ModelGRDusp100nM.parameters(1:4,2) = num2cell(DUSP1pars);
     end
     
-    save('workspaceMar9_2025.mat','ModelGRDusp100nM','DUSP1pars','fimTotal','sensSoln','combinedGRModel','MHResultsDusp1')
+    save('workspaceDec9_2024.mat','ModelGRDusp100nM','DUSP1pars','fimTotal','sensSoln','combinedGRModel','MHResultsDusp1')
 
     %%      STEP 2.D.4. -- Plot the MH results
     figNew = figure;
@@ -459,7 +461,7 @@ varNames = unique({'ModelGR'
     'sensSoln'
     });
 
-save('workspaceMar9_2025',varNames{:}) % WARNING: THIS OVERWRITE THE PREVIOUSLY SAVED WORKSPACE - TODO: FIX
+save('workspaceDec9_2024',varNames{:}) % WARNING: THIS OVERWRITE THE PREVIOUSLY SAVED WORKSPACE - TODO: FIX
 
 %%  STEP 3. -- Model Extensions using ODE Analyses
 if loadPrevious
@@ -723,7 +725,7 @@ varNames = unique({'ModelGR'
     'sensSoln'
     });
 
-save('workspaceMar9_2025',varNames{:})
+save('workspaceDec9_2024',varNames{:})
 
 %% Extra Function
 
