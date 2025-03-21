@@ -480,38 +480,108 @@ switch GR
 
     case 2 
         %% ODEs        
-        ModelGR = SSIT;
-        ModelGR.species = {'cytGR_a';'nucGR_a';'cytGR_b';'nucGR_b'};
-        ModelGR.initialCondition = [5;1;5;1];
-        ModelGR.propensityFunctions = {'(kcn0 + (t>0)*kcn1*IDex/(MDex+IDex)) * cytGR_a'; 'ba1'; 'dc * cytGR_a'; 
-            'kn2c * nucGR_a'; 'dn * nucGR_a'; 'kb1 * cytGR_b'; 'bb1'; 'dc * cytGR_b'; 'kn2c * nucGR_b'; 'dn * nucGR_b'};
-        ModelGR.stoichiometry = [-1,1,-1,1,0;...
-                                  1,0,0,-1,-1;...
-                                 -1,1,-1,1,0;...
-                                  1,0,0,-1,-1];
-        ModelGR.parameters = ({'kn2c',0.01;'dc',1e-5;'dn',1e-6;'ba1',14e-5;...
-                               'MDex',5;'gDex',0.003;'kcn0',0.005;'kcn1',0.02;...
-                               'kb1',0.01;'bb1',14e-5;'Dex0',100});
-        ModelGR.inputExpressions = {'IDex','Dex0*exp(-gDex*t)'};
+        ODE_ModelGR = SSIT;
+        ODE_ModelGR.species = {'cytGR_a';'nucGR_a';'cytGR_b';'nucGR_b'};
+        ODE_ModelGR.initialCondition = [7;2;8;2];
+        ODE_ModelGR.propensityFunctions = {'(kcn0 + (t>0)*kcn1*IDex/(MDex+IDex)) * cytGR_a'; 'ba1'; 'dc * cytGR_a'; 'kn2c * nucGR_a'; 'dn * nucGR_a';... 
+                                            'kcn * cytGR_b'; 'bb1'; 'dc * cytGR_b'; 'kn2c * nucGR_b'; 'dn * nucGR_b'};
+        ODE_ModelGR.stoichiometry = [-1,1,-1,1,0,0,0,0,0,0;...
+                                      1,0,0,-1,-1,0,0,0,0,0;...
+                                      0,0,0,0,0,-1,1,-1,1,0;...
+                                      0,0,0,0,0,1,0,0,-1,-1];
+        ODE_ModelGR.parameters = ({'kn2c',0.01;'dc',1e-5;'dn',1e-6;'ba1',14e-5;...
+                                   'MDex',5;'gDex',0.003;'kcn0',0.005;'kcn1',0.02;...
+                                   'kcn',0.01;'bb1',14e-5;'Dex0',100});
+        ODE_ModelGR.inputExpressions = {'IDex','Dex0*exp(-gDex*t)'};
+
+        ODE_ModelGR.solutionScheme = 'ode';
+        ODE_ModelGR.useHybrid = false;
+        ODE_ModelGR.fittingOptions.modelVarsToFit = (1:10);
+
         disp('The GR model is: ')
-        ModelGR.summarizeModel
+        ODE_ModelGR.summarizeModel
 
-        ModelGR.fspOptions.initApproxSS = true;
+        ODE_ModelGR = ODE_ModelGR.formPropensitiesGeneral('ODE_GR');
 
-        ModelGR.fittingOptions.modelVarsToFit = (1:10);
+        %% Solve ODE and make plots
+        ODE_GR_soln = ODE_ModelGR.solve; 
+        plotODE(ODE_GR_soln,ODE_ModelGR.species)
 
-        ModelGR = ModelGR.formPropensitiesGeneral('ODE_GR');
-         
+        dusp1 = input('(1) GR-beta turns off the DUSP1 gene;\n(2) GR-beta has no effect on DUSP1;\nChoose your destiny: ');
+
+        switch dusp1
+            case 1 
+                %% GR-beta turns off DUSP1
+                % Add DUSP1 to model
+                ODE_ModelDUSP = ODE_ModelGR;
+                ODE_ModelDUSP = ODE_ModelDUSP.addSpecies({'offGene'},2);
+                ODE_ModelDUSP = ODE_ModelDUSP.addSpecies({'onGene'},0);
+                ODE_ModelDUSP = ODE_ModelDUSP.addSpecies({'rna'},5);
+        
+                ODE_ModelDUSP.propensityFunctions{11,1} = 'kon*offGene*nucGR_a';
+                ODE_ModelDUSP.propensityFunctions{12,1} = 'koff*onGene*nucGR_b';
+                ODE_ModelDUSP.propensityFunctions{13,1} = 'kr*onGene';
+                ODE_ModelDUSP.propensityFunctions{14,1} = 'dr*rna';
+        
+                ODE_ModelDUSP.stoichiometry = [-1,1,-1,1,0,0,0,0,0,0,0,0,0,0;...
+                                                1,0,0,-1,-1,0,0,0,0,0,0,0,0,0;...
+                                                0,0,0,0,0,-1,1,-1,1,0,0,0,0,0;...
+                                                0,0,0,0,0,1,0,0,-1,-1,0,0,0,0;...
+                                                0,0,0,0,0,0,0,0,0,0,-1,1,0,0;...
+                                                0,0,0,0,0,0,0,0,0,0,1,-1,0,0;...
+                                                0,0,0,0,0,0,0,0,0,0,0,0,1,-1];
+        
+                ODE_ModelDUSP.parameters(12,:) = {'koff',0.1};
+                ODE_ModelDUSP.parameters(13,:) = {'kon',0.1};
+                ODE_ModelDUSP.parameters(14,:) = {'kr',1};
+                ODE_ModelDUSP.parameters(15,:) = {'dr',0.02};
+        
+                ODE_ModelDUSP.summarizeModel
+        
+                %% Solve ODE
+                ODE_DUSP_soln = ODE_ModelDUSP.solve;
+        
+                %% Plot ODE Results (100nM Dex) 
+                plotODE(ODE_DUSP_soln,ODE_ModelDUSP.species)
+            case 2
+                %% GR-beta has no effect on DUSP1
+                % Add DUSP1 to model
+                ODE_ModelDUSP = ODE_ModelGR;
+                ODE_ModelDUSP = ODE_ModelDUSP.addSpecies({'offGene'},2);
+                ODE_ModelDUSP = ODE_ModelDUSP.addSpecies({'onGene'},0);
+                ODE_ModelDUSP = ODE_ModelDUSP.addSpecies({'rna'},5);
+        
+                ODE_ModelDUSP.propensityFunctions{11,1} = 'kon*offGene*nucGR_a';
+                ODE_ModelDUSP.propensityFunctions{12,1} = 'koff*onGene';
+                ODE_ModelDUSP.propensityFunctions{13,1} = 'kr*onGene';
+                ODE_ModelDUSP.propensityFunctions{14,1} = 'dr*rna';
+        
+                ODE_ModelDUSP.stoichiometry = [-1,1,-1,1,0,0,0,0,0,0,0,0,0,0;...
+                                                1,0,0,-1,-1,0,0,0,0,0,0,0,0,0;...
+                                                0,0,0,0,0,-1,1,-1,1,0,0,0,0,0;...
+                                                0,0,0,0,0,1,0,0,-1,-1,0,0,0,0;...
+                                                0,0,0,0,0,0,0,0,0,0,-1,1,0,0;...
+                                                0,0,0,0,0,0,0,0,0,0,1,-1,0,0;...
+                                                0,0,0,0,0,0,0,0,0,0,0,0,1,-1];
+        
+                ODE_ModelDUSP.parameters(12,:) = {'koff',0.1};
+                ODE_ModelDUSP.parameters(13,:) = {'kon',0.1};
+                ODE_ModelDUSP.parameters(14,:) = {'kr',1};
+                ODE_ModelDUSP.parameters(15,:) = {'dr',0.02};
+        
+                ODE_ModelDUSP.summarizeModel
+        
+                %% Solve ODE
+                ODE_DUSP_soln = ODE_ModelDUSP.solve;
+        
+                %% Plot ODE Results (100nM Dex) 
+                plotODE(ODE_DUSP_soln,ODE_ModelDUSP.species)
+        end
         
         %% Load data into the model
         % Load data for GR-alpha
         ModelGR_ode = ModelGR.loadData("../EricModel/EricData/GR_ALL_gated_with_CytoArea_and_normGR_Feb2825_03.csv",...
                 {'nucGR_a','normGRnuc';'cytGR_a','normGRcyt'},{'Dex_Conc','100'});
-
-
-        %% Switch solver to ODE and generate model codes
-        ModelGR_ode.solutionScheme = 'ode';  % TODO: loop (right now just solve for 100nM Dex)
-        ModelGR_ode.useHybrid = false;
         
         %% Solve and make plots
         ODEsoln_GR = ModelGR_ode.solve; % %TODO: fix broken
@@ -1028,8 +1098,7 @@ switch dusp1
     save('workspace_Feb_2025',varNames{:}) % WARNING: THIS OVERWRITE THE PREVIOUSLY SAVED WORKSPACE - TODO: FIX
 end
 
-%save('conv2solnTensor_postData','GRpars_a','combinedGRModel_a', 'ModelGRfit_a','ModelGRfit_b','GRpars_b','GR_b_fspSoln', 'fspSolnsSMM',...
-%    'fimGR_a_withPrior','fimGR_b_withPrior','ModelGR_b_fimResults','fimGR_a_covFree','fimGR_b_covFree','MHResultsGR_a','MHFitOptions','ModelGRfit');
+
 save('conv2solnTensor_postData','GRpars_a','combinedGRModel_a', 'ModelGRfit_a','ModelGRfit_b','GRpars_b','GR_b_fspSoln', 'fspSolnsSMM',...
     'fimGR_a_withPrior','fimGR_a_covFree','MHResultsGR_a','MHFitOptions','ModelGRfit');
 
