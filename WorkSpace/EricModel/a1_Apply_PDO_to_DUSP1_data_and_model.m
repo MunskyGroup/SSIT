@@ -9,8 +9,8 @@ addpath(genpath('tmpPropensityFunctions'));
 
 loadPrevious = true;
 %savedWorkspace = 'workspaceJuly24';
-%savedWorkspace = 'workspaceOct22_2024';
-savedWorkspace = 'workspaceDec9_2024';
+savedWorkspace = 'workspaceOct22_2024';
+%savedWorkspace = 'workspaceDec9_2025';
 
 if loadPrevious
     load(savedWorkspace);
@@ -93,7 +93,7 @@ ModelPDOIntensEric = ModelPDOIntensEric.calibratePDO('EricData/pdoCalibrationDat
 
 %%    STEP PDO.C. -- FIM + PDO Analyses
 %%      STEP PDO.C.1. -- Analyze FIM with PDO for MCP/smFISH
-fimsPDOSpot = ModelPDOSpots.computeFIM([],'log');
+ fimsPDOSpot = ModelPDOSpots.computeFIM([],'log');
 fimPDOSpots = ModelPDOSpots.evaluateExperiment(fimsPDOSpot,nCellsOpt,diag(GRDusp1_log10PriorStd.^2));
 
 nCellsOptPDOspots = ModelPDOSpots.optimizeCellCounts(fimsPDOSpot,nTotal,'tr[1:4]');

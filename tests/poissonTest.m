@@ -125,7 +125,7 @@ classdef poissonTest < matlab.unittest.TestCase
 
         function DataLoading(testCase)
             % In this test, we check that the code correctly loads the data
-            % geerated using the Poisson model. 
+            % generated using the Poisson model. 
             % Note - this will only work if the code successfully generated
             % the data in the first place.
             Z = double(testCase.Poiss.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor);
@@ -379,7 +379,6 @@ classdef poissonTest < matlab.unittest.TestCase
         end
 
         function dataLoading(testCase)
-
             % create some fake data
             time = floor([1:1000]'/100);
             x1 = [1001:2000]';
@@ -409,9 +408,7 @@ classdef poissonTest < matlab.unittest.TestCase
             answers.Q2 = Model.dataSet.nCells(3)*Model.dataSet.mean(3);
 
             testCase.verifyEqual(correctAnswers.Q1==answers.Q1,true);
-            testCase.verifyEqual(correctAnswers.Q2==answers.Q2,true);
-            
-
+            testCase.verifyEqual(correctAnswers.Q2==answers.Q2,true);            
         end
     end
 end

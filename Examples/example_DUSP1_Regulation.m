@@ -2,7 +2,7 @@
 % Example script to show SSIT application to a simple bursting gene
 % expression model that ios being fit to smFISH data for DUSP1 upon
 % stimulation with Dexamethsone.
-clear all; clc; close all
+clear; clc; close all
 addpath(genpath('../src'));
 
 %% STEP1 == Define SSIT Model

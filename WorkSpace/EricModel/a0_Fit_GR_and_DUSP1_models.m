@@ -9,7 +9,7 @@
 close all 
 clear
 addpath(genpath('../../src'));
-loadPrevious = false;
+loadPrevious = true;
 savedWorkspace = 'workspaceDec9_2024';
 addpath('tmpPropensityFunctions');
 

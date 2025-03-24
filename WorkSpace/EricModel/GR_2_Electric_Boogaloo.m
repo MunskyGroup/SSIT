@@ -507,6 +507,15 @@ switch GR
         ODE_GR_soln = ODE_ModelGR.solve; 
         plotODE(ODE_GR_soln,ODE_ModelGR.species)
 
+        %% Load data into the model
+        ODE_ModelGR = ODE_ModelGR.loadData("../EricModel/EricData/GR_ALL_gated_with_CytoArea_and_normGR_Feb2825_03.csv",...
+                {'nucGR_a','normGRnuc';'cytGR_a','normGRcyt';'nucGR_b','normGRnuc';'cytGR_b','normGRcyt'},{'Dex_Conc','100'});
+
+        %% Solve ODE and make plots
+        ODE_GR_soln = ODE_ModelGR.solve; 
+        plotODE(ODE_GR_soln,ODE_ModelGR.species)
+
+        %% Add DUSP1
         dusp1 = input('(1) GR-beta turns off the DUSP1 gene;\n(2) GR-beta has no effect on DUSP1;\nChoose your destiny: ');
 
         switch dusp1
@@ -758,6 +767,14 @@ switch GR
                 ssaSoln_DUSP = SSA_ModelDUSP.solve;
         
                 %% Plot SSA Results (100nM Dex) 
+                plotSSA(ssaSoln_DUSP, 'all', 2200);
+
+                %% Load data into the model
+                SSA_ModelDUSP = SSA_ModelDUSP.loadData("../EricModel/EricData/GR_ALL_gated_with_CytoArea_and_normGR_Feb2825_03.csv",...
+                {'nucGR_a','normGRnuc';'cytGR_a','normGRcyt';'nucGR_b','normGRnuc';'cytGR_b','normGRcyt'},{'Dex_Conc','100'});
+
+                %% Run SSA Simulations and plot results (100nM Dex) 
+                ssaSoln_DUSP = SSA_ModelDUSP.solve;
                 plotSSA(ssaSoln_DUSP, 'all', 2200);
             case 2
                 %% GR-beta has no effect on DUSP1
