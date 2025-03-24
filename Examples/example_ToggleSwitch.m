@@ -1,4 +1,4 @@
-%% example_toggleSwitch
+%% example_ToggleSwitch
 % Example script to showcase the following SSIT features for a simple two 
 % species genetic toggle switch model. Features included in this example: 
 % (1) Define model
@@ -102,8 +102,8 @@ B{2}.pdoOptions.PDO = [];  % Do not use PDO.
 B{3} = Model2.loadData('ToggleSSAData50Expts.csv',{'lacI','exp1_s1_Distorted';'lambdaCI','exp1_s2_Distorted'});
 
 %% (8) Sweep over Parameters to Plot Likelihood Function Landscape
-% Note: May take a minute to finish.  Can uncomment "tic" and "toc" to 
-% display elapsed time.
+% Note: May take a minute per sweep to finish.  
+% Can uncomment "tic" and "toc" to display elapsed time.
 %tic
 fitErrorsB1 = B{1}.likelihoodSweep([2,3],linspace(.9,1.1,11),true);
 title('Ideal data. Original FSP.')
@@ -114,14 +114,15 @@ title('Ideal data. Original FSP.')
 % title('Binomial data distortion. FSP+PDO.')
 
 %% (9) Sweep over Parameters to Plot Likelihood Function Landscape
-tic
+% Warning: This can take several minutes to run 3 sweeps.
+%tic
 fitErrorsB1 = B{1}.likelihoodSweep([2,3],linspace(.5,1.5,11),true);
 title('Ideal data. Original FSP.')
 fitErrorsB2 = B{2}.likelihoodSweep([2,3],linspace(.5,1.5,11),true);
 title('Binomial data distortion. Original FSP.')
 fitErrorsB3 = B{3}.likelihoodSweep([2,3],linspace(.5,1.5,11),true);
 title('Binomial data distortion. FSP+PDO.')
-toc
+%toc
 
 %% (10) Plot Results
 for m=1:3
