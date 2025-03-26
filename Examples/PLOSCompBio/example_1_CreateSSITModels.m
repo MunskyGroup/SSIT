@@ -29,7 +29,7 @@ Model.propensityFunctions = {'kon * offGene';'koff * onGene';...
                              'kr * onGene';'gr * mRNA'}; 
 
 % Set initial guesses for parameters:
-Model.parameters = ({'kon',30; 'koff',30; 'kr',100; 'gr',0.005});
+Model.parameters = ({'kon',0.2; 'koff',0.2; 'kr',1; 'gr',0.5});
 
 % Set initial condition (one 'offGene'):
 Model.initialCondition = [1;0;0]; 
@@ -66,3 +66,28 @@ STL1_Model = STL1_Model.addParameter({'a0',0.01;'a1',1;'r1',0.4;'r2',.1});
 
 % Print a summary of STL1_Model
 STL1_Model.summarizeModel
+
+%% Ex.(3) Load and modify a pre-existing SSIT model
+
+% Several simple models are already coded in SSIT and can be quickly 
+% loaded and modified. Below are currently available SSIT models (Mar2025). 
+
+% ModelChoice = 'BirthDeath';      % One species problem
+% ModelChoice = 'CentralDogma':    % Two species problem
+% ModelChoice = 'BurstingGene':    % Two species problem
+% ModelChoice = 'ToggleSwitch';    % Two species problem 
+%                                    (non-linear toggle switch)
+% ModelChoice = 'ToggleSwitch2';   % Two species problem
+% ModelChoice = 'CentralDogmaTV';  % Two species problem (mRNa and protein) 
+%                                    with time-varying transcription rate
+% ModelChoice = 'Repressilator';               % Three species problem
+% ModelChoice = 'BurstingSpatialCentralDogma'; % Four species problem 
+%                                            (gene state, nuclear mRNa, 
+%                                            cytoplasmic mRNA, and protein)
+ModelChoice = 'RepressilatorGenes'; % Nine species problem
+
+% Let's load one of the pre-existing SSIT models
+RepGenes_Model = SSIT(ModelChoice);
+
+% View a summary of the 'RepressilatorGenes' model
+RepGenes_Model.summarizeModel
