@@ -29,7 +29,7 @@ Model.propensityFunctions = {'kon * offGene';'koff * onGene';...
                              'kr * onGene';'gr * mRNA'}; 
 
 % Set initial guesses for parameters:
-Model.parameters = ({'kon',30; 'koff',100; 'kr',0.005; 'gr',0.01});
+Model.parameters = ({'kon',30; 'koff',30; 'kr',100; 'gr',0.005});
 
 % Set initial condition (one 'offGene'):
 Model.initialCondition = [1;0;0]; 
