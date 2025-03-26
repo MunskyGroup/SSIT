@@ -1,12 +1,12 @@
-function plotODE(ODE_GR_soln, speciesNames, timeVec)
+function plotODE(ODE_soln, speciesNames, timeVec)
     % plotODE - Plots ODE solution for all species over time.
     %
     % Inputs:
-    %   ODE_GR_soln: Struct with field 'ode' (nTime × nSpecies)
+    %   ODE_soln: Struct with field 'ode' (nTime × nSpecies)
     %   speciesNames (optional): Cell array of species names
     %   timeVec (optional): Time vector [nTime × 1]
 
-    X = ODE_GR_soln.ode;  % size: [nTime × nSpecies]
+    X = ODE_soln.ode;  % size: [nTime × nSpecies]
     [nTime, numSpecies] = size(X);
 
     % Default time vector if not provided
