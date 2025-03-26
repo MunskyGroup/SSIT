@@ -3,7 +3,7 @@
 % model to some single-cell smFISH data.  For this example, we will use
 % some data collected in Dr. Gregor Neuert's laboratory at Vanderbilt.
 close all
-clear all
+clear
 addpath(genpath('../src'));
 
 %% Create SSIT Model
@@ -16,7 +16,7 @@ addpath(genpath('../src'));
 Model = SSIT;    % Create SSIT instance and call it 'Model'.
 
 % Set species names for bursting gene expression model:
-Model.species = {'offGene';'onGene';'mRNA'}; % Set species names for bursting gene expression model:
+Model.species = {'offGene';'onGene';'mRNA'}; % 
 
 % Set Stoichiometry of reactions:
 Model.stoichiometry = [-1,1,0,0;...

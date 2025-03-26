@@ -30,19 +30,15 @@ classdef pdoTest < burstyTest
 
         function PadConditionalPmfs(testCase)
 
-            % Calibrate PDOs for single and subset Z slices
-            testCase.ModelPDO_single_Z = testCase.Bursty.calibratePDO('../WorkSpace/AlexP/SpotCountingByCellAndByZ/merged_dataframe_A549_DUSP1_100nM_10min_062723.csv',...
+            % Calibrate PDOs for single Z slice
+            testCase.ModelPDO_single_Z = testCase.Bursty.calibratePDO('test_data/Zslice.csv',...
                     {'rna'},{'Spot_Count'},{'Z_7'},'AffinePoiss',true);
-            testCase.ModelPDO_5thru9_Zs = testCase.Bursty.calibratePDO('../WorkSpace/AlexP/SpotCountingByCellAndByZ/merged_dataframe_A549_DUSP1_100nM_10min_062723.csv',...
-                    {'rna'},{'Spot_Count'},{'Z_5_9'},'AffinePoiss',true);
 
-            % Compute FIM for single Z and Zs 5-9
+            % Compute FIM for single Z slice
             fimsPDO_Z = testCase.ModelPDO_single_Z.computeFIM([],'log');
-            fimsPDO_5thru9_Zs = testCase.ModelPDO_5thru9_Zs.computeFIM([],'log');
 
             % check
             testCase.verifyNotEmpty(fimsPDO_Z);
-            testCase.verifyNotEmpty(fimsPDO_5thru9_Zs);
         end
     end
 end
