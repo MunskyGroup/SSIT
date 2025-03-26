@@ -1,5 +1,5 @@
 %% example_CreateSSITModels
-%  Example script to show how to create a model in SSIT.
+%  Example script to show how to create models in SSIT.
 clear
 close all
 addpath(genpath('../src'));
@@ -54,9 +54,8 @@ Model.summarizeModel
 % Create a copy of the simple Bursting Gene model from above:
 STL1_Model = Model;
 
-% Update propensity functions:
-STL1_Model.propensityFunctions = {'offGene * IHog'; 'koff * onGene';...
-                                    'kr * onGene'; 'gr * mRNA'};
+% Update propensity function for the gene activation reaction:
+STL1_Model.propensityFunctions{1} = 'offGene * IHog';
 
 % Define the time-varying TF/MAPK input signal:
 STL1_Model.inputExpressions = {'IHog',...
