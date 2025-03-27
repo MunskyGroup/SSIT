@@ -1,8 +1,8 @@
 % In this example, we show how to create reduced FSP models using different
 % types of projectionbased transformations.
 close all 
-clear all
-addpath(genpath('../src'));
+clear
+addpath(genpath('../../src'));
 
 %% First, choose a model on which to illustrate the reduction approximation,
 % or you can create your own. Here are the example options defined below:

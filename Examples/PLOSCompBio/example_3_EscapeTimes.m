@@ -1,54 +1,72 @@
-%% example_EscapeTimes
-% In this script, we demonstrate how to create and solve a fiorst passage
+%% example_3_EscapeTimes
+% Example script to demonstrate how to create and solve a first-passage 
 % time problem.
 close all
-clear all
-addpath(genpath('../src'));
+clear 
+addpath(genpath('../../src'));
+
+%% Preliminaries
+% Load our models from example_1_CreateSSITModels and inspect them:
+example_1_CreateSSITModels
+Model.summarizeModel
+STL1Model.summarizeModel
+
+% Set the times at distributions will be computed:
+Model.tSpan = linspace(0,20,200);
+STL1Model.tSpan = linspace(0,20,200);
+
+Model_escape = Model;
+STL1Model_escape = STL1Model;
+
+%% Ex.(1) 
 %% Example 1 - a simple transcription/translation model
 % First create a full model (e.g., for mRNA and protein)
-Model1 = SSIT;
-Model1.species = {'rna','protein'};
-Model1.initialCondition = [0;0];
-Model1.propensityFunctions = {'kr';'gr*rna';'k2*rna';'g2*protein'};
-Model1.stoichiometry = [1,-1,0,0;0,0,1,-1];
-Model1.parameters = ({'kr',100;'gr',0.5;...
-    'k2',2;'g2',1});
+% Model1 = SSIT;
+% Model1.species = {'rna','protein'};
+% Model1.initialCondition = [0;0];
+% Model1.propensityFunctions = {'kr';'gr*rna';'k2*rna';'g2*protein'};
+% Model1.stoichiometry = [1,-1,0,0;0,0,1,-1];
+% Model1.parameters = ({'kr',100;'gr',0.5;...
+%     'k2',2;'g2',1});
 
-%%      Next, specify a boundary for the escape calculation
-% Here we will calculate the time until the protein concentration reaches
-% 50.
-Model1.tSpan = linspace(0,5,100);
-Model1.fspOptions.escapeSinks.f = {'rna'};
-Model1.fspOptions.verbose = false;
-Model1.fspOptions.escapeSinks.b = 50;
-Model1 = Model1.formPropensitiesGeneral('Model1');
-[fspSoln1,Model1.fspOptions.bounds] = Model1.solve;
-Model1.makePlot(fspSoln1,'escapeTimes',[],[],10)
+%% Specify a boundary for the escape calculation
+% Calculate the time until the mRNA concentration reaches 50.
+Model_escape.fspOptions.escapeSinks.f = {'offGene';'onGene'};
+Model_escape.fspOptions.verbose = false;
+Model_escape.fspOptions.escapeSinks.b = [0.5;0.5];
+Model_escape = Model_escape.formPropensitiesGeneral('Model_escape');
+[fspSoln_escape,Model_escape.fspOptions.bounds] = Model_escape.solve;
+Model_escape.makePlot(fspSoln_escape,'escapeTimes',[],[],10)
+
+%% Specify a boundary for the escape calculation
+% Calculate the time until the mRNA concentration reaches 50.
+Model_escape.fspOptions.escapeSinks.f = {'mRNA'};
+Model_escape.fspOptions.verbose = false;
+Model_escape.fspOptions.escapeSinks.b = 0.5;
+Model_escape = Model_escape.formPropensitiesGeneral('Model_escape');
+[fspSoln_escape,Model_escape.fspOptions.bounds] = Model_escape.solve;
+Model_escape.makePlot(fspSoln_escape,'escapeTimes',[],[],10)
 
 %% Example 2 - escape time with time varying transcription rate
-% First let's copy and adjust the previous mdoel to add a time varying
-% rate: 
-Model2 = Model1;
-Model2.propensityFunctions = {'kr*I';'gr*rna';'k2*rna';'g2*protein'};
-Model2.inputExpressions = {'I','exp(-2*t)'};
-Model2 = Model2.formPropensitiesGeneral('Model2');
 
-%%       Here we solve for the escape time:
-Model2.fspOptions.escapeSinks.f = {'x2'};
-Model2.fspOptions.escapeSinks.b = 50;
-[fspSoln2,Model2.fspOptions.bounds] = Model2.solve;
-Model2.makePlot(fspSoln2,'escapeTimes',[],[],10)
+STL1Model_escape = STL1Model_escape.formPropensitiesGeneral('STL1Model_escape');
+
+% Solve for the escape time:
+STL1Model_escape.fspOptions.escapeSinks.f = {'offGene';'onGene'};
+STL1Model_escape.fspOptions.escapeSinks.b = [0.5;0.5];
+[STL1Model_fspSoln_escape,STL1Model_escape.fspOptions.bounds] = STL1Model_escape.solve;
+STL1Model_escape.makePlot(STL1Model_fspSoln_escape,'escapeTimes',[],[],10)
 % Note that with the decaying transcription rate not all cells will
 % reach the level of 50 proteins.
 
 %% Example 3 - More complex escape thresholds.
 % In this example we explore the escape time until the number of proteins
 % is more than 1.25 times the current number of mRNA molecules.
-Model3 = Model1;
-Model3.fspOptions.escapeSinks.f = {'x2/x1'};
-Model3.fspOptions.escapeSinks.b = 1.25;
-[fspSoln3,Model3.fspOptions.bounds] = Model3.solve;
-Model3.makePlot(fspSoln3,'escapeTimes',[],[],10)
+Model_escape_complex = Model_escape;
+Model_escape_complex.fspOptions.escapeSinks.f = {'mRNA/offGene'};
+Model_escape_complex.fspOptions.escapeSinks.b = 1.25;
+[fspSoln3,Model_escape_complex.fspOptions.bounds] = Model_escape_complex.solve;
+Model_escape_complex.makePlot(fspSoln3,'escapeTimes',[],[],10)
 
 %% Example 4 - Time until making a specific decision.
 % In this example, we assume that there are two potential avenues to
@@ -58,11 +76,11 @@ Model3.makePlot(fspSoln3,'escapeTimes',[],[],10)
 %   A) the number of RNA exceeds 33 
 %   B) the number of proteins exceeds 15
 %   C) the number of proteins and RNA combined exceeds 45
-Model3 = Model1;
-Model3.fspOptions.escapeSinks.f = {'x1';'x2';'x1+x2'};
-Model3.fspOptions.escapeSinks.b = [33;15;45];
-[fspSoln3,Model3.fspOptions.bounds] = Model3.solve;
-Model3.makePlot(fspSoln3,'escapeTimes',[],[],12)
-legend(Model3.fspOptions.escapeSinks.f)
+Model_escape_decision = Model_escape_complex;
+Model_escape_decision.fspOptions.escapeSinks.f = {'onGene';'mRNA';'onGene+mRNA'};
+Model_escape_decision.fspOptions.escapeSinks.b = [0.5;0.5;1];
+[fspSoln_esc_dec,Model_escape_decision.fspOptions.bounds] = Model_escape_decision.solve;
+Model_escape_decision.makePlot(fspSoln_esc_dec,'escapeTimes',[],[],12)
+legend(Model_escape_decision.fspOptions.escapeSinks.f)
 
 

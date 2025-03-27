@@ -1,4 +1,4 @@
-%% example_CreateSSITModels
+%% example_1_CreateSSITModels
 %  Example script to show how to create models in SSIT.
 clear
 close all
@@ -61,10 +61,10 @@ STL1Model.propensityFunctions{1} = 'offGene * IHog';
 STL1Model.inputExpressions = {'IHog',...
                                '(a0+a1*exp(-r1*t)*(1-exp(-r2*t))*(t>0))'};
 
-% Add the new parameters from the TF/MAPK input signal
+% Add the new parameters from the TF/MAPK input signal:
 STL1Model = STL1Model.addParameter({'a0',0.01;'a1',1;'r1',0.4;'r2',.1});
 
-% Print a summary of STL1 Model
+% Print a summary of STL1 Model:
 STL1Model.summarizeModel
 
 %% Ex.(3) Load and modify a pre-existing SSIT model
@@ -86,8 +86,8 @@ STL1Model.summarizeModel
 %                                            cytoplasmic mRNA, and protein)
 ModelChoice = 'RepressilatorGenes'; % Nine species problem
 
-% Let's load one of the pre-existing SSIT models
+% Let's load one of the pre-existing SSIT models:
 RepGenes_Model = SSIT(ModelChoice);
 
-% View a summary of the 'RepressilatorGenes' model
+% View a summary of the 'RepressilatorGenes' model:
 RepGenes_Model.summarizeModel
