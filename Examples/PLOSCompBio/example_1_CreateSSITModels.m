@@ -45,27 +45,27 @@ Model.summarizeModel
 % The dataset is from yeast STL1 collected in Dr. Gregor Neuert's 
 % laboratory at Vanderbilt University.
 
-% Copy the Bursting Gene Model above to a new model, 'STL1_Model'.  
+% Copy the Bursting Gene Model above to a new model, 'STL1Model'.  
 % The species, reactions, and stochiometries remain the same; 
 % however, a change is made to the propensity for the first reaction 
 % (gene activation) so that its rate is controlled by a time-varying 
 % MAPK input signal. As a result, new parameters must also be added.
 
 % Create a copy of the simple Bursting Gene model from above:
-STL1_Model = Model;
+STL1Model = Model;
 
 % Update propensity function for the gene activation reaction:
-STL1_Model.propensityFunctions{1} = 'offGene * IHog';
+STL1Model.propensityFunctions{1} = 'offGene * IHog';
 
 % Define the time-varying TF/MAPK input signal:
-STL1_Model.inputExpressions = {'IHog',...
+STL1Model.inputExpressions = {'IHog',...
                                '(a0+a1*exp(-r1*t)*(1-exp(-r2*t))*(t>0))'};
 
 % Add the new parameters from the TF/MAPK input signal
-STL1_Model = STL1_Model.addParameter({'a0',0.01;'a1',1;'r1',0.4;'r2',.1});
+STL1Model = STL1Model.addParameter({'a0',0.01;'a1',1;'r1',0.4;'r2',.1});
 
-% Print a summary of STL1_Model
-STL1_Model.summarizeModel
+% Print a summary of STL1 Model
+STL1Model.summarizeModel
 
 %% Ex.(3) Load and modify a pre-existing SSIT model
 

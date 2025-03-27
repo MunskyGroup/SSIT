@@ -1,145 +1,180 @@
 %% example_SolveSSITModels
 % Example script to show how to solve the time evolution of state space 
-% probabilities for a reaction system:  
-% * Deterministically using ordinary differential equations (ODEs)
-% * Stochastically using stochastic simulation algorithm (SSA) trajectories 
-% * and Finite State Projection (FSP) of the Chemical Master Equation (CME)
-% * With a hybrid approach, using upstream ODEs and downstream FSP.
+% probabilities for a reaction system where processes are considered:  
+% * Deterministic, using ordinary differential equations (ODEs) to average
+% * Stochastic, using stochastic simulation algorithm (SSA) trajectories 
+% * or Finite State Projection (FSP) of the Chemical Master Equation (CME)
+% * Hybrid, using upstream ODEs and downstream FSP
 clear
 close all
 addpath(genpath('../../'));
 
-%% Preliminary
+%% Preliminaries
 % Load our models from example_1_CreateSSITModels and inspect them
 example_1_CreateSSITModels
-
 Model.summarizeModel
-STL1_Model.summarizeModel
+STL1Model.summarizeModel
+
+% Set the times at distributions will be computed:
+Model.tSpan = linspace(0,20,200);
+STL1Model.tSpan = linspace(0,20,200);
 
 %% Ex.(1) Compute Ordinary Differential Equations (ODEs)
-% Create a copy of the Model
-Model_ODE = Model;
+%% Model:
+    % Create a copy of the Model for ODEs
+    Model_ODE = Model;
 
-% Set solution scheme to 'ode'
-Model_ODE.solutionScheme = 'ode';
+    % Set solution scheme to 'ode'
+    Model_ODE.solutionScheme = 'ode';
+    
+    % This function compiles and stores the given reaction propensities  
+    % into symbolic expression functions that use sparse matrices to  
+    % operate on the system based on the current state. The functions are 
+    % stored with the given prefix, in this case, 'Model_ODE'
+    Model_ODE = Model_ODE.formPropensitiesGeneral('Model_ODE');
+    
+    % Solve ODE and make plots
+    ODEsoln = Model_ODE.solve; 
+    plotODE(ODEsoln,Model_ODE.species)
 
+%% STL1 Model:
+    % Create a copy of the STL1 Model for ODEs
+    STL1Model_ODE = STL1Model;
 
-Model_ODE = Model_ODE.formPropensitiesGeneral('Model_ODE');
+    % Set solution scheme to 'ode'
+    STL1Model_ODE.solutionScheme = 'ode';
+    
+    % This function compiles and stores the given reaction propensities  
+    % into symbolic expression functions that use sparse matrices to  
+    % operate on the system based on the current state. The functions are 
+    % stored with the given prefix, in this case, 'STL1Model_ODE'
+    STL1Model_ODE = STL1Model_ODE.formPropensitiesGeneral('STL1Model_ODE');
+    
+    % Solve ODE and make plots
+    STL1_ODEsoln = STL1Model_ODE.solve; 
+    plotODE(STL1_ODEsoln,STL1Model_ODE.species)
 
-% Solve ODE and make plots
-ODEsoln = Model_ODE.solve; 
-plotODE(ODEsoln,Model_ODE.species)
+%% Ex.(2): Run Gillepsie's Stochastic Simulation Algorithm (SSA) and
+%%         analyse trajectories
+%% Model:
+    % Create a copy of the Model for SSAs
+    Model_SSA = Model;
 
-%% Ex.(2): Run Gillepsie's Stochastic Simulation Algorithm (SSA) 
-%% and analyse trajectories
+    % Set solution scheme to SSA
+    Model_SSA.solutionScheme = 'SSA';
+    
+    % This function compiles and stores the given reaction propensities  
+    % into symbolic expression functions that use sparse matrices to  
+    % operate on the system based on the current state. The functions are 
+    % stored with the given prefix, in this case, 'Model_SSA'
+    Model_SSA = Model_SSA.formPropensitiesGeneral('Model_SSA');
+    
+    % A negative initial time is used to allow model to equilibrate 
+    % before starting (burn-in). This can cause long run times.
+    Model_SSA.tSpan = [-100,Model_SSA.tSpan];
+    
+    % Set the initial time
+    Model_SSA.initialTime = Model_SSA.tSpan(1); 
+    
+    % Run iterations in parallel across multiple cores, or execute serially
+    Model_SSA.ssaOptions.useParallel = true;
+    
+    % Run SSA
+    SSAsoln = Model_SSA.solve;
+            
+    % Plot SSA results 
+    plotSSA(SSAsoln, 'all', 1200);
 
+%% STL1 Model:
+    % Create a copy of the STL1 Model for SSAs
+    STL1Model_SSA = STL1Model;
 
-%% This model consists of 3 species: 
-% an inactive gene ('offGene'), an activated gene ('onGene'), and mRNA. 
+    % Set solution scheme to SSA
+    STL1Model_SSA.solutionScheme = 'SSA';
+    
+    % This function compiles and stores the given reaction propensities  
+    % into symbolic expression functions that use sparse matrices to  
+    % operate on the system based on the current state. The functions are 
+    % stored with the given prefix, in this case, 'STL1Model_SSA'
+    STL1Model_SSA = STL1Model_SSA.formPropensitiesGeneral('STL1Model_SSA');
+    
+    % A negative initial time is used to allow model to equilibrate 
+    % before starting (burn-in). This can cause long run times.
+    STL1Model_SSA.tSpan = [-100,STL1Model_SSA.tSpan];
 
-%% There are four reactions, each with a unique rate parameter: 
-% activation ('kon'), inactivation ('koff'), transcription ('kr'), 
-% and mRNA degradation ('gr')
-
-
-% Set initial condition (one 'offGene'):
-Model.initialCondition = [1;0;0]; 
-
-% Print a summary of our Model:
-Model.summarizeModel
+    % Set the initial time
+    STL1Model_SSA.initialTime = STL1Model_SSA.tSpan(1); 
+    
+    % Run iterations in parallel across multiple cores, or execute serially
+    STL1Model_SSA.ssaOptions.useParallel = true;
+    
+    % Run SSA
+    STL1_SSAsoln = STL1Model_SSA.solve;
+            
+    % Plot SSA tesults 
+    plotSSA(STL1_SSAsoln, 'all', 1200);
 
 
 %% Ex.(3) Use the Finite State Projection (FSP) approximation of the CME
 %% Model:
+    % Create a copy of the Model for FSP
+    Model_FSP = Model;
+    
+    % Ensure the solution scheme is set to FSP (default)
+    Model_FSP.solutionScheme = 'FSP';  
 
-Model = Model.formPropensitiesGeneral('Model'); % Generate model codes
+    % This function compiles and stores the given reaction propensities  
+    % into symbolic expression functions that use sparse matrices to  
+    % operate on the system based on the current state. The functions are 
+    % stored with the given prefix, in this case, 'Model_FSP'
+    Model_FSP = Model_FSP.formPropensitiesGeneral('Model_FSP');
+    
+    % Set FSP 1-norm error tolerance.
+    Model_FSP.fspOptions.fspTol = 1e-4; 
+    
+    % Guess initial bounds on FSP StateSpace
+    Model_FSP.fspOptions.bounds(4:6) = [2,2,400];
+    
+    % Ensure times at which to compute distributions are set:
+    Model_FSP.tSpan = linspace(0,180,301);
+    
+    %
+    Model_FSP.fspOptions.initApproxSS = false; 
+    
+    % Solve with FSP
+    [FSPsoln,Model_FSP.fspOptions.bounds] = Model.solve; 
+    
+    % Plot marginal distributions
+    Model_FSP.makePlot(FSPsoln,'marginals',[1:100:301],false,[1,2,3],{'linewidth',2})  
+    Model_FSP.makePlot(FSPsoln,'margmovie',[],false,[101],{'linewidth',2},'movie.mp4',[1,1,0.015],[2,3])  
 
-% Select FSP solution Scheme
-Model.solutionScheme = 'FSP';  
+%% STL1Model:
+    % Create a copy of the STL1 Model for FSP
+    STL1Model_FSP = STL1Model;
+    
+    % Ensure the solution scheme is set to FSP (default)
+    STL1Model_FSP.solutionScheme = 'FSP';  
 
-% Set FSP 1-norm error tolerance.
-Model.fspOptions.fspTol = 1e-4; 
-
-% Guess initial bounds on FSP StateSpace
-Model.fspOptions.bounds(4:6) = [2,2,400];
-
-% Set times (s) at which to compute distributions:
-Model.tSpan = linspace(0,180,301);
-
-Model.fspOptions.initApproxSS = false; 
-
-% Solve Model
-[FSPsoln,Model.fspOptions.bounds] = Model.solve; 
-
-% Plot marginal distributions
-Model.makePlot(FSPsoln,'marginals',[1:100:301],false,[1,2,3],{'linewidth',2})  
-Model.makePlot(FSPsoln,'margmovie',[],false,[101],{'linewidth',2},'movie.mp4',[1,1,0.015],[2,3])  
-
-%% STL1_Model:
-STL1_Model = STL1_Model.formPropensitiesGeneral('STL1_Model'); % Generate model codes
-
-% Select FSP solution Scheme
-STL1_Model.solutionScheme = 'FSP';  
-
-% Set FSP 1-norm error tolerance.
-STL1_Model.fspOptions.fspTol = 1e-4; 
-
-% Guess initial bounds on FSP StateSpace
-STL1_Model.fspOptions.bounds(4:6) = [2,2,400];
-
-% Set times (s) at which to compute distributions:
-STL1_Model.tSpan = (0:10:100);
-
-STL1_Model.fspOptions.initApproxSS = false; 
-
-% Solve Model
-[STL1_FSPsoln,STL1_Model.fspOptions.bounds] = STL1_Model.solve; 
-
-% Plot marginal distributions
-STL1_Model.makePlot(STL1_FSPsoln,'marginals',[1:100:100],false,[1,2,3],{'linewidth',2})  
-STL1_Model.makePlot(STL1_FSPsoln,'margmovie',[],false,[101],{'linewidth',2},'movie.mp4',[1,1,0.015],[2,3])  
-
-%% Plot the TF/MAPK signal
-% Next, we have to gues some initial guesses for parameters.
-% First, let's tinker with the MAPK signal to get it to match somewhat
-% qualitatively to what we see in experiments.  We don't have to be exact,
-% ballpark parameters should be fine to start.
-Model.parameters = ({'k21',30;'kr',100;'deg',0.005; ...
-    'a0',0.01;'a1',1;'r1',0.4;'r2',.1});
-par = [Model.parameters{:,2}];
-t = [0:60];
-TF = par(4)+par(5)*exp(-par(6)*t).*(1-exp(-par(7)*t)).*(t>0);
-figure(1); plot(t,TF,'linewidth',3); 
-set(gca,'fontsize',16)
-xlabel('Time (min)'); ylabel('Hog1(t)')
-% Try tinkering with the MAPK signal parameters (parameters 5-8)to get it 
-% to match somewhat qualitatively to what we see in experiments: maximum at
-% ~2 minutes and adaptation in ~10 min.
-% We don't have to be exact, ballpark parameters should be fine to start.
-
-%% Solve and plot using the FSP approach
-% To solve the model, we first select the solution scheme ('FSP') and then
-% we call the SSIT.solve method.
-Model.parameters = ({'k21',30;'kr',100;'deg',0.005; ...
-    'a0',0.01;'a1',1;'r1',0.4;'r2',.1});
-
-Model.solutionScheme = 'FSP';    % Set solutions scheme to FSP.
-
-% Set the code to start at steady state at t=0;
-Model.fspOptions.initApproxSS =true;
-Model = Model.formPropensitiesGeneral('STL1Model',true);
-[FSPsoln,Model.fspOptions.bounds] = Model.solve;  % Solve the FSP analysis
-
-% Next we make plots of the marginal distributions at time points 3, 5, 7,
-% 9, 11, 13 and plot these in figures 1:3 for the three different species.
-Model.makePlot(FSPsoln,'marginals',[3:2:13],false,(1:3))    % Plot marginal distributions
-
-% We can also plot the means and standard deviations versus time in figure
-% 100:
-Model.makePlot(FSPsoln,'meansAndDevs',[],false,100)    % Plot marginal distributions
-
-% Try to tune the parameters until you see:
-% Bimodal expression (i.e., a population of active cells and a population of
-% inactive cells).
-% Perfect adaptation (all mRNA gone) at about 25 min.
-% An average of ~50 mRNA at the highest expression time.
+    % This function compiles and stores the given reaction propensities  
+    % into symbolic expression functions that use sparse matrices to  
+    % operate on the system based on the current state. The functions are 
+    % stored with the given prefix, in this case, 'STL1Model_FSP'
+    STL1Model_FSP = STL1Model_FSP.formPropensitiesGeneral('STL1Model_FSP');
+    
+    % Set FSP 1-norm error tolerance.
+    STL1Model_FSP.fspOptions.fspTol = 1e-4; 
+    
+    % Guess initial bounds on FSP StateSpace
+    STL1Model_FSP.fspOptions.bounds(4:6) = [2,2,400];
+    
+    % Ensure times at which to compute distributions are set:
+    STL1Model_FSP.tSpan = (0:10:100);
+    
+    STL1Model_FSP.fspOptions.initApproxSS = false; 
+    
+    % Solve Model
+    [STL1_FSPsoln,STL1Model_FSP.fspOptions.bounds] = STL1Model_FSP.solve; 
+    
+    % Plot marginal distributions
+    STL1Model_FSP.makePlot(STL1_FSPsoln,'marginals',[1:100:100],false,[1,2,3],{'linewidth',2})  
+    STL1Model_FSP.makePlot(STL1_FSPsoln,'margmovie',[],false,[101],{'linewidth',2},'movie.mp4',[1,1,0.015],[2,3])  

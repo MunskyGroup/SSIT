@@ -17,7 +17,7 @@ classdef SSIT
         sensOptions = struct('solutionMethod','forward','useParallel',true);
         % Options for FSP-Sensitivity solver.
         ssaOptions = struct('Nexp',1,'nSimsPerExpt',100,'useTimeVar',false,...
-            'signalUpdateRate',[],'useParalel',false,...
+            'signalUpdateRate',[],'useParallel',false,...
             'verbose',false); % Options for SSA solver
         pdoOptions = struct('unobservedSpecies',[],'PDO',[]);
         % Options for FIM analyses
@@ -896,7 +896,7 @@ classdef SSIT
                     Nt = length(Solution.T_array);
                     nSims = obj.ssaOptions.Nexp*obj.ssaOptions.nSimsPerExpt*Nt;
                     W = obj.propensitiesGeneral;
-                    if obj.ssaOptions.useParalel
+                    if obj.ssaOptions.useParallel
                         trajs = zeros(length(obj.species),...
                             length(obj.tSpan),nSims);% Creates an empty Trajectories matrix from the size of the time array and number of simulations
                         parfor isim = 1:nSims
