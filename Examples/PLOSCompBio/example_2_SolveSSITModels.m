@@ -71,7 +71,7 @@ STL1Model.tSpan = linspace(0,20,200);
     
     % A negative initial time is used to allow model to equilibrate 
     % before starting (burn-in). This can cause long run times.
-    Model_SSA.tSpan = [-100,Model_SSA.tSpan];
+    Model_SSA.tSpan = [-10,Model_SSA.tSpan];
     
     % Set the initial time
     Model_SSA.initialTime = Model_SSA.tSpan(1); 
@@ -83,7 +83,7 @@ STL1Model.tSpan = linspace(0,20,200);
     SSAsoln = Model_SSA.solve;
             
     % Plot SSA results 
-    plotSSA(SSAsoln, 'all', 1200);
+    plotSSA(SSAsoln, 'all', 1200, Model_SSA.species);
 
 %% STL1 Model:
     % Create a copy of the STL1 Model for SSAs
@@ -100,7 +100,7 @@ STL1Model.tSpan = linspace(0,20,200);
     
     % A negative initial time is used to allow model to equilibrate 
     % before starting (burn-in). This can cause long run times.
-    STL1Model_SSA.tSpan = [-100,STL1Model_SSA.tSpan];
+    STL1Model_SSA.tSpan = [-10,STL1Model_SSA.tSpan];
 
     % Set the initial time
     STL1Model_SSA.initialTime = STL1Model_SSA.tSpan(1); 
@@ -112,7 +112,7 @@ STL1Model.tSpan = linspace(0,20,200);
     STL1_SSAsoln = STL1Model_SSA.solve;
             
     % Plot SSA tesults 
-    plotSSA(STL1_SSAsoln, 'all', 1200);
+    plotSSA(STL1_SSAsoln, 'all', 1200, STL1Model_SSA.species);
 
 
 %% Ex.(3) Use the Finite State Projection (FSP) approximation of the CME
@@ -133,20 +133,25 @@ STL1Model.tSpan = linspace(0,20,200);
     Model_FSP.fspOptions.fspTol = 1e-4; 
     
     % Guess initial bounds on FSP StateSpace
-    Model_FSP.fspOptions.bounds(4:6) = [2,2,400];
+    Model_FSP.fspOptions.bounds = [2,2,400];
     
     % Ensure times at which to compute distributions are set:
-    Model_FSP.tSpan = linspace(0,180,301);
+    Model_FSP.tSpan = (0:10:100);
     
-    %
+    % Setting initApproxSS=true approximates the steady state and sets the  
+    % initial distribution to it by finding the eigenvector corresponding   
+    % to the smallest magnitude eigenvalue (i.e., zero, for generator 
+    % matrix A, d/dtP(t)=AP(t)).
     Model_FSP.fspOptions.initApproxSS = false; 
     
     % Solve with FSP
-    [FSPsoln,Model_FSP.fspOptions.bounds] = Model.solve; 
+    [FSPsoln,Model_FSP.fspOptions.bounds] = Model_FSP.solve; 
     
     % Plot marginal distributions
-    Model_FSP.makePlot(FSPsoln,'marginals',[1:100:301],false,[1,2,3],{'linewidth',2})  
-    Model_FSP.makePlot(FSPsoln,'margmovie',[],false,[101],{'linewidth',2},'movie.mp4',[1,1,0.015],[2,3])  
+    Model_FSP.makePlot(FSPsoln,'marginals',[1:100:100],...
+                       false,[1,2,3],{'linewidth',2})  
+    Model_FSP.makePlot(FSPsoln,'margmovie',[],false,[101],...
+                       {'linewidth',2},'movie.mp4',[1,1,0.6],[2,3])  
 
 %% STL1Model:
     % Create a copy of the STL1 Model for FSP
@@ -165,16 +170,22 @@ STL1Model.tSpan = linspace(0,20,200);
     STL1Model_FSP.fspOptions.fspTol = 1e-4; 
     
     % Guess initial bounds on FSP StateSpace
-    STL1Model_FSP.fspOptions.bounds(4:6) = [2,2,400];
+    STL1Model_FSP.fspOptions.bounds = [2,2,400];
     
     % Ensure times at which to compute distributions are set:
     STL1Model_FSP.tSpan = (0:10:100);
     
-    STL1Model_FSP.fspOptions.initApproxSS = false; 
+    % Setting initApproxSS=true approximates the steady state and sets the  
+    % initial distribution to it by finding the eigenvector corresponding   
+    % to the smallest magnitude eigenvalue (i.e., zero, for generator 
+    % matrix A, d/dtP(t)=AP(t)).
+    STL1Model_FSP.fspOptions.initApproxSS = true; 
     
     % Solve Model
     [STL1_FSPsoln,STL1Model_FSP.fspOptions.bounds] = STL1Model_FSP.solve; 
     
     % Plot marginal distributions
-    STL1Model_FSP.makePlot(STL1_FSPsoln,'marginals',[1:100:100],false,[1,2,3],{'linewidth',2})  
-    STL1Model_FSP.makePlot(STL1_FSPsoln,'margmovie',[],false,[101],{'linewidth',2},'movie.mp4',[1,1,0.015],[2,3])  
+    STL1Model_FSP.makePlot(STL1_FSPsoln,'marginals',[1:100:100],...
+                           false,[1,2,3],{'linewidth',2})  
+    STL1Model_FSP.makePlot(STL1_FSPsoln,'margmovie',[],false,[101],...
+                           {'linewidth',2},'movie.mp4',[1,1,0.75],[2,3])  
