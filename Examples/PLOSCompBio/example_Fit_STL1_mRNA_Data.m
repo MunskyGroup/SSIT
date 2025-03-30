@@ -3,7 +3,7 @@
 % model to some single-cell smFISH data.  For this example, we will use
 % some data collected in Dr. Gregor Neuert's laboratory at Vanderbilt.
 close all
-clear all
+clear 
 addpath(genpath('../src'));
 
 %% Create SSIT Model

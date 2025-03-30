@@ -55,7 +55,7 @@ Model.summarizeModel
 STL1Model = Model;
 
 % Update propensity function for the gene activation reaction:
-STL1Model.propensityFunctions{1} = 'offGene * IHog';
+%STL1Model.propensityFunctions{1} = 'offGene * IHog';
 
 % Define the time-varying TF/MAPK input signal:
 STL1Model.inputExpressions = {'IHog',...

@@ -7,5 +7,6 @@ addpath(genpath('../src'));
 %% Preliminaries
 % Load our models described in example_1_CreateSSITModels and  
 % compute FSP solutions using example_2_SolveSSITModels_FSP
-example_2_SolveSSITModels_FSP
+example_6_LoadingandFittingData_MLE
+Model.summarizeModel
 STL1Model.summarizeModel

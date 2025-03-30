@@ -8,57 +8,29 @@ addpath(genpath('../src'));
 %% Preliminaries
 % Load our models described in example_1_CreateSSITModels and  
 % compute FSP solutions using example_2_SolveSSITModels_FSP
-example_2_SolveSSITModels_FSP
+example_5_FIMCalculation
 Model.summarizeModel
 STL1Model.summarizeModel
 
 % Make copies of Model and STL1 Model
-Model_sens = Model;
+Model_sens = Model_FIM;
 STL1_sens = STL1Model;
 
-%% Solve FSP sensitivities
-% Set solution schemes to FSP sensitivity
-Model_sens.solutionScheme = 'fspSens'; 
-STL1_sens.solutionScheme = 'fspSens'; 
+%% STEP4 == Define Binomial Probabilistic Distortion Operator
+Model2 = Model1;  % Make a copy of the original model
+Model2.pdoOptions.type = 'Binomial';
+Model2.pdoOptions.props.CaptureProbabilityS1 = 0;  % Distortion for OFF species (unobserved)
+Model2.pdoOptions.props.CaptureProbabilityS2 = 0;  % Distortion for ON species (unobserved)
+Model2.pdoOptions.props.CaptureProbabilityS3 = 0.7;% Distortion for RNA species
+Model2.pdoOptions.PDO = Model2.generatePDO(Model2.pdoOptions,[],Mod1SensSoln.sens.data,true);
+figure(20); contourf(log10(Model2.pdoOptions.PDO.conditionalPmfs{3}),30); colorbar
+xlabel('"true" number of mRNA'); ylabel('observed number of mRNA'); set(gca,'fontsize',15);
 
-% Solve the sensitivity problem
-[sensSoln,bounds] = Model_sens.solve(FSPsoln.stateSpace); 
-[STL1_sensSoln,STL1_bounds] = STL1_sens.solve(STL1_FSPsoln.stateSpace); 
-
-% Plot the results from the sensitivity analysis
-% Model:
-fig1 = figure(1);clf; set(fig1,'Name','Marginal Sensitivity, offGene');
-fig2 = figure(2);clf; set(fig2,'Name','Marginal Sensitivity, onGene');
-fig3 = figure(3);clf; set(fig3,'Name','Marginal Sensitivity, mRNA');
-Model_sens.makePlot(sensSoln,'marginals',[],false,...
-                    [fig1,fig2,fig3],{'b','linewidth',2})
-% STL1 Model:
-fig4 = figure(1);clf; set(fig4,'Name','Marginal Sensitivity, offGene');
-fig5 = figure(2);clf; set(fig5,'Name','Marginal Sensitivity, onGene');
-fig6 = figure(3);clf; set(fig6,'Name','Marginal Sensitivity, mRNA');
-STL1_sens.makePlot(STL1_sensSoln,'marginals',[],false,...
-                   [fig4,fig5,fig6],{'b','linewidth',2})
-
-%% Compute FIMs using FSP sensitivity results
-% Model:
-% Compute the FIM for full observations
-Model_FIM = Model_sens;
-fimResults = Model_FIM.computeFIM(sensSoln.sens); 
-cellCounts = 10*ones(size(Model_FIM.tSpan));  % Number of cells in each experiment.
-[fimTotal,mleCovEstimate,fimMetrics] = Model_FIM.evaluateExperiment(fimResults,cellCounts)
-fig7 = figure(7);clf; set(fig7,'Name','Fim-Predicted Uncertainty Ellipses');
-Model_FIM.plotMHResults([],fimTotal,'lin',[],fig7)
-legend('FIM - Full Observation')
-
-% STL1 Model:
-% Compute the FIM for full observations
-STL1_FIM = STL1_sens;
-STL1_fimResults = STL1_FIM.computeFIM(STL1_sensSoln.sens); % Compute the FIM for full observations and no distortion.
-STL1_cellCounts = 10*ones(size(STL1_FIM.tSpan));  % Number of cells in each experiment.
-[STL1_fimTotal,STL1_mleCovEstimate,STL1_fimMetrics] = STL1_FIM.evaluateExperiment(STL1_fimResults,STL1_cellCounts)
-fig8 = figure(5);clf; set(fig8,'Name','Fim-Predicted Uncertainty Ellipses');
-STL1_FIM.plotMHResults([],STL1_fimTotal,'lin',[],fig8)
-legend('FIM - Full Observation')
+%% STEP5 == Apply PDO to FSP and Sensitivity Calculations
+Model2.solutionScheme = 'FSP'; % Set solution scheme to FSP.
+Model2.makePlot(Mod1FSPsoln,'marginals',[1:100:301],true,[1,2,3],{'linewidth',2})  % Plot Distorted Marginals
+Model2.solutionScheme = 'fspSens'; % Set solution scheme to Sensitivity
+Model2.makePlot(Mod1SensSoln,'marginals',[1:100:301],true,[3+(1:12)],{'linewidth',2})    % Plot Distorted Sensitivities
 
 %% Compute FIM for partial observations
 % Model:

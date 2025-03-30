@@ -73,7 +73,7 @@ STL1Model.tSpan = linspace(0,20,200);
     % Have FSP approximate the steady state for the initial distribution 
     % by finding the eigenvector corresponding to the smallest magnitude 
     % eigenvalue (i.e., zero, for generator matrix A, d/dtP(t)=AP(t)):
-    STL1Model_FSP.fspOptions.initApproxSS = true; 
+    STL1Model_FSP.fspOptions.initApproxSS = false; 
     
     % Solve Model:
     [STL1_FSPsoln,STL1Model_FSP.fspOptions.bounds] = STL1Model_FSP.solve; 
