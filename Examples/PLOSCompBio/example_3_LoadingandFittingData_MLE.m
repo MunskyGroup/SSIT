@@ -3,7 +3,7 @@
 % experimental data using maximum likelihood estimates (MLEs)
 clear
 close all
-addpath(genpath('../src'));
+addpath(genpath('../../src'));
 
 %% Preliminaries
 % Load our STL1 Model described in example_1_CreateSSITModels and  
@@ -31,8 +31,8 @@ STL1Real = STL1Model.loadData('data/STL1.csv',{'mRNA','rna'});
 
 %% Compute the MLE
 % ModelReal:
-[Modelpars,likelihood] = ModelReal.maximizeLikelihood(Modelpars,fitOptions);
-
+[Modelpars,Model_likelihood] = ModelReal.maximizeLikelihood(Modelpars,...
+                                                            fitOptions);
 % STL1Real:
 [STL1pars,STL1_likelihood] = ...
  STL1Real.maximizeLikelihood(STL1pars,fitOptions);

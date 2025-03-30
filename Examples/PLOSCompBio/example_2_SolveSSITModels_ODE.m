@@ -31,8 +31,8 @@ STL1Model.tSpan = linspace(0,20,200);
     Model_ODE = Model_ODE.formPropensitiesGeneral('Model_ODE');
     
     % Solve ODE and make plots:
-    ODEsoln = Model_ODE.solve; 
-    plotODE(ODEsoln,Model_ODE.species)
+    Model_ODEsoln = Model_ODE.solve; 
+    plotODE(Model_ODEsoln,Model_ODE.species)
 
 %% STL1 Model:
     % Create a copy of the STL1 Model for ODEs:

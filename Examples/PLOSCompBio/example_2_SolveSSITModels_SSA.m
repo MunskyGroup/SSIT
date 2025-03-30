@@ -45,10 +45,10 @@ STL1Model.tSpan = linspace(0,20,200);
     Model_SSA.ssaOptions.useParallel = true;
     
     % Run SSA:
-    SSAsoln = Model_SSA.solve;
+    Model_SSAsoln = Model_SSA.solve;
             
     % Plot SSA trajectories and means:
-    plotSSA(SSAsoln, 'all', 100, Model_SSA.species);
+    plotSSA(Model_SSAsoln, 'all', 100, Model_SSA.species);
 
 %% STL1 Model:
     % Create a copy of the STL1 Model for SSAs:

@@ -43,12 +43,12 @@ STL1Model.tSpan = linspace(0,20,200);
     Model_FSP.fspOptions.initApproxSS = false; 
     
     % Solve with FSP:
-    [FSPsoln,Model_FSP.fspOptions.bounds] = Model_FSP.solve; 
+    [Model_FSPsoln,Model_FSP.fspOptions.bounds] = Model_FSP.solve; 
     
     % Plot marginal distributions:
-    Model_FSP.makePlot(FSPsoln,'marginals',[1:100:100],...
+    Model_FSP.makePlot(Model_FSPsoln,'marginals',[1:100:100],...
                        false,[1,2,3],{'linewidth',2})  
-    Model_FSP.makePlot(FSPsoln,'margmovie',[],false,[101],...
+    Model_FSP.makePlot(Model_FSPsoln,'margmovie',[],false,[101],...
                        {'linewidth',2},'movie.mp4',[1,1,0.5],[2,3])  
 
 %% STL1Model:
