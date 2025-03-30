@@ -83,7 +83,7 @@ Model.makePlot(FSPsoln,'meansAndDevs',[],false,100)    % Plot marginal distribut
 %% Load smFISH Data and compare to model
 % In this section, we load some data to compare to the model.  For this
 % example, we are going to use some data that Gregor Neuert collected.
-Model = Model.loadData('../ExampleData/NeuertData/Result_Exp1_rep1_RNA_CY5_total_FORMATTED.csv',{'mRNA','mRNA'});
+Model = Model.loadData('data/STL1.csv',{'mRNA','rna'});
 
 % Next, we call the code to make the fitting plots.
 Model.makeFitPlot

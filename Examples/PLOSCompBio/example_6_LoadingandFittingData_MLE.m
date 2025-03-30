@@ -30,37 +30,47 @@ STL1Real = STL1Model.loadData('data/STL1.csv',{'mRNA','rna'});
 %STL1Real.makeFitPlot
 
 %% Compute the MLE
-Modelpars = ModelReal.maximizeLikelihood(STL1pars, fitOptions);
-STL1pars = STL1Real.maximizeLikelihood(STL1pars, fitOptions);
+% ModelReal:
+[Modelpars,likelihood] = ModelReal.maximizeLikelihood(Modelpars,fitOptions);
+
+% STL1Real:
+[STL1pars,STL1_likelihood] = ...
+ STL1Real.maximizeLikelihood(STL1pars,fitOptions);
+
+% Update ModelReal parameters:
+for i=1:length(Modelpars)
+    ModelReal.parameters{i,2} = Modelpars(i);
+end
+% Update STL1Real parameters
+for j=1:length(STL1pars)
+    STL1Real.parameters{j,2} = STL1pars(j);
+end
 
 % Make plots of the model parameter fits from the MLEs
 ModelReal.makeFitPlot
 STL1Real.makeFitPlot
 
-%% Compute the FIM
-Model_fimResults = ModelReal.computeFIM([],'log');
-STL1_fimResults = STL1Real.computeFIM([],'log'); 
+%% Let's tinker with the starting parameters of the STL1 Model 
+%% and try again:
+STL1Real1 = STL1Real;
 
-% Generate a count of measured cells (i.e., in the case of real data,  
-% the number of cells measured in the experiment)
-Model_cellCounts = 10*ones(size(ModelReal.tSpan));
-STL1_cellCounts = 10*ones(size(STL1Real.tSpan));
+STL1Real1.parameters = ({'koff',30;'kr',100;'gr',5; ...
+    'a0',0.01;'a1',1;'r1',0.4;'r2',0.1});
 
-% Evaluate the provided experiment design (in "cellCounts") 
-% and produce an array of FIMs (one for each parameter set)
-[Model_fimTotal,Model_mleCovEstimate,Model_fimMetrics] = ...
-     ModelReal.evaluateExperiment(Model_fimResults,Model_cellCounts)
+STL1Real1.tSpan = 0:5:60;
 
-[STL1_fimTotal,STL1_mleCovEstimate,STL1_fimMetrics] = ...
-     STL1Real.evaluateExperiment(STL1_fimResults,STL1_cellCounts)
+STL1Real1.fspOptions.initApproxSS =true;
+STL1Real1 = STL1Real.formPropensitiesGeneral('STL1Real1',true);
+[STL1Real1_FSPsoln,STL1Real1.fspOptions.bounds] = STL1Real1.solve;  % Solve the FSP analysis
 
-% Plot the FIMs
-fig1 = figure(1);clf; set(fig1,'Name',...
-    'Fim-Predicted Uncertainty Ellipses');
-ModelReal.plotMHResults([],Model_fimTotal,'log',[],fig1)
-legend('FIM')
+% Maximize the likelihood
+[STL1pars1,STL1_likelihood1] = ...
+    STL1Real1.maximizeLikelihood(STL1pars, fitOptions);
 
-fig2 = figure(2);clf; set(fig2,'Name',...
-    'Fim-Predicted Uncertainty Ellipses');
-STL1Real.plotMHResults([],STL1_fimTotal,'log',[],fig2)
-legend('FIM')
+% Update STL1Real parameters
+for j=1:length(STL1pars1)
+    STL1Real1.parameters{j,2} = STL1pars1(j);
+end
+
+% Make plots of the new model parameter fits from the MLEs
+STL1Real1.makeFitPlot

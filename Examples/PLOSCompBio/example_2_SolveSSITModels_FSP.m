@@ -49,7 +49,7 @@ STL1Model.tSpan = linspace(0,20,200);
     Model_FSP.makePlot(FSPsoln,'marginals',[1:100:100],...
                        false,[1,2,3],{'linewidth',2})  
     Model_FSP.makePlot(FSPsoln,'margmovie',[],false,[101],...
-                       {'linewidth',2},'movie.mp4',[1,1,0.6],[2,3])  
+                       {'linewidth',2},'movie.mp4',[1,1,0.5],[2,3])  
 
 %% STL1Model:
     % Create a copy of the STL1 Model for FSP:
@@ -82,4 +82,4 @@ STL1Model.tSpan = linspace(0,20,200);
     STL1Model_FSP.makePlot(STL1_FSPsoln,'marginals',[1:100:100],...
                            false,[1,2,3],{'linewidth',2})  
     STL1Model_FSP.makePlot(STL1_FSPsoln,'margmovie',[],false,[101],...
-                           {'linewidth',2},'movie.mp4',[1,1,0.6],[2,3])  
+                           {'linewidth',2},'movie.mp4',[1,1,0.5],[2,3])  

@@ -30,10 +30,13 @@ STL1Model.tSpan = linspace(0,20,200);
     % operate on the system based on the current state. The functions are 
     % stored with the given prefix, in this case, 'Model_SSA'
     Model_SSA = Model_SSA.formPropensitiesGeneral('Model_SSA');
-    
+
+    Model_SSA.ssaOptions.verbose=true;
+    Model_SSA.ssaOptions.nSimsPerExpt=10;
+
     % A negative initial time is used to allow model to equilibrate 
-    % before starting (burn-in). This can cause long run times.
-    Model_SSA.tSpan = [-10,Model_SSA.tSpan];
+    % before starting (burn-in). Large burn-in times cause long run times.
+    Model_SSA.tSpan = [-1,Model_SSA.tSpan];
     
     % Set the initial time:
     Model_SSA.initialTime = Model_SSA.tSpan(1); 
@@ -44,8 +47,8 @@ STL1Model.tSpan = linspace(0,20,200);
     % Run SSA:
     SSAsoln = Model_SSA.solve;
             
-    % Plot SSA results:
-    plotSSA(SSAsoln, 'all', 1200, Model_SSA.species);
+    % Plot SSA trajectories and means:
+    plotSSA(SSAsoln, 'all', 100, Model_SSA.species);
 
 %% STL1 Model:
     % Create a copy of the STL1 Model for SSAs:
@@ -53,6 +56,9 @@ STL1Model.tSpan = linspace(0,20,200);
 
     % Set solution scheme to SSA:
     STL1Model_SSA.solutionScheme = 'SSA';
+
+    STL1Model_SSA.ssaOptions.verbose=true;
+    STL1Model_SSA.ssaOptions.nSimsPerExpt=10;
     
     % This function compiles and stores the given reaction propensities  
     % into symbolic expression functions that use sparse matrices to  
@@ -61,8 +67,8 @@ STL1Model.tSpan = linspace(0,20,200);
     STL1Model_SSA = STL1Model_SSA.formPropensitiesGeneral('STL1Model_SSA');
     
     % A negative initial time is used to allow model to equilibrate 
-    % before starting (burn-in). This can cause long run times.
-    STL1Model_SSA.tSpan = [-10,STL1Model_SSA.tSpan];
+    % before starting (burn-in). Large burn-in times cause long run times.
+    STL1Model_SSA.tSpan = [-1,STL1Model_SSA.tSpan];
 
     % Set the initial time:
     STL1Model_SSA.initialTime = STL1Model_SSA.tSpan(1); 
@@ -73,5 +79,5 @@ STL1Model.tSpan = linspace(0,20,200);
     % Run SSA:
     STL1_SSAsoln = STL1Model_SSA.solve;
             
-    % Plot SSA tesults:
-    plotSSA(STL1_SSAsoln, 'all', 1200, STL1Model_SSA.species);
+    % Plot SSA trajectories and means:
+    plotSSA(STL1_SSAsoln, 'all', 2100, STL1Model_SSA.species);
