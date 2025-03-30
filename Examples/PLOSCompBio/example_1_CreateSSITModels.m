@@ -29,7 +29,7 @@ Model.propensityFunctions = {'kon * offGene';'koff * onGene';...
                              'kr * onGene';'gr * mRNA'}; 
 
 % Set initial guesses for parameters:
-Model.parameters = ({'kon',0.2; 'koff',0.3; 'kr',1; 'gr',0.5});
+Model.parameters = ({'kon',0.2; 'koff',0.1; 'kr',10; 'gr',1});
 
 % Set initial condition (one 'offGene'):
 Model.initialCondition = [1;0;0]; 
@@ -59,10 +59,10 @@ STL1Model.propensityFunctions{1} = 'offGene * IHog';
 
 % Define the time-varying TF/MAPK input signal:
 STL1Model.inputExpressions = {'IHog',...
-                               '(a0+a1*exp(-r1*t)*(1-exp(-r2*t))*(t>0))'};
+                              '(a0+a1*exp(-r1*t)*(1-exp(-r2*t))*(t>0))'};
 
 % Add the new parameters from the TF/MAPK input signal:
-STL1Model = STL1Model.addParameter({'a0',0.01;'a1',1;'r1',0.4;'r2',.1});
+STL1Model = STL1Model.addParameter({'a0',0.1;'a1',10;'r1',0.004;'r2',.01});
 
 % Print a summary of STL1 Model:
 STL1Model.summarizeModel

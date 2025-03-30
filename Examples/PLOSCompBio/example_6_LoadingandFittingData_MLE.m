@@ -13,7 +13,7 @@ Model.summarizeModel
 STL1Model.summarizeModel
 
 % Set fitOptions, with the maximum allowable number of iterations to fit
-fitOptions = optimset('Display','iter','MaxIter',500);
+fitOptions = optimset('Display','iter','MaxIter',2000);
 
 % Define which parameters to fit (in this case, all of them)
 % and convert from cell to double
@@ -22,6 +22,7 @@ STL1pars = cell2mat(STL1Model.parameters(1:8,2));
 
 %% Load experimental data, matching the species name of the model ('mRNA') 
 % to the appropriate column in the data file ('rna')
+ModelReal = Model.loadData('data/STL1.csv',{'mRNA','rna'});
 STL1Real = STL1Model.loadData('data/STL1.csv',{'mRNA','rna'});
 
 % These plots are unnecessary, as the model parameters have not been fit to
@@ -29,9 +30,11 @@ STL1Real = STL1Model.loadData('data/STL1.csv',{'mRNA','rna'});
 %STL1Real.makeFitPlot
 
 %% Compute the MLE
+Modelpars = ModelReal.maximizeLikelihood(STL1pars, fitOptions);
 STL1pars = STL1Real.maximizeLikelihood(STL1pars, fitOptions);
 
 % Make plots of the model parameter fits from the MLEs
+ModelReal.makeFitPlot
 STL1Real.makeFitPlot
 
 %% Compute the FIM
