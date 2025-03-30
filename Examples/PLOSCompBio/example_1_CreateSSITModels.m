@@ -29,7 +29,7 @@ Model.propensityFunctions = {'kon * offGene';'koff * onGene';...
                              'kr * onGene';'gr * mRNA'}; 
 
 % Set initial guesses for parameters:
-Model.parameters = ({'kon',0.2; 'koff',0.2; 'kr',1; 'gr',0.5});
+Model.parameters = ({'kon',0.2; 'koff',0.3; 'kr',1; 'gr',0.5});
 
 % Set initial condition (one 'offGene'):
 Model.initialCondition = [1;0;0]; 
@@ -55,7 +55,7 @@ Model.summarizeModel
 STL1Model = Model;
 
 % Update propensity function for the gene activation reaction:
-%STL1Model.propensityFunctions{1} = 'offGene * IHog';
+STL1Model.propensityFunctions{1} = 'offGene * IHog';
 
 % Define the time-varying TF/MAPK input signal:
 STL1Model.inputExpressions = {'IHog',...
