@@ -4,8 +4,9 @@
 addpath(genpath('../src'));
 
 %% Preliminaries
-% Load our models from example_1_CreateSSITModels; compute FSP solutions 
-% using example_2_SolveSSITModels_FSP and FIMs using example_4_FIM 
+% Load our models from example_1_CreateSSITModels; 
+% Compute FSP solutions using example_2_SolveSSITModels_FSP and 
+% FIMs using example_4_FIM 
 %% Comment out the following 3 lines if example_4_FIM has already been run:
 clear
 close all
@@ -21,18 +22,18 @@ STL1_PDO = STL1_FIM;
 
 %% STEP4 == Define Binomial Probabilistic Distortion Operator
 Model_PDO.pdoOptions.type = 'Binomial';
-Model_PDO.pdoOptions.props.CaptureProbabilityS1 = 0;  % Distortion for OFF species (unobserved)
-Model_PDO.pdoOptions.props.CaptureProbabilityS2 = 0;  % Distortion for ON species (unobserved)
-Model_PDO.pdoOptions.props.CaptureProbabilityS3 = 0.7;% Distortion for RNA species
+Model_PDO.pdoOptions.props.CaptureProbabilityS1 = 0;  % Distortion for 'offGene' (unobserved)
+Model_PDO.pdoOptions.props.CaptureProbabilityS2 = 0;  % Distortion for 'offGene' (unobserved)
+Model_PDO.pdoOptions.props.CaptureProbabilityS3 = 0.7;% Distortion for 'mRNA' (observed)
 Model_PDO.pdoOptions.PDO = Model_PDO.generatePDO(Model_PDO.pdoOptions,[],Model_sensSoln.sens.data,true);
 figure(20); contourf(log10(Model_PDO.pdoOptions.PDO.conditionalPmfs{3}),30); colorbar
 xlabel('"true" number of mRNA'); ylabel('observed number of mRNA'); set(gca,'fontsize',15);
 
 %% STEP5 == Apply PDO to FSP and Sensitivity Calculations
-Model2.solutionScheme = 'FSP'; % Set solution scheme to FSP.
-Model2.makePlot(Mod1FSPsoln,'marginals',[1:100:301],true,[1,2,3],{'linewidth',2})  % Plot Distorted Marginals
-Model2.solutionScheme = 'fspSens'; % Set solution scheme to Sensitivity
-Model2.makePlot(Mod1SensSoln,'marginals',[1:100:301],true,[3+(1:12)],{'linewidth',2})    % Plot Distorted Sensitivities
+Model_PDO.solutionScheme = 'FSP'; % Set solution scheme to FSP.
+Model_PDO.makePlot(Model_FSPsoln,'marginals',[1:100:301],true,[1,2,3],{'linewidth',2})  % Plot Distorted Marginals
+Model_PDO.solutionScheme = 'fspSens'; % Set solution scheme to Sensitivity
+Model_PDO.makePlot(Model_sensSoln,'marginals',[1:100:301],true,[3+(1:12)],{'linewidth',2})    % Plot Distorted Sensitivities
 
 %% Compute FIM for partial observations
 % Model:

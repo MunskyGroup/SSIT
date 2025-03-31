@@ -11,7 +11,7 @@ addpath(genpath('../src'));
 %       (3)   Two Species Poisson Process.
 %       (4)   Time varying bursting gene expression model (DUSP1)
 % See below for the codes to create each model so you can create your own.
-testModel = 3; 
+testModel = 4; 
 
 %% Next, choose which type of model reduction to apply. Options include:
 %   'Proper Orthogonal Decomposition' - solve the FSP once and then uses

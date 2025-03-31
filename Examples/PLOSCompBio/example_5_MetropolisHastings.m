@@ -257,7 +257,7 @@ for i=1:3
 
     % Run Met. Hast.    
     STL1_covLogMod = (STL1_FIMlog{1} + diag(size(STL1_FIMlog{1},1)))^(-1); % Adjusted proposal dist. covariance.
-    proposalWidthScale = 0.000000001;
+    proposalWidthScale = 0.00000001;
     STL1_MHOptions.proposalDistribution  = @(x)mvnrnd(x,proposalWidthScale*(STL1_covLogMod+STL1_covLogMod')/2);
     [STL1pars,STL1_likelihood,STL1_chainResults] = STL1_MH.maximizeLikelihood([],STL1_MHOptions,'MetropolisHastings');
     % Update parameters in the model:
