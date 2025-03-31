@@ -13,10 +13,10 @@ example_3_LoadingandFittingData_MLE
 
 % View model summaries
 ModelReal.summarizeModel
-STL1Real.summarizeModel
+STL1Real_refit.summarizeModel
 
 Model_sens = ModelReal;
-STL1_sens = STL1Real;
+STL1_sens = STL1Real_refit;
 
 %% Solve FSP sensitivities
 % Set solution schemes to FSP sensitivity

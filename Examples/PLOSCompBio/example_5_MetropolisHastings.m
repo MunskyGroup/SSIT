@@ -57,8 +57,8 @@ Model_covLogMod = (Model_FIMlog+1*diag(size(Model_FIMlog,1)))^(-1);
 % Here, we set up the MH parameters:
 Model_MH.solutionScheme = 'FSP'; % Set solutions scheme to FSP Sensitivity
 Model_MH.fittingOptions.modelVarsToFit = 1:4;
-Model_MHOptions = struct('numberOfSamples',3000,'burnin',10,'thin',3);
-proposalWidthScale = 0.000001;
+Model_MHOptions = struct('numberOfSamples',3000,'burnin',100,'thin',3);
+proposalWidthScale = 0.0000000000000001;
 Model_MHOptions.proposalDistribution  = ...
  @(x)mvnrnd(x,proposalWidthScale * (Model_covLogMod + Model_covLogMod')/2);
 
@@ -103,7 +103,7 @@ for i=1:3
 
     % Run Met. Hast.    
     Model_covLogMod = (Model_FIMlog{1} + diag(size(Model_FIMlog{1},1)))^(-1); % Adjusted proposal dist. covariance.
-    proposalWidthScale = 0.000001;
+    proposalWidthScale = 0.0000000000000001;
     Model_MHOptions.proposalDistribution  = @(x)mvnrnd(x,proposalWidthScale*(Model_covLogMod+Model_covLogMod')/2);
     [Modelpars,Model_likelihood,Model_chainResults] = Model_MH.maximizeLikelihood([],Model_MHOptions,'MetropolisHastings');
     % Update parameters in the model:
@@ -211,8 +211,8 @@ STL1_covLogMod = (STL1_FIMlog + 1 * diag(size(STL1_FIMlog,1)))^(-1);
 % Here, we set up the MH parameters:
 STL1_MH.solutionScheme = 'FSP'; % Set solutions scheme to FSP Sensitivity
 STL1_MH.fittingOptions.modelVarsToFit = 1:7;
-STL1_MHOptions = struct('numberOfSamples',5000,'burnin',1000,'thin',3);
-proposalWidthScale = 0.00001;
+STL1_MHOptions = struct('numberOfSamples',1000,'burnin',10,'thin',3);
+proposalWidthScale = 0.00000001;
 STL1_MHOptions.proposalDistribution = ...
   @(x)mvnrnd(x,proposalWidthScale * (STL1_covLogMod + STL1_covLogMod')/2);
 
