@@ -10,11 +10,11 @@ addpath(genpath('../../'));
 % Load our models from example_1_CreateSSITModels and inspect them:
 example_1_CreateSSITModels
 Model.summarizeModel
-STL1Model.summarizeModel
+STL1.summarizeModel
 
 % Set the times at distributions will be computed:
 Model.tSpan = linspace(0,20,200);
-STL1Model.tSpan = linspace(0,20,200);
+STL1.tSpan = linspace(0,20,200);
 
 %% Compute Ordinary Differential Equations (ODEs)
 %% Model:
@@ -36,17 +36,17 @@ STL1Model.tSpan = linspace(0,20,200);
 
 %% STL1 Model:
     % Create a copy of the STL1 Model for ODEs:
-    STL1Model_ODE = STL1Model;
+    STL1_ODE = STL1;
 
     % Set solution scheme to 'ode':
-    STL1Model_ODE.solutionScheme = 'ode';
+    STL1_ODE.solutionScheme = 'ode';
     
     % This function compiles and stores the given reaction propensities  
     % into symbolic expression functions that use sparse matrices to  
     % operate on the system based on the current state. The functions are 
-    % stored with the given prefix, in this case, 'STL1Model_ODE'
-    STL1Model_ODE = STL1Model_ODE.formPropensitiesGeneral('STL1Model_ODE');
+    % stored with the given prefix, in this case, 'STL1_ODE'
+    STL1_ODE = STL1_ODE.formPropensitiesGeneral('STL1_ODE');
     
     % Solve ODE and make plots:
-    STL1_ODEsoln = STL1Model_ODE.solve; 
-    plotODE(STL1_ODEsoln,STL1Model_ODE.species)
+    STL1_ODEsoln = STL1_ODE.solve; 
+    plotODE(STL1_ODEsoln,STL1_ODE.species)

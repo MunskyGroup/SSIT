@@ -10,11 +10,11 @@ addpath(genpath('../../'));
 % Load our models from example_1_CreateSSITModels and inspect them:
 example_1_CreateSSITModels
 Model.summarizeModel
-STL1Model.summarizeModel
+STL1.summarizeModel
 
 % Set the times at distributions will be computed:
 Model.tSpan = linspace(0,20,200);
-STL1Model.tSpan = linspace(0,20,200);
+STL1.tSpan = linspace(0,20,200);
 
 %% Run Gillepsie's Stochastic Simulation Algorithm (SSA) and analyse 
 %% trajectories
@@ -31,9 +31,13 @@ STL1Model.tSpan = linspace(0,20,200);
     % stored with the given prefix, in this case, 'Model_SSA'
     Model_SSA = Model_SSA.formPropensitiesGeneral('Model_SSA');
 
-    Model_SSA.ssaOptions.verbose=true;
+    % 'nSimsPerExpt' is an SSA option that defaults to 100, sets the number
+    % of simulations performed per experiment (set small number for demo)
     Model_SSA.ssaOptions.nSimsPerExpt=10;
 
+    % 'verbose' defaults to false, prints completed sim number to screen
+    Model_SSA.ssaOptions.verbose=true;
+    
     % A negative initial time is used to allow model to equilibrate 
     % before starting (burn-in). Large burn-in times cause long run times.
     Model_SSA.tSpan = [-1,Model_SSA.tSpan];
@@ -52,32 +56,36 @@ STL1Model.tSpan = linspace(0,20,200);
 
 %% STL1 Model:
     % Create a copy of the STL1 Model for SSAs:
-    STL1Model_SSA = STL1Model;
+    STL1_SSA = STL1;
 
     % Set solution scheme to SSA:
-    STL1Model_SSA.solutionScheme = 'SSA';
+    STL1_SSA.solutionScheme = 'SSA';
 
-    STL1Model_SSA.ssaOptions.verbose=true;
-    STL1Model_SSA.ssaOptions.nSimsPerExpt=10;
+    % 'nSimsPerExpt' is an SSA option that defaults to 100, sets the number
+    % of simulations performed per experiment (set small number for demo)
+    STL1_SSA.ssaOptions.nSimsPerExpt=10;
+
+    % 'verbose' defaults to false, prints completed sim number to screen
+    STL1_SSA.ssaOptions.verbose=true;
     
     % This function compiles and stores the given reaction propensities  
     % into symbolic expression functions that use sparse matrices to  
     % operate on the system based on the current state. The functions are 
-    % stored with the given prefix, in this case, 'STL1Model_SSA'
-    STL1Model_SSA = STL1Model_SSA.formPropensitiesGeneral('STL1Model_SSA');
+    % stored with the given prefix, in this case, 'STL1_SSA'
+    STL1_SSA = STL1_SSA.formPropensitiesGeneral('STL1_SSA');
     
     % A negative initial time is used to allow model to equilibrate 
     % before starting (burn-in). Large burn-in times cause long run times.
-    STL1Model_SSA.tSpan = [-1,STL1Model_SSA.tSpan];
+    STL1_SSA.tSpan = [-1,STL1_SSA.tSpan];
 
     % Set the initial time:
-    STL1Model_SSA.initialTime = STL1Model_SSA.tSpan(1); 
+    STL1_SSA.initialTime = STL1_SSA.tSpan(1); 
     
     % Run iterations in parallel with multiple cores, or execute serially:
-    STL1Model_SSA.ssaOptions.useParallel = true;
+    STL1_SSA.ssaOptions.useParallel = true;
     
     % Run SSA:
-    STL1_SSAsoln = STL1Model_SSA.solve;
+    STL1_SSAsoln = STL1_SSA.solve;
             
     % Plot SSA trajectories and means:
-    plotSSA(STL1_SSAsoln, 'all', 2100, STL1Model_SSA.species);
+    plotSSA(STL1_SSAsoln, 'all', 100, STL1_SSA.species);

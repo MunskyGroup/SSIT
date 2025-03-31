@@ -1,29 +1,31 @@
-%% example_5_FIMCalculation
-% Example script to set up and solve the FSP-FIM matrix  
-% with partial observations and probabilistic distortion.
-clear
-close all
+%% example_7_PDO
+% Example script to handle distorted data with a binomial conditional
+% probability distribution operator (PDO).
 addpath(genpath('../src'));
 
 %% Preliminaries
-% Load our models described in example_1_CreateSSITModels and  
-% compute FSP solutions using example_2_SolveSSITModels_FSP
-example_5_FIMCalculation
-Model.summarizeModel
-STL1Model.summarizeModel
+% Load our models from example_1_CreateSSITModels; compute FSP solutions 
+% using example_2_SolveSSITModels_FSP and FIMs using example_4_FIM 
+%% Comment out the following 3 lines if example_4_FIM has already been run:
+clear
+close all
+example_4_FIM
+
+% View model summaries
+Model_FIM.summarizeModel
+STL1_FIM.summarizeModel
 
 % Make copies of Model and STL1 Model
-Model_sens = Model_FIM;
-STL1_sens = STL1Model;
+Model_PDO = Model_FIM;
+STL1_PDO = STL1_FIM;
 
 %% STEP4 == Define Binomial Probabilistic Distortion Operator
-Model2 = Model1;  % Make a copy of the original model
-Model2.pdoOptions.type = 'Binomial';
-Model2.pdoOptions.props.CaptureProbabilityS1 = 0;  % Distortion for OFF species (unobserved)
-Model2.pdoOptions.props.CaptureProbabilityS2 = 0;  % Distortion for ON species (unobserved)
-Model2.pdoOptions.props.CaptureProbabilityS3 = 0.7;% Distortion for RNA species
-Model2.pdoOptions.PDO = Model2.generatePDO(Model2.pdoOptions,[],Mod1SensSoln.sens.data,true);
-figure(20); contourf(log10(Model2.pdoOptions.PDO.conditionalPmfs{3}),30); colorbar
+Model_PDO.pdoOptions.type = 'Binomial';
+Model_PDO.pdoOptions.props.CaptureProbabilityS1 = 0;  % Distortion for OFF species (unobserved)
+Model_PDO.pdoOptions.props.CaptureProbabilityS2 = 0;  % Distortion for ON species (unobserved)
+Model_PDO.pdoOptions.props.CaptureProbabilityS3 = 0.7;% Distortion for RNA species
+Model_PDO.pdoOptions.PDO = Model_PDO.generatePDO(Model_PDO.pdoOptions,[],Model_sensSoln.sens.data,true);
+figure(20); contourf(log10(Model_PDO.pdoOptions.PDO.conditionalPmfs{3}),30); colorbar
 xlabel('"true" number of mRNA'); ylabel('observed number of mRNA'); set(gca,'fontsize',15);
 
 %% STEP5 == Apply PDO to FSP and Sensitivity Calculations

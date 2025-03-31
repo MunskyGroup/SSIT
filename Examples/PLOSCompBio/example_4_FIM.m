@@ -1,17 +1,19 @@
 %% example_5_FIMCalculation
 % Example script to set up and solve the FSP-FIM matrix  
 % with partial observations and probabilistic distortion.
-clear
-close all
 addpath(genpath('../../src'));
 
 %% Preliminaries
 % Load our models described in example_1_CreateSSITModels and  
 % compute FSP solutions using example_2_SolveSSITModels_FSP
-
+%% Comment out the following 3 lines if example_4_FIM has already been run:
+clear
+close all
 example_3_LoadingandFittingData_MLE
+
+% View model summaries
 ModelReal.summarizeModel
-STL1Real1.summarizeModel
+STL1Real.summarizeModel
 
 Model_sens = ModelReal;
 STL1_sens = STL1Real;
@@ -80,9 +82,10 @@ legend('FIM')
 
 %%
 % Note:  Under certain circumstances, the FIM calculation will fail.  For 
-% example, if the 'koff' parameter is set to equal 'kon' and then the FSP
-% solutions are recomputed, Model_fimMetrics (from the basic bursting gene
-% Model) STL1_fimMetrics (from the time-varying input model) become:
+% example, without the removel of the 'kon' parameter from STL1 (which has 
+% no effect on STL1 unlike the basic bursting gene Model), Model_fimMetrics 
+% (from the basic bursting gene Model) and STL1_fimMetrics (from the 
+% time-varying input model) become:
 
 % fimMetrics = 
 % 
@@ -102,6 +105,5 @@ legend('FIM')
 
 % The determinant for STL1_fimMetrics indicates a lack of identifiability 
 % between parameters in the STL1 Model, which unlike the base model has a 
-% time-varying input signal. The 'kon' and 'koff' parameters are strongly 
-% correlated and for these values, would require directly observed gene 
-% data information for FIM to avoid rank deficiency.
+% time-varying input signal. There is not information for the STL1 Model 
+% concerning 'kon', leading to rank deficiency for the FIM.

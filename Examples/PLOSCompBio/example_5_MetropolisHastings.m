@@ -1,14 +1,17 @@
 %% example_7_MetropolisHastings
 % Example script to demonstrate how to use Metropolis-Hastings to sample
 % uncertainty (and improve model parameter fit to data)
-clear
-close all
 addpath(genpath('../../src'));
 
 %% Preliminaries
 % Load our models from example_1_CreateSSITModels; compute FSP solutions 
-% using example_2_SolveSSITModels_FSP and FIMs using example_6_FIM
-example_4_FIM
+% using example_2_SolveSSITModels_FSP and FIMs using example_4_FIM
+%% Comment out the following 3 lines if example_4_FIM has already been run:
+% clear
+% close all
+% example_4_FIM
+
+% View model summaries
 Model_FIM.summarizeModel
 STL1_FIM.summarizeModel
 
@@ -161,7 +164,7 @@ ylabel(['log ',Model_MH.parameters{Q(2),1}])
 % out the number of steps needed for correlations to decay and then divide
 % the total number of steps by the de-correlation step.
 figure
-ipar = 5;
+ipar = 4;
 ac = xcorr(Model_chainResults.mhSamples(:,ipar)-mean(Model_chainResults.mhSamples(:,ipar)),'normalized');
 ac = ac(size(Model_chainResults.mhSamples,1):end);
 plot(ac,'LineWidth',3)
@@ -207,9 +210,9 @@ STL1_covLogMod = (STL1_FIMlog + 1 * diag(size(STL1_FIMlog,1)))^(-1);
 
 % Here, we set up the MH parameters:
 STL1_MH.solutionScheme = 'FSP'; % Set solutions scheme to FSP Sensitivity
-STL1_MH.fittingOptions.modelVarsToFit = 1:8;
-STL1_MHOptions = struct('numberOfSamples',3000,'burnin',100,'thin',3);
-proposalWidthScale = 0.0000000001;
+STL1_MH.fittingOptions.modelVarsToFit = 1:7;
+STL1_MHOptions = struct('numberOfSamples',5000,'burnin',1000,'thin',3);
+proposalWidthScale = 0.00001;
 STL1_MHOptions.proposalDistribution = ...
   @(x)mvnrnd(x,proposalWidthScale * (STL1_covLogMod + STL1_covLogMod')/2);
 
@@ -254,7 +257,7 @@ for i=1:3
 
     % Run Met. Hast.    
     STL1_covLogMod = (STL1_FIMlog{1} + diag(size(STL1_FIMlog{1},1)))^(-1); % Adjusted proposal dist. covariance.
-    proposalWidthScale = 0.4;
+    proposalWidthScale = 0.000000001;
     STL1_MHOptions.proposalDistribution  = @(x)mvnrnd(x,proposalWidthScale*(STL1_covLogMod+STL1_covLogMod')/2);
     [STL1pars,STL1_likelihood,STL1_chainResults] = STL1_MH.maximizeLikelihood([],STL1_MHOptions,'MetropolisHastings');
     % Update parameters in the model:
