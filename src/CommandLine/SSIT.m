@@ -2327,7 +2327,7 @@ classdef SSIT
 
         %% Plotting/Visualization Functions
         function makePlot(obj,solution,plotType,indTimes,includePDO,figureNums,... ...
-                lineProps,movieName,maxY,movieSpecies,senseVars)
+                lineProps,movieName,maxY,movieSpecies,senseVars,plotTitle)
             % SSIT.makePlot -- tool to make plot of the FSP or SSA results.
             % arguments:
             %   solution -- solution structure from SSIT.
@@ -2372,6 +2372,7 @@ classdef SSIT
                 maxY = []
                 movieSpecies = []
                 senseVars = []
+                plotTitle = ''
             end
             if isempty(figureNums)
                 h =  findobj('type','figure');
@@ -2458,7 +2459,12 @@ classdef SSIT
                                     bar([0:length(solution.Marginals{i}{movieSpecies(j)})-1],...
                                         solution.Marginals{i}{movieSpecies(j)},lineProps{:});
                                     set(gca,'fontsize',15,'ylim',[0,maxY(movieSpecies(j))])
-                                    title([obj.species{movieSpecies(j)},'; t = ',num2str(solution.T_array(i),'%.0f')])
+                                    if isempty(plotTitle)
+                                        title([obj.species{movieSpecies(j)},'; t = ',num2str(solution.T_array(i),'%.0f')])
+                                    else
+                                        title(sprintf('%s; t = %.0f', plotTitle, solution.T_array(i)))
+                                    end
+        
                                 end
                                 writeVideo(mov,getframe(f))
                             end
