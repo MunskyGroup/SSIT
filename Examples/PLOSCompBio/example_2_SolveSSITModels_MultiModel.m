@@ -1,5 +1,6 @@
+%% example_2_SolveSSITModels_MultiModel
 %% Using the SSIT to fit Multiple Models and Data sets with Shared Parameters
-% In this script, we show how multiple SSIT models and data sets can be fit
+% Example script to show how multiple SSIT models and data sets can be fit
 % simultaneously.  This is most useful in situations where:
 %   1) the analysis considers different experimental conditions (e.g.,
 %   different time points, different inducer concentrations, different
@@ -7,7 +8,7 @@
 %   2) replica to replica variations are expected that would result in
 %   slightly different parameter combinations
 close all
-clear all
+clear 
 addpath(genpath('../src'));
 
 %% Define SSIT Model
