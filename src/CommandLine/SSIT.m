@@ -56,6 +56,9 @@ classdef SSIT
             % Example:
             %   F = SSIT('CentralDogma'); % Generate model for
             %                           %transcription and translation.
+            %
+            % matlab: doc SSIT
+
             arguments
                 modelFile = []
                 modelName = []
@@ -120,6 +123,14 @@ classdef SSIT
 
        
         function obj = formPropensitiesGeneral(obj,prefixName,computeSens)
+            % Create callable functions for all propensity functions.
+            %
+            % INPUTS:
+            %    obj - SELF
+            %    prefixName (string) 'default' -- prefix name for saving
+            %    functions
+            %    computeSens (boolean) true -- should derivatives be
+            %    calculated for use in sensitivity calculations.
             arguments
                 obj
                 prefixName = 'default';
