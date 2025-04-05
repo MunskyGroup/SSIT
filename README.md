@@ -6,7 +6,7 @@ Authors: Huy Vo, Joshua Cook, Eric Ron, Brian Munsky
 
 [![License](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
 
-The SSIT allows users to specify and solve the chemical master equation for discreate stochastic models, especially those used for the analysis of single-cell gene regulaton.  
+The SSIT allows users to specify and solve the chemical master equation for discrete stochastic models, especially those used for the analysis of single-cell gene regulaton.  
 
 To learn more about the FSP theory that underlies the SSIT, please see the slides from our [Nov. 3, 2022 BPPB Seminar](https://github.com/MunskyGroup/SSIT/blob/main/images/BPPBSeminarNov2022.pdf)
 
