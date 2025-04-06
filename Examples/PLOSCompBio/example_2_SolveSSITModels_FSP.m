@@ -5,7 +5,7 @@
 %   of the Chemical Master Equation (CME).
 clear
 close all
-addpath(genpath('../../'));
+addpath('../../');
 
 %% Preliminaries
 % Load our models from example_1_CreateSSITModels and inspect them:

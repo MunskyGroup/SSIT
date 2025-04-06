@@ -1224,8 +1224,7 @@ classdef SSIT
                         app,stateSpace,...
                         obj.fspOptions.usePiecewiseFSP,...
                         obj.fspOptions.initApproxSS,...
-                        obj.species,...
-                        obj.sensOptions.useParallel,...
+                        obj.species,...                        obj.sensOptions.useParallel,...
                         fspSoln,...
                         useReducedModel,modRedTransformMatrices, ...
                         obj.useHybrid,obj.hybridOptions,...
@@ -1300,17 +1299,22 @@ classdef SSIT
         end
 
         function [fimResults,sensSoln] = computeFIM(obj,sensSoln,scale,MHSamples)
-            % computeFIM - computes FIM at all time points.
-            % Arguments:
-            %   sensSoln - (optional) previously compute FSP Sensitivity.
-            %              Automatically computed if not provided.
-            %   scale - ('lin'(default) or 'log') Choice of FIM based on
-            %            linear parameters or their natural logarithm
-            %   MHSamples - (optional) set of parameter sets at which to calculate
-            %           the FIM.
+            %% computeFIM - Computes the Fisher Information Matrix (FIM) 
+            %%              at all time points.
+            % Inputs:
+            %   * sensSoln (optional) - previously computed FSP 
+            %                           sensitivity, automatically 
+            %                           computed by computeFIM if not 
+            %                           provided
+            %   * scale - choice of FIM based on linear parameters or 
+            %             their natural logarithm ('lin' or 'log'),
+            %             default: 'lin'
+            %   * MHSamples (optional) - set of parameter sets at which 
+            %                            to calculate the FIM
+            %           
             % Outputs:
-            %   fimResults - FIM at each time point in obj.tSpan
-            %   sensSoln - FSP Sensitivity.
+            %   * fimResults - FIM at each time point in obj.tSpan
+            %   * sensSoln - FSP sensitivity solutions
             arguments
                 obj
                 sensSoln = [];
