@@ -9,7 +9,7 @@
 %   slightly different parameter combinations
 close all
 clear 
-addpath('../src');
+addpath(genpath('../../src'));
 
 %% Define SSIT Model
 % SSIT models are defined as usual:

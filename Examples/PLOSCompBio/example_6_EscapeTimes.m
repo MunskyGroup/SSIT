@@ -3,7 +3,7 @@
 % time problem.
 close all
 clear 
-addpath('../../src');
+addpath(genpath('../../src'));
 
 %% Preliminaries
 % Load our models from example_1_CreateSSITModels and inspect them:

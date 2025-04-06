@@ -1498,49 +1498,50 @@ classdef SSIT
 
         function [NcDNewDesign] = optimizeCellCounts(obj,fims,nCellsTotalNew,FIMMetric,...
                 NcGuess,NcFixed,NcMax,statistic,covPrior,incrementAdd)
-            % This function optimizes the number of cells per time point
-            % according to the user-provide metric. 
+            %% SSIT.optimizeCellCounts - This function optimizes the number 
+            %% of cells per time point according to the user-provide metric. 
             % 
-            % INPUTS:
+            % Inputs:
+            %   * 'fims' - either an [Nt x 1] cell array containing the FIM 
+            %      matrices for each of the Nt time points, or an [Nt x Ns]
+            %      cellarray containing the FIM for each combination of Nt 
+            %      time points and Ns different parameter sets
+            %   * 'nCellsTotalNew' - the total number of cells to be 
+            %       measured, spread out among the Nt time points
+            %   * 'FIMmetric' - type of optimization, allowable metrics are:
+            %       'Determinant' - maximize the expected determinant of 
+            %                       the FIM
+            %       'DetCovariance' - minimize the expected determinant of
+            %                         MLE covariance
+            %       'Smallest Eigenvalue' - maximize the smallest e.val of
+            %                               the FIM
+            %       'Trace' - maximize the trace of the FIM
+            %       '[<i1>,<i2>,...]' - minimize the determinant of the 
+            %                           inverse FIM for the specified 
+            %                           indices, (all other parameters are
+            %                           assumed to be free)
+            %       'TR[<i1>,<i2>,...]' - maximize the determinant of the
+            %                             FIM for the specified indices, 
+            %                             (only the parameters in
+            %                             obj.fittingOptions.modelVarsToFit 
+            %                             are assumed to be free)
+            %   * 'Nc' - an optimal guess for the optimal experiment 
+            %            design
+            %   * 'NcFixed' - a minimal number of cells to measure at each
+            %      time point; this is useful for subsequent experiment
+            %      design, having already obtained measured cells from a
+            %      previous experiment
+            %   * 'NcMax' - maximum total number of cells allowed for each 
+            %      time point; this is useful in simulated experiment design,
+            %      where there are only so many cells available in the real
+            %      data
             %
-            % 'fims' is either [Nt x 1] cell array containing the FIM matrices
-            % for each of the Nt time points, or it is a [Nt x Ns] cell
-            % array containing the FIM for each combination of Nt time
-            % points and Ns different parameter sets.
+            % Outputs:
+            %   * 'Nc' is the optimized experiment design (number of cells 
+            %      to measure at each point in time)
             %
-            % 'nCellsTotalNew' is the total number of cells the user wishes to
-            % measure, spead out among the Nt time points.
-            % 
-            % 'FIMmetric' is the type of optimization that the user
-            % desires. Allowable metrics are:
-            %   'Determinant' - maximize the expected determinant of the FIM
-            %   'DetCovariance' - minimize the expected determinant of MLE covariance. 
-            %   'Smallest Eigenvalue' - maximize the smallest e.val of the
-            %       FIM
-            %   'Trace' - maximize the trace of the FIM
-            %   '[<i1>,<i2>,...]' - minimize the determinant of the inverse
-            %       FIM for the specified indices. All other parameters are
-            %       assumed to be free.
-            %   'TR[<i1>,<i2>,...]' - maximize the determinant of the  FIM
-            %       for the specified indices. Only the parameters in
-            %       obj.fittingOptions.modelVarsToFit are assumed to be
-            %       free.
-            %
-            % 'Nc' is an optimal guess for the optimal experiment design.
-            %
-            % 'NcFixed' is a minimal number of cells to measure at each
-            %      time point.  This is useful for subsequent experiment
-            %      design where you already have measured cells in the
-            %
-            % 'NcMax' maximum total number of cells allowed for each time
-            %       point.  This is useful in simulated experiment design,
-            %       where there are only so many cells available in the
-            %       real data.
-            %
-            % OUTPUTS:
-            % 'Nc' is the optimized experiment design (number of cells to
-            % measure at each point in time.
-            %
+            % Example: Model.optimizeCellCounts(fimResults,nCellsTotal,...
+            %           'Determinant',[],[],[],[],diag(log10.^2));
             arguments
                 obj
                 fims

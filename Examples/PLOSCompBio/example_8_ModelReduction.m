@@ -1,7 +1,7 @@
 %% example_8_ModelReduction
 % Example script to demonstrate how to create reduced FSP models using 
 % different types of projection-based transformations.
-addpath('../../');
+addpath(genpath('../../src'));
 
 %% Preliminaries
 % Load our models from example_1_CreateSSITModels; 

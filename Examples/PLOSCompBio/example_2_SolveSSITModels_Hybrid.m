@@ -5,7 +5,7 @@
 % stochastic manner. This runs signficantly faster than full FSP solutions.
 close all 
 clear 
-addpath('../../');
+addpath(genpath('../../src'));
 
 %% Preliminaries
 % Load our models from example_1_CreateSSITModels and inspect them:

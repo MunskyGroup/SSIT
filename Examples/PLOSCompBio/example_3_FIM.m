@@ -1,7 +1,7 @@
 %% example_5_FIMCalculation
 % Example script to set up and solve the FSP-FIM matrix  
 % with partial observations and probabilistic distortion.
-addpath('../../src');
+addpath(genpath('../../src'));
 
 %% Preliminaries
 % Load our models described in example_1_CreateSSITModels and  

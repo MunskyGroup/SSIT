@@ -1,7 +1,7 @@
 %% example_7_PDO
 % Example script to handle distorted data with a binomial conditional
 % probability distribution operator (PDO).
-addpath('../src');
+addpath(genpath('../../src'));
 
 %% Preliminaries
 % Load our models from example_1_CreateSSITModels; 

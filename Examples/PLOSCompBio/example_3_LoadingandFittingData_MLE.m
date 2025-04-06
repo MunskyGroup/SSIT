@@ -1,7 +1,7 @@
 %% example_6_LoadingandFittingData_MLE
 % Example script to demonstrate how to load and fit
 % experimental data using maximum likelihood estimates (MLEs)
-addpath('../../src');
+addpath(genpath('../../src'));
 
 %% Preliminaries
 % Load our STL1 Model described in example_1_CreateSSITModels and  
