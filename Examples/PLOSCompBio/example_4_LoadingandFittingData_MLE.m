@@ -1,13 +1,14 @@
 %% example_6_LoadingandFittingData_MLE
 % Example script to demonstrate how to load and fit
 % experimental data using maximum likelihood estimates (MLEs)
-clear
-close all
 addpath(genpath('../../src'));
 
 %% Preliminaries
 % Load our STL1 Model described in example_1_CreateSSITModels and  
 % compute FSP solutions using example_2_SolveSSITModels_FSP
+%% Comment out the following 3 lines if example_2 has already been run:
+clear
+close all
 example_2_SolveSSITModels_FSP
 
 % View model summaries
@@ -33,6 +34,7 @@ STL1Real = STL1Real.loadData('data/STL1.csv',{'mRNA','rna'});
 
 % These plots are unnecessary, as the model parameters have not been fit to
 % the data yet.  However, it illustrates the improvement due to MLEs later:
+%ModelReal.makeFitPlot
 %STL1Real.makeFitPlot
 
 %% Compute the MLE

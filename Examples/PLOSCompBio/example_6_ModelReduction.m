@@ -8,9 +8,9 @@ addpath(genpath('../../'));
 % Compute FSP solutions using example_2_SolveSSITModels_FSP
 %% Comment out the following 3 lines if example_2_SolveSSITModels_FSP 
 %% has already been run:
-% close all 
-% clear
-% example_2_SolveSSITModels_FSP
+close all 
+clear
+example_2_SolveSSITModels_FSP
 
 % View model summaries
 Model_FSP.summarizeModel
