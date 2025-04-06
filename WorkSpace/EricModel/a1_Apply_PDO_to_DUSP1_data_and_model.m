@@ -68,7 +68,7 @@ legend('Intuitive Design','Optimal Design')
 
 %%    STEP PDO.B. -- PDO Calculations
 %%      STEP PDO.B.1. -- Calibrate PDO from Multi-Modal Experimental Data
-% Calibration the PDO from empirical data. Here, the number of spots has
+% Calibrate the PDO from empirical data. Here, the number of spots has
 % been measured using different assays in data columns 'nTotal' for the
 % 'true' data set and in the columns 'nSpots0' for a different label or
 % 'intens1' for the integrated intensity.  We calibrate two different PDOs
