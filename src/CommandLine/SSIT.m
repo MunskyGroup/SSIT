@@ -105,6 +105,7 @@ classdef SSIT
         %   defaults:
         %       'solutionMethod','forward'
         %       'useParallel',true
+        %   example: Model.sensOptions.solutionMethod = 'finiteDifference';
         sensOptions = struct('solutionMethod','forward',...
                              'useParallel',true);
         % Options for SSA solver
@@ -210,6 +211,9 @@ classdef SSIT
             %       defaults:
             %           'solutionMethod','forward'
             %           'useParallel',true
+            %       example: 
+            %           Model.sensOptions.solutionMethod = ...
+            %                                           'finiteDifference';
             %
             %% Options for FSP-Sensitivity solver:
             %   * ssaOptions - (struct), options for SSA solver
