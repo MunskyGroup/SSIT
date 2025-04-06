@@ -113,7 +113,7 @@ classdef SSIT
         %       'nSimsPerExpt',100
         %       'useTimeVar',false
         %       'signalUpdateRate',[]
-        %       'useParallel',false
+        %       'llel',false
         %       'verbose',false
         ssaOptions = struct('Nexp',1,'nSimsPerExpt',100,...
             'useTimeVar',false,'signalUpdateRate',[],...

@@ -4,7 +4,7 @@
 % * Stochastic, using stochastic simulation algorithm (SSA) trajectories.
 clear
 close all
-addpath(genpath('../../'));
+addpath('../../');
 
 %% Preliminaries
 % Load our models from example_1_CreateSSITModels and inspect them:

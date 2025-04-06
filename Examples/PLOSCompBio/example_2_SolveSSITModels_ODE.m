@@ -4,7 +4,7 @@
 % * Deterministic, using ordinary differential equations (ODEs) to average.
 clear
 close all
-addpath(genpath('../../')); 
+addpath('../../'); 
 
 %% Preliminaries
 % Load our models from example_1_CreateSSITModels and inspect them:
@@ -32,7 +32,7 @@ STL1.tSpan = linspace(0,20,200);
     
     % Solve ODE and make plots:
     Model_ODEsoln = Model_ODE.solve; 
-    plotODE(Model_ODEsoln,Model_ODE.species)
+    plotODE(Model_ODEsoln,Model_ODE.species,Model_ODE.tSpan)
 
 %% STL1 Model:
     % Create a copy of the STL1 Model for ODEs:
@@ -49,4 +49,4 @@ STL1.tSpan = linspace(0,20,200);
     
     % Solve ODE and make plots:
     STL1_ODEsoln = STL1_ODE.solve; 
-    plotODE(STL1_ODEsoln,STL1_ODE.species)
+    plotODE(STL1_ODEsoln,STL1_ODE.species,STL1_ODE.tSpan)

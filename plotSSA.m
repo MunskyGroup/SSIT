@@ -2,10 +2,14 @@ function plotSSA(ssaSoln, speciesIdx, numTraj, speciesNames)
     % plotSSA - Plots SSA trajectories and histograms from ssaSoln struct.
     %
     % Inputs:
-    %   ssaSoln: Struct containing SSA simulation results
-    %   speciesIdx: Index of the species to plot (1 to N) or 'all' to plot all species
-    %   numTraj: Number of trajectories to display (max available)
-    %   speciesNames (optional): Cell array of species names (must match numSpecies)
+    %   * ssaSoln - struct containing SSA simulation results
+    %   * speciesIdx - index of the species to plot (1 to N) or 'all' to 
+    %                  plot all species
+    %   * numTraj - number of trajectories to display (max available)
+    %   * speciesNames (optional) - cell array of species names (must match 
+    %                               numSpecies) for plot legend
+    %
+    % Example: plotSSA(Model_SSAsoln, 'all', 100, Model_SSA.species);
 
     numSpecies = size(ssaSoln.trajs, 1); % Automatically detect number of species
     numTotalTraj = size(ssaSoln.trajs, 3);

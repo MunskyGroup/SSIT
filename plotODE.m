@@ -1,10 +1,13 @@
 function plotODE(ODE_soln, speciesNames, timeVec)
-    % plotODE - Plots ODE solution for all species over time.
+    % plotODE - Plots ODE solution for all model species over time.
     %
     % Inputs:
-    %   ODE_soln: Struct with field 'ode' (nTime × nSpecies)
-    %   speciesNames (optional): Cell array of species names
-    %   timeVec (optional): Time vector [nTime × 1]
+    %   * ODE_soln - struct with field 'ode' (nTime × nSpecies)
+    %   * speciesNames (optional) - cell array of species names for plot
+    %                               legend
+    %   * timeVec (optional) - time vector [nTime × 1]
+    %
+    % Example: plotODE(Model_ODEsoln,Model_ODE.species,Model_ODE.tSpan)
 
     X = ODE_soln.ode;  % size: [nTime × nSpecies]
     [nTime, numSpecies] = size(X);
