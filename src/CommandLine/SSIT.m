@@ -177,22 +177,22 @@ classdef SSIT
             % chemical master equation for discrete stochastic models.
             %
             %% Inputs: 
-            %   * parameters - list of parameters and their values
+            %   * parameters - (list) of parameters and their values
             %                  default: {'k',10; 'g',0.2};     
-            %   * species - list of species to be used in model 
+            %   * species - (list) of species to be used in model 
             %                e.g., {'offGene';'onGene';'mRNA'}
-            %   * stoichiometry - matrix of stoichiometric updates for 
-            %                     each reaction
-            %   * propensityFunctions - list of propensity functions
-            %   * initialCondition - list of initial conditions for  
+            %   * stoichiometry - (double), matrix of stoichiometric  
+            %                      updates for each reaction
+            %   * propensityFunctions - (list) of propensity functions
+            %   * initialCondition - (list) of initial conditions for  
             %                        species, e.g., [1;0;0]
-            %   * inputExpressions - list of time-varying input signals 
+            %   * inputExpressions - (list) of time-varying input signals 
             %                        e.g., {'IHog','(a0+a1*exp(-r1*t)*...
             %                               (1-exp(-r2*t))*(t>0))'};
-            %   * customConstraintFuns - struct supplied by user to  
+            %   * customConstraintFuns - (struct) supplied by user to  
             %                            define FSP constraint functions
             %                            (e.g., {'offGene+onGene'};) 
-            %   * fspOptions - struct, options for FSP solver
+            %   * fspOptions - (struct), options for FSP solver
             %        defaults:
             %           'fspTol',0.001
             %           'fspIntegratorRelTol',1e-2
@@ -205,14 +205,14 @@ classdef SSIT
             %           'escapeSinks',[]
             %           'constantJacobian',false
             %           'constantJacobianTime',1.1 
-            %   * sensOptions - struct, options for sensitivity 
+            %   * sensOptions - (struct), options for sensitivity 
             %                   calculation
             %       defaults:
             %           'solutionMethod','forward'
             %           'useParallel',true
             %
             %% Options for FSP-Sensitivity solver:
-            %   * ssaOptions - struct, options for SSA solver
+            %   * ssaOptions - (struct), options for SSA solver
             %       defaults:
             %           'Nexp',1
             %           'nSimsPerExpt',100
@@ -220,12 +220,12 @@ classdef SSIT
             %           'signalUpdateRate',[]
             %           'useParallel',false
             %           'verbose',false
-            %   * pdoOptions - struct, options for PDO
+            %   * pdoOptions - (struct), options for PDO
             %           'unobservedSpecies',[]
             %           'PDO',[]
             %
             %% Options for FIM analyses:
-            %   * fittingOptions - struct, various options for fitting
+            %   * fittingOptions - (struct), various options for fitting
             %       defaults:
             %           'modelVarsToFit','all'
             %           'pdoVarsToFit',[]
@@ -233,15 +233,15 @@ classdef SSIT
             %           'logPrior',[]
             %           'logPriorCovariance',[]
             %           'priorCovariance',[]
-            %   * initialProbs - double, probability mass of states 
+            %   * initialProbs - (double), probability mass of states 
             %                    given in initialCondition
-            %   * initialTime - double, default: 0
-            %   * tSpan -  double, times at which to find solutions
+            %   * initialTime - (double), default: 0
+            %   * tSpan -  (double), times at which to find solutions
             %              default: linspace(0,10,21);
             %   * solutionScheme - char, chosen solution scheme 
             %                      ('FSP','SSA','ode'), default: 'FSP'
             %% Model reduction tools:
-            %   * modelReductionOptions - struct, settings for model 
+            %   * modelReductionOptions - (struct), settings for model 
             %                             reduction tools
             %       defaults:
             %           'useModReduction',false
@@ -249,18 +249,18 @@ classdef SSIT
             %% Data:
             %   * dataSet = [];
             %% Hybrid:
-            %   * useHybrid - logical, default: false
-            %   * hybridOptions - struct, defines which species  
+            %   * useHybrid - (logical), default: false
+            %   * hybridOptions - (struct), defines which species  
             %                     population changes through time are 
             %                     computed by ODEs
             %                     default: 'upstreamODEs',[]
             %% Propensity function storage:
-            %   *propensitiesGeneral = struct, processed propensity 
+            %   *propensitiesGeneral = (struct), processed propensity 
             %                       functions for use in solvers
             %                       default: []
             %
             %% Arguments:
-            %   modelFile (optional) -- create  from specified template:
+            %   modelFile (optional) -- create from specified template:
             %       {'Empty',
             %       'BirthDeath',    % 1 species example
             %       'CentralDogma',  % 2 species example
@@ -339,14 +339,27 @@ classdef SSIT
        
         function obj = formPropensitiesGeneral(obj,prefixName,computeSens)
             %% SSIT.formPropensitiesGeneral - Create callable functions 
-            % for all propensity functions
+            %% for all propensity functions.
             %
-            % INPUTS:
-            %    obj - SELF
-            %    prefixName (string) 'default' -- prefix name for saving
-            %    functions
-            %    computeSens (boolean) true -- should derivatives be
-            %    calculated for use in sensitivity calculations.
+            % This function compiles and stores the given reaction   
+            % propensities into symbolic expression functions that use  
+            % sparse matrices to operate on the system based on the current 
+            % state. The functions are stored with the given prefix, e.g., 
+            % 'Model_1'
+            %
+            % Inputs:
+            %    * obj - SELF
+            %    * prefixName - (string) the prefix name used to name the
+            %                   saved propensity functions
+            %                   default: 'default'
+            %    * computeSens - (logical) indicates whether derivatives 
+            %                    are calculated for use in sensitivity
+            %                    analysis
+            %                    default: true
+            %
+            % Outputs: Model, callable symbolic expression functions
+            %
+            % Example: Model = Model.formPropensitiesGeneral('Model_1')
             arguments
                 obj
                 prefixName = 'default';
@@ -983,6 +996,15 @@ classdef SSIT
         end
 
         function summarizeModel(obj)
+            %% SSIT.summarizeModel - Prints a summary of an SSIT model: 
+            %% Species, Reactions (with Stoichiometric updates), 
+            %% Model Parameters
+            %
+            % Input:  SSIT model
+            %
+            % Output:  Summary text to screen
+            %
+            % Example:  Model.summarizeModel
             arguments
                 obj;
             end
