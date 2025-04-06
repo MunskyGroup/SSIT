@@ -1,5 +1,5 @@
 classdef SSIT 
-    %% Create an instance of the SSIT class.
+    %% Create an instance of the SSIT class, example:  Model = SSIT;
     % 
     % The SSIT allows users to specify and efficiently solve the chemical  
     % master equation for discrete stochastic models.  SSIT is especially 
@@ -65,13 +65,23 @@ classdef SSIT
         parameters = {'k',10; 'g',0.2};     
         % List of species to be used in model, default: {'x1'};
         species = {'x1'};                   
-        % Stoichiometry matrix, default: [1,-1];
+        % Matrix of stoichiometric updates applied to each species given  
+        % each reaction, with species as rows and reactions as columns 
+        %   default: [1,-1];
+        %   example: Model.stoichiometry = [-1,1,0,0;...
+        %                                    1,-1,0,0;...
+        %                                    0,0,1,-1]; 
         stoichiometry = [1,-1];  
         % List of propensity functions, default: {'k'; 'g*x1'}
         propensityFunctions = {'k'; 'g*x1'} 
-        % List of time-varying input signals, default: {};
+        % List of time-varying input signals
+        %   default: {}; 
+        %   example:  Model.inputExpressions = ...
+        %             {'Drug','(a0+a1*exp(-r1*t)*(1-exp(-r2*t))*(t>0))'};  
         inputExpressions = {}; 
-        % User supplied constraint functions for FSP, default: {};
+        % Struct containing user-supplied constraint functions for FSP
+        %   default: {};
+        %   example: Model.customConstraintFuns = {'offGene+onGene'};
         customConstraintFuns = {};
         % Options for FSP solver
         %    defaults:
@@ -95,7 +105,8 @@ classdef SSIT
         %   defaults:
         %       'solutionMethod','forward'
         %       'useParallel',true
-        sensOptions = struct('solutionMethod','forward','useParallel',true);
+        sensOptions = struct('solutionMethod','forward',...
+                             'useParallel',true);
         % Options for SSA solver
         %   defaults:
         %       'Nexp',1
@@ -123,7 +134,7 @@ classdef SSIT
         fittingOptions = struct('modelVarsToFit','all',...
             'pdoVarsToFit',[],'timesToFit','all','logPrior',[],...
             'logPriorCovariance',[],'priorCovariance',[])
-        % Initial population sizes of each species, default: [0];
+        % Initial population size of each species, default: [0];
         initialCondition = [0]; 
         % Probability mass of states given in initialCondition, default: 1
         initialProbs = 1; 
@@ -141,10 +152,13 @@ classdef SSIT
                                         'reductionType','None') 
         % Set data, default: [];
         dataSet = [];
-        % Option to use hybrid model, default: false
+        % Option to use hybrid model (deterministic + stochastic species) 
+        %   default: false
         useHybrid = false
         % Struct to define which species of the hybrid model will be
-        % modelled using ODEs, default: struct('upstreamODEs',[]);
+        % modelled using ODEs
+        %   default: struct('upstreamODEs',[]);
+        %   example: Model.hybridOptions.upstreamODEs = {'offGene','onGene'};
         hybridOptions = struct('upstreamODEs',[]);
         % Processed propensity functions for use in solvers, default: [];
         propensitiesGeneral = [];
@@ -324,7 +338,8 @@ classdef SSIT
 
        
         function obj = formPropensitiesGeneral(obj,prefixName,computeSens)
-            % Create callable functions for all propensity functions.
+            %% SSIT.formPropensitiesGeneral - Create callable functions 
+            % for all propensity functions
             %
             % INPUTS:
             %    obj - SELF
@@ -1036,8 +1051,13 @@ classdef SSIT
                 saveFile=[];
                 fspSoln=[];
             end
-            % solve - solve the model using the specified method in
-            %    obj.solutionScheme
+            % Solve the model using the specified method in
+            %    obj.solutionScheme (default: 'FSP')
+            % Inputs:
+            %   obj
+            %   stateSpace = [];
+            %   saveFile = [];
+            %   fspSoln = [];
             % Example:
             %   F = SSIT('ToggleSwitch')
             %   F.solutionScheme = 'FSP'
@@ -1623,17 +1643,33 @@ classdef SSIT
 
         %% Data Loading and Fitting
         function [obj] = loadData(obj,dataFileName,linkedSpecies,conditions)
+            % SSIT.loadData - Reads data from given file and associates 
+            % it with specified model species and experimental conditions. 
+            %
+            % Inputs:
+            %   * obj
+            %   * dataFileName - name of data file, e.g., "dataFile.csv"
+            %   * linkedSpecies - takes two strings: first, the names of  
+            %   the species given to the SSIT model using the 'species'
+            %   property (e.g., Model.species = {'RNA','Protein'}); and
+            %   second, the names of the species in the data file (e.g., 
+            %   {'RNA','x1';'Protein','x2'})
+            %   * conditions - data conditions that can be used to filter 
+            %                out data that do not meet specifications, 
+            %                e.g., conditions = {'Rep_num','1'}  : only 
+            %                the data in the 'Rep_num' column that is 
+            %                exactly equal to '1' will be kept in the 
+            %                data set
+            %
+            % Example:
+            %   Model = Model.loadData("/data/dataFile.csv",...
+            %    {'RNA','x1';'Protein','x2'},...
+            %    {'Drug_Conc',100});
             arguments
                 obj
                 dataFileName
                 linkedSpecies
                 conditions = {};
-                % Data conditions that can be used to filter out data that
-                % do not meet specifications.
-                % Example:
-                %     conditions = {'Rep_num','1'}  : Only the data in the
-                %     'Rep_num' column that is exactly equal to '1' will be
-                %     kept in the data set.
             end
             obj.dataSet =[];
             Tab = readtable(dataFileName);
@@ -2540,38 +2576,39 @@ classdef SSIT
         %% Plotting/Visualization Functions
         function makePlot(obj,solution,plotType,indTimes,includePDO,figureNums,... ...
                 lineProps,movieName,maxY,movieSpecies,senseVars,plotTitle)
-            % SSIT.makePlot -- tool to make plot of the FSP or SSA results.
-            % arguments:
-            %   solution -- solution structure from SSIT.
-            %   plotType - chosen type of plot:
-            %       FSP options: 'means' -- mean versus time
-            %                    'meansAndDevs' -- means +/- STD vs time
-            %                    'marginals' -- marginal distributions over
-            %                           time
-            %                    'joints' -- joint distributions vs time.
-            %       sensFSP options:
-            %                   'marginals' -- sensitivity of marginal distributions
-            %                           for each parameter and time point.
-            %       SSA options: 'means' -- mean versus time
-            %                    'meansAndDevs' -- means +/- STD vs time
-            %                    'trajectories' -- set of individual trajectories vs time.
+            %% SSIT.makePlot - Tool to make plot of the FSP or SSA results.
+            % Inputs:
+            %    solution - struct with SSIT solutions
+            %    plotType - chosen type of plot:
+            %       * FSP options:
+            %           'means' - mean versus time
+            %           'meansAndDevs' - means +/- STD vs time
+            %           'marginals' - marginal distributions over time
+            %           'joints' - joint distributions vs time
+            %       * sensFSP options:
+            %           'marginals' - sensitivity of marginal 
+            %                         distributions for each parameter 
+            %                         and time point
+            %       * SSA options: 
+            %           'means' - mean versus time
+            %           'meansAndDevs' - means +/- STD vs time
+            %           'trajectories' - set of individual trajectories 
+            %                            vs time
             %
-            % examples:
-            %
+            % Examples:
             %   F = SSIT('ToggleSwitch')
             %   F.solutionScheme = 'FSP'
             %   [FSPsoln,bounds] = F.solve;  % Returns the solution and the
-            %                             % bounds for the FSP projection
+            %                                % bounds for the FSP projection
             %   F.makePlot(FSPsoln,'marginals')  % Make plot of FSP
-            %                                    % marginal distributions.
-
+            %                                    % marginal distributions
+            %
             %   F.solutionScheme = 'fspSens'
             %   [sensSoln,bounds] = F.solve;  % Returns the sensitivity and the
-            %                                 bounds for the FSP projection
-            %   F.makePlot(sensSoln,'marginals')% Make plot of
-            %                                   %sensitivities of marginal
-            %                                   distributions at final
-            %                                   time.
+            %                                   bounds for the FSP projection
+            %   F.makePlot(sensSoln,'marginals') % Make plot of sensitivities 
+            %                                      of marginal distributions
+            %                                      at final time
             arguments
                 obj
                 solution
