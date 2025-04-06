@@ -61,39 +61,93 @@ classdef SSIT
     %     genetic / environmental / experimental conditions
 
     properties
-        parameters = {'k',10; 'g',0.2};   % List of parameters and their values.
-        species = {'x1'}; % List of species to be used in model (x1,x2,...)
-        stoichiometry = [1,-1]; % Stoichiometry matrix
-        propensityFunctions = {'k'; 'g*x1'} % List of propensity functions
-        inputExpressions = {}; % List of time varying input signals (I1,I2,...)
-        customConstraintFuns = {}; % User supplied constraint functions for FSP.
+        % List of parameters and their values, default: {'k',10; 'g',0.2};
+        parameters = {'k',10; 'g',0.2};     
+        % List of species to be used in model, default: {'x1'};
+        species = {'x1'};                   
+        % Stoichiometry matrix, default: [1,-1];
+        stoichiometry = [1,-1];  
+        % List of propensity functions, default: {'k'; 'g*x1'}
+        propensityFunctions = {'k'; 'g*x1'} 
+        % List of time-varying input signals, default: {};
+        inputExpressions = {}; 
+        % User supplied constraint functions for FSP, default: {};
+        customConstraintFuns = {};
+        % Options for FSP solver
+        %    defaults:
+        %       'fspTol',0.001
+        %       'fspIntegratorRelTol',1e-2
+        %       'fspIntegratorAbsTol',1e-4
+        %       'odeSolver','auto'
+        %       'verbose',false
+        %       'bounds',[]
+        %       'usePiecewiseFSP',false
+        %       'initApproxSS',false
+        %       'escapeSinks',[]
+        %       'constantJacobian',false
+        %       'constantJacobianTime',1.1 
         fspOptions = struct('fspTol',0.001,'fspIntegratorRelTol',1e-2,...
-            'fspIntegratorAbsTol',1e-4, 'odeSolver','auto', 'verbose',false,...
-            'bounds',[],'usePiecewiseFSP',false,...
-            'initApproxSS',false,...
-            'escapeSinks',[],...
-            'constantJacobian',false, ...
-            'constantJacobianTime',1.1); % Options for FSP solver.
+            'fspIntegratorAbsTol',1e-4, 'odeSolver','auto',...
+            'verbose',false,'bounds',[],'usePiecewiseFSP',false,...
+            'initApproxSS',false,'escapeSinks',[],...
+            'constantJacobian',false,'constantJacobianTime',1.1); 
+        % Options for FSP-Sensitivity solver
+        %   defaults:
+        %       'solutionMethod','forward'
+        %       'useParallel',true
         sensOptions = struct('solutionMethod','forward','useParallel',true);
-        % Options for FSP-Sensitivity solver.
-        ssaOptions = struct('Nexp',1,'nSimsPerExpt',100,'useTimeVar',false,...
-            'signalUpdateRate',[],'useParallel',false,...
-            'verbose',false); % Options for SSA solver
+        % Options for SSA solver
+        %   defaults:
+        %       'Nexp',1
+        %       'nSimsPerExpt',100
+        %       'useTimeVar',false
+        %       'signalUpdateRate',[]
+        %       'useParallel',false
+        %       'verbose',false
+        ssaOptions = struct('Nexp',1,'nSimsPerExpt',100,...
+            'useTimeVar',false,'signalUpdateRate',[],...
+            'useParallel',false,'verbose',false); 
+        % Options for PDO
+        %   defaults:
+        %       'unobservedSpecies',[]
+        %       'PDO',[]
         pdoOptions = struct('unobservedSpecies',[],'PDO',[]);
         % Options for FIM analyses
-        fittingOptions = struct('modelVarsToFit','all','pdoVarsToFit',[],...
-            'timesToFit','all','logPrior',[],'logPriorCovariance',[],'priorCovariance',[])
-        initialCondition = [0]; % Initial condition for species [x1;x2;...]
-        initialProbs = 1; % Probability mass of states given in init. cond.
+        %   defaults:
+        %       'modelVarsToFit','all'
+        %       'pdoVarsToFit',[]
+        %       'timesToFit','all'
+        %       'logPrior',[]
+        %       'logPriorCovariance',[]
+        %       'priorCovariance',[]
+        fittingOptions = struct('modelVarsToFit','all',...
+            'pdoVarsToFit',[],'timesToFit','all','logPrior',[],...
+            'logPriorCovariance',[],'priorCovariance',[])
+        % Initial population sizes of each species, default: [0];
+        initialCondition = [0]; 
+        % Probability mass of states given in initialCondition, default: 1
+        initialProbs = 1; 
+        % Initial time, default: 0;
         initialTime = 0;
-        tSpan = linspace(0,10,21); % Times at which to find solutions
-        solutionScheme = 'FSP' % Chosen solution scheme ('FSP','SSA','ode')
-        modelReductionOptions = struct('useModReduction',false,'reductionType','None') % Settings for
-        % model reduction tools.
+        % Times at which to find solutions, default: linspace(0,10,21);
+        tSpan = linspace(0,10,21); 
+        % Chosen solution scheme ('FSP','SSA','ode'), default: 'FSP'
+        solutionScheme = 'FSP' 
+        % Settings for model reduction tools
+        %   defaults:
+        %       'useModReduction',false
+        %       'reductionType','None'
+        modelReductionOptions = struct('useModReduction',false,...
+                                        'reductionType','None') 
+        % Set data, default: [];
         dataSet = [];
+        % Option to use hybrid model, default: false
         useHybrid = false
+        % Struct to define which species of the hybrid model will be
+        % modelled using ODEs, default: struct('upstreamODEs',[]);
         hybridOptions = struct('upstreamODEs',[]);
-        propensitiesGeneral = [];% Processed propensity functions for use in solvers
+        % Processed propensity functions for use in solvers, default: [];
+        propensitiesGeneral = [];
     end
 
     properties (Dependent)
@@ -108,8 +162,9 @@ classdef SSIT
             % The SSIT allows users to specify and efficiently solve the   
             % chemical master equation for discrete stochastic models.
             %
-            %% Inputs (required): 
+            %% Inputs: 
             %   * parameters - list of parameters and their values
+            %                  default: {'k',10; 'g',0.2};     
             %   * species - list of species to be used in model 
             %                e.g., {'offGene';'onGene';'mRNA'}
             %   * stoichiometry - matrix of stoichiometric updates for 
@@ -117,8 +172,6 @@ classdef SSIT
             %   * propensityFunctions - list of propensity functions
             %   * initialCondition - list of initial conditions for  
             %                        species, e.g., [1;0;0]
-            %
-            %% Inputs (optional): 
             %   * inputExpressions - list of time-varying input signals 
             %                        e.g., {'IHog','(a0+a1*exp(-r1*t)*...
             %                               (1-exp(-r2*t))*(t>0))'};
@@ -126,46 +179,46 @@ classdef SSIT
             %                            define FSP constraint functions
             %                            (e.g., {'offGene+onGene'};) 
             %   * fspOptions - struct, options for FSP solver
-            %       defaults:
-            %       ** 'fspTol',0.001
-            %       ** 'fspIntegratorRelTol',1e-2
-            %       ** 'fspIntegratorAbsTol',1e-4
-            %       ** 'odeSolver','auto'
-            %       ** 'verbose',false
-            %       ** 'bounds',[]
-            %       ** 'usePiecewiseFSP',false
-            %       ** 'initApproxSS',false
-            %       ** 'escapeSinks',[]
-            %       ** 'constantJacobian',false
-            %       ** 'constantJacobianTime',1.1 
+            %        defaults:
+            %           'fspTol',0.001
+            %           'fspIntegratorRelTol',1e-2
+            %           'fspIntegratorAbsTol',1e-4
+            %           'odeSolver','auto'
+            %           'verbose',false
+            %           'bounds',[]
+            %           'usePiecewiseFSP',false
+            %           'initApproxSS',false
+            %           'escapeSinks',[]
+            %           'constantJacobian',false
+            %           'constantJacobianTime',1.1 
             %   * sensOptions - struct, options for sensitivity 
             %                   calculation
             %       defaults:
-            %       ** 'solutionMethod','forward'
-            %       ** 'useParallel',true
+            %           'solutionMethod','forward'
+            %           'useParallel',true
             %
             %% Options for FSP-Sensitivity solver:
             %   * ssaOptions - struct, options for SSA solver
             %       defaults:
-            %       ** 'Nexp',1
-            %       ** 'nSimsPerExpt',100
-            %       ** 'useTimeVar',false
-            %       ** 'signalUpdateRate',[]
-            %       ** 'useParallel',false
-            %       ** 'verbose',false
+            %           'Nexp',1
+            %           'nSimsPerExpt',100
+            %           'useTimeVar',false
+            %           'signalUpdateRate',[]
+            %           'useParallel',false
+            %           'verbose',false
             %   * pdoOptions - struct, options for PDO
-            %       ** 'unobservedSpecies',[]
-            %       ** 'PDO',[]
+            %           'unobservedSpecies',[]
+            %           'PDO',[]
             %
             %% Options for FIM analyses:
             %   * fittingOptions - struct, various options for fitting
             %       defaults:
-            %       ** 'modelVarsToFit','all'
-            %       ** 'pdoVarsToFit',[]
-            %       ** 'timesToFit','all'
-            %       ** 'logPrior',[]
-            %       ** 'logPriorCovariance',[]
-            %       ** 'priorCovariance',[]
+            %           'modelVarsToFit','all'
+            %           'pdoVarsToFit',[]
+            %           'timesToFit','all'
+            %           'logPrior',[]
+            %           'logPriorCovariance',[]
+            %           'priorCovariance',[]
             %   * initialProbs - double, probability mass of states 
             %                    given in initialCondition
             %   * initialTime - double, default: 0
@@ -173,34 +226,37 @@ classdef SSIT
             %              default: linspace(0,10,21);
             %   * solutionScheme - char, chosen solution scheme 
             %                      ('FSP','SSA','ode'), default: 'FSP'
+            %% Model reduction tools:
             %   * modelReductionOptions - struct, settings for model 
             %                             reduction tools
             %       defaults:
-            %       ** 'useModReduction',false
-            %       ** 'reductionType','None'
-            %
-            %% Model reduction tools:
-            % dataSet = [];
-            % useHybrid - logical, default: false
-            % hybridOptions - struct, defines which species population 
-            %                 changes through time are computed by ODEs,
-            %                 default: 'upstreamODEs',[]
-            % propensitiesGeneral = struct, processed propensity 
+            %           'useModReduction',false
+            %           'reductionType','None'
+            %% Data:
+            %   * dataSet = [];
+            %% Hybrid:
+            %   * useHybrid - logical, default: false
+            %   * hybridOptions - struct, defines which species  
+            %                     population changes through time are 
+            %                     computed by ODEs
+            %                     default: 'upstreamODEs',[]
+            %% Propensity function storage:
+            %   *propensitiesGeneral = struct, processed propensity 
             %                       functions for use in solvers
             %                       default: []
             %
             %% Arguments:
             %   modelFile (optional) -- create  from specified template:
-            %               {'Empty',
-            %                'BirthDeath',    % 1 species example
-            %                'CentralDogma',  % 2 species example
-            %                'ToggleSwitch',  % 2 species example
-            %                'Repressilator', % 3 species example
-            %                'BurstingSpatialCentralDogma'}    % 4 species example
+            %       {'Empty',
+            %       'BirthDeath',    % 1 species example
+            %       'CentralDogma',  % 2 species example
+            %       'ToggleSwitch',  % 2 species example
+            %       'Repressilator', % 3 species example
+            %       'BurstingSpatialCentralDogma'}  % 4 species example
             %
             %% Example:
             %   F = SSIT('CentralDogma'); % Generate model for
-            %                           %transcription and translation.
+            %                             % transcription and translation
             %
             % matlab: doc SSIT
 
