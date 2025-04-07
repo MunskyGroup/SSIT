@@ -805,9 +805,44 @@ classdef SSIT
         end
 
         function [obj] = calibratePDO(obj,dataFileName,measuredSpecies,...
-                trueColumns,measuredColumns,pdoType,showPlot,parGuess)
-            % This function calibrates the PDO to match some provided data
-            % for 'true' and 'observed' spot numbers.
+                     trueColumns,measuredColumns,pdoType,showPlot,parGuess)
+            %% SSIT.calibratePDO - This function calibrates a probabilistic 
+            %% distortion operator (PDO) to match 'true' and 'observed' 
+            %% (distorted) spot numbers.  Note: it also calls generatePDO()
+            %
+            % Calibrate the PDO from empirical data, for example, the 
+            % number of spots that have been measured using different 
+            % assays in data columns 'nTotal' for the 'true' data set and 
+            % in the columns 'nSpots0' for a different label, or in columns
+            % 'intens1' for the integrated fluorescent intensity.  
+            % 
+            % Inputs:
+            %   * obj
+            %   * dataFileName - (string), name of the data file
+            %   * measuredSpecies - (string), name of the model species
+            %   * trueColumns - (string), name of the 'true' data for the
+            %                    model species
+            %   * measuredColumns - (string), name of the 'observed', or
+            %                        distorted, data for the model species
+            %   * pdoType - (string), the type of distribution that  
+            %                represents the type 
+            %       default: 'AffinePoiss'
+            %   * showPlot - (logical), default: false
+            %   * parGuess - (double), guesses for the hyperparameter 
+            %                 values, i.e., the parameters that define the  
+            %                 PDO distribution (not to be confused with the 
+            %                 model parameters)
+            %       default: [];
+            %
+            % Outputs: 
+            %
+            % Example: 
+            % Model_PDO = Model.calibratePDO('/data/pdoData.csv',...
+            % {'rna'},{'nTotal'},{'nSpots0'},'AffinePoiss',true);
+            %
+            % The 'AffinePoiss' PDO models the obervation probability with 
+            % a Poisson distribution, where the mean value is affine 
+            % linearly related to the true value: P(y|x) = Poiss(a0 + a1*x);
             arguments
                 obj
                 dataFileName
@@ -820,8 +855,8 @@ classdef SSIT
             end
 
             obj.pdoOptions.type = pdoType;
-            %             app.DistortionTypeDropDown.Value = obj.pdoOptions.type;
-            %             app.FIMTabOutputs.PDOProperties.props = obj.pdoOptions.props;
+            % app.DistortionTypeDropDown.Value = obj.pdoOptions.type;
+            % app.FIMTabOutputs.PDOProperties.props = obj.pdoOptions.props;
 
             Tab = readtable(dataFileName);
             dataNames = Tab.Properties.VariableNames;
@@ -903,6 +938,20 @@ classdef SSIT
         end
         
         function [pdo] = generatePDO(obj,pdoOptions,paramsPDO,fspSoln,variablePDO,maxSize)
+            %% SSIT.generatePDO - This function generates the Probabilistic 
+            %% Distortion Operator (PDO) according to user choice.
+            % 
+            % Inputs:
+            %   * app
+            %   * paramsPDO - ()
+            %   * FSPoutputs - ()
+            %   * indsObserved - ()
+            %   * variablePDO - (logical), default: false
+            %   * maxSize - ()
+            %
+            % Output: 
+            %
+            % Example: 
             arguments
                 obj
                 pdoOptions
@@ -913,8 +962,8 @@ classdef SSIT
             end
             app.DistortionTypeDropDown.Value = pdoOptions.type;
             app.FIMTabOutputs.PDOProperties.props = pdoOptions.props;
-            % Separate into observed and unobserved species.
             
+            % Separate into observed and unobserved species.
             if isfield(obj.hybridOptions,'upstreamODEs')
                 speciesStochastic = setdiff(obj.species,obj.hybridOptions.upstreamODEs);
             else

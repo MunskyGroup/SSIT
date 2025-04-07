@@ -33,7 +33,7 @@ Model1.fspOptions.bounds(4:6) = [2,2,400];  % Guess initial bounds on FSP StateS
 Model1.tSpan = linspace(0,180,301);
 [Mod1FSPsoln,Model1.fspOptions.bounds] = Model1.solve; % Solve Model
 Model1.makePlot(Mod1FSPsoln,'marginals',[1:100:301],false,[1,2,3],{'linewidth',2})  % Plot marginal distributions
-Model1.makePlot(Mod1FSPsoln,'margmovie',[],false,[101],{'linewidth',2},'movie.mp4',[1,1,0.015],[2,3])  % Plot marginal distributions
+Model1.makePlot(Mod1FSPsoln,'margmovie',[],false,[101],{'linewidth',2},'DUSP1.mp4',[1,1,0.015],[2,3])  % Plot marginal distributions
 
 %% STEP3 == Solve Sensitivity using FSP
 Model1.solutionScheme = 'fspSens'; % Set solutions scheme to FSP Sensitivity
