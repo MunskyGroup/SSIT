@@ -171,130 +171,111 @@ classdef SSIT
     end
 
     methods
-        function obj = SSIT(modelFile,modelName,modelSettings,fileName,saveName)
+        function obj = SSIT(modelFile,modelName,dataSettings,pipeline,pipelineArgs,saveName)
             %% SSIT - Create an instance of the SSIT class.
             %
-            % The SSIT allows users to specify and efficiently solve the   
-            % chemical master equation for discrete stochastic models.
+            % The SSIT purpose is to allow users to specify and efficiently 
+            % solve the chemical master equation for discrete stochastic 
+            % models.
             %
-            %% Inputs: 
-            %   * parameters - (list) of parameters and their values
-            %                  default: {'k',10; 'g',0.2};     
-            %   * species - (list) of species to be used in model 
-            %                e.g., {'offGene';'onGene';'mRNA'}
-            %   * stoichiometry - (double), matrix of stoichiometric  
-            %                      updates for each reaction
-            %   * propensityFunctions - (list) of propensity functions
-            %   * initialCondition - (list) of initial conditions for  
-            %                        species, e.g., [1;0;0]
-            %   * inputExpressions - (list) of time-varying input signals 
-            %                        e.g., {'IHog','(a0+a1*exp(-r1*t)*...
-            %                               (1-exp(-r2*t))*(t>0))'};
-            %   * customConstraintFuns - (struct) supplied by user to  
-            %                            define FSP constraint functions
-            %                            (e.g., {'offGene+onGene'};) 
-            %   * fspOptions - (struct), options for FSP solver
-            %        defaults:
-            %           'fspTol',0.001
-            %           'fspIntegratorRelTol',1e-2
-            %           'fspIntegratorAbsTol',1e-4
-            %           'odeSolver','auto'
-            %           'verbose',false
-            %           'bounds',[]
-            %           'usePiecewiseFSP',false
-            %           'initApproxSS',false
-            %           'escapeSinks',[]
-            %           'constantJacobian',false
-            %           'constantJacobianTime',1.1 
-            %   * sensOptions - (struct), options for sensitivity 
-            %                   calculation
-            %       defaults:
-            %           'solutionMethod','forward'
-            %           'useParallel',true
-            %       example: 
-            %           Model.sensOptions.solutionMethod = ...
-            %                                           'finiteDifference';
+            % SSIT models can be generated through several options
+            % depending on content of input 'modelFile'.
             %
-            %% Options for FSP-Sensitivity solver:
-            %   * ssaOptions - (struct), options for SSA solver
-            %       defaults:
-            %           'Nexp',1
-            %           'nSimsPerExpt',100
-            %           'useTimeVar',false
-            %           'signalUpdateRate',[]
-            %           'useParallel',false
-            %           'verbose',false
-            %   * pdoOptions - (struct), options for PDO
-            %           'unobservedSpecies',[]
-            %           'PDO',[]
+            %% Inputs:                      
+            %%   modelFile (string, optional) -- Create from saved file or
+            %      from specified template. 
+            %      {'[NAME].mat',   % Load SSIT Model from file [NAME].mat 
+            %       'BirthDeath',    % 1 species pre-formatted example (default)
+            %       'CentralDogma',  % 2 species pre-formatted example
+            %       'ToggleSwitch',  % 2 species pre-formatted example
+            %       'Repressilator', % 3 species pre-formatted example
+            %       'BurstingSpatialCentralDogma'}  % 4 species pre-formatted example
             %
-            %% Options for FIM analyses:
-            %   * fittingOptions - (struct), various options for fitting
-            %       defaults:
-            %           'modelVarsToFit','all'
-            %           'pdoVarsToFit',[]
-            %           'timesToFit','all'
-            %           'logPrior',[]
-            %           'logPriorCovariance',[]
-            %           'priorCovariance',[]
-            %   * initialProbs - (double), probability mass of states 
-            %                    given in initialCondition
-            %   * initialTime - (double), default: 0
-            %   * tSpan -  (double), times at which to find solutions
-            %              default: linspace(0,10,21);
-            %   * solutionScheme - char, chosen solution scheme 
-            %                      ('FSP','SSA','ode'), default: 'FSP'
-            %% Model reduction tools:
-            %   * modelReductionOptions - (struct), settings for model 
-            %                             reduction tools
-            %       defaults:
-            %           'useModReduction',false
-            %           'reductionType','None'
-            %% Data:
-            %   * dataSet = [];
-            %% Hybrid:
-            %   * useHybrid - (logical), default: false
-            %   * hybridOptions - (struct), defines which species  
-            %                     population changes through time are 
-            %                     computed by ODEs
-            %                     default: 'upstreamODEs',[]
-            %% Propensity function storage:
-            %   *propensitiesGeneral = (struct), processed propensity 
-            %                       functions for use in solvers
-            %                       default: []
+            %%   modelName (string, optional) -- Name of model within
+            %       modelFile. This is needed in cases where the modelFile 
+            %       .mat contains multiple variables.
             %
-            %% Arguments:
-            %   modelFile (optional) -- create from specified template:
-            %       {'Empty',
-            %       'BirthDeath',    % 1 species example
-            %       'CentralDogma',  % 2 species example
-            %       'ToggleSwitch',  % 2 species example
-            %       'Repressilator', % 3 species example
-            %       'BurstingSpatialCentralDogma'}  % 4 species example
+            %%   dataSettings (Cell array, optional) -- Settings for loading data
+            %       This is a cell array. For SSIT models, this will should
+            %       be a {1x3} cell with the structure:
+            %       dataSettings = {dataFileName,linkedSpecies,conditions}.
+            %       See method 'SSIT.loadData' for interpretation of these
+            %       inputs.
+            %       For MultiModels, there should be one row of these
+            %       variables for each of the sub-models.
             %
-            %% Example:
-            %   F = SSIT('CentralDogma'); % Generate model for
-            %                             % transcription and translation
+            %%   pipeline (string, optional) -- Name of an executable matlab
+            %       function that will be run to analyse the created model.
+            %       The arguments of the function are (Model, ARGS), where
+            %       ARGS is a cell structure containing all remaining
+            %       arguments expected by the function.
             %
-            % matlab: doc SSIT
+            %%   pipelineArgs (Struct, optional) -- 
+            %       Structure containing any optional arguments needed for
+            %       the pipeline to run.
+            %
+            %%   saveName - (String, optional) -- name of file to save results 
+            %       of pipeline.
+            %
+            %% Example Usage:
+            %% Example 1 - Pre-formatted model for central dogma:
+            %   Mod = SSIT('CentralDogma'); % Load preset model for
+            %                               % transcription and translation
+            %
+            %% Example 2 - Load existing model 'ExampleSSITModel.mat':
+            %   Mod = SSIT('preGeneratedModels/savedRepressilatorModel');
+            %      % Load saved model.
+            %
+            %% Example 3 - Load Model and Add Data
+            %   Mod = SSIT('BirthDeath',[],{'data/STL1.csv',{'mRNA','rna'}})
+            %      % Load preset model 'CentralDogma' and associate the 
 
             arguments
-                modelFile = []
-                modelName = []
-                modelSettings = []
-                fileName = []
-                saveName = []
+                modelFile = []   % Name of file where SSIT Model/MultiModel has been saved. Must be a '.mat'.
+                modelName = []   % Name of the SSIT Model/MultiModel within the above file.
+                dataSettings = {}% Data Settings to load into Model/MultiModel.
+                pipeline = []    % Pipeline (matlab script) to run on model.
+                pipelineArgs = []% Pipeline arguments (matlab structure).
+                saveName = []    % File name to save model after it has been generated.
             end
+            
             % SSIT Construct an instance of the SSIT class
             addpath(genpath('../src'));
             if ~isempty(modelFile)
-                if length(modelFile)>4 && strcmp(modelFile(end-3:end),'.mat')
+                if length(modelFile)>4 && (strcmp(modelFile(end-3:end),'.mat')||exist([modelFile,'.mat'],"file"))
                     % Load existing model from .mat file.
-                    TMP = load(modelFile,modelName);
-                    
-                    
-                    obj = TMP.(modelName);
-                    
+                    try
+                        if ~isempty(modelName)
+                            TMP = load(modelFile,modelName);
+                            if isa(TMP.(modelName),'SSIT')
+                                ModelObj = TMP.(modelName);
+                                obj = TMP;
+                                disp(['Successfully loaded SSIT Model ',modelName])
+                            elseif isa(TMP.(modelName),'SSITMultiModel')
+                                ModelObj = TMP.(modelName);
+                                obj = ModelObj.model.SSITModels{1};
+                                disp(['Successfully loaded a CombinedModel ',modelName, ' and extracted first model.'])
+                            end
+                        else
+                            TMP = load(modelFile);
+                            fnames = fieldnames(TMP);
+                            if length(fieldnames(TMP))==1
+                                ModelObj = TMP.(fnames{1});
+                            end
+                            if isa(ModelObj,'SSIT')
+                                obj = ModelObj;
+                                disp('Successfully loaded SSIT Model.')
+                            elseif isa(ModelObj,'SSITMultiModel')
+                                obj = ModelObj.SSITModels{1};
+                                disp('Successfully loaded a CombinedModel and extracted first model.')
+                            end
+                        end
+                    catch
+                        disp(['Could not load model from ',modelFile])
+                        disp('Check that file exists and that it contains only the SSIT model of interest')
+                        disp('Use the optional argument "modelName" to specify which model to load.')
+                    end
+
                     % Test to see if propensity functions are available. If
                     % not, create them.
                     if ~isempty(obj.propensitiesGeneral)
@@ -312,22 +293,54 @@ classdef SSIT
                     end
                 else
                     % Create model from template
-                    obj = pregenModel(obj,modelFile);
+                    ModelObj = pregenModel(obj,modelFile);
+                    obj = ModelObj;
                 end
             end
 
-            if ~isempty(modelSettings)
-                run(modelSettings)
-                if exist("combinedModel","var")
-                    outputs = executeRoutine(combinedModel);                    
-                    combinedModel=outputs.model;
-                    eval([modelName,'=outputs.model.SSITModels{1};']);
-                    save(saveName,"outputs",modelName,'combinedModel')
-                else
-                    outputs = executeRoutine(obj);
-                    eval([modelName,'=outputs.model;']);
-                    save(saveName,"outputs",modelName)
+            % Load Data if provided
+            if ~isempty(dataSettings)
+                if size(dataSettings,2)<3
+                    dataSettings{1,3} = {};
                 end
+                if isa(ModelObj,'SSITMultiModel')
+                    nModels = length(ModelObj.SSITModels);
+                    for iModel = 1:nModels
+                        ModelObj.SSITModels{iModel} =  ModelObj.SSITModels{iModel}.loadData( ...
+                            dataSettings{iModel,1},dataSettings{iModel,2},dataSettings{iModel,3});
+                    end
+                elseif isa(ModelObj,'SSIT')
+                    ModelObj = ModelObj.loadData(dataSettings{1,1},dataSettings{1,2},dataSettings{1,3});
+                    obj = ModelObj;
+                end
+
+            end
+
+            if ~isempty(pipeline)
+                if strcmp(pipeline(end-1:end),'.m')
+                    pipeline=pipeline(1:end-2);
+                end
+                fun = str2func(pipeline);
+                [ModelObj,outputs] = fun(ModelObj,pipelineArgs);
+                disp(['Pipeline ',pipeline,' run successfully.'])
+                eval([modelName,'=ModelObj;']);
+                save(saveName,"outputs",modelName)
+                if isa(ModelObj,'SSITMultiModel')
+                    obj = ModelObj.model.SSITModels{iModel};
+                elseif isa(ModelObj,'SSIT')
+                    obj = ModelObj;
+                end
+
+                % if exist("combinedModel","var")
+                %     outputs = executeRoutine(ModelObj);                    
+                %     ModelObj=outputs.model;
+                % eval([modelName,'=outputs.model.SSITModels{1};']);
+                % /save(saveName,"outputs",modelName,'ModelObj')
+                % else
+                %     outputs = executeRoutine(obj);
+                % eval([modelName,'=ModelObj;']);
+                % save(saveName,"outputs",modelName)
+                % end
             end
 
         end
@@ -482,43 +495,43 @@ classdef SSIT
                     obj.initialCondition = [];
                 case 'BirthDeath'
                     obj.parameters = {'k',10;'g',0.2};
-                    obj.species = {'x1'};
+                    obj.species = {'mRNA'};
                     obj.stoichiometry = [1,-1];
-                    obj.propensityFunctions = {'k';'g*x1'};
+                    obj.propensityFunctions = {'k';'g*mRNA'};
                     obj.initialCondition = [0];
                 case 'CentralDogma'
                     obj.parameters = {'kr',10;'gr',1;'kp',1;'gp',0.1};
-                    obj.species = {'x1';'x2'};
+                    obj.species = {'rna';'protein'};
                     obj.stoichiometry = [1,-1,0, 0;...
                         0, 0,1,-1];
-                    obj.propensityFunctions = {'kr';'gr*x1';'kp*x1';'gp*x2'};
+                    obj.propensityFunctions = {'kr';'gr*rna';'kp*rna';'gp*protein'};
                     obj.initialCondition = [0;0];
                 case 'BurstingGene'
                     obj.parameters = {'kon',1;'koff',1;'kr',1;'gr',0.1};
-                    obj.species = {'x1';'x2'};
+                    obj.species = {'geneState';'rna'};
                     obj.stoichiometry = [1,-1,0, 0;...
                         0, 0,1,-1];
-                    obj.propensityFunctions = {'kon*(1-x1)';'koff*x1';'kr*x1';'gr*x2'};
+                    obj.propensityFunctions = {'kon*(1-geneState)';'koff*geneState';'kr*geneState';'gr*rna'};
                     obj.initialCondition = [0;0];
                 case 'CentralDogmaTV'
                     obj.parameters = {'kr',10;'gr',1;'kp',1;'gp',0.1;'omega',2*pi/5};
-                    obj.species = {'x1';'x2'};
+                    obj.species = {'geneState';'rna'};
                     obj.stoichiometry = [1,-1,0, 0;...
                         0, 0,1,-1];
-                    obj.propensityFunctions = {'kr';'gr*I1*x1';'kp*x1';'gp*x2'};
+                    obj.propensityFunctions = {'kr';'gr*I1*geneState';'kp*geneState';'gp*rna'};
                     obj.initialCondition = [0;0];
                     obj.inputExpressions = {'I1','1+cos(omega*t)'};
                 case 'ToggleSwitch'
                     obj.parameters = {'kb',10;'ka',80;'M',20;'g',1};
-                    obj.species = {'x1';'x2'};
+                    obj.species = {'LacI';'LamCI'};
                     obj.stoichiometry = [1,-1,0, 0;...
                         0, 0,1,-1];
-                    obj.propensityFunctions = {'kb+ka*M^3/(M^3+x2^3)';...
-                        'g*x1';...
-                        'kb+ka*M^3/(M^3+x1^3)';...
-                        'g*x2'};
+                    obj.propensityFunctions = {'kb+ka*M^3/(M^3+LamCI^3)';...
+                        'g*LacI';...
+                        'kb+ka*M^3/(M^3+LacI^3)';...
+                        'g*LamCI'};
                     obj.initialCondition = [0;0];
-                    obj.customConstraintFuns = {'(x1-3).^2.*(x2-3).^2'};
+                    obj.customConstraintFuns = {'(LacI-3).^2.*(LamCI-3).^2'};
                 case 'ToggleSwitch2'
                     obj.parameters = {'ka1',4;'kb1',80;'kd1',1;'k1',20;...
                         'ka2',4;'kb2',80;'kd2',1;'k2',20;...
