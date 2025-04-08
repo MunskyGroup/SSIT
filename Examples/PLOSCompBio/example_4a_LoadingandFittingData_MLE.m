@@ -9,7 +9,7 @@ addpath(genpath('../../src'));
 %% Comment out the following 3 lines if example_2 has already been run:
 clear
 close all
-example_2_SolveSSITModels_FSP
+example_2c_SolveSSITModels_FSP
 
 % View model summaries
 Model_FSP.summarizeModel

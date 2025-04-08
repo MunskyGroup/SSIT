@@ -10,7 +10,7 @@ addpath(genpath('../../'));
 %% has already been run:
 close all 
 clear
-example_2_SolveSSITModels_FSP
+example_2c_SolveSSITModels_FSP
 
 % View model summaries
 Model_FSP.summarizeModel

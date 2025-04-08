@@ -9,7 +9,7 @@ addpath(genpath('../../src'));
 %% Comment out the following 3 lines if example_4_FIM has already been run:
 % clear
 % close all
-% example_4_FIM
+% example_3_FIM
 
 % View model summaries
 Model_FIM.summarizeModel

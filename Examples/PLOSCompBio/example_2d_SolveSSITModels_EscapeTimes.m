@@ -7,7 +7,7 @@ addpath(genpath('../../src'));
 
 %% Preliminaries
 % Load our models from example_1_CreateSSITModels and inspect them:
-example_1_CreateSSITModels
+example_1a_CreateSSITModels
 Model.summarizeModel
 STL1.summarizeModel
 
