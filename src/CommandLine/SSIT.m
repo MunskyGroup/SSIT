@@ -229,6 +229,20 @@ classdef SSIT
             %% Example 3 - Load Model and Add Data
             %   Mod = SSIT('BirthDeath',[],{'data/STL1.csv',{'mRNA','rna'}})
             %      % Load preset model 'CentralDogma' and associate the 
+            %
+            %% Example 4 - Load Model, Add Data and Run Pipeline Routine
+            %   DataSettings = {'data/STL1.csv',{'mRNA','rna'}};
+            %   Pipeline = 'fittingPipeline';
+            %   pipelineArgs.maxIter = 20;
+            %   pipelineArgs.display = 'iter';
+            %   saveFile = 'exampleResults.mat';
+            % 
+            %   % Create model from preset, associate with data, run
+            %   % 'fittingPipeline', and save result.
+            %   SSIT('BirthDeath','Model',DataSettings,Pipeline,pipelineArgs,saveFile);
+            %   
+            %   % Load model from file, run 'fittingPipeline', and save result.
+            %   SSIT(saveFile,'Model',[],Pipeline,pipelineArgs,saveFile);
 
             arguments
                 modelFile = []   % Name of file where SSIT Model/MultiModel has been saved. Must be a '.mat'.
@@ -248,26 +262,27 @@ classdef SSIT
                         if ~isempty(modelName)
                             TMP = load(modelFile,modelName);
                             if isa(TMP.(modelName),'SSIT')
-                                ModelObj = TMP.(modelName);
-                                obj = TMP;
+                                obj = TMP.(modelName);
                                 disp(['Successfully loaded SSIT Model ',modelName])
                             elseif isa(TMP.(modelName),'SSITMultiModel')
-                                ModelObj = TMP.(modelName);
-                                obj = ModelObj.model.SSITModels{1};
+                                MultiModelObj = TMP.(modelName);
+                                obj = MultiModelObj.SSITModels{1};
                                 disp(['Successfully loaded a CombinedModel ',modelName, ' and extracted first model.'])
                             end
                         else
                             TMP = load(modelFile);
                             fnames = fieldnames(TMP);
-                            if length(fieldnames(TMP))==1
-                                ModelObj = TMP.(fnames{1});
-                            end
-                            if isa(ModelObj,'SSIT')
-                                obj = ModelObj;
-                                disp('Successfully loaded SSIT Model.')
-                            elseif isa(ModelObj,'SSITMultiModel')
-                                obj = ModelObj.SSITModels{1};
-                                disp('Successfully loaded a CombinedModel and extracted first model.')
+                            for i=1:length(fnames(TMP))
+                                if isa(TMP.(fnames(i)),'SSIT')
+                                    obj = TMP.(fnames(i));
+                                    disp(['Successfully loaded SSIT Model named "',fnames(i),'"'])
+                                    break
+                                elseif isa(TMP.(fnames(i)),'SSITMultiModel')
+                                    MultiModelObj = TMP.(fnames(i));
+                                    obj = MultiModelObj.SSITModels{1};
+                                    disp(['Successfully loaded a CombinedModel  named "',fnames(i),'" and extracted first model.'])
+                                    break
+                                end
                             end
                         end
                     catch
@@ -293,8 +308,8 @@ classdef SSIT
                     end
                 else
                     % Create model from template
-                    ModelObj = pregenModel(obj,modelFile);
-                    obj = ModelObj;
+                    obj = pregenModel(obj,modelFile);
+                    obj = obj.formPropensitiesGeneral;
                 end
             end
 
@@ -303,15 +318,14 @@ classdef SSIT
                 if size(dataSettings,2)<3
                     dataSettings{1,3} = {};
                 end
-                if isa(ModelObj,'SSITMultiModel')
-                    nModels = length(ModelObj.SSITModels);
+                if exist('MultiModelObj','var')
+                    nModels = length(MultiModelObj.SSITModels);
                     for iModel = 1:nModels
-                        ModelObj.SSITModels{iModel} =  ModelObj.SSITModels{iModel}.loadData( ...
+                        MultiModelObj.SSITModels{iModel} =  MultiModelObj.SSITModels{iModel}.loadData( ...
                             dataSettings{iModel,1},dataSettings{iModel,2},dataSettings{iModel,3});
                     end
-                elseif isa(ModelObj,'SSIT')
-                    ModelObj = ModelObj.loadData(dataSettings{1,1},dataSettings{1,2},dataSettings{1,3});
-                    obj = ModelObj;
+                else
+                    obj = obj.loadData(dataSettings{1,1},dataSettings{1,2},dataSettings{1,3});
                 end
 
             end
@@ -321,14 +335,24 @@ classdef SSIT
                     pipeline=pipeline(1:end-2);
                 end
                 fun = str2func(pipeline);
-                [ModelObj,outputs] = fun(ModelObj,pipelineArgs);
-                disp(['Pipeline ',pipeline,' run successfully.'])
-                eval([modelName,'=ModelObj;']);
-                save(saveName,"outputs",modelName)
-                if isa(ModelObj,'SSITMultiModel')
-                    obj = ModelObj.model.SSITModels{iModel};
-                elseif isa(ModelObj,'SSIT')
-                    obj = ModelObj;
+                if exist('MultiModelObj','var')
+                    [outputs,MultiModelObj] = fun(MultiModelObj,pipelineArgs);
+                    obj = MultiModelObj.SSITModels{1};
+                else
+                    [outputs,obj] = fun(obj,pipelineArgs);
+                end
+                disp(['Pipeline "',pipeline,'" run successfully.'])
+                
+                if ~isempty(modelName)
+                    eval([modelName,'=obj;']);
+                    save(saveName,"outputs",modelName)
+                else
+                    ModelObj = obj;
+                    save(saveName,'outputs','ModelObj')
+                end
+
+                if exist('MultiModelObj','var')
+                    obj = MultiModelObj.SSITModels{1};
                 end
 
                 % if exist("combinedModel","var")
