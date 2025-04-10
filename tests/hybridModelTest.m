@@ -28,6 +28,7 @@ classdef hybridModelTest < matlab.unittest.TestCase
         function hybridModelWarningTest(testCase)
             testCase.Hybrid.useHybrid = true;
             testCase.Hybrid.hybridOptions.upstreamODEs = {'A','B'};
+            % testCase.Hybrid = testCase.Hybrid.formPropensitiesGeneral('Hybrid',true);
             testCase.Hybrid.summarizeModel
             % This should issue a warning and SSIT should ``automatically 
             % delete the upstream effect [...] from the stoichiometry for 

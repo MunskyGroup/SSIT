@@ -411,37 +411,37 @@ classdef SSIT
             % This function starts the process to write m-file for each
             % propensity function.
             % if ~strcmp(obj.solutionScheme,'SSA')
-                if strcmp(obj.solutionScheme,'ode')
-                    obj.useHybrid = true;
-                    obj.hybridOptions.upstreamODEs = obj.species;
+            if strcmp(obj.solutionScheme,'ode')
+                obj.useHybrid = true;
+                obj.hybridOptions.upstreamODEs = obj.species;
+            end
+            n_reactions = length(obj.propensityFunctions);
+            % Propensity for hybrid models will include
+            % solutions from the upstream ODEs.
+            sm = cell(1,n_reactions);
+            logicTerms = cell(1,n_reactions);
+            logCounter = 0;
+            for i = 1:n_reactions
+                st = obj.propensityFunctions{i};
+                for jI = 1:size(obj.inputExpressions,1)
+                    st = strrep(st,obj.inputExpressions{jI,1},['(',obj.inputExpressions{jI,2},')']);
                 end
-                n_reactions = length(obj.propensityFunctions);
-                % Propensity for hybrid models will include
-                % solutions from the upstream ODEs.
-                sm = cell(1,n_reactions);
-                logicTerms = cell(1,n_reactions);
-                logCounter = 0;
-                for i = 1:n_reactions
-                    st = obj.propensityFunctions{i};
-                    for jI = 1:size(obj.inputExpressions,1)
-                        st = strrep(st,obj.inputExpressions{jI,1},['(',obj.inputExpressions{jI,2},')']);
-                    end
-                    [st,logicTerms{i},logCounter] = ssit.Propensity.stripLogicals(st,obj.species,logCounter);
-                    sm{i} = str2sym(st);
-                end
+                [st,logicTerms{i},logCounter] = ssit.Propensity.stripLogicals(st,obj.species,logCounter);
+                sm{i} = str2sym(st);
+            end
 
-                if obj.useHybrid
-                    PropensitiesGeneral = ...
-                        ssit.Propensity.createAsHybridVec(sm, obj.stoichiometry,...
-                        obj.parameters, obj.species, obj.hybridOptions.upstreamODEs,...
-                        logicTerms, prefixName, computeSens);
-                else
-                    PropensitiesGeneral = ...
-                        ssit.Propensity.createAsHybridVec(sm, obj.stoichiometry,...
-                        obj.parameters, obj.species, [], logicTerms, prefixName, computeSens);
-                end
+            if obj.useHybrid
+                PropensitiesGeneral = ...
+                    ssit.Propensity.createAsHybridVec(sm, obj.stoichiometry,...
+                    obj.parameters, obj.species, obj.hybridOptions.upstreamODEs,...
+                    logicTerms, prefixName, computeSens);
+            else
+                PropensitiesGeneral = ...
+                    ssit.Propensity.createAsHybridVec(sm, obj.stoichiometry,...
+                    obj.parameters, obj.species, [], logicTerms, prefixName, computeSens);
+            end
 
-                obj.propensitiesGeneral = PropensitiesGeneral;
+            obj.propensitiesGeneral = PropensitiesGeneral;
 
             % elseif strcmp(obj.solutionScheme,'SSA')
             %     PropensitiesGeneral = ssit.SrnModel.processPropensityStrings(obj.propensityFunctions,...
@@ -1189,7 +1189,11 @@ classdef SSIT
                 obj.tSpan = unique([obj.initialTime,obj.tSpan]);
             end
 
-            if isempty(obj.propensitiesGeneral)
+            if ~isempty(obj.hybridOptions)&&length(obj.hybridOptions.upstreamODEs)~=length(obj.propensitiesGeneral{1}.ODEstoichVector)
+                disp('(Re)Forming Propensity Functions Due to Detected Change in Hybrid Model Dimension.')
+                obj = formPropensitiesGeneral(obj,'hybrid',true);
+            elseif isempty(obj.propensitiesGeneral)
+                disp('Forming Propensity Functions.')
                 obj = formPropensitiesGeneral(obj);
             end
 
