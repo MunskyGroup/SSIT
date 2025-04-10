@@ -272,15 +272,17 @@ classdef SSIT
                         else
                             TMP = load(modelFile);
                             fnames = fieldnames(TMP);
-                            for i=1:length(fnames(TMP))
-                                if isa(TMP.(fnames(i)),'SSIT')
-                                    obj = TMP.(fnames(i));
-                                    disp(['Successfully loaded SSIT Model named "',fnames(i),'"'])
+                            for i=1:length(fnames)
+                                if isa(TMP.(fnames{i}),'SSIT')
+                                    obj = TMP.(fnames{i});
+                                    disp(['Successfully loaded SSIT Model named "',fnames{i},'" from "',modelFile,'"'])
+                                    modelName = fnames{i};
                                     break
                                 elseif isa(TMP.(fnames(i)),'SSITMultiModel')
-                                    MultiModelObj = TMP.(fnames(i));
+                                    MultiModelObj = TMP.(fnames{i});
                                     obj = MultiModelObj.SSITModels{1};
-                                    disp(['Successfully loaded a CombinedModel  named "',fnames(i),'" and extracted first model.'])
+                                    disp(['Successfully loaded a CombinedModel  named "',fnames{i},'" and extracted first model.'])
+                                    modelName = fnames{i};
                                     break
                                 end
                             end
