@@ -68,7 +68,7 @@ STL1.parameters = ({'koff',0.2; 'kr',100; 'gr',5;...
 % Print a summary of STL1 Model:
 STL1.summarizeModel
 
-%% Ex.(3) Load and modify a pre-existing SSIT model
+%% Ex.(3) Load and modify a pre-set SSIT model
 
 % Several simple models are already coded in SSIT and can be quickly 
 % loaded and modified. Below are currently available SSIT models (Mar2025). 
