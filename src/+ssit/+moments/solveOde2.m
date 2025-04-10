@@ -23,10 +23,12 @@ arguments
 end
 
 %% Define the right hand side of the ODE model
-clear ode_rhs
+% clear ode_rhs
+% sparseStoich = sparse(stoichMatrix);
+% ode_rhs = @(t,x)sparseStoich*propensities{1}.hybridFactorVector(t,parameters,x');
 ode_rhs = @(t,x)stoichMatrix*propensities{1}.hybridFactorVector(t,parameters,x');
 % ode_rhs = @(t, x) stoichMatrix*generate_propensity_vector(t, x, propensities, parameters);
-% ode_jac = @(t,x)stoichMatrix*propensities{1}.DhybridFactorDodesVec(t,parameters,x');
+ode_jac = @(t,x)stoichMatrix*propensities{1}.DhybridFactorDodesVec(t,parameters,x');
 % ode_jac = @(t,x)stoichMatrix*generate_propensity_jacobian(t, x, propensities, parameters);
 
 if useSSIC
@@ -51,8 +53,12 @@ end
 
 %% Return your output to ode_solutions
 maxstep = min(tspan(2:end)-tspan(1:end-1))/2;
-options = odeset(RelTol=1e-6,AbsTol=1e-10,MaxStep=maxstep);
+options = odeset(RelTol=1e-6,AbsTol=1e-10,MaxStep=maxstep,Jacobian=ode_jac);
 [t_ode,ode_solutions] = ode45(ode_rhs,tspan,x0,options);
+
+% options = odeset(RelTol=1e-6,AbsTol=1e-10,MaxStep=maxstep,Jacobian=ode_jac);
+% [t_ode,ode_solutions] = ode23s(ode_rhs,tspan,x0,options);
+
 
 end
 
