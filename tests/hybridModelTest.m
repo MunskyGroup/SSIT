@@ -29,7 +29,9 @@ classdef hybridModelTest < matlab.unittest.TestCase
             testCase.Hybrid.useHybrid = true;
             testCase.Hybrid.hybridOptions.upstreamODEs = {'A','B'};
             testCase.Hybrid.summarizeModel
-            % This should issue a warning and SSIT should ``automatically delete the upstream effect [...] from the stoichiometry for the downstream reaction"
+            % This should issue a warning and SSIT should ``automatically 
+            % delete the upstream effect [...] from the stoichiometry for 
+            % the downstream reaction"
             [testCase.HybridFSPSoln, testCase.Hybrid.fspOptions.bounds] = testCase.Hybrid.solve;
             testCase.Hybrid.summarizeModel
         end

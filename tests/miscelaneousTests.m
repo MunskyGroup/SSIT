@@ -22,6 +22,7 @@ classdef miscelaneousTests < matlab.unittest.TestCase
         function loadModelFromSBML(tc)
             % Tests the loading of a model from SBML.
             tc.Model = tc.Model.createModelFromSBML('../SBML_test_cases/00010/00010-sbml-l1v2.xml',true);
+            tc.Model = tc.Model.formPropensitiesGeneral('SBMEModel');
             [fspSoln] = tc.Model.solve;
             tc.Model.makePlot(fspSoln,'meansAndDevs')
         end
