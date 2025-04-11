@@ -171,7 +171,7 @@ classdef SSIT
     end
 
     methods
-        function obj = SSIT(modelFile,modelName,dataSettings,pipeline,pipelineArgs,saveName)
+        function [obj,MultiModelObj] = SSIT(modelFile,modelName,dataSettings,pipeline,pipelineArgs,saveName)
             %% SSIT - Create an instance of the SSIT class.
             %
             % The SSIT purpose is to allow users to specify and efficiently 
@@ -300,8 +300,17 @@ classdef SSIT
                             fieldsPropens2Test = {'timeDependentFactor','stateDependentFactor','jointDependentFactor','hybridFactor'};
                             for field = fieldsPropens2Test
                                 if ~isempty(obj.propensitiesGeneral{1}.(field{1}))
-                                    obj.propensitiesGeneral{1}.(field{1})(0);
+                                    if ~isa(obj.propensitiesGeneral{1}.(field{1}),'function_handle')
+                                        error('Missing Function')
+                                    end
                                 end
+                                % 
+                                %     if nargin(obj.propensitiesGeneral{1}.(field{1}))==1
+                                %         obj.propensitiesGeneral{1}.(field{1})(0);
+                                %     elseif nargin(obj.propensitiesGeneral{1}.(field{1}))==2
+                                %         obj.propensitiesGeneral{1}.(field{1})(0,0);
+                                %     end
+                                % end
                             end
                         catch
                             disp(['Propensity functions are missing -- regenerating now with name: ',modelName])
@@ -344,18 +353,27 @@ classdef SSIT
                     [outputs,obj] = fun(obj,pipelineArgs);
                 end
                 disp(['Pipeline "',pipeline,'" run successfully.'])
-                
-                if ~isempty(modelName)
-                    eval([modelName,'=obj;']);
-                    save(saveName,"outputs",modelName)
-                else
-                    ModelObj = obj;
-                    save(saveName,'outputs','ModelObj')
-                end
+            end
 
+            if ~isempty(saveName)
                 if exist('MultiModelObj','var')
+                    if ~isempty(modelName)
+                        eval([modelName,'=MultiModelObj;']);
+                        save(saveName,"outputs",modelName)
+                    else
+                        save(saveName,"outputs",'MultiModelObj')
+                    end
                     obj = MultiModelObj.SSITModels{1};
-                end
+                else
+                
+                    if ~isempty(modelName)
+                        eval([modelName,'=obj;']);
+                        save(saveName,"outputs",modelName)
+                    else
+                        ModelObj = obj;
+                        save(saveName,'outputs','ModelObj')
+                    end
+                end                
 
                 % if exist("combinedModel","var")
                 %     outputs = executeRoutine(ModelObj);                    
