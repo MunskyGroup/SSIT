@@ -175,6 +175,12 @@ classdef poissonTest < matlab.unittest.TestCase
             % exact solution for the Poisson Model:
             % lam(t) = k/g*(1-exp(-g*t));
             % logL = prod_n [Poisson(n|lam(t))]
+            
+            % Add additional times to FSP solution to test that it
+            % correctly can filter thee out when computing the likelihood
+            % values.
+            testCase.Poiss.tSpan = [0:0.05:max(testCase.Poiss.tSpan)];
+            
             fspLogL = testCase.Poiss.computeLikelihood;
             
             t = [testCase.Poiss.dataSet.DATA{:,1}];

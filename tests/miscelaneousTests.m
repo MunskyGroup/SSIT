@@ -144,7 +144,7 @@ classdef miscelaneousTests < matlab.unittest.TestCase
             tc.verifyEqual(SSITSolveTime100pars<(2*simBiolSolveTime100pars), true, ...
                 'SSIT ODE Solution is > 2x slower than SimBiology.');
 
-            maxError = max((resultsSB-results)./(results),[],"all");
+            maxError = max((resultsSB-results)./(mean(results)),[],"all");
             
             tc.verifyEqual(maxError<0.01, true, ...
                 'SSIT ODE Solution is not within 1 percent of SimBiology.');

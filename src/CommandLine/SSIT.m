@@ -1903,7 +1903,7 @@ classdef SSIT
 
             %% Attempt to do same thing using tables
             TAB = readtable(dataFileName);
-            possibleTimeHeaders = {'time','Time','TIME','Time_index'};
+            obj.dataSet.DATA = table2cell(TAB);
 
             % Find time column
             timeField = TAB.Properties.VariableNames(contains(lower(TAB.Properties.VariableNames),'time'));
@@ -2143,10 +2143,10 @@ classdef SSIT
             % sensitivity.
             if computeSensitivity&&nargout>=2
                 obj.solutionScheme = 'fspSens'; % Chosen solution scheme 
-                [solutions,obj.fspOptions.bounds] = obj.solve(stateSpace);  % Solve the FSP analysis
+                [solutions] = obj.solve(stateSpace);  % Solve the FSP analysis
             else
                 obj.solutionScheme = 'FSP'; % Chosen solution scheme 
-                [solutions,obj.fspOptions.bounds] = obj.solve(stateSpace);  % Solve the FSP analysis
+                [solutions] = obj.solve(stateSpace);  % Solve the FSP analysis
             end
             obj.parameters =  originalPars;
 
@@ -2335,6 +2335,83 @@ classdef SSIT
                 end
             end
 
+            %% Try to redo this using tensors
+            % TODO - The following code works to compute the likelihood and
+            % it is much faster, but it has not yet been fully tested, and
+            % we have not removed the existing slower code.
+            
+            dataTensor = obj.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor;
+            timesData = dataTensor.subs(:,1);
+            timesUnique = unique(timesData);
+
+            % Map measurement times to the solution times.
+            J = zeros(1,length(obj.dataSet.times));
+            for it = 1:length(obj.dataSet.times)                    
+                [~,J(it)] = min(abs(obj.tSpan-obj.dataSet.times(it)));
+            end
+            if ~computeSensitivity||nargout<2
+                fsp = solutions.fsp(J);
+            elseif computeSensitivity&&nargout>=2
+                sens = solutions.sens.data(J);
+            end
+            numTimes = length(J);
+
+            indsIgnore = setdiff([1:Nd],find(indsPlots));
+
+            LogLk = zeros(1,numTimes);
+
+            for it = 1:numTimes
+                 if ~computeSensitivity||nargout<2
+                     % get FSP solution for current time.
+                     px = fsp{it}.p;
+                 elseif computeSensitivity&&nargout>=2
+                     px = sens.data{it}.p;
+                     Sx = sens.data{it}.S;
+                     parCount = length(Sx);
+                     % Add effect of PDO.
+                     if ~isempty(obj.pdoOptions.PDO)
+                         for iPar = 1:parCount
+                             Sx(iPar) = obj.pdoOptions.PDO.computeObservationDistDiff(px, Sx(iPar), iPar);
+                         end
+                     end
+                     % Remove ignored species
+                     for iPar = parCount:-1:1
+                        if ~isempty(indsIgnore)
+                            S{iPar} = Sx(iPar).sumOver(indsIgnore);
+                        end
+                        % S{iPar}(it,d~=0) = d(d~=0);
+                    end
+                 end
+                 % Add effect of PDO.
+                 if ~isempty(obj.pdoOptions.PDO)
+                     try
+                         px = obj.pdoOptions.PDO.computeObservationDist(px,indsIgnore);
+                     catch
+                         obj.pdoOptions.PDO = obj.generatePDO(obj.pdoOptions,[],solutions.fsp); % call method to generate the PDO.
+                         px = obj.pdoOptions.PDO.computeObservationDist(px,indsIgnore);
+                     end
+                 end
+                 % Sum over the marginalization indices (if any). The return
+                 % result as a double vector.
+                 if ~isempty(indsIgnore)
+                     px = px.sumOver(indsIgnore);
+                 end
+
+                 Pvals = real(max(1e-10,double(px.data)));
+                 Pvals = Pvals/max(1,sum(Pvals,'all'));
+                 logP = sptensor(log(Pvals));
+
+                 inds = dataTensor.subs(timesData==timesUnique(it),2:end);
+                 vals = dataTensor.vals(timesData==timesUnique(it));
+                 LogLk(it) = vals'*logP(inds);
+            end
+            % P = 
+            % solnTensor = sptensor([length(solutions.fsp),max(solutions.stateSpace.states,[],2)'+1]);
+            % solnT
+
+
+            %%
+
             % Store data and model information for use in other routines.
             % The format used here is chosen to match an existing object in
             % the SSIT GUI.
@@ -2363,7 +2440,7 @@ classdef SSIT
             end
             
             % Initialize log likelihood at zero for all times.
-            LogLk = zeros(1,length(times));
+            % LogLk = zeros(1,length(times));
             KS = zeros(1,length(times));
             numCells = zeros(1,length(times));
 
@@ -2386,7 +2463,7 @@ classdef SSIT
                 H = double(H);
                 Pt = P(j,:,:,:,:,:,:,:,:,:);
                 Pt = Pt/max(1,sum(Pt,'all'));
-                LogLk(i) = sum(H(:).*log(Pt(:)));
+                % LogLk(i) = sum(H(:).*log(Pt(:)));
                 numCells(i) = sum(H(:));
                 if computeSensitivity&&nargout>=2
                     for iPar = parCount:-1:1
