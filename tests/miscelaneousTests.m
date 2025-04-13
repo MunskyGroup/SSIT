@@ -109,14 +109,20 @@ classdef miscelaneousTests < matlab.unittest.TestCase
             TwoDNonLinearTV.inputExpressions = {'Ir','1+cos(t)'};
             TwoDNonLinearTV.tSpan = linspace(0,10,40);
             TwoDNonLinearTV.solutionScheme = 'ode';
-            TwoDNonLinearTV = TwoDNonLinearTV.formPropensitiesGeneral('TwoDTV');
+            TwoDNonLinearTV = TwoDNonLinearTV.formPropensitiesGeneral('TwoDTV',false);
             
             [odeSoln1] = TwoDNonLinearTV.solve;
             parVector = [TwoDNonLinearTV.parameters{:,2}];
+
+            Ntests = 100;
+            parVectorSets = repmat(parVector,Ntests,1).*(1+0.1*randn(Ntests,size(parVector,2)));
+            results = zeros(Ntests,4);
+            resultsSB = zeros(Ntests,4);
             tic
             for i=1:100
-                TwoDNonLinearTV.parameters(:,2) = num2cell(parVector.*(1+0.1*randn(size(parVector))));
+                TwoDNonLinearTV.parameters(:,2) = num2cell(parVectorSets(i,:));
                 [odeSoln1] = TwoDNonLinearTV.solve;
+                results(i,:) = odeSoln1.ode(end,:);
             end
             SSITSolveTime100pars = toc
 
@@ -128,14 +134,20 @@ classdef miscelaneousTests < matlab.unittest.TestCase
             tic
             for i=1:100
                 for j=1:length(parVector)
-                    sbModel.Parameters(j).Value = parVector(j)*(1+0.1*randn);
+                    sbModel.Parameters(j).Value = parVectorSets(i,j);
                 end
                 [t,x,names] = sbiosimulate(sbModel);
+                resultsSB(i,:) = x(end,:);
             end
             simBiolSolveTime100pars = toc
 
             tc.verifyEqual(SSITSolveTime100pars<(2*simBiolSolveTime100pars), true, ...
                 'SSIT ODE Solution is > 2x slower than SimBiology.');
+
+            maxError = max((resultsSB-results)./(results),[],"all");
+            
+            tc.verifyEqual(maxError<0.01, true, ...
+                'SSIT ODE Solution is not within 1 percent of SimBiology.');
             
          end
 

@@ -100,7 +100,7 @@ classdef SSIT
             'fspIntegratorAbsTol',1e-4, 'odeSolver','auto',...
             'verbose',false,'bounds',[],'usePiecewiseFSP',false,...
             'initApproxSS',false,'escapeSinks',[],...
-            'constantJacobian',false,'constantJacobianTime',1.1); 
+            'constantJacobian',false,'constantJacobianTime',1.1,'stateSpace',[]); 
         % Options for FSP-Sensitivity solver
         %   defaults:
         %       'solutionMethod','forward'
@@ -145,6 +145,9 @@ classdef SSIT
         tSpan = linspace(0,10,21); 
         % Chosen solution scheme ('FSP','SSA','ode'), default: 'FSP'
         solutionScheme = 'FSP' 
+        % Chosen sets of solution schemes to get and store (choose members
+        % from ('FSP','SSA','ode').  Default is empty.
+        solutionSchemes = {};
         % Settings for model reduction tools
         %   defaults:
         %       'useModReduction',false
@@ -161,13 +164,17 @@ classdef SSIT
         %   default: struct('upstreamODEs',[]);
         %   example: Model.hybridOptions.upstreamODEs = {'offGene','onGene'};
         hybridOptions = struct('upstreamODEs',[]);
-        % Processed propensity functions for use in solvers, default: [];
+        % Processed propensity functions for use in SSIt/FSP solvers, 
+        % default: [];
         propensitiesGeneral = [];
+        % Processed propensity functions for use in ODE solver, 
+        % default: [];
+        propensitiesGeneralODE = [];
     end
 
     properties (Dependent)
         fspConstraints % FSP Constraint Functions
-        pars_container  % Container for parameters
+        pars_container % Container for parameters
     end
 
     methods
@@ -232,7 +239,7 @@ classdef SSIT
             %
             %% Example 4 - Load Model, Add Data and Run Pipeline Routine
             %   DataSettings = {'data/STL1.csv',{'mRNA','rna'}};
-            %   Pipeline = 'fittingPipeline';
+            %   Pipeline = 'fittingPipelineExample';
             %   pipelineArgs.maxIter = 20;
             %   pipelineArgs.display = 'iter';
             %   saveFile = 'exampleResults.mat';
@@ -397,7 +404,6 @@ classdef SSIT
             end
         end
 
-       
         function obj = formPropensitiesGeneral(obj,prefixName,computeSens)
             %% SSIT.formPropensitiesGeneral - Create callable functions 
             %% for all propensity functions.
@@ -428,11 +434,7 @@ classdef SSIT
             end
             % This function starts the process to write m-file for each
             % propensity function.
-            % if ~strcmp(obj.solutionScheme,'SSA')
-            if strcmp(obj.solutionScheme,'ode')
-                obj.useHybrid = true;
-                obj.hybridOptions.upstreamODEs = obj.species;
-            end
+        
             n_reactions = length(obj.propensityFunctions);
             % Propensity for hybrid models will include
             % solutions from the upstream ODEs.
@@ -448,27 +450,32 @@ classdef SSIT
                 sm{i} = str2sym(st);
             end
 
-            if obj.useHybrid
-                PropensitiesGeneral = ...
-                    ssit.Propensity.createAsHybridVec(sm, obj.stoichiometry,...
-                    obj.parameters, obj.species, obj.hybridOptions.upstreamODEs,...
-                    logicTerms, prefixName, computeSens);
+            if ~strcmp(obj.solutionScheme,'ode')&&~ismember('ode',obj.solutionSchemes)
+                if obj.useHybrid
+                    PropensitiesGeneral = ...
+                        ssit.Propensity.createAsHybridVec(sm, obj.stoichiometry,...
+                        obj.parameters, obj.species, obj.hybridOptions.upstreamODEs,...
+                        logicTerms, prefixName, computeSens);
+                else
+                    PropensitiesGeneral = ...
+                        ssit.Propensity.createAsHybridVec(sm, obj.stoichiometry,...
+                        obj.parameters, obj.species, [], logicTerms, prefixName, computeSens);
+                end
             else
-                PropensitiesGeneral = ...
-                    ssit.Propensity.createAsHybridVec(sm, obj.stoichiometry,...
-                    obj.parameters, obj.species, [], logicTerms, prefixName, computeSens);
+                PropensitiesGeneral = [];
             end
+            
+            objODE = obj;
+            objODE.solutionScheme='ode';
+            objODE.solutionSchemes = {};
+            objODE.useHybrid = true;
+            objODE.hybridOptions.upstreamODEs = obj.species;
+            obj.propensitiesGeneralODE = ...
+                ssit.Propensity.createAsHybridVec(sm, objODE.stoichiometry,...
+                objODE.parameters, objODE.species, objODE.hybridOptions.upstreamODEs,...
+                logicTerms, [prefixName,'_ODE'], computeSens);
 
             obj.propensitiesGeneral = PropensitiesGeneral;
-
-            % elseif strcmp(obj.solutionScheme,'SSA')
-            %     PropensitiesGeneral = ssit.SrnModel.processPropensityStrings(obj.propensityFunctions,...
-            %         obj.inputExpressions,...
-            %         obj.pars_container,...
-            %         propenType,...
-            %         obj.species);
-            % end
-
         end
 %%
         function constraints = get.fspConstraints(obj)
@@ -1176,7 +1183,11 @@ classdef SSIT
         end
 
         %% Model Analysis Functions
-        function [Solution, bConstraints] = solve(obj,stateSpace,saveFile,fspSoln)
+        function obj = fspSolve(obj)
+            obj.solutionScheme='FSP';
+            [~,~,obj] = obj.solve;
+        end
+        function [Solution, bConstraints, obj] = solve(obj,stateSpace,saveFile,fspSoln)
             arguments
                 obj
                 stateSpace = [];
@@ -1207,10 +1218,19 @@ classdef SSIT
                 obj.tSpan = unique([obj.initialTime,obj.tSpan]);
             end
 
-            if ~isempty(obj.hybridOptions)&&length(obj.hybridOptions.upstreamODEs)~=length(obj.propensitiesGeneral{1}.ODEstoichVector)
+            if isempty(stateSpace)&&~isempty(obj.fspOptions.stateSpace)
+                stateSpace = obj.fspOptions.stateSpace;
+            end 
+
+            if strcmp(obj.solutionScheme,'ode')
+                propensityGeneral = obj.propensitiesGeneralODE;
+            else
+                propensityGeneral = obj.propensitiesGeneral;
+            end
+            if ~isempty(obj.hybridOptions)&&~strcmp(obj.solutionScheme,'ode')&&length(obj.hybridOptions.upstreamODEs)~=length(propensityGeneral{1}.ODEstoichVector)
                 disp('(Re)Forming Propensity Functions Due to Detected Change in Hybrid Model Dimension.')
                 obj = formPropensitiesGeneral(obj,'hybrid',true);
-            elseif isempty(obj.propensitiesGeneral)
+            elseif isempty(propensityGeneral)
                 disp('Forming Propensity Functions.')
                 obj = formPropensitiesGeneral(obj);
             end
@@ -1249,7 +1269,8 @@ classdef SSIT
                         obj.fspOptions.verbose, ...
                         obj.fspOptions.fspIntegratorRelTol, ...
                         obj.fspOptions.fspIntegratorAbsTol, ...
-                        obj.fspOptions.odeSolver,stateSpace,...
+                        obj.fspOptions.odeSolver, ...
+                        stateSpace,...
                         obj.fspOptions.usePiecewiseFSP,...
                         obj.fspOptions.initApproxSS,...
                         obj.species,...
@@ -1258,6 +1279,8 @@ classdef SSIT
                         obj.fspConstraints.fEscape,obj.fspConstraints.bEscape, ...
                         obj.fspOptions.constantJacobian,...
                         obj.fspOptions.constantJacobianTime);
+                    obj.fspOptions.stateSpace = Solution.stateSpace;
+                    obj.fspOptions.bounds = bConstraints;
 
                 case 'SSA'
                     Solution.T_array = obj.tSpan;
@@ -1373,7 +1396,7 @@ classdef SSIT
 
                 case 'ode'
                     [~,Solution.ode] = ssit.moments.solveOde2(obj.initialCondition, obj.tSpan, ...
-                        obj.stoichiometry, obj.propensitiesGeneral,  [obj.parameters{:,2}]', obj.fspOptions.initApproxSS);
+                        obj.stoichiometry, obj.propensitiesGeneralODE,  [obj.parameters{:,2}]', obj.fspOptions.initApproxSS);
             end
         end
 
@@ -1814,69 +1837,132 @@ classdef SSIT
                 conditions = {};
             end
             obj.dataSet =[];
-            Tab = readtable(dataFileName);
-            obj.dataSet.dataNames = Tab.Properties.VariableNames;
-            obj.dataSet.DATA = table2cell(Tab);
+%             Tab = readtable(dataFileName);
+%             obj.dataSet.dataNames = Tab.Properties.VariableNames;
+%             obj.dataSet.DATA = table2cell(Tab);
+% 
+%             obj.dataSet.linkedSpecies = linkedSpecies;
+% 
+%             possibleTimeHeaders = {'time','Time','TIME','Time_index'};
+%             Q = zeros(1,length(obj.dataSet.dataNames));
+%             for iHead = 1:length(possibleTimeHeaders)
+%                 Q = max(Q,strcmp(obj.dataSet.dataNames,possibleTimeHeaders{iHead}));
+%             end
+%             if sum(Q)>=1
+%                 obj.dataSet.app.ParEstFitTimesList.Value = {};
+%                 obj.dataSet.app.ParEstFitTimesList.Items = {};
+%                 if sum(Q)>1
+%                     error('Provided data more than one entry with keyword "time"')   
+%                 end
+%                 col_time = find(Q,1);
+%                 obj.dataSet.app.DataLoadingAndFittingTabOutputs.fittingOptions.fit_time_index = col_time;
+%                 obj.dataSet.app.DataLoadingAndFittingTabOutputs.fittingOptions.fit_times = sort(unique(cell2mat(obj.dataSet.DATA(:,col_time))));
+%                 for i=1:length(obj.dataSet.app.DataLoadingAndFittingTabOutputs.fittingOptions.fit_times)
+%                     obj.dataSet.app.ParEstFitTimesList.Items{i} = num2str(obj.dataSet.app.DataLoadingAndFittingTabOutputs.fittingOptions.fit_times(i));
+%                     obj.dataSet.app.ParEstFitTimesList.Value{i} = num2str(obj.dataSet.app.DataLoadingAndFittingTabOutputs.fittingOptions.fit_times(i));
+%                 end
+%                 % We need to make sure that the fitting times are included in the solution times.
+% 
+%             else
+%                 error('Provided data set does not have required column named "time"')
+%             end
+%             obj.dataSet.app.DataLoadingAndFittingTabOutputs.dataTable = obj.dataSet.DATA;
+% 
+%             Nd = length(obj.species);
+%             nCol = length(obj.dataSet.dataNames);
+% 
+%             obj.dataSet.app.DataLoadingAndFittingTabOutputs.marginalMatrix = ...
+%                 zeros(Nd+3,nCol);
+% 
+%             % auto-detect and record 'time' column
+%             Itime = Nd+1;
+%             Jtime = find(Q);
+%             obj.dataSet.app.DataLoadingAndFittingTabOutputs.marginalMatrix(Itime,Jtime) = 1;
+% %             obj.dataSet.times = unique([obj.dataSet.DATA{:,Jtime}]);
+% 
+%             % record linked species
+%             for i=1:size(linkedSpecies,1)
+%                 J = find(strcmp(obj.dataSet.dataNames,linkedSpecies{i,2}));
+%                 I = find(strcmp(obj.species,linkedSpecies{i,1}));
+%                 obj.dataSet.app.DataLoadingAndFittingTabOutputs.marginalMatrix(I,J)=1;
+%             end
+% 
+%             % set up conditionals
+%             obj.dataSet.app.DataLoadingAndFittingTabOutputs.conditionOnArray = {};
+%             for i=1:size(conditions,1)
+%                 J = find(strcmp(obj.dataSet.dataNames,conditions{i,1}));
+%                 obj.dataSet.app.DataLoadingAndFittingTabOutputs.conditionOnArray(end+1,:) = {J,conditions{i,2}};
+%             end
+% 
+%             % set to marginalize over everything else
+%             obj.dataSet.app.DataLoadingAndFittingTabOutputs.marginalMatrix(Nd+3,:) = ...
+%                 sum(obj.dataSet.app.DataLoadingAndFittingTabOutputs.marginalMatrix)==0;
+% 
+%             obj.dataSet.app.SpeciesForFitPlot.Items = obj.species;
+%             % [obj.dataSet.app,obj.dataSet.times] = filterAndMarginalize([],[],obj.dataSet.app);
 
-            obj.dataSet.linkedSpecies = linkedSpecies;
-
+            %% Attempt to do same thing using tables
+            TAB = readtable(dataFileName);
             possibleTimeHeaders = {'time','Time','TIME','Time_index'};
-            Q = zeros(1,length(obj.dataSet.dataNames));
-            for iHead = 1:length(possibleTimeHeaders)
-                Q = max(Q,strcmp(obj.dataSet.dataNames,possibleTimeHeaders{iHead}));
+
+            % Find time column
+            timeField = TAB.Properties.VariableNames(contains(lower(TAB.Properties.VariableNames),'time'));
+            if isempty(timeField)
+                error('Data sheet does not have an entry with keyword "time"');
+            elseif length(timeField)>2
+                error('Data sheet has more than one entry with keyword "time"');
             end
-            if sum(Q)>=1
-                obj.dataSet.app.ParEstFitTimesList.Value = {};
-                obj.dataSet.app.ParEstFitTimesList.Items = {};
-                if sum(Q)>1
-                    error('Provided data more than one entry with keyword "time"')   
+
+            % Apply conditions
+            for i = 1:size(conditions,1)
+                if size(conditions,2)==2
+                    if isnumeric(conditions{i,2})&&isnumeric(TAB.(conditions{i,1})(1))
+                        TAB = TAB(TAB.(conditions{i,1})==conditions{i,2},:);
+                    elseif ischar(conditions{i,2})&&ischar(TAB.(conditions{i,1})(1))
+                        TAB = TAB(strcmp(TAB.(conditions{i,1}),conditions{i,2}),:);
+                    elseif isnumeric(TAB.(conditions{i,1})(1))
+                        TAB = TAB((TAB.(conditions{i,1}))==eval(conditions{i,2}),:);
+                    end
+                else 
+                    eval(['TAB = TAB(TAB.(conditions{i,1})',conditions{i,3},'conditions{i,2},:);'])
                 end
-                col_time = find(Q,1);
-                obj.dataSet.app.DataLoadingAndFittingTabOutputs.fittingOptions.fit_time_index = col_time;
-                obj.dataSet.app.DataLoadingAndFittingTabOutputs.fittingOptions.fit_times = sort(unique(cell2mat(obj.dataSet.DATA(:,col_time))));
-                for i=1:length(obj.dataSet.app.DataLoadingAndFittingTabOutputs.fittingOptions.fit_times)
-                    obj.dataSet.app.ParEstFitTimesList.Items{i} = num2str(obj.dataSet.app.DataLoadingAndFittingTabOutputs.fittingOptions.fit_times(i));
-                    obj.dataSet.app.ParEstFitTimesList.Value{i} = num2str(obj.dataSet.app.DataLoadingAndFittingTabOutputs.fittingOptions.fit_times(i));
-                end
-                % We need to make sure that the fitting times are included in the solution times.
-            
-            else
-                error('Provided data set does not have required column named "time"')
-            end
-            obj.dataSet.app.DataLoadingAndFittingTabOutputs.dataTable = obj.dataSet.DATA;
-
-            Nd = length(obj.species);
-            nCol = length(obj.dataSet.dataNames);
-
-            obj.dataSet.app.DataLoadingAndFittingTabOutputs.marginalMatrix = ...
-                zeros(Nd+3,nCol);
-
-            % auto-detect and record 'time' column
-            Itime = Nd+1;
-            Jtime = find(Q);
-            obj.dataSet.app.DataLoadingAndFittingTabOutputs.marginalMatrix(Itime,Jtime) = 1;
-%             obj.dataSet.times = unique([obj.dataSet.DATA{:,Jtime}]);
-
-            % record linked species
-            for i=1:size(linkedSpecies,1)
-                J = find(strcmp(obj.dataSet.dataNames,linkedSpecies{i,2}));
-                I = find(strcmp(obj.species,linkedSpecies{i,1}));
-                obj.dataSet.app.DataLoadingAndFittingTabOutputs.marginalMatrix(I,J)=1;
             end
 
-            % set up conditionals
-            obj.dataSet.app.DataLoadingAndFittingTabOutputs.conditionOnArray = {};
-            for i=1:size(conditions,1)
-                J = find(strcmp(obj.dataSet.dataNames,conditions{i,1}));
-                obj.dataSet.app.DataLoadingAndFittingTabOutputs.conditionOnArray(end+1,:) = {J,conditions{i,2}};
+            % Link Species
+            TAB2 = table;
+            TAB2.time = TAB.(timeField{1});
+            for i = 1:size(linkedSpecies,1)
+                TAB2.(linkedSpecies{i,1}) = TAB.(linkedSpecies{i,2});
             end
 
-            % set to marginalize over everything else
-            obj.dataSet.app.DataLoadingAndFittingTabOutputs.marginalMatrix(Nd+3,:) = ...
-                sum(obj.dataSet.app.DataLoadingAndFittingTabOutputs.marginalMatrix)==0;
+            % Reorder table in order of species list
+            [~,iA] = intersect(linkedSpecies(:,1),obj.species);
+            TAB2 = TAB2(:,[1,iA'+1]);
+              
+            % dataTensor = sptensor(
+            times = unique(TAB2.time);
+            timeAr = TAB2.time;
+            for i = 1:length(times)
+                timeAr(TAB2.time==times(i)) = i-1;
+            end
+            TAB2.time = timeAr;
 
+            % Construct sparse tensor to hold data.
+            obj.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor = sptensor(TAB2.Variables+1,ones(size(TAB2,1),1));
+
+            % Define other properties needed in other functions.
+            obj.dataSet.linkedSpecies = linkedSpecies;
+            obj.dataSet.times = times';
             obj.dataSet.app.SpeciesForFitPlot.Items = obj.species;
-            [obj.dataSet.app,obj.dataSet.times] = filterAndMarginalize([],[],obj.dataSet.app);
+            obj.dataSet.app.SpeciesForFitPlot.Items = linkedSpecies(:,1);
+            obj.dataSet.app.DataLoadingAndFittingTabOutputs.fittingOptions.fit_times = times';
+            for i=1:length(times)
+                obj.dataSet.app.ParEstFitTimesList.Items{i} = num2str(times(i));
+            end
+            obj.dataSet.app.ParEstFitTimesList.Value = obj.dataSet.app.ParEstFitTimesList.Items;
+
+                     
+            %%
 
 %             obj.dataSet.times = unique([obj.dataSet.DATA{:,Jtime}]);
 
