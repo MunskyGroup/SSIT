@@ -1,23 +1,24 @@
 function [results, Model] = fittingPipelineExample(Model,Args)
+results = [];
 
 % Parse optional arguments
 numIter = Args.maxIter;
 display = Args.display;
+makePlot = Args.makePlot;
 
 % Find initial FSP bounds
-[~,Model.fspOptions.bounds] = Model.solve;  
+[~,~,Model] = Model.solve;  
 
 fitOptions = optimset('Display',display,'MaxIter',numIter);
 
 % Fit model to data
-results.Modelpars = [Model.parameters{:,2}];
-[results.Modelpars,results.Model_likelihood] = Model.maximizeLikelihood(results.Modelpars,...
-                                                            fitOptions);
-
-% Update Model Parameters
-Model.parameters(:,2) = num2cell(results.Modelpars);
+[~,~,~,Model] = Model.maximizeLikelihood([],fitOptions);
 
 % Find final FSP bounds
-[~,Model.fspOptions.bounds] = Model.solve;  
+[~,~,Model] = Model.solve;  
+
+if makePlot
+    Model.makeFitPlot;
+end
 
 end

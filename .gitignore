@@ -75,3 +75,5 @@ Examples/Cook_etal_2024_Sequential_Design/simData/*.csv
 Examples/Cook_etal_2024_Sequential_Design/TMPMHChain*
 tests/exampleResultsTest.mat
 tests/TemporarySaveFile.mat
+WorkSpace/PipelineApproach/exampleResults.mat
+WorkSpace/PipelineApproach/savedModelGR.mat

@@ -2418,18 +2418,29 @@ classdef SSIT
                      px = px.sumOver(indsIgnore);
                  end
 
-                 Pvals = real(max(1e-10,double(px.data)));
+                 % Get indices and number of all observed data.
+                 inds = dataTensor.subs(timesData==timesUnique(it),2:end);
+                 vals = dataTensor.vals(timesData==timesUnique(it));
+                 szData = max(inds);
+                 
+                 % Pad Probability Distribution if support does not cover
+                 % all data.
+                 Pvals = px.data;
+                 szModel = size(Pvals);
+                 if max(szData-szModel)>0
+                     Pvals(szData)=0;
+                 end
+
+                 Pvals = real(max(1e-10,double(Pvals)));
                  Pvals = Pvals/max(1,sum(Pvals,'all'));
                  logP = sptensor(log(Pvals));
 
-                 inds = dataTensor.subs(timesData==timesUnique(it),2:end);
-                 vals = dataTensor.vals(timesData==timesUnique(it));
                  LogLk(it) = vals'*logP(inds);
                  
                  if nargout>=3
                      perfectMod(it) = vals'*log(vals/sum(vals));
                      Pvt = sptensor(Pvals);
-                     fitSolutions.DataLoadingAndFittingTabOutputs.fitResults.current([it*ones(size(inds,1),1),inds]) = Pvt(inds);
+                     fitSolutions.DataLoadingAndFittingTabOutputs.fitResults.current([it*ones(size(Pvt.subs,1),1),Pvt.subs]) = Pvt.vals;
                  end
 
                  if computeSensitivity&&nargout>=2
@@ -2593,7 +2604,7 @@ classdef SSIT
             end
         end
                                % WARNING: returns height of posterior instead of likelihood if priors are specified
-        function [pars,likelihood,otherResults] = maximizeLikelihood(obj,parGuess,fitOptions,fitAlgorithm) 
+        function [pars,likelihood,otherResults,obj] = maximizeLikelihood(obj,parGuess,fitOptions,fitAlgorithm) 
             arguments
                 obj
                 parGuess = [];
@@ -2624,13 +2635,13 @@ classdef SSIT
             end
 
             if strcmp(obj.solutionScheme,'FSP')   % Set solution scheme to FSP.
-                [FSPsoln,bounds] = obj.solve;  % Solve the FSP analysis
-                obj.fspOptions.bounds = bounds;% Save bound for faster analyses
+                [~,~,obj] = obj.solve;  % Solve the FSP analysis
+                % obj.fspOptions.bounds = bounds;% Save bound for faster analyses
                 if allFitOptions.suppressFSPExpansion
                     tmpFSPtol = obj.fspOptions.fspTol;
                     obj.fspOptions.fspTol = inf;
                 end
-                objFun = @(x)-obj.computeLikelihood(exp(x),FSPsoln.stateSpace);  % We want to MAXIMIZE the likelihood.
+                objFun = @(x)-obj.computeLikelihood(exp(x));  % We want to MAXIMIZE the likelihood.
             elseif strcmp(obj.solutionScheme,'ode')  % Set solution scheme to ode.
                 objFun = @(x)-obj.computeLikelihoodODE(exp(x));  % We want to MAXIMIZE the likelihood.
             end
@@ -2808,6 +2819,12 @@ classdef SSIT
             if strcmp(obj.solutionScheme,'FSP')&&allFitOptions.suppressFSPExpansion
                 obj.fspOptions.fspTol = tmpFSPtol;
             end
+
+            if nargout>=4
+                % Update best parameters set in returned model.
+                obj.parameters(obj.fittingOptions.modelVarsToFit,2) = num2cell(pars);
+            end
+
 
         end
 
@@ -3250,7 +3267,7 @@ classdef SSIT
             arguments
                 obj
                 fitSolution =[];
-                smoothWindow = 5;
+                smoothWindow = 1;
                 fignums = [];
                 usePanels=true;
                 varianceType = 'STD';

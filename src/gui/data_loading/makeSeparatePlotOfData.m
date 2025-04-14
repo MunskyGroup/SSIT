@@ -1,7 +1,7 @@
 function makeSeparatePlotOfData(app,smoothWindow,fignums,usePanels,varianceType,IQRrange)
 arguments
     app
-    smoothWindow = 5;
+    smoothWindow = 1;
     fignums = [];
     usePanels=true;
     varianceType = 'STD';
