@@ -77,3 +77,5 @@ tests/exampleResultsTest.mat
 tests/TemporarySaveFile.mat
 WorkSpace/PipelineApproach/exampleResults.mat
 WorkSpace/PipelineApproach/savedModelGR.mat
+WorkSpace/PipelineApproach/GRModelFitResults.mat
+WorkSpace/PipelineApproach/savedGRmultiModel.mat
