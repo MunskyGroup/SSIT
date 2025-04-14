@@ -177,6 +177,12 @@ classdef poisson2Dtest < matlab.unittest.TestCase
                 '2-Species likelihood is not within 0.1% Tolerance');
             testCase.verifyEqual(errors(2)<0.001, true, ...
                 'Partial Observation likelihood is not within 0.1% Tolerance');
+
+            % Test if the two species plotting functions work without crashing.
+            modelBoth.makeFitPlot
+
+            % Test if the reduced species plotting functions work without crashing.
+            modelA.makeFitPlot
             
         end
     end
