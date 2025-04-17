@@ -147,7 +147,7 @@ maxOutputTime = max(outputTimes);
 outputTimeCount = length(outputTimes);
 outputTimes = unique(outputTimes);
 if (outputTimeCount ~= length(outputTimes))
-    disp('Warning: input tspan contains repeated elements. Converted tspan to vector of unique values');
+    disp('Warning: input tspan contains repeated elements. Truncating tspan to vector of unique values');
     outputTimeCount = length(outputTimes);
 end
 
@@ -158,8 +158,8 @@ if useHybrid
     jUpstreamODE = find(contains(speciesNames,hybridOptions.upstreamODEs));
     odeStoichs = stoichMatrix(jUpstreamODE,:);
     stoichMatrix = stoichMatrix(jStochastic,:);
-    initODEs = initStates(jUpstreamODE);
-    initStates = initStates(jStochastic);
+    initODEs = initStates(jUpstreamODE,1);
+    initStates = initStates(jStochastic,:);
     speciesNames = speciesNames(jStochastic);
     numODEs = length(jUpstreamODE);
 else
@@ -225,7 +225,7 @@ if initApproxSS
             AfspFull = ssit.FspMatrix(propensities, parameters, stateSpace, constraintCount, speciesNames);
         end
 
-        jac = AfspFull.createSingleMatrix(outputTimes(1),parameters);
+        jac = AfspFull.createSingleMatrix(outputTimes(1)-1e-6,parameters);
     end
     jac = jac(1:end-constraintCount,1:end-constraintCount);
 
@@ -278,18 +278,18 @@ if (~isempty(iout))
         end
         p = p/sum(p);
         p = max(p,0);
-        solutions{iout} = struct(time=0, ...
+        solutions{iout} = struct(time=outputTimes(1), ...
             p=packFspSolution(stateSpace.states, p(1:stateCount)), ...
             escapeProbs=[], ...
             sinks=[]);
     elseif useHybrid
-        solutions{iout} = struct(time=0, ...
+        solutions{iout} = struct(time=outputTimes(1), ...
             p=packFspSolution(stateSpace.states, solVec(1:stateCount)), ...
             sinks=solVec(stateCount+1:end-nEscapeSinks-numODEs),...
             escapeProbs=solVec(end-nEscapeSinks-numODEs+1:end-numODEs),...
             upstreamODEs=solVec(end-numODEs+1:end));
     else
-        solutions{iout} = struct(time=0, ...
+        solutions{iout} = struct(time=outputTimes(1), ...
             p=packFspSolution(stateSpace.states, solVec(1:stateCount)), ...
             sinks=solVec(stateCount+1:end-nEscapeSinks), ...
             escapeProbs=solVec(end-nEscapeSinks+1:end));
@@ -315,8 +315,7 @@ end
 
 % While loop for solving the FSP over each time step.
 while (tNow < maxOutputTime)
-    fspErrorCondition = struct('tStart', tNow,...
-        'tFinal', maxOutputTime,...
+    fspErrorCondition = struct('tFinal', maxOutputTime,...
         'tInit', tInit,...
         'fspTol', fspTol,...
         'nSinks', constraintCount, ...
@@ -364,7 +363,7 @@ while (tNow < maxOutputTime)
         else
             if isTimeInvariant==1 % If no parameters are functions of time.
                 % if ~isempty(parameters)
-                    jac = AfspFull.createSingleMatrix(tNow, parameters);
+                    jac = AfspFull.createSingleMatrix(tNow+1e-6, parameters);
                 % else
                     % jac = AfspFull.createSingleMatrix(tNow);
                 % end
@@ -379,7 +378,7 @@ while (tNow < maxOutputTime)
                 end
 
             elseif useHybrid
-                matvec = @(t, p) AfspFull.hybridRHS(t, p, parameters, hybridOptions.upstreamODEs);
+                matvec = @(t, p) full(AfspFull.hybridRHS(t, p, parameters, hybridOptions.upstreamODEs));
                 % jac = [];  % Jacobian calculation is not currently available for hybrid models.
                 jac = @(t, p)AfspFull.createJacHybridMatrix(t, p, parameters, length(hybridOptions.upstreamODEs));
             else
@@ -393,9 +392,13 @@ while (tNow < maxOutputTime)
             end
 
             if odeSolver == "expokit"
-                solver = ssit.fsp_ode_solvers.Expokit();
+                solver = ssit.fsp_ode_solvers.Expokit(30,absTol);
             elseif odeSolver == "expokitPiecewise"
-                solver = ssit.fsp_ode_solvers.ExpokitPiecewise();
+                if constantJacobian
+                    solver = ssit.fsp_ode_solvers.Expokit(30,absTol);
+                else
+                    solver = ssit.fsp_ode_solvers.ExpokitPiecewise(30,absTol);
+                end
             else
 %                 if ~isempty(hybridOptions)
 %                     solver = ssit.fsp_ode_solvers.OdeSuite(relTol, absTol);

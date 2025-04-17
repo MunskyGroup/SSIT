@@ -1,8 +1,8 @@
 %% example_EscapeTimes
-% In this script, we demonstrate how to create and solve a fiorst passage
+% In this script, we demonstrate how to create and solve a first passage
 % time problem.
 close all
-clear all
+clear
 addpath(genpath('../src'));
 %% Example 1 - a simple transcription/translation model
 % First create a full model (e.g., for mRNA and protein)
@@ -18,12 +18,12 @@ Model1.parameters = ({'kr',100;'gr',0.5;...
 % Here we will calculate the time until the protein concentration reaches
 % 50.
 Model1.tSpan = linspace(0,5,100);
-Model1.fspOptions.escapeSinks.f = {'x2'};
+Model1.fspOptions.escapeSinks.f = {'rna'};
 Model1.fspOptions.verbose = false;
 Model1.fspOptions.escapeSinks.b = 50;
+Model1 = Model1.formPropensitiesGeneral('Model1');
 [fspSoln1,Model1.fspOptions.bounds] = Model1.solve;
 Model1.makePlot(fspSoln1,'escapeTimes',[],[],10)
-Model1 = Model1.formPropensitiesGeneral('Model1');
 
 %% Example 2 - escape time with time varying transcription rate
 % First let's copy and adjust the previous mdoel to add a time varying

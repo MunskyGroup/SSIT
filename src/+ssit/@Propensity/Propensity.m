@@ -126,7 +126,7 @@ classdef Propensity
                 parameters
                 varNames=[];
                 computeSens = false
-                ipar  = [];
+                ipar  = 1;
             end
             if isempty(varNames)
                 varNames={'x1','x2','x3','x4'};
@@ -136,9 +136,10 @@ classdef Propensity
             end
             if computeSens
                 if ~isempty(parameters)
-                    y = obj.sensStateFactor{ipar}(x,parameters);
+                    y = obj.sensStateFactor{ipar}(x,parameters)+zeros(length(parameters),size(x,2));
+                    y = y(ipar,:);
                 else
-                    y = 0;
+                    y = zeros(length(parameters),size(x,2));
                 end
             else
                 if ~isempty(parameters)
@@ -223,22 +224,21 @@ classdef Propensity
 
             obj = cell(1,n_reactions);
             expr_t_vec = sym('w',[n_reactions,1]);
-            expr_x_vec = sym('wxsens',[n_reactions,1]);
-            expr_dt_vec_dode = sym('wxsens',[n_reactions,length(jODE)]);
+            expr_x_vec = sym('wx',[n_reactions,1]);
+            expr_dt_vec_dode = sym('wx',[n_reactions,length(jODE)]);
             
             if computeSens
                 expr_t_vec_sens = sym('w',[n_reactions,n_pars]);
-                expr_x_vec_sens = sym('wxsens',[n_reactions,n_pars]);
+                expr_x_vec_sens = sym('wx',[n_reactions,n_pars]);
             end
 
             anyLogical = zeros(1,n_reactions,'logical');
            
             t = sym('t','real');
-            prop_vars = [];
             for iRxn = 1:n_reactions
-                prop_vars = unique([prop_vars,symvar(symbolicExpression{iRxn})]);
+                prop_vars = symvar(symbolicExpression{iRxn});
+                syms(prop_vars,'real');
             end
-            syms(prop_vars,'real');
             if ~isempty(upstreamODEs)
                 syms(upstreamODEs,'positive')
             end
@@ -267,16 +267,8 @@ classdef Propensity
                 Jt = zeros(1,length(prop_vars),'logical'); % List of variables corrresponding to time
                 if ~isempty(speciesStoch)
                     for j = 1:length(prop_vars)
-                        if isfield(logicTerms{iRxn},'logX')
-                            Jx(j) = max(strcmp(string(prop_vars(j)),{speciesStoch{:},logicTerms{iRxn}.logX{:,2}}));
-                        else
-                            Jx(j) = max(strcmp(string(prop_vars(j)),speciesStoch));
-                        end
-                        if isfield(logicTerms{iRxn},'logT')
-                            Jt(j) = max(strcmp(string(prop_vars(j)),['t',logicTerms{iRxn}.logT{:,2}]));
-                        else
-                            Jt(j) = max(strcmp(string(prop_vars(j)),'t'));
-                        end
+                        Jx(j) = max(strcmp(string(prop_vars(j)),speciesStoch));
+                        Jt(j) = max(strcmp(string(prop_vars(j)),['t',upstreamODEs]));
                     end
                 end
 
@@ -342,7 +334,6 @@ classdef Propensity
                     % will require keeping track since the variables need
                     % to be sent individually to the anonymous functions.
                     if ~isempty(logicTerms{iRxn})&&(isfield(logicTerms{iRxn},'logT')||isfield(logicTerms{iRxn},'logJ'))
-
                         obj{iRxn}.anonymousT = true;
                         hybridFactor = sym2propfun(expr_t, true, false, nonXTpars(:,1), speciesStoch, varODEs, logicTerms(iRxn));
                         anyLogical(iRxn) = true;
@@ -357,7 +348,6 @@ classdef Propensity
                     end
 
                     if ~isempty(logicTerms{iRxn})&&(isfield(logicTerms{iRxn},'logX')||isfield(logicTerms{iRxn},'logJ'))
-
                         obj{iRxn}.anonymousX = true;
                         anyLogical(iRxn) = true;
                     % elseif sum(contains(string(symvar(expr_x)),'logT'))
@@ -370,7 +360,7 @@ classdef Propensity
 
 
                     % Compute the time-varying factor.
-                    if ~isempty(logicTerms{iRxn})&&(isfield(logicTerms{iRxn},'logT')||isfield(logicTerms{iRxn},'logX'))
+                    if ~isempty(logicTerms{iRxn})&&(isfield(logicTerms{iRxn},'logT')||isfield(logicTerms{iRxn},'logE'))
                         if ~isempty(jODE)
                             TmpHybridFactor = hybridFactor(rand,rand(size(nonXTpars(:,1))),rand(size(varODEs)));
                         else
@@ -386,7 +376,6 @@ classdef Propensity
                         else
                             TmpHybridFactor = subs(expr_t,t,rand);
                             TmpHybridFactor = double(subs(TmpHybridFactor,nonXTpars(:,1),rand(size(nonXTpars(:,2)))));
-                            % TmpHybridFactor =  hybridFactor(rand,[nonXTpars{:,2}]');
                         end
                     end
 
@@ -431,6 +420,7 @@ classdef Propensity
                     for i2=1:length(upstreamODEs)
                         expr_tx = subs(expr_tx,upstreamODEs{i2},varODEs(i2));
                     end
+
                     [obj{iRxn}.(jntFactorName),expr_dt_vec_dodei] = ...
                         sym2propfun(expr_tx, true, true, nonXTpars(:,1), speciesStoch, varODEs, logicTerms(iRxn), true);
                     obj{iRxn}.isTimeDependent = true;
@@ -443,7 +433,7 @@ classdef Propensity
                     
                     if computeSens
                         for iPar = 1:n_pars
-                            expr_tx_vec_sens(iRxn,iPar) = signHybridFactor*diff(expr_tx,nonXTpars{iPar,1});
+                            expr_tx_vec_sens(iRxn,iPar) = diff(expr_tx,nonXTpars{iPar,1});
                         end                   
                     end
 
@@ -486,7 +476,7 @@ classdef Propensity
                         end
                     end
                     for ipar = 1:n_pars
-                        prefixNameLocal = [prefixName,'_',num2str(iRxn),'_',num2str(ipar)];
+                        prefixNameLocal = [prefixName,'_v_',num2str(1),'_',num2str(ipar)];
                         obj{1}.sensTimeFactorVec{ipar} = sym2mFun(expr_t_vec_sens(:,ipar), true, false, nonXTpars(:,1), speciesStoch, varODEs, false, true, prefixNameLocal);
                     end
                 end
@@ -576,31 +566,33 @@ classdef Propensity
             n = [0,0,0];
             stNew = st;
             for i=1:3
-                J = strfind(stNew,logTypes{i});
-                for j = 1:length(J)
-                    K = strfind(stNew,'(');
-                    k1 = max(K(K<J(j)));
-                    K = strfind(stNew,')');
-                    k2 = min(K(K>J(j)));
-                    logE = stNew(k1:k2);
-                    if contains(logE,'t')&&max(contains(logE,species))
-                        n(1)=n(1)+1;
-                        logicTerms.logJ{n(1),1} = logE;
-                        counter = counter+1;
-                        logicTerms.logJ{n(1),2} = ['logJ',num2str(counter)];
-                        stNew = strrep(stNew,logE,['(',logicTerms.logJ{n(1),2},')']);
-                    elseif contains(logE,'t')
-                        n(2)=n(2)+1;
-                        logicTerms.logT{n(2),1} = logE;
-                        counter = counter+1;
-                        logicTerms.logT{n(2),2} = ['logT',num2str(counter)];
-                        stNew = strrep(stNew,logE,['(',logicTerms.logT{n(2),2},')']);
-                    elseif max(contains(logE,species))
-                        n(3)=n(3)+1;
-                        logicTerms.logX{n(3),1} = logE;
-                        counter = counter+1;
-                        logicTerms.logX{n(3),2} = ['logX',num2str(counter)];
-                        stNew = strrep(stNew,logE,['(',logicTerms.logX{n(3),2},')']);
+                while ~isempty(strfind(stNew,logTypes{i}))
+                    J = strfind(stNew,logTypes{i});
+                    for j = 1%:length(J)
+                        K = strfind(stNew,'(');
+                        k1 = max(K(K<J(j)));
+                        K = strfind(stNew,')');
+                        k2 = min(K(K>J(j)));
+                        logE = stNew(k1:k2);
+                        if contains(logE,'t')&&max(contains(logE,species))
+                            n(1)=n(1)+1;
+                            logicTerms.logJ{n(1),1} = logE;
+                            counter = counter+1;
+                            logicTerms.logJ{n(1),2} = ['logJ',num2str(counter)];
+                            stNew = strrep(stNew,logE,['(',logicTerms.logJ{n(1),2},')']);
+                        elseif contains(logE,'t')
+                            n(2)=n(2)+1;
+                            logicTerms.logT{n(2),1} = logE;
+                            counter = counter+1;
+                            logicTerms.logT{n(2),2} = ['logT',num2str(counter)];
+                            stNew = strrep(stNew,logE,['(',logicTerms.logT{n(2),2},')']);
+                        elseif max(contains(logE,species))
+                            n(3)=n(3)+1;
+                            logicTerms.logX{n(3),1} = logE;
+                            counter = counter+1;
+                            logicTerms.logX{n(3),2} = ['logX',num2str(counter)];
+                            stNew = strrep(stNew,logE,['(',logicTerms.logX{n(3),2},')']);
+                        end
                     end
                 end
             end
@@ -688,7 +680,14 @@ end
 % does not disrupt codes for sensitivity analysis.
 
 % import ssit.fsp.*
-varNames = unique([string(symvar(symbolicExpression)),species{:}]);
+varNames = string(symvar(symbolicExpression));
+varNames = unique([varNames,species{:}]);
+% len = zeros(1,length(varNames));
+% for i = 1:length(varNames)
+%     len(i) = length(varNames{i});
+% end
+% [~,J] = sort(len,'descend');
+% varNames = varNames(J);
 % sort(varNames, 'descend');
 
 if jacobian&&~isempty(varODEs)
@@ -701,6 +700,17 @@ else
 end
 
 exprStr = char(symbolicExpression);
+
+% Get rid of  max rules.
+k = strfind(exprStr,', ''omitnan');
+if ~isempty(k)
+    exprStr = [exprStr(1:k-1),')'];
+end
+
+% exprStr = char(strrep(exprStr,", [], 2, 'omitnan', false",""));
+
+
+
 opVar = {'*','/','^'};
 for i = 1:length(opVar)
     op = opVar{i};
@@ -721,17 +731,15 @@ if ~isempty(varODEs)
 end
 
 for i=1:length(logicTerms)
-
     if isfield(logicTerms{i},'logT')
-        for j=size(logicTerms{i}.logT,1):-1:1
+        for j=1:size(logicTerms{i}.logT,1)
             exprStr=strrep(exprStr,logicTerms{i}.logT{j,2},logicTerms{i}.logT{j,1});
         end
     end
     if isfield(logicTerms{i},'logX')
         %             state_dep = true;
-        for j=size(logicTerms{i}.logX,1):-1:1
+        for j=1:size(logicTerms{i}.logX,1)
             exprStr=strrep(exprStr,logicTerms{i}.logX{j,2},logicTerms{i}.logX{j,1});
-            % varNames = unique([varNames,string(symvar(logicTerms{i}.logX{j,1}))]);
         end
     end
     if isfield(logicTerms{i},'logJ')
@@ -739,7 +747,6 @@ for i=1:length(logicTerms)
         %             state_dep = true;
         for j=1:size(logicTerms{i}.logX,1)
             exprStr=strrep(exprStr,logicTerms{i}.logX{j,2},logicTerms{i}.logX{j,1});
-
         end
     end
 end

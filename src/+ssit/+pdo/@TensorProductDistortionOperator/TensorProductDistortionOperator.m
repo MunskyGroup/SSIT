@@ -47,7 +47,7 @@ classdef TensorProductDistortionOperator < ssit.pdo.AbstractDistortionOperator
 %             obj.observationDomains = observationDomains;
         end
 
-        function py = computeObservationDist(obj, px)
+        function py = computeObservationDist(obj, px, indsIgnore)
             % Compute the probability distribution of
             %distorted single-cell observations using the FSP-approximated
             %probability distribution of true single-cell molecular counts.
@@ -61,14 +61,36 @@ classdef TensorProductDistortionOperator < ssit.pdo.AbstractDistortionOperator
             % -------
             % py: :mat:class:`~+ssit.@FspVector.FspVector`
             % probability distribution of distorted measurements.
+            arguments
+                obj
+                px
+                indsIgnore=[] % indices to ignore due to missing observations
+            end
 
             speciesBounds = size(px.data);
             speciesCount = length(speciesBounds);
             pdoFactors = cell(speciesCount, 1);
+            kSpecies = 0;
+
+            allPDOsProvided = speciesCount == length(obj.conditionalPmfs);
+            % Check to see if all PDOs are provided, or just an orderred
+            % subset.
+
             for iSpecies = 1:speciesCount
-                pdoFactors{iSpecies} = obj.conditionalPmfs{iSpecies}(:,1:speciesBounds(iSpecies));
-                nonZeroRows = find(sum(pdoFactors{iSpecies},2)~=0,1,'last');
-                pdoFactors{iSpecies} = obj.conditionalPmfs{iSpecies}(1:nonZeroRows,1:speciesBounds(iSpecies));
+                if min(abs(indsIgnore-iSpecies))==0
+                    pdoFactors{iSpecies} = ones(1,speciesBounds(iSpecies));
+                else
+                    if allPDOsProvided
+                        kSpecies = iSpecies; % All PDOS are provided.
+                    else
+                        kSpecies = kSpecies+1; % Use th next in the provided list.
+                    end
+
+                    % speciesBounds = size(obj.conditionalPmfs{iSpecies},2)
+                    pdoFactors{iSpecies} = obj.conditionalPmfs{kSpecies}(:,1:speciesBounds(iSpecies));
+                    nonZeroRows = find(sum(pdoFactors{iSpecies},2)~=0,1,'last');
+                    pdoFactors{iSpecies} = obj.conditionalPmfs{kSpecies}(1:nonZeroRows,1:speciesBounds(iSpecies));            
+                end
             end
             if numel(px.data)>1
                 py = ssit.FspVector(ttm(px.data, pdoFactors));
@@ -88,15 +110,17 @@ classdef TensorProductDistortionOperator < ssit.pdo.AbstractDistortionOperator
 
         function dCdLtimesPx = computeDiffPdoPx(obj, px, ~, parameter_idx)
             % Compute the partial derivative PDO times px.
-%             speciesBounds = size(px.data);
-%             speciesCount = length(speciesBounds);
-%             pdoFactors = cell(speciesCount, 1);
-%             for iSpecies = 1:speciesCount
-%                 pdoFactors{iSpecies} = obj.dCdLam{parameter_idx,iSpecies}(:,1:speciesBounds(iSpecies));
-%                 nonZeroRows = find(sum(pdoFactors{iSpecies},2)~=0,1,'last');
-%                 pdoFactors{iSpecies} = obj.dCdLam{parameter_idx,iSpecies}(1:nonZeroRows,1:speciesBounds(iSpecies));
-%             end
+            speciesBounds = size(px.data);
+            speciesCount = length(speciesBounds);
+            
             pdoFactors = obj.dCdLam(:,parameter_idx);
+
+            for iSpecies = 1:speciesCount
+                if ~isempty(pdoFactors{iSpecies})
+                    pdoFactors{iSpecies} = pdoFactors{iSpecies}(:,1:speciesBounds(iSpecies));
+                end
+            end
+            
             pdoParCount = size(pdoFactors,1);
             for iSpecies = 1:pdoParCount
                 sz(iSpecies) = ~isempty(pdoFactors{iSpecies});
@@ -115,5 +139,3 @@ classdef TensorProductDistortionOperator < ssit.pdo.AbstractDistortionOperator
         end
     end
 end
-
-

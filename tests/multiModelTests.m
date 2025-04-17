@@ -29,7 +29,7 @@ classdef multiModelTests < matlab.unittest.TestCase
             tc.Poiss.ssaOptions.nSimsPerExpt = 100;
             tc.Poiss.ssaOptions.Nexp = 1;
             delete 'testData1.csv'
-            tc.Poiss.sampleDataFromFSP(tc.PoissSolution,'testData1.csv')
+            tc.Poiss.sampleDataFromFSP(tc.PoissSolution,'testData1.csv');
             tc.Poiss = tc.Poiss.loadData('testData1.csv',{'rna','exp1_s1'});
 
             tc.Poiss2 = tc.Poiss;
@@ -39,7 +39,7 @@ classdef multiModelTests < matlab.unittest.TestCase
             tc.Poiss2 = tc.Poiss2.formPropensitiesGeneral('Poiss2',true);
             [tc.Poiss2Solution,tc.Poiss2.fspOptions.bounds] = tc.Poiss2.solve;
             delete 'testData2.csv'
-            tc.Poiss2.sampleDataFromFSP(tc.Poiss2Solution,'testData2.csv')
+            tc.Poiss2.sampleDataFromFSP(tc.Poiss2Solution,'testData2.csv');
             tc.Poiss2 = tc.Poiss2.loadData('testData2.csv',{'rna','exp1_s1'});
 
          end  
@@ -53,18 +53,40 @@ classdef multiModelTests < matlab.unittest.TestCase
     methods (Test)
 
         function createMultiModel(tc)
-            % Tests the creation of a combined model
+            % Tests the creation, fitting, and saving of a combined model
             parset = {[1,2],[3,2]};
             ModelSet = {tc.Poiss,tc.Poiss2};
             combinedModel = SSITMultiModel(ModelSet,parset);
             combinedModel = combinedModel.initializeStateSpaces;
             parGuess = [1,1,1];
 
+            % Fit the model to the data
             fitOptions = optimset('Display','final','MaxIter',500);
             parGuess = combinedModel.maximizeLikelihood(...
                 parGuess, fitOptions);
 
             combinedModel = combinedModel.updateModels(parGuess,true);
+
+            delete('temporaryHybridModel.mat')
+            save('temporaryHybridModel',"combinedModel")
+        end
+
+        function loadHybridModelFromFile(tc)
+            delete('exampleResultsTest.mat')
+            
+            DataSettings = {'testData1.csv',{'rna','exp1_s1'},{};...
+                'testData2.csv',{'rna','exp1_s1'},{}};
+            
+            Pipeline = 'multiModelFittingPipelineExample';
+            pipelineArgs.maxIter = 10;
+            pipelineArgs.display = 'iter';
+            saveFile = 'exampleCombinedResultsTest.mat';
+            delete(saveFile)
+            
+            SSIT('temporaryHybridModel','combinedModel',DataSettings,Pipeline,pipelineArgs,saveFile);
+            
+            tc.verifyEqual(exist(saveFile,'file'), 2, ...
+                'Combined Model Creation Failed');        
         end
 
         function testFIM(tc)

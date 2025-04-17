@@ -28,7 +28,7 @@ classdef poissonTest < matlab.unittest.TestCase
             delete 'testData.csv'
             testCase1.Poiss.ssaOptions.nSimsPerExpt = 1000;
             testCase1.Poiss.ssaOptions.Nexp = 1;
-            testCase1.Poiss.sampleDataFromFSP(testCase1.PoissSolution,'testData.csv')
+            testCase1.Poiss.sampleDataFromFSP(testCase1.PoissSolution,'testData.csv');
 
             testCase1.Poiss = testCase1.Poiss.loadData('testData.csv',{'rna','exp1_s1'});
 
@@ -41,7 +41,7 @@ classdef poissonTest < matlab.unittest.TestCase
     end
 
     methods (TestMethodSetup)
-        % Setup for each test
+        
     end
 
     methods (Test)
@@ -130,7 +130,7 @@ classdef poissonTest < matlab.unittest.TestCase
             delete 'testData.csv'
             testCase.Poiss.ssaOptions.nSimsPerExpt = 1000;
             testCase.Poiss.ssaOptions.Nexp = 1;
-            testCase.Poiss.sampleDataFromFSP(testCase.PoissSolution,'testData.csv')
+            testCase.Poiss.sampleDataFromFSP(testCase.PoissSolution,'testData.csv');
             testCase.verifyEqual(exist('testData.csv','file'), 2, ...
                 'FSP Data Not Generated');
             
@@ -402,6 +402,33 @@ classdef poissonTest < matlab.unittest.TestCase
             FIMOptExptBase = Model.totalFim(fimResults,NcOptExperimentBase+NcBase);
             Model.plotMHResults(MHResults,[FIM,FIMOptExpt,FIMOptExptBase])
 
-        end  
+        end 
+        
+        function LoadModelTest(testCase)
+            % Test to see if the code can correctly load a model from file,
+            % asscoiate data to that model, and then run a simple fitting
+            % routine.
+            %
+            % Save Poisson Model to File
+            delete('exampleResultsTest.mat')
+            model = testCase.Poiss;
+            save('TemporarySaveFile',"model")
+            DataSettings = {'testData.csv',{'rna','exp1_s1'}};
+            Pipeline = 'fittingPipelineExample';
+            pipelineArgs.maxIter = 10;
+            pipelineArgs.display = 'none';
+            saveFile = 'exampleResultsTest.mat';
+
+            % Create model from preset, associate with data, run
+            % 'fittingPipeline', and save result.
+            SSIT('TemporarySaveFile','model',DataSettings,Pipeline,pipelineArgs,saveFile);
+
+            % Load model from file, run 'fittingPipeline', and save result.
+            SSIT(saveFile,'model',[],Pipeline,pipelineArgs,saveFile);
+
+            testCase.verifyEqual(exist('exampleResultsTest.mat','file'), 2, ...
+                'Model Creation Failed');
+
+        end
     end
 end

@@ -18,6 +18,7 @@ arguments
     distortionOperator;
 end
 
+% Find number of parameters (inluding PDO if applicable).
 parCountModel = length(Sx);
 if ~isempty(distortionOperator)
     parCountPDO = size(distortionOperator.dCdLam,2);
@@ -25,8 +26,10 @@ else
     parCountPDO = 0;
 end
 
+% Initialize FIM
 F = zeros(parCountModel+parCountPDO, parCountModel+parCountPDO);
 
+% Add effect of PDO (if applicable)
 if ~isempty(distortionOperator)
     py = distortionOperator.computeObservationDist(px);
 
@@ -39,10 +42,12 @@ if ~isempty(distortionOperator)
         end            
     end
 else
+    % otherwise just transfer P and S.
     py = px;
     Sy = Sx;
 end
 
+% Loop through all pairs of parameters.
 for iPar = 1:parCountModel+parCountPDO
     for jPar = iPar:parCountModel+parCountPDO
 %         si = Sy(iPar).data.values;
@@ -56,7 +61,7 @@ for iPar = 1:parCountModel+parCountPDO
         if isempty(si)||isempty(sj)
             F(iPar, jPar) = 0;
         else
-            indsForSum = p>1e-9;
+            indsForSum = p>1e-12;
             F(iPar, jPar) = sum(si(indsForSum).*sj(indsForSum)./p(indsForSum));
         end
     end
