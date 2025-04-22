@@ -8,11 +8,13 @@ function [results, model] = multiModelFIMPipeline(model, Args)
     
     if Args.makePlots
         % Plot the results from the FSP analysis
-        fig21 = figure(21);clf; set(fig21,'Name','Marginal Distributions, gene_on');
-        fig22 = figure(22);clf; set(fig22,'Name','Marginal Distributions, gene_off');
-        fig23 = figure(23);clf; set(fig23,'Name','Marginal Distributions, RNA');
-        fig24 = figure(24);clf; set(fig24,'Name','Marginal Distributions, Distant RNA');
-        model.makePlot(FSPsoln,'marginals',[1:4:21],false,[fig21,fig22,fig23, fig24],{'r-','linewidth',2})
+        % for n=model.species
+        % fig1 = figure(21);clf; set(fig1,'Name','Marginal Distributions, gene_on');
+        % fig2 = figure(22);clf; set(fig2,'Name','Marginal Distributions, gene_off');
+        % fig3 = figure(23);clf; set(fig3,'Name','Marginal Distributions, RNA');
+        % fig4 = figure(24);clf; set(fig4,'Name','Marginal Distributions, Distant RNA');
+        % end
+        model.makePlot(FSPsoln,'marginals',[1:4:21],false,[],{'r-','linewidth',2})
     end
 
     % (3) Solve FSP Sensitivity
@@ -32,8 +34,8 @@ function [results, model] = multiModelFIMPipeline(model, Args)
         cov_unknown = C;
     else
         % Otherwise, use the specified submatrix
-        B = A(J, J);
-        cov_unknown = C(J, J);
+        B = A([1:J-1, J+1:end], [1:J-1, J+1:end]);
+        cov_unknown = C([1:J-1, J+1:end], [1:J-1, J+1:end]);
      end
      cov_known = inv(B);
 
@@ -42,6 +44,7 @@ function [results, model] = multiModelFIMPipeline(model, Args)
     determinates = table(known_determinate, unknown_determinate);
     
     results.determinates = determinates;
+    results.params = model.parameters;
 
 
 end
