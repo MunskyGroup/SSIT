@@ -29,6 +29,7 @@ OneCompartmentModel.initialCondition = [0;1;0;];
 OneCompartmentModel.summarizeModel
 OneCompartmentModel = OneCompartmentModel.formPropensitiesGeneral('OneComparment_SpatialModel');
 OneCompartmentModel.tSpan = linspace(0,10,21);
+% OneCompartmentModel.pdoOptions.unobservedSpecies = {'gene_on';'gene_off';};
 save('OneComparment_SpatialModel','OneCompartmentModel')
 
 % Two Compartment Model
@@ -43,12 +44,14 @@ TwoCompartmentModel.propensityFunctions = {'kon*gene_off';'koff*gene_on';'kr*gen
 TwoCompartmentModel.initialCondition = [0;1;0;0;];
 TwoCompartmentModel.summarizeModel
 TwoCompartmentModel = TwoCompartmentModel.formPropensitiesGeneral('TwoComparment_SpatialModel');
-TwoCompartmentModel.tSpan = linspace(0,100,21);
+TwoCompartmentModel.tSpan = linspace(0,10,21);
+% TwoCompartmentModel.pdoOptions.unobservedSpecies = {'gene_on';'gene_off';};
 save('TwoComparment_SpatialModel','TwoCompartmentModel')
 
 
 %% Pipeline
 run_all = false;
+
 x = zeros([1, 5]);
 y1 = zeros([1, 5]);
 y2 = zeros([1, 5]);
@@ -185,7 +188,7 @@ title('|CoV| Comparison in Standard Regimes');
 
 %% Run Multiple Diffusion Coeffients
 run_all=false;
-D = [0.01, 0.1, 1, 10];
+D = [0, 0.01, 0.1, 1, 10];
 f = zeros([2, 5, length(D)]);
 g = zeros([5, length(D)]);
 
