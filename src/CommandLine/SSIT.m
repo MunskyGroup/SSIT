@@ -1520,7 +1520,7 @@ classdef SSIT
 
                 % Separate into observed and unobserved species.
                 if isfield(obj.hybridOptions,'upstreamODEs')
-                    speciesStochastic = setdiff(obj.species,obj.hybridOptions.upstreamODEs);
+                    speciesStochastic = setdiff(obj.species,obj.hybridOptions.upstreamODEs,'stable');
                 else
                     speciesStochastic = obj.species;
                 end
