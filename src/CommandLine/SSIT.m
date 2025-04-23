@@ -482,7 +482,7 @@ classdef SSIT
             % Makes a list of FSP constraints that can be used by the FSP
             % solver.
             if obj.useHybrid
-                stochasticSpecies = setdiff(obj.species,obj.hybridOptions.upstreamODEs);
+                stochasticSpecies = setdiff(obj.species,obj.hybridOptions.upstreamODEs,'stable');
             else
                 stochasticSpecies = obj.species;
             end
@@ -935,7 +935,7 @@ classdef SSIT
             lambda = [];
 
             if isfield(obj.hybridOptions,'upstreamODEs')
-                speciesStochastic = setdiff(obj.species,obj.hybridOptions.upstreamODEs);
+                speciesStochastic = setdiff(obj.species,obj.hybridOptions.upstreamODEs,'stable');
             else
                 speciesStochastic = obj.species;
             end
@@ -1029,7 +1029,7 @@ classdef SSIT
             
             % Separate into observed and unobserved species.
             if isfield(obj.hybridOptions,'upstreamODEs')
-                speciesStochastic = setdiff(obj.species,obj.hybridOptions.upstreamODEs);
+                speciesStochastic = setdiff(obj.species,obj.hybridOptions.upstreamODEs,'stable');
             else
                 speciesStochastic = obj.species;
             end
@@ -2001,7 +2001,7 @@ classdef SSIT
             end
 
             %% Automatically set unobserved species based on loaded data.
-            obj.pdoOptions.unobservedSpecies = setdiff(obj.species,linkedSpecies(:,1))';
+            obj.pdoOptions.unobservedSpecies = setdiff(obj.species,linkedSpecies(:,1),'stable')';
 
         end
 
@@ -2161,7 +2161,7 @@ classdef SSIT
             % Separate out stochastic species if using a hybrid ode/fsp
             % model.
             if obj.useHybrid
-                speciesStochastic = setdiff(obj.species,obj.hybridOptions.upstreamODEs);
+                speciesStochastic = setdiff(obj.species,obj.hybridOptions.upstreamODEs,'stable');
             else
                 speciesStochastic = obj.species;
             end
@@ -2366,7 +2366,7 @@ classdef SSIT
             for i=Nd:-1:1
                 indsPlots(i) = max(contains(obj.dataSet.linkedSpecies(:,1),speciesStochastic(i)));
             end
-            indsIgnore = setdiff([1:Nd],find(indsPlots));
+            indsIgnore = setdiff([1:Nd],find(indsPlots),'stable');
 
             LogLk = zeros(1,numTimes);
             
@@ -2996,7 +2996,7 @@ classdef SSIT
                 end      
             end
             if obj.useHybrid
-                specNames = setdiff(obj.species,obj.hybridOptions.upstreamODEs);
+                specNames = setdiff(obj.species,obj.hybridOptions.upstreamODEs,'stable');
             else
                 specNames = obj.species;
             end
