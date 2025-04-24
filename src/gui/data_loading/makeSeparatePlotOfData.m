@@ -1,7 +1,7 @@
 function makeSeparatePlotOfData(app,smoothWindow,fignums,usePanels,varianceType,IQRrange)
 arguments
     app
-    smoothWindow = 5;
+    smoothWindow = 1;
     fignums = [];
     usePanels=true;
     varianceType = 'STD';
@@ -58,7 +58,7 @@ for DistType = 0:1
 
             indsToSumOver = setdiff([1:NdModFit],icb);
             % soDat = setdiff([1:NdDat],icb);
-            speciesName = app.NameTable.Data{icb,2};
+            speciesName = app.NameTable.Data{icb};
 
             %% Histograms for the data.
             if cb  % If this species selected for plotting
@@ -92,11 +92,15 @@ for DistType = 0:1
                 xm = max(xm,length(H1));
 
                 %% Histograms for the model
+                modelTensor = app.DataLoadingAndFittingTabOutputs.fitResults.current;
+                inds = modelTensor.subs;
+                inds = inds(inds(:,1) == iTime,:);
+                vals = modelTensor(inds);
+                modelTensor = double(sptensor(inds(:,2:end),vals));
                 if ~isempty(indsToSumOver)
-                    modelTensor = squeeze(app.DataLoadingAndFittingTabOutputs.fitResults.current(iTime,:,:,:,:,:,:,:,:,:,:,:,:));
                     H1 = squeeze(sum(modelTensor,indsToSumOver));
                 else
-                    H1 = squeeze(app.DataLoadingAndFittingTabOutputs.fitResults.current(iTime,:,:,:,:,:,:,:,:,:,:,:,:));
+                    H1 = squeeze(modelTensor);
                 end
                 modelHistTime{iTime,icb} = H1;
 
@@ -227,8 +231,8 @@ for iplt=1:NdDat
     fill(meanVarTrajAxis,TT,BD,cols2(iplt,:));
     hold(meanVarTrajAxis,'on');
     plot(meanVarTrajAxis,tArrayModel,mnsMod(:,iplt),cols(iplt),'linewidth',2);
-    LG{end+1} = [char(app.NameTable.Data(iplt,2)),' Model Mean \pm std'];
-    LG{end+1} = [char(app.NameTable.Data(iplt,2)),' Model Mean'];
+    LG{end+1} = [char(app.NameTable.Data(iplt)),' Model Mean \pm std'];
+    LG{end+1} = [char(app.NameTable.Data(iplt)),' Model Mean'];
     % endc
 end
 title('Trajectory of means and standard deviations')
@@ -265,7 +269,7 @@ for j=1:NdDat
                 mnsDat(:,j),(mnsDat(:,j)-lowIQRdat(:,j)),(highIQRdat(:,j)-mnsDat(:,j)),[cols(j),...
                 'o'],'MarkerSize',12,'MarkerFaceColor',cols(j),'linewidth',3)
     end
-    LG{end+1} = [char(app.NameTable.Data(j,2)),' Data mean \pm std'];
+    LG{end+1} = [char(app.NameTable.Data(j)),' Data mean \pm std'];
 end
 
 % Ned = length(size(app.DataLoadingAndFittingTabOutputs.dataTensor))-1;
@@ -306,9 +310,10 @@ subplot(3,1,1)
 plot(app.DataLoadingAndFittingTabOutputs.fittingOptions.fit_times,app.DataLoadingAndFittingTabOutputs.V_LogLk,'linewidth',2)
 hold on
 plot(app.DataLoadingAndFittingTabOutputs.fittingOptions.fit_times,app.DataLoadingAndFittingTabOutputs.perfectMod,'linewidth',2)
-plot(app.DataLoadingAndFittingTabOutputs.fittingOptions.fit_times,app.DataLoadingAndFittingTabOutputs.perfectModSmoothed,'linewidth',2)
+% plot(app.DataLoadingAndFittingTabOutputs.fittingOptions.fit_times,app.DataLoadingAndFittingTabOutputs.perfectModSmoothed,'linewidth',2)
 ylabel('Log(L(D(t)|M)')
-legend({'log(L) - best fit for model','log(L) - theoretical limit','log(L) - theoretical limit (smoothed)'})
+% legend({'log(L) - best fit for model','log(L) - theoretical limit','log(L) - theoretical limit (smoothed)'})
+legend({'log(L) - best fit for model','log(L) - theoretical limit'})
 
 subplot(3,1,2)
 plot(app.DataLoadingAndFittingTabOutputs.fittingOptions.fit_times,app.DataLoadingAndFittingTabOutputs.numCells,'linewidth',2)
