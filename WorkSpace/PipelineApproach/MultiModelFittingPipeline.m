@@ -1,5 +1,4 @@
 function [results, combinedModel] = MultiModelFittingPipeline(combinedModel,Args)
-
 results = [];
 makePlots = Args.makePlots;
 Pars = combinedModel.parameters;

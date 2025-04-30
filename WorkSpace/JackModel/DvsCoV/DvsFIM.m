@@ -1,7 +1,7 @@
 %% Generates D vs |FIM| plot
 clear
 close all 
-addpath(genpath('../../src'));
+addpath(genpath('../../../src'));
 %% Pretext 
 % Iyer-Biswas, Srividya, et al. “Stochasticity of Gene Products from Transcriptional Pulsing.”
 % This paper explored the parameter space of the one compartment model,
@@ -29,7 +29,7 @@ OneCompartmentModel.initialCondition = [0;1;0;];
 OneCompartmentModel.summarizeModel
 OneCompartmentModel = OneCompartmentModel.formPropensitiesGeneral('OneComparment_SpatialModel');
 OneCompartmentModel.tSpan = linspace(0,10,21);
-% OneCompartmentModel.pdoOptions.unobservedSpecies = {'gene_on';'gene_off';};
+OneCompartmentModel.pdoOptions.unobservedSpecies = {'gene_on';'gene_off'};
 save('OneComparment_SpatialModel','OneCompartmentModel')
 
 % Two Compartment Model
@@ -40,17 +40,17 @@ TwoCompartmentModel.stoichiometry = [1, -1, 0, 0, 0, 0, 0;... % species x reacti
                                     -1, 1, 0, 0, 0, 0, 0;...
                                     0, 0, 1, -1, 0, -1, 1;...
                                     0, 0, 0, 1, -1, 0, -1;];
-TwoCompartmentModel.propensityFunctions = {'kon*gene_off';'koff*gene_on';'kr*gene_on'; 'D*RNA'; 'kd*D_RNA'; 'kd*RNA'; 'D*D_RNA';};
+TwoCompartmentModel.propensityFunctions = {'kon*gene_off';'koff*gene_on';'kr*gene_on'; 'D*RNA'; 'kd*D_RNA'; 'kd*RNA'; 'D*D_RNA'};
 TwoCompartmentModel.initialCondition = [0;1;0;0;];
 TwoCompartmentModel.summarizeModel
 TwoCompartmentModel = TwoCompartmentModel.formPropensitiesGeneral('TwoComparment_SpatialModel');
 TwoCompartmentModel.tSpan = linspace(0,10,21);
-% TwoCompartmentModel.pdoOptions.unobservedSpecies = {'gene_on';'gene_off';};
+TwoCompartmentModel.pdoOptions.unobservedSpecies = {'gene_on','gene_off'};
 save('TwoComparment_SpatialModel','TwoCompartmentModel')
 
 
 %% Pipeline
-run_all = false;
+run_all = true;
 
 x = zeros([1, 5]);
 y1 = zeros([1, 5]);
@@ -59,7 +59,7 @@ y2 = zeros([1, 5]);
 % specify pipeline parameters
 pipeline = 'multiModelFIMPipeline';
 pipelineArgs.param_of_interest_index = NaN;
-pipelineArgs.pars = OneCompartmentModel.parameters;
+pipelineArgs.pars = {'kon',1; 'koff',1; 'kr',100; 'kd',1};
 pipelineArgs.makePlots = false;
 
 % run pipeline on model

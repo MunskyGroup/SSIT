@@ -42,7 +42,7 @@ F1.makePlot(sensSoln,'marginals',[],false,[fig14, fig15, fig16],{'b','linewidth'
 % (4) Compute FIM using FSP Sensitivity Results
 fimResults = F1.computeFIM(sensSoln.sens); % Compute the FIM for full observations and no distortion.
 cellCounts = 10*ones(size(F1.tSpan));  % Number of cells in each experiment.
-[fimTotal,mleCovEstimate,fimMetrics] = F1.evaluateExperiment(fimResults,cellCounts)
+[fimTotal,mleCovEstimate,fimMetrics] = F1.evaluateExperiment(fimResults,cellCounts);
 fig17 = figure(17);clf; set(fig17,'Name','Fim-Predicted Uncertainty Ellipses');
 F1.plotMHResults([],fimTotal,'lin',[],fig17)
 legend('FIM - Full Observation')
