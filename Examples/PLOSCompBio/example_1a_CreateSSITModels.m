@@ -37,7 +37,8 @@ Model.initialCondition = [1;0;0];
 % Print a summary of our Model:
 Model.summarizeModel
 
-
+%%
+save('Model.mat','Model')
 %% Ex.(2) Create an SSIT model for real, time-varying experimental data: 
 %%           yeast STL1 data provided by the Vanderbilt Q_BIO Group
 
