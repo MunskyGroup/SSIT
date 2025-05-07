@@ -1,7 +1,7 @@
 addpath(genpath('../../src'));
 addpath('tmpPropensityFunctions');
 
-loadPrevious = false;
+loadPrevious = true;
 savedWorkspace = 'workspaceJuly24';
 
 load('workspaceJuly24.mat');
