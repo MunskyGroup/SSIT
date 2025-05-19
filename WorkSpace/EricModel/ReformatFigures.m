@@ -6,7 +6,7 @@ newFigs = [1001,1002,1003];
 for idex = 1:3
     oldFig = figure(origFigs(idex));
     newFig = figure(newFigs(idex));clf
-    set(gcf,'Position',[1000 991   496  247])
+    set(gcf,'Position',[1000 770   375  247])
     
     copyobj(get(oldFig,'children'), newFig);
     newFig = figure(newFig);
@@ -32,6 +32,7 @@ for idex = 1:3
     set(gca,'fontsize',16)
     xlabel('')
     title('')
+    ylabel('')
 end
 
 %% To generate GR Cyt plots 
@@ -42,7 +43,7 @@ newFigs = [1011,1012,1013];
 for idex = 1:3
     oldFig = figure(origFigs(idex));
     newFig = figure(newFigs(idex));clf
-    set(gcf,'Position',[1000 991   496  247])
+    set(gcf,'Position',[1000 770   375  247])
     
     copyobj(get(oldFig,'children'), newFig);
     newFig = figure(newFig);
@@ -59,9 +60,11 @@ for idex = 1:3
     h.Children(2).LineWidth = 4;
 
     legend('','','','Model \mu \pm \sigma','Model \mu','Data \mu \pm \sigma ')
-    set(gca,'fontsize',16)
+    set(gca,'fontsize',16,'ylim',[0,15])
     xlabel('')
     title('')
+    ylabel('')
+
 end
 
 
@@ -80,7 +83,7 @@ for idex = 1:3
     subplotHandles = findobj(oldFig, 'type', 'axes');
 
     % Iterate over each subplot and copy its contents to the new figure
-    orderset = [7,6,5,4,3,2,1];
+    orderset = [7,6,5,4,3,1];
     for i2 = 1:length(orderset)
         i = orderset(i2);
         subplotHandle = subplotHandles(i);
@@ -116,7 +119,7 @@ for idex = 1:3
         set(gca,'xlim',[0,40],'ylim',[0,0.3],'FontSize',16)
         % h.Children(6).Visible = 'off'
 
-        text(10,0.28,[subplotHandle.Title.String(5:end),' min'],'Fontsize',16)
+        %text(10,0.28,[subplotHandle.Title.String(5:end),' min'],'Fontsize',16)
 
     end
 
@@ -137,7 +140,7 @@ for idex = 1:3
     subplotHandles = findobj(oldFig, 'type', 'axes');
 
     % Iterate over each subplot and copy its contents to the new figure
-    orderset = [7,6,5,4,3,2,1];
+    orderset = [7,6,5,4,3,1];
     for i2 = 1:length(orderset)
         i = orderset(i2);
         subplotHandle = subplotHandles(i);
@@ -167,7 +170,7 @@ for idex = 1:3
         set(gca,'xlim',[0,20],'ylim',[0,0.5],'FontSize',16)
         % h.Children(6).Visible = 'off'
 
-        text(6,0.42,[subplotHandle.Title.String(5:end),' min'],'Fontsize',16)
+        %text(6,0.42,[subplotHandle.Title.String(5:end),' min'],'Fontsize',16)
 
     end
 end
@@ -188,9 +191,10 @@ for idex = 1:4
     h = gca;
     grid on
     legend('Model \mu \pm \sigma','Model \mu','Data \mu \pm \sigma ')
-    set(gca,'fontsize',16)
+    set(gca,'fontsize',16,'ylim',[0,150])
     xlabel('')
     title('')
+    ylabel('')
 end
 
 %% Dusp1 Distributions
@@ -204,7 +208,7 @@ subplotHandles100 = findobj(oldFig100, 'type', 'axes');
 for idex = 1:4
     oldFig = figure(origFigs(idex));
     newFig = figure(newFigs(idex));clf
-    set(newFig,'Position',[1000        1039        1361         199])
+    set(newFig,'Position',[50        139        1361         199])
 
     set(newFig,'Name',titles{idex})
     % Get handles of all subplots in the original figure
@@ -247,7 +251,32 @@ for idex = 1:4
         set(gca,'xlim',[0,200],'ylim',[0,0.2],'FontSize',16)
         % h.Children(6).Visible = 'off'
 
-        text(60,0.17,[subplotHandle.Title.String(5:end),' min'],'Fontsize',16)
+        %text(60,0.17,[subplotHandle.Title.String(5:end),' min'],'Fontsize',16)
 
     end
 end
+
+%%
+f2 = figure;
+set(f2,'Position',[939   687   404   238])
+colormap('sky')
+pCol = [ModelGRfit{1}.dataSet.nCells([1:5,7])';
+    ModelGRfit{2}.dataSet.nCells([1:5,7])';
+    ModelGRfit{3}.dataSet.nCells([1:5,7])']
+% sz = size(finalExperimentDesignBFBD);
+pCol(end+1,end+1) = 0;
+pCol(end,end) = 450;
+pcolor([-0:1:6],[0:3],pCol)
+cb = colorbar;
+cb.Label.FontSize = 16;
+cb.Label.String = 'Number of Cells';
+cb.Label.Interpreter = 'latex';
+set(gca,'FontSize',16,'TickLabelInterpreter','latex',...
+    'ytick',[0.5:1:3.5],'YTickLabel',[1,10,100],...
+    'xtick',[0.5:1:5.5],'XTickLabel',[0,10,30,50,75,180]);
+xlabel('Measurement Time (min)','Interpreter','latex')
+ylabel('Input ($\mu$M)','Interpreter','latex')
+
+
+%% Reformatting for the titration plot
+set(gca,'xtick',10.^[-3:4],'ylim',[-5,150])

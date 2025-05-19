@@ -1,4 +1,4 @@
-cell_number,time_index,RNA_nuc,RNA_cyto,RNA_total,Rep_num
+cell_number,time,RNA_nuc,RNA_cyto,RNA_total,Rep_num
 0,0,2,4,6,1
 1,0,2,9,11,1
 2,0,20,75,95,1

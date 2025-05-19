@@ -1,7 +1,7 @@
 % In this example, we show how to create reduced FSP models using different
 % types of projectionbased transformations.
 close all 
-clear all
+clear
 addpath(genpath('../src'));
 
 %% First, choose a model on which to illustrate the reduction approximation,
@@ -11,7 +11,7 @@ addpath(genpath('../src'));
 %       (3)   Two Species Poisson Process.
 %       (4)   Time varying bursting gene expression model (DUSP1)
 % See below for the codes to create each model so you can create your own.
-testModel = 3; 
+testModel = 4; 
 
 %% Next, choose which type of model reduction to apply. Options include:
 %   'Proper Orthogonal Decomposition' - solve the FSP once and then uses

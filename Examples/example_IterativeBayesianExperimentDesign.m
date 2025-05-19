@@ -1,5 +1,5 @@
 close all
-clear all
+clear
 addpath(genpath('../src'));
 
 rng(1)  % Set RNG seed for reproducibility.
@@ -33,8 +33,6 @@ switch example
         dataToFit = {'lacI','exp1_s1';'lambdaCI','exp1_s2'};
         fitParameters = [1:4];
 end
-
-experimentDesignCriteria = 
 
 saveFileName = ['IterativeExperimentResults_',example];
 

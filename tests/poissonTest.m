@@ -28,7 +28,7 @@ classdef poissonTest < matlab.unittest.TestCase
             delete 'testData.csv'
             testCase1.Poiss.ssaOptions.nSimsPerExpt = 1000;
             testCase1.Poiss.ssaOptions.Nexp = 1;
-            testCase1.Poiss.sampleDataFromFSP(testCase1.PoissSolution,'testData.csv')
+            testCase1.Poiss.sampleDataFromFSP(testCase1.PoissSolution,'testData.csv');
 
             testCase1.Poiss = testCase1.Poiss.loadData('testData.csv',{'rna','exp1_s1'});
 
@@ -41,7 +41,7 @@ classdef poissonTest < matlab.unittest.TestCase
     end
 
     methods (TestMethodSetup)
-        % Setup for each test
+        
     end
 
     methods (Test)
@@ -130,7 +130,7 @@ classdef poissonTest < matlab.unittest.TestCase
             delete 'testData.csv'
             testCase.Poiss.ssaOptions.nSimsPerExpt = 1000;
             testCase.Poiss.ssaOptions.Nexp = 1;
-            testCase.Poiss.sampleDataFromFSP(testCase.PoissSolution,'testData.csv')
+            testCase.Poiss.sampleDataFromFSP(testCase.PoissSolution,'testData.csv');
             testCase.verifyEqual(exist('testData.csv','file'), 2, ...
                 'FSP Data Not Generated');
             
@@ -175,6 +175,12 @@ classdef poissonTest < matlab.unittest.TestCase
             % exact solution for the Poisson Model:
             % lam(t) = k/g*(1-exp(-g*t));
             % logL = prod_n [Poisson(n|lam(t))]
+            
+            % Add additional times to FSP solution to test that it
+            % correctly can filter thee out when computing the likelihood
+            % values.
+            testCase.Poiss.tSpan = [0:0.05:max(testCase.Poiss.tSpan)];
+            
             fspLogL = testCase.Poiss.computeLikelihood;
             
             t = [testCase.Poiss.dataSet.DATA{:,1}];
@@ -188,6 +194,31 @@ classdef poissonTest < matlab.unittest.TestCase
 
             testCase.verifyEqual(relDiff<0.0001, true, ...
                 'Likelihood Calculation is not within 0.01% Tolerance');            
+        end
+
+        function LikelihoodGradient(testCase)
+            % This tests to make sure that the calculation for the gradient
+            % of the loglikelihood function completes and is within 0.1% of
+            % the solution found using the finite difference method.
+            testCase.Poiss.solutionScheme = 'fspSens';
+            [fspLogL,gradient] = testCase.Poiss.computeLikelihood([],[],true);
+
+            testCase.Poiss.solutionScheme = 'FSP';
+            numPars = size(testCase.Poiss.parameters,1);
+            gradLogLFiniteDiff = zeros(numPars,1);
+            for i = 1:numPars
+                TMPmodel = testCase.Poiss;
+                delt = abs(TMPmodel.parameters{i,2})/1e6;
+                TMPmodel.parameters{i,2} = TMPmodel.parameters{i,2} + delt;
+                fspLogLPrime = TMPmodel.computeLikelihood;
+                gradLogLFiniteDiff(i) = (fspLogLPrime-fspLogL)/delt;
+            end
+
+            maxGradientError = max(abs(gradient-gradLogLFiniteDiff)./gradLogLFiniteDiff);
+
+            testCase.verifyEqual(maxGradientError<0.001, true, ...
+                'Likelihood Gradient Calculation is not within 0.1% Tolerance');
+
         end
 
         function ComputingSensitivities(testCase)
@@ -357,7 +388,9 @@ classdef poissonTest < matlab.unittest.TestCase
                 [Model.parameters{:,2}])./[testCase.Poiss.parameters{:,2}]);
 
             testCase.verifyEqual(relDiff<0.05, true, ...
-                'ODE Fit of Poisson Model is not within 5% of true values');            
+                'ODE Fit of Poisson Model is not within 5% of true values'); 
+
+            Model.makeFitPlot()
         end  
         
         function MetHastAndSampledFIM(testCase)
@@ -402,6 +435,33 @@ classdef poissonTest < matlab.unittest.TestCase
             FIMOptExptBase = Model.totalFim(fimResults,NcOptExperimentBase+NcBase);
             Model.plotMHResults(MHResults,[FIM,FIMOptExpt,FIMOptExptBase])
 
-        end  
+        end 
+        
+        function LoadModelTest(testCase)
+            % Test to see if the code can correctly load a model from file,
+            % asscoiate data to that model, and then run a simple fitting
+            % routine.
+            %
+            % Save Poisson Model to File
+            delete('exampleResultsTest.mat')
+            model = testCase.Poiss;
+            save('TemporarySaveFile',"model")
+            DataSettings = {'testData.csv',{'rna','exp1_s1'}};
+            Pipeline = 'fittingPipelineExample';
+            pipelineArgs.maxIter = 10;
+            pipelineArgs.display = 'none';
+            saveFile = 'exampleResultsTest.mat';
+
+            % Create model from preset, associate with data, run
+            % 'fittingPipeline', and save result.
+            SSIT('TemporarySaveFile','model',DataSettings,Pipeline,pipelineArgs,saveFile);
+
+            % Load model from file, run 'fittingPipeline', and save result.
+            SSIT(saveFile,'model',[],Pipeline,pipelineArgs,saveFile);
+
+            testCase.verifyEqual(exist('exampleResultsTest.mat','file'), 2, ...
+                'Model Creation Failed');
+
+        end
     end
 end

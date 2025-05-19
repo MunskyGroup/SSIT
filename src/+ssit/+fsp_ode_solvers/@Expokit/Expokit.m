@@ -77,19 +77,20 @@ classdef Expokit
         tryAgain=1;
         if ~exist('m','var'); m=15; end
         fspTol = fspErrorCondition.fspTol;
+        expvTol = min(fspTol/1e2,1e-5);
         nSinks = fspErrorCondition.nSinks;
         
         if strcmp(obj.version,'mexpv_modified_2')
             while tryAgain==1
                 SINKS = [length(initSolution)-nSinks+1:length(initSolution)-fspErrorCondition.nEscapeSinks];
                 fspSINKS = [length(initSolution)-nSinks+1 : length(initSolution)];
-                [~, ~, ~, tExport, solutionsNow, ~, tryAgain, te, ye] = ssit.fsp_ode_solvers.mexpv_modified_2(tOut(end), jac, initSolution, fspTol/1e5, m,...
+                [~, ~, ~, tExport, solutionsNow, ~, tryAgain, te, ye] = ssit.fsp_ode_solvers.mexpv_modified_2(tOut(end), jac, initSolution, expvTol, m,...
                     [], tOut, fspTol, SINKS, tStart, fspErrorCondition);
                 if tryAgain==0;break;end
                 if m>300
                 SINKS = [length(initSolution)-nSinks+1:length(initSolution)-fspErrorCondition.nEscapeSinks];
                     warning('Expokit expansion truncated at 300');
-                    [~, ~, ~, tExport, solutionsNow, ~, tryAgain, te, ye] = ssit.fsp_ode_solvers.mexpv_modified_2(tOut(end), jac, initSolution, fspTol/1e5, m,...
+                    [~, ~, ~, tExport, solutionsNow, ~, tryAgain, te, ye] = ssit.fsp_ode_solvers.mexpv_modified_2(tOut(end), jac, initSolution, expvTol, m,...
                         [], tOut, fspTol, SINKS, tStart, fspErrorCondition);
                 end
                 m=m+5;
@@ -104,7 +105,7 @@ classdef Expokit
                 if m>300
                     warning('Expokit expansion truncated at 300');
                     [~, ~, ~, tExport, solutionsNow, ~, tryAgain, te, ye] = ...
-                        expv_modified(tOut(end), jac, initSolution, fspTol/1e5, m,...
+                        expv_modified(tOut(end), jac, initSolution, expvTol, m,...
                         [], tOut,fspTol,[],tStart,fspErrorCondition);
                 end
                 m=m+5;
@@ -115,30 +116,27 @@ classdef Expokit
         solutionsNow = solutionsNow(ikeep, :)';
         solutionsNow = mat2cell(solutionsNow, size(solutionsNow,1), ones(1, size(solutionsNow,2)));
         
+        sinks = ye(SINKS);
         if (~isempty(te))
-            sinks = ye(SINKS);
             errorBound = fspErrorCondition.fspTol*(te-fspErrorCondition.tInit)/(fspErrorCondition.tFinal-fspErrorCondition.tInit);
-            if te==max(tOut)
-                err = sum(sinks);
-            else
-                err = sum(sinks*(fspErrorCondition.nSinks-fspErrorCondition.nEscapeSinks));
-            end
+            err = sum(sinks);
             if err>=errorBound
                 fspStopStatus = struct('i_expand', true, ...
                     't_break', te, ...
-                    'sinks', ye(fspSINKS), ...
+                    'sinks', ye(length(initSolution)-nSinks+1:length(initSolution)), ...
                     'error_bound', errorBound);
             else
                 fspStopStatus = struct('i_expand', false,...
-                    't_break', [], ...
-                    'sinks', [],...
-                    'error_bound', []);
+                    't_break', te, ...
+                    'sinks', ye(length(initSolution)-nSinks+1:length(initSolution)),...
+                    'error_bound', errorBound);
             end
         else
+            errorBound = fspErrorCondition.fspTol;
             fspStopStatus = struct('i_expand', false,...
-                't_break', [], ...
-                'sinks', [],...
-                'error_bound', []);
+                't_break', max(tOut), ...
+                'sinks', ye(length(initSolution)-nSinks+1:length(initSolution)),...
+                'error_bound', errorBound);
         end        
         end
     end

@@ -154,7 +154,7 @@ classdef SSITMultiModel
 
             % Apply prior constraints.
             if ~isempty(SMM.parameterConstraints)
-                totalLogLikelihood = totalLogLikelihood + SMM.parameterConstraints(parameterGuess);
+                totalLogLikelihood = totalLogLikelihood + SMM.parameterConstraints(parameterGuess(:));
             end
         end
 
@@ -271,8 +271,8 @@ classdef SSITMultiModel
                         end
 
                         if allFitOptions.logForm&&min(eig(FIMlog))<1
-                            disp('Warning -- FIM has one or more small eigenvalues.  Reducing proposal width to 10x in those directions. MH Convergence may be slow.')
-                            FIMlog = FIMlog + 0.1*eye(length(FIMlog));
+                            disp('Warning -- FIM has one or more small eigenvalues.  Reducing proposal width to 1x in those directions. MH Convergence may be slow.')
+                            FIMlog = FIMlog + 1*eye(length(FIMlog));
                         end
 
                         covLog = FIMlog^-1;
