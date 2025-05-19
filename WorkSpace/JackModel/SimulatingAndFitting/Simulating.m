@@ -19,7 +19,7 @@ a = 53*ones(Ncells,1);
 b = 39*ones(Ncells,1);
 u = 2*pi*rand(Ncells,1);
 posnTS=[a.*cos(u),b.*sin(u)].*rand(Ncells,2); %position of TS for sim data
-makePlot = 1;
+makePlot = 0;
 fileName = 'demo1.csv';
 
 if run_sim

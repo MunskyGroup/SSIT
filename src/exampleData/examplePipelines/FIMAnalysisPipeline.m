@@ -1,4 +1,4 @@
-function [results, model] = multiModelFIMPipeline(model, Args)
+function [results, model] = FIMAnalysisPipeline(model, Args)
     J = Args.param_of_interest_index;
     model.parameters = Args.pars;
 

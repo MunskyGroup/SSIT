@@ -1,7 +1,10 @@
 %% Generates D vs |FIM| plot
 clear
 close all 
-addpath(genpath('../../../src'));
+addpath(genpath('../../../../src'));
+
+s = settings;
+s.matlab.appearance.figure.GraphicsTheme.TemporaryValue = "light";
 %% Pretext 
 % Iyer-Biswas, Srividya, et al. “Stochasticity of Gene Products from Transcriptional Pulsing.”
 % This paper explored the parameter space of the one compartment model,
@@ -29,7 +32,7 @@ OneCompartmentModel.initialCondition = [0;1;0;];
 OneCompartmentModel.summarizeModel
 OneCompartmentModel = OneCompartmentModel.formPropensitiesGeneral('OneComparment_SpatialModel');
 OneCompartmentModel.tSpan = linspace(0,10,21);
-OneCompartmentModel.pdoOptions.unobservedSpecies = {'gene_on';'gene_off'};
+OneCompartmentModel.pdoOptions.unobservedSpecies = {'gene_on','gene_off'};
 save('OneComparment_SpatialModel','OneCompartmentModel')
 
 % Two Compartment Model
@@ -50,14 +53,14 @@ save('TwoComparment_SpatialModel','TwoCompartmentModel')
 
 
 %% Pipeline
-run_all = true;
+run_all=false;
 
 x = zeros([1, 5]);
 y1 = zeros([1, 5]);
 y2 = zeros([1, 5]);
 
 % specify pipeline parameters
-pipeline = 'multiModelFIMPipeline';
+pipeline = 'FIMAnalysisPipeline';
 pipelineArgs.param_of_interest_index = NaN;
 pipelineArgs.pars = {'kon',1; 'koff',1; 'kr',100; 'kd',1};
 pipelineArgs.makePlots = false;
@@ -72,10 +75,10 @@ x(1) = outputs.determinates{1, "known_determinate"};
 
 
 % specify pipeline parameters
-pipeline = 'multiModelFIMPipeline';
+pipeline = 'FIMAnalysisPipeline';
 pipelineArgs.param_of_interest_index = 4;
 pipelineArgs.pars = TwoCompartmentModel.parameters;
-pipelineArgs.makePlots = true;
+pipelineArgs.makePlots = false;
 
 % run pipeline on model
 saveName = 'TwoCompartmentModel_regime1';
@@ -180,15 +183,17 @@ y_ref = x_ref;
 plot(x_ref, y_ref, 'k--', 'LineWidth', 1.5);
 
 set(gca, 'XScale', 'log', 'YScale', 'log');
-legend('Diffusion Coeffient is known', 'Diffusion Coeffient is unknown');
+% legend('Diffusion Coeffient is known', 'Diffusion Coeffient is unknown');
 xlabel('|CoV| for one compartment model');
 ylabel('|CoV| for two compartment model');
 title('|CoV| Comparison in Standard Regimes');
+saveas(gcf, 'CoVvsCoV_for_multiple_regimes.png')
 
 
 %% Run Multiple Diffusion Coeffients
 run_all=false;
-D = [0, 0.01, 0.1, 1, 10];
+D = logspace(-4, 2.25, 18);
+% D = [0, 0.01, 0.1, 1, 10];
 f = zeros([2, 5, length(D)]);
 g = zeros([5, length(D)]);
 
@@ -304,7 +309,7 @@ for d=1:length(D)
 end
 
 %% Plot
-figure()
+figure();
 scatter(D, squeeze(f(1,1,:)), 60, 'r', 'filled'); % regime 1 known
 hold on;
 scatter(D, squeeze(f(2,1,:)), 60, 'r'); % regime 1 unknown
@@ -327,16 +332,16 @@ scatter(D, squeeze(f(2,5,:)), 60, 'm'); % regime 5 unknown
 plot(D, squeeze(g(5,:)), 'm--', 'LineWidth', 1.5);
 
 set(gca, 'XScale', 'log', 'YScale', 'log');
-legend('Regime 1 - known', 'regime 1 - unknown', 'regime 1 - one compartment', ...
-    'Regime 2 - known', 'regime 2 - unknown', 'regime 2 - one compartment', ...
-    'Regime 3 - known', 'regime 3 - unknown', 'regime 3 - one compartment', ...
-    'Regime 4 - known', 'regime 4 - unknown', 'regime 4 - one compartment', ...
-    'Regime 5 - known', 'regime 5 - unknown', 'regime 5 - one compartment' ...
-    );
+% legend('Regime 1 - known', 'regime 1 - unknown', 'regime 1 - one compartment', ...
+%     'Regime 2 - known', 'regime 2 - unknown', 'regime 2 - one compartment', ...
+%     'Regime 3 - known', 'regime 3 - unknown', 'regime 3 - one compartment', ...
+%     'Regime 4 - known', 'regime 4 - unknown', 'regime 4 - one compartment', ...
+%     'Regime 5 - known', 'regime 5 - unknown', 'regime 5 - one compartment' ...
+%     );
 xlabel('D');
 ylabel('|CoV|');
 title('D vs |CoV|');
-
+saveas(gcf, 'DvsCoV.png')
 
 
 
