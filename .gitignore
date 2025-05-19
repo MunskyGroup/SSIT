@@ -80,3 +80,6 @@ WorkSpace/PipelineApproach/savedModelGR.mat
 WorkSpace/PipelineApproach/GRModelFitResults.mat
 WorkSpace/PipelineApproach/savedGRmultiModel.mat
 /WorkSpace/IntronDiffusion/Part1-InformationTheory/DvsFIM/tmpPropensityFunctions
+*.mat
+*.csv
+/WorkSpace/JackModel/Part1-InformationTheory/DvsCoV/tmpPropensityFunctions
