@@ -27,7 +27,7 @@ STL1.tSpan = linspace(0,20,200);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Model:
-    % Create a copy of the Model for ODEs:
+    % Create a copy of the bursting gene model for ODEs:
     Model_ODE = Model;
 
     % Set solution scheme to 'ode':
@@ -54,7 +54,7 @@ STL1.tSpan = linspace(0,20,200);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% STL1 Model:
-    % Create a copy of the STL1 Model for ODEs:
+    % Create a copy of the time-varying STL1 yeast model for ODEs:
     STL1_ODE = STL1;
 
     % Set solution scheme to 'ode':

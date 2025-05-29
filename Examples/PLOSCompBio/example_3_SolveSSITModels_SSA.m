@@ -29,7 +29,7 @@ STL1.tSpan = linspace(0,20,200);
 %% Run Gillepsie's Stochastic Simulation Algorithm (SSA) and analyse 
 %% trajectories
 %% Model:
-    % Create a copy of the Model for SSAs:
+    % Create a copy of the bursting gene model for SSA:
     Model_SSA = Model;
 
     % Set solution scheme to SSA:
@@ -75,7 +75,7 @@ STL1.tSpan = linspace(0,20,200);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% STL1 Model:
-    % Create a copy of the STL1 Model for SSAs:
+    % Create a copy of the time-varying STL1 yeast model for SSA:
     STL1_SSA = STL1;
 
     % Set solution scheme to SSA:

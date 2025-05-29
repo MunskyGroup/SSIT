@@ -26,7 +26,7 @@ STL1.tSpan = linspace(0,20,200);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Model:
-    % Create a copy of the Model:
+    % Create a copy of the bursting gene model:
     Model_escape = Model;
     
     %% Specify a boundary for the escape calculation
@@ -53,7 +53,7 @@ STL1.tSpan = linspace(0,20,200);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% STL1:
-% Create a copy of the Model for FSP:
+% Create a copy of the time-varying STL1 yeast model:
 STL1_escape = STL1;
 STL1_escape = STL1_escape.formPropensitiesGeneral('STL1_escape');
 

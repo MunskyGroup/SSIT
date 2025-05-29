@@ -1,40 +1,66 @@
-%% example_5_FIMCalculation
-% Example script to set up and solve the FSP-FIM matrix  
-% with partial observations and probabilistic distortion.
-addpath(genpath('../../src'));
+%% example_6_SensitivityAnalysis_FIM
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Section 2.3: Sensitivity analysis and Fisher Information Matrix
+% Example script to set up and solve the FSP-FIM matrix with  
+% partial observations and probabilistic distortion.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Preliminaries
 % Load our models described in example_1_CreateSSITModels and  
 % compute FSP solutions using example_2_SolveSSITModels_FSP
-%% Comment out the following 3 lines if example_4_FIM has already been run:
-clear
-close all
-example_3_LoadingandFittingData_MLE
+
+% clear
+% close all
+addpath(genpath('../../src'));
+
+% example_1_CreateSSITModels  
+% example_4_SolveSSITModels_FSP
 
 % View model summaries
-ModelReal.summarizeModel
-STL1Real_refit.summarizeModel
+Model_FSP.summarizeModel
+STL1_FSP.summarizeModel
 
-Model_sens = ModelReal;
-STL1_sens = STL1Real_refit;
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Ex(1): Solve sensitivities of the bursting gene model
+%  from example_1_CreateSSITModels
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Make a copy of the bursting gene model solved by FSP for sensitivity 
+% analysis:
+Model_sens = Model_FSP;
 
 %% Solve FSP sensitivities
-% Set solution schemes to FSP sensitivity
+% Set solution schemes to FSP sensitivity:
 Model_sens.solutionScheme = 'fspSens'; 
-STL1_sens.solutionScheme = 'fspSens'; 
 
-% Solve the sensitivity problem
-[Model_sensSoln,Model_bounds] = Model_sens.solve(Model_FSPsoln.stateSpace); 
-[STL1_sensSoln,STL1_bounds] = STL1_sens.solve(STL1_FSPsoln.stateSpace); 
+% Solve the sensitivity problem:
+[Model_sensSoln,Model_bounds] = Model_sens.solve(Model_FSPsoln.stateSpace);
 
-% Plot the results from the sensitivity analysis
-% Model:
+% Plot the results from the sensitivity analysis:
 fig1 = figure(1);clf; set(fig1,'Name','Marginal Sensitivity, offGene');
 fig2 = figure(2);clf; set(fig2,'Name','Marginal Sensitivity, onGene');
 fig3 = figure(3);clf; set(fig3,'Name','Marginal Sensitivity, mRNA');
 Model_sens.makePlot(Model_sensSoln,'marginals',[],false,...
                     [fig1,fig2,fig3],{'b','linewidth',2})
-% STL1 Model:
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Ex(2): Solve sensitivities of the time-varying STL1 yeast model
+%  from example_1_CreateSSITModels
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% % Make a copy of the time-varying STL1 yeast model solved by FSP for 
+% sensitivity analysis:
+STL1_sens = STL1_FSP;
+
+%% Solve FSP sensitivities
+% Set solution schemes to FSP sensitivity:
+STL1_sens.solutionScheme = 'fspSens'; 
+
+% Solve the sensitivity problem: 
+[STL1_sensSoln,STL1_bounds] = STL1_sens.solve(STL1_FSPsoln.stateSpace); 
+
+% Plot the results from the sensitivity analysis:
 fig4 = figure(4);clf; set(fig4,'Name','Marginal Sensitivity, offGene');
 fig5 = figure(5);clf; set(fig5,'Name','Marginal Sensitivity, onGene');
 fig6 = figure(6);clf; set(fig6,'Name','Marginal Sensitivity, mRNA');

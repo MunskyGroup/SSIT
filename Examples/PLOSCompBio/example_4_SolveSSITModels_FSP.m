@@ -28,7 +28,7 @@ STL1.tSpan = linspace(0,20,200);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Model:
-    % Create a copy of the Model for FSP:
+    % Create a copy of the bursting gene model for FSP:
     Model_FSP = Model;
     
     % Ensure the solution scheme is set to FSP (default):
@@ -68,7 +68,7 @@ STL1.tSpan = linspace(0,20,200);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% STL1:
-    % Create a copy of the STL1 Model for FSP:
+    % Create a copy of the time-varying STL1 yeast model for FSP:
     STL1_FSP = STL1;
     
     % Ensure the solution scheme is set to FSP (default):
