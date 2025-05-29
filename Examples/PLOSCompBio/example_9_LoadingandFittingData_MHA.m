@@ -1,32 +1,31 @@
 %% example_9_LoadingandFittingData_MHA
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Section 2.4: Loading and fitting time-varying STL1 yeast data 
-%%     * Uncertainty sampling using the Metropolis-Hastings Algorithm (MHA)
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%     * Data loading and handling 
+%%     * Maximize the likelihood L(D|theta) and use the maximum 
+%%       likelihood estimate (MLE) to fit the experimental data
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Example script to demonstrate how to use Metropolis-Hastings to sample
 % uncertainty (and improve model parameter fit to data)
 addpath(genpath('../../src'));
 
 %% Preliminaries
-% Use the STL1 model from example_1_CreateSSITModels, FSP solutions from 
-% example_4_SolveSSITModels_FSP, FIM from example_7_FIM, and MLE from
-% example_8_LoadingandFittingData_MLE
-%clear
-%close all
-addpath(genpath('../../src'));
+% Load our models from example_1_CreateSSITModels; compute FSP solutions 
+% using example_2_SolveSSITModels_FSP and FIMs using example_4_FIM
+%% Comment out the following 3 lines if example_4_FIM has already been run:
+% clear
+% close all
+% example_3_FIM
 
-% example_1_CreateSSITModels  
-% example_4_SolveSSITModels_FSP
-% example_7_FIM
-% example_9_LoadingandFittingData_MLE
+% View model summaries
+Model_FIM.summarizeModel
+STL1_FIM.summarizeModel
 
-% View model summaries:
-STL1_MLE_refit.summarizeModel
-
-% Make new copies of our models:
-STL1_MH = STL1_MLE_refit;
+% Make new copies of our models
+Model_MH = Model_FIM;
+STL1_MH = STL1_FIM;
 
 %% Model: FIM inverse
 % The inverse of the FIM provides an estimate of the model uncertainty.
@@ -67,7 +66,7 @@ Model_covLogMod = (Model_FIMlog+1*diag(size(Model_FIMlog,1)))^(-1);
 Model_MH.solutionScheme = 'FSP'; % Set solutions scheme to FSP Sensitivity
 Model_MH.fittingOptions.modelVarsToFit = 1:4;
 Model_MHOptions = struct('numberOfSamples',3000,'burnin',100,'thin',3);
-proposalWidthScale = 0.001;
+proposalWidthScale = 0.0000000000000001;
 Model_MHOptions.proposalDistribution  = ...
  @(x)mvnrnd(x,proposalWidthScale * (Model_covLogMod + Model_covLogMod')/2);
 
