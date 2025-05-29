@@ -2,8 +2,7 @@
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Section 2.3: Sensitivity analysis and Fisher Information Matrix (Part II)
-% Example script to set up and solve the FSP-FIM matrix with  
-% partial observations and probabilistic distortion.
+%   * Set up and solve the FSP-FIM matrix 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Preliminaries

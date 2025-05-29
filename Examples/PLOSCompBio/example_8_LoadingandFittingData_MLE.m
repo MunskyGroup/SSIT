@@ -2,9 +2,9 @@
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Section 2.4: Loading and fitting time-varying STL1 yeast data 
-%%     * Data loading and handling 
-%%     * Maximize the likelihood L(D|theta) and use the maximum 
-%%       likelihood estimate (MLE) to fit the experimental data
+%   * Data loading and handling 
+%   * Maximize the likelihood L(D|theta) and use the maximum likelihood
+%     estimate (MLE) to fit the experimental data
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Preliminaries

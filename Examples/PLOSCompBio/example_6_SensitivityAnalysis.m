@@ -2,8 +2,7 @@
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Section 2.3: Sensitivity analysis and Fisher Information Matrix (Part I)
-% Example script to compute model sensitivities to small changes in the
-% model parameters.
+%   * Compute model sensitivities to small changes in the model parameters
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Preliminaries
