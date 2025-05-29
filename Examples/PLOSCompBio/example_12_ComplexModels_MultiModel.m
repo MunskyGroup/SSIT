@@ -6,7 +6,8 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Preliminaries
-% Use the STL1 model from example_1_CreateSSITModels
+% Use the STL1 model from example_1_CreateSSITModels and data loaded into
+% the model from example_8_LoadingandFittingData_MLE
 %clear
 %close all
 addpath(genpath('../../src'));

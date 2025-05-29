@@ -1,4 +1,4 @@
-%% example_9_LoadingandFittingData_MHA
+%% example_10_LoadingandFittingData_MHA
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Section 2.4: Loading and fitting time-varying STL1 yeast data 
@@ -8,7 +8,7 @@
 %% Preliminaries
 % Use the STL1 model from example_1_CreateSSITModels, FSP solutions from 
 % example_4_SolveSSITModels_FSP, FIM from example_7_FIM, and MLE from
-% example_8_LoadingandFittingData_MLE
+% example_9_LoadingandFittingData_MLE
 %clear
 %close all
 addpath(genpath('../../src'));
