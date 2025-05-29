@@ -6,13 +6,14 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Preliminaries
+% Use the models from example_1_CreateSSITModels
 %clear
 %close all
 addpath(genpath('../../'));
 
 % example_1_CreateSSITModels
 
-% Load our models from example_1_CreateSSITModels and inspect them:
+% View model summaries:
 Model.summarizeModel
 STL1.summarizeModel
 

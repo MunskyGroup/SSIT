@@ -7,9 +7,9 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Preliminaries
-% Load our models described in example_1_CreateSSITModels, computed FSP 
-% solutions using example_4_SolveSSITModels_FSP, and computed sensitivities 
-% from example_6_SensitivityAnalysis
+% Use the models from example_1_CreateSSITModels, computed FSP solutions 
+% from example_4_SolveSSITModels_FSP, and computed sensitivities from 
+% example_6_SensitivityAnalysis
 
 % clear
 % close all
@@ -19,7 +19,7 @@ addpath(genpath('../../src'));
 % example_4_SolveSSITModels_FSP
 % example_6_SensitivityAnalysis
 
-% View model summaries
+% View model summaries:
 Model_FSP.summarizeModel
 STL1_FSP.summarizeModel
 

@@ -7,8 +7,8 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Preliminaries
-% Load our models described in example_1_CreateSSITModels and  
-% computed FSP solutions using example_4_SolveSSITModels_FSP
+% Use the models from example_1_CreateSSITModels and  
+% computed FSP solutions from example_4_SolveSSITModels_FSP
 
 % clear
 % close all
