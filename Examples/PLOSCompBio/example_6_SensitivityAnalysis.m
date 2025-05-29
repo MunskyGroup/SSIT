@@ -1,14 +1,14 @@
 %% example_6_SensitivityAnalysis
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Section 2.3: Sensitivity analysis
+%% Section 2.3: Sensitivity analysis and Fisher Information Matrix (Part I)
 % Example script to compute model sensitivities to small changes in the
 % model parameters.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Preliminaries
 % Load our models described in example_1_CreateSSITModels and  
-% compute FSP solutions using example_2_SolveSSITModels_FSP
+% computed FSP solutions using example_4_SolveSSITModels_FSP
 
 % clear
 % close all
@@ -49,7 +49,7 @@ Model_sens.makePlot(Model_sensSoln,'marginals',[],false,...
 %  from example_1_CreateSSITModels
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% % Make a copy of the time-varying STL1 yeast model solved by FSP for 
+% Make a copy of the time-varying STL1 yeast model solved by FSP for 
 % sensitivity analysis:
 STL1_sens = STL1_FSP;
 

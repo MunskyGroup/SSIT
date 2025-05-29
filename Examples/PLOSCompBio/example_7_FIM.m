@@ -1,14 +1,15 @@
-%% example_6_SensitivityAnalysis_FIM
+%% example_7_FIM
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Section 2.3: Sensitivity analysis and Fisher Information Matrix
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Section 2.3: Sensitivity analysis and Fisher Information Matrix (Part II)
 % Example script to set up and solve the FSP-FIM matrix with  
 % partial observations and probabilistic distortion.
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Preliminaries
-% Load our models described in example_1_CreateSSITModels and  
-% compute FSP solutions using example_2_SolveSSITModels_FSP
+% Load our models described in example_1_CreateSSITModels, computed FSP 
+% solutions using example_4_SolveSSITModels_FSP, and computed sensitivities 
+% from example_6_SensitivityAnalysis
 
 % clear
 % close all
@@ -16,91 +17,62 @@ addpath(genpath('../../src'));
 
 % example_1_CreateSSITModels  
 % example_4_SolveSSITModels_FSP
+% example_6_SensitivityAnalysis
 
 % View model summaries
 Model_FSP.summarizeModel
 STL1_FSP.summarizeModel
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Ex(1): Solve sensitivities of the bursting gene model
+%% Ex(1): Compute the Fisher Information Matrix for the bursting gene model
 %  from example_1_CreateSSITModels
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% Make a copy of the bursting gene model solved by FSP for sensitivity 
-% analysis:
-Model_sens = Model_FSP;
-
-%% Solve FSP sensitivities
-% Set solution schemes to FSP sensitivity:
-Model_sens.solutionScheme = 'fspSens'; 
-
-% Solve the sensitivity problem:
-[Model_sensSoln,Model_bounds] = Model_sens.solve(Model_FSPsoln.stateSpace);
-
-% Plot the results from the sensitivity analysis:
-fig1 = figure(1);clf; set(fig1,'Name','Marginal Sensitivity, offGene');
-fig2 = figure(2);clf; set(fig2,'Name','Marginal Sensitivity, onGene');
-fig3 = figure(3);clf; set(fig3,'Name','Marginal Sensitivity, mRNA');
-Model_sens.makePlot(Model_sensSoln,'marginals',[],false,...
-                    [fig1,fig2,fig3],{'b','linewidth',2})
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Ex(2): Solve sensitivities of the time-varying STL1 yeast model
-%  from example_1_CreateSSITModels
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-% % Make a copy of the time-varying STL1 yeast model solved by FSP for 
-% sensitivity analysis:
-STL1_sens = STL1_FSP;
-
-%% Solve FSP sensitivities
-% Set solution schemes to FSP sensitivity:
-STL1_sens.solutionScheme = 'fspSens'; 
-
-% Solve the sensitivity problem: 
-[STL1_sensSoln,STL1_bounds] = STL1_sens.solve(STL1_FSPsoln.stateSpace); 
-
-% Plot the results from the sensitivity analysis:
-fig4 = figure(4);clf; set(fig4,'Name','Marginal Sensitivity, offGene');
-fig5 = figure(5);clf; set(fig5,'Name','Marginal Sensitivity, onGene');
-fig6 = figure(6);clf; set(fig6,'Name','Marginal Sensitivity, mRNA');
-STL1_sens.makePlot(STL1_sensSoln,'marginals',[],false,...
-                   [fig4,fig5,fig6],{'b','linewidth',2})
+% Make a copy of the bursting gene model with solved sensitivities:
+Model_FIM = Model_sens;
 
 %% Compute FIMs using FSP sensitivity results
-%% Model:
-% Compute the FIM
+% Compute the FIM:
 Model_FIM = Model_sens;
 Model_fimResults = Model_FIM.computeFIM(Model_sensSoln.sens); 
 
-% Generate a count of measured cells (in place of real data)
+% Generate a count of measured cells (in place of real data):
 Model_cellCounts = 10*ones(size(Model_FIM.tSpan));
 
 % Evaluate the provided experiment design (in "cellCounts") 
-% and produce an array of FIMs (one for each parameter set)
+% and produce an array of FIMs (one for each parameter set):
 [Model_fimTotal,Model_mleCovEstimate,Model_fimMetrics] = ...
     Model_FIM.evaluateExperiment(Model_fimResults,Model_cellCounts)
 
-% Plot the FIMs
+% Plot the FIMs:
 fig7 = figure(7);clf; set(fig7,'Name',...
     'Fim-Predicted Uncertainty Ellipses');
 Model_FIM.plotMHResults([],Model_fimTotal,'log',[],fig7)
 legend('FIM')
 
-%% STL1 Model:
-% Compute the FIM
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Ex(2): Compute the Fisher Information Matrix for the STL1 yeast model
+%  from example_1_CreateSSITModels
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Make a copy of the time-varying STL1 yeast model with solved 
+% sensitivities:
+STL1_FIM = STL1_sens;
+
+%% Compute FIMs using FSP sensitivity results
+% Compute the FIM:
 STL1_FIM = STL1_sens;
 STL1_fimResults = STL1_FIM.computeFIM(STL1_sensSoln.sens); 
 
-% The number of cells measured in the STL1 experiment
-STL1_cellCounts = STL1_FIM.dataSet.nCells;
+% Generate a count of measured cells (in place of real data):
+STL1_cellCounts = 10*ones(size(STL1_FIM.tSpan));
 
 % Evaluate the provided experiment design (in "cellCounts") 
-% and produce an array of FIMs (one for each parameter set)
+% and produce an array of FIMs (one for each parameter set):
 [STL1_fimTotal,STL1_mleCovEstimate,STL1_fimMetrics] = ...
     STL1_FIM.evaluateExperiment(STL1_fimResults,STL1_cellCounts)
 
-% Plot the FIMs
+% Plot the FIMs:
 fig8 = figure(5);clf; set(fig8,'Name',...
      'Fim-Predicted Uncertainty Ellipses');
 STL1_FIM.plotMHResults([],STL1_fimTotal,'log',[],fig8)
