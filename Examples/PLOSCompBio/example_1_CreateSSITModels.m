@@ -4,6 +4,7 @@
 %% Section 2.1: Creating, Saving, and Loading Models in SSIT
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+%% Preliminaries:
 clear
 close all
 addpath(genpath('../../src'));

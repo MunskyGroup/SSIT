@@ -5,11 +5,11 @@
 %% Compute Stochastic Simulation Algorithm (SSA) trajectories
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-clear
-close all
-addpath(genpath('../../src'));
-
 %% Preliminaries
+%clear
+%close all
+addpath(genpath('../../'));
+
 % example_1_CreateSSITModels
 
 % Load our models from example_1_CreateSSITModels and inspect them:
