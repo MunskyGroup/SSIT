@@ -12,7 +12,7 @@ example_1a_CreateSSITModels
 Model.summarizeModel
 STL1.summarizeModel
 
-% Set the times at distributions will be computed:
+% Set the times at which distributions will be computed:
 Model.tSpan = linspace(0,20,200);
 STL1.tSpan = linspace(0,20,200);
 
@@ -34,6 +34,10 @@ STL1.tSpan = linspace(0,20,200);
     Model_ODEsoln = Model_ODE.solve; 
     plotODE(Model_ODEsoln,Model_ODE.species,Model_ODE.tSpan)
 
+    %% Make a movie of the ODE solution being plotted:
+    makeODEmovie(Model_ODEsoln, Model_ODE.species, Model_ODE.tSpan, ...
+                'Model_ODE.mp4');
+
 %% STL1 Model:
     % Create a copy of the STL1 Model for ODEs:
     STL1_ODE = STL1;
@@ -50,3 +54,7 @@ STL1.tSpan = linspace(0,20,200);
     % Solve ODE and make plots:
     STL1_ODEsoln = STL1_ODE.solve; 
     plotODE(STL1_ODEsoln,STL1_ODE.species,STL1_ODE.tSpan)
+
+    %% Make a movie of the ODE solution being plotted:
+    makeODEmovie(STL1_ODEsoln, STL1_ODE.species, STL1_ODE.tSpan, ...
+                'STL1_ODE.mp4');

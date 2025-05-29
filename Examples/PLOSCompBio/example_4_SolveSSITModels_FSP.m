@@ -13,7 +13,7 @@ example_1a_CreateSSITModels
 Model.summarizeModel
 STL1.summarizeModel
 
-% Set the times at distributions will be computed:
+% Set the times at which distributions will be computed:
 Model.tSpan = linspace(0,20,200);
 STL1.tSpan = linspace(0,20,200);
 
@@ -82,4 +82,4 @@ STL1.tSpan = linspace(0,20,200);
     STL1_FSP.makePlot(STL1_FSPsoln,'marginals',[1:100:100],...
                            false,[1,2,3],{'linewidth',2})  
     STL1_FSP.makePlot(STL1_FSPsoln,'margmovie',[],false,[101],...
-                           {'linewidth',2},'STL1_FSP.mp4',[1,1,0.5],[2,3])  
+                           {'linewidth',2},'STL1_FSP.mp4',[1,1,0.5],[2,3]) 

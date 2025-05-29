@@ -12,7 +12,7 @@ example_1a_CreateSSITModels
 Model.summarizeModel
 STL1.summarizeModel
 
-% Set the times at distributions will be computed:
+% Set the times at which distributions will be computed:
 Model.tSpan = linspace(0,20,200);
 STL1.tSpan = linspace(0,20,200);
 
@@ -50,9 +50,13 @@ STL1.tSpan = linspace(0,20,200);
     
     % Run SSA:
     Model_SSAsoln = Model_SSA.solve;
-            
+    
     % Plot SSA trajectories and means:
     plotSSA(Model_SSAsoln, 'all', 100, Model_SSA.species);
+
+    %% Make a video of the SSA trajectories being plotted:
+    makeSSAvideo(Model_SSAsoln, 'all', 100, Model_SSA.species, ...
+        'Model_SSA_video')
 
 %% STL1 Model:
     % Create a copy of the STL1 Model for SSAs:
@@ -89,3 +93,7 @@ STL1.tSpan = linspace(0,20,200);
             
     % Plot SSA trajectories and means:
     plotSSA(STL1_SSAsoln, 'all', 100, STL1_SSA.species);
+
+    %% Make a video of the SSA trajectories being plotted:
+    makeSSAvideo(STL1_SSAsoln, 'all', 100, STL1_SSA.species, ...
+        'STL1_SSA_video')
