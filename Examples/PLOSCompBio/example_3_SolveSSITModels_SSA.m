@@ -1,20 +1,30 @@
-%% example_2_SolveSSITModels_SSA
-% Example script to show how to solve the time evolution of state space 
-% probabilities for a reaction system where processes are considered:  
-% * Stochastic, using stochastic simulation algorithm (SSA) trajectories.
+%% example_3_SolveSSITModels_SSA
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Section 2.2: Finding and visualizing master equation solutions
+%% Compute Stochastic Simulation Algorithm (SSA) trajectories
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 clear
 close all
 addpath(genpath('../../src'));
 
 %% Preliminaries
+% example_1_CreateSSITModels
+
 % Load our models from example_1_CreateSSITModels and inspect them:
-example_1a_CreateSSITModels
 Model.summarizeModel
 STL1.summarizeModel
 
 % Set the times at which distributions will be computed:
 Model.tSpan = linspace(0,20,200);
 STL1.tSpan = linspace(0,20,200);
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Ex(1): Use Gillepsie's Stochastic Simulation Algorithm (SSA) 
+% to solve the time evolution of state space probabilities for 
+% the bursting gene example model from example_1_CreateSSITModels  
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Run Gillepsie's Stochastic Simulation Algorithm (SSA) and analyse 
 %% trajectories
@@ -57,6 +67,12 @@ STL1.tSpan = linspace(0,20,200);
     %% Make a video of the SSA trajectories being plotted:
     makeSSAvideo(Model_SSAsoln, 'all', 100, Model_SSA.species, ...
         'Model_SSA_video')
+        
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Ex(2): Use Gillepsie's Stochastic Simulation Algorithm (SSA) 
+% to solve the time evolution of state space probabilities for 
+% the time-varying STL1 yeast model from example_1_CreateSSITModels  
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% STL1 Model:
     % Create a copy of the STL1 Model for SSAs:

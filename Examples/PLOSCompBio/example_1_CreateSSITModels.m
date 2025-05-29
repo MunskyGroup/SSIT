@@ -1,11 +1,14 @@
-%% example_a_CreateSSITModels
-%  Example script to show how to create models in SSIT.
+%% example_1_CreateSSITModels
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Section 2.1: Creating, Saving, and Loading Models in SSIT
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 clear
 close all
 addpath(genpath('../../src'));
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Section 2.1: Creating, Saving, and Loading Models in SSIT
 %% Ex(1): Create a simple Bursting Gene model in SSIT
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -80,6 +83,7 @@ STL1.summarizeModel
 
 % Several simple models are already coded in SSIT and can be quickly 
 % loaded and modified. Below are currently available SSIT models (2025). 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % ModelChoice = 'BirthDeath';      % One species problem
 % ModelChoice = 'CentralDogma':    % Two species problem

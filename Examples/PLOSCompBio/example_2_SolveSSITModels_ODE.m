@@ -1,14 +1,18 @@
 %% example_2_SolveSSITModels_ODE
-% Example script to show how to solve the time evolution of state space 
-% probabilities for a reaction system where processes are considered:  
-% * Deterministic, using ordinary differential equations (ODEs) to average.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Section 2.2: Finding and visualizing master equation solutions
+%% Compute Ordinary Differential Equations (ODEs)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 clear
 close all
 addpath(genpath('../../src'));
 
 %% Preliminaries
+% example_1_CreateSSITModels
+
 % Load our models from example_1_CreateSSITModels and inspect them:
-example_1a_CreateSSITModels
 Model.summarizeModel
 STL1.summarizeModel
 
@@ -16,7 +20,12 @@ STL1.summarizeModel
 Model.tSpan = linspace(0,20,200);
 STL1.tSpan = linspace(0,20,200);
 
-%% Compute Ordinary Differential Equations (ODEs)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Ex(1): Use deterministic, ordinary differential equations (ODEs) 
+% to average the time evolution of state space probabilities for 
+% the bursting gene example model from example_1_CreateSSITModels
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
 %% Model:
     % Create a copy of the Model for ODEs:
     Model_ODE = Model;
@@ -37,6 +46,12 @@ STL1.tSpan = linspace(0,20,200);
     %% Make a movie of the ODE solution being plotted:
     makeODEmovie(Model_ODEsoln, Model_ODE.species, Model_ODE.tSpan, ...
                 'Model_ODE.mp4');
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Ex(2): Use deterministic, ordinary differential equations (ODEs) 
+% to average the time evolution of state space probabilities for 
+% the time-varying STL1 yeast model from example_1_CreateSSITModels
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% STL1 Model:
     % Create a copy of the STL1 Model for ODEs:
