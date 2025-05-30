@@ -32,7 +32,7 @@ STL1_data = STL1_FSP;
 
  STL1_data = STL1_data.loadData('data/filtered_data_2M_NaCl_Step.csv',...
                                 {'mRNA','RNA_STL1_total_TS3Full'},...
-                                {'Replica',1;'Condition',0.2});
+                                {'Replica',1});
 
 % This plot is unnecessary, as the model parameters have not been fit to
 % the data yet.  However, it illustrates the improvement to come later:
