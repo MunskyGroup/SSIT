@@ -29,7 +29,7 @@ STL1_MLE_refit.summarizeModel
 % Make new copies of our models:
 STL1_MH = STL1_MLE_refit;
 
-%% STEP12a == Compute FIM, Run Metropolis Hastings
+%% Compute FIM, Run Metropolis Hastings
 % Specify Prior as log-normal distribution with wide uncertainty
 mu_log10 = [-1,-2,0,-2,1,-1,-1];  % Prior log-mean
 sig_log10 = 2*ones(1,7);          % Prior log-standard deviation
@@ -59,7 +59,7 @@ STL1_MH.parameters([1:7],2) = num2cell(STL1_MH_pars);
 
 STL1_MH.plotMHResults(MHResultsDusp1,FIMfree,'log',[])
 
-%% STEP12b == Specify Bayesian Prior and fit.
+%% Specify Bayesian Prior and fit
 % Specify Prior as log-normal distribution with wide uncertainty
 mu_log10 = [-1,-2,0,-2,1,-1,-1];  % Prior log-mean
 sig_log10 = 2*ones(1,7);          % Prior log-standard deviation
@@ -73,7 +73,7 @@ STL1_MH.makeFitPlot  % Plot fitting results
 % You may need to re-run this multiple times until converged.
 % I got a MLE of -52,454.1 after a few runs. 
 
-%% STEP13 == Compute FIM, Run Metropolis Hastings
+%% Compute FIM, Run Metropolis Hastings
 fimResults = STL1_MH.computeFIM([],'log'); % Compute individual FIMs
 fimTotal = STL1_MH.evaluateExperiment(fimResults,STL1_MH.dataSet.nCells,...
     diag(sig_log10.^2)); % Compute total FIM including effect of prior.
@@ -93,12 +93,42 @@ STL1_MH.plotMHResults(MHResults,FIMfree,'log',[])
 
 STL1_MH.makeFitPlot
 
+%% Iterating between MLE and MH
+% Let's run a few rounds of MLE and MH to see if we can get better
+% convergence.
+STL1_MH.parameters(:,2) = num2cell(STL1_MH_pars);
+for i=1:3
+    % Maximize likelihood
+    STL1_MH_pars = STL1_MH.maximizeLikelihood([],fitOptions);    
+    % Update parameters in the model:
+    STL1_MH.parameters(:,2) = num2cell(STL1_MH_pars);
+    
+    % Compute FIM
+    STL1_MH.solutionScheme = 'fspSens'; % Set solutions scheme to FSP Sensitivity
+    [STL1_sensSoln] = STL1_MH.solve;  % Solve the sensitivity problem
+    STL1_fimResults = STL1_MH.computeFIM(STL1_sensSoln.sens,'log');
+    STL1_FIMlog = STL1_FIM.evaluateExperiment(STL1_fimResults,STL1_MH.dataSet.nCells);
+
+    % Run Met. Hast.    
+    STL1_covLogMod = (STL1_FIMlog{1} + diag(size(STL1_FIMlog{1},1)))^(-1); % Adjusted proposal dist. covariance.
+    proposalWidthScale = 0.000000001;
+    STL1_MHOptions.proposalDistribution  = @(x)mvnrnd(x,proposalWidthScale*(STL1_covLogMod+STL1_covLogMod')/2);
+    [STL1_MH_pars,STL1_likelihood,STL1_chainResults] = STL1_MH.maximizeLikelihood([],STL1_MHOptions,'MetropolisHastings');
+    % Update parameters in the model:
+    STL1_MH.parameters(:,2) = num2cell(STL1_MH_pars);
+end
+STL1_MH.plotMHResults(STL1_chainResults,STL1_FIMlog);
+STL1_MH.makeFitPlot
+
 %% FIM inverse
 % The inverse of the FIM provides an estimate of the model uncertainty.
 % Here we are going to look at the FIM for the log of the model parameters
 % and use that to compute the covariance of the log of the parameters.
 % (Because parameters are positive values, but can very significantly in
 % their magnitudes, it is often useful to examine them in a log-scale).
+example_6_SensitivityAnalysis
+example_7_FIM
+
 STL1_FIMlog = diag([STL1_MH.parameters{:,2}]) * STL1_fimTotal{1}...
                           * diag([STL1_MH.parameters{:,2}]);
 STL1_covLog = STL1_FIMlog^-1;
@@ -130,9 +160,9 @@ STL1_covLogMod = (STL1_FIMlog+1*diag(size(STL1_FIMlog,1)))^(-1);
 
 % Here, we set up the MH parameters:
 STL1_MH.solutionScheme = 'FSP'; % Set solutions scheme to FSP Sensitivity
-STL1_MH.fittingOptions.modelVarsToFit = 1:4;
+STL1_MH.fittingOptions.modelVarsToFit = 1:7;
 STL1_MHOptions = struct('numberOfSamples',3000,'burnin',100,'thin',3);
-proposalWidthScale = 0.001;
+proposalWidthScale = 0.000001;
 STL1_MHOptions.proposalDistribution  = ...
  @(x)mvnrnd(x,proposalWidthScale * (STL1_covLogMod + STL1_covLogMod')/2);
 
@@ -177,7 +207,7 @@ for i=1:3
 
     % Run Met. Hast.    
     STL1_covLogMod = (STL1_FIMlog{1} + diag(size(STL1_FIMlog{1},1)))^(-1); % Adjusted proposal dist. covariance.
-    proposalWidthScale = 0.0000000000000001;
+    proposalWidthScale = 0.000001;
     STL1_MHOptions.proposalDistribution  = @(x)mvnrnd(x,proposalWidthScale*(STL1_covLogMod+STL1_covLogMod')/2);
     [STL1pars,STL1_likelihood,STL1_chainResults] = STL1_MH.maximizeLikelihood([],STL1_MHOptions,'MetropolisHastings');
     % Update parameters in the model:
