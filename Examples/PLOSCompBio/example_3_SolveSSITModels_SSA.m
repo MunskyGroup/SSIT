@@ -1,9 +1,9 @@
 %% example_3_SolveSSITModels_SSA
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Section 2.2: Finding and visualizing master equation solutions
 %   * Compute Stochastic Simulation Algorithm (SSA) trajectories
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Preliminaries
 % Use the models from example_1_CreateSSITModels
@@ -21,11 +21,11 @@ STL1.summarizeModel
 Model.tSpan = linspace(0,20,200);
 STL1.tSpan = linspace(0,20,200);
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(1): Use Gillepsie's Stochastic Simulation Algorithm (SSA) 
-% to solve the time evolution of state space probabilities for 
+% to solve the time evolution of state space probabilities for   
 % the bursting gene example model from example_1_CreateSSITModels  
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Run Gillepsie's Stochastic Simulation Algorithm (SSA) and analyse 
 %% trajectories
@@ -69,11 +69,11 @@ STL1.tSpan = linspace(0,20,200);
     makeSSAvideo(Model_SSAsoln, 'all', 100, Model_SSA.species, ...
         'Model_SSA_video')
         
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(2): Use Gillepsie's Stochastic Simulation Algorithm (SSA) 
-% to solve the time evolution of state space probabilities for 
-% the time-varying STL1 yeast model from example_1_CreateSSITModels  
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% to solve the time evolution of state space probabilities for the 
+% time-varying STL1 yeast model from example_1_CreateSSITModels  
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% STL1 Model:
     % Create a copy of the time-varying STL1 yeast model for SSA:

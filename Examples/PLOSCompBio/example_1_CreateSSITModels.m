@@ -1,20 +1,21 @@
 %% example_1_CreateSSITModels
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Section 2.1: Creating, Saving, and Loading Models in SSIT
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Preliminaries:
 clear
 close all
 addpath(genpath('../../src'));
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(1): Create a simple Bursting Gene model in SSIT
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% This model consists of 3 species: 
 % an inactive gene ('offGene'), an activated gene ('onGene'), and mRNA. 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% There are four reactions, each with a unique rate parameter: 
 % activation ('kon'), inactivation ('koff'), transcription ('kr'), 
@@ -38,29 +39,13 @@ Model.propensityFunctions = {'kon * offGene';'koff * onGene';...
 % Set initial guesses for parameters:
 Model.parameters = ({'kon',0.2; 'koff',0.2; 'kr',10; 'gr',5});
 
-% Set initial condition (one 'offGene'):
-Model.initialCondition = [1;0;0]; 
-
-% Print a summary of our Model:
-Model.summarizeModel
-
-%%
-save('Model.mat','Model')
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Ex.(2) Create an SSIT model for real, time-varying experimental data: 
-%%           yeast STL1 data provided by the Vanderbilt Q_BIO Group
-%
-% Create, solve, and fit a CME model to single-cell smFISH data. 
-% The dataset is from yeast STL1 collected in Dr. Gregor Neuert's 
-% laboratory at Vanderbilt University.
-%
-% Copy the Bursting Gene Model above to a new model, 'STL1'.  
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Ex(2): Copy the Bursting Gene Model above to a new model, 'STL1'.  
 % The species, reactions, and stochiometries remain the same; 
 % however, a change is made to the propensity for the first reaction 
 % (gene activation) so that its rate is controlled by a time-varying 
 % MAPK input signal. As a result, new parameters must also be added.
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Create a copy of the simple Bursting Gene model from above:
 STL1 = Model;

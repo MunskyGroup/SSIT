@@ -6,15 +6,15 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Preliminaries
-% Use the STL1 model from example_1_CreateSSITModels 
+% Use the STL1 model from example_1_CreateSSITModels
 %clear
 %close all
 addpath(genpath('../../src'));
 
-% example_1_CreateSSITModels  
+% example_1_CreateSSITModels 
 
 % View model summaries:
-STL1.summarizeModel
+STL1_data.summarizeModel
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Fit Multiple Models and Data sets with Shared Parameters
@@ -27,24 +27,34 @@ STL1.summarizeModel
 %        slightly different parameter combinations.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% Make a copy of the STL1 model for each replica:
+% Make a copy of the STL1 model for Replica 1:
+STL1_data_rep1 = STL1_data;
 
+% Set FSP tolerance and model parameters to fit:
+STL1_data_rep1.fspOptions.fspTol = inf;
+STL1_data_rep1.fittingOptions.modelVarsToFit = 1:7;
 
-%% Load and Associate smFISH Data
-% Each model is associated with its data as usual:
-Model1 = Model1.loadData('../ExampleData/DUSP1_Dex_100nM_Rep1_Rep2.csv',{'rna','RNA_nuc'},...
-    {'Rep_num','1'}); % This would load the data assign onGene and rna and condition on Rep_num = 1;
+%% Load and associate smFISH Data
+% Each model is associated with its data as usual
 
-Model1.fspOptions.fspTol = inf;
-Model1.fittingOptions.modelVarsToFit = 1:7;
+% Load the data, assigning 'mRNA' and 'RNA_STL1_total_TS3Full' 
+% and condition on 'Replica' = 1
+STL1_data_rep1 = ...
+  STL1_data_rep1.loadData('data/filtered_data_2M_NaCl_Step.csv',...
+                         {'mRNA','RNA_STL1_total_TS3Full'},{'Replica',1}); 
 
-% We generate functions for model propensities
-Model1 = Model1.formPropensitiesGeneral('Model1FSP');
+% Generate functions for model propensities
+STL1_data_rep1 = STL1_data_rep1.formPropensitiesGeneral('STL1_data');
 
 %% Create Second Model and associate to its own data
-Model2 = Model1;
-Model2 = Model2.loadData('../ExampleData/DUSP1_Dex_100nM_Rep1_Rep2.csv',{'rna','RNA_nuc'},...
-    {'Rep_num','2'}); % This would load the data assign onGene and rna and condition on Rep_num = 1;
+% Make a copy of the 'STL1_data_rep1' model for Replica 2
+STL1_data_rep2 = STL1_data_rep1;
+
+% Load the data, assigning 'mRNA' and 'RNA_STL1_total_TS3Full' 
+% and condition on 'Replica' = 2
+STL1_data_rep2 = ...
+   STL1_data_rep2.loadData('data/filtered_data_2M_NaCl_Step.csv',...
+                          {'mRNA','RNA_STL1_total_TS3Full'},{'Replica',2});
 
 %% Set Fitting Options
 fitAlgorithm = 'fminsearch';

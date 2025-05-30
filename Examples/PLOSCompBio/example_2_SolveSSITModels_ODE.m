@@ -1,9 +1,9 @@
 %% example_2_SolveSSITModels_ODE
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Section 2.2: Finding and visualizing master equation solutions
 %   * Compute Ordinary Differential Equations (ODEs)
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Preliminaries
 % Use the models from example_1_CreateSSITModels
@@ -21,11 +21,11 @@ STL1.summarizeModel
 Model.tSpan = linspace(0,20,200);
 STL1.tSpan = linspace(0,20,200);
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(1): Use deterministic, ordinary differential equations (ODEs) 
 % to average the time evolution of state space probabilities for 
 % the bursting gene example model from example_1_CreateSSITModels
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Model:
     % Create a copy of the bursting gene model for ODEs:
@@ -48,11 +48,11 @@ STL1.tSpan = linspace(0,20,200);
     makeODEmovie(Model_ODEsoln, Model_ODE.species, Model_ODE.tSpan, ...
                 'Model_ODE.mp4');
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(2): Use deterministic, ordinary differential equations (ODEs) 
 % to average the time evolution of state space probabilities for 
 % the time-varying STL1 yeast model from example_1_CreateSSITModels
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% STL1 Model:
     % Create a copy of the time-varying STL1 yeast model for ODEs:
