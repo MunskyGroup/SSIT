@@ -1818,6 +1818,50 @@ classdef SSIT
             obj.dataSet.dataNames = Tab.Properties.VariableNames;
             obj.dataSet.DATA = table2cell(Tab);
 
+            
+
+            %% ad hoc:
+            %% The gui data-loading function 'filterAndMarginalize', which 
+            %% is supposed to filter data by user-specified conditions, 
+            %% doesn't.
+            %% And it's a mess.  I tried and failed to fix it without 
+            %% breaking the Universe, so since this whole thing needs to be 
+            %% refactorized anyway, we're going to temporarily manually 
+            %% filter logic here in SSIT's 'loadData'. 
+            %% -AP
+            % Test for one condition:
+            %     conditionCol = find(strcmp(obj.dataSet.dataNames, conditions{i}));
+            %     conditionVals = obj.dataSet.DATA(:, conditionCol);
+            %   % Convert numeric values to strings for comparison
+            %     conditionValsStr = cellfun(@num2str, conditionVals, 'UniformOutput', false);
+            %     filteredIdx = strcmp(conditionValsStr, '1');
+            %     obj.dataSet.DATA = obj.dataSet.DATA(filteredIdx, :);
+
+            % Apply all user-specified filtering conditions 
+            for i = 1:size(conditions, 1)
+                conditionColName = conditions{i, 1};
+                conditionTarget = conditions{i, 2};
+            
+                % Find the column index for this condition
+                conditionCol = find(strcmp(obj.dataSet.dataNames, conditionColName));
+            
+                if isempty(conditionCol)
+                    error('Condition column "%s" not found in dataset.', conditionColName);
+                end
+            
+                % Extract and normalize the column values
+                columnVals = obj.dataSet.DATA(:, conditionCol);
+                columnValsStr = cellfun(@num2str, columnVals, 'UniformOutput', false);
+                conditionTargetStr = num2str(conditionTarget);
+            
+                % Find rows that match this condition
+                matchedIdx = strcmp(columnValsStr, conditionTargetStr);
+            
+                % Apply filter to keep only matching rows
+                obj.dataSet.DATA = obj.dataSet.DATA(matchedIdx, :);
+            end
+
+
             obj.dataSet.linkedSpecies = linkedSpecies;
 
             possibleTimeHeaders = {'time','Time','TIME','Time_index'};
@@ -1864,12 +1908,16 @@ classdef SSIT
                 obj.dataSet.app.DataLoadingAndFittingTabOutputs.marginalMatrix(I,J)=1;
             end
 
-            % set up conditionals
             obj.dataSet.app.DataLoadingAndFittingTabOutputs.conditionOnArray = {};
             for i=1:size(conditions,1)
                 J = find(strcmp(obj.dataSet.dataNames,conditions{i,1}));
-                obj.dataSet.app.DataLoadingAndFittingTabOutputs.conditionOnArray(end+1,:) = {J,conditions{i,2}};
+                val = conditions{i,2};
+                if isnumeric(val)
+                    val = num2str(val);
+                end
+                obj.dataSet.app.DataLoadingAndFittingTabOutputs.conditionOnArray(end+1,:) = {J, val};
             end
+
 
             % set to marginalize over everything else
             obj.dataSet.app.DataLoadingAndFittingTabOutputs.marginalMatrix(Nd+3,:) = ...
@@ -2716,26 +2764,36 @@ classdef SSIT
         end
 
         %% Plotting/Visualization Functions
-        function makePlot(obj,solution,plotType,indTimes,includePDO,figureNums,... ...
+        function makePlot(obj,solution,plotType,indTimes,includePDO,figureNums,...
                 lineProps,movieName,maxY,movieSpecies,senseVars,plotTitle)
             %% SSIT.makePlot - Tool to make plot of the FSP or SSA results.
             % Inputs:
-            %    solution - struct with SSIT solutions
-            %    plotType - chosen type of plot:
-            %       * FSP options:
-            %           'means' - mean versus time
-            %           'meansAndDevs' - means +/- STD vs time
-            %           'marginals' - marginal distributions over time
-            %           'joints' - joint distributions vs time
-            %       * sensFSP options:
-            %           'marginals' - sensitivity of marginal 
-            %                         distributions for each parameter 
-            %                         and time point
-            %       * SSA options: 
-            %           'means' - mean versus time
-            %           'meansAndDevs' - means +/- STD vs time
-            %           'trajectories' - set of individual trajectories 
-            %                            vs time
+            %    * solution - struct with SSIT solutions
+            %    * plotType - string, chosen type of plot:
+            %       ** FSP options:
+            %            'means' - mean versus time
+            %            'meansAndDevs' - means +/- STD vs time
+            %            'marginals' - marginal distributions over time
+            %            'joints' - joint distributions vs time
+            %       ** sensFSP options:
+            %            'marginals' - sensitivity of marginal 
+            %                          distributions for each parameter 
+            %                          and time point
+            %       ** SSA options: 
+            %            'means' - mean versus time
+            %            'meansAndDevs' - means +/- STD vs time
+            %            'trajectories' - set of individual trajectories 
+            %                             vs time
+            %    * indTimes - 
+            %    * includePDO - boolean, include calibrated PDO
+            %            default: false
+            %    * figureNums - 
+            %    * lineProps - 
+            %    * movieName -
+            %    * maxY - 
+            %    * movieSpecies - 
+            %    * senseVars - 
+            %    * plotTitle - string, title for plot
             %
             % Examples:
             %   F = SSIT('ToggleSwitch')

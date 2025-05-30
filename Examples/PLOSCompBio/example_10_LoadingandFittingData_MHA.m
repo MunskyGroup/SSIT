@@ -52,7 +52,7 @@ proposalWidthScale = 0.0001;
 % Model_MHOptions.proposalDistribution  = ...
 %  @(x)mvnrnd(x,proposalWidthScale * (Model_covLogMod + Model_covLogMod')/2);
 MHFitOptions = struct('proposalDistribution',@(x)mvnrnd(x,proposalWidthScale * COVfree),...
-    'numberOfSamples',10000,'burnin',1000,'thin',3);
+    'numberOfSamples',5000,'burnin',500,'thin',3);
 [STL1_MH_pars,~,MHResultsDusp1] = STL1_MH.maximizeLikelihood(...
     [], MHFitOptions, 'MetropolisHastings'); % Run Metropolis Hastings
 STL1_MH.parameters([1:7],2) = num2cell(STL1_MH_pars);
@@ -84,7 +84,7 @@ COVfree = (1/2*(FIMfree+FIMfree'))^(-1);  % Estimate Covariance using CRLB.
 % Define Metropolis Hasting Settings.
 STL1_MH.fittingOptions.logPrior = @(x)-sum((log10(x)-mu_log10([1:7])).^2./(2*sig_log10([1:7]).^2));
 MHFitOptions = struct('proposalDistribution',@(x)mvnrnd(x,proposalWidthScale*COVfree),...
-    'numberOfSamples',10000,'burnin',1000,'thin',3);
+    'numberOfSamples',5000,'burnin',500,'thin',3);
 [STL1_MH_pars,~,MHResults] = STL1_MH.maximizeLikelihood(...
     [], MHFitOptions, 'MetropolisHastings'); % Run Metropolis Hastings
 STL1_MH.parameters([1:7],2) = num2cell(STL1_MH_pars);

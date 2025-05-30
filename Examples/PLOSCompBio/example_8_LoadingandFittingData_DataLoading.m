@@ -6,12 +6,14 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Preliminaries
-% Use the STL1 model from example_1_CreateSSITModels 
+% Use the STL1 model from example_1_CreateSSITModels and FSP solutions from
+% example_4_SolveSSITModels_FSP
 %clear
 %close all
 addpath(genpath('../../src'));
 
-% example_1_CreateSSITModels  
+%example_1_CreateSSITModels 
+%example_4_SolveSSITModels_FSP
 
 % View model summary:
 STL1_FSP.summarizeModel
@@ -26,13 +28,12 @@ STL1_data = STL1_FSP;
 
 %% Load the experimental data, matching the species name of the model  
 %% ('mRNA') to the appropriate column in the data file ('rna') and filter 
-%% it so that only data from experiment 1, replica 1 is loaded:
+%% it so that only data from 'Replica' = 1 is loaded:
 
-% STL1_data = STL1_data.loadData('data/Hog1_exp_rep_CY5_combined.csv',...
-%                               {'mRNA','rna'},{'experiment',1;'replica',1});
-STL1_data = STL1_data.loadData('data/STL1.csv',...
-                               {'mRNA','rna'});
+ STL1_data = STL1_data.loadData('data/filtered_data_2M_NaCl_Step.csv',...
+                                {'mRNA','RNA_STL1_total_TS3Full'},...
+                                {'Replica',1;'Condition',0.2});
 
 % This plot is unnecessary, as the model parameters have not been fit to
 % the data yet.  However, it illustrates the improvement to come later:
-STL1_data.makeFitPlot
+%STL1_data.makeFitPlot
