@@ -75,8 +75,8 @@ STL1.summarizeModel
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % ModelChoice = 'BirthDeath';      % One species problem
-% ModelChoice = 'CentralDogma':    % Two species problem
-% ModelChoice = 'BurstingGene':    % Two species problem
+% ModelChoice = 'CentralDogma';    % Two species problem
+% ModelChoice = 'BurstingGene';    % Two species problem
 % ModelChoice = 'ToggleSwitch';    % Two species problem 
 %                                    (non-linear toggle switch)
 % ModelChoice = 'ToggleSwitch2';   % Two species problem

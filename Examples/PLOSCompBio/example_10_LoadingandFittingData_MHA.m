@@ -21,7 +21,7 @@ addpath(genpath('../../src'));
 % example_9_LoadingandFittingData_MLE
 
 % View model summaries:
-STL1_MLE_refit.summarizeModel
+STL1_MLE.summarizeModel
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Use Metropolis-Hastings to sample uncertainty 
@@ -31,15 +31,18 @@ STL1_MLE_refit.summarizeModel
 % Make a copy of our STL1 model for Metropolis-Hastings (MH):
 STL1_MH = STL1_MLE_refit;
 
+% Set MH runtime options - number of samples, burnin, thin sample set, etc.
+STL1_MHOptions = struct('numberOfSamples',1000,'burnin',100,'thin',1);
+
 % Run Metropolis-Hastings: 
-[STL1_MH_pars,~,MHResultsDusp1] = STL1_MH.maximizeLikelihood(...
-    [], MHFitOptions, 'MetropolisHastings');
+[STL1_MH_pars,~,STL1_MHResults] = STL1_MH.maximizeLikelihood(...
+    [], STL1_MHOptions, 'MetropolisHastings');
 
 % Store MH parameters in model:
 STL1_MH.parameters([1:7],2) = num2cell(STL1_MH_pars);
 
 % Plot results:
-STL1_MH.plotMHResults(MHResults,FIMfree,'log',[])
+STL1_MH.plotMHResults(STL1_MHResults,FIMfree,'log',[])
 STL1_MH.makeFitPlot
 
 %% Specify Bayesian Prior and fit
