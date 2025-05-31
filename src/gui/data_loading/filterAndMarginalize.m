@@ -33,6 +33,10 @@ end
 % not yet for more complicated conditions -- will require future testing.
 
 % this part determines which variables are conditioned over
+try
+    histDataStr = cellfun(@num2str,histDataRaw,'UniformOutput',false);
+catch
+end
 
 % convert double in cell to str
 if ~isempty(app.DataLoadingAndFittingTabOutputs.conditionOnArray)

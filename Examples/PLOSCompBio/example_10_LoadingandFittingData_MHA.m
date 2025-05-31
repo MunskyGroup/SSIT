@@ -7,7 +7,8 @@
 
 %% Preliminaries
 % Use the STL1 model from example_1_CreateSSITModels, FSP solutions from 
-% example_4_SolveSSITModels_FSP, FIM from example_7_FIM, and MLE from
+% example_4_SolveSSITModels_FSP, FIM from example_7_FIM, data loaded in 
+% example_8_LoadingandFittingData_DataLoading, and MLE computed in
 % example_9_LoadingandFittingData_MLE
 %clear
 %close all
@@ -16,6 +17,7 @@ addpath(genpath('../../src'));
 % example_1_CreateSSITModels  
 % example_4_SolveSSITModels_FSP
 % example_7_FIM
+% example_8_LoadingandFittingData_DataLoading
 % example_9_LoadingandFittingData_MLE
 
 % View model summaries:
@@ -26,99 +28,172 @@ STL1_MLE_refit.summarizeModel
 %   (and improve model parameter fit to data)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% Make new copies of our models:
+% Make a copy of our STL1 model for Metropolis-Hastings (MH):
 STL1_MH = STL1_MLE_refit;
+
+% Run Metropolis-Hastings: 
+[STL1_MH_pars,~,MHResultsDusp1] = STL1_MH.maximizeLikelihood(...
+    [], MHFitOptions, 'MetropolisHastings');
+
+% Store MH parameters in model:
+STL1_MH.parameters([1:7],2) = num2cell(STL1_MH_pars);
+
+% Plot results:
+STL1_MH.plotMHResults(MHResults,FIMfree,'log',[])
+STL1_MH.makeFitPlot
+
+%% Specify Bayesian Prior and fit
+% Specify the prior as log-normal distribution with wide uncertainty
+mu_log10 = [-1,-2,0,-2,1,-1,-1];  % Prior log-mean
+sig_log10 = 2*ones(1,7);          % Prior log-standard deviation
+STL1_MH.fittingOptions.logPrior = @(x)-sum((log10(x)-mu_log10).^2./...
+                                    (2*sig_log10.^2));
+
+% Choose parameters to search (in this case, all 7 model parameters):
+STL1_MH.fittingOptions.modelVarsToFit = [1:7];
+
+% Create initial parameter guess:
+STL1_MH_pars = [STL1_MH.parameters{:,2}]; 
+
+ % Fit to maximize likelihood:
+STL1_MH_pars = STL1_MH.maximizeLikelihood(STL1_MH_pars);
+
+% Update new parameters:
+STL1_MH.parameters(:,2) = num2cell(STL1_MH_pars);
+
+% Plot fitting results
+STL1_MH.makeFitPlot  
+
+%% Iterating between MLE and MH
+% Run a few rounds of MLE and MH to see if we can improve convergence:
+
+STL1_MH.parameters(:,2) = num2cell(STL1_MH_pars);
+
+for i=1:3
+
+    % Compute MLE:
+    STL1_MH_pars = STL1_MH.maximizeLikelihood([],fitOptions); 
+
+    % Update parameters in the model:
+    STL1_MH.parameters(:,2) = num2cell(STL1_MH_pars);
+
+    % Adjust proposal width scale (the default proposal distribution in 
+    % SSIT is "@(x)x+0.1*randn(size(x))", which leads to low acceptance in
+    % this case. A rule of thumb, depending on the data being analyzed, is 
+    % to aim for an MH acceptance ratio of around 0.3-0.4 (some say 25%):
+    proposalWidthScale = 0.01;
+    STL1_MH_Options.proposalDistribution  = ...
+       @(x)x+proposalWidthScale*randn(size(x));
+   
+    % Run MH:
+    [STL1_MH_pars,STL1_likelihood,STL1_chainResults] = ...
+       STL1_MH.maximizeLikelihood([],STL1_MH_Options,'MetropolisHastings');
+
+    % Update parameters in the model:
+    STL1_MH.parameters(:,2) = num2cell(STL1_MH_pars);
+end
+
+% Plot results:
+STL1_MH.plotMHResults(STL1_chainResults);
+STL1_MH.makeFitPlot
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Ex(2): Use FIM for Metropolis-Hastings proposal distribution 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Make new copies of our models:
+STL1_MH_FIM = STL1_MLE_refit;
 
 %% Compute FIM, Run Metropolis Hastings
 % Specify Prior as log-normal distribution with wide uncertainty
 mu_log10 = [-1,-2,0,-2,1,-1,-1];  % Prior log-mean
 sig_log10 = 2*ones(1,7);          % Prior log-standard deviation
-STL1_MH.fittingOptions.logPrior = @(x)-sum((log10(x)-mu_log10).^2./(2*sig_log10.^2));
+STL1_MH_FIM.fittingOptions.logPrior = @(x)-sum((log10(x)-mu_log10).^2./(2*sig_log10.^2));
 
-STL1_MH.fittingOptions.modelVarsToFit = [1:7]; % Choose parameters to search
-STL1_MH_pars = [STL1_MH.parameters{:,2}];         % Create first parameter guess
+STL1_MH_FIM.fittingOptions.modelVarsToFit = [1:7]; % Choose parameters to search
+STL1_MH_FIM_pars = [STL1_MH_FIM.parameters{:,2}];         % Create first parameter guess
 
 
-fimResults = STL1_MH.computeFIM([],'log'); % Compute individual FIMs
-fimTotal = STL1_MH.evaluateExperiment(fimResults,STL1_MH.dataSet.nCells,...
+fimResults = STL1_MH_FIM.computeFIM([],'log'); % Compute individual FIMs
+fimTotal = STL1_MH_FIM.evaluateExperiment(fimResults,STL1_MH_FIM.dataSet.nCells,...
     diag(sig_log10.^2)); % Compute total FIM including effect of prior.
-STL1_MH.fittingOptions.modelVarsToFit = [1:7]; % Choose parameters to search
+STL1_MH_FIM.fittingOptions.modelVarsToFit = [1:7]; % Choose parameters to search
 FIMfree = fimTotal{1}([1:7],[1:7]); % Select FIM for free parameters.
 COVfree = (1/2*(FIMfree+FIMfree'))^(-1);  % Estimate Covariance using CRLB.
 
 % Define Metropolis Hasting Settings.
-STL1_MH.fittingOptions.logPrior = @(x)-sum((log10(x)-mu_log10([1:7])).^2./(2*sig_log10([1:7]).^2));
+STL1_MH_FIM.fittingOptions.logPrior = @(x)-sum((log10(x)-mu_log10([1:7])).^2./(2*sig_log10([1:7]).^2));
 proposalWidthScale = 0.0001;
 % Model_MHOptions.proposalDistribution  = ...
 %  @(x)mvnrnd(x,proposalWidthScale * (Model_covLogMod + Model_covLogMod')/2);
-MHFitOptions = struct('proposalDistribution',@(x)mvnrnd(x,proposalWidthScale * COVfree),...
+STL1_MH_FIMOptions = struct('proposalDistribution',@(x)mvnrnd(x,proposalWidthScale * COVfree),...
     'numberOfSamples',5000,'burnin',500,'thin',3);
-[STL1_MH_pars,~,MHResultsDusp1] = STL1_MH.maximizeLikelihood(...
-    [], MHFitOptions, 'MetropolisHastings'); % Run Metropolis Hastings
-STL1_MH.parameters([1:7],2) = num2cell(STL1_MH_pars);
+[STL1_MH_FIM_pars,~,MHResultsDusp1] = STL1_MH_FIM.maximizeLikelihood(...
+    [], STL1_MH_FIMOptions, 'MetropolisHastings'); % Run Metropolis Hastings
+STL1_MH_FIM.parameters([1:7],2) = num2cell(STL1_MH_FIM_pars);
 
-STL1_MH.plotMHResults(MHResultsDusp1,FIMfree,'log',[])
+STL1_MH_FIM.plotMHResults(MHResultsDusp1,FIMfree,'log',[])
 
 %% Specify Bayesian Prior and fit
 % Specify Prior as log-normal distribution with wide uncertainty
 mu_log10 = [-1,-2,0,-2,1,-1,-1];  % Prior log-mean
 sig_log10 = 2*ones(1,7);          % Prior log-standard deviation
-STL1_MH.fittingOptions.logPrior = @(x)-sum((log10(x)-mu_log10).^2./(2*sig_log10.^2));
+STL1_MH_FIM.fittingOptions.logPrior = @(x)-sum((log10(x)-mu_log10).^2./(2*sig_log10.^2));
 
-STL1_MH.fittingOptions.modelVarsToFit = [1:7]; % Choose parameters to search
-STL1_MH_pars = [STL1_MH.parameters{:,2}];         % Create first parameter guess
-STL1_MH_pars = STL1_MH.maximizeLikelihood(STL1_MH_pars); % Fit to maximize likelihood
-STL1_MH.parameters(:,2) = num2cell(STL1_MH_pars); % Update new parameters.
-STL1_MH.makeFitPlot  % Plot fitting results
+STL1_MH_FIM.fittingOptions.modelVarsToFit = [1:7]; % Choose parameters to search
+STL1_MH_FIM_pars = [STL1_MH_FIM.parameters{:,2}];         % Create first parameter guess
+STL1_MH_FIM_pars = STL1_MH_FIM.maximizeLikelihood(STL1_MH_FIM_pars); % Fit to maximize likelihood
+STL1_MH_FIM.parameters(:,2) = num2cell(STL1_MH_FIM_pars); % Update new parameters.
+STL1_MH_FIM.makeFitPlot  % Plot fitting results
 % You may need to re-run this multiple times until converged.
 % I got a MLE of -52,454.1 after a few runs. 
 
 %% Compute FIM, Run Metropolis Hastings
-fimResults = STL1_MH.computeFIM([],'log'); % Compute individual FIMs
-fimTotal = STL1_MH.evaluateExperiment(fimResults,STL1_MH.dataSet.nCells,...
+fimResults = STL1_MH_FIM.computeFIM([],'log'); % Compute individual FIMs
+fimTotal = STL1_MH_FIM.evaluateExperiment(fimResults,STL1_MH_FIM.dataSet.nCells,...
     diag(sig_log10.^2)); % Compute total FIM including effect of prior.
-STL1_MH.fittingOptions.modelVarsToFit = [1:7]; % Choose parameters to search
+STL1_MH_FIM.fittingOptions.modelVarsToFit = [1:7]; % Choose parameters to search
 FIMfree = fimTotal{1}([1:7],[1:7]); % Select FIM for free parameters.
 COVfree = (1/2*(FIMfree+FIMfree'))^(-1);  % Estimate Covariance using CRLB.
 
 % Define Metropolis Hasting Settings.
-STL1_MH.fittingOptions.logPrior = @(x)-sum((log10(x)-mu_log10([1:7])).^2./(2*sig_log10([1:7]).^2));
-MHFitOptions = struct('proposalDistribution',@(x)mvnrnd(x,proposalWidthScale*COVfree),...
+STL1_MH_FIM.fittingOptions.logPrior = @(x)-sum((log10(x)-mu_log10([1:7])).^2./(2*sig_log10([1:7]).^2));
+STL1_MH_FIMOptions = struct('proposalDistribution',@(x)mvnrnd(x,proposalWidthScale*COVfree),...
     'numberOfSamples',5000,'burnin',500,'thin',3);
-[STL1_MH_pars,~,MHResults] = STL1_MH.maximizeLikelihood(...
-    [], MHFitOptions, 'MetropolisHastings'); % Run Metropolis Hastings
-STL1_MH.parameters([1:7],2) = num2cell(STL1_MH_pars);
+[STL1_MH_FIM_pars,~,MHResults] = STL1_MH_FIM.maximizeLikelihood(...
+    [], STL1_MH_FIMOptions, 'MetropolisHastings'); % Run Metropolis Hastings
+STL1_MH_FIM.parameters([1:7],2) = num2cell(STL1_MH_FIM_pars);
 
-STL1_MH.plotMHResults(MHResults,FIMfree,'log',[])
+STL1_MH_FIM.plotMHResults(MHResults,FIMfree,'log',[])
 
-STL1_MH.makeFitPlot
+STL1_MH_FIM.makeFitPlot
 
 %% Iterating between MLE and MH
 % Let's run a few rounds of MLE and MH to see if we can get better
 % convergence.
-STL1_MH.parameters(:,2) = num2cell(STL1_MH_pars);
+STL1_MH_FIM.parameters(:,2) = num2cell(STL1_MH_FIM_pars);
 for i=1:3
     % Maximize likelihood
-    STL1_MH_pars = STL1_MH.maximizeLikelihood([],fitOptions);    
+    STL1_MH_FIM_pars = STL1_MH_FIM.maximizeLikelihood([],fitOptions);    
     % Update parameters in the model:
-    STL1_MH.parameters(:,2) = num2cell(STL1_MH_pars);
+    STL1_MH_FIM.parameters(:,2) = num2cell(STL1_MH_FIM_pars);
     
     % Compute FIM
-    STL1_MH.solutionScheme = 'fspSens'; % Set solutions scheme to FSP Sensitivity
-    [STL1_sensSoln] = STL1_MH.solve;  % Solve the sensitivity problem
-    STL1_fimResults = STL1_MH.computeFIM(STL1_sensSoln.sens,'log');
-    STL1_FIMlog = STL1_FIM.evaluateExperiment(STL1_fimResults,STL1_MH.dataSet.nCells);
+    STL1_MH_FIM.solutionScheme = 'fspSens'; % Set solutions scheme to FSP Sensitivity
+    [STL1_sensSoln] = STL1_MH_FIM.solve;  % Solve the sensitivity problem
+    STL1_fimResults = STL1_MH_FIM.computeFIM(STL1_sensSoln.sens,'log');
+    STL1_FIMlog = STL1_MH_FIM.evaluateExperiment(STL1_fimResults,STL1_MH_FIM.dataSet.nCells);
 
     % Run Met. Hast.    
     STL1_covLogMod = (STL1_FIMlog{1} + diag(size(STL1_FIMlog{1},1)))^(-1); % Adjusted proposal dist. covariance.
     proposalWidthScale = 0.000000001;
-    STL1_MHOptions.proposalDistribution  = @(x)mvnrnd(x,proposalWidthScale*(STL1_covLogMod+STL1_covLogMod')/2);
-    [STL1_MH_pars,STL1_likelihood,STL1_chainResults] = STL1_MH.maximizeLikelihood([],STL1_MHOptions,'MetropolisHastings');
+    STL1_MH_FIMOptions.proposalDistribution  = @(x)mvnrnd(x,proposalWidthScale*(STL1_covLogMod+STL1_covLogMod')/2);
+    [STL1_MH_FIM_pars,STL1_likelihood_FIM,STL1_chainResults_FIM] = STL1_MH_FIM.maximizeLikelihood([],STL1_MH_FIMOptions,'MetropolisHastings');
     % Update parameters in the model:
-    STL1_MH.parameters(:,2) = num2cell(STL1_MH_pars);
+    STL1_MH_FIM.parameters(:,2) = num2cell(STL1_MH_FIM_pars);
 end
-STL1_MH.plotMHResults(STL1_chainResults,STL1_FIMlog);
-STL1_MH.makeFitPlot
+STL1_MH_FIM.plotMHResults(STL1_chainResults_FIM,STL1_FIMlog);
+STL1_MH_FIM.makeFitPlot
 
 %% FIM inverse
 % The inverse of the FIM provides an estimate of the model uncertainty.
@@ -167,7 +242,7 @@ STL1_MHOptions.proposalDistribution  = ...
  @(x)mvnrnd(x,proposalWidthScale * (STL1_covLogMod + STL1_covLogMod')/2);
 
 % Next, we call the codes to sample the posterior parameter space:
-[STL1pars,STL1_likelihood,STL1_chainResults] = ...
+[STL1pars,STL1_likelihood_FIM,STL1_chainResults_FIM] = ...
     STL1_MH.maximizeLikelihood([],STL1_MHOptions,'MetropolisHastings');
 % When this runs, you want to see an acceptance of about 0.3 to 0.4, meaning that
 % about a third of the proposals are accepted.  If the number is too small
@@ -209,7 +284,7 @@ for i=1:3
     STL1_covLogMod = (STL1_FIMlog{1} + diag(size(STL1_FIMlog{1},1)))^(-1); % Adjusted proposal dist. covariance.
     proposalWidthScale = 0.000001;
     STL1_MHOptions.proposalDistribution  = @(x)mvnrnd(x,proposalWidthScale*(STL1_covLogMod+STL1_covLogMod')/2);
-    [STL1pars,STL1_likelihood,STL1_chainResults] = STL1_MH.maximizeLikelihood([],STL1_MHOptions,'MetropolisHastings');
+    [STL1pars,STL1_likelihood_FIM,STL1_chainResults] = STL1_MH.maximizeLikelihood([],STL1_MHOptions,'MetropolisHastings');
     % Update parameters in the model:
     STL1_MH.parameters(:,2) = num2cell(STL1pars);
 end
