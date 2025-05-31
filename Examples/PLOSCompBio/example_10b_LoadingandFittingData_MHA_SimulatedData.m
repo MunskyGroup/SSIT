@@ -66,7 +66,7 @@ STL1_MH_sim.makeFitPlot
 
 %% Specify Bayesian Prior and fit
 % Specify the prior as log-normal distribution with wide uncertainty
-mu_log10 = [-1,-2,0,-2];  % Prior log-mean
+mu_log10 = [-1,-1,1,1];  % Prior log-mean
 sig_log10 = 2*ones(1,4);  % Prior log-standard deviation
 Model_MH_sim.fittingOptions.logPrior = @(x)-sum((log10(x)-mu_log10).^2./...
                                         (2*sig_log10.^2));
@@ -87,10 +87,10 @@ Model_MH_sim.parameters(:,2) = num2cell(Model_MH_sim_pars);
 Model_MH_sim.makeFitPlot  
 
 %% STL1 %%
-mu_log10 = [-1,-2,0,-2,1,-1,-1];  % Prior log-mean
+mu_log10 = [-1,1,1,1,1,-2,-2];    % Prior log-mean
 sig_log10 = 2*ones(1,7);          % Prior log-standard deviation
 STL1_MH_sim.fittingOptions.logPrior = @(x)-sum((log10(x)-mu_log10).^2./...
-                                    (2*sig_log10.^2));
+                                       (2*sig_log10.^2));
 
 % Choose parameters to search (in this case, all 7 model parameters):
 STL1_MH_sim.fittingOptions.modelVarsToFit = [1:7];

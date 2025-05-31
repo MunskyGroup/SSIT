@@ -109,8 +109,8 @@ STL1_MH_FIM = STL1_MLE_refit;
 
 %% Compute FIM, Run Metropolis Hastings
 % Specify Prior as log-normal distribution with wide uncertainty
-mu_log10 = [-1,-2,0,-2,1,-1,-1];  % Prior log-mean
-sig_log10 = 2*ones(1,7);          % Prior log-standard deviation
+mu_log10 = [-1,1,1,1,1,-2,-2];  % Prior log-mean 
+sig_log10 = 2*ones(1,7);        % Prior log-standard deviation
 STL1_MH_FIM.fittingOptions.logPrior = @(x)-sum((log10(x)-mu_log10).^2./(2*sig_log10.^2));
 
 STL1_MH_FIM.fittingOptions.modelVarsToFit = [1:7]; % Choose parameters to search
@@ -139,8 +139,8 @@ STL1_MH_FIM.plotMHResults(MHResultsDusp1,FIMfree,'log',[])
 
 %% Specify Bayesian Prior and fit
 % Specify Prior as log-normal distribution with wide uncertainty
-mu_log10 = [-1,-2,0,-2,1,-1,-1];  % Prior log-mean
-sig_log10 = 2*ones(1,7);          % Prior log-standard deviation
+mu_log10 = [-1,1,1,1,1,-2,-2];  % Prior log-mean
+sig_log10 = 2*ones(1,7);        % Prior log-standard deviation
 STL1_MH_FIM.fittingOptions.logPrior = @(x)-sum((log10(x)-mu_log10).^2./(2*sig_log10.^2));
 
 STL1_MH_FIM.fittingOptions.modelVarsToFit = [1:7]; % Choose parameters to search
@@ -161,7 +161,7 @@ COVfree = (1/2*(FIMfree+FIMfree'))^(-1);  % Estimate Covariance using CRLB.
 
 % Define Metropolis Hasting Settings.
 STL1_MH_FIM.fittingOptions.logPrior = @(x)-sum((log10(x)-mu_log10([1:7])).^2./(2*sig_log10([1:7]).^2));
-STL1_MH_FIMOptions = struct('proposalDistribution',@(x)mvnrnd(x,proposalWidthScale*COVfree),...
+STL1_MH_FIMOptions = struct('proposalDistribution',@(x)mvnrnd(x,proposalWidthScale*COVfree),... % @(x)mvnrnd(x,proposalWidthScale*COVfree) + x!!!! don't just replace x
     'numberOfSamples',5000,'burnin',500,'thin',3);
 [STL1_MH_FIM_pars,~,MHResults] = STL1_MH_FIM.maximizeLikelihood(...
     [], STL1_MH_FIMOptions, 'MetropolisHastings'); % Run Metropolis Hastings

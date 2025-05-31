@@ -3264,6 +3264,16 @@ classdef SSIT
                 mhResultsSecondHalf.mhSamples = mhResultsSecondHalf.mhSamples(floor(end/2):end,:);
                 [valDoneSorted,J] = sort(mhResultsSecondHalf.mhValue);
                 smplDone = mhResultsSecondHalf.mhSamples(J,:);
+
+                % Compute and display parameter means and standard deviations
+                mhMeans = mean(smplDone) / log(10);   % log10 scale
+                mhStds  = std(smplDone) / log(10);
+
+                fprintf('\nMH sample means and standard deviations (log10 scale):\n');
+                for p = 1:Np
+                    fprintf('%15s: mean = % .4f, std = %.4f\n', parNames{p}, mhMeans(p), mhStds(p));
+                end
+
             end
 
             fimCols = {'k','c','b','g','r'};
@@ -3286,6 +3296,13 @@ classdef SSIT
                     end
                     if exist('mhResultsSecondHalf','var')&&~isempty(mhResultsSecondHalf)
                         ssit.parest.ellipse(par0,icdf('chi2',0.9,2)*cov12,'m--','linewidth',2);  hold on;
+                        % Draw crosshairs at MH mean ± std
+                        % plot([mhMeans(j)-mhStds(j), mhMeans(j)+mhStds(j)], [mhMeans(i), mhMeans(i)], 'm-', 'LineWidth', 1.5);
+                        % plot([mhMeans(j), mhMeans(j)], [mhMeans(i)-mhStds(i), mhMeans(i)+mhStds(i)], 'm-', 'LineWidth', 1.5);
+                        % 
+                        % % Annotate mean location
+                        % text(mhMeans(j), mhMeans(i), sprintf('\\leftarrow Mean'), 'Color', 'm', 'FontSize', 8, 'HorizontalAlignment', 'left');
+
                     end
                     xlabel(['log_{10}(',parNames{j},')']);
                     ylabel(['log_{10}(',parNames{i},')']);

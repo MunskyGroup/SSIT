@@ -62,7 +62,7 @@ STL1.inputExpressions = {'IHog',...
 
 % Add the new parameters from the TF/MAPK input signal:
 STL1.parameters = ({'koff',0.2; 'kr',10; 'gr',5;...
-                    'a0',5; 'a1',10; 'r1',0.004; 'r2',.01});
+                    'a0',5; 'a1',10; 'r1',0.004; 'r2',.01}); 
 
 % Print a summary of STL1 Model:
 STL1.summarizeModel
