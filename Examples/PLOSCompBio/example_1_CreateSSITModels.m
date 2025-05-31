@@ -11,21 +11,21 @@ addpath(genpath('../../src'));
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(1): Create a simple Bursting Gene model in SSIT
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-%% This model consists of 3 species: 
-% an inactive gene ('offGene'), an activated gene ('onGene'), and mRNA. 
+%%  This model consists of 3 species: 
+%   an inactive gene ('offGene'), an activated gene ('onGene'), and mRNA. 
+%%  There are four reactions, each with a unique rate parameter: 
+%   activation ('kon'), inactivation ('koff'), transcription ('kr'), 
+%   and mRNA degradation ('gr')
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-%% There are four reactions, each with a unique rate parameter: 
-% activation ('kon'), inactivation ('koff'), transcription ('kr'), 
-% and mRNA degradation ('gr')
 
 % Create an SSIT instance and call it 'Model':
 Model = SSIT;    
 
 % Set species names for bursting gene expression model:
 Model.species = {'offGene';'onGene';'mRNA'}; 
+
+% Set initial condition:
+Model.initialCondition = [2;0;0];           
 
 % Set stoichiometry of reactions:
 Model.stoichiometry = [-1,1,0,0;...
@@ -38,6 +38,9 @@ Model.propensityFunctions = {'kon * offGene';'koff * onGene';...
 
 % Set initial guesses for parameters:
 Model.parameters = ({'kon',0.2; 'koff',0.2; 'kr',10; 'gr',5});
+
+% Print a summary of STL1 Model:
+Model.summarizeModel
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(2): Copy the Bursting Gene Model above to a new model, 'STL1'.  

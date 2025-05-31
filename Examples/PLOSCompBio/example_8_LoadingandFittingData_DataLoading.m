@@ -6,7 +6,7 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Preliminaries
-% Use the STL1 model from example_1_CreateSSITModels and FSP solutions from
+% Use the STL1 model from example_1_CreateSSITModels and 
 % example_4_SolveSSITModels_FSP
 %clear
 %close all
