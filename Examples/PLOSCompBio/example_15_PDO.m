@@ -17,13 +17,13 @@
 addpath(genpath('../../'));
 addpath(genpath('tmpPropensityFunctions'));
 
-example_1_CreateSSITModels  
-example_4_SolveSSITModels_FSP
-example_6_SensitivityAnalysis
-example_7_FIM
-example_8_LoadingandFittingData_DataLoading
-example_9_LoadingandFittingData_MLE
-example_10_LoadingandFittingData_MHA
+% example_1_CreateSSITModels  
+% example_4_SolveSSITModels_FSP
+% example_6_SensitivityAnalysis
+% example_7_FIM
+% example_8_LoadingandFittingData_DataLoading
+% example_9_LoadingandFittingData_MLE
+% example_10_LoadingandFittingData_MHA
 
 % View model summary:
 STL1_MH.summarizeModel
@@ -39,6 +39,22 @@ STL1_PDO = STL1_MH;
 %     computed from mRNA spot count data
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+figNew = figure;
+plotColors = struct('scatter', [0.2, 0.6, 1], ...
+           'ellipseFIM', 'r', ...
+           'ellipseMH', 'g--', ...
+           'marker', [0.1, 0.1, 0.1]);
+
+sig_log10 = 2*ones(1,7);
+
+fimTotal = STL1_PDO.evaluateExperiment(STL1_fimResults,...
+    STL1_PDO.dataSet.nCells,diag(sig_log10.^2));
+
+STL1_PDO.plotMHResults(STL1_MHResults,[fimTotal],...
+                       'log',[],figNew,plotColors)
+
+%%
+
 % Find and store the total number of cells in your data set (already
 % computed by SSIT when data was loaded in example_8:
 nTotal = sum(STL1_PDO.dataSet.nCells);
@@ -49,36 +65,23 @@ nTotal = sum(STL1_PDO.dataSet.nCells);
 nCellsOpt = STL1_PDO.optimizeCellCounts(STL1_fimResults,...
                                         nTotal,'tr[1:7]');
 
-sig_log10 = 2*ones(1,7); 
-
 nCellsOptAvail = min(nCellsOpt,STL1_PDO.dataSet.nCells)
 fimOpt = STL1_PDO.evaluateExperiment(STL1_fimResults,...
                                         nCellsOpt,diag(sig_log10.^2));
 fimOptAvail = STL1_PDO.evaluateExperiment(STL1_fimResults,...
                                       nCellsOptAvail,diag(sig_log10.^2));
 figOpt = figure;
-STL1_PDO.plotMHResults(STL1_MHResults,[fimOpt,fimTotal],'log',[],figOpt);
+STL1_PDO.plotMHResults(STL1_MHResults,[fimOpt,STL1_fimTotal],...
+                       'log',[],figOpt,plotColors);
 figOptAvail = figure;
-STL1_PDO.plotMHResults(STL1_MHResults,[fimOptAvail,fimTotal],'log',...
-                                                         [],figOptAvail);
-for i = 1:3
-    for j = i:3
-        subplot(3,3,(i-1)*3+j)
-        CH = get(gca,'Children');
-        CH(1).Color=[1,0,1];
-        CH(1).LineWidth = 3;
-        CH(2).Color=[0,0,0];
-        CH(2).LineWidth = 3;
-        CH(3).Color=[0,1,1];
-        CH(3).LineWidth = 3;
-    end
-end
+STL1_PDO.plotMHResults(STL1_MHResults,[fimOptAvail,STL1_fimTotal],...
+                       'log',[],figOptAvail,plotColors);
 
 f = figure;
 set(f,'Position',[616   748   412   170])
 bar([1:16],STL1_PDO.dataSet.nCells,0.45)
 hold on
-bar([1:200]+0.5,nCellsOpt,0.45)
+bar([1:13]+0.5,nCellsOpt,0.45)
 set(gca,'xtick',[1:16]+0.25,'xticklabel',STL1_PDO.dataSet.times,...
                                          'fontsize',16,'ylim',[0,7000])
 legend('Intuitive Design','Optimal Design')
@@ -121,24 +124,8 @@ nCellsOptPDO = STL1_PDO.optimizeCellCounts(fimsPDO,nTotal,'tr[1:7]');
 
 
 figPDO = figure;
-STL1_PDO.plotMHResults(STL1_MHResults,...
-    [fimPDO,fimTotal,fimOpt],'log',[],figPDO);
-for i = 1:3
-    for j = i:3
-        subplot(3,3,(i-1)*3+j)
-        CH = get(gca,'Children');
-        CH(1).Color=[0,0,0];   % MH - black
-        CH(1).LineWidth = 3;
-        CH(2).Color=[0,0,0];   % MLE - black
-        CH(2).LineWidth = 3;
-        CH(3).Color=[0,0,1];   % fimPDOSpots - cyan
-        CH(3).LineWidth = 3;
-        CH(4).Color=[0,1,1];   % fimTotal - blue 
-        CH(4).LineWidth = 3;
-        CH(5).Color=[1,0,1];   % fimOpt - magenta
-        CH(5).LineWidth = 3;
-    end
-end
+STL1_PDO.plotMHResults(STL1_MHResults,[fimPDO,STL1_fimTotal,fimOpt],...
+                       'log',[],figPDO);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% FIM + PDO analyses
@@ -154,20 +141,4 @@ nCellsOptPDO = STL1_PDO_intens.optimizeCellCounts(fimsPDOintens,...
 
 figintens = figure;
 STL1_PDO_intens.plotMHResults(STL1_MHResults,...
-                     [fimPDOintens,fimTotal,fimOpt],'log',[],figintens);
-for i = 1:3
-    for j = i:3
-        subplot(3,3,(i-1)*3+j)
-        CH = get(gca,'Children');
-        CH(1).Color=[0,0,0];   % MH - black
-        CH(1).LineWidth = 3;
-        CH(2).Color=[0,0,0];   % MLE - black
-        CH(2).LineWidth = 3;
-        CH(3).Color=[0,0,1];   % fimPDOSpots - cyan
-        CH(3).LineWidth = 3;
-        CH(4).Color=[0,1,1];   % fimTotal - blue 
-        CH(4).LineWidth = 3;
-        CH(5).Color=[1,0,1];   % fimOpt - magenta
-        CH(5).LineWidth = 3;
-    end
-end
+                   [fimPDOintens,STL1_fimTotal,fimOpt],'log',[],figintens);

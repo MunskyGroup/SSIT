@@ -3172,7 +3172,7 @@ classdef SSIT
         end
     end
     methods (Static)
-        function plotMHResultsStatic(obj,mhResults,FIM,fimScale,mhPlotScale,scatterFig,showConvergence)
+        function plotMHResultsStatic(obj,mhResults,FIM,fimScale,mhPlotScale,scatterFig,showConvergence,plotColors)
             arguments
                 obj
                 mhResults = [];
@@ -3180,7 +3180,48 @@ classdef SSIT
                 fimScale = 'lin';
                 mhPlotScale = 'log10';
                 scatterFig = [];
-                showConvergence = true
+                showConvergence = true;
+                plotColors = struct() % Optional: fields like scatter, ellipseFIM, ellipseMH, etc.
+            end
+
+            fieldsPropens2Test = {'timeDependentFactor','stateDependentFactor','jointDependentFactor','hybridFactor'};
+                            for field = fieldsPropens2Test
+                                if ~isempty(obj.propensitiesGeneral{1}.(field{1}))
+                                    if ~isa(obj.propensitiesGeneral{1}.(field{1}),'function_handle')
+                                        error('Missing Function')
+                                    end
+                                end
+                                % 
+                                %     if nargin(obj.propensitiesGeneral{1}.(field{1}))==1
+                                %         obj.propensitiesGeneral{1}.(field{1})(0);
+                                %     elseif nargin(obj.propensitiesGeneral{1}.(field{1}))==2
+                                %         obj.propensitiesGeneral{1}.(field{1})(0,0);
+                                %     end
+                                % end
+                            end
+
+            if isfield(plotColors, 'scatter')
+                scatterColor = plotColors.scatter;
+            else
+                scatterColor = [];
+            end
+
+            if isfield(plotColors, 'ellipseFIM')
+                ellipseFIMColor = plotColors.ellipseFIM;
+            else
+                ellipseFIMColor = [];
+            end
+
+            if isfield(plotColors, 'ellipseMH')
+                ellipseMHColor = plotColors.ellipseMH;
+            else
+                ellipseMHColor = 'm--';
+            end
+
+            if isfield(plotColors, 'marker')
+                markerColor = plotColors.marker;
+            else
+                markerColor = 'k';
             end
 
             if isempty(obj)
@@ -3257,6 +3298,7 @@ classdef SSIT
                 else
                     figure(scatterFig);
                 end
+
 
                 % Select second half of MH chain.
                 mhResultsSecondHalf = mhResults;
