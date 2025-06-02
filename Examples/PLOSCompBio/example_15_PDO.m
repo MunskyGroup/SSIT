@@ -3,126 +3,171 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Section 2.5: Complex models
 %   * Use a probability distribution operator (PDO) to handle distortion 
-%   of data
+%     of data
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Preliminaries
-% Use the two models from example_1_CreateSSITModels, FSP solutions from 
-% example_4_SolveSSITModels_FSP, simulated data from 
-% example_1b_CreateSSITModels_SimulatingData, data loaded in 
-% example_8b_LoadingandFittingData_SimulatedDataLoading, and MLE computed 
-% in example_9b_LoadingandFittingData_MLE_SimulatedData
+% Use the STL1 model from example_1_CreateSSITModels, FSP solutions  
+% from example_4_SolveSSITModels_FSP, sensitivities computed in 
+% example_6_SensitivityAnalysis, FIM results from example_7_FIM,  
+% loaded data from example_8_LoadingandFittingData_DataLoading, and
+% Metropolis-Hastings results from example_10_LoadingandFittingData_MHA
 %clear
 %close all
-addpath(genpath('../../src'));
+addpath(genpath('../../'));
+addpath(genpath('tmpPropensityFunctions'));
 
-% example_1_CreateSSITModels  
-% example_4_SolveSSITModels_FSP
-% example_1b_CreateSSITModels_SimulatingData
-% example_8b_LoadingandFittingData_SimulatedDataLoading
-% example_9b_LoadingandFittingData_MLE_SimulatedData
+example_1_CreateSSITModels  
+example_4_SolveSSITModels_FSP
+example_6_SensitivityAnalysis
+example_7_FIM
+example_8_LoadingandFittingData_DataLoading
+example_9_LoadingandFittingData_MLE
+example_10_LoadingandFittingData_MHA
 
-% View model summaries:
-Model_MLE.summarizeModel
-STL1_MLE.summarizeModel
+% View model summary:
+STL1_MH.summarizeModel
+
+% Create a copy of the STL1 model for PDO:
+STL1_PDO = STL1_MH;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Section 2.5: Complex models
-%   * Handle distorted data with a binomial conditional probability 
-%     distribution operator (PDO)
+%   * Apply an affine Poisson conditional probability distribution 
+%     operator (PDO) to transform parameter probabilities computed   
+%     from average intensity data according to parameter probabilities 
+%     computed from mRNA spot count data
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%% Define Binomial Probabilistic Distortion Operator
-Model_PDO.pdoOptions.type = 'Binomial';
-Model_PDO.pdoOptions.props.CaptureProbabilityS1 = 0;  % Distortion for 'offGene' (unobserved)
-Model_PDO.pdoOptions.props.CaptureProbabilityS2 = 0;  % Distortion for 'offGene' (unobserved)
-Model_PDO.pdoOptions.props.CaptureProbabilityS3 = 0.7;% Distortion for 'mRNA' (observed)
-Model_PDO.pdoOptions.PDO = Model_PDO.generatePDO(Model_PDO.pdoOptions,[],Model_sensSoln.sens.data,true);
-figure(20); contourf(log10(Model_PDO.pdoOptions.PDO.conditionalPmfs{3}),30); colorbar
-xlabel('"true" number of mRNA'); ylabel('observed number of mRNA'); set(gca,'fontsize',15);
+% Find and store the total number of cells in your data set (already
+% computed by SSIT when data was loaded in example_8:
+nTotal = sum(STL1_PDO.dataSet.nCells);
 
-%% STEP5 == Apply PDO to FSP and Sensitivity Calculations
-Model_PDO.solutionScheme = 'FSP'; % Set solution scheme to FSP.
-Model_PDO.makePlot(Model_FSPsoln,'marginals',[1:100:301],true,[1,2,3],{'linewidth',2})  % Plot Distorted Marginals
-Model_PDO.solutionScheme = 'fspSens'; % Set solution scheme to Sensitivity
-Model_PDO.makePlot(Model_sensSoln,'marginals',[1:100:301],true,[3+(1:12)],{'linewidth',2})    % Plot Distorted Sensitivities
+% Compute the optimal number of cells from the FIM results computed in 
+% example_7_FIM using the min. inv determinant <x^{-1}> 
+% (all other parameters are known and fixed)
+nCellsOpt = STL1_PDO.optimizeCellCounts(STL1_fimResults,...
+                                        nTotal,'tr[1:7]');
 
-%% Compute FIM for partial observations
-% Model:
-Model_PDO = Model_FIM;
-Model_PDO.pdoOptions.PDO=[];
-Model_PDO.pdoOptions.unobservedSpecies = 'offGene';
-[fimResults_partialObs] = Model_PDO.computeFIM(sensSoln.sens); % Compute the FIM for full observations and no distortion.
-[fimTotal_partialObs,mleCovEstimate_partialObs,fimMetrics_partialObs] = Model_PDO.evaluateExperiment(fimResults_partialObs,cellCounts)
-fig9 = figure(9);clf; set(fig9,'Name','Fim-Predicted Uncertainty Ellipses');
-Model_PDO.plotMHResults([],[fimTotal,fimTotal_partialObs],'lin',[],fig6)
-legend('FIM - Full Observation','FIM - Protein Only')
+sig_log10 = 2*ones(1,7); 
 
-% STL1 Model:
-STL1_PDO = STL1_FIM;
-STL1_PDO.pdoOptions.PDO=[];
-STL1_PDO.pdoOptions.unobservedSpecies = 'offGene';
-[STL1_PDO_fimResults_partialObs] = STL1_PDO.computeFIM(sensSoln.sens); % Compute the FIM for full observations and no distortion.
-[STL1_fimTotal_partialObs,STL1_mleCovEstimate_partialObs,STL1_fimMetrics_partialObs] = STL1_PDO.evaluateExperiment(STL1_PDO_fimResults_partialObs,STL1_cellCounts)
-fig10 = figure(10);clf; set(fig10,'Name','Fim-Predicted Uncertainty Ellipses');
-STL1_PDO.plotMHResults([],[STL1_fimTotal,STL1_fimTotal_partialObs],'lin',[],fig10)
-legend('FIM - Full Observation','FIM - Protein Only')
+nCellsOptAvail = min(nCellsOpt,STL1_PDO.dataSet.nCells)
+fimOpt = STL1_PDO.evaluateExperiment(STL1_fimResults,...
+                                        nCellsOpt,diag(sig_log10.^2));
+fimOptAvail = STL1_PDO.evaluateExperiment(STL1_fimResults,...
+                                      nCellsOptAvail,diag(sig_log10.^2));
+figOpt = figure;
+STL1_PDO.plotMHResults(STL1_MHResults,[fimOpt,fimTotal],'log',[],figOpt);
+figOptAvail = figure;
+STL1_PDO.plotMHResults(STL1_MHResults,[fimOptAvail,fimTotal],'log',...
+                                                         [],figOptAvail);
+for i = 1:3
+    for j = i:3
+        subplot(3,3,(i-1)*3+j)
+        CH = get(gca,'Children');
+        CH(1).Color=[1,0,1];
+        CH(1).LineWidth = 3;
+        CH(2).Color=[0,0,0];
+        CH(2).LineWidth = 3;
+        CH(3).Color=[0,1,1];
+        CH(3).LineWidth = 3;
+    end
+end
 
-%% Compute FIM for distorted observation (Probabilistic Distortion Operator)
-%% Model:
-Model_PDO.pdoOptions.unobservedSpecies = 'offGene';
+f = figure;
+set(f,'Position',[616   748   412   170])
+bar([1:16],STL1_PDO.dataSet.nCells,0.45)
+hold on
+bar([1:200]+0.5,nCellsOpt,0.45)
+set(gca,'xtick',[1:16]+0.25,'xticklabel',STL1_PDO.dataSet.times,...
+                                         'fontsize',16,'ylim',[0,7000])
+legend('Intuitive Design','Optimal Design')
 
-% Choose the conditional distribution (PDO)
-pdoOptions.type = 'Binomial';
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% PDO Calculations
+%% Ex(1): Calibrate PDO from nuclear mRNA count data
+% Calibrate the PDO from empirical data. Here, the number of spots has
+% been measured using different assays in data columns 'nTotal' for the
+% 'true' data set and in the columns 'nSpots0' for a different label or
+% 'intens1' for the integrated intensity.  We calibrate two different 
+% PDOs for this case. In both cases, we assume an 'AffinePoiss' PDO  
+% where the obervation probability is a Poisson distribution where the   
+% mean value is affine linearly related to the true value: 
+% P(y|x) = Poiss(a0 + a1*x)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+STL1_PDO = ...
+  STL1_PDO.calibratePDO('data/filtered_data_2M_NaCl_Step.csv',...
+  {'mRNA'},{'RNA_STL1_total_TS3Full'},{'RNA_STL1_nuc_TS3Full'},...
+   'AffinePoiss',true);
 
-% Need to define loss parameter for each species S1, S2,...
-pdoOptions.props.CaptureProbabilityS1 = 0;  % Use zero for unobserved species.
-pdoOptions.props.CaptureProbabilityS2 = 0.9;
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Ex(2): Calibrate PDO from average intensity data
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+STL1_PDO_intens = STL1_PDO;
+STL1_PDO_intens = ...
+STL1_PDO_intens.calibratePDO('data/filtered_data_2M_NaCl_Step.csv',...
+    {'mRNA'},{'RNA_STL1_total_TS3Full'},{'STL1_avg_int_TS3Full'},...
+     'AffinePoiss',true,[1,4000,80]);
 
-% Call method to generate the PDO
-Model_PDO.pdoOptions.PDO = Model_PDO.generatePDO(pdoOptions,[],FSPsoln.fsp);
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% FIM + PDO analyses
+%   * Analyze FIM with PDO for nuclear mRNA count
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+fimsPDO = STL1_PDO.computeFIM([],'log');
+fimPDO = STL1_PDO.evaluateExperiment(fimsPDO,...
+                                     nCellsOpt,diag(sig_log10.^2));
 
-% Plot the PDO
-N = size(Model_PDO.pdoOptions.PDO.conditionalPmfs{1});
-fig11 = figure(11); set(fig11,'Name','Probabilistic Distortion Operator for Protein');
-contourf([0:N(1)-1],[0:N(2)-1],log10(Model_PDO.pdoOptions.PDO.conditionalPmfs{1}));
+nCellsOptPDO = STL1_PDO.optimizeCellCounts(fimsPDO,nTotal,'tr[1:7]');
 
-% Here we wanted the first PDO for 'x2' because 'x1' was unobserved.
-xlabel('Actual');ylabel('Observable');colorbar;
 
-% Solve FIM using the specified PDO
-[fimResults_BinomialPDO] = Model_PDO.computeFIM(sensSoln.sens); 
-[fimTotal_BinomialPDO,mleCovEstimate_BinomialPDO,fimMetrics_BinomialPDO] =...
-    Model_PDO.evaluateExperiment(fimResults_BinomialPDO,cellCounts)
-fig12 = figure(12);clf; set(fig12,'Name','Fim-Predicted Uncertainty Ellipses');
-Model_PDO.plotMHResults([],[fimTotal,fimTotal_partialObs,fimTotal_BinomialPDO],'lin',[],fig12)
-legend('FIM - Full Observation','FIM - Protein Only','FIM - Protein with Error')
+figPDO = figure;
+STL1_PDO.plotMHResults(STL1_MHResults,...
+    [fimPDO,fimTotal,fimOpt],'log',[],figPDO);
+for i = 1:3
+    for j = i:3
+        subplot(3,3,(i-1)*3+j)
+        CH = get(gca,'Children');
+        CH(1).Color=[0,0,0];   % MH - black
+        CH(1).LineWidth = 3;
+        CH(2).Color=[0,0,0];   % MLE - black
+        CH(2).LineWidth = 3;
+        CH(3).Color=[0,0,1];   % fimPDOSpots - cyan
+        CH(3).LineWidth = 3;
+        CH(4).Color=[0,1,1];   % fimTotal - blue 
+        CH(4).LineWidth = 3;
+        CH(5).Color=[1,0,1];   % fimOpt - magenta
+        CH(5).LineWidth = 3;
+    end
+end
 
-%% STL1 Model:
-STL1_Model_PDO.pdoOptions.unobservedSpecies = 'offGene';
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% FIM + PDO analyses
+%   * Analyze FIM with PDO for average intensity data
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+fimsPDOintens = STL1_PDO_intens.computeFIM([],'log');
+fimPDOintens = STL1_PDO_intens.evaluateExperiment(fimsPDOintens,...
+                                          nCellsOpt,diag(sig_log10.^2));
 
-% Choose the conditional distribution (PDO)
-pdoOptions.type = 'Binomial';
+nCellsOptPDO = STL1_PDO_intens.optimizeCellCounts(fimsPDOintens,...
+                                                  nTotal,'tr[1:7]');
 
-% Need to define loss parameter for each species S1, S2,...
-pdoOptions.props.CaptureProbabilityS1 = 0;  % Use zero for unobserved species.
-pdoOptions.props.CaptureProbabilityS2 = 0.9;
 
-% Call method to generate the PDO
-STL1_Model_PDO.pdoOptions.PDO = STL1_Model_PDO.generatePDO(pdoOptions,[],STL1_FSPsoln.fsp);
-
-% Plot the PDO
-STL1_N = size(STL1_Model_PDO.pdoOptions.PDO.conditionalPmfs{1});
-fig13 = figure(13); set(fig13,'Name','Probabilistic Distortion Operator for Protein');
-contourf([0:N(1)-1],[0:N(2)-1],log10(STL1_Model_PDO.pdoOptions.PDO.conditionalPmfs{1}));
-
-% Here we wanted the first PDO for 'x2' because 'x1' was unobserved.
-xlabel('Actual');ylabel('Observable');colorbar;
-
-% Solve FIM using the specified PDO
-[STL1_fimResults_BinomialPDO] = STL1_Model_PDO.computeFIM(STL1_sensSoln.sens); 
-[STL1_fimTotal_BinomialPDO,STL1_mleCovEstimate_BinomialPDO,STL1_fimMetrics_BinomialPDO] =...
-    STL1_Model_PDO.evaluateExperiment(STL1_fimResults_BinomialPDO,STL1_cellCounts)
-fig14 = figure(14);clf; set(fig14,'Name','Fim-Predicted Uncertainty Ellipses');
-STL1_Model_PDO.plotMHResults([],[STL1_fimTotal,STL1_fimTotal_partialObs,STL1_fimTotal_BinomialPDO],'lin',[],fig14)
-legend('FIM - Full Observation','FIM - Protein Only','FIM - Protein with Error')
+figintens = figure;
+STL1_PDO_intens.plotMHResults(STL1_MHResults,...
+                     [fimPDOintens,fimTotal,fimOpt],'log',[],figintens);
+for i = 1:3
+    for j = i:3
+        subplot(3,3,(i-1)*3+j)
+        CH = get(gca,'Children');
+        CH(1).Color=[0,0,0];   % MH - black
+        CH(1).LineWidth = 3;
+        CH(2).Color=[0,0,0];   % MLE - black
+        CH(2).LineWidth = 3;
+        CH(3).Color=[0,0,1];   % fimPDOSpots - cyan
+        CH(3).LineWidth = 3;
+        CH(4).Color=[0,1,1];   % fimTotal - blue 
+        CH(4).LineWidth = 3;
+        CH(5).Color=[1,0,1];   % fimOpt - magenta
+        CH(5).LineWidth = 3;
+    end
+end

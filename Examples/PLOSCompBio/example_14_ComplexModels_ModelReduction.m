@@ -7,7 +7,8 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Preliminaries
-% Use the two models from example_1_CreateSSITModels
+% Use the STL1 model from example_1_CreateSSITModels and FSP solutions from 
+% example_4_SolveSSITModels_FSP
 % clear
 % close all
 addpath(genpath('../../src'));
