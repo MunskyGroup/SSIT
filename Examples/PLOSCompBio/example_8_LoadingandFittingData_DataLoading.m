@@ -1,7 +1,7 @@
 %% example_8_LoadingandFittingData_DataLoading
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Section 2.4: Loading and fitting time-varying STL1 yeast data 
+%% Section 2.4: Loading and fitting Hog1-MAPK pathway STL1 yeast data 
 %   * Data loading and handling 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -15,15 +15,19 @@ addpath(genpath('../../src'));
 %example_1_CreateSSITModels 
 %example_4_SolveSSITModels_FSP
 
-% View model summary:
+% View model summaries:
+Model_FSP.summarizeModel
 STL1_FSP.summarizeModel
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Load time-varying STL1 yeast data and filter by experimental 
+%% Load Hog1-MAPK pathway STL1 yeast data and filter by experimental 
 %% conditions:
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% Make a new copy of our model:
+% Make new copies of our model, a simple bursting gene model and a more 
+% complex bursting gene model that has a time-varying input signal that 
+% turns on the STL1 gene:
+Model_data = Model_FSP;
 STL1_data = STL1_FSP;
 
 % Load the experimental data, matching the species name of the model  
@@ -32,10 +36,15 @@ STL1_data = STL1_FSP;
 % 'Condition' = '0.2M_NaCl_Step' (which, in the latter case, is all the 
 % data):
 
+Model_data = Model_data.loadData('data/filtered_data_2M_NaCl_Step.csv',...
+                               {'mRNA','RNA_STL1_total_TS3Full'},...
+                               {'Replica',1;'Condition','0.2M_NaCl_Step'});
+
 STL1_data = STL1_data.loadData('data/filtered_data_2M_NaCl_Step.csv',...
                                {'mRNA','RNA_STL1_total_TS3Full'},...
                                {'Replica',1;'Condition','0.2M_NaCl_Step'});
 
 % This plot is unnecessary, as the model parameters have not been fit to
 % the data yet.  However, it illustrates the improvement to come later:
-%STL1_data.makeFitPlot
+Model_data.makeFitPlot
+STL1_data.makeFitPlot

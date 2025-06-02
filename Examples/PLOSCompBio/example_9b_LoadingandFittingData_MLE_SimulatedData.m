@@ -52,8 +52,8 @@ STL1pars_sim = cell2mat(STL1_MLE_sim.parameters(1:7,2));
 for j=1:length(Modelpars_sim)
     Model_MLE_sim.parameters{j,2} = Modelpars_sim(j);
 end
-for j=1:length(STL1pars_sim)
-    STL1_MLE_sim.parameters{j,2} = STL1pars_sim(j);
+for k=1:length(STL1pars_sim)
+    STL1_MLE_sim.parameters{k,2} = STL1pars_sim(k);
 end
 
 % Make plots of the model parameter fits from the MLEs

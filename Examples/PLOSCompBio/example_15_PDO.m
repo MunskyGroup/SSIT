@@ -1,26 +1,38 @@
-%% example_7_PDO
-% Example script to handle distorted data with a binomial conditional
-% probability distribution operator (PDO).
-addpath(genpath('../../src'));
+%% example_15_PDO
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Section 2.5: Complex models
+%   * Use a probability distribution operator (PDO) to handle distortion 
+%   of data
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Preliminaries
-% Load our models from example_1_CreateSSITModels; 
-% Compute FSP solutions using example_2_SolveSSITModels_FSP and 
-% FIMs using example_4_FIM 
-%% Comment out the following 3 lines if example_4_FIM has already been run:
-clear
-close all
-example_3_FIM
+% Use the two models from example_1_CreateSSITModels, FSP solutions from 
+% example_4_SolveSSITModels_FSP, simulated data from 
+% example_1b_CreateSSITModels_SimulatingData, data loaded in 
+% example_8b_LoadingandFittingData_SimulatedDataLoading, and MLE computed 
+% in example_9b_LoadingandFittingData_MLE_SimulatedData
+%clear
+%close all
+addpath(genpath('../../src'));
 
-% View model summaries
-Model_FIM.summarizeModel
-STL1_FIM.summarizeModel
+% example_1_CreateSSITModels  
+% example_4_SolveSSITModels_FSP
+% example_1b_CreateSSITModels_SimulatingData
+% example_8b_LoadingandFittingData_SimulatedDataLoading
+% example_9b_LoadingandFittingData_MLE_SimulatedData
 
-% Make copies of Model and STL1 Model
-Model_PDO = Model_FIM;
-STL1_PDO = STL1_FIM;
+% View model summaries:
+Model_MLE.summarizeModel
+STL1_MLE.summarizeModel
 
-%% STEP4 == Define Binomial Probabilistic Distortion Operator
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Section 2.5: Complex models
+%   * Handle distorted data with a binomial conditional probability 
+%     distribution operator (PDO)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% Define Binomial Probabilistic Distortion Operator
 Model_PDO.pdoOptions.type = 'Binomial';
 Model_PDO.pdoOptions.props.CaptureProbabilityS1 = 0;  % Distortion for 'offGene' (unobserved)
 Model_PDO.pdoOptions.props.CaptureProbabilityS2 = 0;  % Distortion for 'offGene' (unobserved)
