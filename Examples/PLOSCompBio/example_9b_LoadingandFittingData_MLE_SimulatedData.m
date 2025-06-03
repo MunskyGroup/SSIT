@@ -8,9 +8,8 @@
 
 %% Preliminaries
 % Use the two models from example_1_CreateSSITModels, FSP solutions from 
-% example_4_SolveSSITModels_FSP, simulated Model data from 
-% example_1b_CreateSSITModels_SimulatingData, and loaded data from 
-% example_8b_LoadingandFittingData_SimulatedDataLoading
+% example_4_SolveSSITModels_FSP, and fit simulated data from 
+% example_8b_LoadingandFittingData_SimulatingData
 
 %clear
 %close all
@@ -18,10 +17,9 @@ addpath(genpath('../../src'));
 
 % example_1_CreateSSITModels
 % example_4_SolveSSITModels_FSP
-% example_1b_CreateSSITModels_SimulatingData
-% example_8b_LoadingandFittingData_SimulatedDataLoading
+% example_8b_LoadingandFittingData_SimulatingData
 
-% View model summary:
+% View model summaries:
 Model_sim_data.summarizeModel
 STL1_sim_data.summarizeModel
 

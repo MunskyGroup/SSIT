@@ -7,18 +7,16 @@
 
 %% Preliminaries
 % Use the two models from example_1_CreateSSITModels, FSP solutions from 
-% example_4_SolveSSITModels_FSP, simulated data from 
-% example_1b_CreateSSITModels_SimulatingData, data loaded in 
-% example_8b_LoadingandFittingData_SimulatedDataLoading, and MLE computed 
-% in example_9b_LoadingandFittingData_MLE_SimulatedData
+% example_4_SolveSSITModels_FSP, simulated data from  
+% example_8b_LoadingandFittingData_SimulatingData, and MLE computed in
+% example_9b_LoadingandFittingData_MLE_SimulatedData
 %clear
 %close all
 addpath(genpath('../../src'));
 
 % example_1_CreateSSITModels  
 % example_4_SolveSSITModels_FSP
-% example_1b_CreateSSITModels_SimulatingData
-% example_8b_LoadingandFittingData_SimulatedDataLoading
+% example_8b_LoadingandFittingData_SimulatingData
 % example_9b_LoadingandFittingData_MLE_SimulatedData
 
 % View model summaries:
