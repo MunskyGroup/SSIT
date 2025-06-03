@@ -1,5 +1,24 @@
-%% example_2_SolveSSITModels_MultiModel
-%% Using the SSIT to fit Multiple Models and Data sets with Shared Parameters
+%% example_11_ComplexModels_MultiModel
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Section 2.5: Complex models
+%   * Fitting multiple models and data sets with shared parameters
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% Preliminaries
+% Use the STL1 model from example_1_CreateSSITModels and data loaded into
+% the model from example_8_LoadingandFittingData_MLE
+%clear
+%close all
+addpath(genpath('../../src'));
+
+% example_1_CreateSSITModels  
+
+% View model summaries:
+STL1.summarizeModel
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Fit Multiple Models and Data sets with Shared Parameters
 % Example script to show how multiple SSIT models and data sets can be fit
 % simultaneously.  This is most useful in situations where:
 %   1) the analysis considers different experimental conditions (e.g.,
@@ -7,9 +26,7 @@
 %   genetic mutations).
 %   2) replica to replica variations are expected that would result in
 %   slightly different parameter combinations
-close all
-clear 
-addpath(genpath('../../src'));
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Define SSIT Model
 % SSIT models are defined as usual:

@@ -6,6 +6,7 @@ function [app,times] = filterAndMarginalize(~,~,app)
 
 %% Find relevant Indicies
 histDataRaw = app.DataLoadingAndFittingTabOutputs.dataTable;
+
 [rowNum,~] = size(histDataRaw);
 % [marginalMatRow,~] = size(app.DataLoadingAndFittingTabOutputs.marginalMatrix);
 
@@ -36,6 +37,7 @@ try
     histDataStr = cellfun(@num2str,histDataRaw,'UniformOutput',false);
 catch
 end
+
 % convert double in cell to str
 if ~isempty(app.DataLoadingAndFittingTabOutputs.conditionOnArray)
     loopCond = [app.DataLoadingAndFittingTabOutputs.conditionOnArray{:,1}];
@@ -45,12 +47,32 @@ end
 
 if ~isempty(loopCond)
     for iC = 1:length(loopCond)
-        condStr = app.DataLoadingAndFittingTabOutputs.conditionOnArray{iC,2}; % find string to condition on
-        condCell = cellstr(condStr);                                    % convert string to cell
-        condIndLoc = ismember(histDataStr(:,loopCond(iC)),condCell)';
-        histDataStr = histDataStr(condIndLoc,:);                        % only keep idx rows
-        clearvars condInd rowNum
-        [rowNum,~] = size(histDataStr);
+        condVal = app.DataLoadingAndFittingTabOutputs.conditionOnArray{iC,2};
+        condCol = loopCond(iC);
+
+        % Print which column we're filtering
+        disp("---- Filtering ----")
+        disp("Filtering on column index:")
+        disp(condCol)
+        disp("Condition value:")
+        disp(condVal)
+
+        columnVals = histDataRaw(:,condCol);
+        columnValsStr = cellfun(@num2str, columnVals, 'UniformOutput', false);
+        condValStr = num2str(condVal);
+        condIndLoc = strcmp(columnValsStr, condValStr);
+
+        disp("Number of matching rows:");
+        disp(sum(condIndLoc))
+
+        % Filter the raw data
+        histDataRaw = histDataRaw(condIndLoc, :);
+
+        try
+            histDataStr = cellfun(@num2str,histDataRaw,'UniformOutput',false);
+            [rowNum, ~] = size(histDataStr);
+        catch
+        end
     end
 end
 
@@ -97,15 +119,31 @@ for i = 1:length(loopVec)
     end
     margMap = [margMap, {containers.Map(uniqueVals,margKeySet)}];
 end
+
 %Convert Mapped properties in data structure
 for iR = 1:rowNum
     for iL = 1:length(loopVec)
-        histDataStr(iR,loopVec(iL)) = values(margMap{iL}, histDataStr(iR,loopVec(iL)));
+        val = histDataStr{iR, loopVec(iL)};  % Use curly braces to extract actual value
+
+        % Convert string to number if needed
+        if ischar(val)
+            val = str2double(val);
+        end
+
+        % Only map if the key exists
+        if isKey(margMap{iL}, val)
+            histDataStr{iR, loopVec(iL)} = margMap{iL}(val);
+        else
+            warning("Value %.4f not found in margMap{%d}. Skipping row %d.", val, iL, iR);
+            histDataStr{iR, loopVec(iL)} = NaN;
+        end
     end
 end
+
+
 %% Create sparse tensor
-% histDataStr = cellfun(@num2str,histDataStr,'un',0);                     % convert data to strings
-% histDataStr = cellfun(@str2num,histDataStr,'un',0);                     % convert data back to numerical values to manipulate
+histDataStr = cellfun(@num2str,histDataStr,'un',0);                     % convert data to strings
+histDataStr = cellfun(@str2num,histDataStr,'un',0);                     % convert data back to numerical values to manipulate
 histDataStr = cell2mat(histDataStr);                                    % convert to matrix to use sptensor
 subsHistData = histDataStr(:,1:end-1);
 valsHistData = histDataStr(:,end);
