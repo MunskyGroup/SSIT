@@ -1919,6 +1919,8 @@ classdef SSIT
                 if size(conditions,2)==2
                     if isnumeric(conditions{i,2})&&isnumeric(TAB.(conditions{i,1})(1))
                         TAB = TAB(TAB.(conditions{i,1})==conditions{i,2},:);
+                    elseif ischar(conditions{i,2})&&iscell(TAB.(conditions{i,1})(1))&&ischar(TAB.(conditions{i,1}){1})
+                        TAB = TAB(strcmp(TAB.(conditions{i,1}),conditions{i,2}),:);
                     elseif ischar(conditions{i,2})&&ischar(TAB.(conditions{i,1})(1))
                         TAB = TAB(strcmp(TAB.(conditions{i,1}),conditions{i,2}),:);
                     elseif isnumeric(TAB.(conditions{i,1})(1))
