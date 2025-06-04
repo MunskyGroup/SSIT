@@ -1913,7 +1913,6 @@ classdef SSIT
                 end
             end
 
-            obj.dataSet.DATA = table2cell(TAB);
 
             % Find time column
             timeField = TAB.Properties.VariableNames(contains(lower(TAB.Properties.VariableNames),'time'));
@@ -1943,6 +1942,7 @@ classdef SSIT
                     end
                 end
             end
+            obj.dataSet.DATA = table2cell(TAB);
 
             % Link Species
             TAB2 = table;
