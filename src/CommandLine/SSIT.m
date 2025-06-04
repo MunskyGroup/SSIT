@@ -1903,7 +1903,16 @@ classdef SSIT
 
 % <<<<<<< HEAD
             %% Attempt to do same thing using tables
-            TAB = readtable(dataFileName);
+            if ischar(dataFileName)
+                TAB = readtable(dataFileName);
+            elseif iscell(dataFileName)
+                TAB = table;
+                for iCell = 1:length(dataFileName)
+                    iTAB = readtable(dataFileName{iCell});
+                    TAB = [TAB;iTAB];
+                end
+            end
+
             obj.dataSet.DATA = table2cell(TAB);
 
             % Find time column
@@ -1926,8 +1935,12 @@ classdef SSIT
                     elseif isnumeric(TAB.(conditions{i,1})(1))
                         TAB = TAB((TAB.(conditions{i,1}))==eval(conditions{i,2}),:);
                     end
-                else 
-                    eval(['TAB = TAB(TAB.(conditions{i,1})',conditions{i,3},'conditions{i,2},:);'])
+                else
+                    try
+                        eval(['TAB = TAB(TAB.(conditions{i,1})',conditions{i,3},'conditions{i,2},:);'])
+                    catch
+                        eval(['TAB = TAB(',conditions{i,3},',:);'])
+                    end
                 end
             end
 
