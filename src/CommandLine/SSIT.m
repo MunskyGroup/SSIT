@@ -2550,7 +2550,7 @@ classdef SSIT
                  if nargout>=3
                      perfectMod(it) = vals'*log(vals/sum(vals));
                      Pvt = sptensor(Pvals);
-                     fitSolutions.DataLoadingAndFittingTabOutputs.fitResults.current([it*ones(size(Pvt.subs,1),1),Pvt.subs]) = Pvt.vals;
+                     fitSolutions.DataLoadingAndFittingTabOutputs.fitResults.current([it*ones(size(Pvt.subs,1),1),Pvt.subs(:,1:end-1)]) = Pvt.vals;
                  end
 
                  if computeSensitivity&&nargout>=2
@@ -2745,13 +2745,13 @@ classdef SSIT
             end
 
             if strcmp(obj.solutionScheme,'FSP')   % Set solution scheme to FSP.
-                [~,~,obj] = obj.solve;  % Solve the FSP analysis
+                [FSPsoln,~,obj] = obj.solve;  % Solve the FSP analysis
                 % obj.fspOptions.bounds = bounds;% Save bound for faster analyses
                 if allFitOptions.suppressFSPExpansion
                     tmpFSPtol = obj.fspOptions.fspTol;
                     obj.fspOptions.fspTol = inf;
                 end
-                objFun = @(x)-obj.computeLikelihood(exp(x));  % We want to MAXIMIZE the likelihood.
+                objFun = @(x)-obj.computeLikelihood(exp(x),FSPsoln.stateSpace);  % We want to MAXIMIZE the likelihood.
             elseif strcmp(obj.solutionScheme,'ode')  % Set solution scheme to ode.
                 objFun = @(x)-obj.computeLikelihoodODE(exp(x));  % We want to MAXIMIZE the likelihood.
             end

@@ -450,6 +450,7 @@ classdef poissonTest < matlab.unittest.TestCase
             Pipeline = 'fittingPipelineExample';
             pipelineArgs.maxIter = 10;
             pipelineArgs.display = 'none';
+            pipelineArgs.makePlot = true;
             saveFile = 'exampleResultsTest.mat';
 
             % Create model from preset, associate with data, run
