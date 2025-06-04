@@ -80,3 +80,4 @@ WorkSpace/PipelineApproach/savedModelGR.mat
 WorkSpace/PipelineApproach/GRModelFitResults.mat
 WorkSpace/PipelineApproach/savedGRmultiModel.mat
 tests/TMPtable.csv
+Examples/PLOSCompBio/TMPmh*.mat
