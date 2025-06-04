@@ -464,5 +464,34 @@ classdef poissonTest < matlab.unittest.TestCase
                 'Model Creation Failed');
 
         end
+
+        function TestAdvancedDataLoading(testCase)
+            % Test loading multiple data sets and running logical data selection.
+            model = testCase.Poiss;
+            model = model.loadData({'test_data/fakeData4Testing1.xlsx','test_data/fakeData4Testing2.xlsx'},...
+                {'rna','cyt'},...
+                {'Replica',1,'>'});
+            combineCellNum = model.dataSet.nCells;
+            diff = max(abs(combineCellNum - [8;4]));
+            testCase.verifyEqual(diff==0, true, ...
+                'Advanced data loading resulted in incorrect cell number');
+
+            model = model.loadData({'test_data/fakeData4Testing1.xlsx','test_data/fakeData4Testing2.xlsx'},...
+                {'rna','cyt'},...
+                {'Replica',1,'~='});
+            combineCellNum = model.dataSet.nCells;
+            diff = max(abs(combineCellNum - [8;4]));
+            testCase.verifyEqual(diff==0, true, ...
+                'Advanced data loading resulted in incorrect cell number');
+
+            % Test custom constraint
+            model = model.loadData({'test_data/fakeData4Testing1.xlsx','test_data/fakeData4Testing2.xlsx'},...
+                {'rna','cyt'},...
+                {[],[],'contains(TAB.Condition,''a'')&contains(TAB.Condition,''b'')'});
+            combineCellNum = model.dataSet.nCells;
+            diff = max(abs(combineCellNum - [2;1]));
+            testCase.verifyEqual(diff==0, true, ...
+                'Advanced data loading resulted in incorrect cell number');
+        end
     end
 end

@@ -1935,8 +1935,12 @@ classdef SSIT
                     elseif isnumeric(TAB.(conditions{i,1})(1))
                         TAB = TAB((TAB.(conditions{i,1}))==eval(conditions{i,2}),:);
                     end
-                else 
-                    eval(['TAB = TAB(TAB.(conditions{i,1})',conditions{i,3},'conditions{i,2},:);'])
+                else
+                    try
+                        eval(['TAB = TAB(TAB.(conditions{i,1})',conditions{i,3},'conditions{i,2},:);'])
+                    catch
+                        eval(['TAB = TAB(',conditions{i,3},',:);'])
+                    end
                 end
             end
 
