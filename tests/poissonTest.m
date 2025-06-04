@@ -492,6 +492,18 @@ classdef poissonTest < matlab.unittest.TestCase
             diff = max(abs(combineCellNum - [2;1]));
             testCase.verifyEqual(diff==0, true, ...
                 'Advanced data loading resulted in incorrect cell number');
+
+            % Test manipulation of data (in this case summing two columns).
+            model = model.loadData({'test_data/fakeData4Testing1.xlsx','test_data/fakeData4Testing2.xlsx'},...
+                {'rna',[],'TAB.nuc+TAB.cyt'},...
+                {[],[],'contains(TAB.Condition,''a'')&contains(TAB.Condition,''b'')'});
+            distCounts = [model.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor(1,4);
+                model.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor(1,5);
+                model.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor(1,6);];
+            diff = max(abs(distCounts - [0;1;1]));
+            testCase.verifyEqual(diff==0, true, ...
+                'Datafield led to incorrec totals.');
+            
         end
     end
 end

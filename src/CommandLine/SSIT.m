@@ -1913,7 +1913,6 @@ classdef SSIT
                 end
             end
 
-            obj.dataSet.DATA = table2cell(TAB);
 
             % Find time column
             timeField = TAB.Properties.VariableNames(contains(lower(TAB.Properties.VariableNames),'time'));
@@ -1943,12 +1942,21 @@ classdef SSIT
                     end
                 end
             end
+            obj.dataSet.DATA = table2cell(TAB);
 
             % Link Species
             TAB2 = table;
             TAB2.time = TAB.(timeField{1});
             for i = 1:size(linkedSpecies,1)
-                TAB2.(linkedSpecies{i,1}) = TAB.(linkedSpecies{i,2});
+                if ~isempty(linkedSpecies{i,2})
+                    TAB2.(linkedSpecies{i,1}) = TAB.(linkedSpecies{i,2});
+                elseif ~isempty(linkedSpecies{i,3})
+                    % This section allows for manipulation of data columns.
+                    % Example: linkedSpecies = {'rna',[],'TAB.nuc+TAB.cyt'}
+                    % results in TAB2.rna = TAB.nuc+TAB.cyt
+                    eval(['TAB2.',linkedSpecies{i,1},' = ',linkedSpecies{i,3},';']);
+                end
+
             end
 
             % Reorder table in order of species list
