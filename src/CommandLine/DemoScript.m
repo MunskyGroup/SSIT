@@ -1,0 +1,11 @@
+eic = ExperimentInputConfigurable();
+eic.InputName = "IDex";
+eic.Values = [0 2 4 6 8 10];
+etc = ExperimentTimeConfigurable();
+etc.Values = [0 30 60 90];
+configs = multiplyConfigurations([eic etc]);
+round = SequentialExperimentRound(configs);
+t = round.exportAsTable();
+randomStrategy = RandomSEDStrategy();
+round = randomStrategy.apportionObservations(round);
+t = round.exportAsTable();
