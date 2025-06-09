@@ -74,3 +74,4 @@ Examples/reformatFiguresACS2024.m
 /Examples/Cook_etal_2024_Sequential_Design/simData
 Examples/Cook_etal_2024_Sequential_Design/TMPMH*
 *.mp4
+tests/TMPtable.csv
