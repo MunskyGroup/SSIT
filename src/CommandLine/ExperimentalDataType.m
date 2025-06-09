@@ -1,6 +1,6 @@
 classdef ExperimentalDataType
     enumeration
-        Experimental
+        Empirical
         Simulated
     end
 end
