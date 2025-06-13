@@ -175,6 +175,7 @@ y2(5) = outputs.determinates{1, "unknown_determinate"};
 % Plot
 figure()
 scatter(x, y1, 60, 'r', 'filled');
+
 hold on;
 scatter(x, y2, 60, 'b', 'filled');
 
