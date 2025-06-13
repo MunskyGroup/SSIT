@@ -44,11 +44,13 @@ for j = 1:length(kon)
 end
 
 mean_distances = zeros(length(kon), length(kon));
+var_distances = zeros(length(kon), length(kon));
 for j = 1:length(kon)
     for k = 1:length(kon)
         distances_ = distances(:,:,j,k);
         distances_ = distances_(~eye(size(distances_)));
         mean_distances(j,k) = mean(distances_);
+        var_distances(j,k) = var(distances_);
     end
 end
 
@@ -61,7 +63,6 @@ for j = 1:length(kon)
     for k = 1:length(kon)
         deviant_distance = distances(:,:,j,k);
         deviant_distance = deviant_distance(~eye(size(deviant_distance)));
-
         overlap(j,k) = compute_overlap_area(deviant_distance, self_distances);
     end
 end
@@ -87,6 +88,20 @@ set(gca, 'XTick', 1:length(kon), 'XTickLabel', kon, ...
 axis square;
 saveas(gcf,'OverlapKon_Wasserstein1D.png');
 
+std_across = sqrt(var_distances);
+upper = mean_distances + std_across;
+lower = mean_distances - std_across;
+
+figure;
+hold on;
+xlabel('kon')
+ylabel('Mean Distance ± STD (excluding self-distances)');
+plot(kon, mean_distances(10, :))
+fill([kon, fliplr(kon)], [upper', fliplr(lower')], [0.9 0.9 1], 'EdgeColor', 'none');
+grid on;
+legend('±1 STD', 'Mean');
+saveas(gcf,'MeanWithVarianceBandKon_Wasserstein1D.png');
+
 distances = zeros(N, N, length(kon), length(kon));
 for j = 1:length(kon)
     for k = 1:length(kon)
@@ -104,6 +119,7 @@ for j = 1:length(kon)
         distances_ = distances(:,:,j,k);
         distances_ = distances_(~eye(size(distances_)));
         mean_distances(j,k) = mean(distances_);
+        var_distances(j,k) = var(distances_);
     end
 end
 
@@ -139,6 +155,21 @@ set(gca, 'XTick', 1:length(kon), 'XTickLabel', kon, ...
          'YTick', 1:length(kon), 'YTickLabel', kon);
 axis square;
 saveas(gcf,'OverlapKon_JSDivergence.png');
+
+std_across = sqrt(var_distances);
+upper = mean_distances + std_across;
+lower = mean_distances - std_across;
+
+figure;
+hold on;
+xlabel('kon')
+ylabel('Mean Distance ± STD (excluding self-distances)');
+plot(kon, mean_distances(10, :))
+fill([kon, fliplr(kon)], [upper', fliplr(lower')], [0.9 0.9 1], 'EdgeColor', 'none');
+grid on;
+legend('±1 STD', 'Mean');
+saveas(gcf,'MeanWithVarianceBandKon_JSDivergence.png');
+
 
 
 %% Simulate: Theta = koff
@@ -186,6 +217,7 @@ for j = 1:length(koff)
         distances_ = distances(:,:,j,k);
         distances_ = distances_(~eye(size(distances_)));
         mean_distances(j,k) = mean(distances_);
+        var_distances(j,k) = var(distances_);
     end
 end
 
@@ -224,6 +256,20 @@ set(gca, 'XTick', 1:length(koff), 'XTickLabel', koff, ...
 axis square;
 saveas(gcf,'OverlapKoff_Wasserstein1D.png');
 
+std_across = sqrt(var_distances);
+upper = mean_distances + std_across;
+lower = mean_distances - std_across;
+
+figure;
+hold on;
+xlabel('kon')
+ylabel('Mean Distance ± STD (excluding self-distances)');
+plot(kon, mean_distances(10, :))
+fill([kon, fliplr(kon)], [upper', fliplr(lower')], [0.9 0.9 1], 'EdgeColor', 'none');
+grid on;
+legend('±1 STD', 'Mean');
+saveas(gcf,'MeanWithVarianceBandKoff_Wasserstein1D.png');
+
 distances = zeros(N, N, length(koff), length(koff));
 for j = 1:length(koff)
     for k = 1:length(koff)
@@ -241,6 +287,7 @@ for j = 1:length(koff)
         distances_ = distances(:,:,j,k);
         distances_ = distances_(~eye(size(distances_)));
         mean_distances(j,k) = mean(distances_);
+        var_distances(j,k) = var(distances_);
     end
 end
 
@@ -277,9 +324,19 @@ set(gca, 'XTick', 1:length(koff), 'XTickLabel', koff, ...
 axis square;
 saveas(gcf,'OverlapKoff_JSDivergence.png');
 
+std_across = sqrt(var_distances);
+upper = mean_distances + std_across;
+lower = mean_distances - std_across;
 
-
-
+figure;
+hold on;
+xlabel('kon')
+ylabel('Mean Distance ± STD (excluding self-distances)');
+plot(kon, mean_distances(10, :))
+fill([kon, fliplr(kon)], [upper', fliplr(lower')], [0.9 0.9 1], 'EdgeColor', 'none');
+grid on;
+legend('±1 STD', 'Mean');
+saveas(gcf,'MeanWithVarianceBandKoff_JSDivergence.png');
 
 
 
