@@ -4,29 +4,47 @@ addpath(genpath('../../../../src'));
 addpath(genpath('../../Model'))
 
 %%
-num_edges = 30; % 
-num_param_values = 3; % number of different parameter values per parameter 
-NCells = 50; % Num cells per simulation
-num_sims_per_parameter = 4;
+num_edges = 100; % to divide and compare pdfs with this number of edges for spatial distributions 
+num_param_values = 30; % number of different parameter values per parameter i.e. linspace(0, 1, num_param_values)
+NCells = 2000; % Num cells per simulation
+num_sims_per_parameter = 10;
 
 
+kon_start = -7
+kon_end = -2;
 sim_kon = true;
 calc_kon = true;
 
-sim_koff = false;
-calc_koff = false;
+sim_koff = true;
+calc_koff = true;
+
+w_start = 0.0025*10^-3;
+w_end = 0.0025*10^2;
+sim_w = true;
+calc_w = true;
+
+kex_start = 750*10^-3;
+kex_end = 750*10^2;
+sim_kex = true;
+calc_kex = true;
+
+kr_start = 7.5e2;
+kr_end = 7.5e6;
+sim_kr = true;
+calc_kr = true;
+
+kon_default = 1e-3;
+koff_default = 7.5e-5;
+w_default = 0.0025;
+kex_default = 750;
+kr_default = 7.5e4;
+D_default = [0.01,5,4]; % bound, full, part
+gam_default =[0.035;0.0025;0.001];
+makePlot = false;
 
 
 %% Simulate: Theta = kon
-makePlot = false;
-kon = logspace(-7, -2, num_param_values);
-koff = 7.5e-5;
-w = 0.0025;
-kex = 750;
-kr = 7.5e4;
-D = [0.01,5,4]; % bound, full, part
-gam =[0.035;0.0025;0.001]; % release, partial degredation, degredation
-
+kon = logspace(kon_start, kon_end, num_param_values);
 
 if sim_kon
     fprintf('Simulating on \n')
@@ -34,7 +52,7 @@ if sim_kon
     for i = 1:num_param_values
         for n = 1:num_sims_per_parameter
             fprintf('Simulating n = %i, kon = %.2e \n', n, kon(i))
-            results{i,n} = Simulate(kon(i), koff, w, kex, kr, D, gam, NCells, makePlot);
+            results{i,n} = Simulate(kon(i), koff_default, w_default, kex_default, kr_default, D_default, gam_default, NCells, makePlot);
         end
     end
     save("Kon", "results")
@@ -45,17 +63,9 @@ if calc_kon
     [distances, mean_distances, var_distances] = main(results, 'kon', kon, ceil(num_param_values/2), false, num_edges);
 end
 
-%% Simulate: Theta = koff
-makePlot = false;
-N=10;
-kon = 1e-3;
-koff = logspace(log10(7.5e-6), log10(7.5e-2), num_param_values);
-w = 0.0025;
-kex = 750;
-kr = 7.5e4;
-D = [0.01,5,4];
-gam =[0.035;0.0025;0.001];
 
+%% Simulate: Theta = koff
+koff = logspace(log10(7.5e-6), log10(7.5e-2), num_param_values);
 
 if sim_koff
     disp('Simulating koff \n')
@@ -63,7 +73,7 @@ if sim_koff
     for i = 1:num_param_values
         for n = 1:num_sims_per_parameter
            fprintf('Simulating n = %i, koff = %.2e \n', n, koff(i))
-            results{i,n} = Simulate(kon, koff(i), w, kex, kr, D, gam, NCells, makePlot);
+            results{i,n} = Simulate(kon_default, koff(i), w_default, kex_default, kr_default, D_default, gam_default, NCells, makePlot);
         end
     end
     save("koff", "results")
@@ -73,6 +83,70 @@ if calc_koff
 results = load("koff.mat", "results").results;
 [distances, mean_distances, var_distances] = main(results, 'koff', koff, ceil(num_param_values/2), false, num_edges);
 end
+
+
+%% Simulate: Theta = w
+w = logspace(log10(w_start), log10(w_end), num_param_values);
+
+if sim_w
+    disp('Simulating w \n')
+    results = cell([length(w), num_sims_per_parameter]);
+    for i = 1:num_param_values
+        for n = 1:num_sims_per_parameter
+           fprintf('Simulating n = %i, w = %.2e \n', n, w(i))
+            results{i,n} = Simulate(kon_default, koff_default, w(i), kex_default, kr_default, D_default, gam_default, NCells, makePlot);
+        end
+    end
+    save("w", "results")
+end
+if calc_w
+    fprintf('Calculations for w \n')
+results = load("w.mat", "results").results;
+[distances, mean_distances, var_distances] = main(results, 'w', w, ceil(num_param_values/2), false, num_edges);
+end
+
+
+%% Simulate: Theta = kex
+kex = logspace(log10(kex_start), log10(kex_end), num_param_values);
+
+if sim_kex
+    disp('Simulating kex \n')
+    results = cell([length(kex), num_sims_per_parameter]);
+    for i = 1:num_param_values
+        for n = 1:num_sims_per_parameter
+           fprintf('Simulating n = %i, kex = %.2e \n', n, kex(i))
+            results{i,n} = Simulate(kon, kex(i), w, kex, kr, D, gam, NCells, makePlot);
+        end
+    end
+    save("kex", "results")
+end
+if calc_kex
+    fprintf('Calculations for kex \n')
+results = load("kex.mat", "results").results;
+[distances, mean_distances, var_distances] = main(results, 'kex', kex, ceil(num_param_values/2), false, num_edges);
+end
+
+
+%% Simulate: Theta = kr
+kr = logspace(log10(7.5e-6), log10(7.5e-2), num_param_values);
+
+if sim_kr
+    disp('Simulating kr \n')
+    results = cell([length(kr), num_sims_per_parameter]);
+    for i = 1:num_param_values
+        for n = 1:num_sims_per_parameter
+           fprintf('Simulating n = %i, kr = %.2e \n', n, kr(i))
+            results{i,n} = Simulate(kon_default, koff_default, w_default, kex_default, kr(i), D_default, gam_default, NCells, makePlot);
+        end
+    end
+    save("kr", "results")
+end
+if calc_kr
+    fprintf('Calculations for kr \n')
+results = load("kr.mat", "results").results;
+[distances, mean_distances, var_distances] = main(results, 'kr', kr, ceil(num_param_values/2), false, num_edges);
+end
+
 
 
 
@@ -238,6 +312,7 @@ function [distances, mean_distances, var_distances] = main(results, name, parame
     saveas(gcf, sprintf('%s_MeanWithVariance_JSDivergence.png', name));
 
 end
+
 
 function P = Prob(results, edges)
     % Calculates the probability density function as matrix with edges
