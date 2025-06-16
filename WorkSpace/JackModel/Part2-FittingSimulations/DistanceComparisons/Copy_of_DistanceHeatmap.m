@@ -13,7 +13,7 @@ num_sims_per_parameter = 3;
 sim_kon = false;
 calc_kon = true;
 
-sim_koff = true;
+sim_koff = false;
 calc_koff = true;
 
 
@@ -29,7 +29,7 @@ gam =[0.035;0.0025;0.001]; % release, partial degredation, degredation
 
 
 if sim_kon
-    fprintf('Simulating koff \n')
+    fprintf('Simulating on \n')
     results = cell([num_param_values, num_sims_per_parameter]);
     for i = 1:length(num_param_values)
         for n = 1:num_sims_per_parameter
@@ -40,7 +40,7 @@ if sim_kon
     save("Kon", "results")
 end
 if calc_kon
-    fprintf('Calculations for koff \n')
+    fprintf('Calculations for kon \n')
     results = load("Kon.mat", "results").results;
     [distances, mean_distances, var_distances] = main(results, 'kon', kon, ceil(num_param_values/2), false, num_edges);
 end
