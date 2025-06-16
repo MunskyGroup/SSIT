@@ -19,7 +19,8 @@ classdef MetropolisHastingsRunner
     end % Publicly mutable properties    
     
     properties (Access = private)
-        ObjectiveMH % Function handle
+        ParameterFittingObjectiveMH % Function handle
+        ProbabilityMH % Function handle
         ProposalDistribution % Function handle
         x0
     end % Private properties
@@ -36,8 +37,21 @@ classdef MetropolisHastingsRunner
             while obj.IsTuning
                 disp(['Starting new MH chain for tuning: ', obj.SaveFile])
                 delete(obj.SaveFile); % Delete old save file if it exists
+
+                % In our implementation of the Metropolis-Hastings
+                % algorithm, we pass a function to calculate the
+                % probability directly rather than to calculate an "energy"
+                % of the "system," from which the probability is normally
+                % calculated, according to the Maxwell-Boltzmann
+                % distribution. This probability is therefore the
+                % likelihood (note the positive sign) of the data given the
+                % parameters. On the other hand, when we seek to fit new
+                % parameters to the data using the fminsearch function, we
+                % provide a function that calculates the negative
+                % likelihood, so that its minimization will yield the
+                % maximum likelihood.
                 
-                obj.ObjectiveMH = @(x) -obj.Model.getLikelihood(...
+                obj.ProbabilityMH = @(x) obj.Model.getLikelihood(...
                     x, obj.ModelHasData, obj.ModelFSPStateSpace);
 
                 switch obj.DataType
@@ -112,7 +126,7 @@ classdef MetropolisHastingsRunner
                 obj.ResultsValue, obj.x0] = ...
                 ssit.parest.metropolisHastingsSample(...
                     log(obj.NewParameters), numberOfSamples, ...
-                    'logpdf', obj.ObjectiveMH, ...
+                    'logpdf', obj.ProbabilityMH, ...
                     'proprnd', obj.ProposalDistribution, ...
                     'symmetric', true, ...
                     'thin', obj.NumberForThinMH, ...
@@ -164,15 +178,17 @@ classdef MetropolisHastingsRunner
                     % parameter set. Redefine the objective function to
                     % calculate the new total likelihood function.
 
-                    obj.ObjectiveMH = @(x) -obj.Model.getLikelihood(...
-                        x, obj.ModelHasData, obj.ModelFSPStateSpace);
+                    obj.ParameterFittingObjectiveMH = @(x) ...
+                        -obj.Model.getLikelihood(...
+                            x, obj.ModelHasData, obj.ModelFSPStateSpace);
                     fitOptions = optimset('Display', 'iter', ...
                         'MaxIter', 100);
 
                     % TODO: Pass in fitOptions from designer, so that we
                     % can get a correct value for maxFitIter.
 
-                    obj.NewParameters = exp(fminsearch(obj.ObjectiveMH, ...
+                    obj.NewParameters = exp(fminsearch(...
+                        obj.ParameterFittingObjectiveMH, ...
                         log(obj.NewParameters), fitOptions));
                     obj.Model.parameters(obj.Model.FitParameters, 2) = ...
                         num2cell(obj.NewParameters);
