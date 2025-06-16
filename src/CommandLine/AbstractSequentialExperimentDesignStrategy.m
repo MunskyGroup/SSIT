@@ -24,9 +24,9 @@ classdef AbstractSequentialExperimentDesignStrategy
         round = apportionObservations(obj, round)        
     end
     methods (Access = protected)
-        function round = designRoundInternal(obj, round)
+        function round = designRoundInternal(~, round)
             arguments
-                obj
+                ~
                 round (1, 1) SequentialExperimentRound
             end
         end
