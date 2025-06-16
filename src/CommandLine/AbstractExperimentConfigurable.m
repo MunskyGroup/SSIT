@@ -1,5 +1,6 @@
 classdef AbstractExperimentConfigurable < matlab.mixin.Heterogeneous
-    methods (Abstract)        
+    methods (Abstract)
+        model = applyToModel(obj, model)
         varName = getVarName(obj)
         value = getSingleValue(obj)
         configurables = multiply(obj)
