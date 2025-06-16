@@ -10,5 +10,16 @@ classdef ExperimentConfiguration
             end
             disp([num2str(obj.NumberOfObservations), ' Observation(s)'])            
         end
+    
+        function model = applyToModel(obj, model)
+            arguments
+                obj
+                model (1, 1) DiscoverableModel
+            end
+
+            for configIdx = 1:length(obj.Configurables)
+                model = obj.Configurables(configIdx).applyToModel(model);
+            end
+        end
     end
 end
