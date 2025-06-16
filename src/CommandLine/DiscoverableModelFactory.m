@@ -1,11 +1,12 @@
 classdef DiscoverableModelFactory
-    methods
+    methods (Static)
         function m = createModel(arch, dataFilename)
             arguments
                 arch (1,1) DiscoverableModelArchitecture
-                dataFilename (1,1) string {mustBeNonempty}
+                dataFilename (1,1) string {mustBeNonempty} = tempname(pwd)
             end
             m = DiscoverableModel();
+            ind = randi(10000);
             switch arch
                 case {"Poisson","PoissonFewer"}
                     m.ArchitectureName = "Poisson";
@@ -19,8 +20,8 @@ classdef DiscoverableModelFactory
                     m.FitParameters = 1:3;
                     m.NumberOfTimepoints = 21;
                     m.tSpan = linspace(0,10,nT);
-                    m.FIMMetric = FIMMetric();
-                    m.FIMMetric.MetricKind = "DeterminantCoveriance";
+                    % m.FIMMetric = FIMMetric();
+                    % m.FIMMetric.MetricKind = "DeterminantCoveriance";
                     m.NumberOfMHSamples = 1000;
 
                     m.MuLog10Prior = [0,0,0];
@@ -56,9 +57,9 @@ classdef DiscoverableModelFactory
 
                     m.NumberOfTimepoints = 31;
                     m.tSpan = linspace(0,30,m.NumberOfTimepoints);
-                    m.FIMMetric = FIMMetric();
-                    m.FIMMetric.MetricKind = "Determinant";
-                    m.FIMMetric.Indices = 1:5;
+                    % m.FIMMetric = FIMMetric();
+                    % m.FIMMetric.MetricKind = "Determinant";
+                    % m.FIMMetric.Indices = 1:5;
                     m.NumberOfMHSamples = 5000;
               
                     m.MuLog10Prior = [0,0,0,0,0,0];
@@ -100,9 +101,9 @@ classdef DiscoverableModelFactory
                     m.FitParameters = 1:6;
                     m.NumberOfTimepoints = 6;
                     m.tSpan = [0,10,30,50,75,180];
-                    m.FIMMetric = FIMMetric();
-                    m.FIMMetric.MetricKind = "Determinant";
-                    m.FIMMetric.Indices = [2, 5, 6];
+                    % m.FIMMetric = FIMMetric();
+                    % m.FIMMetric.MetricKind = "Determinant";
+                    % m.FIMMetric.Indices = [2, 5, 6];
 
                     m.NumberOfMHSamples = 5000;
               
@@ -115,10 +116,10 @@ classdef DiscoverableModelFactory
                         diag(m.SigmaLog10Prior.^2*log(10^2));
 
                     m.inputExpressions = {'IDex','100'};
-                    m = m.formPropensitiesGeneral([dataFilename,'_S',num2str(ind)],true);
-                    m = {m};
+                    m = m.formPropensitiesGeneral(append(dataFilename,"_S",num2str(ind)),true);
+                    % m = {m};
                 % case {"GR", "GRFewer", "GRFewest"} ...
             end % switch arch
         end % createModel
-    end % methods
+    end % Static methods
 end

@@ -219,7 +219,7 @@ classdef Propensity
             if ~exist([pwd,'/tmpPropensityFunctions'],'dir')
                 mkdir([pwd,'/tmpPropensityFunctions'])
             end
-            delete([pwd,'/tmpPropensityFunctions/',prefixName,'*']);
+            delete(append(pwd,'/tmpPropensityFunctions/',prefixName,'*'));
             addpath([pwd,'/tmpPropensityFunctions/'],'-begin')
 
             obj = cell(1,n_reactions);
