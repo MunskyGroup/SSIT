@@ -1,6 +1,5 @@
 classdef SequentialExperimentRound  
-    properties (SetAccess = private)
-        Experiments (1, :) DesignedExperiment
+    properties (SetAccess = private)        
         NumberOfConfigs (1, 1) double {mustBeInteger, mustBePositive} = 1
         NumberOfConfigurables (1, 1) double {mustBeInteger, mustBePositive} = 1
         VarNames (1, :) string {mustBeNonempty} = 'VarNamePlaceholder'
@@ -11,7 +10,11 @@ classdef SequentialExperimentRound
         NumberOfObservations
     end
 
-    methods
+    properties
+        Experiments (1, :) DesignedExperiment
+    end
+
+    methods      
         function observations = get.NumberOfObservations(obj)
             observations = 0;
             for experimentIdx = 1:length(obj.Experiments)
