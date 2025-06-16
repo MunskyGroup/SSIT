@@ -7,17 +7,23 @@ classdef RandomSEDStrategy < AbstractSequentialExperimentDesignStrategy
             end
 
             % Determine the maximum number of quanta that can be
-            % apportioned to each experiment. Then calculate, for each
-            % experiment, a random integer no greater than that maximum.
+            % apportioned to the experiments in this round. Then calculate,
+            % for each quantum up to that total, a random integer no
+            % greater than the number of experiments (i.e., assign each
+            % quantum to an experiment). For each experiment, count the
+            % number of corresponding assignments and multiply by the 
+            % quantum to determine the total number of observations to be
+            % assigned to that experiment's configuration.
 
             K = length(round.Experiments);
             N = idivide(int32(obj.ObservationsPerExperiment), ...
                 int32(obj.ObservationQuantum));
-            quanta = randi(N, 1, K);
-            observations = quanta * obj.ObservationQuantum;
+            assignments = randi(K, 1, N);            
             for experimentIdx = 1:K
+                curObservations = sum(assignments == experimentIdx) * ...
+                    obj.ObservationQuantum;
                 round.Experiments(experimentIdx).Configuration.NumberOfObservations = ...
-                    observations(experimentIdx);
+                    curObservations;
             end             
         end
     end    
