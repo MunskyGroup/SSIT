@@ -5,16 +5,16 @@ addpath(genpath('../../Model'))
 
 %%
 num_edges = 30; % 
-num_param_values = 2; % number of different parameter values per parameter 
-NCells = 100; % Num cells per simulation
-num_sims_per_parameter = 3;
+num_param_values = 3; % number of different parameter values per parameter 
+NCells = 50; % Num cells per simulation
+num_sims_per_parameter = 4;
 
 
-sim_kon = false;
+sim_kon = true;
 calc_kon = true;
 
 sim_koff = false;
-calc_koff = true;
+calc_koff = false;
 
 
 %% Simulate: Theta = kon
@@ -31,7 +31,7 @@ gam =[0.035;0.0025;0.001]; % release, partial degredation, degredation
 if sim_kon
     fprintf('Simulating on \n')
     results = cell([num_param_values, num_sims_per_parameter]);
-    for i = 1:length(num_param_values)
+    for i = 1:num_param_values
         for n = 1:num_sims_per_parameter
             fprintf('Simulating n = %i, kon = %.2e \n', n, kon(i))
             results{i,n} = Simulate(kon(i), koff, w, kex, kr, D, gam, NCells, makePlot);
@@ -60,7 +60,7 @@ gam =[0.035;0.0025;0.001];
 if sim_koff
     disp('Simulating koff \n')
     results = cell([length(koff), num_sims_per_parameter]);
-    for i = 1:length(koff)
+    for i = 1:num_param_values
         for n = 1:num_sims_per_parameter
            fprintf('Simulating n = %i, koff = %.2e \n', n, koff(i))
             results{i,n} = Simulate(kon, koff(i), w, kex, kr, D, gam, NCells, makePlot);
