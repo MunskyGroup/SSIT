@@ -5,9 +5,9 @@ addpath(genpath('../../Model'))
 
 %%
 num_edges = 100; % to divide and compare pdfs with this number of edges for spatial distributions 
-num_param_values = 30; % number of different parameter values per parameter i.e. linspace(0, 1, num_param_values)
+num_param_values = 3; % number of different parameter values per parameter i.e. linspace(0, 1, num_param_values)
 NCells = 2000; % Num cells per simulation
-num_sims_per_parameter = 10;
+num_sims_per_parameter = 4;
 
 
 kon_start = -7;
@@ -230,7 +230,10 @@ function [distances, mean_distances, var_distances] = main(results, name, parame
     xlabel(name)
     ylabel('Mean Distance ± STD');
     plot(parameter_range, mean_distances(row_index, :))
-    fill([parameter_range, fliplr(parameter_range)], [upper', fliplr(lower')], [0.9 0.9 1], 'EdgeColor', 'none');
+    set(gca, 'XScale', 'log')
+    x_fill = [parameter_range, fliplr(parameter_range)];
+    y_fill = [upper(row_index, :), fliplr(lower(row_index, :))];
+    fill(x_fill, y_fill, [0.9 0.9 1], 'EdgeColor', 'none');
     grid on;
     legend('±1 STD', 'Mean');
     saveas(gcf, sprintf('%s_MeanWithVariance_Wasserstein1D.png', name));
@@ -306,7 +309,9 @@ function [distances, mean_distances, var_distances] = main(results, name, parame
     xlabel(name)
     ylabel('Mean Distance ± STD');
     plot(parameter_range, mean_distances(row_index, :))
-    fill([parameter_range, fliplr(parameter_range)], [upper', fliplr(lower')], [0.9 0.9 1], 'EdgeColor', 'none');
+    x_fill = [parameter_range, fliplr(parameter_range)];
+    y_fill = [upper(row_index, :), fliplr(lower(row_index, :))];
+    fill(x_fill, y_fill, [0.9 0.9 1], 'EdgeColor', 'none');
     grid on;
     legend('±1 STD', 'Mean');
     saveas(gcf, sprintf('%s_MeanWithVariance_JSDivergence.png', name));
