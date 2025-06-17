@@ -10,9 +10,9 @@ NCells = 2000; % Num cells per simulation
 num_sims_per_parameter = 10;
 
 
-kon_start = -7
+kon_start = -7;
 kon_end = -2;
-sim_kon = true;
+sim_kon = false;
 calc_kon = true;
 
 sim_koff = true;
@@ -156,11 +156,11 @@ function [distances, mean_distances, var_distances] = main(results, name, parame
 
     % Wasserstein
     % gets wasserstein distance
-    distances = zeros(length(results), length(results), length(parameter_range), length(parameter_range));
+    distances = zeros(size(results,2), size(results,2), length(parameter_range), length(parameter_range));
     for j = 1:length(parameter_range)
         for k = 1:length(parameter_range)
-            for n = 1:length(results)
-                for n_1 = 1:length(results)
+            for n = 1:size(results,2)
+                for n_1 = 1:size(results,2)
                     distances(n, n_1, j, k) = DistributionDistance_Wasserstein1D(results{j,n}, results{k,n_1}, num_edges);
                 end
             end
@@ -238,11 +238,11 @@ function [distances, mean_distances, var_distances] = main(results, name, parame
 
     % JSDivergence
     % get JSDivergence Distances 
-    distances = zeros(length(results), length(results), length(parameter_range), length(parameter_range));
+    distances = zeros(size(results,2), size(results,2), length(parameter_range), length(parameter_range));
     for j = 1:length(parameter_range)
         for k = 1:length(parameter_range)
-            for n = 1:length(results)
-                for n_1 = 1:length(results)
+            for n = 1:size(results,2)
+                for n_1 = 1:size(results,2)
                     distances(n, n_1, j, k) = DistributionDistance_JSDivergence(results{j,n}, results{k,n_1}, num_edges);
                 end
             end
