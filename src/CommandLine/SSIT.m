@@ -955,7 +955,7 @@ classdef SSIT
                     if showPlot
                         [~,PDO] = obj.findPdoError(pdoType,lambdaNew,xTrue,xObsv);
                         Z = max(-25,log10(PDO));
-                        figure
+                        fg = figure; set(0,'CurrentFigure',fg);
                         contourf([0:size(PDO,2)-1],[0:size(PDO,1)-1],Z);
                         colorbar
                         hold on
@@ -2713,7 +2713,8 @@ classdef SSIT
                 end
             end
             if makePlot
-                figure
+                fg = figure;
+                set(0,'CurrentFigure',fg);
                 if length(parIndices)>2
                     disp('plots are only created for first two parameters')
                 end
@@ -3166,7 +3167,8 @@ classdef SSIT
                         case 'means'
                             plot(solution.T_array(indTimes),solution.Means(indTimes,:),lineProps{:});
                         case 'meansAndDevs'
-                            figure(figureNums(kfig)); kfig=kfig+1;
+                            fg = figure(figureNums(kfig)); set(0,'CurrentFigure',fg);
+                            kfig=kfig+1;
                             for i = 1:Nd
                                 subplot(Nd,1,i); hold on
                                 errorbar(solution.T_array(indTimes),solution.Means(indTimes,i),sqrt(solution.Var(indTimes,i)),lineProps{:});
@@ -3176,6 +3178,7 @@ classdef SSIT
                         case 'marginals'
                             for j = 1:Nd
                                 f = figure(figureNums(kfig)); kfig=kfig+1;
+                                set(0,'CurrentFigure',f);
                                 f.Name = ['Marginal Distributions of ',specNames{j}];
                                 Nr = ceil(sqrt(Nt));
                                 Nc = ceil(Nt/Nr);
@@ -3188,7 +3191,7 @@ classdef SSIT
                                 end
                             end
                         case 'margmovie'
-                            f = figure(figureNums(1)); clf;
+                            f = figure(figureNums(1)); set(0,'CurrentFigure',f); clf;                           
                             set(f,'Position',[ 1000         980         528         258])
                             
                             if isempty(maxY)
@@ -3231,7 +3234,7 @@ classdef SSIT
                             else
                                 for j1 = 1:Nd
                                     for j2 = j1+1:Nd
-                                        h = figure(figureNums(kfig)); kfig=kfig+1;
+                                        h = figure(figureNums(kfig)); set(0,'CurrentFigure',h); kfig=kfig+1;
                                         h.Name = ['Joint Distribution of ',specNames{j1},' and ',specNames{j2}];
                                         Nr = ceil(sqrt(Nt));
                                         Nc = ceil(Nt/Nr);
@@ -3253,7 +3256,7 @@ classdef SSIT
                                 end
                             end
                         case 'escapeTimes'
-                            f = figure(figureNums(kfig)); kfig=kfig+1;
+                            f = figure(figureNums(kfig)); set(0,'CurrentFigure',f); kfig=kfig+1;
                             subplot(2,1,1)
                             z = solution.EscapeCDF(indTimes,:);
                             t = solution.T_array(indTimes);
@@ -3276,16 +3279,16 @@ classdef SSIT
                     end
                     switch plotType
                         case 'trajectories'
-                            figure(figureNums(kfig)); kfig=kfig+1;
+                            f = figure(figureNums(kfig)); set(0,'CurrentFigure',f); kfig=kfig+1;
                             for i=1:Nd
                                 subplot(Nd,1,i)
                                 plot(solution.T_array(indTimes),squeeze(solution.trajs(i,indTimes,:)));
                             end
                         case 'means'
-                            figure(figureNums(kfig)); kfig=kfig+1;
+                            f = figure(figureNums(kfig)); set(0,'CurrentFigure',f); kfig=kfig+1;
                             plot(solution.T_array(indTimes),squeeze(mean(solution.trajs(:,indTimes,:),3)),lineProps{:});
                         case 'meansAndDevs'
-                            figure(figureNums(kfig)); kfig=kfig+1;
+                            f = figure(figureNums(kfig)); set(0,'CurrentFigure',f); kfig=kfig+1;
                             vars = var(solution.trajs(:,indTimes,:),[],3);
                             errorbar(solution.T_array(indTimes),squeeze(mean(solution.trajs(:,indTimes,:),3)),sqrt(vars));
                     end
@@ -3339,7 +3342,7 @@ classdef SSIT
                             for it = 1:Nt
                                 it2 = indTimes(it);
                                 for id = 1:Nd
-                                    f = figure(figureNums(kfig)); kfig=kfig+1;
+                                    f = figure(figureNums(kfig)); set(0,'CurrentFigure',f); kfig=kfig+1;
                                     f.Name = ['Marg. Dist. Sensitivities of x',num2str(id),' at t=',num2str(solution.plotable.T_array(it2))];
                                     for j = 1:Np
                                         subplot(Nr,Nc,j); hold on;
@@ -3356,7 +3359,7 @@ classdef SSIT
                                 end
                             end
                         case 'margmovie'
-                            f = figure(figureNums(1)); clf;
+                            f = figure(figureNums(1)); set(0,'CurrentFigure',f); clf;
                             set(f,'Position',[ 1000         985         419         253])
                             
                             if isempty(maxY)
@@ -3431,9 +3434,9 @@ classdef SSIT
                 par0 = []
             end
             if isempty(figNum)
-                gcf;
+                f = gcf; set(0,'CurrentFigure',f);
             else
-                figure(figNum)
+                f = figure(figNum); set(0,'CurrentFigure',f);
             end
 
             CIp = round(CI*100);
@@ -3580,16 +3583,16 @@ classdef SSIT
             if ~isempty(mhResults)
                 % Make figures for MH convergence
                 if showConvergence
-                    figure;
+                    fg = figure; set(0,'CurrentFigure',fg)
                     plot(mhResults.mhValue);
                     xlabel('Iteration number');
                     ylabel('log-likelihood')
                     title('MH Convergence')
 
-                    figure
+                    fg = figure; set(0,'CurrentFigure',fg)
                     ac = xcorr(mhResults.mhValue-mean(mhResults.mhValue),'normalized');
                     ac = ac(size(mhResults.mhValue,1):end);
-                    plot(ac,'LineWidth',3); hold on
+                    plot(ac,'LineWidth',3); hold on 
                     N = size(mhResults.mhValue,1);
                     tau = 1+2*sum((ac(2:N/100)));
                     Neff = N/tau;
@@ -3599,9 +3602,9 @@ classdef SSIT
                 end
 
                 if isempty(scatterFig)
-                    figure
+                    fg = figure; set(0,'CurrentFigure',fg);
                 else
-                    figure(scatterFig);
+                    fg = figure(scatterFig); set(0,'CurrentFigure',fg)
                 end
 
 
