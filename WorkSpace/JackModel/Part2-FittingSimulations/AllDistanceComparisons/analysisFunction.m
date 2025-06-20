@@ -76,8 +76,8 @@ function [distances, mean_distances, var_distances] = analysisFunction(results, 
     hold on;
     xlabel(name)
     ylabel('Mean Distance ± STD');
-    plot(parameter_range, mean_distances(row_index, :))
-    fill([parameter_range, fliplr(parameter_range)], [upper', fliplr(lower')], [0.9 0.9 1], 'EdgeColor', 'none');
+    plot(parameter_range, mean_distances(row_index, :), 'LineWidth', 1.5, 'Color', [0 0 0.5])
+    fill([parameter_range, fliplr(parameter_range)], [upper(row_index, :), fliplr(lower(row_index, :))], [0.9 0.9 1], 'EdgeColor', 'none');
     grid on;
     legend('±1 STD', 'Mean');
     saveas(gcf, sprintf('%s_MeanWithVariance_Wasserstein1D.png', name));
@@ -153,7 +153,7 @@ function [distances, mean_distances, var_distances] = analysisFunction(results, 
     xlabel(name)
     ylabel('Mean Distance ± STD');
     plot(parameter_range, mean_distances(row_index, :), 'LineWidth', 1.5, 'Color', [0 0 0.5])
-    fill([parameter_range, fliplr(parameter_range)], [upper(row_index, :)', fliplr(lower(row_index, :))], [0.9 0.9 1], 'EdgeColor', 'none');
+    fill([parameter_range, fliplr(parameter_range)], [upper(row_index, :), fliplr(lower(row_index, :))], [0.9 0.9 1], 'EdgeColor', 'none');
     grid on;
     legend('±1 STD', 'Mean');
     saveas(gcf, sprintf('%s_MeanWithVariance_JSDivergence.png', name));
@@ -241,55 +241,64 @@ end
 function metric = DistributionDistance_Wasserstein1D(results1, results2, num_bins)
     % auto calculates edges 
     allData = [results1.binCounts, results2.binCounts];
-    edges = linspace(min(allData,[], 'all'), max(allData,[], 'all'), num_bins);
+    min_num_rna_in_any_bin = min(allData,[], 'all');
+    max_num_rna_in_any_bin = max(allData,[], 'all');
+    edges = linspace(min_num_rna_in_any_bin, max_num_rna_in_any_bin, num_bins);
     binCenters = edges(1:end-1) + diff(edges)/2;
 
-    % calculate pdfs vector with same edges 
-    P = Prob(results1, edges);
-    Q = Prob(results2, edges);
-
-    % calculate metric
-    distances = zeros(size(P));
-    for i = 1:size(P,1)
-        for j = 1:size(P,2)
-            p = P{i,j};
-            q = Q{i,j};
-
-            distances(i,j) = Wasserstein1D(p, q, binCenters);
-        end
-    end
+    if max_num_rna_in_any_bin ~= 0
+        % calculate pdfs vector with same edges 
+        P = Prob(results1, edges);
+        Q = Prob(results2, edges);
     
-    metric =  sum(distances(7,:));
+        % calculate metric
+        distances = zeros(size(P));
+        for i = 1:size(P,1)
+            for j = 1:size(P,2)
+                p = P{i,j};
+                q = Q{i,j};
+    
+                distances(i,j) = Wasserstein1D(p, q, binCenters);
+            end
+        end
+        
+        metric =  sum(distances(7,:));
+    else
+        metric = 0;
+    end
 end
 
-
-function metric = DistributionDistance_JSDivergence(results1, results2, num_edges)
+function metric = DistributionDistance_JSDivergence(results1, results2, num_bins)
     % auto calculates edges 
     allData = [results1.binCounts, results2.binCounts];
-    edges = linspace(min(allData,[], 'all'), max(allData,[], 'all'), num_edges);
-    binCenters = edges(1:end-1) + diff(edges)/2;
+    min_num_rna_in_any_bin = min(allData,[], 'all');
+    max_num_rna_in_any_bin = max(allData,[], 'all');
+    edges = linspace(min_num_rna_in_any_bin, max_num_rna_in_any_bin, num_bins);
 
-    % calculate pdfs vector with same edges 
-    P = Prob(results1, edges);
-    Q = Prob(results2, edges);
-
-    % calculate metric
-    distances = zeros(size(P));
-    for i = 1:size(P,1)
-        for j = 1:size(P,2)
-            p = P{i,j};
-            q = Q{i,j};
-
-            % p = p / sum(p + eps);
-            % q = q / sum(q + eps);
-
-            distances(i,j) = JSDivergence(p, q);
+    if max_num_rna_in_any_bin ~= 0
+        % calculate pdfs vector with same edges 
+        P = Prob(results1, edges);
+        Q = Prob(results2, edges);
+    
+        % calculate metric
+        distances = zeros(size(P));
+        for i = 1:size(P,1)
+            for j = 1:size(P,2)
+                p = P{i,j};
+                q = Q{i,j};
+    
+                % p = p / sum(p + eps);
+                % q = q / sum(q + eps);
+    
+                distances(i,j) = JSDivergence(p, q);
+            end
         end
+    
+        metric = sum(distances(7,:));
+    else
+        metric = 0;
     end
-
-    metric = sum(distances(7,:));
 end
-
 
 function [overlap_area] = compute_overlap_area(samples1, samples2, num_eval_points)
     % Step 1: Define common x range
