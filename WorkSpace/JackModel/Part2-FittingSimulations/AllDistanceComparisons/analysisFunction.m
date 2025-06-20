@@ -152,8 +152,8 @@ function [distances, mean_distances, var_distances] = analysisFunction(results, 
     hold on;
     xlabel(name)
     ylabel('Mean Distance ± STD');
-    plot(parameter_range, mean_distances(row_index, :))
-    fill([parameter_range, fliplr(parameter_range)], [upper', fliplr(lower')], [0.9 0.9 1], 'EdgeColor', 'none');
+    plot(parameter_range, mean_distances(row_index, :), 'LineWidth', 1.5, 'Color', [0 0 0.5])
+    fill([parameter_range, fliplr(parameter_range)], [upper(row_index, :)', fliplr(lower(row_index, :))], [0.9 0.9 1], 'EdgeColor', 'none');
     grid on;
     legend('±1 STD', 'Mean');
     saveas(gcf, sprintf('%s_MeanWithVariance_JSDivergence.png', name));
