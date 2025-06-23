@@ -1,10 +1,10 @@
 classdef DesignedExperiment
     properties
-        % The BaseModel should be assigned by the object owning the
+        Configuration (1, 1) ExperimentConfiguration       
+        % The UnderlyingModel should be assigned by the object owning the
         % experiment. It reflects the model as it should be used EXCEPT FOR
         % any modification(s) that the configuration might make.        
-        BaseModel (1, 1) DiscoverableModel
-        Configuration (1, 1) ExperimentConfiguration       
+        UnderlyingModel (1, 1) DiscoverableModel        
     end
 
     properties (Dependent)
@@ -12,14 +12,14 @@ classdef DesignedExperiment
         % experiment, e.g. data-fitting and simulation routines. It 
         % includes any modification(s) that the configuration might make.
         % Being a dependent property, it is recalculated upon demand to
-        % reflect the latest values of both the base model and the
+        % reflect the latest values of both the underlying model and the
         % configuration.
         Model (1, 1) DiscoverableModel
     end
 
     methods
         function model = get.Model(obj)
-            model = obj.Configuration.applyToModel(obj.BaseModel);
+            model = obj.Configuration.applyToModel(obj.UnderlyingModel);
         end
     end
 end
