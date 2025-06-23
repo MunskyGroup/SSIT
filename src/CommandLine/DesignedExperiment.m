@@ -1,5 +1,6 @@
 classdef DesignedExperiment
     properties
+        Analytics (1, 1) BaseExperimentAnalytics
         Configuration (1, 1) ExperimentConfiguration       
         % The UnderlyingModel should be assigned by the object owning the
         % experiment. It reflects the model as it should be used EXCEPT FOR
