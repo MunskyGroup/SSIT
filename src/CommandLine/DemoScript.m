@@ -46,3 +46,7 @@ model = model.loadData([pwd ...
 % 2. Read provided data and print out CSV (analogous to design CSV)
 % indicating how many observations (cells) were obtained for each
 % condition.
+
+%% Test model solution
+[fspSoln, model.fspOptions.bounds] = model.solve;
+stateSpace = fspSoln.stateSpace;
