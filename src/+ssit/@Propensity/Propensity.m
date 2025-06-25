@@ -751,8 +751,14 @@ for i=1:length(logicTerms)
     end
 end
 
+lens = zeros(1,length(nonXTpars));
 for i = 1:length(nonXTpars)
-    exprStr = strrep(exprStr, nonXTpars{i}, ['Parameters(',num2str(i),')']);
+    lens(i) = length(nonXTpars{i});
+end
+[~,J] = sort(lens,'descend');
+
+for i = 1:length(nonXTpars)
+    exprStr = strrep(exprStr, nonXTpars{J(i)}, ['Parameters(',num2str(J(i)),')']);
 end
 
 for i = length(nonXTpars):-1:1
