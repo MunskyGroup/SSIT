@@ -467,9 +467,14 @@ while (tNow < maxOutputTime)
                 (fspErrorCondition.nSinks-fspErrorCondition.nEscapeSinks) >=...
                 fspStopStatus.error_bound(end));
         else
-            constraintsToRelax = find(fspStopStatus.sinks(1:end-fspErrorCondition.nEscapeSinks)*...
-                (fspErrorCondition.nSinks-fspErrorCondition.nEscapeSinks) > 0);
+            constraintsToRelax = find(fspStopStatus.sinks(1:end-fspErrorCondition.nEscapeSinks) > 0);
         end
+        if iout>1
+            newMassInSinks = fspStopStatus.sinks(1:end-fspErrorCondition.nEscapeSinks)' - solutions{iout}.sinks;
+            [~,biggestChange] = max(newMassInSinks);
+            constraintsToRelax = [constraintsToRelax,biggestChange];
+        end
+
         constraintBoundsFinal(constraintsToRelax) = 1.2*constraintBoundsFinal(constraintsToRelax);
 
         if min(constraintsToRelax)<=size(stoichMatrix,1)
