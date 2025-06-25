@@ -1913,7 +1913,6 @@ classdef SSIT
                 end
             end
 
-
             % Find time column
             timeField = TAB.Properties.VariableNames(contains(lower(TAB.Properties.VariableNames),'time'));
             if isempty(timeField)
@@ -2114,8 +2113,9 @@ classdef SSIT
 
             obj.tSpan = unique([obj.initialTime,obj.dataSet.times]);
 
-            % Calculate the means
+            % Calculate the means and variances
             obj.dataSet.mean = zeros(sz(1),length(sz)-1);
+            obj.dataSet.var = zeros(sz(1),length(sz)-1);
             for i=1:sz(1)
                 for j=2:length(sz)
                     tmpInt{j-1} = [1:sz(j)];
@@ -2128,6 +2128,8 @@ classdef SSIT
                         H = TMP;
                     end
                     obj.dataSet.mean(i,j) = sum([0:length(H)-1]'.*H(:))/sum(H);
+                    x2 = sum(([0:length(H)-1].^2)'.*H(:))/sum(H);
+                    obj.dataSet.var(i,j) = x2 - obj.dataSet.mean(i,j)^2;
                 end
             end
 
@@ -2571,7 +2573,11 @@ classdef SSIT
                  if nargout>=3
                      perfectMod(it) = vals'*log(vals/sum(vals));
                      Pvt = sptensor(Pvals);
-                     fitSolutions.DataLoadingAndFittingTabOutputs.fitResults.current([it*ones(size(Pvt.subs,1),1),Pvt.subs(:,1:end-1)]) = Pvt.vals;
+                     if length(size(Pvals))==length(size(fitSolutions.DataLoadingAndFittingTabOutputs.fitResults.current))
+                        fitSolutions.DataLoadingAndFittingTabOutputs.fitResults.current([it*ones(size(Pvt.subs,1),1),Pvt.subs(:,1:end-1)]) = Pvt.vals;
+                     elseif length(size(Pvals))==length(size(fitSolutions.DataLoadingAndFittingTabOutputs.fitResults.current))-1
+                        fitSolutions.DataLoadingAndFittingTabOutputs.fitResults.current([it*ones(size(Pvt.subs,1),1),Pvt.subs]) = Pvt.vals;
+                     end
                  end
 
                  if computeSensitivity&&nargout>=2
