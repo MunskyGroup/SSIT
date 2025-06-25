@@ -2192,9 +2192,6 @@ classdef SSIT
             end
             nds = length(J);
 
-            if isempty(SIG)
-                SIG = eye(nt*nds);
-            end
             nc = repmat(obj.dataSet.nCells,nds,1);
 
             vm = zeros(nt*nds,1); 
@@ -2205,6 +2202,11 @@ classdef SSIT
             vd(:) = obj.dataSet.mean(:);
             
             vm = real(vm);
+            
+            if isempty(SIG)
+                % SIG = eye(nt*nds);
+                SIG = diag(sqrt(obj.dataSet.var(:)));
+            end
 
             logLode = -1/2*(sqrt(nc)'.*(vd-vm)')*SIG^(-1)*((vd-vm).*sqrt(nc));
             logLode = logLode+logPrior;
