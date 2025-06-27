@@ -149,6 +149,11 @@ classdef miscelaneousTests < matlab.unittest.TestCase
             tc.verifyEqual(meanError<0.01, true, ...
                 'Average SSIT ODE Solution is not within 1 percent of SimBiology.');
 
+            % TODO -- Need to add SSIT option for ODE aanlysis for user to
+            % choose the ODE solver.  For stiff problems, ODE23s is much
+            % faster, but for non-stiff problems (like this one) ODE45 is
+            % faster. 
+
          end
 
     end
