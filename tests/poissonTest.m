@@ -334,15 +334,16 @@ classdef poissonTest < matlab.unittest.TestCase
             % lam(t) = k/g*(1-exp(-g*t));
             % logL = prod_n [Poisson(n|lam(t))]
             Model = testCase.PoissODE;
-            % Model.solutionScheme = 'ode';
-            % Model = Model.formPropensitiesGeneral;            
+            
+            % Skip first time point for fitting.
+            Model.fittingOptions.timesToFit = Model.tSpan>0;
             odeLogL = Model.computeLikelihoodODE;
             
-            t = testCase.Poiss.tSpan;
-            mn = testCase.Poiss.parameters{1,2}/testCase.Poiss.parameters{2,2}*...
-                (1-exp(-testCase.Poiss.parameters{2,2}*t));
+            t = Model.tSpan(2:end);
+            mn = Model.parameters{1,2}/Model.parameters{2,2}*...
+                (1-exp(-Model.parameters{2,2}*t));
 
-            logLExact = -1/2*1000*sum((testCase.Poiss.dataSet.mean-mn').^2);
+            logLExact = -1/2*sum(Model.dataSet.nCells(2:end).*(Model.dataSet.mean(2:end)-mn').^2./Model.dataSet.var(2:end));
 
             relDiff = abs((logLExact-odeLogL)/logLExact);
 
@@ -356,6 +357,7 @@ classdef poissonTest < matlab.unittest.TestCase
             % Model.solutionScheme = 'ode';
             % Model = Model.formPropensitiesGeneral;
             Model.parameters(:,2) = {10*rand;rand};
+            Model.fittingOptions.timesToFit = Model.tSpan>0;
             fitOptions = optimset('Display','none','MaxIter',1000);
             fitOptions.SIG = [];
             Model.fittingOptions.modelVarsToFit = [1,2];

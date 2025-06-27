@@ -6,6 +6,7 @@ classdef hybridModelTest < matlab.unittest.TestCase
     methods (TestClassSetup)
         % Shared setup for the entire test class
          function setupModel(testCase)
+            addpath(genpath('../src'));
             testCase.Hybrid = SSIT;  
             testCase.Hybrid.species = {'A';'B';'C'}; 
             testCase.Hybrid.initialCondition = [10;10;10];           
