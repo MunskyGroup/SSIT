@@ -1291,9 +1291,6 @@ classdef SSIT
                         trajs = zeros(length(obj.species),...
                             length(obj.tSpan),nSims);% Creates an empty Trajectories matrix from the size of the time array and number of simulations
                         parfor isim = 1:nSims
-                            if obj.ssaOptions.verbose
-                                disp(['completed sim number: ',num2str(isim)])
-                            end
                             trajs(:,:,isim) = ssit.ssa.runSingleSsa(obj.initialCondition,...
                                 obj.stoichiometry,...
                                 W,...
@@ -1301,6 +1298,9 @@ classdef SSIT
                                 obj.ssaOptions.useTimeVar,...
                                 obj.ssaOptions.signalUpdateRate,...
                                 [obj.parameters{:,2}]');
+                            if obj.ssaOptions.verbose
+                                disp(['completed sim number: ',num2str(isim)])
+                            end
                         end
                         Solution.trajs = trajs;
                     else
@@ -1944,6 +1944,17 @@ classdef SSIT
             obj.dataSet.DATA = table2cell(TAB);
 
             % Link Species
+            % First, make sure that all linked species are in the order of
+            % species.
+            iSpe = [];
+            for i = 1:length(obj.species)
+                if max(contains(linkedSpecies(:,1),obj.species(i)))
+                    j = find(strcmp(linkedSpecies(:,1),obj.species(i)));
+                    iSpe = [iSpe,j];
+                end
+            end
+            linkedSpecies = linkedSpecies(iSpe,:);
+
             TAB2 = table;
             TAB2.time = TAB.(timeField{1});
             for i = 1:size(linkedSpecies,1)
@@ -1959,7 +1970,7 @@ classdef SSIT
             end
 
             % Reorder table in order of species list
-            [~,iA] = intersect(linkedSpecies(:,1),obj.species);
+            [~,iA] = intersect(linkedSpecies(:,1),obj.species,'stable');
             TAB2 = TAB2(:,[1,iA'+1]);
               
             % dataTensor = sptensor(
@@ -2151,6 +2162,12 @@ classdef SSIT
                 SIG = [];
             end
         
+            if strcmp(obj.fittingOptions.timesToFit,'all')
+                logTimesToFit = ones(1,length(obj.dataSet.times),'logical');
+            else
+                logTimesToFit = obj.fittingOptions.timesToFit;
+            end
+
             if strcmp(obj.fittingOptions.modelVarsToFit,'all')
                 indsParsToFit = [1:length(obj.parameters)];
             else
@@ -2170,7 +2187,7 @@ classdef SSIT
 
             originalPars = obj.parameters;
             obj.tSpan = unique([obj.initialTime,obj.tSpan,obj.dataSet.times]);
-            [~,IA,~] = intersect(obj.tSpan,obj.dataSet.times);
+            [~,IA,~] = intersect(obj.tSpan,obj.dataSet.times(logTimesToFit));
 
             % Update Model and PDO parameters using supplied guess
             obj.parameters(indsParsToFit,2) =  num2cell(pars(1:nModelPars));
@@ -2199,16 +2216,16 @@ classdef SSIT
             vm(:) = tmp(:);
             
             vd = zeros(nt*nds,1); 
-            vd(:) = obj.dataSet.mean(:);
+            vd(:) = obj.dataSet.mean(logTimesToFit);
             
             vm = real(vm);
             
             if isempty(SIG)
                 % SIG = eye(nt*nds);
-                SIG = diag(sqrt(obj.dataSet.var(:)));
+                SIG = diag((obj.dataSet.var(logTimesToFit)));
             end
 
-            logLode = -1/2*(sqrt(nc)'.*(vd-vm)')*SIG^(-1)*((vd-vm).*sqrt(nc));
+            logLode = -1/2*(sqrt(nc(logTimesToFit))'.*(vd-vm)')*SIG^(-1)*((vd-vm).*sqrt(nc(logTimesToFit)));
             logLode = logLode+logPrior;
         end
 
@@ -2479,6 +2496,13 @@ classdef SSIT
             if strcmp(obj.fittingOptions.timesToFit,'all')
                 fitSolutions.ParEstFitTimesList = obj.dataSet.app.ParEstFitTimesList;
                 obj.fittingOptions.timesToFit = ones(1,length(obj.dataSet.app.ParEstFitTimesList.Value),'logical');
+            else
+                fitSolutions.ParEstFitTimesList = obj.dataSet.app.ParEstFitTimesList;
+                fitSolutions.ParEstFitTimesList.Value = fitSolutions.ParEstFitTimesList.Items(obj.fittingOptions.timesToFit);
+                timesToFit = zeros(1,length(obj.dataSet.app.ParEstFitTimesList.Value),'logical');
+                timesToFit(obj.fittingOptions.timesToFit) = true;
+                obj.fittingOptions.timesToFit = timesToFit;
+                
             end
 
             dataTensor = obj.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor;
@@ -2486,8 +2510,8 @@ classdef SSIT
             timesUnique = unique(timesData);
 
             % Map measurement times to the solution times.
-            J = zeros(1,length(obj.dataSet.times));
-            for it = 1:length(obj.dataSet.times)                    
+            J = zeros(1,length(obj.dataSet.times(obj.fittingOptions.timesToFit)));
+            for it = 1:length(J)                    
                 [~,J(it)] = min(abs(obj.tSpan-obj.dataSet.times(it)));
             end
             if ~computeSensitivity||nargout<2
@@ -2508,7 +2532,7 @@ classdef SSIT
             % Set up storage for outputs if requested.
             if nargout>=3
                 perfectMod = zeros(1,numTimes);
-                numCells = obj.dataSet.nCells';
+                numCells = obj.dataSet.nCells(obj.fittingOptions.timesToFit)';
                 sz = [numTimes,max(solutions.stateSpace.states,[],2)'];
                 sz = sz([true,indsPlots]);
                 fitSolutions.DataLoadingAndFittingTabOutputs.fitResults.current = sptensor(sz);
