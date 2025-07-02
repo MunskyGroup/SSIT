@@ -495,9 +495,9 @@ classdef SSIT
             end
             
             if ~isempty(obj.customConstraintFuns)
-                [~,J] = sort(cellfun('length',obj.species),'descend');                
+                [~,J] = sort(cellfun('length',stochasticSpecies),'descend');                
                 for i = 1:length(obj.customConstraintFuns)
-                    constraintStr = SSIT.replaceSpeciesNames(obj.customConstraintFuns{i},obj.species);
+                    constraintStr = SSIT.replaceSpeciesNames(obj.customConstraintFuns{i},stochasticSpecies);
                     Data(2*nSpecies+i,:) = {constraintStr,'<',1};
                 end
             end
@@ -2209,23 +2209,25 @@ classdef SSIT
             end
             nds = length(J);
 
-            nc = repmat(obj.dataSet.nCells,nds,1);
+            nc = repmat(obj.dataSet.nCells(logTimesToFit),nds,1);
 
             vm = zeros(nt*nds,1); 
             tmp = solutions.ode(IA,J);
             vm(:) = tmp(:);
             
             vd = zeros(nt*nds,1); 
-            vd(:) = obj.dataSet.mean(logTimesToFit);
+            vd(:) = obj.dataSet.mean(logTimesToFit,:);
             
             vm = real(vm);
             
             if isempty(SIG)
                 % SIG = eye(nt*nds);
-                SIG = diag((obj.dataSet.var(logTimesToFit)));
+                vec = zeros(numel(obj.dataSet.var(logTimesToFit,:)),1);
+                vec(:) = obj.dataSet.var(logTimesToFit,:);
+                SIG = diag(vec);
             end
 
-            logLode = -1/2*(sqrt(nc(logTimesToFit))'.*(vd-vm)')*SIG^(-1)*((vd-vm).*sqrt(nc(logTimesToFit)));
+            logLode = -1/2*(sqrt(nc)'.*(vd-vm)')*SIG^(-1)*((vd-vm).*sqrt(nc));
             logLode = logLode+logPrior;
         end
 

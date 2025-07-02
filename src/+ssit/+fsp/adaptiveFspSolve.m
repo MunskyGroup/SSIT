@@ -213,9 +213,11 @@ if initApproxSS
         FUN = @(v)odeStoichs*generate_propensity_vector(0, v, zeros(length(jStochastic),1), propensities, parameters);
         OPTIONS = optimoptions('fsolve','display','none',...
             'OptimalityTolerance',1e-8,'MaxIterations',2000);
-        x0b = fsolve(FUN,initODEs,OPTIONS);
+        % x0b = fsolve(FUN,initODEs,OPTIONS);
+        x0b = initODEs;
         FUN = @(t,v)odeStoichs*generate_propensity_vector(0, v, zeros(length(jStochastic),1), propensities, parameters);
-        [~,ode_solutions] = ode45(FUN,max(outputTimes)*[0,500,1000],x0b);
+        % [~,ode_solutions] = ode45(FUN,max(outputTimes)*[0,500,1000],x0b);
+        [~,ode_solutions] = ode23s(FUN,max(outputTimes)*[0,500,1000],x0b);
         initODEs = ode_solutions(end,:)';
 
         jac = AfspFull.createJacHybridMatrix(0, initODEs, parameters, length(hybridOptions.upstreamODEs), true);
