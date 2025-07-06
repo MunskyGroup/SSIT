@@ -1314,6 +1314,9 @@ classdef SSIT
                                 obj.ssaOptions.useTimeVar,...
                                 obj.ssaOptions.signalUpdateRate,...
                                 [obj.parameters{:,2}]');
+                            if obj.ssaOptions.verbose
+                                disp(['completed sim number: ',num2str(isim)])
+                            end
                         end
                     end
                     disp([num2str(nSims),' SSA Runs Completed'])
@@ -2879,6 +2882,7 @@ classdef SSIT
                     defaultFitOptions.CovFIMscale = 0.6;
                     defaultFitOptions.suppressFSPExpansion = true;
                     defaultFitOptions.logForm = true;
+                    defaultFitOptions.obj = [];
 
                     j=1;
                     while exist(['TMPmh_',num2str(j),'.mat'],'file')
@@ -2893,11 +2897,23 @@ classdef SSIT
                         end
                     end
 
+                    if isempty(allFitOptions.obj)
+                        if allFitOptions.logForm
+                            OBJmh = @(x)obj.computeLikelihood(exp(x),FSPsoln.stateSpace);  % We want to MAXIMIZE the likelihood.
+                        else
+                            OBJmh = @(x)OBJfun(x,FSPsoln.stateSpace);  % We want to MAXIMIZE the likelihood.
+                        end
+                    else
+                        if allFitOptions.logForm
+                            OBJmh = @(x)allFitOptions.obj(exp(x));
+                        else
+                            OBJmh = @(x)allFitOptions.obj(x);
+                        end
+                    end
+
                     if allFitOptions.logForm
-                        OBJmh = @(x)obj.computeLikelihood(exp(x),FSPsoln.stateSpace);  % We want to MAXIMIZE the likelihood.
                         x0 = log(parGuess);
                     else
-                        OBJmh = @(x)obj.computeLikelihood(x,FSPsoln.stateSpace);  % We want to MAXIMIZE the likelihood.
                         x0 = (parGuess);
                     end
 
@@ -3007,10 +3023,29 @@ classdef SSIT
 
             numConstraints = length(obj.fspOptions.bounds);
 
+            if ~isfield(fspSoln,'stateSpace')
+                if obj.useHybrid
+                    error('Model reduction not currently available for time varying or hybrid system. Let us know if this is something you would like.')
+                    % [~,IA] = setdiff(obj.species,obj.hybridOptions.upstreamODEs,'stable');
+                    % stoich = obj.stoichiometry(IA,:);
+                    % init = obj.initialCondition(IA,:);
+                else
+                    stoich = obj.stoichiometry;
+                    init = obj.initialCondition;
+                end
+                fspSoln.stateSpace = ssit.FiniteStateSet(init, stoich);
+                fspSoln.stateSpace = fspSoln.stateSpace.expand(obj.fspConstraints.f, obj.fspConstraints.b);
+
+            end
+
             % Assemble for generator matrix for original FSP problem.
             if ~isfield(fspSoln,'A_total')
                 fspSoln.Afsp = ssit.FspMatrix(obj.propensitiesGeneral, [obj.parameters{:,2}]', fspSoln.stateSpace, numConstraints);
-                fspSoln.A_total = fspSoln.Afsp.createSingleMatrix(obj.tSpan(1), [obj.parameters{:,2}]');
+                if obj.useHybrid
+                    error('Model reduction not currently available for time varying or hybrid system. Let us know if this is something you would like.')
+                else
+                    fspSoln.A_total = fspSoln.Afsp.createSingleMatrix(obj.tSpan(1), [obj.parameters{:,2}]');
+                end
             end
 
             % Remove FSP Sinks
