@@ -53,6 +53,26 @@ classdef poissonTest < matlab.unittest.TestCase
                 'Species name is incorrect');
         end
 
+        function AddReaction(testCase)
+            % In this trivial test, we check that the SSIT is set up with
+            % the right names for the 'rna' species.
+            F = SSIT('Empty');
+            newRxn(1).propensity = 'kr + kr1*x1';
+            newRxn(1).stoichiometry = {'x1',1};
+            newRxn(1).parameters = {'kr',2;'kr1',0.01};
+            newRxn(2).propensity = 'g*x1';
+            newRxn(2).stoichiometry = {'x1',-1};
+            newRxn(2).parameters = {'g',0.1};
+            F = F.addReaction(newRxn);
+
+            testCase.verifyEqual(F.species{1}, 'x1', ...
+                'FSP add reaction has error');
+            testCase.verifyEqual(F.propensityFunctions{1}, 'kr + kr1*x1', ...
+                'FSP add reaction has error');
+            testCase.verifyEqual(F.stoichiometry, [1    -1], ...
+                'FSP add reaction has error');
+        end
+
         function FspConverged(testCase)
             % In this test, we check tha tthe FSP solution exits with an
             % appropriate FSP tolerance value.
