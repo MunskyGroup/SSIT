@@ -327,7 +327,9 @@ classdef SSIT
                 else
                     % Create model from template
                     obj = pregenModel(obj,modelFile);
-                    obj = obj.formPropensitiesGeneral;
+                    if ~strcmp(modelFile,'Empty')
+                        obj = obj.formPropensitiesGeneral;
+                    end
                 end
             end
 
@@ -857,14 +859,54 @@ classdef SSIT
             obj.parameters =  [obj.parameters;newParameters];
         end
 
-        function [obj] = addReaction(obj,newPropensity,newStoichVector)
+        function [obj] = addReaction(obj,newRxn,confirm)
+            arguments
+                obj
+                newRxn
+                confirm = false
+            end
+
             % addParameter - add new reaction to reaction model
             % example:
-            %     F = SSIT;
-            %     F = F.addReaction({'kr*x1'},[0;-1]);  % Add reaction
-            %     x1->x1+x2 with rate kr.
-            obj.propensityFunctions =  [obj.propensityFunctions;newPropensity];
-            obj.stoichiometry =  [obj.stoichiometry,newStoichVector];
+            % F = SSIT('Empty')
+            % newRxn(1).propensity = 'kr + kr1*x1';
+            % newRxn(1).stoichiometry = {'x1',1};
+            % newRxn(1).parameters = {'kr',2;'kr1',0.01};
+            % newRxn(2).propensity = 'g*x1';
+            % newRxn(2).stoichiometry = {'x1',-1};
+            % newRxn(2).parameters = {'g',0.1};
+            % F = F.addReaction(newRxn);
+            for iRxn = 1:length(newRxn)
+                obj.propensityFunctions =  [obj.propensityFunctions;newRxn(iRxn).propensity];
+                rxnNum = size(obj.stoichiometry,2)+1;
+                for iSpe = 1:size(newRxn(iRxn).stoichiometry,1)
+                    specName = newRxn(iRxn).stoichiometry{iSpe,1};
+                    specChange = newRxn(iRxn).stoichiometry{iSpe,2};
+                    specNum = find(strcmp(obj.species,specName));
+                    if isempty(specNum)
+                        disp(['Adding species ',specName,' with initial condition 0.'])
+                        obj = obj.addSpecies(specName,0);
+                        specNum = length(obj.species);
+                    end
+                    obj.stoichiometry(specNum,rxnNum) = specChange;
+                end
+                for iPar = 1:size(newRxn(iRxn).parameters,1)
+                    parName = newRxn(iRxn).parameters{iPar,1};
+                    parValue = newRxn(iRxn).parameters{iPar,2};
+                    if ~isempty(obj.parameters)
+                        parNum = find(strcmp(obj.parameters(:,1),parName));
+                    else
+                        parNum=[];
+                    end
+                    if isempty(parNum)
+                        disp(['Adding parameter ',parName,' with value ',num2str(parValue)]);
+                        obj = obj.addParameter({parName,parValue});
+                    else
+                        disp(['Updating parameter ',parName,' to new value ',num2str(parValue)]);
+                        obj.parameters{parNum,2} = parValue;
+                    end
+                end
+            end
             obj.propensitiesGeneral = [];
         end
 
