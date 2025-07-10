@@ -751,8 +751,14 @@ for i=1:length(logicTerms)
     end
 end
 
+lens = zeros(1,length(nonXTpars));
 for i = 1:length(nonXTpars)
-    exprStr = strrep(exprStr, nonXTpars{i}, ['Parameters(',num2str(i),')']);
+    lens(i) = length(nonXTpars{i});
+end
+[~,J] = sort(lens,'descend');
+
+for i = 1:length(nonXTpars)
+    exprStr = strrep(exprStr, nonXTpars{J(i)}, ['Parameters(',num2str(J(i)),')']);
 end
 
 for i = length(nonXTpars):-1:1
@@ -833,8 +839,8 @@ fn = [pwd,'/tmpPropensityFunctions/',prefixName,'_fun_',num2str(ifn),'.m'];
 if jacobian&&~isempty(varODEs)
     exprJac = sym(zeros([1,length(varODEs)]));
     [~,a2] = intersect(varODEs,symvar(symbolicExpression));
-    for i=1:a2
-        exprJac(i) = diff(symbolicExpression,varODEs(i));
+    for i=1:length(a2)
+        exprJac(a2(i)) = diff(symbolicExpression,varODEs(a2(i)));
     end
 else
     exprJac=[];

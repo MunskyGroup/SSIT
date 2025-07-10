@@ -327,7 +327,9 @@ classdef SSIT
                 else
                     % Create model from template
                     obj = pregenModel(obj,modelFile);
-                    obj = obj.formPropensitiesGeneral;
+                    if ~strcmp(modelFile,'Empty')
+                        obj = obj.formPropensitiesGeneral;
+                    end
                 end
             end
 
@@ -495,9 +497,9 @@ classdef SSIT
             end
             
             if ~isempty(obj.customConstraintFuns)
-                [~,J] = sort(cellfun('length',obj.species),'descend');                
+                [~,J] = sort(cellfun('length',stochasticSpecies),'descend');                
                 for i = 1:length(obj.customConstraintFuns)
-                    constraintStr = SSIT.replaceSpeciesNames(obj.customConstraintFuns{i},obj.species);
+                    constraintStr = SSIT.replaceSpeciesNames(obj.customConstraintFuns{i},stochasticSpecies);
                     Data(2*nSpecies+i,:) = {constraintStr,'<',1};
                 end
             end
@@ -857,14 +859,54 @@ classdef SSIT
             obj.parameters =  [obj.parameters;newParameters];
         end
 
-        function [obj] = addReaction(obj,newPropensity,newStoichVector)
+        function [obj] = addReaction(obj,newRxn,confirm)
+            arguments
+                obj
+                newRxn
+                confirm = false
+            end
+
             % addParameter - add new reaction to reaction model
             % example:
-            %     F = SSIT;
-            %     F = F.addReaction({'kr*x1'},[0;-1]);  % Add reaction
-            %     x1->x1+x2 with rate kr.
-            obj.propensityFunctions =  [obj.propensityFunctions;newPropensity];
-            obj.stoichiometry =  [obj.stoichiometry,newStoichVector];
+            % F = SSIT('Empty')
+            % newRxn(1).propensity = 'kr + kr1*x1';
+            % newRxn(1).stoichiometry = {'x1',1};
+            % newRxn(1).parameters = {'kr',2;'kr1',0.01};
+            % newRxn(2).propensity = 'g*x1';
+            % newRxn(2).stoichiometry = {'x1',-1};
+            % newRxn(2).parameters = {'g',0.1};
+            % F = F.addReaction(newRxn);
+            for iRxn = 1:length(newRxn)
+                obj.propensityFunctions =  [obj.propensityFunctions;newRxn(iRxn).propensity];
+                rxnNum = size(obj.stoichiometry,2)+1;
+                for iSpe = 1:size(newRxn(iRxn).stoichiometry,1)
+                    specName = newRxn(iRxn).stoichiometry{iSpe,1};
+                    specChange = newRxn(iRxn).stoichiometry{iSpe,2};
+                    specNum = find(strcmp(obj.species,specName));
+                    if isempty(specNum)
+                        disp(['Adding species ',specName,' with initial condition 0.'])
+                        obj = obj.addSpecies(specName,0);
+                        specNum = length(obj.species);
+                    end
+                    obj.stoichiometry(specNum,rxnNum) = specChange;
+                end
+                for iPar = 1:size(newRxn(iRxn).parameters,1)
+                    parName = newRxn(iRxn).parameters{iPar,1};
+                    parValue = newRxn(iRxn).parameters{iPar,2};
+                    if ~isempty(obj.parameters)
+                        parNum = find(strcmp(obj.parameters(:,1),parName));
+                    else
+                        parNum=[];
+                    end
+                    if isempty(parNum)
+                        disp(['Adding parameter ',parName,' with value ',num2str(parValue)]);
+                        obj = obj.addParameter({parName,parValue});
+                    else
+                        disp(['Updating parameter ',parName,' to new value ',num2str(parValue)]);
+                        obj.parameters{parNum,2} = parValue;
+                    end
+                end
+            end
             obj.propensitiesGeneral = [];
         end
 
@@ -1291,9 +1333,6 @@ classdef SSIT
                         trajs = zeros(length(obj.species),...
                             length(obj.tSpan),nSims);% Creates an empty Trajectories matrix from the size of the time array and number of simulations
                         parfor isim = 1:nSims
-                            if obj.ssaOptions.verbose
-                                disp(['completed sim number: ',num2str(isim)])
-                            end
                             trajs(:,:,isim) = ssit.ssa.runSingleSsa(obj.initialCondition,...
                                 obj.stoichiometry,...
                                 W,...
@@ -1301,6 +1340,9 @@ classdef SSIT
                                 obj.ssaOptions.useTimeVar,...
                                 obj.ssaOptions.signalUpdateRate,...
                                 [obj.parameters{:,2}]');
+                            if obj.ssaOptions.verbose
+                                disp(['completed sim number: ',num2str(isim)])
+                            end
                         end
                         Solution.trajs = trajs;
                     else
@@ -1314,6 +1356,9 @@ classdef SSIT
                                 obj.ssaOptions.useTimeVar,...
                                 obj.ssaOptions.signalUpdateRate,...
                                 [obj.parameters{:,2}]');
+                            if obj.ssaOptions.verbose
+                                disp(['completed sim number: ',num2str(isim)])
+                            end
                         end
                     end
                     disp([num2str(nSims),' SSA Runs Completed'])
@@ -1913,7 +1958,6 @@ classdef SSIT
                 end
             end
 
-
             % Find time column
             timeField = TAB.Properties.VariableNames(contains(lower(TAB.Properties.VariableNames),'time'));
             if isempty(timeField)
@@ -1945,6 +1989,17 @@ classdef SSIT
             obj.dataSet.DATA = table2cell(TAB);
 
             % Link Species
+            % First, make sure that all linked species are in the order of
+            % species.
+            iSpe = [];
+            for i = 1:length(obj.species)
+                if max(contains(linkedSpecies(:,1),obj.species(i)))
+                    j = find(strcmp(linkedSpecies(:,1),obj.species(i)));
+                    iSpe = [iSpe,j];
+                end
+            end
+            linkedSpecies = linkedSpecies(iSpe,:);
+
             TAB2 = table;
             TAB2.time = TAB.(timeField{1});
             for i = 1:size(linkedSpecies,1)
@@ -1960,7 +2015,7 @@ classdef SSIT
             end
 
             % Reorder table in order of species list
-            [~,iA] = intersect(linkedSpecies(:,1),obj.species);
+            [~,iA] = intersect(linkedSpecies(:,1),obj.species,'stable');
             TAB2 = TAB2(:,[1,iA'+1]);
               
             % dataTensor = sptensor(
@@ -2114,8 +2169,9 @@ classdef SSIT
 
             obj.tSpan = unique([obj.initialTime,obj.dataSet.times]);
 
-            % Calculate the means
+            % Calculate the means and variances
             obj.dataSet.mean = zeros(sz(1),length(sz)-1);
+            obj.dataSet.var = zeros(sz(1),length(sz)-1);
             for i=1:sz(1)
                 for j=2:length(sz)
                     tmpInt{j-1} = [1:sz(j)];
@@ -2128,6 +2184,8 @@ classdef SSIT
                         H = TMP;
                     end
                     obj.dataSet.mean(i,j) = sum([0:length(H)-1]'.*H(:))/sum(H);
+                    x2 = sum(([0:length(H)-1].^2)'.*H(:))/sum(H);
+                    obj.dataSet.var(i,j) = x2 - obj.dataSet.mean(i,j)^2;
                 end
             end
 
@@ -2149,6 +2207,12 @@ classdef SSIT
                 SIG = [];
             end
         
+            if strcmp(obj.fittingOptions.timesToFit,'all')
+                logTimesToFit = ones(1,length(obj.dataSet.times),'logical');
+            else
+                logTimesToFit = obj.fittingOptions.timesToFit;
+            end
+
             if strcmp(obj.fittingOptions.modelVarsToFit,'all')
                 indsParsToFit = [1:length(obj.parameters)];
             else
@@ -2168,7 +2232,7 @@ classdef SSIT
 
             originalPars = obj.parameters;
             obj.tSpan = unique([obj.initialTime,obj.tSpan,obj.dataSet.times]);
-            [~,IA,~] = intersect(obj.tSpan,obj.dataSet.times);
+            [~,IA,~] = intersect(obj.tSpan,obj.dataSet.times(logTimesToFit));
 
             % Update Model and PDO parameters using supplied guess
             obj.parameters(indsParsToFit,2) =  num2cell(pars(1:nModelPars));
@@ -2190,19 +2254,23 @@ classdef SSIT
             end
             nds = length(J);
 
-            if isempty(SIG)
-                SIG = eye(nt*nds);
-            end
-            nc = repmat(obj.dataSet.nCells,nds,1);
+            nc = repmat(obj.dataSet.nCells(logTimesToFit),nds,1);
 
             vm = zeros(nt*nds,1); 
             tmp = solutions.ode(IA,J);
             vm(:) = tmp(:);
             
             vd = zeros(nt*nds,1); 
-            vd(:) = obj.dataSet.mean(:);
+            vd(:) = obj.dataSet.mean(logTimesToFit,:);
             
             vm = real(vm);
+            
+            if isempty(SIG)
+                % SIG = eye(nt*nds);
+                vec = zeros(numel(obj.dataSet.var(logTimesToFit,:)),1);
+                vec(:) = obj.dataSet.var(logTimesToFit,:);
+                SIG = diag(vec);
+            end
 
             logLode = -1/2*(sqrt(nc)'.*(vd-vm)')*SIG^(-1)*((vd-vm).*sqrt(nc));
             logLode = logLode+logPrior;
@@ -2475,6 +2543,13 @@ classdef SSIT
             if strcmp(obj.fittingOptions.timesToFit,'all')
                 fitSolutions.ParEstFitTimesList = obj.dataSet.app.ParEstFitTimesList;
                 obj.fittingOptions.timesToFit = ones(1,length(obj.dataSet.app.ParEstFitTimesList.Value),'logical');
+            else
+                fitSolutions.ParEstFitTimesList = obj.dataSet.app.ParEstFitTimesList;
+                fitSolutions.ParEstFitTimesList.Value = fitSolutions.ParEstFitTimesList.Items(obj.fittingOptions.timesToFit);
+                timesToFit = zeros(1,length(obj.dataSet.app.ParEstFitTimesList.Value),'logical');
+                timesToFit(obj.fittingOptions.timesToFit) = true;
+                obj.fittingOptions.timesToFit = timesToFit;
+                
             end
 
             dataTensor = obj.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor;
@@ -2482,8 +2557,8 @@ classdef SSIT
             timesUnique = unique(timesData);
 
             % Map measurement times to the solution times.
-            J = zeros(1,length(obj.dataSet.times));
-            for it = 1:length(obj.dataSet.times)                    
+            J = zeros(1,length(obj.dataSet.times(obj.fittingOptions.timesToFit)));
+            for it = 1:length(J)                    
                 [~,J(it)] = min(abs(obj.tSpan-obj.dataSet.times(it)));
             end
             if ~computeSensitivity||nargout<2
@@ -2504,7 +2579,7 @@ classdef SSIT
             % Set up storage for outputs if requested.
             if nargout>=3
                 perfectMod = zeros(1,numTimes);
-                numCells = obj.dataSet.nCells';
+                numCells = obj.dataSet.nCells(obj.fittingOptions.timesToFit)';
                 sz = [numTimes,max(solutions.stateSpace.states,[],2)'];
                 sz = sz([true,indsPlots]);
                 fitSolutions.DataLoadingAndFittingTabOutputs.fitResults.current = sptensor(sz);
@@ -2571,7 +2646,11 @@ classdef SSIT
                  if nargout>=3
                      perfectMod(it) = vals'*log(vals/sum(vals));
                      Pvt = sptensor(Pvals);
-                     fitSolutions.DataLoadingAndFittingTabOutputs.fitResults.current([it*ones(size(Pvt.subs,1),1),Pvt.subs(:,1:end-1)]) = Pvt.vals;
+                     if length(size(Pvals))==length(size(fitSolutions.DataLoadingAndFittingTabOutputs.fitResults.current))
+                        fitSolutions.DataLoadingAndFittingTabOutputs.fitResults.current([it*ones(size(Pvt.subs,1),1),Pvt.subs(:,1:end-1)]) = Pvt.vals;
+                     elseif length(size(Pvals))==length(size(fitSolutions.DataLoadingAndFittingTabOutputs.fitResults.current))-1
+                        fitSolutions.DataLoadingAndFittingTabOutputs.fitResults.current([it*ones(size(Pvt.subs,1),1),Pvt.subs]) = Pvt.vals;
+                     end
                  end
 
                  if computeSensitivity&&nargout>=2
@@ -2845,6 +2924,7 @@ classdef SSIT
                     defaultFitOptions.CovFIMscale = 0.6;
                     defaultFitOptions.suppressFSPExpansion = true;
                     defaultFitOptions.logForm = true;
+                    defaultFitOptions.obj = [];
 
                     j=1;
                     while exist(['TMPmh_',num2str(j),'.mat'],'file')
@@ -2859,11 +2939,23 @@ classdef SSIT
                         end
                     end
 
+                    if isempty(allFitOptions.obj)
+                        if allFitOptions.logForm
+                            OBJmh = @(x)obj.computeLikelihood(exp(x),FSPsoln.stateSpace);  % We want to MAXIMIZE the likelihood.
+                        else
+                            OBJmh = @(x)OBJfun(x,FSPsoln.stateSpace);  % We want to MAXIMIZE the likelihood.
+                        end
+                    else
+                        if allFitOptions.logForm
+                            OBJmh = @(x)allFitOptions.obj(exp(x));
+                        else
+                            OBJmh = @(x)allFitOptions.obj(x);
+                        end
+                    end
+
                     if allFitOptions.logForm
-                        OBJmh = @(x)obj.computeLikelihood(exp(x),FSPsoln.stateSpace);  % We want to MAXIMIZE the likelihood.
                         x0 = log(parGuess);
                     else
-                        OBJmh = @(x)obj.computeLikelihood(x,FSPsoln.stateSpace);  % We want to MAXIMIZE the likelihood.
                         x0 = (parGuess);
                     end
 
@@ -2973,10 +3065,29 @@ classdef SSIT
 
             numConstraints = length(obj.fspOptions.bounds);
 
+            if ~isfield(fspSoln,'stateSpace')
+                if obj.useHybrid
+                    error('Model reduction not currently available for time varying or hybrid system. Let us know if this is something you would like.')
+                    % [~,IA] = setdiff(obj.species,obj.hybridOptions.upstreamODEs,'stable');
+                    % stoich = obj.stoichiometry(IA,:);
+                    % init = obj.initialCondition(IA,:);
+                else
+                    stoich = obj.stoichiometry;
+                    init = obj.initialCondition;
+                end
+                fspSoln.stateSpace = ssit.FiniteStateSet(init, stoich);
+                fspSoln.stateSpace = fspSoln.stateSpace.expand(obj.fspConstraints.f, obj.fspConstraints.b);
+
+            end
+
             % Assemble for generator matrix for original FSP problem.
             if ~isfield(fspSoln,'A_total')
                 fspSoln.Afsp = ssit.FspMatrix(obj.propensitiesGeneral, [obj.parameters{:,2}]', fspSoln.stateSpace, numConstraints);
-                fspSoln.A_total = fspSoln.Afsp.createSingleMatrix(obj.tSpan(1), [obj.parameters{:,2}]');
+                if obj.useHybrid
+                    error('Model reduction not currently available for time varying or hybrid system. Let us know if this is something you would like.')
+                else
+                    fspSoln.A_total = fspSoln.Afsp.createSingleMatrix(obj.tSpan(1), [obj.parameters{:,2}]');
+                end
             end
 
             % Remove FSP Sinks

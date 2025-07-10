@@ -54,7 +54,8 @@ end
 %% Return your output to ode_solutions
 maxstep = min(tspan(2:end)-tspan(1:end-1))/2;
 options = odeset(RelTol=1e-6,AbsTol=1e-10,MaxStep=maxstep,Jacobian=ode_jac);
-[t_ode,ode_solutions] = ode45(ode_rhs,tspan,x0,options);
+% [t_ode,ode_solutions] = ode45(ode_rhs,tspan,x0,options);
+[t_ode,ode_solutions] = ode23s(ode_rhs,tspan,x0,options);
 
 % options = odeset(RelTol=1e-6,AbsTol=1e-10,MaxStep=maxstep,Jacobian=ode_jac);
 % [t_ode,ode_solutions] = ode23s(ode_rhs,tspan,x0,options);

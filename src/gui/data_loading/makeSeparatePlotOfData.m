@@ -307,20 +307,20 @@ else
     figure(fignums(4))
 end
 subplot(3,1,1)
-plot(app.DataLoadingAndFittingTabOutputs.fittingOptions.fit_times,app.DataLoadingAndFittingTabOutputs.V_LogLk,'linewidth',2)
+plot(app.DataLoadingAndFittingTabOutputs.fittingOptions.dataTimes,app.DataLoadingAndFittingTabOutputs.V_LogLk,'linewidth',2)
 hold on
-plot(app.DataLoadingAndFittingTabOutputs.fittingOptions.fit_times,app.DataLoadingAndFittingTabOutputs.perfectMod,'linewidth',2)
+plot(app.DataLoadingAndFittingTabOutputs.fittingOptions.dataTimes,app.DataLoadingAndFittingTabOutputs.perfectMod,'linewidth',2)
 % plot(app.DataLoadingAndFittingTabOutputs.fittingOptions.fit_times,app.DataLoadingAndFittingTabOutputs.perfectModSmoothed,'linewidth',2)
 ylabel('Log(L(D(t)|M)')
 % legend({'log(L) - best fit for model','log(L) - theoretical limit','log(L) - theoretical limit (smoothed)'})
 legend({'log(L) - best fit for model','log(L) - theoretical limit'})
 
 subplot(3,1,2)
-plot(app.DataLoadingAndFittingTabOutputs.fittingOptions.fit_times,app.DataLoadingAndFittingTabOutputs.numCells,'linewidth',2)
+plot(app.DataLoadingAndFittingTabOutputs.fittingOptions.dataTimes,app.DataLoadingAndFittingTabOutputs.numCells,'linewidth',2)
 ylabel('# Cells')
 
 subplot(3,1,3)
-plot(app.DataLoadingAndFittingTabOutputs.fittingOptions.fit_times,...
+plot(app.DataLoadingAndFittingTabOutputs.fittingOptions.dataTimes,...
     (app.DataLoadingAndFittingTabOutputs.V_LogLk - app.DataLoadingAndFittingTabOutputs.perfectMod)./...
     app.DataLoadingAndFittingTabOutputs.numCells,'linewidth',2)
 

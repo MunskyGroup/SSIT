@@ -53,6 +53,26 @@ classdef poissonTest < matlab.unittest.TestCase
                 'Species name is incorrect');
         end
 
+        function AddReaction(testCase)
+            % In this trivial test, we check that the SSIT is set up with
+            % the right names for the 'rna' species.
+            F = SSIT('Empty');
+            newRxn(1).propensity = 'kr + kr1*x1';
+            newRxn(1).stoichiometry = {'x1',1};
+            newRxn(1).parameters = {'kr',2;'kr1',0.01};
+            newRxn(2).propensity = 'g*x1';
+            newRxn(2).stoichiometry = {'x1',-1};
+            newRxn(2).parameters = {'g',0.1};
+            F = F.addReaction(newRxn);
+
+            testCase.verifyEqual(F.species{1}, 'x1', ...
+                'FSP add reaction has error');
+            testCase.verifyEqual(F.propensityFunctions{1}, 'kr + kr1*x1', ...
+                'FSP add reaction has error');
+            testCase.verifyEqual(F.stoichiometry, [1    -1], ...
+                'FSP add reaction has error');
+        end
+
         function FspConverged(testCase)
             % In this test, we check tha tthe FSP solution exits with an
             % appropriate FSP tolerance value.
@@ -334,15 +354,16 @@ classdef poissonTest < matlab.unittest.TestCase
             % lam(t) = k/g*(1-exp(-g*t));
             % logL = prod_n [Poisson(n|lam(t))]
             Model = testCase.PoissODE;
-            % Model.solutionScheme = 'ode';
-            % Model = Model.formPropensitiesGeneral;            
+            
+            % Skip first time point for fitting.
+            Model.fittingOptions.timesToFit = Model.tSpan>0;
             odeLogL = Model.computeLikelihoodODE;
             
-            t = testCase.Poiss.tSpan;
-            mn = testCase.Poiss.parameters{1,2}/testCase.Poiss.parameters{2,2}*...
-                (1-exp(-testCase.Poiss.parameters{2,2}*t));
+            t = Model.tSpan(2:end);
+            mn = Model.parameters{1,2}/Model.parameters{2,2}*...
+                (1-exp(-Model.parameters{2,2}*t));
 
-            logLExact = -1/2*1000*sum((testCase.Poiss.dataSet.mean-mn').^2);
+            logLExact = -1/2*sum(Model.dataSet.nCells(2:end).*(Model.dataSet.mean(2:end)-mn').^2./Model.dataSet.var(2:end));
 
             relDiff = abs((logLExact-odeLogL)/logLExact);
 
@@ -356,6 +377,7 @@ classdef poissonTest < matlab.unittest.TestCase
             % Model.solutionScheme = 'ode';
             % Model = Model.formPropensitiesGeneral;
             Model.parameters(:,2) = {10*rand;rand};
+            Model.fittingOptions.timesToFit = Model.tSpan>0;
             fitOptions = optimset('Display','none','MaxIter',1000);
             fitOptions.SIG = [];
             Model.fittingOptions.modelVarsToFit = [1,2];
