@@ -533,11 +533,11 @@ classdef SSIT
             % pregenModel - creates a pregenerated model from a template:
             % Possible Templates include:
             %   Empty -- nothing
-            %   BirthDeath -- one species 'x1' with birth rate 'k' and
+            %   BirthDeath -- one species 'mRNA' with birth rate 'k' and
             %       death rate 'g'
             %   CentralDogma -- Time varying 2-species model with:
-            %       mRNA species 'x1' with birth rate 'kr*I(t)' and
-            %       degradation rate 'gr'. Protein species 'x2' with
+            %       mRNA species 'rna' with birth rate 'kr*I(t)' and
+            %       degradation rate 'gr'. Protein species 'protein' with
             %       translation rate 'kr' and degradation rate 'gp'.
             %   ToggleSwitch -- two proteins that prepress one another with
             %       non-linear functions.
@@ -3698,6 +3698,51 @@ classdef SSIT
             [~,order] = sort(Len,'descend');
             for i = 1:length(order)
                 str = strrep(str,species{order(i)},['x',num2str(i)]);
+            end
+
+        end
+        function cmd = generateCommandLinePipeline(saveFileIn,modelName,dummy, ...
+                Pipeline,pipelineArgs,saveFileOut,logFile,runNow)
+            arguments
+                saveFileIn
+                modelName
+                dummy
+                Pipeline
+                pipelineArgs
+                saveFileOut
+                logFile
+                runNow = false
+            end
+
+            % Parse inputs into format needed for command line call.
+            str1 = append('(''',saveFileIn,''',''',modelName,''',[],''',Pipeline,''',');
+            str2 = 'struct(';
+            fieldNames = fields(pipelineArgs);
+            for iField = 1:length(fieldNames)
+                field = fieldNames{iField};
+                if isnumeric(pipelineArgs.(field))||islogical(pipelineArgs.(field))
+                    value = num2str(pipelineArgs.(field));
+                else
+                    value = append('''',pipelineArgs.(field),'''');
+                end
+                str2 = append(str2,'''',field,''',',value,',');
+            end
+            str2 = append(str1,str2(1:end-1),'),''',saveFileOut,'''');
+
+            % Add path to SSIT.
+            pth = which('SSIT');
+            pth = append('addpath(genpath(''',pth(1:end-19),'''));');
+
+            % Add path to matlab executable
+            matlabpath = fullfile(matlabroot, 'bin', 'matlab');
+            
+            % Build command
+            cmd = append(matlabpath,' -nodisplay -nosplash -nodesktop -r "',pth,'SSIT',str2,')',...
+                '; exit;" > ',logFile,' 2>&1 < /dev/null &');
+
+            % Run command if requested.
+            if runNow
+                system(cmd)
             end
 
         end

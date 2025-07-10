@@ -158,6 +158,48 @@ classdef miscelaneousTests < matlab.unittest.TestCase
             % faster. 
 
          end
+         
+         function testCommandLine(testCase)
+             %% Define Model/Data Combination
+             % Specify data set to fit.
+             DataSettings = {'testData.csv',{'mRNA','exp1_s1'}};
+
+             % Create model from preset, associate with data.
+             Model = SSIT('BirthDeath',[],DataSettings);
+
+             % Save model for later use.
+             saveFile = 'temporarySaveFile';
+             save(saveFile,"Model")
+
+             %% Call Pipeline to Fit Model
+             % Specify pipeline to apply to model and arguments
+             % ("../src/exampleData/examplePipelines/fittingPipelineExample.m")
+             Pipeline = 'fittingPipelineExample';
+             pipelineArgs.maxIter = 10;
+             pipelineArgs.display = 'iter';
+             pipelineArgs.makePlot = false;
+
+             saveFile2 = 'temporarySaveFile2.mat';
+
+             if exist(saveFile2,"file")
+                 delete(saveFile2);
+             end
+             if exist('logFile.txt','file')
+                 delete('logFile.txt');
+             end
+
+             SSIT.generateCommandLinePipeline(saveFile,'Model',[],Pipeline,pipelineArgs,saveFile2,'logFile.txt',true)
+
+             disp('pausing to give time for background run to comlete.')
+             pause(20);
+
+             filesCreated = (exist(saveFile2,'file'))&&(exist('logFile.txt','file'));
+             testCase.verifyEqual(filesCreated, true, ...
+                 'Files from background fit were not created.');
+
+         end
+
+         
 
     end
 end

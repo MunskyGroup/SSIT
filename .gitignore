@@ -82,3 +82,5 @@ WorkSpace/PipelineApproach/savedGRmultiModel.mat
 tests/TMPtable.csv
 Examples/PLOSCompBio/TMPmh*.mat
 tests/exampleCombinedResultsTest.mat
+tests/logFile.txt
+tests/temporarySaveFile2.mat
