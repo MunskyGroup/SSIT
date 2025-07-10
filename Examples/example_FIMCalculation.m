@@ -1,7 +1,7 @@
 %% fimExample
 % In this script, we show how to set up and solve the FSP-FIM matrix with
 % partial observations and probabilistic distortion.
-clear all
+clear
 close all
 addpath(genpath('../src'));
 

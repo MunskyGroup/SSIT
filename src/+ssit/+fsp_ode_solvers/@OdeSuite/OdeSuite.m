@@ -158,9 +158,21 @@ arguments
     fspErrorCheck
 end
 sinks = p(end-fspErrorCheck.nSinks-fspErrorCheck.numODEs+1:end-fspErrorCheck.numODEs-fspErrorCheck.nEscapeSinks);
-error_bound = fspErrorCheck.fspTol*(t-fspErrorCheck.tInit)/(fspErrorCheck.tFinal-fspErrorCheck.tInit);
+% error_bound = fspErrorCheck.fspTol*(t-fspErrorCheck.tInit)/(fspErrorCheck.tFinal-fspErrorCheck.tInit);
 
-val = max(sinks)*(fspErrorCheck.nSinks-fspErrorCheck.nEscapeSinks) - error_bound;
-terminal = 1;
-direction = 1;
+error_bound = fspErrorCheck.fspTol*...
+    (t-fspErrorCheck.tInit)/(fspErrorCheck.tFinal-fspErrorCheck.tInit);
+
+% val = max(sinks)*(fspErrorCheck.nSinks-fspErrorCheck.nEscapeSinks) - error_bound;
+val = sum(sinks) - error_bound;
+% val is used in ode23s.  It is an indicator if the
+% solution should continue or be interupted. 
+% When val crosses zero to become positive (i.e. if the
+% error becomes too large), this will trigger the solution scheme to execute the
+% function
+% See example here:
+% https://www.mathworks.com/help/matlab/ref/odeevent.html
+
+terminal = true; % if the event is triggered, then it will be terminal.
+direction = 1; % check to see if the error is increasing.
 end

@@ -1,14 +1,26 @@
 function [app,pdo] = generatePDO(app,paramsPDO,FSPoutputs,indsObserved,variablePDO,maxSize)
+%% SSIT.generatePDO - This function generates the Probabilistic 
+%% Distortion Operator (PDO) according to user choice.
+% 
+% Inputs:
+%   * app
+%   * paramsPDO - ()
+%   * FSPoutputs - ()
+%   * indsObserved - ()
+%   * variablePDO - (logical), default: false
+%   * maxSize - ()
+%
+% Output: 
+%
+% Example: 
 arguments
     app
     paramsPDO = []
-    FSPoutputs =[]
+    FSPoutputs = []
     indsObserved = []
     variablePDO = false
-    maxSize=[]
+    maxSize = []
 end
-% This function generates the Probabilistic Distortion operator according
-% to the user choices.
 
 if isempty(maxSize)
     if isempty(FSPoutputs)

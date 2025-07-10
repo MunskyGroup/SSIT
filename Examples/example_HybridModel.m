@@ -1,14 +1,13 @@
 %% example_HybridModel
-% In this script, we demonstrate how to adjust a model to treat some
-% species (i.e., upstream reactions) using an ODE formulation, while having
-% other species (i.e., downstream species) evolving in a discrete
-% stochastic manner. 
+% Example script to demonstrate how to adjust a model to treat some species 
+% (i.e., upstream reactions) using an ODE formulation, while other species 
+% (i.e., downstream species) evolve in a discrete stochastic manner. 
 close all 
-clear all
+clear
 addpath(genpath('../src'));
 
-%% Example 1 - transcription and translation
-% First create a full model (e.g., for mRNA and protein)
+%% Example 1 - Transcription and translation
+% First, create a full model (e.g., for mRNA and protein)
 Model1 = SSIT;
 Model1.species = {'rna','protein'};
 Model1.initialCondition = [0;0];
@@ -21,7 +20,7 @@ Model1.tSpan = linspace(0,5,11);
 [fspSoln1,Model1.fspOptions.bounds] = Model1.solve;
 Model1.makePlot(fspSoln1,'marginals',[],[],[2,3])
 
-%% Next, reduce it by assuming that the rna behaves deterministically 
+%% Next, reduce it by assuming that the 'rna' behaves deterministically 
 Model2 = Model1;
 Model2.useHybrid = true;
 Model2.hybridOptions.upstreamODEs = {'rna'};
@@ -29,7 +28,7 @@ Model2.hybridOptions.upstreamODEs = {'rna'};
 Model2.makePlot(fspSoln2,'marginals',[],[],3)
 legend('Full','QSSA for (n)','Location','eastoutside')
 
-%% Example 2 - 5-species MAPK induction Model
+%% Example 2 - 5-species MAPK induction model
 % In this example, we consider a model of MAPK translocation to the nucleus
 % followed by binding to a gene and then transcription activation. We will
 % assume that there are two alleles with one each starting in the active
@@ -53,16 +52,16 @@ Model3.tSpan = linspace(0,5,11);
 [fspSoln3,Model3.fspOptions.bounds] = Model3.solve;
 Model3.makePlot(fspSoln3,'marginals',[],[],[11:15])
 
-%% Reduced model where only the RNA species is stochastic
+%% Reduced model where only the 'rna' species is stochastic:
 Model4 = Model3;
 Model4.useHybrid = true;
 Model4.hybridOptions.upstreamODEs = {'geneInactive','geneActive','mapkCyt','mapkNuc'};
 [fspSoln4, Model4.fspOptions.bounds] = Model4.solve;
 Model4.makePlot(fspSoln4,'marginals',[],[],15)
 
-%% Reduced model where only the gene and RNA species are stochastic.
-% In this example, you should recieve a warning telling you that two
-% reactions (3 and 4) change both the upstream and downstream species.
+%% Reduced model where only the gene and rna species are stochastic:
+% In this example, you should receive a warning telling you that two
+% reactions (3 and 4) involve both the upstream and downstream species.
 % This is not allowed, and the code will then automatically delete the
 % upstream effect (in this case the change of active MAPK) from the
 % stoichiometry for the downstream reaction. This will introduce an
@@ -70,6 +69,7 @@ Model4.makePlot(fspSoln4,'marginals',[],[],15)
 Model5 = Model3;
 Model5.useHybrid = true;
 Model5.hybridOptions.upstreamODEs = {'mapkCyt','mapkNuc'};
+Model5.summarizeModel
 [fspSoln5, Model5.fspOptions.bounds] = Model5.solve;
 Model5.makePlot(fspSoln5,'marginals',[],[],[11,12,15])
 legend('Full','QSSA for (gene,MAKP)','QSSA for (MAKP)','Location','eastoutside')

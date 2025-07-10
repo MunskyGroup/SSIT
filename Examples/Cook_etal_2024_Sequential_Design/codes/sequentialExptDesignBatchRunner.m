@@ -8,8 +8,6 @@ arguments
     plotTimes = []
 end
 
-addpath(genpath('../../../src'));
-
 nRounds = 8;
 initialExperiment = [];
 nFIMsamples = 10;
@@ -93,7 +91,7 @@ switch iModel
         parset = [1:5];
         iModel = 6;
     case 'GR' % GR Reduced
-         %% GR Model (Real Data)
+        %% GR Model (Real Data)
         nRounds = 8;
         truePars = [];
 
@@ -112,7 +110,7 @@ switch iModel
         parset = [2,5,6];
         iModel = 8;
     case 'GRFewerInitialCells'
-         %% GR Model (Real Data)
+        %% GR Model (Real Data)
         nRounds = 8;
         truePars = [];
 
@@ -131,7 +129,7 @@ switch iModel
         parset = [2,5,6];
         iModel = 9;
     case 'GRFewestInitialCells'
-         %% GR Model (Real Data)
+        %% GR Model (Real Data)
         nRounds = 8;
         truePars = [];
 

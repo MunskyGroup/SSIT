@@ -1,8 +1,8 @@
 %% example_EscapeTimes
-% In this script, we demonstrate how to create and solve a fiorst passage
+% In this script, we demonstrate how to create and solve a first passage
 % time problem.
 close all
-clear all
+clear
 addpath(genpath('../src'));
 %% Example 1 - a simple transcription/translation model
 % First create a full model (e.g., for mRNA and protein)

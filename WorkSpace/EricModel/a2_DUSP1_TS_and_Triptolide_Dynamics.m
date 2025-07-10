@@ -1,104 +1,107 @@
 addpath(genpath('../../src'));
 addpath('tmpPropensityFunctions');
 
-loadPrevious = false;
-savedWorkspace = 'workspaceJuly24';
-
-load('workspaceJuly24.mat');
-
-%%
-%%  STEP 4. -- Extend analysis to TS dynamics
-% Load data that includes the TS.
-allData = readtable('EricData/pdoCalibrationData_EricIntensity_DexSweeps.csv');
+%% loadPrevious = false;
+% % savedWorkspace = 'workspaceJuly24';
+% % 
+% % load('workspaceJuly24.mat');
+% 
+% %%
+% %%  STEP 4. -- Extend analysis to TS dynamics
+% % Load data that includes the TS.
+allData = readtable(Dusp1Data);
 outlierThresh = 50;
-fitGRinclude = true;
+% fitGRinclude = true;
+% 
+% if loadPrevious
+%     vaNamesTS = {'ModelGRDusp100nM_ext_red'
+%         'parsAll_GR_Dusp1_TS'
+%         };
+%     load(savedWorkspace,vaNamesTS{:})
+%     if fitGRinclude
+%         % The set of parameters, including elongation time at the end.
+%         parsAllandTS = parsAll_GR_Dusp1_TS([1:12,14:16]);
+%     else
+%         parsAllandTS = parsAll_GR_Dusp1_TS([1:4,14:16]);
+%     end
+%     try
+%         ModelGRDusp100nM_ext_red.propensitiesGeneral{1}.stateDependentFactor(0);
+%     catch
+%         ModelGRDusp100nM_ext_red = ModelGRDusp100nM_ext_red.formPropensitiesGeneral('ExtModel100nm');
+%     end
+% else
+%     if fitGRinclude
+%         % The set of parameters, including elongation time at the end.
+%         parsAllandTS = [fullPars([1:12,13:14]),5];
+%     else
+%         parsAllandTS = [fullPars([1:4,13:14]),5];
+%     end
+% end
+% 
+% if fitGRinclude
+%     % The set of parameters, including elongation time at the end.
+%     indsDuspMod = [1:12,14];
+%     indsDuspDat = [1:13];
+%     indsTSmod = [1:12];
+%     indsTSpars = [1:12,15];
+%     indsODEmod = [1:12,14:15];
+%     indsODEdat = [1:14];
+% else
+%     indsDuspMod = [1:4,14];
+%     indsDuspDat = [1:4,5];
+%     indsTSmod = [1:3];
+%     indsTSpars = [1:3,7];
+%     indsODEmod = [1:4,14:15];
+%     indsODEdat = [1:6];
+% end
+% %%    STEP 4.A.1. -- Set up objective function to now include the TS analysis.
+% % Create prior for all parameters (just adding the elongation time to the
+% % previous list).
+% log10PriorMean = [-1 -1 0 -2,... %dusp1 pars
+%     -1 -3 -2 -1 -2 -2 -2 0.5, ...%GR pars
+%     NaN, ... % Dex concentration -- known
+%     -2, -3, ... % dusp1 transport, cyt RNA degradation
+%     0.7]; %elongation time (about 5 min)
+% log10PriorStd = 2*ones(1,16);
+% 
+% if fitGRinclude
+%     % Set parameters to be free during search.
+%     % This group allows the GR and DUSP1 parameters.
+%     ModelGRDusp100nM_ext_red.fittingOptions.modelVarsToFit = indsDuspMod;
+%     extendedMod.fittingOptions.modelVarsToFit = indsODEmod;
+% 
+%     for i = 1:3
+%         ModelGRfit{i}.tSpan = unique([0,ModelGRfit{i}.dataSet.times]);
+%     end
+% 
+%     Organization = {ModelGRfit{1},[5:12],[5:12],'computeLikelihood',1;...
+%         ModelGRfit{2},[5:12],[5:12],'computeLikelihood',1;...
+%         ModelGRfit{3},[5:12],[5:12],'computeLikelihood',1;...
+%         ModelGRDusp100nM_ext_red,indsDuspMod,indsDuspDat,'computeLikelihood',1;...
+%         extendedMod,indsODEmod,indsODEdat,'computeLikelihoodODE',0.01};
+%     logPriorAll = @(x)-sum((log10(x)-log10PriorMean([1:12,14,15,16])).^2./(2*log10PriorStd([1:12,14,15,16]).^2));
+% else
+%     % Set parameters to be free during search.
+%     % This group allows just the DUSP1 parameters to change and only fits
+%     % the DUSP1 data.
+%     ModelGRDusp100nM_ext_red.fittingOptions.modelVarsToFit = indsDuspMod;
+%     ModelGRDusp100nM_ext_red.fspOptions.fspTol = inf;
+%     extendedMod.fittingOptions.modelVarsToFit = indsODEmod;
+%     Organization = {ModelGRDusp100nM_ext_red,indsDuspMod,indsDuspDat,'computeLikelihood',1;...
+%         extendedMod,indsODEmod,indsODEdat,'computeLikelihoodODE',0.01};
+%     logPriorAll = @(x)-sum((log10(x)-log10PriorMean([1:4,14,15,16])).^2./(2*log10PriorStd([1:4,14,15,16]).^2));
+% end
 
-if loadPrevious
-    vaNamesTS = {'ModelGRDusp100nM_ext_red'
-        'parsAll_GR_Dusp1_TS'
-        };
-    load(savedWorkspace,vaNamesTS{:})
-    if fitGRinclude
-        % The set of parameters, including elongation time at the end.
-        parsAllandTS = parsAll_GR_Dusp1_TS([1:12,14:16]);
-    else
-        parsAllandTS = parsAll_GR_Dusp1_TS([1:4,14:16]);
-    end
-    try
-        ModelGRDusp100nM_ext_red.propensitiesGeneral{1}.stateDependentFactor(0);
-    catch
-        ModelGRDusp100nM_ext_red = ModelGRDusp100nM_ext_red.formPropensitiesGeneral('ExtModel100nm');
-    end
-else
-    if fitGRinclude
-        % The set of parameters, including elongation time at the end.
-        parsAllandTS = [fullPars([1:12,13:14]),5];
-    else
-        parsAllandTS = [fullPars([1:4,13:14]),5];
-    end
-end
-
-if fitGRinclude
-    % The set of parameters, including elongation time at the end.
-    indsDuspMod = [1:12,14];
-    indsDuspDat = [1:13];
-    indsTSmod = [1:12];
-    indsTSpars = [1:12,15];
-    indsODEmod = [1:12,14:15];
-    indsODEdat = [1:14];
-else
-    indsDuspMod = [1:4,14];
-    indsDuspDat = [1:4,5];
-    indsTSmod = [1:3];
-    indsTSpars = [1:3,7];
-    indsODEmod = [1:4,14:15];
-    indsODEdat = [1:6];
-end
-%%    STEP 4.A.1. -- Set up objective function to now include the TS analysis.
-% Create prior for all parameters (just adding the elongation time to the
-% previous list).
-log10PriorMean = [-1 -1 0 -2,... %dusp1 pars
-    -1 -3 -2 -1 -2 -2 -2 0.5, ...%GR pars
-    NaN, ... % Dex concentration -- known
-    -2, -3, ... % dusp1 transport, cyt RNA degradation
-    0.7]; %elongation time (about 5 min)
-log10PriorStd = 2*ones(1,16);
-
-if fitGRinclude
-    % Set parameters to be free during search.
-    % This group allows the GR and DUSP1 parameters.
-    ModelGRDusp100nM_ext_red.fittingOptions.modelVarsToFit = indsDuspMod;
-    extendedMod.fittingOptions.modelVarsToFit = indsODEmod;
-    
-    for i = 1:3
-        ModelGRfit{i}.tSpan = unique([0,ModelGRfit{i}.dataSet.times]);
-    end
-
-    Organization = {ModelGRfit{1},[5:12],[5:12],'computeLikelihood',1;...
-        ModelGRfit{2},[5:12],[5:12],'computeLikelihood',1;...
-        ModelGRfit{3},[5:12],[5:12],'computeLikelihood',1;...
-        ModelGRDusp100nM_ext_red,indsDuspMod,indsDuspDat,'computeLikelihood',1;...
-        extendedMod,indsODEmod,indsODEdat,'computeLikelihoodODE',0.01};
-    logPriorAll = @(x)-sum((log10(x)-log10PriorMean([1:12,14,15,16])).^2./(2*log10PriorStd([1:12,14,15,16]).^2));
-else
-    % Set parameters to be free during search.
-    % This group allows just the DUSP1 parameters to change and only fits
-    % the DUSP1 data.
-    ModelGRDusp100nM_ext_red.fittingOptions.modelVarsToFit = indsDuspMod;
-    ModelGRDusp100nM_ext_red.fspOptions.fspTol = inf;
-    extendedMod.fittingOptions.modelVarsToFit = indsODEmod;
-    Organization = {ModelGRDusp100nM_ext_red,indsDuspMod,indsDuspDat,'computeLikelihood',1;...
-        extendedMod,indsODEmod,indsODEdat,'computeLikelihoodODE',0.01};
-    logPriorAll = @(x)-sum((log10(x)-log10PriorMean([1:4,14,15,16])).^2./(2*log10PriorStd([1:4,14,15,16]).^2));
-end
-
-% Create Copy of the prevous model
+%% Create Copy of the prevous model
 ModelTS = ModelGRDusp100nM_ext_red;
 % This model can use all parameters except for the cytoplasmic degradation
+indsTSmod = [1:3];
 ModelTS.fittingOptions.modelVarsToFit = indsTSmod;
 
 % Objective function for just the TS analyses -- see function description
 % below. 
+allData = readtable(Dusp1Data);
+outlierThresh = 50;
 objTS = @(x)computeTSlikelihood(x,ModelTS,allData,100,outlierThresh);
 
 % Objective function for all analyses -- same as before but now with the

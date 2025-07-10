@@ -28,7 +28,7 @@ classdef poisson2Dtest < matlab.unittest.TestCase
             %% ODE model for Two Poisson process
             testCase1.TwoDPoissODE = testCase1.TwoDPoiss;
             testCase1.TwoDPoissODE.solutionScheme = 'ode';
-            testCase1.TwoDPoissODE = testCase1.TwoDPoissODE.formPropensitiesGeneral('TwoDPoissODE');  
+            % testCase1.TwoDPoissODE = testCase1.TwoDPoissODE.formPropensitiesGeneral('TwoDPoissODE');  
 
          end  
     end
@@ -145,5 +145,45 @@ classdef poisson2Dtest < matlab.unittest.TestCase
             
         end
    
+        function likelihoodFunctions(testCase)
+            % This will test if the code can calculated the likelihood
+            % functions correctly for full and partial state information.
+            delete 'testData.csv'
+            testCase.TwoDPoiss.ssaOptions.nSimsPerExpt = 1000;
+            testCase.TwoDPoiss.ssaOptions.Nexp = 1;
+            testCase.TwoDPoiss.sampleDataFromFSP(testCase.TwoDPoissSolution,'testData.csv');
+
+            modelBoth = testCase.TwoDPoiss.loadData('testData.csv',{'rna1','exp1_s1';'rna2','exp1_s2'});
+            modelBothLogL = modelBoth.computeLikelihood;
+            modelA = testCase.TwoDPoiss.loadData('testData.csv',{'rna1','exp1_s1'});
+            modelALogL = modelA.computeLikelihood;
+
+            DATA = modelBoth.dataSet.DATA;
+            t=[DATA{:,1}];
+            x=[DATA{:,2}];
+            y=[DATA{:,3}];
+
+            mns = [testCase.TwoDPoiss.parameters{1,2}/testCase.TwoDPoiss.parameters{2,2}*...
+                (1-exp(-testCase.TwoDPoiss.parameters{2,2}*t));...
+                testCase.TwoDPoiss.parameters{3,2}/testCase.TwoDPoiss.parameters{4,2}*...
+                (1-exp(-testCase.TwoDPoiss.parameters{4,2}*t))];
+
+            logLExactBoth = sum(log(pdf('poiss',x,mns(1,:)))+log(pdf('poiss',y,mns(2,:))));
+            logLExactA = sum(log(pdf('poiss',x,mns(1,:))));
+
+            errors = [abs((modelALogL-logLExactA)/logLExactA),abs((modelBothLogL-logLExactBoth)/logLExactBoth)];
+
+            testCase.verifyEqual(errors(1)<0.001, true, ...
+                '2-Species likelihood is not within 0.1% Tolerance');
+            testCase.verifyEqual(errors(2)<0.001, true, ...
+                'Partial Observation likelihood is not within 0.1% Tolerance');
+
+            % Test if the two species plotting functions work without crashing.
+            modelBoth.makeFitPlot
+
+            % Test if the reduced species plotting functions work without crashing.
+            modelA.makeFitPlot
+            
+        end
     end
 end
