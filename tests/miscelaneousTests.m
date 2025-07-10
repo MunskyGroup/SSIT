@@ -111,6 +111,8 @@ classdef miscelaneousTests < matlab.unittest.TestCase
             TwoDNonLinearTV.solutionScheme = 'ode';
             TwoDNonLinearTV = TwoDNonLinearTV.formPropensitiesGeneral('TwoDTV',false);
             
+            TwoDNonLinearTV.odeIntegrator = 'ode45';
+
             [odeSoln1] = TwoDNonLinearTV.solve;
             parVector = [TwoDNonLinearTV.parameters{:,2}];
 
@@ -118,6 +120,7 @@ classdef miscelaneousTests < matlab.unittest.TestCase
             parVectorSets = repmat(parVector,Ntests,1).*(1+0.1*randn(Ntests,size(parVector,2)));
             results = zeros(Ntests,4);
             resultsSB = zeros(Ntests,4);
+
             tic
             for i=1:100
                 TwoDNonLinearTV.parameters(:,2) = num2cell(parVectorSets(i,:));

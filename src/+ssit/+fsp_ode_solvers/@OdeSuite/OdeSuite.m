@@ -2,12 +2,13 @@ classdef OdeSuite < ssit.fsp_ode_solvers.OdeSolver
     %ODESUITE ODE integrator using MATLAB's ODE suite.        
     properties
         relTol (1,1) double {mustBePositive} = 1.0e-4
-        absTol (1,1) double {mustBePositive} = 1.0e-8    
+        absTol (1,1) double {mustBePositive} = 1.0e-8   
+        solver = @ode23s
 %         numODEs = 0
     end
     
     methods
-        function obj = OdeSuite(relTol, absTol)
+        function obj = OdeSuite(relTol, absTol, solver)
         % Construct an instance of MexSundials.
         % 
         % Parameters
@@ -25,11 +26,13 @@ classdef OdeSuite < ssit.fsp_ode_solvers.OdeSolver
         arguments
             relTol (1,1) double {mustBePositive} = 1.0e-4
             absTol (1,1) double {mustBePositive} = 1.0e-8
+            solver = 'ode23s'
 %             numODEs = 0
         end
         
         obj.relTol = relTol;
         obj.absTol = absTol;
+        obj.solver = str2func(solver);
 %         obj.numODEs = numODEs;
         end
         
@@ -100,8 +103,10 @@ classdef OdeSuite < ssit.fsp_ode_solvers.OdeSolver
                 'absTol', obj.absTol,'Vectorized','off','MaxStep',maxStep);
         end
         tSpan = sort(unique([tStart; tOut]));
+       
+        [tExport, solutionsNow, te, ye, ~] =  obj.solver(rhs, tSpan, initSolution, ode_opts);
         % tic
-        [tExport, solutionsNow, te, ye, ~] =  ode23s(rhs, tSpan, initSolution, ode_opts);
+        % [tExport, solutionsNow, te, ye, ~] =  ode23s(rhs, tSpan, initSolution, ode_opts);
         % toc23 = toc
         % tic
         % [tExport, solutionsNow, te, ye, ~] =  ode15s(rhs, tSpan, initSolution, ode_opts);

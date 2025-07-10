@@ -147,6 +147,8 @@ classdef SSIT
         solutionScheme = 'FSP' 
         % Chosen sets of solution schemes to get and store (choose members
         % from ('FSP','SSA','ode').  Default is empty.
+        odeIntegrator = 'ode23s'
+        % Chosen integrator for ODEs {'ode23s' (default), 'ode15s', 'ode45'}. 
         solutionSchemes = {};
         % Settings for model reduction tools
         %   defaults:
@@ -1333,7 +1335,8 @@ classdef SSIT
                         obj.useHybrid,obj.hybridOptions,...
                         obj.fspConstraints.fEscape,obj.fspConstraints.bEscape, ...
                         obj.fspOptions.constantJacobian,...
-                        obj.fspOptions.constantJacobianTime);
+                        obj.fspOptions.constantJacobianTime,...
+                        obj.odeIntegrator);
                     obj.fspOptions.stateSpace = Solution.stateSpace;
                     obj.fspOptions.bounds = bConstraints;
 
@@ -1447,14 +1450,16 @@ classdef SSIT
                         useReducedModel,modRedTransformMatrices, ...
                         obj.useHybrid,obj.hybridOptions,...
                         obj.fspConstraints.fEscape,obj.fspConstraints.bEscape,...
-                        obj.fspOptions.constantJacobian,obj.fspOptions.constantJacobianTime);
+                        obj.fspOptions.constantJacobian,obj.fspOptions.constantJacobianTime,...
+                        obj.odeIntegrator);
                     %                     app.SensFspTabOutputs.solutions = Solution.sens;
                     %                     app.SensPrintTimesEditField.Value = mat2str(obj.tSpan);
                     %                     Solution.plotable = exportSensResults(app);
 
                 case 'ode'
                     [~,Solution.ode] = ssit.moments.solveOde2(obj.initialCondition, obj.tSpan, ...
-                        obj.stoichiometry, obj.propensitiesGeneralODE,  [obj.parameters{:,2}]', obj.fspOptions.initApproxSS);
+                        obj.stoichiometry, obj.propensitiesGeneralODE,  [obj.parameters{:,2}]', ...
+                        obj.fspOptions.initApproxSS, obj.odeIntegrator);
             end
         end
 

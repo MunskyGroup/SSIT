@@ -1,4 +1,5 @@
-function [t_ode,ode_solutions] = solveOde2(x0, tspan, stoichMatrix, propensities, parameters, useSSIC)
+function [t_ode,ode_solutions] = solveOde2(x0, tspan, stoichMatrix, ...
+    propensities, parameters, useSSIC, odeIntegrator)
 % ode_solutions = solve_ode(x0, tspan, stoichMatrix, propens, pars,
 % inputs) solves the deterministic ODE model.
 % x0: initial state. This must be a column vector.
@@ -20,6 +21,7 @@ arguments
     propensities
     parameters
     useSSIC = false
+    odeIntegrator = 'ode23s'
 end
 
 %% Define the right hand side of the ODE model
@@ -31,6 +33,8 @@ ode_rhs = @(t,x)stoichMatrix*propensities{1}.hybridFactorVector(t,parameters,x')
 ode_jac = @(t,x)stoichMatrix*propensities{1}.DhybridFactorDodesVec(t,parameters,x');
 % ode_jac = @(t,x)stoichMatrix*generate_propensity_jacobian(t, x, propensities, parameters);
 
+odeIntegrator = str2func(odeIntegrator);
+
 if useSSIC
      OPTIONS = optimoptions('fsolve','display','none','OptimalityTolerance',1e-8,'MaxIterations',2000);
      FUN = @(x)ode_rhs(0,x);
@@ -38,7 +42,7 @@ if useSSIC
      x0b = x0;
 %     if min(x0b)<0
         FUN = @(t,x)ode_rhs(0,x);
-        [~,ode_solutions] = ode23s(FUN,(tspan(end)-tspan(1))*[0,500,1000],x0b);
+        [~,ode_solutions] = odeIntegrator(FUN,(tspan(end)-tspan(1))*[0,500,1000],x0b);
         x0b = ode_solutions(end,:);
 %     else
 %         b = pinv(stoichMatrix)*(x0b-x0);
@@ -54,12 +58,7 @@ end
 %% Return your output to ode_solutions
 maxstep = min(tspan(2:end)-tspan(1:end-1))/2;
 options = odeset(RelTol=1e-6,AbsTol=1e-10,MaxStep=maxstep,Jacobian=ode_jac);
-% [t_ode,ode_solutions] = ode45(ode_rhs,tspan,x0,options);
-[t_ode,ode_solutions] = ode23s(ode_rhs,tspan,x0,options);
-
-% options = odeset(RelTol=1e-6,AbsTol=1e-10,MaxStep=maxstep,Jacobian=ode_jac);
-% [t_ode,ode_solutions] = ode23s(ode_rhs,tspan,x0,options);
-
+[t_ode,ode_solutions] = odeIntegrator(ode_rhs,tspan,x0,options);
 
 end
 
