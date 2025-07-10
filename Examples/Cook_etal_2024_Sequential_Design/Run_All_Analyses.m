@@ -94,8 +94,8 @@ for Figure_to_Generate = 3
             close all
 
             %%   Generate or load data
-            [TestCasesBFBD,finalExperimentDesignBFBD] = sequentialExptDesignBatchRunner('BurstFewer',1,2,true,false,[4]);
-            [TestCasesRD,finalExperimentDesignRD] = sequentialExptDesignBatchRunner('BurstFewer',2,2,true,false,[4]);
+            [TestCasesBFBD,finalExperimentDesignBFBD] = sequentialExptDesignBatchRunner('Burst',1,2,true,false,[4]);
+            [TestCasesRD,finalExperimentDesignRD] = sequentialExptDesignBatchRunner('Burst',2,2,true,false,[4]);
             close(1,2,3,4,503)
             %%   Figure 2B (Convergence of |COV|)
             f = figure(501);
@@ -167,13 +167,13 @@ for Figure_to_Generate = 3
             clear all
             close all
             %%   Generate or load data
-            [TestCasesBFBD,finalExperimentDesignBFBD] = sequentialExptDesignBatchRunner('GRFewestInitialCells',1,2,true,false,[5]);
-            [TestCasesRD,finalExperimentDesignRD] = sequentialExptDesignBatchRunner('GRFewestInitialCells',2,2,true,false,[5]);
+            [TestCasesBFBD,finalExperimentDesignBFBD] = sequentialExptDesignBatchRunner('GR',1,2,true,false,[5]);
+            [TestCasesRD,finalExperimentDesignRD] = sequentialExptDesignBatchRunner('GR',2,2,true,false,[5]);
 
             %%   Figure 3B (Convergence of |COV|)
-            f = figure(701);
+            f = figure(801);
             set(f,'Position',[ 616   659   429   259])
-            set(gca,'xlim',[1,6],'XTick',[2:6],'YLim',10.^[-7,-2])
+            set(gca,'xlim',[1,6],'XTick',[2:6],'YLim',10.^[-8.3,-6])
             grid on
             legs = {'BFBD: MHA','BFBD: FIM$_{\rm Pre}^{-1}$','BFBD: FIM$_{\rm Post}^{-1}$',...
                 'RD: MHA','RD: FIM$_{\rm Pre}^{-1}$','RD: FIM$_{\rm Post}^{-1}$'};
@@ -182,7 +182,7 @@ for Figure_to_Generate = 3
             set(Ch(5),'Marker','o','MarkerSize',20);
             set(Ch(2),'Marker','o','MarkerSize',20);
 
-            legend(legs,'Interpreter','latex','FontSize',13)
+            legend(legs,'Interpreter','latex','FontSize',10)
             xlabel('Experiment round','Interpreter','latex')
             ylabel('Determinant of Covariance','Interpreter','latex')
 
@@ -204,14 +204,14 @@ for Figure_to_Generate = 3
             ylabel('Input ($\mu$M)','Interpreter','latex')
 
             %%   Figure 3C (Scatter plots MHA, Round 4)
-            fs = [722];
+            fs = [823];
             for i = fs
                 f122 = figure(i);
 
                 set(f122,'Position',[389         143        1155         852])
-                lx{1} = [-2.4 -2.1];
-                lx{2} = [1.1, 1.25];
-                lx{3} = [-2 -1.7];
+                lx{1} = [-2.45 -2.2];
+                lx{2} = [1.1, 1.3];
+                lx{3} = [-2.1 -1.7];
                 lx{4} = [-1.95 -1.75];
                 lx{5} = [-2.35 -2.2];
                 lx{6} = [0.9 1.1];
@@ -269,7 +269,7 @@ for Figure_to_Generate = 3
                 {'Dex_Conc','10'});
 
             %%       Make  figures.
-            close(1,2,3,4,903,930)
+            close(1,2,3,4,803,831)
             ModelTrue.makeFitPlot([],1);
             %%       Reformat Fig 3F,Bottom (Nuclear Distributions)
             origFigs = [2];
@@ -374,13 +374,13 @@ for Figure_to_Generate = 3
             close(1,2,3,4)
 
             %% Show data for fitting
-            dexConc = {'1','10','100'};
-            for iExpt = 1:3
-                ModelFit{iExpt} = ModelTrue.loadData(['ExampleData/proposedExp_mod_GRFewerInitialCells_1fimopt_2seed_r',num2str(iExpt),'.csv'],...
-                    {'nucGR','normgrnuc';'cytGR','normgrcyt'},...
-                    {'Dex_Conc',dexConc{iExpt}});
-                ModelFit{iExpt}.makeFitPlot([],1)
-            end
+            % dexConc = {'1','10','100'};
+            % for iExpt = 1:3
+            %     ModelFit{iExpt} = ModelTrue.loadData(['ExampleData/proposedExp_mod_GRFewerInitialCells_1fimopt_2seed_r',num2str(iExpt),'.csv'],...
+            %         {'nucGR','normgrnuc';'cytGR','normgrcyt'},...
+            %         {'Dex_Conc',dexConc{iExpt}});
+            %     ModelFit{iExpt}.makeFitPlot([],1)
+            % end
             
             
             % dataToFit = {'cytGR','normgrcyt';'nucGR','normgrnuc'};
