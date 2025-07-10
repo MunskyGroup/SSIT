@@ -1,66 +1,46 @@
-function makePlotsDUSP1(ModelDusp1Fit,ModelGRDusp,DUSP1pars,Dusp1FitCases,showCases,kTPL)
+function makePlotsDUSP1Simplified(ModelDusp1Fit,DUSP1pars,showCases,kTPL,modelLibrary)
 arguments
     ModelDusp1Fit
-    ModelGRDusp
     DUSP1pars
-    Dusp1FitCases
     showCases
     kTPL = 0.693;
+    modelLibrary = 'savedParameters/GRDusp1ModelLibrary';
 end
-
-Dusp1Data = 'RonData062025/ssit_gated_Jun19';
 
 if showCases(1)
     fignums = [211,221,201,231];
     % combinedDusp1Model = combinedDusp1Model.updateModels(DUSP1pars,false,fignums);
-    for i=1:size(Dusp1FitCases,1)
-        %  Update parameters in original models.
-        ModelDusp1Fit{i}.parameters(ModelDusp1Fit{i}.fittingOptions.modelVarsToFit,2) = num2cell(DUSP1pars);
-        ModelDusp1Fit{i}.tSpan = sort(unique([ModelDusp1Fit{i}.tSpan,linspace(0,180,30)]));
+    %  Update parameters in original models.
+    ModelDusp1Fit.parameters(ModelDusp1Fit.fittingOptions.modelVarsToFit,2) = num2cell(DUSP1pars);
+    ModelDusp1Fit.tSpan = sort(unique([ModelDusp1Fit.tSpan,linspace(0,180,30)]));
 
-        ModelDusp1Fit{i}.makeFitPlot([],5,fignums)
-        figure(Dusp1FitCases{i,3});
-        set(gca,'ylim',[0,150])
-        title(Dusp1FitCases{i,4})
-        ylabel('Nuclear DUSP1 mRNA')
-        xlabel('Time (min)')
-    end
+    ModelDusp1Fit.makeFitPlot([],5,fignums)
+    figure(201);
+    set(gca,'ylim',[0,150])
+    title('DUSP1 Fit (100nM Dex)')
+    ylabel('Nuclear DUSP1 mRNA')
+    xlabel('Time (min)')
 end
 
 %%  PREDICT DUSP1 Distributions under other Dex concentrations.
 if showCases(2)
-    PredictionCases = {'10','10',301,'DUSP1 Prediction (10nM Dex)';...
-        '1','1',302,'DUSP1 Prediction (1nM Dex)';...
-        '0p3','0.3',303,'DUSP1 Prediction (0.3nM Dex)'};
+    PredictionCases = {'10','10',301,'DUSP1 Prediction (10nM Dex)','ModelDUSP1_10nM';...
+        '1','1',302,'DUSP1 Prediction (1nM Dex)','ModelDUSP1_1nM';...
+        '0p3','0.3',303,'DUSP1 Prediction (0.3nM Dex)','ModelDUSP1_0p3nM'};
 
     fignums = [311,321,301,331;...
         312,322,302,332;...
         313,323,303,333];
-    ModelPred = cell(size(Dusp1FitCases,1),1);
-    for i=1:size(PredictionCases,1)
-        ModelPred{i} = ModelGRDusp.loadData(Dusp1Data,...
-        {'rna','num_nuc_spots'},...
-        {[],[],['(TAB.dex_conc==',PredictionCases{i,2},'|TAB.dex_conc==0)', ...
-        '&TAB.cyto_area>=12593&TAB.cyto_area<=17685']});
-
-        ModelPred{i}.tSpan = sort(unique([ModelPred{i}.tSpan,linspace(0,180,30)]));
-
-        if str2num(PredictionCases{i,2})~=100
-            % ModelPred{i}.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor = ...
-            NT = size(ModelPred{i}.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor,1)+1;
-            NS = size(ModelPred{i}.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor,2);
-            TMP(1,:) = double(ModelGRDusp.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor(1,:));
-            TMP(2:NT,1:NS) = double(ModelPred{i}.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor); 
-            ModelPred{i}.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor = sptensor(TMP);
-            ModelPred{i}.dataSet.times = unique([0,ModelPred{i}.dataSet.times]);
-        end
+    
+    for i=1:3
+        Model = dusp1ModelLibrary(PredictionCases{i,5},false,modelLibrary);
+        Model.tSpan = sort(unique([Model.tSpan,linspace(0,180,30)]));
 
         % Set model parameters to those supplied
-        ModelPred{i}.parameters(ModelPred{i}.fittingOptions.modelVarsToFit,2) = num2cell(DUSP1pars);
-        % Change Dex concentraion in the model.
-        ModelPred{i}.parameters(13,1:2) = {'Dex0',str2num(PredictionCases{i,2})};
-
-        ModelPred{i}.makeFitPlot([],5,fignums(i,:))
+        Model.parameters(Model.fittingOptions.modelVarsToFit,2) = num2cell(DUSP1pars);
+        
+        % Make plots
+        Model.makeFitPlot([],5,fignums(i,:))
 
         figure(fignums(i,3));
         set(gca,'ylim',[0,150])
@@ -74,27 +54,17 @@ end
 if showCases(3)
     DexConc = 10.^[-3,-2,-1,0,1,2,3,4];
     DecConcStr = {'0.001','0.01','0.1','1','10','100','1000','10000'};
+    ModelPredDexTtr = dusp1ModelLibrary('ModelPredDexTtr',false,modelLibrary);
 
-    ModelPredDexTtrSoln = cell(size(DexConc,1),1);
     for i=1:length(DexConc)
-        ModelPredDexTtr = ModelGRDusp;
-        ModelPredDexTtr.dataSet = [];
-        ModelPredDexTtr = ModelPredDexTtr.loadData(Dusp1Data,...
-        {'rna','num_nuc_spots'},...
-        {[],[],['(TAB.dex_conc==',DecConcStr{i},'&TAB.time==75)', ...
-        '&TAB.cyto_area>=12593&TAB.cyto_area<=17685']});
-
-        % Set model parameters to those supplied
-        ModelPredDexTtr.parameters(ModelPredDexTtr.fittingOptions.modelVarsToFit,2) = num2cell(DUSP1pars);
+        Model = ModelPredDexTtr{i};
         
-        % Change Dex concentration in the model.
-        ModelPredDexTtr.parameters(13,1:2) = {'Dex0',str2num(DecConcStr{i})};
+        % Set model parameters to those supplied
+        Model.parameters(Model.fittingOptions.modelVarsToFit,2) = num2cell(DUSP1pars);
+        
+        ModelPredDexTtrSoln = Model.solve;
 
-        % ModelPredDexTtr = ModelPredDexTtr.formPropensitiesGeneral(['EricModDusp1_',num2str(i),'_TtrPred']);
-        ModelPredDexTtr.solutionScheme = 'FSP';
-        ModelPredDexTtrSoln = ModelPredDexTtr.solve;
-
-        DataHist = double(ModelPredDexTtr.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor);
+        DataHist = double(Model.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor);
         PModel = double(ModelPredDexTtrSoln.fsp{2}.p.sumOver([1,2]).data);
 
         MeanData(i) = DataHist*[0:length(DataHist)-1]'/sum(DataHist);

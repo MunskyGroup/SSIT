@@ -1,10 +1,11 @@
-function makeGRPlots(combinedModel,GRpars,GR_Data,splitReps)
+function makeGRPlots(combinedModel,GRpars,splitReps)
 arguments
     combinedModel
     GRpars
-    GR_Data
     splitReps = false
 end
+
+GR_Data = 'RonData062025/GR_ALL_gated_with_CytoArea_and_normGR_Feb2825_03.csv';
 
 GRfitCases = {'1','1',101,'GR Fit (1nM Dex)';...
     '10','10',102,'GR Fit (10nM Dex)';...

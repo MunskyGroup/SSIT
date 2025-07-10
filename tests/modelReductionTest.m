@@ -79,10 +79,10 @@ classdef modelReductionTest < matlab.unittest.TestCase
             Model2.modelReductionOptions.reductionType = 'QSSA';
             Model2.modelReductionOptions.qssaSpecies = 1;
             Model2.modelReductionOptions.reductionOrder = 20;
-            Model2 = Model2.computeModelReductionTransformMatrices(tc.TwoDPoissSolution);
+            [Model2,fspSet] = Model2.computeModelReductionTransformMatrices;
 
             tic
-            fspSoln2 = Model2.solve(tc.TwoDPoissSolution.stateSpace);
+            fspSoln2 = Model2.solve(fspSet.stateSpace);
             redModelSolveTime = toc;
 
             QSSA_SpeedUpFactor = tc.TwoDPoissSolution.time/redModelSolveTime
@@ -110,10 +110,10 @@ classdef modelReductionTest < matlab.unittest.TestCase
             Model2.fspOptions.fspTol = inf;
             Model2.modelReductionOptions.reductionType = 'Log Lump QSSA';
             Model2.modelReductionOptions.reductionOrder = 25;
-            Model2 = Model2.computeModelReductionTransformMatrices(tc.TwoDPoissSolution);
+            [Model2,fspSets] = Model2.computeModelReductionTransformMatrices;
 
             tic
-            fspSoln2 = Model2.solve(tc.TwoDPoissSolution.stateSpace);
+            fspSoln2 = Model2.solve(fspSets.stateSpace);
             redModelSolveTime = toc;
 
             LogLump_SpeedUp_Factor = tc.TwoDPoissSolution.time/redModelSolveTime

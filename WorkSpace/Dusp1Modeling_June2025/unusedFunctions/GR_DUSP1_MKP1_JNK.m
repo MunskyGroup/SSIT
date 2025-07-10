@@ -137,8 +137,7 @@ for jj = 1:fitIters
     combinedGRModel = SSITMultiModel(ModelGRfit,ModelGRparameterMap,logPriorGR);
     combinedGRModel = combinedGRModel.initializeStateSpaces(boundGuesses);
     combinedGRModel = combinedGRModel.updateModels(GRpars,false);
-    GRpars = combinedGRModel.maximizeLikelihood(...
-        GRpars, fitOptions);
+    GRpars = combinedGRModel.maximizeLikelihood( GRpars, fitOptions);
     save('EricModel_MMDex','GRpars') 
 end
 % Best error so far: 33804.7
@@ -762,9 +761,9 @@ ssaSoln_100 =SSAModel_100.solve;
 % if makePlots
     % Plot Fits for 100nM Dex
     f=figure(600); clf; set(f,'Name','Nuclear RNA, 100nM Dex')
-    makeCytDistPlots(ssaSoln_100,extendedMod,600,[1:12],5,1,[0:15:300],true)
+    makeCytDistPlots(ssaSoln_100,extendedMod,600,[1:12],5,1,[0:5:300],true)
     f=figure(601); clf; set(f,'Name','Cytoplasmic RNA, 100nM Dex')
-    sum(makeCytDistPlots(ssaSoln_100,extendedMod,601,[1:12],6,2,[0:15:300],true))
+    sum(makeCytDistPlots(ssaSoln_100,extendedMod,601,[1:12],6,2,[0:5:300],true))
     f=figure(602); clf; set(f,'Name','Nuc vs. Cyto RNA, 100nM Dex')
     makeNucCytScatterPlots(ssaSoln_100,extendedMod,602,[1:12],[5,6],[1,2],true)
 % end
