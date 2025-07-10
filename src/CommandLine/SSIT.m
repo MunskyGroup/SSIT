@@ -3731,7 +3731,7 @@ classdef SSIT
 
             % Add path to SSIT.
             pth = which('SSIT');
-            pth = append('addpath(genpath(''',pth(1:end-19),'''));');
+            pth = append('addpath(genpath(''',pth(1:end-19),'''));addpath(''tmpPropensityFunctions'');');
 
             % Add path to matlab executable
             matlabpath = fullfile(matlabroot, 'bin', 'matlab');
