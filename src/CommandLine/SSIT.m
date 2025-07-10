@@ -965,7 +965,20 @@ classdef SSIT
             % app.FIMTabOutputs.PDOProperties.props = obj.pdoOptions.props;
 
             Tab = readtable(dataFileName);
+            
+            % Convert float values in trueColumns and measuredColumns
+            Tab.(trueColumns{1}) = double(int64(Tab.(trueColumns{1})));
+            Tab.(measuredColumns{1}) = double(int64(Tab.(measuredColumns{1})));
+
             dataNames = Tab.Properties.VariableNames;
+
+            % Check that the data column being asked for actually exists in the file and throw an error if not.
+            % TODO - make this type of check accessible to all of SSIT, not just calibratePDO
+            present = any(cellfun(@(y) strcmp(y, measuredColumns{1}),dataNames));
+            if ~present
+                error(measuredColumns + " does not exist in the data file.");
+            end
+
             DATA = table2cell(Tab);
 
             if isempty(parGuess)
@@ -1882,73 +1895,7 @@ classdef SSIT
                 conditions = {};
             end
             obj.dataSet =[];
-%             Tab = readtable(dataFileName);
-%             obj.dataSet.dataNames = Tab.Properties.VariableNames;
-%             obj.dataSet.DATA = table2cell(Tab);
-% 
-%             obj.dataSet.linkedSpecies = linkedSpecies;
-% 
-%             possibleTimeHeaders = {'time','Time','TIME','Time_index'};
-%             Q = zeros(1,length(obj.dataSet.dataNames));
-%             for iHead = 1:length(possibleTimeHeaders)
-%                 Q = max(Q,strcmp(obj.dataSet.dataNames,possibleTimeHeaders{iHead}));
-%             end
-%             if sum(Q)>=1
-%                 obj.dataSet.app.ParEstFitTimesList.Value = {};
-%                 obj.dataSet.app.ParEstFitTimesList.Items = {};
-%                 if sum(Q)>1
-%                     error('Provided data more than one entry with keyword "time"')   
-%                 end
-%                 col_time = find(Q,1);
-%                 obj.dataSet.app.DataLoadingAndFittingTabOutputs.fittingOptions.fit_time_index = col_time;
-%                 obj.dataSet.app.DataLoadingAndFittingTabOutputs.fittingOptions.fit_times = sort(unique(cell2mat(obj.dataSet.DATA(:,col_time))));
-%                 for i=1:length(obj.dataSet.app.DataLoadingAndFittingTabOutputs.fittingOptions.fit_times)
-%                     obj.dataSet.app.ParEstFitTimesList.Items{i} = num2str(obj.dataSet.app.DataLoadingAndFittingTabOutputs.fittingOptions.fit_times(i));
-%                     obj.dataSet.app.ParEstFitTimesList.Value{i} = num2str(obj.dataSet.app.DataLoadingAndFittingTabOutputs.fittingOptions.fit_times(i));
-%                 end
-%                 % We need to make sure that the fitting times are included in the solution times.
-% 
-%             else
-%                 error('Provided data set does not have required column named "time"')
-%             end
-%             obj.dataSet.app.DataLoadingAndFittingTabOutputs.dataTable = obj.dataSet.DATA;
-% 
-%             Nd = length(obj.species);
-%             nCol = length(obj.dataSet.dataNames);
-% 
-%             obj.dataSet.app.DataLoadingAndFittingTabOutputs.marginalMatrix = ...
-%                 zeros(Nd+3,nCol);
-% 
-%             % auto-detect and record 'time' column
-%             Itime = Nd+1;
-%             Jtime = find(Q);
-%             obj.dataSet.app.DataLoadingAndFittingTabOutputs.marginalMatrix(Itime,Jtime) = 1;
-% %             obj.dataSet.times = unique([obj.dataSet.DATA{:,Jtime}]);
-% 
-%             % record linked species
-%             for i=1:size(linkedSpecies,1)
-%                 J = find(strcmp(obj.dataSet.dataNames,linkedSpecies{i,2}));
-%                 I = find(strcmp(obj.species,linkedSpecies{i,1}));
-%                 obj.dataSet.app.DataLoadingAndFittingTabOutputs.marginalMatrix(I,J)=1;
-%             end
-% 
-%             % set up conditionals
-%             obj.dataSet.app.DataLoadingAndFittingTabOutputs.conditionOnArray = {};
-%             for i=1:size(conditions,1)
-%                 J = find(strcmp(obj.dataSet.dataNames,conditions{i,1}));
-%                 obj.dataSet.app.DataLoadingAndFittingTabOutputs.conditionOnArray(end+1,:) = {J,conditions{i,2}};
-%             end
-% 
-%             % set to marginalize over everything else
-%             obj.dataSet.app.DataLoadingAndFittingTabOutputs.marginalMatrix(Nd+3,:) = ...
-%                 sum(obj.dataSet.app.DataLoadingAndFittingTabOutputs.marginalMatrix)==0;
-% 
-%             obj.dataSet.app.SpeciesForFitPlot.Items = obj.species;
-%             % [obj.dataSet.app,obj.dataSet.times] = filterAndMarginalize([],[],obj.dataSet.app);
-
-% <<<<<<< HEAD
-            %% Attempt to do same thing using tables
-            if ischar(dataFileName)
+            if ischar(dataFileName)||isstring(dataFileName)
                 TAB = readtable(dataFileName);
             elseif iscell(dataFileName)
                 TAB = table;
@@ -2033,113 +1980,7 @@ classdef SSIT
             % Define other properties needed in other functions.
             obj.dataSet.linkedSpecies = linkedSpecies;
             obj.dataSet.times = times';
-% =======
-% 
-% 
-%             %% ad hoc:
-%             %% The gui data-loading function 'filterAndMarginalize', which 
-%             %% is supposed to filter data by user-specified conditions, 
-%             %% doesn't.
-%             %% And it's a mess.  I tried and failed to fix it without 
-%             %% breaking the Universe, so since this whole thing needs to be 
-%             %% refactorized anyway, we're going to temporarily manually 
-%             %% filter logic here in SSIT's 'loadData'. 
-%             %% -AP
-%             % Test for one condition:
-%             %     conditionCol = find(strcmp(obj.dataSet.dataNames, conditions{i}));
-%             %     conditionVals = obj.dataSet.DATA(:, conditionCol);
-%             %   % Convert numeric values to strings for comparison
-%             %     conditionValsStr = cellfun(@num2str, conditionVals, 'UniformOutput', false);
-%             %     filteredIdx = strcmp(conditionValsStr, '1');
-%             %     obj.dataSet.DATA = obj.dataSet.DATA(filteredIdx, :);
-% 
-%             % Apply all user-specified filtering conditions 
-%             for i = 1:size(conditions, 1)
-%                 conditionColName = conditions{i, 1};
-%                 conditionTarget = conditions{i, 2};
-% 
-%                 % Find the column index for this condition
-%                 conditionCol = find(strcmp(obj.dataSet.dataNames, conditionColName));
-% 
-%                 if isempty(conditionCol)
-%                     error('Condition column "%s" not found in dataset.', conditionColName);
-%                 end
-% 
-%                 % Extract and normalize the column values
-%                 columnVals = obj.dataSet.DATA(:, conditionCol);
-%                 columnValsStr = cellfun(@num2str, columnVals, 'UniformOutput', false);
-%                 conditionTargetStr = num2str(conditionTarget);
-% 
-%                 % Find rows that match this condition
-%                 matchedIdx = strcmp(columnValsStr, conditionTargetStr);
-% 
-%                 % Apply filter to keep only matching rows
-%                 obj.dataSet.DATA = obj.dataSet.DATA(matchedIdx, :);
-%             end
-% 
-% 
-%             obj.dataSet.linkedSpecies = linkedSpecies;
-% 
-%             possibleTimeHeaders = {'time','Time','TIME','Time_index'};
-%             Q = zeros(1,length(obj.dataSet.dataNames));
-%             for iHead = 1:length(possibleTimeHeaders)
-%                 Q = max(Q,strcmp(obj.dataSet.dataNames,possibleTimeHeaders{iHead}));
-%             end
-%             if sum(Q)>=1
-%                 obj.dataSet.app.ParEstFitTimesList.Value = {};
-%                 obj.dataSet.app.ParEstFitTimesList.Items = {};
-%                 if sum(Q)>1
-%                     error('Provided data more than one entry with keyword "time"')   
-%                 end
-%                 col_time = find(Q,1);
-%                 obj.dataSet.app.DataLoadingAndFittingTabOutputs.fittingOptions.fit_time_index = col_time;
-%                 obj.dataSet.app.DataLoadingAndFittingTabOutputs.fittingOptions.fit_times = sort(unique(cell2mat(obj.dataSet.DATA(:,col_time))));
-%                 for i=1:length(obj.dataSet.app.DataLoadingAndFittingTabOutputs.fittingOptions.fit_times)
-%                     obj.dataSet.app.ParEstFitTimesList.Items{i} = num2str(obj.dataSet.app.DataLoadingAndFittingTabOutputs.fittingOptions.fit_times(i));
-%                     obj.dataSet.app.ParEstFitTimesList.Value{i} = num2str(obj.dataSet.app.DataLoadingAndFittingTabOutputs.fittingOptions.fit_times(i));
-%                 end
-%                 % We need to make sure that the fitting times are included in the solution times.
-% 
-%             else
-%                 error('Provided data set does not have required column named "time"')
-%             end
-%             obj.dataSet.app.DataLoadingAndFittingTabOutputs.dataTable = obj.dataSet.DATA;
-% 
-%             Nd = length(obj.species);
-%             nCol = length(obj.dataSet.dataNames);
-% 
-%             obj.dataSet.app.DataLoadingAndFittingTabOutputs.marginalMatrix = ...
-%                 zeros(Nd+3,nCol);
-% 
-%             % auto-detect and record 'time' column
-%             Itime = Nd+1;
-%             Jtime = find(Q);
-%             obj.dataSet.app.DataLoadingAndFittingTabOutputs.marginalMatrix(Itime,Jtime) = 1;
-% %             obj.dataSet.times = unique([obj.dataSet.DATA{:,Jtime}]);
-% 
-%             % record linked species
-%             for i=1:size(linkedSpecies,1)
-%                 J = find(strcmp(obj.dataSet.dataNames,linkedSpecies{i,2}));
-%                 I = find(strcmp(obj.species,linkedSpecies{i,1}));
-%                 obj.dataSet.app.DataLoadingAndFittingTabOutputs.marginalMatrix(I,J)=1;
-%             end
-% 
-%             obj.dataSet.app.DataLoadingAndFittingTabOutputs.conditionOnArray = {};
-%             for i=1:size(conditions,1)
-%                 J = find(strcmp(obj.dataSet.dataNames,conditions{i,1}));
-%                 val = conditions{i,2};
-%                 if isnumeric(val)
-%                     val = num2str(val);
-%                 end
-%                 obj.dataSet.app.DataLoadingAndFittingTabOutputs.conditionOnArray(end+1,:) = {J, val};
-%             end
-% 
-% 
-%             % set to marginalize over everything else
-%             obj.dataSet.app.DataLoadingAndFittingTabOutputs.marginalMatrix(Nd+3,:) = ...
-%                 sum(obj.dataSet.app.DataLoadingAndFittingTabOutputs.marginalMatrix)==0;
-% 
-% >>>>>>> main
+
             obj.dataSet.app.SpeciesForFitPlot.Items = obj.species;
             obj.dataSet.app.SpeciesForFitPlot.Items = linkedSpecies(:,1);
             obj.dataSet.app.DataLoadingAndFittingTabOutputs.fittingOptions.fit_times = times';
@@ -2150,9 +1991,6 @@ classdef SSIT
 
                      
             %%
-
-%             obj.dataSet.times = unique([obj.dataSet.DATA{:,Jtime}]);
-
             sz = size(obj.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor);
             obj.dataSet.nCells=zeros(sz(1),1);
             for i=1:sz(1)
@@ -3602,22 +3440,6 @@ classdef SSIT
                 showConvergence = true;
                 plotColors = struct() % Optional: fields like scatter, ellipseFIM, ellipseMH, etc.
             end
-
-            fieldsPropens2Test = {'timeDependentFactor','stateDependentFactor','jointDependentFactor','hybridFactor'};
-                            for field = fieldsPropens2Test
-                                if ~isempty(obj.propensitiesGeneral{1}.(field{1}))
-                                    if ~isa(obj.propensitiesGeneral{1}.(field{1}),'function_handle')
-                                        error('Missing Function')
-                                    end
-                                end
-                                % 
-                                %     if nargin(obj.propensitiesGeneral{1}.(field{1}))==1
-                                %         obj.propensitiesGeneral{1}.(field{1})(0);
-                                %     elseif nargin(obj.propensitiesGeneral{1}.(field{1}))==2
-                                %         obj.propensitiesGeneral{1}.(field{1})(0,0);
-                                %     end
-                                % end
-                            end
 
             if isfield(plotColors, 'scatter')
                 scatterColor = plotColors.scatter;
