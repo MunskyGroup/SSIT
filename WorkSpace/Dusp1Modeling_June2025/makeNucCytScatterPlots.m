@@ -1,17 +1,14 @@
-function makeNucCytScatterPlots(ssaSoln,extendedMod,fignum,timeIndsDat,speciesIndMod,speciesIndDat,splitReps)
+function makeNucCytScatterPlots(ssaSoln,extendedMod,fignum,speciesIndMod,speciesIndDat,splitReps)
 arguments
     ssaSoln
     extendedMod
     fignum = 1;
-    timeIndsDat = [];
     speciesIndMod = [1,2];
     speciesIndDat = [1,2];
     splitReps = false;
 end
 figure(fignum); clf;
-if isempty(timeIndsDat)
     timeIndsDat = [1:length(extendedMod.dataSet.times)];
-end
 
 times2plot = extendedMod.dataSet.times(timeIndsDat);
 

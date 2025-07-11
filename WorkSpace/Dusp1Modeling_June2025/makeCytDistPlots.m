@@ -1,20 +1,21 @@
-function [KS] = makeCytDistPlots(ssaSoln,extendedMod,fignum,timeIndsDat,speciesIndMod,speciesIndDat,binEdges,splitReps)
+function [KS] = makeCytDistPlots(ssaSoln,model,fignum,speciesIndMod,speciesIndDat,binEdges,splitReps,plotType,crnadat,ctime,creplica)
 arguments
     ssaSoln
-    extendedMod
+    model
     fignum = 1;
-    timeIndsDat = [];
     speciesIndMod = 1;
     speciesIndDat = 1;
     binEdges = [0:10:300];
     splitReps = false
+    plotType = 'pdf'
+    crnadat = [3,4];
+    ctime = [13];
+    creplica = [15];
 end
 figure(fignum); clf;
-if isempty(timeIndsDat)
-    timeIndsDat = [1:length(extendedMod.dataSet.times)];
-end
+timeIndsDat = [1:length(model.dataSet.times)];
 
-times2plot = extendedMod.dataSet.times(timeIndsDat);
+times2plot = model.dataSet.times;
 
 Nrows = ceil(sqrt(length(timeIndsDat)));
 Ncols = ceil(length(timeIndsDat)/Nrows);
@@ -23,29 +24,26 @@ for i = 1:length(timeIndsDat)
     subplot(Ncols,Nrows,i); hold off
     time = times2plot(i);
     
-    ctime = 13;
-    creplica = 15;
-    crnadat = [3,4];
     if splitReps
-        dMat = extendedMod.dataSet.DATA([extendedMod.dataSet.DATA{:,ctime}]==time,[crnadat,creplica]);
+        dMat = model.dataSet.DATA([model.dataSet.DATA{:,ctime}]==time,[crnadat,creplica]);
         repNames = unique(dMat(:,3));
         for j = 1:length(repNames)
             dMatB = cell2mat(dMat(strcmp(dMat(:,3),repNames{j}),1:2));
-            h = histogram(dMatB(:,speciesIndDat),binEdges,'Normalization','pdf','DisplayStyle','stairs','LineWidth',2);
+            h = histogram(dMatB(:,speciesIndDat),binEdges,'Normalization',plotType,'DisplayStyle','stairs','LineWidth',2);
             hold on
         end
     else
-        dMatB = cell2mat(extendedMod.dataSet.DATA([extendedMod.dataSet.DATA{:,ctime}]==time,crnadat));
-        histogram(dMatB(:,speciesIndDat),binEdges,'Normalization','pdf','DisplayStyle','stairs','LineWidth',3,'EdgeColor',[.40,.40,.80]);
+        dMatB = cell2mat(model.dataSet.DATA([model.dataSet.DATA{:,ctime}]==time,crnadat));
+        histogram(dMatB(:,speciesIndDat),binEdges,'Normalization',plotType,'DisplayStyle','stairs','LineWidth',3,'EdgeColor',[.40,.40,.80]);
         hold on
     end
-    dMatB = cell2mat(extendedMod.dataSet.DATA([extendedMod.dataSet.DATA{:,ctime}]==time,crnadat));
+    dMatB = cell2mat(model.dataSet.DATA([model.dataSet.DATA{:,ctime}]==time,crnadat));
 
     % Add SSA to histogram plot
     % Find time in SSA data
     [~,jSp] = min(abs(time-ssaSoln.T_array));
     M = squeeze(ssaSoln.trajs(speciesIndMod,jSp,:));
-    histogram(M,binEdges,'Normalization','pdf','DisplayStyle','stairs','LineWidth',3,'EdgeColor',[0,0,0]);
+    histogram(M,binEdges,'Normalization',plotType,'DisplayStyle','stairs','LineWidth',3,'EdgeColor',[0,0,0]);
 
     [~,~,KS(i)] = kstest2(dMatB(:,speciesIndDat),M');
     % % Add data to histogram plot
@@ -70,7 +68,7 @@ for i = 1:length(timeIndsDat)
     % stairs(binEdges,PDbinned/binwidth,'linewidth',2)
     title(['t = ',num2str(time),'min']);
 
-    set(gca,'FontSize',15,'ylim',[0,0.03])
+    % set(gca,'FontSize',15,'ylim',[0,0.03])
 
     
 end
