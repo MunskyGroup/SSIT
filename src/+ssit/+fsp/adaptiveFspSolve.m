@@ -13,7 +13,8 @@ function [solutions, constraintBoundsFinal, stateSpace] = adaptiveFspSolve(...
     useReducedModel,modRedTransformMatrices,...
     useHybrid,hybridOptions,...
     fEscape,bEscape,...
-    constantJacobian,constantJacobianTime)
+    constantJacobian,constantJacobianTime,...
+    odeIntegrator)
 % Approximate the transient solution of the chemical master equation using
 % an adaptively expanding finite state projection (FSP).
 %
@@ -141,6 +142,7 @@ arguments
     bEscape = []
     constantJacobian = false;
     constantJacobianTime = NaN;
+    odeIntegrator = 'ode23s';
 end
 
 maxOutputTime = max(outputTimes);
@@ -216,8 +218,10 @@ if initApproxSS
         % x0b = fsolve(FUN,initODEs,OPTIONS);
         x0b = initODEs;
         FUN = @(t,v)odeStoichs*generate_propensity_vector(0, v, zeros(length(jStochastic),1), propensities, parameters);
-        % [~,ode_solutions] = ode45(FUN,max(outputTimes)*[0,500,1000],x0b);
-        [~,ode_solutions] = ode23s(FUN,max(outputTimes)*[0,500,1000],x0b);
+        
+        odeFun = str2func(odeIntegrator);
+        [~,ode_solutions] = odeFun(FUN,max(outputTimes)*[0,500,1000],x0b);
+        
         initODEs = ode_solutions(end,:)';
 
         jac = AfspFull.createJacHybridMatrix(0, initODEs, parameters, length(hybridOptions.upstreamODEs), true);
@@ -405,7 +409,7 @@ while (tNow < maxOutputTime)
 %                 if ~isempty(hybridOptions)
 %                     solver = ssit.fsp_ode_solvers.OdeSuite(relTol, absTol);
 %                 else
-                    solver = ssit.fsp_ode_solvers.OdeSuite(relTol, absTol);
+                    solver = ssit.fsp_ode_solvers.OdeSuite(relTol, absTol, odeIntegrator);
 %                 end
             end
         end

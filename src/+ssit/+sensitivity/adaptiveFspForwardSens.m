@@ -11,7 +11,8 @@ function [outputs, constraintBounds, stateSpace] = adaptiveFspForwardSens(output
     absTol, ...
     stateSpace, ...
     initApproxSS, ...
-    useReducedModel)
+    useReducedModel,...
+    odeIntegrator)
 arguments
     outputTimes
     initialStates
@@ -34,6 +35,7 @@ arguments
     stateSpace =[];
     initApproxSS = false;
     useReducedModel = false;
+    odeIntegrator = 'ode23s';
 end
 % Compute and outputs the solution and sensitivitiy vectors of the CME at the user-input timepoints.
 %
@@ -270,7 +272,7 @@ while (tNow < tFinal)
         ode_rhs = @(t, ps) forwardSensRHS(t, ps, fspMatrix, fspMatrixDiff(indsCompSens), stateCount, constraintCount, parameterCount);
         ode_opts = odeset(Events=ode_event, Jacobian=jac, RelTol=relTol, AbsTol=absTol);
         [tout, outputs_current, te, ye, ~] = ...
-            ode23s(ode_rhs, outputTimes(outputTimes>=tNow), y0, ode_opts);
+            odeIntegrator(ode_rhs, outputTimes(outputTimes>=tNow), y0, ode_opts);
     end
 
     if length(tout)<2||(~isempty(te)&&te<tout(2))

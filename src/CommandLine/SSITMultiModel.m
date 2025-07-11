@@ -74,6 +74,7 @@ classdef SSITMultiModel
                 boundGuesses = [];
             end
             nMod = length(SMM.SSITModels);
+            fspSolnsSMM = struct(); % Allocate structure to store solutions
             for i = 1:nMod
                 %% Solve the model using the FSP
                 Model = SMM.SSITModels{i};
@@ -86,10 +87,81 @@ classdef SSITMultiModel
 
                 if strcmp(Model.solutionScheme,'FSP')
                     [fspSoln,SMM.SSITModels{i}.fspOptions.bounds] = Model.solve;
+                    % Initialize the structure for the current model
+                    fspSolnsSMM(i).fsp = cell(numel(fspSoln.fsp), 1); % Cell array for FSP solutions
+                    for f=1:numel(fspSoln.fsp)
+                        fspSolnsSMM(i).fsp{f} = fspSoln.fsp{f}; 
+                    end
                     SMM.fspStateSpaces{i} = fspSoln.stateSpace;
+                    fspSolnsSMM(i).stateSpace = fspSoln.stateSpace; % Store state space
                 end
             end
         end
+
+        %% Solve and Convolve
+        function [SMM1,SMM2,conv2solnTensor] = solveandconvolve(SMM1,SMM2,boundGuesses)
+            arguments
+                SMM1
+                SMM2
+                boundGuesses = [];
+            end
+            nMod = length(SMM1.SSITModels);
+            fspSolnsSMM1 = struct(); % Allocate structure to store solutions
+            fspSolnsSMM2 = struct(); % Allocate structure to store solutions
+            for i = 1:nMod
+                %% Solve the model using the FSP
+                Model1 = SMM1.SSITModels{i};
+                Model2 = SMM2.SSITModels{i};
+                Model1.fspOptions.fspTol = 1e-4;
+                Model2.fspOptions.fspTol = 1e-4;
+                if ~isempty(boundGuesses)
+                    Model1.fspOptions.bounds = boundGuesses{i};
+                    Model2.fspOptions.bounds = boundGuesses{i};
+                else 
+                    Model1.fspOptions.bounds = [];
+                    Model2.fspOptions.bounds = [];
+                end
+
+                if strcmp(Model1.solutionScheme,'FSP')
+                    [fspSoln1,SMM1.SSITModels{i}.fspOptions.bounds] = Model1.solve;
+                    [fspSoln2,SMM2.SSITModels{i}.fspOptions.bounds] = Model2.solve;
+                    % Initialize the structure for the current model
+                    fspSolnsSMM1(i).fsp = cell(numel(fspSoln1.fsp), 1); % Cell array for FSP solutions
+                    fspSolnsSMM2(i).fsp = cell(numel(fspSoln2.fsp), 1); % Cell array for FSP solutions
+                    for f=1:numel(fspSoln1.fsp)
+                        fspSolnsSMM1(i).fsp{f} = fspSoln1.fsp{f}; 
+                        fspSolnsSMM2(i).fsp{f} = fspSoln2.fsp{f};
+                    end
+                    SMM1.fspStateSpaces{i} = fspSoln1.stateSpace;
+                    SMM2.fspStateSpaces{i} = fspSoln2.stateSpace;
+                    fspSolnsSMM1(i).stateSpace = fspSoln1.stateSpace; % Store state space
+                    fspSolnsSMM2(i).stateSpace = fspSoln2.stateSpace; % Store state space
+                end
+
+                %% Convolution
+                for f=1:(max(numel(fspSoln1.fsp),numel(fspSoln2.fsp)))
+                    % f is time point, so solution tensors are FSP probabilities across states for each time point
+                    conv2solnTensor{f} = conv2(double(fspSoln1.fsp{f}.p.data),double(fspSoln2.fsp{f}.p.data));
+                    figure(f)
+                    contourf(log10(conv2solnTensor{f}))
+                    hold on
+                end
+                %% check
+                for g=1:f % f is number of time points 
+                    fspsoln1_sptensor{g} = double(fspSoln1.fsp{g}.p.data);
+                    fspsoln2_sptensor{g} = double(fspSoln2.fsp{g}.p.data);
+                    figure(g)
+                    subplot(1,3,1)
+                    contourf(log10(fspsoln1_sptensor{g}))
+                    subplot(1,3,2)
+                    contourf(log10(fspsoln2_sptensor{g}))
+                    subplot(1,3,3)
+                    contourf(log10(conv2solnTensor{g}))
+                    hold on
+                end
+            end
+        end
+
 
         function SMM = updateModels(SMM,parameters,makeplot, fignums)
             % Updates parameters of the models to provided values and makes
