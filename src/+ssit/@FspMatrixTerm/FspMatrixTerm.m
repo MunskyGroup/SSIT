@@ -263,7 +263,7 @@ classdef FspMatrixTerm
                 prop_val = prop_val*ones(size(state_set.states,2),1);
             end
 
-            A_fsp = ssit.FspMatrixTerm.buildAFSP(n_states,prop_val,reachableIndices,propensity,...
+            A_fsp = ssit.FspMatrixTerm.buildAFSP(n_states,prop_val,reachableIndices,hybridPropensity,...
                 state_set,numConstraints,modRedTransformMatrices);
 
         end

@@ -569,10 +569,24 @@ classdef Propensity
                 while ~isempty(strfind(stNew,logTypes{i}))
                     J = strfind(stNew,logTypes{i});
                     for j = 1%:length(J)
-                        K = strfind(stNew,'(');
-                        k1 = max(K(K<J(j)));
-                        K = strfind(stNew,')');
-                        k2 = min(K(K>J(j)));
+                        logvals = (stNew == '(') - (stNew == ')');
+                        k1 = J(j);
+                        pos = 0;
+                        while pos<1
+                            k1 = k1-1;
+                            pos = sum(logvals(k1:J(j)));
+                        end
+                        k2 = J(j);
+                        neg = 0;
+                        while neg>-1
+                            k2 = k2+1;
+                            neg = sum(logvals(J(j):k2));
+                        end
+
+                        % K = strfind(stNew,'(');
+                        % k1 = max(K(K<J(j)));
+                        % K = strfind(stNew,')');
+                        % k2 = min(K(K>J(j)));
                         logE = stNew(k1:k2);
                         if contains(logE,'t')&&max(contains(logE,species))
                             n(1)=n(1)+1;

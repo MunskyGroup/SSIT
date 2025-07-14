@@ -220,7 +220,7 @@ if initApproxSS
         FUN = @(t,v)odeStoichs*generate_propensity_vector(0, v, zeros(length(jStochastic),1), propensities, parameters);
         
         odeFun = str2func(odeIntegrator);
-        [~,ode_solutions] = odeFun(FUN,max(outputTimes)*[0,500,1000],x0b);
+        [~,ode_solutions] = odeFun(FUN,(max(outputTimes)-min(outputTimes))*[0,500,1000],x0b);
         
         initODEs = ode_solutions(end,:)';
 
