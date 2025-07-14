@@ -912,6 +912,19 @@ classdef SSIT
             obj.propensitiesGeneral = [];
         end
 
+        function [obj] = removeReaction(obj,numRxn,confirm)
+            % Removes a reaction from propensity functions and
+            % stoichiometry matrix.
+            arguments
+                obj
+                numRxn
+                confirm = false
+            end
+            inds = ones(1,length(obj.propensityFunctions),'logical');
+            inds(numRxn) = false;
+            obj.stoichiometry = obj.stoichiometry(:,inds);
+            obj.propensityFunctions = obj.propensityFunctions(inds);
+        end
         function [obj] = calibratePDO(obj,dataFileName,measuredSpecies,...
                      trueColumns,measuredColumns,pdoType,showPlot,parGuess)
             %% SSIT.calibratePDO - This function calibrates a probabilistic 
