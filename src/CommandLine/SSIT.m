@@ -3775,6 +3775,10 @@ classdef SSIT
         function runCrossValidation(Model,DataFileName, ...
                 LinkedSpecies,ConditionsGlobal,ConditionsReplicas, ...
                 modelLibrary, pipeline, pipelineArgs, stateSpace, useCluster)
+            % This method will create and launch background jobs (or
+            % cluster jobs) to conduct fits (or other specified pipelines)
+            % of the same model but on different data sets as specified in
+            % 'ConditionsReplicas.
             arguments
                 Model
                 DataFileName
