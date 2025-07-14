@@ -3715,7 +3715,7 @@ classdef SSIT
 
         end
         function cmd = generateCommandLinePipeline(saveFileIn,modelName,dummy, ...
-                Pipeline,pipelineArgs,saveFileOut,logFile,runNow)
+                Pipeline,pipelineArgs,saveFileOut,logFile,runNow,runOnCluster,clusterPrefix)
             arguments
                 saveFileIn
                 modelName
@@ -3725,6 +3725,8 @@ classdef SSIT
                 saveFileOut
                 logFile
                 runNow = false
+                runOnCluster = false
+                clusterPrefix = 'sbatch --cpus-per-task=1 --output=#LOG --error=#ERR --wrap="module load matlab-2022b; srun matlab -nodisplay -nosplash -nodesktop -r'
             end
 
             % Parse inputs into format needed for command line call.
@@ -3750,8 +3752,19 @@ classdef SSIT
             matlabpath = fullfile(matlabroot, 'bin', 'matlab');
             
             % Build command
-            cmd = append(matlabpath,' -nodisplay -nosplash -nodesktop -r "',pth,'SSIT',str2,')',...
-                '; exit;" > ',logFile,' 2>&1 < /dev/null &');
+            if ~runOnCluster
+                cmd = append(matlabpath,' -nodisplay -nosplash -nodesktop -r "',pth,'SSIT',str2,')',...
+                    '; exit;" > ',logFile,' 2>&1 < /dev/null &');
+            else
+                clusterPrefix = strrep(clusterPrefix,'#LOG',logFile);
+                clusterPrefix = strrep(clusterPrefix,'#ERR',append('err_',logFile));
+
+                % pth = strrep(pth,"'","''");
+                % str2 = strrep(str2,"'","''");
+                
+                cmd = append(clusterPrefix,' \"',pth,'SSIT',str2,')',...
+                    '; exit;\""');
+            end
 
             % Run command if requested.
             if runNow
