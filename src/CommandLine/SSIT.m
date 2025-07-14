@@ -3768,9 +3768,46 @@ classdef SSIT
 
             % Run command if requested.
             if runNow
-                system(cmd)
+                system(cmd);
             end
 
+        end
+        function runCrossValidation(Model,DataFileName, ...
+                LinkedSpecies,ConditionsGlobal,ConditionsReplicas, ...
+                modelLibrary, pipeline, pipelineArgs, stateSpace, useCluster)
+            arguments
+                Model
+                DataFileName
+                LinkedSpecies
+                ConditionsGlobal
+                ConditionsReplicas
+                modelLibrary
+                pipeline = 'fittingPipelineExample';
+                pipelineArgs = struct('maxIter',1000,'display','iter','makePlot',0);
+                stateSpace  = [];
+                useCluster = false;
+            end
+
+            nPars = size(Model.parameters,1);
+            SMM = SSITMultiModel.createCrossValMultiModel(Model,DataFileName, ...
+                LinkedSpecies,ConditionsGlobal,ConditionsReplicas, ...
+                zeros(1,nPars), stateSpace);
+
+            nRepSets = length(ConditionsReplicas);
+            
+            % Split Up and Save Models
+            for i = 1:nRepSets
+                eval(['Model_',num2str(i),'=SMM.SSITModels{i};'])
+            end
+            save(modelLibrary,'Model_*');
+
+            % Launch background jobs to fit each model.
+            for i = 1:nRepSets
+                modelName = ['Model_',num2str(i)];
+                saveFile2 = [modelLibrary,'_',num2str(i)];
+                logfile = ['logFile',num2str(i),'.txt'];
+                SSIT.generateCommandLinePipeline(modelLibrary,modelName,[],pipeline,pipelineArgs,saveFile2,logfile,1,useCluster);
+            end
         end
     end
 end

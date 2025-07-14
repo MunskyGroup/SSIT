@@ -42,3 +42,39 @@ system(cmd);
 % cmd = SSIT.generateCommandLinePipeline(saveFile,'Model',[],Pipeline,pipelineArgs,saveFile,'logFile.txt',1,1)
 
 
+%% Running a batch job for cross validation
+%%      Example 6 -- using multimodel to explore batch variations
+% In this example, we will use the batch job capabilities to do
+% cross-validation where we fit different replicas at the same time.
+
+% Let's first create a new model.
+Model1 = SSIT;
+Model1.species = {'onGene';'rna'};
+Model1.initialCondition = [0;0];
+Model1.propensityFunctions = {'kon*IGR*(2-onGene)';'koff*onGene';'kr*onGene';'gr*rna'};
+Model1.stoichiometry = [1,-1,0,0;0,0,1,-1];
+Model1.inputExpressions = {'IGR','1+a1*exp(-r1*t)*(1-exp(-r2*t))'};
+Model1.parameters = ({'koff',0.14;'kon',0.14;'kr',10;'gr',0.01;...
+    'a1',0.4;'r1',0.04;'r2',0.1});
+Model1.fspOptions.initApproxSS = true;
+Model1.fittingOptions.modelVarsToFit = 1:7;
+% We generate functions for model propensities
+Model1 = Model1.formPropensitiesGeneral('Model1FSP');
+
+% Specify datafile name and species linking rules
+DataFileName = '../../ExampleData/DUSP1_Dex_100nM_Rep1_Rep2.csv';
+LinkedSpecies = {'rna','RNA_nuc'};
+
+% In this case, let's suppose that we only wish to fit the data at times
+% before 75 minutes.  We will set the global conditions as:
+ConditionsGlobal = {[],[],'TAB.time<=75'};
+
+% We want to split up the replicas to be separate.
+ConditionsReplicas = {'TAB.Rep_num==1';...
+    'TAB.Rep_num==2'};
+
+modelLibrary = 'crossValidationModelsDusp1';
+
+SSIT.runCrossValidation(Model1,DataFileName, ...
+    LinkedSpecies,ConditionsGlobal,ConditionsReplicas, ...
+    modelLibrary)
