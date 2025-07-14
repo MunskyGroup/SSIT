@@ -154,3 +154,45 @@ allParsConstrained = allParsMixed;
 allParsConstrained = combinedModelConstrained.maximizeLikelihood(...
     allParsConstrained, fitOptions, fitAlgorithm);
 combinedModelConstrained = combinedModelConstrained.updateModels(allParsMixed);
+
+%%      Example 6 -- using multimodel to explore batch variations
+% In this example, we will use the multimodel to allow parameters to change
+% for different replica data sets (e.g., to allow for batch variations, or
+% to explore how parameters change under different genetic variations).
+% Here, we illustrate a quick means to generate the multimodel starting
+% with a single template and a datafile with multiple replicas.
+
+% Sepcify datafile name and species linking rules
+DataFileName = '../../ExampleData/DUSP1_Dex_100nM_Rep1_Rep2.csv';
+LinkedSpecies = {'rna','RNA_nuc'};
+
+% In this case, let's suppose that we only wish to fit the data at times
+% before 75 minutes.  We will set the global conditions as:
+ConditionsGlobal = {[],[],'TAB.time<=75'};
+
+% We want to split up the replicas to be separate.
+ConditionsReplicas = {'TAB.Rep_num==1';...
+    'TAB.Rep_num==2'};
+
+% Specify constraints on rep-to-rep parameter variations
+Log10Constraints = [0.1,0.1,0.1,0.02,0,0,0];
+% Here, we specify that there is an expected 0.1 log10 deviation expected
+% in the first three parameters, smaller in the 4th parameter, and no
+% deviation at all expected in the last three parameters.
+
+% The full model is created:
+CrossValidationModel = SSITMultiModel.createCrossValMultiModel(Model1,DataFileName, ...
+                LinkedSpecies,ConditionsGlobal,ConditionsReplicas, ...
+                Log10Constraints);
+CrossValidationModel = CrossValidationModel.initializeStateSpaces;
+
+% Now to run the model fitting routines
+crossValPars = CrossValidationModel.parameters;
+crossValPars = CrossValidationModel.maximizeLikelihood(...
+    crossValPars, fitOptions, fitAlgorithm);
+CrossValidationModel = CrossValidationModel.updateModels(crossValPars);
+CrossValidationModel.parameters = crossValPars;
+
+% Make a figure to explore how much the parameters changed between replicas.
+fignum = 12; useRelative = true;
+CrossValidationModel.compareParameters(fignum,useRelative);

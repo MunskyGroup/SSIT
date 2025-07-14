@@ -398,5 +398,117 @@ classdef SSITMultiModel
             end
             pars = exp(x0);
         end
+        function compareParameters(SMM,fignum,relative)
+            % This function makes a heatmap plot to compare parameters in a
+            % multi model.  This only make sense when all of the sub-models
+            % are the same.
+            arguments
+                SMM
+                fignum = [];
+                relative = false;
+            end
+            if isempty(fignum)
+                figure;
+            else
+                figure(fignum);
+            end
+
+            nMod = length(SMM.SSITModels);
+            nPars = size(SMM.SSITModels{1}.parameters,1);
+            plotMat = zeros(nMod,nPars);
+            for iMod = 1:nMod
+                plotMat(iMod,:) = SMM.parameters(SMM.parameterIndices{iMod});
+            end
+            if relative
+                plotMatRel = plotMat./repmat(mean(plotMat),nMod,1);
+                plotMatRel(iMod+1,nPars+1) = 0;
+                pcolor(log2(plotMatRel));
+            else
+                plotMat(iMod+1,nPars+1) = 0;
+                pcolor(log10(plotMat));
+            end
+            set(gca,'xtick',[0.5:1:nPars+0.5],'XTickLabel',SMM.SSITModels{1}.parameters(:,1))
+            set(gca,'ytick',[0.5:1:nMod+0.5],'YTickLabel',1:nMod,'FontSize',15)
+            xlabel('Parameter Name')
+            ylabel('Model Number')
+
+            cb = colorbar;
+            if relative
+                cb.Label.String = 'log2(deviation from mean)';
+            else
+                cb.Label.String = 'log10(value)';
+            end
+        end
+    end
+    methods (Static)
+        function SMM = createCrossValMultiModel(Model,DataFileName, ...
+                LinkedSpecies,ConditionsGlobal,ConditionsReplicas, ...
+                Log10Constraints, stateSpace)             
+            arguments
+                Model           % SSIT Model
+                DataFileName    % String - name of data set
+                LinkedSpecies   % String identifying which species are which columns of data file
+                ConditionsGlobal% String - conserved settings for data selection
+                ConditionsReplicas % String - additional settings for each replica
+                Log10Constraints % Double - expected log10 uncertainty in parameters between replicas
+                %                            (0=no variation, inf= no relationship)
+                stateSpace =[];
+            end
+
+            nReps = length(ConditionsReplicas);
+
+            % Make sure that modelVarsToFit is index numbers for free
+            % parameters.
+            if ischar(Model.fittingOptions.modelVarsToFit)&&strcmp(Model.fittingOptions.modelVarsToFit,'all')
+                Model.fittingOptions.modelVarsToFit = find(ones(1,size(Model.parameters,1),'logical'));
+            elseif islogical(Model.fittingOptions.modelVarsToFit)
+                Model.fittingOptions.modelVarsToFit = find(Model.fittingOptions.modelVarsToFit);
+            end
+
+            nPars = length(Log10Constraints);
+            if nPars~=length(Model.fittingOptions.modelVarsToFit)
+                error('Length of constraints must match number of free parameters in template model.')
+            end
+
+            if ~isempty(ConditionsGlobal{1})||~isempty(ConditionsGlobal{2})
+                error('Cross Validation replica creation only supported using complex conditions approach (third entry of conditions entry)')
+            end
+
+            % Match parameters in CV models to originals and to collected
+            % set of all free parameters.
+            indsFree = find(Log10Constraints~=0);
+            parIndices = cell(1,nReps);
+            parIndices{1} = (1:nPars);
+            mPars = nPars;
+            matchedInds = zeros(nReps,length(indsFree));
+            matchedInds(1,:) = indsFree;
+            for iRep = 2:nReps
+                parIndices{iRep} = 1:nPars;
+                parIndices{iRep}(indsFree) = mPars+1:mPars+length(indsFree);
+                matchedInds(iRep,:) = parIndices{iRep}(indsFree);
+                mPars = mPars+length(indsFree);
+            end
+
+            % Define penalty constraint on matched parameters.
+            parConstraints = @(x)SSITMultiModel.computeReplicaMismatch(x,indsFree,matchedInds,Log10Constraints);
+
+            SSITMods = cell(1,nReps);
+            for iRep = 1:nReps
+                conditionsLocal = {[],[],append(ConditionsGlobal{3},'&',ConditionsReplicas{iRep})};
+                SSITMods{iRep} = Model.loadData(DataFileName, LinkedSpecies, conditionsLocal);
+            end
+
+            SMM = SSITMultiModel(SSITMods,parIndices,parConstraints,stateSpace);
+
+
+        end
+        function parConstraints = computeReplicaMismatch(pars,indsFree,matchedInds,Log10Constraints)
+            % compute the likelihood of given parameter variation given
+            % lognormal distribution with specified log10 deviation.
+            log10ParsMatched = log10(pars(matchedInds(:,indsFree)));
+            nReps = size(matchedInds,1);
+            deviation2 = sum(log10ParsMatched - repmat(mean(log10ParsMatched),nReps,1)).^2;
+            parConstraints = -sum(deviation2./(2*Log10Constraints(indsFree).^2));
+        end
     end
 end
