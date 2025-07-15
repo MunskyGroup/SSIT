@@ -3373,7 +3373,8 @@ classdef SSIT
             end
         end
 
-        function makeFitPlot(obj,fitSolution,smoothWindow,fignums,usePanels,varianceType,IQRrange)
+        function figHandles = makeFitPlot(obj,fitSolution,smoothWindow,fignums,usePanels, ...
+                varianceType,IQRrange,suppressFigures)
             % Produces plots to compare model to experimental data.
             arguments
                 obj
@@ -3381,13 +3382,15 @@ classdef SSIT
                 smoothWindow = 1;
                 fignums = [];
                 usePanels=true;
-                varianceType = 'STD';
-                IQRrange = 0.25;
+                varianceType = 'STD';  % Plot type standard deviation ('STD') or interquartile range ('IQR'). {'STD', 'IQR'}
+                IQRrange = 0.25        % Interquartile range for plotting (will draw lines at [IQRrange,1-IQRrange]).
+                suppressFigures = false % Hide figures.  Will need to manually make them visible again for viewing.
             end
             if isempty(fitSolution)     
                 [~,~,fitSolution] = obj.computeLikelihood;
             end
-            makeSeparatePlotOfData(fitSolution,smoothWindow,fignums,usePanels,varianceType,IQRrange)
+            figHandles = makeSeparatePlotOfData(fitSolution,smoothWindow,fignums,usePanels, ...
+                varianceType,IQRrange,suppressFigures);
         end
 
         function makeMleFimPlot(obj,MLE,FIM,indPars,CI,figNum,par0)
