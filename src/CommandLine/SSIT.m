@@ -330,7 +330,7 @@ classdef SSIT
                     % Create model from template
                     obj = pregenModel(obj,modelFile);
                     if ~strcmp(modelFile,'Empty')
-                        obj = obj.formPropensitiesGeneral;
+                        obj = obj.formPropensitiesGeneral(modelFile);
                     end
                 end
             end

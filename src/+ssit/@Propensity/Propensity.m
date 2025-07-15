@@ -468,11 +468,22 @@ classdef Propensity
                 end
                 if computeSens
                     obj{1}.sensStateFactorVec = sym2mFun(expr_x_vec_sens, false, true, nonXTpars(:,1), speciesStoch, varODEs, false, true, prefixNameLocal);
-                    parfor iRxn = 1:n_reactions
-                        obj{iRxn}.sensStateFactor = cell(1,n_pars);
-                        for ipar = 1:n_pars
-                            prefixNameLocal = [prefixName,'_',num2str(iRxn),'_',num2str(ipar)];
-                            obj{iRxn}.sensStateFactor{ipar} =  sym2mFun(expr_x_vec_sens(iRxn,ipar), false, true, nonXTpars(:,1), speciesStoch, varODEs, false, true, prefixNameLocal);
+                    poolobj = gcp("nocreate");
+                    if ~isempty(poolobj)
+                        parfor iRxn = 1:n_reactions
+                            obj{iRxn}.sensStateFactor = cell(1,n_pars);
+                            for ipar = 1:n_pars
+                                prefixNameLocal = [prefixName,'_',num2str(iRxn),'_',num2str(ipar)];
+                                obj{iRxn}.sensStateFactor{ipar} =  sym2mFun(expr_x_vec_sens(iRxn,ipar), false, true, nonXTpars(:,1), speciesStoch, varODEs, false, true, prefixNameLocal);
+                            end
+                        end
+                    else
+                        for iRxn = 1:n_reactions
+                            obj{iRxn}.sensStateFactor = cell(1,n_pars);
+                            for ipar = 1:n_pars
+                                prefixNameLocal = [prefixName,'_',num2str(iRxn),'_',num2str(ipar)];
+                                obj{iRxn}.sensStateFactor{ipar} =  sym2mFun(expr_x_vec_sens(iRxn,ipar), false, true, nonXTpars(:,1), speciesStoch, varODEs, false, true, prefixNameLocal);
+                            end
                         end
                     end
                     for ipar = 1:n_pars
