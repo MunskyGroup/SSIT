@@ -10,9 +10,6 @@ The SSIT allows users to specify and solve the **Chemical Master Equation** (CME
 
 To learn more about the FSP theory that underlies the SSIT, please see the slides from our [Nov. 3, 2022 BPPB Seminar](https://github.com/MunskyGroup/SSIT/blob/main/images/BPPBSeminarNov2022.pdf)
 
-The SSIT allows users to specify and efficiently solve the chemical master equation for discrete stochastic models.  
-SSIT is especially useful for the analysis of single-cell gene regulaton. 
-
 Functionality includes:
   
 - Build, save, and load models defined by their species, parameters, propensity functions, stoichiometries, and initial conditions
