@@ -1,7 +1,13 @@
 clear
 close all 
 addpath(genpath('../../../../src'));
-addpath(genpath('../../Model'))
+addpath(genpath('../../Model'));
+
+% c = parcluster('local');
+% c.NumWorkers = 4;
+% parpool(c,4)
+
+
 
 nChains = 2;
 nSamples = 3;
@@ -9,7 +15,7 @@ nSamples = 3;
 NCells = 200;
 makePlot = false;
 
-kon_true = 1e-3;
+kon_true = 1e-3; % define these in log space 
 koff_true = 7.5e-5;
 w_true = 0.0025;
 kex_true = 750;
@@ -17,16 +23,16 @@ kr_true = 7.5e4;
 D_true = [0.01,5,4]; % bound, full, part
 gam_true =[0.035;0.0025;0.001];
 
-if true
-trueResults = Simulate(kon_true, koff_true, w_true, kex_true, kr_true, D_true, gam_true, NCells, makePlot);
-save('trueResults', 'trueResults')
+if false
+    trueResults = Simulate(kon_true, koff_true, w_true, kex_true, kr_true, D_true, gam_true, NCells, makePlot);
+    save('trueResults', 'trueResults')
 end
 
 load('trueResults.mat')
 
 delta = [kon_true, koff_true, w_true, kex_true, kr_true, D_true, gam_true'] * 0.25;
 Proposal = @(x) ...
-    [x(1) + (rand()-0.5)*2*delta(1), ...
+    [x(1) + (rand()-0.5)*2*delta(1), ... % use randn in log *0.1 to move an order of mag
      x(2) + (rand()-0.5)*2*delta(2), ...
      x(3) + (rand()-0.5)*2*delta(3), ...
      x(4) + (rand()-0.5)*2*delta(4), ...
