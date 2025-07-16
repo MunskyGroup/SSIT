@@ -2,10 +2,9 @@ clear
 close all 
 addpath(genpath('../../../../src'));
 addpath(genpath('../../Model'))
-parpool('local', 4);
 
-nChains = 10;
-nSamples = 200;
+nChains = 2;
+nSamples = 3;
 
 NCells = 200;
 makePlot = false;
