@@ -10,7 +10,7 @@ addpath(genpath('../../Model'));
 
 
 nChains = 2;
-nSamples = 3;
+nSamples = 100;
 
 NCells = 200;
 makePlot = false;

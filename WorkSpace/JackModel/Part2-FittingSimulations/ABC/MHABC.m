@@ -21,6 +21,7 @@ function [Distances, Accepted, Parameters] = MHABC(nChains, nSamples, trueResult
         d_best = distanceMetric(results_x, trueResults);
         localDistances(1) = d_best;
         
+        numAccepted = 0;
         for s = 1:nSamples
             x_prop = Proposal(x);
             
@@ -34,9 +35,12 @@ function [Distances, Accepted, Parameters] = MHABC(nChains, nSamples, trueResult
             if acc
                 x = x_prop;
                 d_best = d_new;
+                numAccepted = numAccepted + 1
             end
             
             localParams(s + 1, :) = x;
+            fprintf('Chain: %d, Sim: %d \n', c, s)
+            fprintf('acceptance rate: %1.2f \n', numAccepted/s)
         end
         
         % Store this chain's results
