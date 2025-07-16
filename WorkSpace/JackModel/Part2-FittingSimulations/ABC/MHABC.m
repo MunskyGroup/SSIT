@@ -1,7 +1,7 @@
 function [Distances, Accepted, Parameters] = MHABC(nChains, nSamples, trueResults, Simulator, Proposal, x0, distanceMetric)
 
     % Use cells for Parameters to avoid 3D slicing issues in parfor
-    Parameters = cell(nChains);
+    Parameters = cell(nChains,1);
     Distances = zeros(nChains, nSamples + 1);
     Accepted = zeros(nChains, nSamples + 1);
     
@@ -38,7 +38,7 @@ function [Distances, Accepted, Parameters] = MHABC(nChains, nSamples, trueResult
                 numAccepted = numAccepted + 1
             end
             
-            localParams(s + 1, :) = x;
+            localParams(s + 1, :) = x_prop;
             fprintf('Chain: %d, Sim: %d \n', c, s)
             fprintf('acceptance rate: %1.2f \n', numAccepted/s)
         end
