@@ -88,7 +88,7 @@ end
 
 
 function d = JSDivergence(P, Q)
-    epsilon = 1e-12;
+    epsilon = 1e-12; % TODO - test the sensitivty to this 
     P = P + epsilon;
     Q = Q + epsilon;
 
