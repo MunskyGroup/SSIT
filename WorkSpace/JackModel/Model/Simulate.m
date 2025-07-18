@@ -9,13 +9,13 @@ function output = Simulate(kon, koff, w, kex, kr, D, gam, NCells, makePlot)
         mkdir(outputFolder);
     end
     
-    % Generate a unique timestamp string with milliseconds
-    timestamp = datetime("now", 'yyyymmdd_HHMMSSFFF');
+    % Generate timestamp with milliseconds
+    timestamp = string(datetime('now', 'Format', 'yyyyMMdd_HHmmssSSS'));
     
-    % Generate a random number to reduce the chance of collision
+    % Generate random 4-digit number
     randomNumber = randi([1000, 9999]);
     
-    % Construct the unique filename
+    % Create unique filename
     fileName = sprintf('Data_%s_%d.csv', timestamp, randomNumber);
     
     % Full file path
