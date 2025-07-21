@@ -56,11 +56,11 @@ function plotSSA(ssaSoln, speciesIdx, numTraj, speciesNames)
         end
     else
         % Single species case
-        if speciesIdx < 1 || speciesIdx > numSpecies
-            error('speciesIdx must be between 1 and %d, or ''all''.', numSpecies);
+        if length(speciesIdx) < 1 || length(speciesIdx) > numSpecies
+             error('speciesIdx must be between 1 and %d, or ''all''.', numSpecies);
         end
         
-        X = squeeze(ssaSoln.trajs(speciesIdx, validIdx, :)); % Extract valid species trajectories
+        X = squeeze(ssaSoln.trajs(length(speciesIdx), validIdx, :)); % Extract valid species trajectories
         randIdx = randperm(numTotalTraj, numTraj); % Select random trajectories
         
         for i = 1:numTraj
