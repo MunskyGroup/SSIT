@@ -12,8 +12,8 @@ function metric = DistanceFunction(results1, results2, num_bins)
     
         % calculate metric
         distances = zeros(size(P));
-        for i = 1:size(P,1)
-            for j = 1:size(P,2)
+        for i = 1:size(P,1) % TS Bins
+            for j = 1:size(P,2) % Spatial Bins
                 p = P{i,j};
                 q = Q{i,j};
     

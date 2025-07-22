@@ -7,10 +7,8 @@ addpath(genpath('../../Model'));
 % c.NumWorkers = 4;
 % parpool(c,4)
 
-
-
-nChains = 2;
-nSamples = 100;
+nChains = 1;
+nSamples = 4;
 
 NCells = 200;
 makePlot = false;
@@ -45,7 +43,8 @@ Proposal = @(x) ...
      x(11) + (rand()-0.5)*2*delta(11)];
 
 x0 = [kon_true, koff_true, w_true, kex_true, kr_true, D_true, gam_true'];
-distanceMetric = @(x,y) DistanceFunction(x,y, 20);
+
+distanceMetric = @(x,y) DistanceMetric(x,y, [7], @LogLikelyhood);
 Simulator = @(x) Simulate(x(1), x(2), x(3), x(4), x(5), squeeze(x(6:8)), squeeze(x(9:11))', NCells, makePlot);
 
 [Distances, Accepted, Parameters] = MHABC(nChains, nSamples, trueResults, Simulator, Proposal, x0, distanceMetric);

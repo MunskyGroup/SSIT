@@ -28,14 +28,14 @@ function [Distances, Accepted, Parameters] = MHABC(nChains, nSamples, trueResult
             results_y = Simulator(x_prop);
             d_new = distanceMetric(results_y, trueResults);
             localDistances(s + 1) = d_new;
-            rho = d_new / d_best;
-            acc = U(c, s) >= min(rho, 1);
+            rho = d_new-d_best;
+            acc = U(c, s) <= exp(rho);
             localAccepted(s + 1) = acc;
             
             if acc
                 x = x_prop;
                 d_best = d_new;
-                numAccepted = numAccepted + 1
+                numAccepted = numAccepted + 1;
             end
             
             localParams(s + 1, :) = x_prop;
