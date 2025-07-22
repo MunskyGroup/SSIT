@@ -16,10 +16,12 @@
 % View model summaries:
 Model.summarizeModel
 STL1.summarizeModel
+STL1_4state.summarizeModel
 
 % Set the times at which distributions will be computed:
 Model.tSpan = linspace(0,20,200);
 STL1.tSpan = linspace(0,20,200);
+STL1_4state.tSpan = linspace(0,20,200);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(1): Use the stochastic Finite State Projection (FSP) 
@@ -99,4 +101,46 @@ STL1.tSpan = linspace(0,20,200);
     STL1_FSP.makePlot(STL1_FSPsoln,'marginals',[1:100:100],...
                            false,[1,2,3],{'linewidth',2})  
     STL1_FSP.makePlot(STL1_FSPsoln,'margmovie',[],false,[101],...
-                           {'linewidth',2},'STL1_FSP.mp4',[1,1,0.5],[2,3]) 
+                           {'linewidth',2},'STL1_FSP.mp4',[1,1,0.5],[2,3])
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Ex(3): Use the stochastic Finite State Projection (FSP) 
+% approximation of the Chemical Master Equation (CME) to solve the time 
+% evolution of state space probabilities for the 4-state 
+% time-varying STL1 yeast model from example_1_CreateSSITModels 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% STL1:
+    % Create a copy of the time-varying STL1 yeast model for FSP:
+    STL1_FSP_4state = STL1_4state;
+    
+    % Ensure the solution scheme is set to FSP (default):
+    STL1_FSP_4state.solutionScheme = 'FSP';  
+
+    % This function compiles and stores the given reaction propensities  
+    % into symbolic expression functions that use sparse matrices to  
+    % operate on the system based on the current state. The functions are 
+    % stored with the given prefix, in this case, 'STL1_FSP'
+    STL1_FSP_4state = ...
+        STL1_FSP_4state.formPropensitiesGeneral('STL1_FSP_4state');
+    
+    % Set FSP 1-norm error tolerance:
+    STL1_FSP_4state.fspOptions.fspTol = 1e-4; 
+    
+    % Guess initial bounds on FSP StateSpace:
+    STL1_FSP_4state.fspOptions.bounds = [2,2,2,2,400];
+    
+    % Have FSP approximate the steady state for the initial distribution 
+    % by finding the eigenvector corresponding to the smallest magnitude 
+    % eigenvalue (i.e., zero, for generator matrix A, d/dtP(t)=AP(t)):
+    STL1_FSP_4state.fspOptions.initApproxSS = false; 
+    
+    % Solve Model:
+    [STL1_FSPsoln_4state,STL1_FSP_4state.fspOptions.bounds] = ...
+        STL1_FSP_4state.solve; 
+    
+    % Plot marginal distributions:
+    STL1_FSP_4state.makePlot(STL1_FSPsoln_4state,'marginals',...
+                             [1:100:100],false,[1,2,3,4,5],{'linewidth',2})  
+    STL1_FSP_4state.makePlot(STL1_FSPsoln_4state,'margmovie',[],false,...
+                             [101],{'linewidth',2},'STL1_FSP_4state.mp4')

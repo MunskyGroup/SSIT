@@ -20,10 +20,11 @@ addpath(genpath('../../src'));
 % example_6_SensitivityAnalysis
 % example_7_FIM
 % example_8_LoadingandFittingData_DataLoading
-% example_9_LoadingandFittingData_MLE
+example_9_LoadingandFittingData_MLE
 
 % View model summaries:
 STL1_MLE_refit.summarizeModel
+STL1_MLE_4state.summarizeModel
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Use Metropolis-Hastings to sample uncertainty 
@@ -32,6 +33,7 @@ STL1_MLE_refit.summarizeModel
 
 % Make a copy of our STL1 model for Metropolis-Hastings (MH):
 STL1_MH = STL1_MLE_refit;
+STL1_4state_MH = STL1_MLE_4state;
 
     % Adjust proposal width scale (the default proposal distribution in 
     % SSIT is "@(x)x+0.1*randn(size(x))", which leads to low acceptance in
@@ -50,12 +52,19 @@ MHOptions.thin = 3;
 [STL1_MH_pars,~,STL1_MHResults] = STL1_MH.maximizeLikelihood(...
     [], MHOptions, 'MetropolisHastings');
 
+[STL1_MH_pars_4state,~,STL1_MHResults_4state] = ...
+    STL1_4state_MH.maximizeLikelihood([], MHOptions, 'MetropolisHastings');
+
 % Store MH parameters in model:
 STL1_MH.parameters([1:7],2) = num2cell(STL1_MH_pars);
+STL1_4state_MH.parameters([1:15],2) = num2cell(STL1_MH_pars_4state);
 
 % Plot results:
 STL1_MH.plotMHResults(STL1_MHResults,[],'log',[])
 STL1_MH.makeFitPlot
+
+STL1_4state_MH.plotMHResults(STL1_MHResults_4state,[],'log',[])
+STL1_4state_MH.makeFitPlot
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

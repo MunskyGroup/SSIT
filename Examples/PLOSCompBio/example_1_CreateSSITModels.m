@@ -67,8 +67,48 @@ STL1.parameters = ({'koff',0.2; 'kr',10; 'gr',5;...
 % Print a summary of STL1 Model:
 STL1.summarizeModel
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Ex(3): Copy the 'STL1' model for 4-state dynamics.  
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Create a copy of the STL1 model from above:
+STL1_4state = STL1;
+
+% Set species names for STL1_4state:
+STL1_4state.species = {'s1';'s2';'s3';'s4';'mRNA'};
+
+% Set initial condition:
+STL1_4state.initialCondition = [2;0;0;0;0];  
+
+% Keep the time-varying TF/MAPK input signal:
+STL1_4state.inputExpressions = {'IHog',...
+                              '(a0+a1*exp(-r1*t)*(1-exp(-r2*t))*(t>0))'};
+
+% Set stoichiometry of reactions:
+STL1_4state.stoichiometry = [0,-1,1,0,0,0,0,0,0,0,0;...  % gene state 1
+                             0,1,-1,0,-1,1,0,0,0,0,0;... % gene state 2
+                             0,0,0,0,1,-1,0,-1,1,0,0;... % gene state 3
+                             0,0,0,0,0,0,0,1,-1,0,0;...  % gene state 4
+                             1,0,0,1,0,0,1,0,0,1,-1];    % mRNA
+                % Reactions: 1,2,3,4,5,6,7,8,9,10,11
+
+% Set propensity functions:
+STL1_4state.propensityFunctions = {'kr1*s1';'k12*s1';'k21*s2*IHog';...
+                                   'kr2*s2';'k23*s2';'k32*s3';...
+                                   'kr3*s3';'k34*s3';'k43*s4';...
+                                   'kr4*s4';'dr * mRNA'}; 
+
+% Add the new parameters for the 4 state model:
+STL1_4state.parameters = ({'k12',0.2; 'k23',0.2; 'k34',0.2;...
+                          'k21',0.2; 'k32',0.2; 'k43',0.2; ...
+                          'kr1',10; 'kr2',10; 'kr3',10; 'kr4',10; ...
+                          'dr',5; 'a0',5; 'a1',10; 'r1',0.004; 'r2',.01});
+
+% Print a summary of STL1 Model:
+STL1_4state.summarizeModel
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Ex.(3) Load and modify a pre-set SSIT model
+%% Ex.(4) Load and modify a pre-set SSIT model
 
 % Several simple models are already coded in SSIT and can be quickly 
 % loaded and modified. Below are currently available SSIT models (2025). 
