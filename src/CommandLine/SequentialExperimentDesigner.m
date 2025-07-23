@@ -8,6 +8,7 @@ classdef SequentialExperimentDesigner
         Model (1, 1) DiscoverableModel        
         RNGSeed (1, 1) double {mustBeInteger} = 42
         Strategy (1, 1) AbstractSequentialExperimentDesignStrategy = RandomSEDStrategy()
+        TrueModel (1, 1) DiscoverableModel
     end
     properties (SetAccess = private)
         DataLocations (1, :) string = []
@@ -29,16 +30,16 @@ classdef SequentialExperimentDesigner
                     obj.Rounds = [obj.Rounds ...
                         SequentialExperimentRound(obj.ExperimentalConfigurations)];
                 end
-                    round = obj.Strategy.designRound(...
-                        obj.Rounds(1 + obj.NumberOfRoundsCompleted));
-                    obj.Rounds(1 + obj.NumberOfRoundsCompleted) = round;
+                round = obj.Strategy.designRound(...
+                    obj.Rounds(1 + obj.NumberOfRoundsCompleted));
+                obj.Rounds(1 + obj.NumberOfRoundsCompleted) = round;
             end            
-        end
+        end % designNextRound
 
-        function obj = performNextRound(obj, location)
+        function obj = performNextRound(obj, locations)
             arguments
                 obj 
-                location (1, :) string {mustBeNonempty}
+                locations (1, :) string {mustBeNonempty}
             end      
 
             roundPerformed = false;
@@ -56,11 +57,9 @@ classdef SequentialExperimentDesigner
                     % next round, enabling immediate loading and fitting of
                     % all data.
 
-                    if ~isempty(location)
-                        obj.DataLocations = [obj.DataLocations location];
-                        obj.DataStore = datastore(obj.DataLocations);
-                        obj.NumberOfRoundsCompleted = 1 + ...
-                            obj.NumberOfRoundsCompleted;
+                    if ~isempty(locations)
+                        obj.DataLocations = [obj.DataLocations locations];
+                        obj.DataStore = datastore(obj.DataLocations);                        
                         roundPerformed = true;
                     else
                         disp('performNextRound requires at least one data location when working with empirical data!')
@@ -72,6 +71,8 @@ classdef SequentialExperimentDesigner
             end % switch obj.DataType
 
             if roundPerformed
+                obj.NumberOfRoundsCompleted = 1 + ...
+                    obj.NumberOfRoundsCompleted;
                 obj.NumberOfObservationsCompleted = ...
                     obj.NumberOfObservationsCompleted + ...
                     obj.Rounds(obj.NumberOfRoundsCompleted).NumberOfObservations;

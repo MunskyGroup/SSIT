@@ -1,9 +1,13 @@
 classdef SequentialExperimentRound  
     properties (SetAccess = private)        
         NumberOfConfigs (1, 1) double {mustBeInteger, mustBePositive} = 1
-        NumberOfConfigurables (1, 1) double {mustBeInteger, mustBePositive} = 1
+        NumberOfConfigurables (1, 1) double {mustBeInteger, mustBePositive} = 1        
         VarNames (1, :) string {mustBeNonempty} = 'VarNamePlaceholder'
         VarTypes (1, :) string {mustBeNonempty} = 'VarTypePlaceholder'
+    end
+
+    properties(SetAccess = ?ExperimentDesigner)
+        RoundID (1, 1) double {mustBeInteger, mustBePositive} = 1
     end
 
     properties (Dependent)
@@ -20,6 +24,13 @@ classdef SequentialExperimentRound
             for experimentIdx = 1:length(obj.Experiments)
                 observations = observations + ...
                     obj.Experiments(experimentIdx).Configuration.NumberOfObservations;
+            end
+        end
+
+        function locations = performSimulations(obj)
+            locations = createArray(1, obj.NumberOfConfigs, "string");
+            parfor configIdx = 1:obj.NumberOfConfigs
+                
             end
         end
 
