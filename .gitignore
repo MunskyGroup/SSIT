@@ -1,7 +1,5 @@
 .DS_Store
 *.asv
-*.asv
-*.asv
 CommandLine/OldProablyTrash/*
 CommandLine/OldProablyTrash/*/*
 BackgroundFitsResults*
@@ -52,7 +50,6 @@ WorkSpace/OldProablyTrash/*/*/*
 Examples/Iterative*.mat
 WorkSpace/sequentialEDcdc/FakeExperiment_*.csv
 WorkSpace/Josh/Fake*.csv
-/WorkSpace/sequentialEDcdc/ExampleData
 /WorkSpace/sequentialEDcdc/ExampleData
 WorkSpace/sequentialEDcdc/*.mat
 WorkSpace/sequentialEDcdc/oldMod3Results_ProbablyTrash/*.mat
