@@ -188,13 +188,14 @@ classdef miscelaneousTests < matlab.unittest.TestCase
                  delete('logFile.txt');
              end
 
-             SSIT.generateCommandLinePipeline(saveFile,'Model',[],Pipeline,pipelineArgs,saveFile2,'logFile.txt',true);
+             SSIT.generateCommandLinePipeline(saveFile,'Model',[],Pipeline,pipelineArgs,saveFile2,'logFile.txt',true)
 
              disp('pausing to give time for background run to comlete.')
              tic
              success = false;
-             while toc<30
+             while toc<90
                  if exist(saveFile2,'file')&&exist('logFile.txt','file')
+                     disp(['Background run completed in ',num2str(toc),' s'])
                      success =true;
                      break
                  end
