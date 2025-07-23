@@ -1,5 +1,5 @@
 classdef StaircaseSEDStrategy < AbstractSequentialExperimentDesignStrategy
-methods
+    methods
         function round = apportionObservations(obj, round)
             arguments
                 obj
@@ -31,7 +31,8 @@ methods
                     0;
             end
         end % apportionObservations
-    end
+    end % Public methods
+    
     methods (Access = protected)
         function round = designRoundInternal(obj, round)
             arguments
