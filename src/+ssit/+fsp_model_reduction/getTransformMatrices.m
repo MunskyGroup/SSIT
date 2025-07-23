@@ -21,9 +21,9 @@ if isfield(fspSoln,'fsp')
     if max(contains(SolnNeeded,redType))
         Solns = zeros(nStates,nTimes);
         inds =state2key(fspSoln.fsp{end}.p.data.subs'-1);
-        inds2 = 0*inds;
+        inds2 = zeros(1,length(inds));
         for iv=1:length(inds)
-            inds2(iv) = fspSoln.stateSpace.state2indMap(inds(iv));
+            inds2(iv) = fspSoln.stateSpace.state2indMap(inds{iv});
         end
         for i=1:nTimes
             Solns(inds2(1:length(fspSoln.fsp{i}.p.data.vals)),i) = fspSoln.fsp{i}.p.data.vals;
@@ -273,11 +273,20 @@ function keys =  state2key( states )
 % ----------
 % A. Gupta, J. Mikelson, and M. Khammash, "A finite state projection algorithm for the stationary solution of the chemical master equation," The Journal of Chemical Physics, vol. 147, no. 15, p. 154101, Oct. 2017, doi: 10.1063/1.5006484.
 % L. Meri, "Some remarks on the Cantor pairing function,” Le Matematiche, vol. 62, Dec. 2007.
+% 
+% d = size(states, 1);
+% keys = states(1, :);
+% for i = 2:d
+%     keys = (keys + states(i, :)).*(keys + states(i, :) + 1)./2 + states(i, :);
+% end
+% % keys = num2cell(keys);
 
-d = size(states, 1);
-keys = states(1, :);
-for i = 2:d
-    keys = (keys + states(i, :)).*(keys + states(i, :) + 1)./2 + states(i, :);
+N = size(states, 2);
+keys = cell(1,N);
+
+for n = 1:N
+    str = num2str(states(:,n)');    
+    keys{n} = str;
 end
-% keys = num2cell(keys);
+
 end
