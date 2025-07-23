@@ -12,6 +12,7 @@ configs = multiplyConfigurations([eic etc]);
 sed = SequentialExperimentDesigner();
 sed.DataType = ExperimentalDataType.Empirical;
 [~, dataFilename, ~] = fileparts(tempname(pwd));
+dataFilename=char(dataFilename);
 addpath(genpath('..'));
 sed.Model = DiscoverableModelFactory.createModel("GR", dataFilename);
 sed.ExperimentalConfigurations = configs;
@@ -37,7 +38,7 @@ data = readtable([pwd ...
 %% Load data into model
 model = sed.Model;
 model = model.loadData([pwd ...
-    '/ExampleDataSets/DUSP1_E_SSITcellresults_MG3_Abs6_Jun11_mg_abs.csv'], ...
+    '\ExampleDataSets\DUSP1_E_SSITcellresults_MG3_Abs6_Jun11_mg_abs.csv'], ...
     {'cytGR','num_cyto_spots';'nucGR','num_nuc_spots'});
 
 % Generate follow-up script for Jack:
