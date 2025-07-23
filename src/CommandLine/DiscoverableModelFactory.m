@@ -116,6 +116,8 @@ classdef DiscoverableModelFactory
                         diag(m.SigmaLog10Prior.^2*log(10^2));
 
                     m.inputExpressions = {'IDex','100'};
+                    %m = m.formPropensitiesGeneral(append(dataFilename,"_S",num2str(ind)),true);
+                    m = m.formPropensitiesGeneral([dataFilename,'_S',num2str(ind)],true);
                     %m = m.formPropensitiesGeneral(append("GRTest","_S",num2str(ind)),true);
                     % m = {m};
                 % case {"GR", "GRFewer", "GRFewest"} ...
