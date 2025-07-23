@@ -25,6 +25,15 @@ classdef RandomSEDStrategy < AbstractSequentialExperimentDesignStrategy
                 round.Experiments(experimentIdx).Configuration.NumberOfObservations = ...
                     curObservations;
             end             
+        end % apportionObservations
+    end
+    methods (Access = protected)
+        function round = designRoundInternal(obj, round)
+            arguments
+                obj
+                round (1, 1) SequentialExperimentRound
+            end
+            disp(obj.ObservationsPerExperiment / obj.ObservationQuantum)
         end
-    end    
+    end
 end
