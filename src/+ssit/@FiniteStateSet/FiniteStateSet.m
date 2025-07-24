@@ -208,19 +208,8 @@ end
 
 function keys =  state2key( states )
 % Hash function to convert a N-dimensional integer vector into a unique
-% integer id using recursive Cantor pairing.
-%
-% References
-% ----------
-% A. Gupta, J. Mikelson, and M. Khammash, "A finite state projection algorithm for the stationary solution of the chemical master equation," The Journal of Chemical Physics, vol. 147, no. 15, p. 154101, Oct. 2017, doi: 10.1063/1.5006484.
-% L. Meri, "Some remarks on the Cantor pairing function,” Le Matematiche, vol. 62, Dec. 2007.
- 
-% d = size(states, 1);
-% keys = states(1, :);
-% for i = 2:d
-%     keys = (keys + states(i, :)).*(keys + states(i, :) + 1)./2 + states(i, :);
-% end
-% keys = num2cell(keys);
+% string "i1  i2  i3 ..."
+
 N = size(states, 2);
 keys = cell(1,N);
 
