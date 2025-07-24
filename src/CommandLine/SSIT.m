@@ -1391,7 +1391,7 @@ classdef SSIT
                         end
                     end
                     disp([num2str(nSims),' SSA Runs Completed'])
-                    try
+                    % try
                         if ~isempty(obj.pdoOptions.PDO)
                             Solution.trajsDistorted = zeros(length(obj.species),...
                                 length(obj.tSpan),nSims);% Creates an empty Trajectories matrix from the size of the time array and number of simulations
@@ -1427,9 +1427,9 @@ classdef SSIT
                             writetable(A,saveFile)
                             disp(['SSA Results saved to ',saveFile])
                         end
-                    catch
-                        pause;
-                    end
+                    % catch
+                    %     pause;
+                    % end
                 case 'fspSens'
                     if strcmp(obj.sensOptions.solutionMethod,'forward')&&isempty(obj.propensitiesGeneral{1}.sensTimeFactorVec)
                         obj = formPropensitiesGeneral(obj,'Sensitivities',true);

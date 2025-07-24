@@ -31,13 +31,13 @@ if isfield(fspSoln,'fsp')
         %     end
         % end
         for i=1:nTimes
-            try
+            % try
                 inds = state2key(fspSoln.fsp{i}.p.data.subs'-1);
                 inds2 = fspSoln.stateSpace.state2indMap(inds);
                 Solns(inds2(1:length(fspSoln.fsp{i}.p.data.vals)),i) = fspSoln.fsp{i}.p.data.vals;
-            catch
-                1+1
-            end
+            % catch
+            %     1+1
+            % end
         end  
     end
 elseif isfield(fspSoln,'fullSolutionsNow')
@@ -288,6 +288,6 @@ function keys =  state2key( states )
 %     keys{n} = str;
 % end
 N = size(states, 2);
-keys = mat2cell(states',ones(1,N))';
+keys = mat2cell(uint64(states)',ones(1,N))';
 
 end
