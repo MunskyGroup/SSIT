@@ -135,7 +135,7 @@ classdef FiniteStateSet
             
             stop = false;
 
-            if size(obj.states,2)~=length(obj.state2indMap)
+            if size(obj.states,2)~=length(obj.state2indMap.keys)
                 error('Stateset does not match index map.')
             end
 
