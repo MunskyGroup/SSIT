@@ -20,13 +20,24 @@ if isfield(fspSoln,'fsp')
     % Sort the FSP solution into the right order for the statespace.
     if max(contains(SolnNeeded,redType))
         Solns = zeros(nStates,nTimes);
-        inds =state2key(fspSoln.fsp{end}.p.data.subs'-1);
-        inds2 = zeros(1,length(inds));
-        for iv=1:length(inds)
-            inds2(iv) = fspSoln.stateSpace.state2indMap(inds{iv});
-        end
+        % inds = state2key(fspSoln.fsp{end}.p.data.subs'-1);
+        % inds2 = fspSoln.stateSpace.state2indMap(inds)
+        % inds2 = zeros(1,length(inds));
+        % for iv=1:length(inds)
+        %     try
+        %         inds2(iv) = fspSoln.stateSpace.state2indMap(inds(iv));
+        %     catch
+        %         1+1
+        %     end
+        % end
         for i=1:nTimes
-            Solns(inds2(1:length(fspSoln.fsp{i}.p.data.vals)),i) = fspSoln.fsp{i}.p.data.vals;
+            try
+                inds = state2key(fspSoln.fsp{i}.p.data.subs'-1);
+                inds2 = fspSoln.stateSpace.state2indMap(inds);
+                Solns(inds2(1:length(fspSoln.fsp{i}.p.data.vals)),i) = fspSoln.fsp{i}.p.data.vals;
+            catch
+                1+1
+            end
         end  
     end
 elseif isfield(fspSoln,'fullSolutionsNow')
@@ -269,11 +280,14 @@ function keys =  state2key( states )
 % Hash function to convert a N-dimensional integer vector into a unique
 % string "i1  i2  i3 ..."
 
+% N = size(states, 2);
+% keys = cell(1,N);
+% 
+% for n = 1:N
+%     str = num2str(states(:,n)');    
+%     keys{n} = str;
+% end
 N = size(states, 2);
-keys = cell(1,N);
+keys = mat2cell(states',ones(1,N))';
 
-for n = 1:N
-    str = num2str(states(:,n)');    
-    keys{n} = str;
-end
 end

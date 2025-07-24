@@ -1,6 +1,6 @@
 clear
 close all
-addpath(genpath('../../SSIT/src'));
+addpath(genpath('../../../SSIT/src'));
 
 %% Create Simple Gene Regulatory network
 % onGene <-> offGene
@@ -32,22 +32,24 @@ niModel.propensityFunctions = {'kon * G1offGene';'koff * G1onGene';...
                                  'kon * G2offGene';'koff * G2onGene';...
                                  'kr * G2onGene';'gr * G2mRNA'; ...
                                  }; 
-niModel.parameters = ({'kon',30; 'koff',30; 'kr',1; 'gr',0.01;});
+niModel.parameters = ({'kon',30; 'koff',30; 'kr',1; 'gr',0.005;});
 
 niModel.initialCondition = [1;0;0;1;0;0]; 
-niModel.summarizeModel
-niModel.tSpan = linspace(0,200,6);
+% niModel.summarizeModel
+niModel.tSpan = linspace(0,1000,6);
 
 niModel = niModel.formPropensitiesGeneral('No_influence_2Genes');  % This line is nes
-
 
 %% No Influence genes (ni) - Solve FSP
 niModel.fspOptions.verbose = true;
 niModel.solutionScheme = 'FSP';    % Set solutions scheme to FSP.
 niModel.fspOptions.fspTol = 1e-5;  % Set FSP error tolerance.
-[FSPsoln,niModel.fspOptions.bounds] = niModel.solve;  % Solve the FSP analysis
+tic
+[FSPsoln,niModel.fspOptions.bounds,niModel] = niModel.solve;  % Solve the FSP analysis
+toc
 
 niModel.makePlot(FSPsoln,'meansAndDevs',[],[],1,{'linewidth',3,'color',[0,1,1]}) % Make plot of mean vs. time.
+return
 %% No Influence genes (ni) - Solve SSA
 niModel.solutionScheme = 'SSA';  % Set solution scheme to SSA.
 niModel.ssaOptions.Nexp = 1;   % Number of independent data sets to generate.

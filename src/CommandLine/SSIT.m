@@ -1321,7 +1321,7 @@ classdef SSIT
 
             switch obj.solutionScheme
                 case 'FSP'
-                    if ~isempty(stateSpace)&&size(stateSpace.states,2)~=stateSpace.state2indMap.Count
+                    if ~isempty(stateSpace)&&size(stateSpace.states,2)~=length(stateSpace.state2indMap.keys)
                         error('Mismatch in statespace definition.')
                     end
 
@@ -3732,6 +3732,9 @@ classdef SSIT
                 clusterPrefix = 'sbatch --cpus-per-task=1 --output=#LOG --error=#ERR --wrap="module load matlab-2022b; srun matlab -nodisplay -nosplash -nodesktop -r'
             end
 
+            % TODO - code currently works only for Mac and linux.  Need to
+            % use 'batch' for Windows.  
+            
             % Parse inputs into format needed for command line call.
             str1 = append('(''',saveFileIn,''',''',modelName,''',[],''',Pipeline,''',');
             str2 = 'struct(';
