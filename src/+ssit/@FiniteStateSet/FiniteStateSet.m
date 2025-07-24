@@ -236,6 +236,6 @@ function keys =  state2key( states )
 % str = int2str(states');  
 % keys = cellstr(str)';
 N = size(states, 2);
-keys = mat2cell(states',ones(1,N))';
+keys = mat2cell(uint64(states)',ones(1,N))';
 
 end

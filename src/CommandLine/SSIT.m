@@ -2152,7 +2152,7 @@ classdef SSIT
             end
 
             % Reset state space if it has inconsistencies
-            if ~isempty(stateSpace)&&size(stateSpace.states,2)~=stateSpace.state2indMap.Count
+            if ~isempty(stateSpace)&&size(stateSpace.states,2)~=length(stateSpace.state2indMap.keys)
                 stateSpace =[];
             end
 
