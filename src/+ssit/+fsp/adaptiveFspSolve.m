@@ -183,8 +183,9 @@ solutions = cell(outputTimeCount, 1);
 % First guess of FSP should include the initial condition.
 constraintBoundsFinal = max([constraintBoundsFinal,constraintFunctions(initStates)],[],2);
 
-% Set up the initial state subset
-if isempty(stateSpace)
+% Set up the initial state subset, or recompute it if constaint functions
+% have changed.
+if isempty(stateSpace)||stateSpace.numConstraints~=constraintCount
     stateSpace = ssit.FiniteStateSet(initStates, stoichMatrix);
     stateSpace = stateSpace.expand(constraintFunctions, constraintBoundsFinal);
 end
