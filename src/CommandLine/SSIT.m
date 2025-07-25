@@ -172,6 +172,8 @@ classdef SSIT
         % Processed propensity functions for use in ODE solver, 
         % default: [];
         propensitiesGeneralODE = [];
+        % Model description
+        description = {'Add model description here'};
     end
 
     properties (Dependent)
@@ -1319,8 +1321,8 @@ classdef SSIT
                 modRedTransformMatrices = [];
             end
 
-            switch obj.solutionScheme
-                case 'FSP'
+            switch lower(obj.solutionScheme)
+                case 'fsp'
                     if ~isempty(stateSpace)&&size(stateSpace.states,2)~=length(stateSpace.state2indMap.keys)
                         error('Mismatch in statespace definition.')
                     end
@@ -1353,7 +1355,7 @@ classdef SSIT
                     obj.fspOptions.stateSpace = Solution.stateSpace;
                     obj.fspOptions.bounds = bConstraints;
 
-                case 'SSA'
+                case 'ssa'
                     Solution.T_array = obj.tSpan;
                     Nt = length(Solution.T_array);
                     nSims = obj.ssaOptions.Nexp*obj.ssaOptions.nSimsPerExpt*Nt;
@@ -1430,7 +1432,7 @@ classdef SSIT
                     % catch
                     %     pause;
                     % end
-                case 'fspSens'
+                case 'fspsens'
                     if strcmp(obj.sensOptions.solutionMethod,'forward')&&isempty(obj.propensitiesGeneral{1}.sensTimeFactorVec)
                         obj = formPropensitiesGeneral(obj,'Sensitivities',true);
                     end
