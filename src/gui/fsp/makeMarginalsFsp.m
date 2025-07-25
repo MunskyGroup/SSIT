@@ -20,9 +20,9 @@ end
 
 figure()
 hold('off')
-nSpecies = length(app.ReactionsTabOutputs.varNames);
+nSpecies = length(app.SSITModel.species);
 for iSpecies = 1:nSpecies
-    iPlot(iSpecies) = max(contains(app.SpeciestoShowListBoxMargFSP.Value,app.ReactionsTabOutputs.varNames{iSpecies}));
+    iPlot(iSpecies) = max(contains(app.SpeciestoShowListBoxMargFSP.Value,app.SSITModel.species{iSpecies}));
 end
 %  iPlot = [app.FspMarginalX1CheckBox.Value,app.FspMarginalX2CheckBox.Value,app.FspMarginalX3CheckBox.Value];
 cols = {'b', 'r', 'g', 'm', 'c', 'b--', 'r--', 'g--', 'm--', 'c--'};
@@ -30,7 +30,7 @@ legs = {};
 for i=1:nSpecies
     if iPlot(i)
         stairs([0:length(mdist{i})], [mdist{i};0],cols{i},'LineWidth',2);  hold('on');
-        legs{end+1} = char(app.NameTable.Data(i,2));
+        legs{end+1} = app.SSITModel.species{i};
     end
 end
 title(sprintf('Marginals at time: t = %1.2f',T_array(j)));

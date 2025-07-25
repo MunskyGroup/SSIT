@@ -18,11 +18,11 @@ timesToPlot = eval(app.PrintTimesEditField.Value);  % Pulls the time array
 %% Check what species to plot
 speciesToPlot = [];
 legends = {};
-nSpecies = length(app.ReactionsTabOutputs.varNames);
+nSpecies = length(app.SSITModel.species);
 for iSpecies = 1:nSpecies
-    if max(contains(app.SpeciestoShowListBox.Value,app.ReactionsTabOutputs.varNames{iSpecies}))
+    if max(contains(app.SpeciestoShowListBox.Value,app.SSITModel.species{iSpecies}))
         speciesToPlot = [speciesToPlot iSpecies];
-        legends = [legends char(app.NameTable.Data(iSpecies,2))];
+        legends = [legends app.SSITModel.species(iSpecies)];
     end
 end
 %% Plot trajectories, each species have a color
@@ -46,7 +46,7 @@ for iSpecies = speciesToPlot
             runOde(app)
         end
         ode(iSpecies) = plot(app.SsaTrajAxes,app.FspTabOutputs.tOde,app.FspTabOutputs.odeSolutions(:,iSpecies),speciesColors2{iSpecies},'LineWidth',3); hold(app.SsaTrajAxes,'on');
-        LG{end+1} = [append(char(app.NameTable.Data(iSpecies,2)),' ode')];
+        LG{end+1} = [append(char(app.SSITModel.species{iSpecies}),' ode')];
     end
 end
 % Find plottable graphics

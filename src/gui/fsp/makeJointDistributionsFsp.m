@@ -9,8 +9,12 @@ end
 T_array = eval(app.FspPrintTimesField.Value);
 
 allInds = [1:nD];
-sp1 = find(strcmp(app.ReactionsTabOutputs.varNames,app.JointSp1.Value));
-sp2 = find(strcmp(app.ReactionsTabOutputs.varNames,app.JointSp2.Value));
+sp1 = find(strcmp(app.SSITModel.species,app.JointSp1.Value));
+sp2 = find(strcmp(app.SSITModel.species,app.JointSp2.Value));
+
+if sp1==sp2
+    error('Only one species chosen -- cannot make joint pdf')
+end
 
 if nD==2
     for it = length(T_array):-1:1
@@ -23,9 +27,9 @@ else
     end
 end
 
-titleTxt = ['Joint distribution of ',app.ReactionsTabOutputs.varNames{sp1},' and ',app.ReactionsTabOutputs.varNames{sp2}];
-yLabTxt = ['Species ',app.ReactionsTabOutputs.varNames{sp1}];
-xLabTxt = ['Species ',app.ReactionsTabOutputs.varNames{sp2}];
+titleTxt = ['Joint distribution of ',app.SSITModel.species{sp1},' and ',app.SSITModel.species{sp2}];
+yLabTxt = [app.SSITModel.species{sp1}];
+xLabTxt = [app.SSITModel.species{sp2}];
 if app.FspJointCreateMovCheckBox.Value == 0    % Creates non-movie plot at the selected timepoint
     [~,j] = min(abs(T_array-app.FspTimeSlider.Value));
     figure()

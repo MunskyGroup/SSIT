@@ -11,4 +11,3 @@ end
 v2 = v2(I);
 app.ModelUsePresetExampleTypeDropDown.Items = v2;
 app.ModelUsePresetExampleTypeDropDown.Value = 'gene_expression';
-app.NameTable.Data = {'x1','x1';'x2','x2';'x3','x3'};

@@ -1,40 +1,66 @@
-function [app, event] = loadModelBP(app, event, array_file)
+function [app, event] = loadModelBP(app, event, fileName)
+arguments
+    app = []
+    event = []
+    fileName = []
+end
 % function to load previously saved models into the GUI
-if nargin<3
+if isempty(fileName)
     % Creates a pop-up window to select the desired model
     [array_file,array_path] = uigetfile('*.mat','Select Model');
-    addpath(array_path);
+    fileName = fullfile(array_path, array_file);
 end
 
-if isequal(array_file,0)
+if isequal(fileName,0)
+    disp('No file selected');
     return
 else
-    load(array_file, 'Mytable_model', 'myparameters');
+    app.ModelFile.fileName = fileName;
+    info = whos('-file', fileName);
+    
+    % Check if any variable is of class 'SSIT'
+    if any(strcmp({info.class}, 'SSIT'))
+        app.ChooseSSITModel.Visible = 'on';
+        app.ChooseSSITModelLabel.Visible = 'on';
+        app.ChooseSSITModel.Items = {info(strcmp({info.class}, 'SSIT')).name};
+        if length(app.ChooseSSITModel.Items)==1
+            Model = load(fileName,app.ChooseSSITModel.Items{1});
+            app.SSITModel = Model.(app.ChooseSSITModel.Items{1});
+            app.ModelFile.modelName = app.ChooseSSITModel.Items{1};
+            updateAppFromSSIT(app);
+        end      
+        return
+    end
+    
 
+    load(fileName, 'Mytable_model', 'myparameters');
     [~,struc_size] = size(myparameters); % Evaluates if there is more than one set of parameters saved to the model
 
     if struc_size > 1 % Having more than one set of parameters
-        % Creates a pop-up figure with the ability to select the desired parameter set via a drop down menu
-        myoptions = cell(struc_size,1);
-        for i = 1:struc_size
-            myoption = myparameters(i).name;
-            myoptions(i) = cellstr(myoption);
-        end
-        app.ReactionsTabOutputs.paramVal = myparameters;
-        f = figure('Position',[535 190 300 200]);
-
-        mypopup = uicontrol(f,'Style','popup',...
-            'String',myoptions,...
-            'Position',[100 62 100 75],...
-            'FontSize',12.5);
-        set(mypopup,'Callback',{@loadParameterPopupCallback,app});
-        uiwait(f)
-        close(f);
-        for i = 1:struc_size
-            ind1(i) = strcmp({char(myparameters(i).name)},string(app.ReactionsTabOutputs.loadParams));
-        end
-        % ReactionsTabOutputs.inputs the selected parameters into the reactions tab
-        index = find(ind1 == 1);
+        % % Creates a pop-up figure with the ability to select the desired parameter set via a drop down menu
+        % myoptions = cell(struc_size,1);
+        % for i = 1:struc_size
+        %     myoption = myparameters(i).name;
+        %     myoptions(i) = cellstr(myoption);
+        % end
+        % app.ReactionsTabOutputs.paramVal = myparameters;
+        % f = figure('Position',[535 190 300 200]);
+        % 
+        % mypopup = uicontrol(f,'Style','popup',...
+        %     'String',myoptions,...
+        %     'Position',[100 62 100 75],...
+        %     'FontSize',12.5);
+        % set(mypopup,'Callback',{@loadParameterPopupCallback,app});
+        % uiwait(f)
+        % close(f);
+        % for i = 1:struc_size
+        %     ind1(i) = strcmp({char(myparameters(i).name)},string(app.ReactionsTabOutputs.loadParams));
+        % end
+        % % ReactionsTabOutputs.inputs the selected parameters into the reactions tab
+        % index = find(ind1 == 1);
+        error('Support for multiple parameter sets has been removed');
+        % TODO - remove this section when all multi-par examples have been
+        % converted.
 
     else % Without more than one set of parameters, the values are just put into the reactions tab
         index=1;
@@ -84,5 +110,60 @@ else
     catch
     end
 
+    %% Generate and save SSIT model.
+    app.SSITModel = SSIT('empty');
+    % Use default species names of x1, x2, ...
+    
+    % Detect species names from table (this version only supports x1, x2, ...)
+    nSp = 0;
+    allPlayers = append(Mytable_model{:,2:3});
+    while contains(allPlayers,['x',num2str(nSp+1)])
+        nSp = nSp+1;
+        app.SSITModel.species{nSp} = ['x',num2str(nSp)];
+    end
+
+    % Build reaction network.
+    nRxn = size(Mytable_model,1);
+    newRxn = cell(nRxn,1);
+    app.SSITModel.stoichiometry = zeros(nSp,nRxn);
+    for iRxn = 1:nRxn
+        newRxn{iRxn}.propensity = Mytable_model{iRxn,4};
+        for iSp = 1:nSp
+            if contains(Mytable_model{iRxn,2},app.SSITModel.species{nSp})
+                J = strfind(Mytable_model{iRxn,2},app.SSITModel.species{nSp});
+                K1 = strfind(Mytable_model{iRxn,2}(J:end),'(');
+                K2 = strfind(Mytable_model{iRxn,2}(J:end),')');
+                app.SSITModel.stoichiometry(iSp,iRxn) = -eval(Mytable_model{iRxn,2}(J+K1:J+K2-2));
+            end
+            if contains(Mytable_model{iRxn,3},app.SSITModel.species{nSp})
+                J = strfind(Mytable_model{iRxn,3},app.SSITModel.species{nSp});
+                K1 = strfind(Mytable_model{iRxn,3}(J:end),'(');
+                K2 = strfind(Mytable_model{iRxn,3}(J:end),')');
+                app.SSITModel.stoichiometry(iSp,iRxn) = app.SSITModel.stoichiometry(iSp,iRxn)+eval(Mytable_model{iRxn,3}(J+K1:J+K2-2));
+            end
+        end
+    end
+    
+    app.SSITModel.parameters = [myparameters.par_names,myparameters.value];
+    app.SSITModel.inputExpressions = [myparameters.input_names,myparameters.inputs];
+    app.SSITModel.initialCondition = zeros(length(app.SSITModel.species),1);
+    app.SSITModel.description = app.ModelAbout.Value;
+    
+    k = strfind(fileName,'.'); k=k(end);
+    k1 = strfind(fileName,'/'); k1=k1(end);
+    ModelName = fileName(k1+1:k-1);
+    
+    app.SSITModel = app.SSITModel.formPropensitiesGeneral(ModelName);
+
+    if strcmp(fileName(end-1:end),'.m')
+        fileName = append(fileName(1:end-2),'.SSIT.mat');
+    elseif strcmp(fileName(end-3:end),'.mat')
+        fileName = append(fileName(1:end-4),'.SSIT.mat');
+    end
+    eval(append(ModelName,' = app.SSITModel'));
+    save(fileName,ModelName);
+    updateAppFromSSIT(app);
+    % updateModel(app);
 end
+
 end

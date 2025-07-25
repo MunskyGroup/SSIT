@@ -23,11 +23,11 @@ N_max_y = 1e-6;
 %% Check What species to plot
 species2Plot=[];
 legends={};
-nSpecies = length(app.ReactionsTabOutputs.varNames);
+nSpecies = length(app.SSITModel.species);
 for iSpecies = 1:nSpecies
-    if max(contains(app.SpeciestoShowListBox_2.Value,app.ReactionsTabOutputs.varNames{iSpecies}))
+    if max(contains(app.SpeciestoShowListBox_2.Value,app.SSITModel.species{iSpecies}))
         species2Plot = [species2Plot iSpecies];
-        legends=[legends char(app.NameTable.Data(iSpecies,2))];
+        legends=[legends char(app.SSITModel.species{iSpecies})];
     end
 end
 % Plot FSP graph for each selected species

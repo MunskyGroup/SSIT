@@ -1,7 +1,17 @@
-function updateModel(app)
+function updateModel(app,saveCopy,fileName)
+arguments
+    app
+    saveCopy = false
+    fileName = []
+end
 % This function changes updates the propensity vector, parameter table, and
 % inputs of the model within the GUI. This occurs after the
 % UpdateModelButton had been pushed.
+% TODO -- this is an outdated code that will no longer be needed once we
+% move to the SSIT command line approach. However, we need to update old
+% models using this to parse them into the new format.  See end of code for
+% hopw this might be done.
+
 
 Mod = app.ModelReactionTable.Data;    % Assigns a variable to the model set in the Reactions Table
 J = [];                     % Pre-allocates an empy variable to be updated in the for-loop
@@ -12,7 +22,7 @@ for i=1:size(Mod,1)         % For-loop to build a vector of indices
 end
 Mod = Mod(J,:);             % Uses the index vector, J, to only include the rows that are not being removed
 app.ModelReactionTable.Data = Mod;    % Re-assigns the updated model table by removing the unwanted rows
-% pars = {'x1';'x2';'x3'};    % Creates cells for parameters
+pars = {'x1';'x2';'x3'};    % Creates cells for parameters
 inputs = {};                % Creates an empty cell for input vector
    
 N = size(app.ModelReactionTable.Data,1);        % Gives the number of rows in the Reactions Table
@@ -184,11 +194,11 @@ if size(Mod,1)>=1                                   % If-statement to ensure tha
         end
     end
     
-    if isempty(app.ReactionsTabOutputs.citations)                % Identifies if there is citation for a preset example
-        app.ModelCitationforPresetExamplesTextArea.Value = 'Citation for Preset Example Unavailable';                       % Sets the Citation as Unavailable if none was specified
-    else
-        app.ModelCitationforPresetExamplesTextArea.Value = sprintf('Citation for Preset Example: %s\n',char(app.ReactionsTabOutputs.citations)); % Sets the Citation as the given citation from the preset example
-    end
+    % if isempty(app.ReactionsTabOutputs.citations)                % Identifies if there is citation for a preset example
+    %     app.ModelCitationforPresetExamplesTextArea.Value = 'Citation for Preset Example Unavailable';                       % Sets the Citation as Unavailable if none was specified
+    % else
+    %     app.ModelCitationforPresetExamplesTextArea.Value = sprintf('Citation for Preset Example: %s\n',char(app.ReactionsTabOutputs.citations)); % Sets the Citation as the given citation from the preset example
+    % end
     
 %     if ~isempty(app.ReactionsTabOutputs.initialCondition)           % Identifies the initial conditions given from the preset example
 %         app.SsaInitCondField.Value = app.ReactionsTabOutputs.initialCondition;       % Sets the initial conditions in the SSA Tab
@@ -255,7 +265,31 @@ makeDefaultConstraints(app);
 readConstraintsForAdaptiveFsp(app);
 
 %% Update table of species names:
-app.NameTable.Data={};
-app.NameTable.Data(:,1) = app.ReactionsTabOutputs.varNames;
-app.NameTable.Data(:,2) = app.ReactionsTabOutputs.varNames;
+% app.NameTable.Data={};
+% app.NameTable.Data(:,1) = app.ReactionsTabOutputs.varNames;
+% app.NameTable.Data(:,2) = app.ReactionsTabOutputs.varNames;
+
+%% Update SSIT model
+app.SSITModel = SSIT('empty');
+app.SSITModel.species = app.ReactionsTabOutputs.varNames;
+app.SSITModel.stoichiometry = S;
+app.SSITModel.parameters = pars;
+app.SSITModel.propensityFunctions = Props_vec';
+app.SSITModel.inputExpressions = inputs;
+app.SSITModel.initialCondition = zeros(length(app.SSITModel.species),1);
+app.SSITModel.description = app.ModelAbout.Value;
+k = strfind(fileName,'.'); k=k(end);
+k1 = strfind(fileName,'/'); k1=k1(end);
+ModelName = fileName(k1+1:k-1);
+app.SSITModel = app.SSITModel.formPropensitiesGeneral(ModelName);
+updateAppFromSSIT(app)
+
+if saveCopy
+    if strcmp(fileName(end-1:end),'.m')
+        fileName = append(fileName(1:end-2),'.mat');
+    elseif strcmp(fileName(end-3:end),'.mat')
+        fileName = append(fileName(1:end-4),'_SSIT.mat');
+    end
+    eval(append(ModelName,' = app.SSITModel'));
+    save(fileName,ModelName)
 end

@@ -12,38 +12,20 @@ else
     d_prog_bar = uiprogressdlg(f,'Title','Running SSA Computation');
 end
 
-model = app.Model;
-S = model.stoichiometry;
-inputs = model.timeVaryingInputExpressions;
-pars = app.ReactionsTabOutputs.parameters;
-W = model.processPropensityStrings(app.ReactionsTabOutputs.propensities,inputs,pars,'fun',app.ReactionsTabOutputs.varNames);
-
-x0 = eval(app.SsaInitCondField.Value)';  % Pulls the data from the initial conditions field
-timesToRecord = eval(app.PrintTimesEditField.Value);  % Pulls the time array from the app
-
-Nt = length(timesToRecord);
-Nsim = app.SsaNumSimField.Value;  % Pulls the number of Simulations from the app
-nSpecies = length(app.ReactionsTabOutputs.varNames);
-Trajs = zeros(nSpecies,Nt,Nsim);                       % Creates an empty Trajectories matrix from the size of the time array and number of simulations
-useTimeVar = ~isempty(app.ReactionsTabOutputs.inputs);
-signalUpdateRate = str2double(app.SsaSignalUpdateRateField.Value);
+app.SSITModel.initialCondition = eval(app.SsaInitCondField.Value)';  % Pulls the data from the initial conditions field
+app.SSITModel.tSpan = eval(app.PrintTimesEditField.Value);  % Pulls the time array from the app
+app.SSITModel.ssaOptions.Nexp = 1;
+app.SSITModel.ssaOptions.nSimsPerExpt = app.SsaNumSimField.Value/length(app.SSITModel.tSpan);  % Pulls the number of Simulations from the app
+app.SSITModel.ssaOptions.useTimeVar = ~isempty(app.SSITModel.inputExpressions);
+app.SSITModel.ssaOptions.signalUpdateRate = str2double(app.SsaSignalUpdateRateField.Value);
+app.SSITModel.ssaOptions.useParallel = app.SsaParallelCheckBox.Value;
+app.SSITModel.solutionScheme = 'SSA';
 
 tic
 app.SsaRunStatus.Text = 'Running...';    
+solns = app.SSITModel.solve;
+Trajs = solns.trajs;
 
-if app.SsaParallelCheckBox.Value
-    try
-        parpool
-    catch
-    end
-    parfor isim = 1:Nsim
-        Trajs(:,:,isim) = ssit.ssa.runSingleSsa(x0,S,W,timesToRecord,useTimeVar,signalUpdateRate);
-    end
-else
-    for isim = 1:Nsim
-        Trajs(:,:,isim) = ssit.ssa.runSingleSsa(x0,S,W,timesToRecord,useTimeVar,signalUpdateRate);
-    end
-end
 app.SsaRunStatus.Text = ['Complete in ',num2str(toc),' seconds'];
 % Re-sets the running indicator from the beginning of the function
 if verLessThan('matlab','9.4') % This if statement allows for user to know it is ready to go for any version of Matlab

@@ -7,16 +7,15 @@ arguments
     Data=[];
 end
 if isempty(app)
-    app.ReactionsTabOutputs.varNames=species;
+    app.SSITModel.species=species;
     app.FspConstraintTable.Data=Data;
     app.DataLoadingAndFittingTabOutputs.boundIndex=[];
 end   
 
-
-nSpecies = length(app.ReactionsTabOutputs.varNames);
-spNames = app.ReactionsTabOutputs.varNames{1};
+nSpecies = length(app.SSITModel.species);
+spNames = app.SSITModel.species{1};
 for i = 2:nSpecies
-    spNames = [spNames,',',app.ReactionsTabOutputs.varNames{i}];
+    spNames = [spNames,',',app.SSITModel.species{i}];
 end
 
 % Updates bounds with the constraints added to the app

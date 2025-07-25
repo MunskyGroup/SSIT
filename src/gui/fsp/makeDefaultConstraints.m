@@ -9,12 +9,12 @@ end
 % end
 
 Data={};
-nSpecies = length(app.ReactionsTabOutputs.varNames);
+nSpecies = length(app.SSITModel.species);
 
 for i = 1:nSpecies
-    Data(i,1) = {['-',app.ReactionsTabOutputs.varNames{i}]};
+    Data(i,1) = {['-',app.SSITModel.species{i}]};
     Data(i,2:3) = {'<',0};
-    Data(nSpecies+i,1) = {app.ReactionsTabOutputs.varNames{i}};
+    Data(nSpecies+i,1) = {app.SSITModel.species{i}};
     Data(nSpecies+i,2:3) = {'<',1};
 end
 app.FspConstraintTable.Data=Data;

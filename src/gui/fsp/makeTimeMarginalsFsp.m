@@ -7,7 +7,7 @@ T_array = eval(app.FspPrintTimesField.Value);
 T_array2 = eval(app.FspMarginalVecField.Value);
 Nd = app.FspTabOutputs.solutions{1}.p.dim;
 for iSpecies = 1:Nd
-    Plts_to_make(iSpecies) = max(contains(app.SpeciestoShowListBoxMargFSPvT.Value,app.ReactionsTabOutputs.varNames{iSpecies}));
+    Plts_to_make(iSpecies) = max(contains(app.SpeciestoShowListBoxMargFSPvT.Value,app.SSITModel.species{iSpecies}));
 end
 if ~app.FspMarginalTimeCreateMovieCheckBox.Value
     for iplt = 1:Nd
@@ -25,7 +25,7 @@ if ~app.FspMarginalTimeCreateMovieCheckBox.Value
                 stairs([0:length(mdist)], [mdist;0],'linewidth',2);
                 hold('on');
             end
-            title(['Marginals of ',char(app.NameTable.Data(iplt,2))])
+            title(['Marginals of ',char(app.SSITModel.species(iplt))])
             xlabel('Species Count')
             ylabel('Probability')
             legendCell = cellstr(num2str(T_array2', 'Time=%1.2f'));
@@ -42,7 +42,7 @@ else
     for i = 1:length(T_array2)
         hold off
         [~,j] =  min(abs(T_array-T_array2(i)));
-        for iplt = 1:3
+        for iplt = 1:Nd
             if Plts_to_make(iplt)
                 if Nd==1
                     mdist{1} = double(app.FspTabOutputs.solutions{j}.p.data);
