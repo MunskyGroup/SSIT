@@ -153,8 +153,6 @@ else
     k1 = strfind(fileName,'/'); k1=k1(end);
     ModelName = fileName(k1+1:k-1);
     
-    app.SSITModel = app.SSITModel.formPropensitiesGeneral(ModelName);
-
     if strcmp(fileName(end-1:end),'.m')
         fileName = append(fileName(1:end-2),'.SSIT.mat');
     elseif strcmp(fileName(end-3:end),'.mat')

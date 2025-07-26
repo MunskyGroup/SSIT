@@ -32,7 +32,7 @@ app.SSITModel.solutionScheme = 'FSP';
 app.FspRunningStatus.Text = ['FSP completed in ',num2str(toc,3),'s'];
 
 %% Update bounds
-app.FspTabOutputs.bounds = app.SSITModel.fspOptions.bounds;
+app.FspTabOutputs.bounds = app.SSITModel.fspOptions.bounds';
 app.FspTabOutputs.solutions = solutions.fsp;
 delete(d_prog_bar); % Closes the Running Dialog Box
 app.FspConstraintTable.Data(:,3) = num2cell(app.FspTabOutputs.bounds');   % Sets the bounds from constraints to the ones found in the FSP analysis

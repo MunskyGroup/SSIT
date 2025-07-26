@@ -5,6 +5,9 @@ function [] = updateModelswithinDropDown(app)
 value = app.ModelDropDown.Value;
 path(path,['Models/',app.ModelUsePresetExampleTypeDropDown.Value])
 fileName = append('Models/',app.ModelUsePresetExampleTypeDropDown.Value,'/',value);
+app.ModelFile.fileName = fileName;
+J = strfind(value,'.');
+app.ModelFile.modelName = value(1:J(end)-1);
 if strcmp(value(end-2:end),'mat')
     [app] = loadModelBP(app, [], fileName);
 elseif strcmp(value(end-1:end),'.m')
@@ -24,6 +27,6 @@ elseif strcmp(value(end-1:end),'.m')
         app.ModelAbout.Value = {'About the Model';'';'Not provided'};
     end
     
-    updateModel(app,true,fileName);
+    updateModel(app,true,fileName,1);
 end
 updateTimeSliderFsp(app);

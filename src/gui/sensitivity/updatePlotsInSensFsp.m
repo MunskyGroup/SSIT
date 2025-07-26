@@ -14,7 +14,6 @@ while (~strcmp(app.ReactionsTabOutputs.parameters{ipar}, app.SensParDropDown.Val
 end
 
 % Compute the marginal distributions
-solutionFormat = app.SensFspTabOutputs.solutions.format;
 
 Nd = app.SensFspTabOutputs.solutions.data{j}.p.dim;
 for i=1:Nd
@@ -35,7 +34,7 @@ N_max_y = 1e-6;
 % Plot the marginal distribution
 
 for iSpecies = 1:Nd
-    iPlot(iSpecies) = max(contains(app.SpeciesForSensPlot.Value,app.ReactionsTabOutputs.varNames{iSpecies}));
+    iPlot(iSpecies) = max(contains(app.SpeciesForSensPlot.Value,app.SSITModel.species{iSpecies}));
     if iPlot(iSpecies)
         stairs(app.SensProbAxes, [0:length(mdist{iSpecies})], [mdist{iSpecies};0],'Linewidth',2);
         hold(app.SensProbAxes,'on');
@@ -52,7 +51,7 @@ app.FSPXmaxEditField.Value = app.SensProbAxes.XLim(2);
 app.FSPYminEditField.Value = app.SensProbAxes.YLim(1);
 app.FSPYmaxEditField.Value = app.SensProbAxes.YLim(2);
 
-legend(app.SensProbAxes,app.ReactionsTabOutputs.varNames(iPlot),'Location','best')
+legend(app.SensProbAxes,app.SSITModel.species(iPlot),'Location','best')
 
 % Plot the marginal sensitivity
 N_max_y = 1e-6;
@@ -68,5 +67,5 @@ app.FspSolutionAtTimeLabel.Text = ['Solutions at time: t = ',num2str(T_array(j))
 app.SensDerivativeAxes.XLim = [0,N_max_x + 1];
 app.SensDerivativeAxes.YLim = N_max_y*[-1 1];
 
-legend(app.SensDerivativeAxes,app.ReactionsTabOutputs.varNames(iPlot),'Location','best')
+legend(app.SensDerivativeAxes,app.SSITModel.species(iPlot),'Location','best')
 end
