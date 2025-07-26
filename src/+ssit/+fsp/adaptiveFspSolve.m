@@ -185,10 +185,11 @@ constraintBoundsFinal = max([constraintBoundsFinal,constraintFunctions(initState
 
 % Set up the initial state subset, or recompute it if constaint functions
 % have changed.
-if isempty(stateSpace)||stateSpace.numConstraints~=constraintCount
+if isempty(stateSpace)||stateSpace.numConstraints~=constraintCount||size(stateSpace,1)~=length(speciesNames)
     stateSpace = ssit.FiniteStateSet(initStates, stoichMatrix);
-    stateSpace = stateSpace.expand(constraintFunctions, constraintBoundsFinal);
 end
+stateSpace = stateSpace.expand(constraintFunctions, constraintBoundsFinal);
+
 
 % Generate the FSP matrix
 stateCount = stateSpace.getNumStates();
@@ -259,13 +260,18 @@ if initApproxSS
     end
     
 else % otherwise use user supplied IC.
+    % Find initial states  in statespace
+    J = zeros(1,size(initStates,2));
+    for j=1:size(initStates,2)
+        J(j) = find(all(stateSpace.states == initStates(:,j),1));
+    end
     if useReducedModel
         solVec = zeros(stateCount, 1);
-        solVec(1:size(initStates,2)) = initProbs;
+        solVec(J) = initProbs;
         solVec = modRedTransformMatrices.phi_inv*solVec;
     else
         solVec = zeros(stateCount + constraintCount, 1);
-        solVec(1:size(initStates,2)) = initProbs;
+        solVec(J) = initProbs;
     end
 end
 if useHybrid

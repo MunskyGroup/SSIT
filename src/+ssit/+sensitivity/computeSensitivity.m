@@ -49,7 +49,7 @@ end
 app.SensParDropDown.Items = parameters(:,1);
 
 if (strcmp(method, 'forward'))
-    % try
+    try
         if isempty(propensitiesGeneral{1}.sensTimeFactorVec)
             obj = formPropensitiesGeneral(obj,'Sensitivities',true);
         end
@@ -76,11 +76,11 @@ if (strcmp(method, 'forward'))
             'data', {Outputs}...
             );
         return
-    % catch
-    %     disp('Error with Analytical Sensitivity Calculations - Switching to Finite Difference Method')
-    %     app.FiniteDifferenceButton.Value = 1;
-    %     app.SensitivityFunctionButton.Value = 0;
-    % end
+    catch
+        disp('Error with Analytical Sensitivity Calculations - Switching to Finite Difference Method')
+        app.FiniteDifferenceButton.Value = 1;
+        app.SensitivityFunctionButton.Value = 0;
+    end
 end
 
 % If the forward sensitivity did not work, try finite difference.

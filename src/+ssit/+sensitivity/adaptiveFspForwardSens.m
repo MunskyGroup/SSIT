@@ -122,10 +122,10 @@ constraintBounds = initialConstraintBounds;
 outputs = cell(tOutputCount, 1);
 
 % Set up the initial state subset
-if isempty(stateSpace)
+if isempty(stateSpace)||stateSpace.numConstraints~=constraintCount
     stateSpace = ssit.FiniteStateSet(initialStates, stoichMatrix);
-    stateSpace = stateSpace.expand(constraintFunctions, constraintBounds);
 end
+stateSpace = stateSpace.expand(constraintFunctions, constraintBounds);
 stateCount = stateSpace.getNumStates();
 
 % Generate the time-varying FSP operator. This should already have the full
@@ -135,7 +135,14 @@ computeSens = true;
 fspMatrix = ssit.FspMatrix(propensities, [parameters{:,2}]', stateSpace, constraintCount, varNames, modRedTransformMatrices, computeSens);
 
 probabilityVec = zeros(stateCount + constraintCount, 1);
-probabilityVec(1:size(initialStates,2)) = initialProbabilities;
+
+% Find initial states  in statespace
+J = zeros(1,size(initialStates,2));
+for j=1:size(initialStates,2)
+    J(j) = find(all(stateSpace.states == initialStates(:,j),1));
+end
+probabilityVec(J) = initialProbabilities;
+
 sensitivityVecs = zeros((stateCount + constraintCount)*parameterCount, 1);
 for i = 1:parameterCount
     sensitivityVecs(1 + (i-1)*length(initialProbabilities):i*length(initialProbabilities)) ...
@@ -234,7 +241,6 @@ while (tNow < tFinal)
         %     y0(JnotSinks) = eigVec/sum(eigVec);
         % end
     else
-
         y0 = zeros(length(probabilityVec)*(parameterCount+1), 1);
         y0(1:stateCount+constraintCount) = probabilityVec;
         for j = 1:parameterCount
