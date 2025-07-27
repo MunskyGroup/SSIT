@@ -8,6 +8,7 @@ arguments
     fit_results_file_name = [];
     Merged = false;
 end
+error('This function obsolete and set for deletion')
 
 if Merged
     ssit.parest.fitMergedModel2Data(app,fit_data_name,fit_results_file_name);

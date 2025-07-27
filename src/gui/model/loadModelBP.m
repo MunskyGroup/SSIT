@@ -21,7 +21,9 @@ else
     % Check if any variable is of class 'SSIT'
     if any(strcmp({info.class}, 'SSIT'))
         app.ChooseSSITModel.Visible = 'on';
+        app.ChooseSSITModel_2.Visible = 'on';
         app.ChooseSSITModelLabel.Visible = 'on';
+        app.ChooseSSITModelLabel_2.Visible = 'on';
         app.ChooseSSITModel.Items = {info(strcmp({info.class}, 'SSIT')).name};
         if length(app.ChooseSSITModel.Items)==1
             Model = load(fileName,app.ChooseSSITModel.Items{1});
@@ -32,7 +34,6 @@ else
         return
     end
     
-
     load(fileName, 'Mytable_model', 'myparameters');
     [~,struc_size] = size(myparameters); % Evaluates if there is more than one set of parameters saved to the model
 
@@ -111,7 +112,7 @@ else
     end
 
     %% Generate and save SSIT model.
-    app.SSITModel = SSIT('empty');
+    app.SSITModel = SSIT('Empty');
     % Use default species names of x1, x2, ...
     
     % Detect species names from table (this version only supports x1, x2, ...)
@@ -124,10 +125,10 @@ else
 
     % Build reaction network.
     nRxn = size(Mytable_model,1);
-    newRxn = cell(nRxn,1);
+    app.SSITModel.propensityFunctions = cell(nRxn,1);
     app.SSITModel.stoichiometry = zeros(nSp,nRxn);
     for iRxn = 1:nRxn
-        newRxn{iRxn}.propensity = Mytable_model{iRxn,4};
+        app.SSITModel.propensityFunctions{iRxn} = Mytable_model{iRxn,4};
         for iSp = 1:nSp
             if contains(Mytable_model{iRxn,2},app.SSITModel.species{nSp})
                 J = strfind(Mytable_model{iRxn,2},app.SSITModel.species{nSp});
@@ -158,7 +159,7 @@ else
     elseif strcmp(fileName(end-3:end),'.mat')
         fileName = append(fileName(1:end-4),'.SSIT.mat');
     end
-    eval(append(ModelName,' = app.SSITModel'));
+    eval(append(ModelName,' = app.SSITModel;'));
     save(fileName,ModelName);
     updateAppFromSSIT(app);
     % updateModel(app);

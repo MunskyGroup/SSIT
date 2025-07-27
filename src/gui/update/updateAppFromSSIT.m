@@ -1,7 +1,8 @@
-function updateAppFromSSIT(app,saveCopy)
+function updateAppFromSSIT(app,saveCopy,updatePropensityFuns)
 arguments
     app
     saveCopy=false
+    updatePropensityFuns = true
 end
 % Update the app properties based on the SSIT data
 
@@ -56,8 +57,13 @@ for iPar = 1:size(app.SensParameterSelectionTable.Data,1)
     app.fit_parameters_table.Data(iPar,2) = app.SSITModel.parameters(iPar,2);
 end
 app.fit_parameters_table.Data(:,3) = {'n'};
-app.fit_parameters_table.Data(app.SSITModel.fittingOptions.modelVarsToFit,3) = {'y'};
+if isnumeric(app.SSITModel.fittingOptions.modelVarsToFit)
+    app.fit_parameters_table.Data(app.SSITModel.fittingOptions.modelVarsToFit,3) = {'y'};
+elseif strcmp(app.SSITModel.fittingOptions.modelVarsToFit,'all')
+    app.fit_parameters_table.Data(:,3) = {'y'};
+end
 
+% 
 % FIM Options
 FIMMetrics = {'Determinant','Smallest Eigenvalue','Trace'};
 FIMMetrics(end+1:end+size(app.SSITModel.parameters,1)) = app.SSITModel.parameters(:,1);
@@ -117,6 +123,23 @@ for iSp = 1:size(app.SSITModel.species,1)
 end
 app.DeleteSpeciesDropDown.Value=app.DeleteSpeciesDropDown.Items{1};
 
+% Data loading and fitting
+for iSp = 1:size(app.SSITModel.species,1)
+    app.(['Species',num2str(iSp),'Label']).Visible = 'on';
+    app.(['Species',num2str(iSp),'Label']).Text = app.SSITModel.species{iSp};
+    app.(['DataSpecies',num2str(iSp)]).Visible = 'on';  
+    if iSp==8
+        app.AddMoreDataButton.Visible = 'on';
+        break
+    end
+end
+for iSp = iSp+1:7
+    app.(['Species',num2str(iSp),'Label']).Visible = 'off';
+    app.(['DataSpecies',num2str(iSp)]).Visible = 'off';
+    app.AddMoreDataButton.Visible = 'off';
+end
+
+
 
 %% FSP Options
 makeDefaultConstraints(app);
@@ -133,11 +156,15 @@ end
 summarizeModelReactions(app.SpeciesTable.Data(:,1),app.ModelReactionTable.Data,app.ModelInputTable.Data,app.ReactionTextAxes)
 
 %% Update propensity function codes
-app.ModelhasnotbeenupdatedLabel.Text = 'Writing Propensity Function Codes.';  % Fills in update for user
-drawnow
+if updatePropensityFuns
+    app.ModelhasnotbeenupdatedLabel.Text = 'Writing Propensity Function Codes.';  % Fills in update for user
+    drawnow
+    app.SSITModel = app.SSITModel.formPropensitiesGeneral(app.ModelFile.modelName);
+end
 
-app.SSITModel = app.SSITModel.formPropensitiesGeneral(app.ModelFile.modelName);
 app.ModelhasnotbeenupdatedLabel.Text = 'Model is up to date.';  % Fills in update for user
+
+app.UnsavedChanges = false;
 
 if saveCopy
     fileName = app.ModelFile.fileName;

@@ -2699,11 +2699,11 @@ classdef SSIT
                 parGuess = [obj.parameters{obj.fittingOptions.modelVarsToFit,2}]';
             end
 
-            if strcmp(obj.solutionScheme,'fspSens')   % Set solution scheme to FSP.
+            if strcmpi(obj.solutionScheme,'fspsens')   % Set solution scheme to FSP.
                 obj.solutionScheme='FSP';
             end
 
-            if strcmp(obj.solutionScheme,'FSP')   % Set solution scheme to FSP.
+            if strcmpi(obj.solutionScheme,'FSP')   % Set solution scheme to FSP.
                 [FSPsoln,~,obj] = obj.solve;  % Solve the FSP analysis
                 % obj.fspOptions.bounds = bounds;% Save bound for faster analyses
                 if allFitOptions.suppressFSPExpansion
@@ -2711,13 +2711,13 @@ classdef SSIT
                     obj.fspOptions.fspTol = inf;
                 end
                 objFun = @(x)-obj.computeLikelihood(exp(x),FSPsoln.stateSpace);  % We want to MAXIMIZE the likelihood.
-            elseif strcmp(obj.solutionScheme,'ode')  % Set solution scheme to ode.
+            elseif strcmpi(obj.solutionScheme,'ode')  % Set solution scheme to ode.
                 objFun = @(x)-obj.computeLikelihoodODE(exp(x));  % We want to MAXIMIZE the likelihood.
             end
 
             x0 = log(parGuess);
 
-            switch fitAlgorithm
+            switch lower(fitAlgorithm)
                 case 'fminsearch'
                     [x0,likelihood,~,otherResults]  = fminsearch(objFun,x0,allFitOptions);
 
@@ -2727,7 +2727,7 @@ classdef SSIT
                     x0 = log(parGuess);
                     [x0,likelihood]  = fminunc(objFun,x0,allFitOptions,FSPsoln.stateSpace,true);
 
-                case 'particleSwarm'
+                case 'particleswarm'
                     obj.fspOptions.fspTol=inf;
                     rng('shuffle')
                     OBJps = @(x)objFun(x');
@@ -2738,7 +2738,7 @@ classdef SSIT
                     fitOptions.InitialSwarmMatrix = initSwarm;
                     [x0,likelihood] = particleswarm(OBJps,length(x0),LB,UB,allFitOptions);
 
-                case 'mlSearch'
+                case 'mlsearch'
                     % Not yet working efficiently.
                     defaultFitOptions.maxIter=1000;
                     defaultFitOptions.burnIn=30;
@@ -2769,7 +2769,7 @@ classdef SSIT
 
                     [x0,likelihood]  = mlSearch(objFun,x0,allFitOptions);
 
-                case 'MetropolisHastings'
+                case 'metropolishastings'
 
                     defaultFitOptions.isPropDistSymmetric=true;
                     defaultFitOptions.thin=1;

@@ -7,15 +7,16 @@ if nargin<2
     [filename,pathname] = uiputfile('*.xlsx', 'Save SSA data as:');
 end
 
-numSamples = app.SsaNumSimField.Value;
-numTimes = length(eval(app.PrintTimesEditField.Value));
+numSamples = size(app.StochasticSimulationTabOutputs.samples,3);
+numTimes = size(app.StochasticSimulationTabOutputs.samples,2);
+numSpecies = size(app.StochasticSimulationTabOutputs.samples,1);
 %preallocate
-ssaDat = zeros(numSamples*numTimes+1,4);
+ssaDat = zeros(numSamples*numTimes+1,numSpecies);
 %load in the data from app
 Trajectories = reshape(app.StochasticSimulationTabOutputs.samples,...
-    [3,numSamples*numTimes]);
+    [numSpecies,numSamples*numTimes]);
 Trajectories = Trajectories';
-ssaDat(2:end,2:4) = Trajectories;
+ssaDat(2:end,2:2+numSpecies-1) = Trajectories;
 %construct time vector
 ini_time = eval(app.PrintTimesEditField.Value); %initialize while loop
 i = 1;
@@ -31,12 +32,5 @@ end
 %load time vector into data matrix to be exported
 ssaDat(2:end,1) = time;
 ssaDat = num2cell(ssaDat); %convert to cell to populate labels
-ssaDat(1,:) = {'Time','x1','x2','x3'}; % populate labels
+ssaDat(1,:) = ['time',app.SSITModel.species']; % populate labels
 writecell(ssaDat,[pathname,filename])
-
-
-
-
-
-
-
