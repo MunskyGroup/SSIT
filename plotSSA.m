@@ -64,7 +64,7 @@ function plotSSA(ssaSoln, speciesIdx, numTraj, speciesNames)
         randIdx = randperm(numTotalTraj, numTraj); % Select random trajectories
         
         for i = 1:numTraj
-            plot(T, X(:, randIdx(i)), 'Color', [speciesColors(speciesIdx, :), 0.2]); % Transparent individual trajectories
+            plot(T, X(:, randIdx(i)), 'LineWidth', 4, 'Color', [speciesColors(speciesIdx, :), 0.2]); % Transparent individual trajectories
         end
         
         % Plot mean trajectory in the correct color

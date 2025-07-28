@@ -60,6 +60,7 @@ STL1_4state.tSpan = linspace(0,20,200);
     % Plot marginal distributions:
     Model_FSP.makePlot(Model_FSPsoln,'marginals',[1:100:100],...
                        false,[1,2,3],{'linewidth',2})  
+    Model_FSP.makePlot(Model_FSPsoln,'meansAndDevs') 
     Model_FSP.makePlot(Model_FSPsoln,'margmovie',[],false,[101],...
                        {'linewidth',2},'Model_FSP.mp4',[1,1,0.5],[2,3])  
                        
@@ -99,7 +100,8 @@ STL1_4state.tSpan = linspace(0,20,200);
     
     % Plot marginal distributions:
     STL1_FSP.makePlot(STL1_FSPsoln,'marginals',[1:100:100],...
-                           false,[1,2,3],{'linewidth',2})  
+                           false,[1,2,3],{'linewidth',2}) 
+    STL1_FSP.makePlot(STL1_FSPsoln,'meansAndDevs')  
     STL1_FSP.makePlot(STL1_FSPsoln,'margmovie',[],false,[101],...
                            {'linewidth',2},'STL1_FSP.mp4',[1,1,0.5],[2,3])
 
@@ -141,6 +143,7 @@ STL1_4state.tSpan = linspace(0,20,200);
     
     % Plot marginal distributions:
     STL1_FSP_4state.makePlot(STL1_FSPsoln_4state,'marginals',...
-                             [1:100:100],false,[1,2,3,4,5],{'linewidth',2})  
+                             [1:100:100],false,[1,2,3,4,5],{'linewidth',2})
+    STL1_FSP_4state.makePlot(STL1_FSPsoln_4state,'meansAndDevs')  
     STL1_FSP_4state.makePlot(STL1_FSPsoln_4state,'margmovie',[],false,...
                              [101],{'linewidth',2},'STL1_FSP_4state.mp4')

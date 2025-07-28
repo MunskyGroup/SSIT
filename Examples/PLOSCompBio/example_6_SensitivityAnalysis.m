@@ -65,3 +65,29 @@ fig5 = figure(5);clf; set(fig5,'Name','Marginal Sensitivity, onGene');
 fig6 = figure(6);clf; set(fig6,'Name','Marginal Sensitivity, mRNA');
 STL1_sens.makePlot(STL1_sensSoln,'marginals',[],false,...
                    [fig4,fig5,fig6],{'b','linewidth',2})
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Ex(2): Solve sensitivities of the 4-state time-varying STL1 yeast model
+%  from example_1_CreateSSITModels
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Make a copy of the time-varying STL1 yeast model solved by FSP for 
+% sensitivity analysis:
+STL1_sens_4state = STL1_FSP_4state;
+
+%% Solve FSP sensitivities
+% Set solution schemes to FSP sensitivity:
+STL1_sens_4state.solutionScheme = 'fspSens'; 
+
+% Solve the sensitivity problem: 
+[STL1_sensSoln_4state,STL1_bounds_4state] = ...
+    STL1_sens_4state.solve(STL1_FSPsoln_4state.stateSpace); 
+
+% Plot the results from the sensitivity analysis:
+fig7 = figure(7);clf; set(fig7,'Name','Marginal Sensitivity, s1');
+fig8 = figure(8);clf; set(fig8,'Name','Marginal Sensitivity, s2');
+fig9 = figure(9);clf; set(fig9,'Name','Marginal Sensitivity, s3');
+fig10 = figure(10);clf; set(fig10,'Name','Marginal Sensitivity, s4');
+fig11 = figure(11);clf; set(fig11,'Name','Marginal Sensitivity, mRNA');
+STL1_sens_4state.makePlot(STL1_sensSoln_4state,'marginals',[],false,...
+                   [fig7,fig8,fig9,fig10,fig11],{'b','linewidth',2})

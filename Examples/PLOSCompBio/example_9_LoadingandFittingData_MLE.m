@@ -14,9 +14,9 @@
 %close all
 addpath(genpath('../../src'));
 
-% example_1_CreateSSITModels  
-% example_4_SolveSSITModels_FSP
-% example_8_LoadingandFittingData_DataLoading
+example_1_CreateSSITModels  
+example_4_SolveSSITModels_FSP
+example_8_LoadingandFittingData_DataLoading
 
 % View model summary:
 Model_data.summarizeModel
