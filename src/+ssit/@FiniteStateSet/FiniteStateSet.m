@@ -86,7 +86,7 @@ classdef FiniteStateSet
             obj.state2indMap = dictionary(key_set, 1:size(states,2));
             % obj.state2indMap = containers.Map(key_set, 1:size(states,2));
             % if size(obj.states,2)~=obj.state2indMap.Count
-            if size(obj.states,2)~=length(obj.state2indMap)
+            if size(obj.states,2)~=length(obj.state2indMap.keys)
                 error('HERE')
             end
         end
