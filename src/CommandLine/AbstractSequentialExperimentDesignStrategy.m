@@ -17,18 +17,34 @@ classdef AbstractSequentialExperimentDesignStrategy
             % observations across the experiments in the round.
 
             round = obj.apportionObservations(round);
+        end % designRound        
+    end % Public object methods
+
+    methods (Static)
+        function result = usesData(~)
+            % Design strategies do not use data by default; descendants may
+            % override this.
+
+            result = false;
         end
-    end
+    end % Public static methods
 
     methods (Abstract)
         round = apportionObservations(obj, round)        
     end
     
     methods (Access = protected)
-        function round = designRoundInternal(~, round)
+        function round = designRoundInternal(obj, round)
             arguments
-                ~
+                obj
                 round (1, 1) SequentialExperimentRound
+            end
+
+            % In this ultimate ancestor, the only thing we will do is to
+            % load data into the models in the round IF the strategy uses
+            % data.
+
+            if obj.usesData
             end
         end
     end

@@ -1,4 +1,12 @@
 classdef FIMOptimizedSEDStrategy < AbstractSequentialExperimentDesignStrategy
+    methods (Static)
+        function result = usesData(~)
+            % FIM-optimized strategies need data.
+            
+            result = true;
+        end
+    end % Public static methods
+    
     methods (Access = protected)
         function round = designRoundInternal(obj, round)
             arguments
