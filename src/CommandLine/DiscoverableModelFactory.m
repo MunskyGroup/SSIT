@@ -3,7 +3,7 @@ classdef DiscoverableModelFactory
         function m = createModel(arch, dataFilename)
             arguments
                 arch (1,1) DiscoverableModelArchitecture
-                dataFilename (1,1) string {mustBeNonempty} = tempname(pwd)
+                dataFilename (1,:) char {mustBeNonempty} = tempname(pwd)
             end
             m = DiscoverableModel();
             ind = randi(10000);
@@ -116,8 +116,12 @@ classdef DiscoverableModelFactory
                         diag(m.SigmaLog10Prior.^2*log(10^2));
 
                     m.inputExpressions = {'IDex','100'};
+                    
                     %m = m.formPropensitiesGeneral(append(dataFilename,"_S",num2str(ind)),true);
-                    m = m.formPropensitiesGeneral([dataFilename,'_S',num2str(ind)],true);
+                    
+                    %m = m.formPropensitiesGeneral([char(dataFilename),'_S',num2str(ind)],true);
+                    m = m.formPropensitiesGeneral([dataFilename,'_S',num2str(ind)],true);                    
+                    
                     %m = m.formPropensitiesGeneral(append("GRTest","_S",num2str(ind)),true);
                     % m = {m};
                 % case {"GR", "GRFewer", "GRFewest"} ...
