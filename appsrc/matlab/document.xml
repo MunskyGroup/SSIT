@@ -1609,7 +1609,7 @@
 
         % Cell edit callback: SpeciesTable
         function SpeciesTableCellEdit(app, event)
-            for i=1:size(app.SpeciesTable,1)
+            for i=1:size(app.SpeciesTable.Data,1)
                 app.SSITModel.initialCondition(i) = app.SpeciesTable.Data{i,2};
             end
             app.SsaInitCondField.Value = append('[',num2str(app.SSITModel.initialCondition'),']');

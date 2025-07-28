@@ -23,6 +23,7 @@ app.SSITModel.customConstraintFuns = app.FspConstraintTable.Data(Nsp*2+1:end,1);
 app.SSITModel.fspOptions.bounds = app.FspTabOutputs.bounds';
 app.SSITModel.tSpan = unique(eval(app.FspPrintTimesField.Value));        % Pulls the time array from the app
 app.SSITModel.fspOptions.fspTol = app.FspErrorTolField.Value;            % Pulls the specified error tolerance for the FSP Analysis
+app.SSITModel.fspOptions.initApproxSS = app.initApproxSS.Value;   % Pull if using SS at initial time.
 
 %% Start FSPCalculations  
 app.FspRunningStatus.Text = 'FSP is running...';
