@@ -6,7 +6,7 @@ classdef SequentialExperimentRound
         VarTypes (1, :) string {mustBeNonempty} = 'VarTypePlaceholder'
     end
 
-    properties(SetAccess = ?ExperimentDesigner)
+    properties(SetAccess = ?SequentialExperimentDesigner)
         RoundID (1, 1) double {mustBeInteger, mustBePositive} = 1
     end
 
@@ -27,12 +27,44 @@ classdef SequentialExperimentRound
             end
         end
 
-        function locations = performSimulations(obj)
-            locations = createArray(1, obj.NumberOfConfigs, "string");
-            parfor configIdx = 1:obj.NumberOfConfigs
-                
+        function locations = performSimulations(obj, dataFilenamePrefix)
+            arguments
+                obj (1, 1) SequentialExperimentRound
+                dataFilenamePrefix (1, :) char {mustBeNonempty}
             end
-        end
+
+            locations = createArray(1, obj.NumberOfConfigs, "string");
+            experiments = obj.Experiments;
+            roundID = obj.RoundID;
+
+            parfor configIdx = 1:obj.NumberOfConfigs
+                curExperiment = experiments(configIdx);
+                curConfig = curExperiment.Configuration;
+
+                % For the current experiment, find the appropriate filename
+                % to which to write the data.
+
+                locations(configIdx) = join(...
+                    [dataFilenamePrefix "Round" num2str(roundID) ...
+                    curConfig.FilenameString], "_");
+
+                % Fetch the true model for the current experiment, solve it
+                % using FSP, and then sample the appropriate number of
+                % observations from the FSP solution.
+
+                curTrueModel = curExperiment.TrueModel;
+                curTrueModel.fspOptions.fspTol = 1e-4;
+                [curFSPSolution, curTrueModel.fspOptions.bounds] = ...
+                    curTrueModel.solve;
+
+                curTrueModel.ssaOptions.nSimsPerExpt = ...
+                    curConfig.NumberOfObservations;
+                curTrueModel.ssaOptions.Nexp = 1;
+
+                curTrueModel.sampleDataFromFSP(...
+                    curFSPSolution, locations(configIdx));
+            end % parfor [configs]
+        end % performSimulations
 
         function obj = SequentialExperimentRound(configs)
             arguments

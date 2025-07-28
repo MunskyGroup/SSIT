@@ -1,5 +1,6 @@
 classdef SequentialExperimentDesigner
-    properties        
+    properties
+        DataFilename (1, :) char {mustBeNonempty} = "DefaultExperiment"
         DataType (1, 1) ExperimentalDataType = ExperimentalDataType.Simulated
         ExperimentalConfigurations (1, :) ExperimentConfiguration
         IsTesting (1, 1) logical = false
@@ -30,10 +31,20 @@ classdef SequentialExperimentDesigner
                     obj.Rounds = [obj.Rounds ...
                         SequentialExperimentRound(obj.ExperimentalConfigurations)];
                 end
-                round = obj.Strategy.designRound(...
-                    obj.Rounds(1 + obj.NumberOfRoundsCompleted));
-                obj.Rounds(1 + obj.NumberOfRoundsCompleted) = round;
-            end            
+
+                % We are only designing the next round, not completing it,
+                % so the ID of the next round will be one greater than the
+                % number of rounds completed. We will only increment the
+                % NumberOfRoundsCompleted property after the "perform"
+                % stage.
+
+                nextRoundID = 1 + obj.NumberOfRoundsCompleted;
+                obj.Rounds(nextRoundID).RoundID = nextRoundID;
+                obj.Rounds(nextRoundID) = ...
+                    obj.Strategy.designRound(obj.Rounds(nextRoundID));                                
+            end
+
+            round = obj.Rounds(nextRoundID);
         end % designNextRound
 
         function obj = performNextRound(obj, locations)
@@ -59,7 +70,7 @@ classdef SequentialExperimentDesigner
 
                     if ~isempty(locations)
                         obj.DataLocations = [obj.DataLocations locations];
-                        obj.DataStore = datastore(obj.DataLocations);                        
+                        %obj.DataStore = datastore(obj.DataLocations);                        
                         roundPerformed = true;
                     else
                         disp('performNextRound requires at least one data location when working with empirical data!')
@@ -67,7 +78,16 @@ classdef SequentialExperimentDesigner
                 case Simulated
                     % TO DO: Run SSA simulations according to the true
                     % model, write these to files, and then append them to
-                    % the datastore.
+                    % the list of data locations.
+                    if isempty(locations)
+                        nextRoundID = 1 + obj.NumberOfRoundsCompleted;
+                        locations = ...
+                            obj.Rounds(nextRoundID).performSimulations(obj.DataFilename);
+                        obj.DataLocations = [obj.DataLocations locations];
+                        roundPerformed = true;
+                    else
+                        disp('performNextRound should not be called with data locations when working with simulated data!')
+                    end
             end % switch obj.DataType
 
             if roundPerformed
