@@ -9,10 +9,15 @@ function app = runOde(app)
 % propens = app.ReactionsTabOutputs.propensities; % Pulls the propensity functions
 
 app.SSITModel.solutionScheme = 'ode';
-solnOde = app.SSITModel.solve;
+try
+    solnOde = app.SSITModel.solve;
+    app.FspTabOutputs.tOde = app.SSITModel.tSpan;
+    app.FspTabOutputs.odeSolutions = solnOde.ode;
+catch
+    disp('ODE Solution not found -- possible error with unsupported logical functions')
+    app.SsaShowOdeCheckBox.Value = false;
+end
 
 % solve for the ode solutions
 % [t_ode,ode_solutions] = ssit.moments.solveOde(x0, tspan, stoich_mat, propens, pars, inputs, app.SSITModel.species);
 % define variables in the app for the ode solution
-app.FspTabOutputs.tOde = app.SSITModel.tSpan;
-app.FspTabOutputs.odeSolutions = solnOde.ode;
