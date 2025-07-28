@@ -117,11 +117,14 @@ for iSp = 1:size(app.SSITModel.species,1)
     app.SpeciesTable.Data{iSp,2} = app.SSITModel.initialCondition(iSp);
 end   
 
+app.RenameSpeciesDropDown.Items = {'Select'};
 app.DeleteSpeciesDropDown.Items = {'Select'};
 for iSp = 1:size(app.SSITModel.species,1)
     app.DeleteSpeciesDropDown.Items{iSp+1} = app.SSITModel.species{iSp};
+    app.RenameSpeciesDropDown.Items{iSp+1} = app.SSITModel.species{iSp};
 end
 app.DeleteSpeciesDropDown.Value=app.DeleteSpeciesDropDown.Items{1};
+app.RenameSpeciesDropDown.Value=app.RenameSpeciesDropDown.Items{1};
 
 % Data loading and fitting
 for iSp = 1:size(app.SSITModel.species,1)
@@ -157,9 +160,40 @@ summarizeModelReactions(app.SpeciesTable.Data(:,1),app.ModelReactionTable.Data,a
 
 %% Update propensity function codes
 if updatePropensityFuns
+    app.SSITModel.solutionSchemes = {'ode','fsp'};
     app.ModelhasnotbeenupdatedLabel.Text = 'Writing Propensity Function Codes.';  % Fills in update for user
     drawnow
-    app.SSITModel = app.SSITModel.formPropensitiesGeneral(app.ModelFile.modelName);
+
+    if isfield(app.ModelFile,'propFileName')&&~isempty(app.ModelFile.propFileName)
+        propFileName = app.ModelFile.propFileName;
+    else
+        propFileName = ['GUIPropensities/',app.ModelFile.modelName];
+    end
+
+    if exist([pwd,'/tmpPropensityFunctions/',propFileName],'dir')==7
+        prompt = {['Propensity files already exist at ',propFileName,'.'], 'Do you wish to overwrite?'};
+        dlgtitle = 'Overwrite Propensity Functions';
+        propQuest = questdlg(prompt,dlgtitle,'Yes - Overwrite','No - Use Current','No - Specify New Location','Yes - Overwrite');
+        switch propQuest
+            case 'Yes - Overwrite'
+                addpath(genpath([pwd,'/tmpPropensityFunctions/',propFileName]));
+                app.SSITModel = app.SSITModel.formPropensitiesGeneral([propFileName,'/',app.ModelFile.modelName]);
+            case 'No - Use Current'
+                % do nothing
+            case 'No - Specify New Location'
+                [propFileName] = uigetdir([pwd,'/tmpPropensityFunctions/'],'Create or choose folder for new propensity functions.');
+                propFileName = strrep(propFileName,[pwd,'/tmpPropensityFunctions/'],'');
+                app.SSITModel = app.SSITModel.formPropensitiesGeneral([propFileName,'/',app.ModelFile.modelName]);
+                addpath(genpath([pwd,'/tmpPropensityFunctions/',propFileName]));
+        end
+    else
+        if ~exist([pwd,'/tmpPropensityFunctions/',propFileName],'dir') 
+            mkdir([pwd,'/tmpPropensityFunctions/',propFileName]);
+        end
+        app.SSITModel = app.SSITModel.formPropensitiesGeneral([propFileName,'/',app.ModelFile.modelName]);
+        addpath(genpath([pwd,'/tmpPropensityFunctions/',propFileName]));
+    end
+    app.ModelFile.propFileName = propFileName;
 end
 
 app.ModelhasnotbeenupdatedLabel.Text = 'Model is up to date.';  % Fills in update for user

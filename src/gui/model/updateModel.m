@@ -99,7 +99,7 @@ if size(Mod,1)>=1                                   % If-statement to ensure tha
         %% Define Propensity Functions
         % Propensity Function Parameters
         pars = [pars(:);symvar(Mod{iRxn,4})];
-        pars = unique(pars,'stable');    % Removes any repeated propensity
+        pars = unique(pars,'stable');    % Removes any repeated parameter
         
         % Change Propensity Functions to allow for Vector ReactionsTabOutputs.inputs
         op_var = {'*','/','^'};

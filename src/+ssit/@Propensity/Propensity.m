@@ -461,13 +461,13 @@ classdef Propensity
                     end
                 end
             else
-                hybridFactorVector = sym2mFun(expr_t_vec, true, false, nonXTpars(:,1), speciesStoch, varODEs, false, true, prefixNameLocal);
-                xFactorVector = sym2mFun(expr_x_vec, false, true, nonXTpars(:,1), speciesStoch, varODEs, false, true, prefixNameLocal);
+                hybridFactorVector = sym2mFun(expr_t_vec, true, false, nonXTpars(:,1), speciesStoch, varODEs, false, true, [prefixNameLocal,'_t']);
+                xFactorVector = sym2mFun(expr_x_vec, false, true, nonXTpars(:,1), speciesStoch, varODEs, false, true, [prefixNameLocal,'_x']);
                 if ~isempty(expr_dt_vec_dode)
-                    obj{1}.DhybridFactorDodesVec = sym2mFun(expr_dt_vec_dode, true, false, nonXTpars(:,1), speciesStoch, varODEs, false, true, prefixNameLocal);
+                    obj{1}.DhybridFactorDodesVec = sym2mFun(expr_dt_vec_dode, true, false, nonXTpars(:,1), speciesStoch, varODEs, false, true, [prefixNameLocal,'_dt']);
                 end
                 if computeSens
-                    obj{1}.sensStateFactorVec = sym2mFun(expr_x_vec_sens, false, true, nonXTpars(:,1), speciesStoch, varODEs, false, true, prefixNameLocal);
+                    obj{1}.sensStateFactorVec = sym2mFun(expr_x_vec_sens, false, true, nonXTpars(:,1), speciesStoch, varODEs, false, true, [prefixNameLocal,'_s']);
                     poolobj = gcp("nocreate");
                     if ~isempty(poolobj)
                         parfor iRxn = 1:n_reactions
