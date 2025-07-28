@@ -8,6 +8,10 @@
         RightPanel                      matlab.ui.container.Panel
         TabGroup                        matlab.ui.container.TabGroup
         ModelTab                        matlab.ui.container.Tab
+        FileModelLabel                  matlab.ui.control.Label
+        ModelSaveButton_2               matlab.ui.control.Button
+        RenameSpeciesDropDown           matlab.ui.control.DropDown
+        RenameSpeciesDropDownLabel      matlab.ui.control.Label
         SpeciesTable                    matlab.ui.control.Table
         ParametersLabel_3               matlab.ui.control.Label
         ChooseSSITModelLabel            matlab.ui.control.Label
@@ -406,7 +410,7 @@
             addpath(genpath('src'));
             clc
             initializeApp(app);
-            app.SSITModel = SSIT('empty');
+            app.SSITModel = SSIT('Empty');
             app.ModelUsePresetExampleTypeDropDown.Value = 'gene_expression';
             ModelUsePresetExampleTypeDropDownValueChanged(app);   % This runs the next drop down callback
             app.ModelDropDown.Value = 'M00_Poisson_Process.mat';
@@ -544,12 +548,51 @@
         % Button pushed function: ModelSaveButton
         function ModelSaveButtonPushed(app, event)
             % Function saves the edits created to a Preset model or your own model
-            saveModelBP(app);
+            % saveModelBP(app);
+            dlgtitle = 'Choose File to Save or Append Model';
+            [fileName,filePath] = uiputfile('*.mat',dlgtitle);
+
+            dlgtitle = 'Save Model';
+            dims = [1 50];  % [height width] of input field
+
+            % Check if any variable is of class 'SSIT'
+            if exist([filePath,'/',fileName],'file')
+                info = whos('-file', [filePath,'/',fileName]);
+                if any(strcmp({info.class}, 'SSIT'))
+                    Models = {info(strcmp({info.class}, 'SSIT')).name};
+                    k = length(Models);
+                    defaultInput = {['Model',num2str(k+1)],'yes'};
+                    prompt = {['Model Name (Existing Models:',Models{:}],'Append (yes/no)'};
+                    saveSettings = inputdlg(prompt, dlgtitle, dims, defaultInput);
+                    eval([saveSettings{1},'=app.SSITModel;'])
+                    if strcmp(saveSettings{2},'yes')
+                        save([filePath,'/',fileName],saveSettings{1},'-append')
+                    else
+                        save([filePath,'/',fileName],saveSettings{1})
+                    end
+                else
+                    error('File exists and does not contain SSIT models.')
+                end
+                app.ModelFile.fileName = [filePath,'/',fileName];
+                app.ModelFile.modelName = saveSettings{1};
+            else
+                defaultInput = {['Model',],'yes'};
+                prompt = {'Model Name'};
+                saveSettings = inputdlg(prompt, dlgtitle, dims, defaultInput);
+                eval([saveSettings{1},'=app.SSITModel;'])
+                save([filePath,'/',fileName],saveSettings{1});
+                app.ModelFile.fileName = [filePath,'/',fileName];
+                app.ModelFile.modelName = saveSettings{1};
+            end
+            app.FileModelLabel.Text = {['File: ',app.ModelFile.fileName];['Model: ',app.ModelFile.modelName]};
+
+
         end
 
         % Button pushed function: LoadPreviousProjectButton, 
         % ...and 1 other component
         function ModelLoadButtonPushed(app, event)
+            app.ModelFile.propFileName = []; % Clear name of propensity functions.
             loadModelBP(app,event);
         end
 
@@ -591,8 +634,16 @@
 
         % Value changed function: ModelDropDown
         function ModelDropDownValueChanged(app, event)
-            fName = ['Models/',app.ModelUsePresetExampleTypeDropDown.Value,'/',app.ModelDropDown.Value];            
+            % This call back opens the selected model file.  If it is a
+            % .mat file that contains SSIT models, then it populates a
+            % dropdown list with the available models.  If there is just on
+            % in the file, it opens that model.  
+            % If the file is a .mat or .m script with different format, it
+            % creates the SSIT model.
             
+            fName = ['Models/',app.ModelUsePresetExampleTypeDropDown.Value,'/',app.ModelDropDown.Value];            
+            app.ModelFile.propFileName = []; % Clear name of propensity functions.
+
             % Check if file contains SSIT model
             if strcmp(fName(end-2:end),'mat')
                 info = whos('-file', fName);
@@ -602,12 +653,12 @@
                     app.ChooseSSITModel.Items = {info(strcmp({info.class}, 'SSIT')).name};
                     app.ChooseSSITModel.Visible = 'on';
                     app.ChooseSSITModelLabel.Visible = 'on';
+                    % Load the mosel if there is just one.
                     if length(app.ChooseSSITModel.Items)==1
                         Model = load(fName,app.ChooseSSITModel.Items{1});
                         app.SSITModel = Model.(app.ChooseSSITModel.Items{1});
                         app.ModelFile.modelName = app.ChooseSSITModel.Items{1};
                         updateAppFromSSIT(app);
-
                     end
                     return
                 end
@@ -617,10 +668,9 @@
             app.ChooseSSITModel.Visible = 'off';
             app.ChooseSSITModelLabel.Visible = 'off';
             updateModelswithinDropDown(app);
-            % updateModel(app,true,fName);
         end
 
-        % Callback function: not associated with a component
+        % Callback function
         function ModelEmptyParametersandInputsButtonPushed(app, event)
             % This clears all of the current parameter values within the app
             ModelUpdateButtonPushed(app);
@@ -854,7 +904,7 @@
             Update_Dans_Plots(app);
         end
 
-        % Callback function: not associated with a component
+        % Callback function
         function LoadPreviousModelButtonPushed(app, event)
             ssit.parest.LoadOldProject(app);
             app.SaveCurrentProjectButton.Enable=1;
@@ -1169,7 +1219,7 @@
             editCheckBoxNames(app);
         end
 
-        % Callback function: not associated with a component
+        % Callback function
         function LinkDataandModelButtonPushed(app, event)
             marginalizeDataGui(app);
             selectallButtonPushed(app, event);
@@ -1280,7 +1330,7 @@
             ModelUpdateButtonPushed(app);
         end
 
-        % Callback function: not associated with a component
+        % Callback function
         function SaveCurrentProjectButtonPushed(app, event)
             ssit.parest.SaveCurrentProject(app)
         end
@@ -1543,8 +1593,8 @@
 
         % Value changed function: ModelAbout
         function ModelAboutValueChanged(app, event)
-            value = app.ModelAbout.Value;
-            % TODO - Add function to update model information field.
+            % Update information in model when next saved.
+            app.SSITModel.description = app.ModelAbout.Value;
         end
 
         % Value changed function: ChooseSSITModel
@@ -1553,6 +1603,7 @@
             Model = load(app.ModelFile.fileName,app.ChooseSSITModel.Value);
             app.SSITModel = Model.(app.ChooseSSITModel.Value);
             app.ModelFile.modelName = app.ChooseSSITModel.Value;
+            app.ModelFile.propFileName = []; % Clear name of propensity functions.
             updateAppFromSSIT(app)
         end
 
@@ -1657,6 +1708,46 @@
             [~,~,app.SSITModel] = app.SSITModel.solve;
             app.SSITModel.makeFitPlot
         end
+
+        % Value changed function: RenameSpeciesDropDown
+        function RenameSpeciesDropDownValueChanged(app, event)
+            value = app.RenameSpeciesDropDown.Value;
+            if strcmp(value,'Select')
+                return  % no species selected.
+            end
+            prompt = {'New Species Name:'};
+            dlgtitle = ['Enter new name for species',value];
+            dims = [1 50];  % [height width] of input field
+            defaultInput = {value};
+            newname = inputdlg(prompt, dlgtitle, dims, defaultInput);
+            J = strcmp(app.SSITModel.species,newname{1});
+            if sum(J)>=1
+                error('There is already another species with that name. ')
+            elseif sum(J)==0
+                J2 = strcmp(app.SSITModel.parameters(:,1),newname{1});
+                if sum(J2)>0
+                    disp('Warning -- there is a parameter by that name.  It will be removed and replaced with this new species.')
+                end
+
+                app.SSITModel.species(strcmp(app.SSITModel.species,value)) = newname;
+                nRxn = length(app.SSITModel.propensityFunctions);
+                for iRxn = 1:nRxn
+                    app.SSITModel.propensityFunctions{iRxn} = strrep(app.SSITModel.propensityFunctions{iRxn},value,newname{1});
+                    eqn =  str2sym(app.SSITModel.propensityFunctions{iRxn}); eqn =  subs(eqn,value,newname{1}); str = char(eqn);
+                    app.SSITModel.propensityFunctions{iRxn} = str;
+                    app.ModelReactionTable.Data{iRxn,4} = str;
+                end
+                ModelReactionTableCellEdit(app, event)
+                updateAppFromSSIT(app,false,true);
+            end
+
+        end
+
+        % Button pushed function: ModelSaveButton_2
+        function ModelSaveButton_2Pushed(app, event)
+            eval([app.ModelFile.modelName,'=app.SSITModel;'])
+            save(app.ModelFile.fileName,app.ModelFile.modelName,'-append');
+        end
     end
 
     % Component initialization
@@ -1668,7 +1759,7 @@
             % Create UIFigure and hide until all components are created
             app.UIFigure = uifigure('Visible', 'off');
             app.UIFigure.AutoResizeChildren = 'off';
-            app.UIFigure.Position = [100 100 1397 666];
+            app.UIFigure.Position = [100 100 1396 666];
             app.UIFigure.Name = 'UI Figure';
             app.UIFigure.SizeChangedFcn = createCallbackFcn(app, @updateAppLayout, true);
 
@@ -1798,7 +1889,7 @@
             app.ModelSaveButton.BackgroundColor = [0 1 0];
             app.ModelSaveButton.FontWeight = 'bold';
             app.ModelSaveButton.Tooltip = {'Press this button to save your current model and parameters.'};
-            app.ModelSaveButton.Position = [1185 36 100 28];
+            app.ModelSaveButton.Position = [1184 65 100 28];
             app.ModelSaveButton.Text = 'Save Model';
 
             % Create ModelLoadButton
@@ -1899,13 +1990,13 @@
             % Create DeleteSpeciesDropDownLabel
             app.DeleteSpeciesDropDownLabel = uilabel(app.ModelTab);
             app.DeleteSpeciesDropDownLabel.HorizontalAlignment = 'right';
-            app.DeleteSpeciesDropDownLabel.Position = [207 443 85 22];
+            app.DeleteSpeciesDropDownLabel.Position = [412 440 85 22];
             app.DeleteSpeciesDropDownLabel.Text = 'Delete Species';
 
             % Create DeleteSpeciesDropDown
             app.DeleteSpeciesDropDown = uidropdown(app.ModelTab);
             app.DeleteSpeciesDropDown.ValueChangedFcn = createCallbackFcn(app, @DeleteSpeciesDropDownValueChanged, true);
-            app.DeleteSpeciesDropDown.Position = [300 443 100 22];
+            app.DeleteSpeciesDropDown.Position = [505 440 100 22];
 
             % Create AbouttheModelLabel
             app.AbouttheModelLabel = uilabel(app.ModelTab);
@@ -1961,6 +2052,31 @@
             app.SpeciesTable.CellEditCallback = createCallbackFcn(app, @SpeciesTableCellEdit, true);
             app.SpeciesTable.Tooltip = {'Adjust constant parameters here.'};
             app.SpeciesTable.Position = [1112 411 244 167];
+
+            % Create RenameSpeciesDropDownLabel
+            app.RenameSpeciesDropDownLabel = uilabel(app.ModelTab);
+            app.RenameSpeciesDropDownLabel.HorizontalAlignment = 'right';
+            app.RenameSpeciesDropDownLabel.Position = [196 440 96 22];
+            app.RenameSpeciesDropDownLabel.Text = 'Rename Species';
+
+            % Create RenameSpeciesDropDown
+            app.RenameSpeciesDropDown = uidropdown(app.ModelTab);
+            app.RenameSpeciesDropDown.ValueChangedFcn = createCallbackFcn(app, @RenameSpeciesDropDownValueChanged, true);
+            app.RenameSpeciesDropDown.Position = [300 440 100 22];
+
+            % Create ModelSaveButton_2
+            app.ModelSaveButton_2 = uibutton(app.ModelTab, 'push');
+            app.ModelSaveButton_2.ButtonPushedFcn = createCallbackFcn(app, @ModelSaveButton_2Pushed, true);
+            app.ModelSaveButton_2.BackgroundColor = [0 1 0];
+            app.ModelSaveButton_2.FontWeight = 'bold';
+            app.ModelSaveButton_2.Tooltip = {'Press this button to save your current model and parameters.'};
+            app.ModelSaveButton_2.Position = [1082 22 75 28];
+            app.ModelSaveButton_2.Text = 'Quick Save';
+
+            % Create FileModelLabel
+            app.FileModelLabel = uilabel(app.ModelTab);
+            app.FileModelLabel.Position = [1166 20 203 30];
+            app.FileModelLabel.Text = {'File:'; 'Model:'};
 
             % Create StochasticSimulationTab
             app.StochasticSimulationTab = uitab(app.TabGroup);

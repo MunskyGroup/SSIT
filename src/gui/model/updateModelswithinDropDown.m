@@ -10,6 +10,12 @@ J = strfind(value,'.');
 app.ModelFile.modelName = value(1:J(end)-1);
 if strcmp(value(end-2:end),'mat')
     [app] = loadModelBP(app, [], fileName);
+
+    if ~exist(['RemovedModels/',app.ModelUsePresetExampleTypeDropDown.Value],'dir')
+        mkdir(['RemovedModels/',app.ModelUsePresetExampleTypeDropDown.Value]);
+    end
+    movefile(fileName,['RemovedModels/',app.ModelUsePresetExampleTypeDropDown.Value]);
+    
 elseif strcmp(value(end-1:end),'.m')
     app.ReactionsTabOutputs.parameters={};
     app.ReactionsTabOutputs.presetParameters = {};
@@ -27,6 +33,12 @@ elseif strcmp(value(end-1:end),'.m')
         app.ModelAbout.Value = {'About the Model';'';'Not provided'};
     end
     
+    % Call code to update model and save .mat version for later use.
     updateModel(app,true,fileName,1);
+
+    if ~exist(['RemovedModels/',app.ModelUsePresetExampleTypeDropDown.Value],'dir')
+        mkdir(['RemovedModels/',app.ModelUsePresetExampleTypeDropDown.Value]);
+    end
+    movefile(fileName,['RemovedModels/',app.ModelUsePresetExampleTypeDropDown.Value]);
 end
 updateTimeSliderFsp(app);

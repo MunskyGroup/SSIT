@@ -22,7 +22,10 @@ for iField = 1:length(columns)
     if isnumeric(Tab{1,iField})
         txt{end+1} = [columns{iField},': ',num2str(Tab{1,iField}),', numeric'];
         app.DataLoadingAndFittingTabOutputs.columnTypes{iField} = 'numeric';
-    else
+    elseif iscell(Tab{1,iField})
+        txt{end+1} = [columns{iField},': ',Tab{1,iField}{1},', string'];
+        app.DataLoadingAndFittingTabOutputs.columnTypes{iField} = 'string';
+    elseif ischar(Tab{1,iField})
         txt{end+1} = [columns{iField},': ',Tab{1,iField},', string'];
         app.DataLoadingAndFittingTabOutputs.columnTypes{iField} = 'string';
     end        
@@ -31,7 +34,11 @@ app.FieldsinDataTextArea.Value = txt;
 
 J = strcmp(columns,'time');
 if sum(J) == 0
-    error('Required column not detected for "time".')
+    options = columns;
+    [idx, tf] = listdlg('PromptString', 'Select the column for time:', ...
+        'SelectionMode', 'single', ...
+        'ListString', options);
+    Tab.Properties.VariableNames{idx} = 'time';
 end
 
 app.ParEstFitTimesList.Items = cellstr(num2str(unique(Tab.time)));
