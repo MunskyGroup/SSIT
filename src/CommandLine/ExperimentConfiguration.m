@@ -3,6 +3,11 @@ classdef ExperimentConfiguration
         NumberOfObservations (1, 1) double {mustBeInteger, mustBeNonnegative} = 0
         Configurables (1, :) AbstractExperimentConfigurable = createArray(1,1,"ExperimentTimeConfigurable")
     end
+
+    properties (Dependent)
+        FilenameString
+    end
+
     methods
         function disp(obj)
             for configIdx = 1:length(obj.Configurables)
@@ -20,6 +25,16 @@ classdef ExperimentConfiguration
             for configIdx = 1:length(obj.Configurables)
                 model = obj.Configurables(configIdx).applyToModel(model);
             end
+        end
+
+        function filenameString = get.FilenameString(obj)
+            numConfigurables = length(obj.Configurables);
+            filenameString = createArray(1, numConfigurables, "string");
+            for configIdx = 1:length(obj.Configurables)
+                filenameString(configIdx) = ...
+                    obj.Configurables(configIdx).FilenameString;
+            end
+            filenameString = join(filenameString, "_");
         end
     end
 end

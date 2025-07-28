@@ -3,6 +3,10 @@ classdef ExperimentInputConfigurable < AbstractExperimentConfigurable
         InputName (1, 1) string
         Values (1, :) double {mustBeNonempty} = [0]
     end
+
+    properties (Dependent)
+        FilenameString
+    end
     
     methods
         function model = applyToModel(obj, model)
@@ -32,6 +36,11 @@ classdef ExperimentInputConfigurable < AbstractExperimentConfigurable
         function disp(obj)
             fprintf('%s = %s\n', obj.InputName, num2str(obj.Values))           
         end
+
+        function filenameString = get.FilenameString(obj)
+            filenameString = join([obj.InputName num2str(obj.Values)], "_");
+        end
+
         function value = getSingleValue(obj)
             if length(obj.Values) > 1
                 error('Called getSingleValue on configurable ' + obj.disp)

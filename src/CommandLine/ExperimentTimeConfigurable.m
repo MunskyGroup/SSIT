@@ -2,6 +2,10 @@ classdef ExperimentTimeConfigurable < AbstractExperimentConfigurable
     properties      
         Values (1, :) double {mustBeNonempty, mustBeNonnegative} = [0]
     end
+
+    properties (Dependent)
+        FilenameString
+    end
     
     methods
         function model = applyToModel(obj, model)
@@ -25,6 +29,10 @@ classdef ExperimentTimeConfigurable < AbstractExperimentConfigurable
 
         function disp(obj)           
             disp(['Time = ' num2str(obj.Values)])            
+        end
+
+        function filenameString = get.FilenameString(obj)
+            filenameString = join(["Time" num2str(obj.Values)], "_");
         end
 
         function value = getSingleValue(obj)
