@@ -13,12 +13,13 @@
 % close all
 addpath(genpath('../../src'));
 
-%example_1_CreateSSITModels  
-%example_4_SolveSSITModels_FSP
+% example_1_CreateSSITModels  
+% example_4_SolveSSITModels_FSP
 
 % View model summaries
 Model_FSP.summarizeModel
 STL1_FSP.summarizeModel
+STL1_FSP_4state.summarizeModel
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(1): Solve sensitivities of the bursting gene model
@@ -67,7 +68,7 @@ STL1_sens.makePlot(STL1_sensSoln,'marginals',[],false,...
                    [fig4,fig5,fig6],{'b','linewidth',2})
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Ex(2): Solve sensitivities of the 4-state time-varying STL1 yeast model
+%% Ex(3): Solve sensitivities of the 4-state time-varying STL1 yeast model
 %  from example_1_CreateSSITModels
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

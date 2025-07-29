@@ -20,7 +20,7 @@ addpath(genpath('../../src'));
 % example_6_SensitivityAnalysis
 % example_7_FIM
 % example_8_LoadingandFittingData_DataLoading
-example_9_LoadingandFittingData_MLE
+% example_9_LoadingandFittingData_MLE
 
 % View model summaries:
 STL1_MLE_refit.summarizeModel
