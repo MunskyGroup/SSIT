@@ -469,7 +469,7 @@ classdef Propensity
                 if computeSens
                     obj{1}.sensStateFactorVec = sym2mFun(expr_x_vec_sens, false, true, nonXTpars(:,1), speciesStoch, varODEs, false, true, [prefixNameLocal,'_s']);
                     poolobj = gcp("nocreate");
-                    if ~isempty(poolobj)
+                    if ~isempty(poolobj)&&n_reactions>0
                         parfor iRxn = 1:n_reactions
                             obj{iRxn}.sensStateFactor = cell(1,n_pars);
                             for ipar = 1:n_pars
@@ -724,6 +724,7 @@ else
     exprJac=[];
 end
 
+
 exprStr = char(symbolicExpression);
 
 % Get rid of  max rules.
@@ -733,9 +734,6 @@ if ~isempty(k)
 end
 
 % exprStr = char(strrep(exprStr,", [], 2, 'omitnan', false",""));
-
-
-
 opVar = {'*','/','^'};
 for i = 1:length(opVar)
     op = opVar{i};
@@ -783,8 +781,9 @@ end
 [~,J] = sort(lens,'descend');
 
 for i = 1:length(nonXTpars)
-    exprStr = strrep(exprStr, nonXTpars{J(i)}, ['Parameters(',num2str(J(i)),')']);
+    exprStr = strrep(exprStr, nonXTpars{J(i)}, ['$(',num2str(J(i)),')']);
 end
+exprStr = strrep(exprStr,'$','Parameters');
 
 for i = length(nonXTpars):-1:1
     exprStr = strrep(exprStr, ['parameters',num2str(i)], ['Parameters(',num2str(i),')']);
@@ -888,6 +887,10 @@ if writeFiles
         else
             exprHandle = matlabFunction(symbolicExpression,'Vars',{states,parameters,varODEs},'File',fn,'Sparse',true);
         end
+    end
+    if ~strcmp(which(func2str(exprHandle)),fn)
+        disp('WARNING -- it appears that new propensity functions is redundant to one already on the search path.')
+        disp(['at: ',which(func2str(exprHandle))]);
     end
 else
     exprHandle=[];

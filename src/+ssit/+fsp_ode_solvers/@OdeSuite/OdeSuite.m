@@ -4,11 +4,12 @@ classdef OdeSuite < ssit.fsp_ode_solvers.OdeSolver
         relTol (1,1) double {mustBePositive} = 1.0e-4
         absTol (1,1) double {mustBePositive} = 1.0e-8   
         solver = @ode23s
+        maxStep (1,1) double {mustBePositive} = 0.01
 %         numODEs = 0
     end
     
     methods
-        function obj = OdeSuite(relTol, absTol, solver)
+        function obj = OdeSuite(relTol, absTol, solver, maxStep)
         % Construct an instance of MexSundials.
         % 
         % Parameters
@@ -27,12 +28,14 @@ classdef OdeSuite < ssit.fsp_ode_solvers.OdeSolver
             relTol (1,1) double {mustBePositive} = 1.0e-4
             absTol (1,1) double {mustBePositive} = 1.0e-8
             solver = 'ode23s'
+            maxStep (1,1) double {mustBePositive} = 1.0
 %             numODEs = 0
         end
         
         obj.relTol = relTol;
         obj.absTol = absTol;
         obj.solver = str2func(solver);
+        obj.maxStep = maxStep;
 %         obj.numODEs = numODEs;
         end
         
@@ -90,9 +93,9 @@ classdef OdeSuite < ssit.fsp_ode_solvers.OdeSolver
         %
         odeEvent = @(t,p) fspOdesuiteEvent(t, p, fspErrorCondition);  
         if length(tOut)>1
-            maxStep = min(tOut(2:end)-tOut(1:end-1))/2;
+            maxStep = min(obj.maxStep,min(tOut(2:end)-tOut(1:end-1))/2);
         else
-            maxStep = (tOut-tStart)/2;
+            maxStep = min(obj.maxStep,(tOut-tStart)/2);
         end
         if ~isempty(jac)
             ode_opts = odeset('Events', odeEvent, 'Jacobian', jac, 'relTol',...
@@ -165,8 +168,12 @@ end
 sinks = p(end-fspErrorCheck.nSinks-fspErrorCheck.numODEs+1:end-fspErrorCheck.numODEs-fspErrorCheck.nEscapeSinks);
 % error_bound = fspErrorCheck.fspTol*(t-fspErrorCheck.tInit)/(fspErrorCheck.tFinal-fspErrorCheck.tInit);
 
-error_bound = fspErrorCheck.fspTol*...
-    (t-fspErrorCheck.tInit)/(fspErrorCheck.tFinal-fspErrorCheck.tInit);
+if isinf(fspErrorCheck.fspTol)
+    error_bound = inf;
+else
+    error_bound = fspErrorCheck.fspTol*...
+        (t-fspErrorCheck.tInit)/(fspErrorCheck.tFinal-fspErrorCheck.tInit);
+end
 
 % val = max(sinks)*(fspErrorCheck.nSinks-fspErrorCheck.nEscapeSinks) - error_bound;
 val = sum(sinks) - error_bound;

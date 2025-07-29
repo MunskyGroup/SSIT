@@ -471,15 +471,19 @@ classdef SSIT
             %     PropensitiesGeneral = [];
             % end
             
-            objODE = obj;
-            objODE.solutionScheme='ode';
-            objODE.solutionSchemes = {};
-            objODE.useHybrid = true;
-            objODE.hybridOptions.upstreamODEs = obj.species;
-            obj.propensitiesGeneralODE = ...
-                ssit.Propensity.createAsHybridVec(sm, objODE.stoichiometry,...
-                objODE.parameters, objODE.species, objODE.hybridOptions.upstreamODEs,...
-                logicTerms, [prefixName,'_ODE'], computeSens);
+            try
+                objODE = obj;
+                objODE.solutionScheme='ode';
+                objODE.solutionSchemes = {};
+                objODE.useHybrid = true;
+                objODE.hybridOptions.upstreamODEs = obj.species;
+                obj.propensitiesGeneralODE = ...
+                    ssit.Propensity.createAsHybridVec(sm, objODE.stoichiometry,...
+                    objODE.parameters, objODE.species, objODE.hybridOptions.upstreamODEs,...
+                    logicTerms, [prefixName,'_ODE'], computeSens);
+            catch
+                disp('ODE propensities could not be formed, potentially due to logical values')
+            end
 
             obj.propensitiesGeneral = PropensitiesGeneral;
         end

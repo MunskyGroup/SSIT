@@ -4,11 +4,17 @@ function [] = addReactionToReactionsTab(app)
 % defaults to correspond to the reactions in their model.
 
 %%
-species = app.SSITModel.species(:,1);
-nSp = size(species,1);        
-x1 = species{randi(nSp)};
-x2 = species{randi(nSp)};
-x3 = species{randi(nSp)};
+species = app.SSITModel.species;
+nSp = size(species,1); 
+if nSp>=1
+    x1 = species{randi(nSp)};
+    x2 = species{randi(nSp)};
+    x3 = species{randi(nSp)};
+else
+    x1 = 'x1';
+    x2 = 'x2';
+    x3 = 'x3';
+end
 
 N = size(app.ModelReactionTable.Data,1);          % This evaluates the current number of rows of the Reaction Table
 TMP = app.ModelReactionTable.Data;                % Assigns a variable to represent the Reactions Table

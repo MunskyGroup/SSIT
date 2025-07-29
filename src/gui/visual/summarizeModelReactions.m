@@ -49,6 +49,8 @@ hold(ax, 'on');
 % Start compiling text lines
 textLines = {};
 textLines{end+1} = '\textbf{Reactions:}';
+intps = {};
+intps{end+1} = 'latex';
 
 for iR = 1:nRxn
     % Reactants
@@ -74,7 +76,7 @@ for iR = 1:nRxn
     if isempty(jProd)
         prodTxt = 'NULL';
     else
-        if s((1))==1
+        if s(jProd(1))==1
             prodTxt = Species{jProd(1)};
         else
             prodTxt = [num2str(s(jProd(1))),Species{jProd(1)}];
@@ -89,25 +91,45 @@ for iR = 1:nRxn
     end
 
     syms(symvar(Reactions{iR,4}));
-    propstext = latex(simplify(eval(Reactions{iR,4})));
+    if ~contains(Reactions{iR,4},{'=','max','min','>','<'})
+        propstext = latex(simplify(eval(Reactions{iR,4})));
+        intp = 'latex';
+        textLines{end+1} = sprintf('s_{%d}: \\quad %s \\rightarrow %s \\quad | \\quad w_{%d}(x): \\quad %s', ...
+            iR, reactTxt, prodTxt, iR, propstext);
+    else
+        propstext = Reactions{iR,4};
+        propstext = strrep(propstext,'.*','*');
+        propstext = strrep(propstext,'./','/');
+        intp = 'none';
+        textLines{end+1} = sprintf('s{%d}:  %s -> %s  | w{%d}(x): %s', ...
+            iR, reactTxt, prodTxt, iR, propstext);
+    end
     
-    textLines{end+1} = sprintf('s_{%d}: \\quad %s \\rightarrow %s \\quad | \\quad w_{%d}(x): \\quad %s', ...
-    iR, reactTxt, prodTxt, iR, propstext);
+    intps{end+1} = intp;
     
-
 end
 
 % Input Signals
 if ~isempty(Inputs)
-    textLines{end+1} = '-----------';
-    textLines{end+1} = '\textbf{Input Signals:}';
+    textLines{end+1} = '-----------';intps{end+1} = 'latex';
+    textLines{end+1} = '\textbf{Input Signals:}';intps{end+1} = 'latex';
     nI = size(Inputs, 1);
     for i = 1:nI
         syms(symvar(Inputs{i,1}));
         syms(symvar(Inputs{i,2}));
-        InputsTxt1 = latex(simplify(eval(Inputs{i,1})));
-        InputsTxt2 = latex(simplify(eval(Inputs{i,2})));
-        textLines{end+1} = sprintf('%s(t) = %s', InputsTxt1, InputsTxt2);
+    if ~contains(Inputs{i,2},{'=','max','min','>','<'})
+        InputsTxt1 = latex((eval(Inputs{i,1})));
+        InputsTxt2 = latex((eval(Inputs{i,2})));
+        intp = 'latex';
+    else
+        InputsTxt1 = Inputs{i,1};
+        InputsTxt2 = Inputs{i,2};
+        InputsTxt2 = strrep(InputsTxt2,'.*','*');
+        InputsTxt2 = strrep(InputsTxt2,'./','/');
+        intp = 'none';
+    end
+    textLines{end+1} = sprintf('%s(t) = %s', InputsTxt1, InputsTxt2);
+    intps{end+1} = intp;
     end
 end
 
@@ -125,12 +147,20 @@ end
 nLines = length(textLines);
 y = 1; dy = 2;  % line spacing
 for i = 1:nLines
-    text(ax, 0, y, ['$$', textLines{i}, '$$'], ...
-        'Interpreter', 'latex', 'FontSize', 14, ...
-        'VerticalAlignment', 'top', 'Units', 'normalized');
+    switch intps{i}
+        case 'latex'
+            text(ax, 0, y, ['$$', textLines{i}, '$$'], ...
+                'Interpreter', intps{i}, 'FontSize', 14, ...
+                'VerticalAlignment', 'top', 'Units', 'data');
+        case 'none'
+            text(ax, 0, y, textLines{i}, ...
+                'Interpreter', intps{i}, 'FontSize', 14, ...
+                'VerticalAlignment', 'top', 'Units', 'data');
+    end
     y = y - dy * 0.05;
+
 end
 
-
+ax.YLim = [y-0.1,1];
 end
 

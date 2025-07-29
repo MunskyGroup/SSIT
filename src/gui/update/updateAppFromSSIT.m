@@ -156,7 +156,7 @@ if ~isempty(app.SSITModel.dataSet)
 end
 
 %% Update app model description
-summarizeModelReactions(app.SpeciesTable.Data(:,1),app.ModelReactionTable.Data,app.ModelInputTable.Data,app.ReactionTextAxes)
+summarizeModelReactions(app.SSITModel.species,app.ModelReactionTable.Data,app.ModelInputTable.Data,app.ReactionTextAxes)
 
 %% Update propensity function codes
 if updatePropensityFuns
@@ -177,7 +177,11 @@ if updatePropensityFuns
         switch propQuest
             case 'Yes - Overwrite'
                 addpath(genpath([pwd,'/tmpPropensityFunctions/',propFileName]));
-                app.SSITModel = app.SSITModel.formPropensitiesGeneral([propFileName,'/',app.ModelFile.modelName]);
+                try
+                    app.SSITModel = app.SSITModel.formPropensitiesGeneral([propFileName,'/',app.ModelFile.modelName],true);
+                catch
+                    app.SSITModel = app.SSITModel.formPropensitiesGeneral([propFileName,'/',app.ModelFile.modelName],false);
+                end
             case 'No - Use Current'
                 % do nothing
             case 'No - Specify New Location'

@@ -24,6 +24,7 @@ app.SSITModel.fspOptions.bounds = app.FspTabOutputs.bounds';
 app.SSITModel.tSpan = unique(eval(app.FspPrintTimesField.Value));        % Pulls the time array from the app
 app.SSITModel.fspOptions.fspTol = app.FspErrorTolField.Value;            % Pulls the specified error tolerance for the FSP Analysis
 app.SSITModel.fspOptions.initApproxSS = app.initApproxSS.Value;   % Pull if using SS at initial time.
+app.SSITModel.fspOptions.usePiecewiseFSP = app.FspPiecewiseCheckBox.Value;
 
 %% Start FSPCalculations  
 app.FspRunningStatus.Text = 'FSP is running...';

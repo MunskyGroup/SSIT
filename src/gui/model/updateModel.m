@@ -48,6 +48,7 @@ if useOldXspeciesVersion
     species(:,2) = num2cell(zeros(length(species),1));
 else
     species = app.SSITModel.species;
+    species(:,2) = num2cell(app.SSITModel.initialCondition);    
 end
 % pars = unique(species,'stable');    % Removes any repeated propensity
 % app.ReactionsTabOutputs.varNames = pars;
@@ -300,7 +301,7 @@ app.SSITModel.stoichiometry = S;
 app.SSITModel.parameters = pars;
 app.SSITModel.propensityFunctions = Props_vec';
 app.SSITModel.inputExpressions = inputs;
-app.SSITModel.initialCondition = zeros(length(app.SSITModel.species),1);
+app.SSITModel.initialCondition = [app.SpeciesTable.Data{:,2}]';
 app.SSITModel.description = app.ModelAbout.Value;
 % k = strfind(fileName,'.'); k=k(end);
 % k1 = strfind(fileName,'/'); k1=k1(end);

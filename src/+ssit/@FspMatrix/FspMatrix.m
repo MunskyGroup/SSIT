@@ -195,8 +195,16 @@ classdef FspMatrix
                 computeSens = false;
             end
 
+            isTimeDep = false;
+            for i=1:length(obj.terms)
+                if obj.terms{i}.isTimeDependent
+                    isTimeDep = true;
+                    break
+                end
+            end
+
             if obj.terms{1}.isFactorizable
-                if (obj.terms{1}.isTimeDependent)
+                if isTimeDep
                     wt = obj.terms{1}.propensity.hybridFactorVector(t,parameters);
                     A = wt(1)*obj.terms{1}.matrix;
                 else
