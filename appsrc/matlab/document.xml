@@ -10,6 +10,7 @@
         ModelTab                        matlab.ui.container.Tab
         FileModelLabel                  matlab.ui.control.Label
         ModelSaveButton_2               matlab.ui.control.Button
+        NewModelButton                  matlab.ui.control.Button
         RenameSpeciesDropDown           matlab.ui.control.DropDown
         RenameSpeciesDropDownLabel      matlab.ui.control.Label
         SpeciesTable                    matlab.ui.control.Table
@@ -398,6 +399,9 @@
         ModelFile
         UnsavedChanges = true
     end
+    
+    methods (Access = private)
+    end
 
 
     % Callbacks that handle component events
@@ -451,7 +455,7 @@
             cla(app.SsaHistAxes);           % Empties the histogram in the SSA tab
             cla(app.FspAxes);           % Empties the marginals in the FSP tab
 
-            summarizeModelReactions(app.SpeciesTable.Data(:,1),app.ModelReactionTable.Data,app.ModelInputTable.Data,app.ReactionTextAxes)
+            summarizeModelReactions(app.SSITModel.species,app.ModelReactionTable.Data,app.ModelInputTable.Data,app.ReactionTextAxes)
             app.UnsavedChanges = true;
         end
 
@@ -550,7 +554,7 @@
             % Function saves the edits created to a Preset model or your own model
             % saveModelBP(app);
             dlgtitle = 'Choose File to Save or Append Model';
-            [fileName,filePath] = uiputfile('*.mat',dlgtitle);
+            [fileName,filePath] = uiputfile('*.mat',dlgtitle,app.ModelFile.fileName);
 
             dlgtitle = 'Save Model';
             dims = [1 50];  % [height width] of input field
@@ -561,9 +565,11 @@
                 if any(strcmp({info.class}, 'SSIT'))
                     Models = {info(strcmp({info.class}, 'SSIT')).name};
                     k = length(Models);
-                    defaultInput = {['Model',num2str(k+1)],'yes'};
-                    prompt = {['Model Name (Existing Models:',Models{:}],'Append (yes/no)'};
+                    % defaultInput = {['Model',num2str(k+1)],'yes'};
+                    defaultInput = {app.ModelFile.modelName,'yes'};
+                    prompt = {['Model Name (Existing Models:',Models{:}],'Append (yes=append/no=overwrite)'};
                     saveSettings = inputdlg(prompt, dlgtitle, dims, defaultInput);
+                    
                     eval([saveSettings{1},'=app.SSITModel;'])
                     if strcmp(saveSettings{2},'yes')
                         save([filePath,'/',fileName],saveSettings{1},'-append')
@@ -608,11 +614,17 @@
             app.ReactionsTabOutputs.presetParameters = app.ModelParameterTable.Data(:,2);
             app.SSITModel.parameters = app.ModelParameterTable.Data;
             app.SensParameterSelectionTable.Data = app.SSITModel.parameters;
+            fitChoices = app.fit_parameters_table.Data(:,3);
             app.fit_parameters_table.Data ={};
             for iPar = 1:size(app.SensParameterSelectionTable.Data,1)
                 app.SensParameterSelectionTable.Data{iPar,3} = 'y';
                 app.fit_parameters_table.Data(iPar,1) = app.SSITModel.parameters(iPar,1);
                 app.fit_parameters_table.Data(iPar,2) = app.SSITModel.parameters(iPar,2);
+                try
+                    app.fit_parameters_table.Data{iPar,3} = fitChoices{iPar};
+                catch
+                    app.fit_parameters_table.Data{iPar,3} = 'y';
+                end
             end
             
             % Any update or change to the Parameters table will result in a cleared graphs in the other tabs
@@ -1748,6 +1760,14 @@
             eval([app.ModelFile.modelName,'=app.SSITModel;'])
             save(app.ModelFile.fileName,app.ModelFile.modelName,'-append');
         end
+
+        % Button pushed function: NewModelButton
+        function NewModelButtonPushed(app, event)
+            app.ModelFile.fileName = 'GUIModels/NewModel.mat';
+            app.ModelFile.modelName = 'BlankModel';
+            app.SSITModel = SSIT('Empty');
+            updateAppFromSSIT(app,false,true);
+        end
     end
 
     % Component initialization
@@ -1955,7 +1975,7 @@
             app.LoadSBMLModelButton.ButtonPushedFcn = createCallbackFcn(app, @LoadSBMLModelButtonPushed, true);
             app.LoadSBMLModelButton.BackgroundColor = [1 1 0];
             app.LoadSBMLModelButton.FontWeight = 'bold';
-            app.LoadSBMLModelButton.Position = [16 521 121 23];
+            app.LoadSBMLModelButton.Position = [135 520 121 23];
             app.LoadSBMLModelButton.Text = 'Load SBML Model';
 
             % Create CreateNewNStateModelButton
@@ -1965,7 +1985,7 @@
             app.CreateNewNStateModelButton.FontWeight = 'bold';
             app.CreateNewNStateModelButton.Enable = 'off';
             app.CreateNewNStateModelButton.Visible = 'off';
-            app.CreateNewNStateModelButton.Position = [150 522 169 23];
+            app.CreateNewNStateModelButton.Position = [269 521 169 23];
             app.CreateNewNStateModelButton.Text = 'Create New N-State Model';
 
             % Create DeleteReactionDropDown_2Label
@@ -2064,18 +2084,26 @@
             app.RenameSpeciesDropDown.ValueChangedFcn = createCallbackFcn(app, @RenameSpeciesDropDownValueChanged, true);
             app.RenameSpeciesDropDown.Position = [300 440 100 22];
 
+            % Create NewModelButton
+            app.NewModelButton = uibutton(app.ModelTab, 'push');
+            app.NewModelButton.ButtonPushedFcn = createCallbackFcn(app, @NewModelButtonPushed, true);
+            app.NewModelButton.BackgroundColor = [1 1 0];
+            app.NewModelButton.FontWeight = 'bold';
+            app.NewModelButton.Position = [13 520 93 23];
+            app.NewModelButton.Text = 'New Model';
+
             % Create ModelSaveButton_2
             app.ModelSaveButton_2 = uibutton(app.ModelTab, 'push');
             app.ModelSaveButton_2.ButtonPushedFcn = createCallbackFcn(app, @ModelSaveButton_2Pushed, true);
             app.ModelSaveButton_2.BackgroundColor = [0 1 0];
             app.ModelSaveButton_2.FontWeight = 'bold';
             app.ModelSaveButton_2.Tooltip = {'Press this button to save your current model and parameters.'};
-            app.ModelSaveButton_2.Position = [1082 22 75 28];
+            app.ModelSaveButton_2.Position = [903 21 75 28];
             app.ModelSaveButton_2.Text = 'Quick Save';
 
             % Create FileModelLabel
             app.FileModelLabel = uilabel(app.ModelTab);
-            app.FileModelLabel.Position = [1166 20 203 30];
+            app.FileModelLabel.Position = [986 20 383 30];
             app.FileModelLabel.Text = {'File:'; 'Model:'};
 
             % Create StochasticSimulationTab
