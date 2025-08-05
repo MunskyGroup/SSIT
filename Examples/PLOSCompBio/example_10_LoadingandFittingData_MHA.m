@@ -86,18 +86,17 @@ STL1_4state_MH_FIM.fittingOptions.modelVarsToFit = [1:15];
 STL1_4state_MH_FIM_pars = [STL1_4state_MH_FIM.parameters{:,2}];         
 
 % Compute individual FIMs:
-STL1_4state_MH_FIM_fimResults = STL1_4state_MH_FIM.computeFIM([],'log'); 
+fimResults = STL1_4state_MH_FIM.computeFIM([],'log'); 
 
 % Compute total FIM including effect of prior:
-STL1_4state_MH_FIM_fimTotal = ...
-    STL1_4state_MH_FIM.evaluateExperiment(STL1_4state_MH_FIM_fimResults,...
-    STL1_4state_MH_FIM.dataSet.nCells,diag(sig_log10.^2)); 
+fimTotal = STL1_4state_MH_FIM.evaluateExperiment(fimResults,...
+           STL1_4state_MH_FIM.dataSet.nCells,diag(sig_log10.^2)); 
 
 % Choose parameters to search:
 STL1_4state_MH_FIM.fittingOptions.modelVarsToFit = [1:15]; 
 
 % Select FIM for free parameters:
-FIMfree = STL1_4state_MH_FIM_fimTotal{1}([1:15],[1:15]); 
+FIMfree = fimTotal{1}([1:15],[1:15]); 
 
 % Estimate the covariance using CRLB:
 COVfree = (1/2*(FIMfree + FIMfree'))^(-1);  
@@ -111,7 +110,7 @@ STL1_4state_MH_FIM_FIMOptions = ...
  'numberOfSamples',2000,'burnin',200,'thin',2);
 
 % Run Metropolis Hastings
-[STL1_4state_MH_FIM_pars,~,FIM_MHResults] = ...
+[STL1_4state_MH_FIM_pars,~,STL1_FIM_MHResults] = ...
     STL1_4state_MH_FIM.maximizeLikelihood([], ...
     STL1_4state_MH_FIM_FIMOptions, 'MetropolisHastings'); 
 
@@ -120,7 +119,7 @@ STL1_4state_MH_FIM.parameters([1:15],2) = ...
     num2cell(STL1_4state_MH_FIM_pars);
 
 % Plot MH samples, FIM:
-STL1_4state_MH_FIM.plotMHResults(FIM_MHResults,FIMfree,'log',[])
+STL1_4state_MH_FIM.plotMHResults(STL1_FIM_MHResults,FIMfree,'log',[])
 STL1_4state_MH_FIM.makeFitPlot
 
 
