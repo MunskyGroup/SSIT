@@ -17,7 +17,7 @@ addpath(genpath('../../src'));
 % example_4_SolveSSITModels_FSP
 
 loadPrevious = true;
-savedWorkspace = 'example_4_SolveSSITModels_FSP';
+savedWorkspace = 'example_6_SensitivityAnalysis';
 
 % View model summaries
 Model_FSP.summarizeModel

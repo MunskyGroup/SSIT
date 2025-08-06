@@ -11,7 +11,7 @@
 %close all
 %addpath(genpath('../../'));
 
-example_1_CreateSSITModels
+%example_1_CreateSSITModels
 
 % View model summaries:
 Model.summarizeModel

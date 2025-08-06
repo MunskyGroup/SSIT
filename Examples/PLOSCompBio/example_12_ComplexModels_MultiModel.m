@@ -2,12 +2,11 @@
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Section 2.5: Complex models
-%   * Fitting multiple models and data sets with shared parameters
+%   * Fit multiple models and data sets with shared parameters
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Preliminaries
-% Use the STL1 model from example_1_CreateSSITModels and data loaded into
-% the model from example_8_LoadingandFittingData_MLE
+% Use the STL1 and 4-state STL1 models from example_1_CreateSSITModels 
 %clear
 %close all
 addpath(genpath('../../src'));
@@ -16,81 +15,122 @@ addpath(genpath('../../src'));
 
 % View model summaries:
 STL1.summarizeModel
+STL1_4state.summarizeModel
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Fit Multiple Models and Data sets with Shared Parameters
-% Example script to show how multiple SSIT models and data sets can be fit
-% simultaneously.  This is most useful in situations where:
-%   1) the analysis considers different experimental conditions (e.g.,
-%   different time points, different inducer concentrations, different
-%   genetic mutations).
-%   2) replica to replica variations are expected that would result in
-%   slightly different parameter combinations
+%% Example script to show how multiple SSIT models and data sets can be fit
+%% simultaneously.  This is most useful in situations where:
+%   1) The analysis considers different experimental conditions (e.g.,
+%      different time points, different inducer concentrations, different
+%      genetic mutations).
+%   2) Replica-to-replica variations are expected that would result in
+%      slightly different parameter combinations
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%% Define SSIT Model
-% SSIT models are defined as usual:
-Model1 = SSIT;
-Model1.species = {'onGene';'rna'};
-Model1.initialCondition = [0;0];
-Model1.propensityFunctions = {'kon*IGR*(2-onGene)';'koff*onGene';'kr*onGene';'gr*rna'};
-Model1.stoichiometry = [1,-1,0,0;0,0,1,-1];
-Model1.inputExpressions = {'IGR','1+a1*exp(-r1*t)*(1-exp(-r2*t))'};
-Model1.parameters = ({'koff',0.14;'kon',0.14;'kr',10;'gr',0.01;...
-    'a1',0.4;'r1',0.04;'r2',0.1});
-Model1.fspOptions.initApproxSS = true;
+%% Make copies of our models:
+STL1_multi_1 = STL1;
+STL1_4state_multi_1 = STL1_4state;
 
-%% Load and Associate smFISH Data
-% Each model is associated with its data as usual:
-Model1 = Model1.loadData('../ExampleData/DUSP1_Dex_100nM_Rep1_Rep2.csv',{'rna','RNA_nuc'},...
-    {'Rep_num','1'}); % This would load the data assign onGene and rna and condition on Rep_num = 1;
+%% Load and associate smFISH data
+%  Each model is associated with its data as usual 
+%  (example_8_LoadingandFittingData_DataLoading):
 
-Model1.fspOptions.fspTol = inf;
-Model1.fittingOptions.modelVarsToFit = 1:7;
+STL1_multi_1 = ...
+    STL1_multi_1.loadData('data/filtered_data_2M_NaCl_Step.csv',...
+                         {'mRNA','RNA_STL1_total_TS3Full'},...
+                         {'Replica',1;'Condition','0.2M_NaCl_Step'});
 
-% We generate functions for model propensities
-Model1 = Model1.formPropensitiesGeneral('Model1FSP');
+STL1_4state_multi_1 = ...
+   STL1_4state_multi_1.loadData('data/filtered_data_2M_NaCl_Step.csv',...
+                               {'mRNA','RNA_STL1_total_TS3Full'},...
+                               {'Replica',1;'Condition','0.2M_NaCl_Step'});
 
-%% Create Second Model and associate to its own data
-Model2 = Model1;
-Model2 = Model2.loadData('../ExampleData/DUSP1_Dex_100nM_Rep1_Rep2.csv',{'rna','RNA_nuc'},...
-    {'Rep_num','2'}); % This would load the data assign onGene and rna and condition on Rep_num = 1;
+% Set up models for FSP solutions:
+STL1_multi_1.fspOptions.fspTol = inf;
+STL1_4state_multi_1.fspOptions.fspTol = inf;
+STL1_multi_1.fittingOptions.modelVarsToFit = 1:7;
+STL1_4state_multi_1.fittingOptions.modelVarsToFit = 1:15;
+STL1_multi_1.fspOptions.initApproxSS = true;
+STL1_4state_multi_1.fspOptions.initApproxSS = true;
+
+% Generate functions for model propensities:
+STL1_multi_1 = STL1_multi_1.formPropensitiesGeneral('STL1_multi_FSP');
+STL1_4state_multi_1 = ...
+    STL1_4state_multi_1.formPropensitiesGeneral('STL1_4state_multi_FSP');
+
+%% Create a second set of models and associate to their own data 
+%  In this case, our second set will be associated to Replica 2 data
+STL1_multi_2 = STL1_multi_1;
+STL1_multi_2 = ...
+    STL1_multi_2.loadData('data/filtered_data_2M_NaCl_Step.csv',...
+                         {'mRNA','RNA_STL1_total_TS3Full'},...
+                         {'Replica',2;'Condition','0.2M_NaCl_Step'});
+
+STL1_4state_multi_2 = STL1_4state_multi_1;
+STL1_4state_multi_2 = ...
+   STL1_4state_multi_2.loadData('data/filtered_data_2M_NaCl_Step.csv',...
+                               {'mRNA','RNA_STL1_total_TS3Full'},...
+                               {'Replica',2;'Condition','0.2M_NaCl_Step'});
 
 %% Set Fitting Options
 fitAlgorithm = 'fminsearch';
 fitOptions = optimset('Display','final','MaxIter',500);
 
-%%      Example 0 -- single model.
-% This is a simple example, where we only fit one model to a single data
-% set. First, we create a MultiModel class with just our original model:
-singleModel = SSITMultiModel({Model1},{(1:7)});
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Ex(0): Solve a single model
+%  This is a simple example, where we only fit one model to a single data
+%  set, as in example_4_SolveSSITModels_FSP.m
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% We then copy the original parameters into the MultiModel:
-allParsSingle = ([Model1.parameters{:,2}]);
+STL1_singleModel = SSITMultiModel({STL1_multi_1},{(1:7)});
+STL1_4state_singleModel = SSITMultiModel({STL1_4state_multi_1},{(1:15)});
 
-% Next, we run a few rounds of fitting:
+% Copy the original parameters into the MultiModel:
+STL1_allParsSingle = ([STL1_multi_1.parameters{:,2}]);
+STL1_4state_allParsSingle = ([STL1_4state_multi_1.parameters{:,2}]);
+
+% Run a few rounds of fitting:
 for iFit = 1:3
     % Initialize state space:
-    singleModel = singleModel.initializeStateSpaces;
+    STL1_singleModel = STL1_singleModel.initializeStateSpaces;
+    STL1_4state_singleModel = ...
+        STL1_4state_singleModel.initializeStateSpaces;
     
     % Run seach for MLE:
-    allParsSingle = singleModel.maximizeLikelihood(...
-        allParsSingle, fitOptions, fitAlgorithm);
+    STL1_allParsSingle = STL1_singleModel.maximizeLikelihood(...
+        STL1_allParsSingle, fitOptions, fitAlgorithm);
     
-    % Update Model with new parameters:
-    singleModel = singleModel.updateModels(allParsSingle);
+    STL1_4state_allParsSingle = ...
+        STL1_4state_singleModel.maximizeLikelihood(...
+        STL1_4state_allParsSingle, fitOptions, fitAlgorithm);
+    
+    % Update models with new parameters:
+    STL1_singleModel = STL1_singleModel.updateModels(STL1_allParsSingle);
+    STL1_4state_singleModel = ...
+        STL1_4state_singleModel.updateModels(STL1_4state_allParsSingle);
 end
 
 % We then copy the parameters back into Model1 and Model2 so we can reuse them
 % later:
-Model1.parameters = singleModel.SSITModels{1}.parameters;
-Model2.parameters = singleModel.SSITModels{1}.parameters;
+STL1_multi_1.parameters = STL1_singleModel.SSITModels{1}.parameters;
+STL1_multi_2.parameters = STL1_singleModel.SSITModels{1}.parameters;
 
-%%      Example 1 -- Adding new Model+Data to an existing multimodel
-% This is how one adds a second model/data combination.  In this case the
-% parameters of the new model are completely independent of the parameter
-% set for the first model.
-combinedModel = singleModel.addModel({Model2},{8:14});
+STL1_4state_multi_1.parameters = ...
+    STL1_4state_singleModel.SSITModels{1}.parameters;
+STL1_4state_multi_2.parameters = ...
+    STL1_4state_singleModel.SSITModels{1}.parameters;
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Ex(1): Add a new model+data to existing MultiModel
+%  This is how one adds a second model/data combination.  In this case the
+%  parameters of the new model are completely independent of the parameter
+%  set for the first model.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+STL1_combinedModel = STL1_singleModel.addModel({STL1_multi_2},{8:14});
+STL1_4state_combinedModel = ...
+    STL1_4state_singleModel.addModel({STL1_4state_multi_2},{8:14});
+
 combinedModel = combinedModel.initializeStateSpaces;
 allParsCombined = ([Model1.parameters{:,2},[Model2.parameters{:,2}]]);
 allParsCombined = combinedModel.maximizeLikelihood(...
