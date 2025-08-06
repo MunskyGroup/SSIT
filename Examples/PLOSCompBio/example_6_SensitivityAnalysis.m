@@ -16,10 +16,13 @@ addpath(genpath('../../src'));
 % example_1_CreateSSITModels  
 % example_4_SolveSSITModels_FSP
 
+loadPrevious = true;
+savedWorkspace = 'example_4_SolveSSITModels_FSP';
+
 % View model summaries
 Model_FSP.summarizeModel
 STL1_FSP.summarizeModel
-STL1_FSP_4state.summarizeModel
+STL1_4state_FSP.summarizeModel
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(1): Solve sensitivities of the bursting gene model
@@ -74,15 +77,15 @@ STL1_sens.makePlot(STL1_sensSoln,'marginals',[],false,...
 
 % Make a copy of the time-varying STL1 yeast model solved by FSP for 
 % sensitivity analysis:
-STL1_sens_4state = STL1_FSP_4state;
+STL1_4state_sens = STL1_4state_FSP;
 
 %% Solve FSP sensitivities
 % Set solution schemes to FSP sensitivity:
-STL1_sens_4state.solutionScheme = 'fspSens'; 
+STL1_4state_sens.solutionScheme = 'fspSens'; 
 
 % Solve the sensitivity problem: 
-[STL1_sensSoln_4state,STL1_bounds_4state] = ...
-    STL1_sens_4state.solve(STL1_FSPsoln_4state.stateSpace); 
+[STL1_4state_sensSoln,STL1_4state_bounds] = ...
+    STL1_4state_sens.solve(STL1_4state_FSPsoln.stateSpace); 
 
 % Plot the results from the sensitivity analysis:
 fig7 = figure(7);clf; set(fig7,'Name','Marginal Sensitivity, s1');
@@ -90,5 +93,18 @@ fig8 = figure(8);clf; set(fig8,'Name','Marginal Sensitivity, s2');
 fig9 = figure(9);clf; set(fig9,'Name','Marginal Sensitivity, s3');
 fig10 = figure(10);clf; set(fig10,'Name','Marginal Sensitivity, s4');
 fig11 = figure(11);clf; set(fig11,'Name','Marginal Sensitivity, mRNA');
-STL1_sens_4state.makePlot(STL1_sensSoln_4state,'marginals',[],false,...
+STL1_4state_sens.makePlot(STL1_4state_sensSoln,'marginals',[],false,...
                    [fig7,fig8,fig9,fig10,fig11],{'b','linewidth',2})
+
+saveNames = unique({'Model_sens'
+    'Model_sensSoln'
+    'Model_bounds'
+    'STL1_sens'
+    'STL1_sensSoln'
+    'STL1_bounds'
+    'STL1_4state_sens'
+    'STL1_4state_sensSoln'
+    'STL1_4state_bounds'
+    });
+    
+save('example_6_SensitivityAnalysis',saveNames{:})

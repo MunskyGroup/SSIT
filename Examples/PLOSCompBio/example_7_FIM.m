@@ -22,7 +22,7 @@ addpath(genpath('../../src'));
 % View model summaries:
 Model_FSP.summarizeModel
 STL1_FSP.summarizeModel
-STL1_FSP_4state.summarizeModel
+STL1_4state_FSP.summarizeModel
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(1): Compute the Fisher Information Matrix for the bursting gene model
@@ -85,26 +85,27 @@ legend('FIM')
 
 % Make a copy of the 4-state time-varying STL1 yeast model with solved 
 % sensitivities:
-STL1_FIM_4state = STL1_sens_4state;
+STL1_4state_FIM = STL1_4state_sens;
 
 %% Compute FIMs using FSP sensitivity results
 % Compute the FIM:
-STL1_fimResults_4state = ...
-    STL1_FIM_4state.computeFIM(STL1_sensSoln_4state.sens); 
+STL1_4state_fimResults = ...
+    STL1_4state_FIM.computeFIM(STL1_4state_sensSoln.sens); 
 
 % Generate a count of measured cells (in place of real data):
-STL1_cellCounts_4state = 10*ones(size(STL1_FIM_4state.tSpan));
+STL1_4state_cellCounts = 10*ones(size(STL1_4state_FIM.tSpan));
 
 % Evaluate the provided experiment design (in "cellCounts") 
 % and produce an array of FIMs (one for each parameter set):
-[STL1_fimTotal_4state,STL1_mleCovEstimate_4state,STL1_fimMetrics_4state] = ...
-    STL1_FIM_4state.evaluateExperiment(STL1_fimResults_4state,...
-                                       STL1_cellCounts_4state)
+[STL1_4state_fimTotal,STL1_4state_mleCovEstimate,...
+    STL1_4state_fimMetrics] = ...
+    STL1_4state_FIM.evaluateExperiment(STL1_4state_fimResults,...
+                                       STL1_4state_cellCounts)
 
 % Plot the FIMs:
 fig14 = figure(14);clf; set(fig14,'Name',...
      'Fim-Predicted Uncertainty Ellipses');
-STL1_FIM_4state.plotMHResults([],STL1_fimTotal_4state,'log',[],fig14)
+STL1_4state_FIM.plotMHResults([],STL1_4state_fimTotal,'log',[],fig14)
 legend('FIM')
 
 %%
@@ -134,3 +135,26 @@ legend('FIM')
 % between parameters in the STL1 Model, which unlike the base model has a 
 % time-varying input signal. There is not information for the STL1 Model 
 % concerning 'kon', leading to rank deficiency for the FIM.
+
+
+saveNames = unique({'Model_FIM'
+    'Model_fimResults'
+    'Model_cellCounts'
+    'Model_fimTotal'
+    'Model_mleCovEstimate'
+    'Model_fimMetrics'
+    'STL1_FIM'
+    'STL1_fimResults'
+    'STL1_cellCounts'
+    'STL1_fimTotal'
+    'STL1_mleCovEstimate'
+    'STL1_fimMetrics'
+    'STL1_4state_FIM'
+    'STL1_4state_fimResults'
+    'STL1_4state_cellCounts'
+    'STL1_4state_fimTotal'
+    'STL1_4state_mleCovEstimate'
+    'STL1_4state_fimMetrics'
+    });
+    
+save('example_7_FIM',saveNames{:})

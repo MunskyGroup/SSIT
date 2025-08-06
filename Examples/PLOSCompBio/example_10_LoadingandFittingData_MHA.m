@@ -23,7 +23,7 @@ addpath(genpath('../../src'));
 % example_9_LoadingandFittingData_MLE
 
 % View summary of 4-state STL1 model:
-STL1_MLE_4state.summarizeModel
+STL1_4state_MLE.summarizeModel
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Use Metropolis-Hastings to sample uncertainty 
@@ -31,7 +31,7 @@ STL1_MLE_4state.summarizeModel
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Make a copy of our 4-state STL1 model for Metropolis-Hastings (MH):
-STL1_4state_MH = STL1_MLE_4state;
+STL1_4state_MH = STL1_4state_MLE;
 
     % Adjust proposal width scale (the default proposal distribution in 
     % SSIT is "@(x)x+0.1*randn(size(x))", which leads to low acceptance in
@@ -47,14 +47,14 @@ MHOptions.burnin = 200;
 MHOptions.thin = 2;
 
 % Run Metropolis-Hastings: 
-[STL1_MH_pars_4state,~,STL1_MHResults_4state] = ...
+[STL1_4state_MH_pars,~,STL1_4state_MHResults] = ...
     STL1_4state_MH.maximizeLikelihood([], MHOptions, 'MetropolisHastings');
 
 % Store MH parameters in model:
-STL1_4state_MH.parameters([1:15],2) = num2cell(STL1_MH_pars_4state);
+STL1_4state_MH.parameters([1:15],2) = num2cell(STL1_4state_MH_pars);
 
 % Plot results:
-STL1_4state_MH.plotMHResults(STL1_MHResults_4state,[],'log',[])
+STL1_4state_MH.plotMHResults(STL1_4state_MHResults,[],'log',[])
 STL1_4state_MH.makeFitPlot
 
 
@@ -65,7 +65,7 @@ STL1_4state_MH.makeFitPlot
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Make a new copy of our 4-state STL1 model:
-STL1_4state_MH_FIM = STL1_MLE_4state;
+STL1_4state_MH_FIM = STL1_4state_MLE;
 
 %% Compute FIM, Run Metropolis Hastings
 % Specify Prior as log-normal distribution with wide uncertainty
@@ -110,7 +110,7 @@ STL1_4state_MH_FIM_FIMOptions = ...
  'numberOfSamples',2000,'burnin',200,'thin',2);
 
 % Run Metropolis Hastings
-[STL1_4state_MH_FIM_pars,~,STL1_FIM_MHResults] = ...
+[STL1_4state_MH_FIM_pars,~,STL1_4state_FIM_MHResults] = ...
     STL1_4state_MH_FIM.maximizeLikelihood([], ...
     STL1_4state_MH_FIM_FIMOptions, 'MetropolisHastings'); 
 
@@ -119,7 +119,8 @@ STL1_4state_MH_FIM.parameters([1:15],2) = ...
     num2cell(STL1_4state_MH_FIM_pars);
 
 % Plot MH samples, FIM:
-STL1_4state_MH_FIM.plotMHResults(STL1_FIM_MHResults,FIMfree,'log',[])
+STL1_4state_MH_FIM.plotMHResults(STL1_4state_FIM_MHResults,...
+                                 FIMfree,'log',[])
 STL1_4state_MH_FIM.makeFitPlot
 
 
@@ -194,3 +195,22 @@ STL1_4state_MH_it.plotMHResults(STL1_4state_MH_it_MHResults);
 STL1_4state_MH_it.makeFitPlot
 
 %% Evaluating the MH results
+
+
+%% Save models with MLEs
+saveNames = unique({'STL1_4state_MH'
+    'STL1_4state_MH_pars'
+    'STL1_4state_MHResults'
+    'STL1_4state_MH_FIM'
+    'STL1_4state_MH_FIM_pars'
+    'fimResults'
+    'fimTotal'
+    'FIMfree'
+    'COVfree'
+    'STL1_4state_FIM_MHResults'
+    'STL1_4state_MH_it'
+    'STL1_4state_MH_it_pars'
+    'STL1_4state_MH_it_MHResults'
+    });
+    
+save('example_8_LoadingandFittingData',saveNames{:})
