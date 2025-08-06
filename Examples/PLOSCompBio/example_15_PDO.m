@@ -145,7 +145,7 @@ figintens = figure;
 STL1_4state_PDO_intens.plotMHResults(STL1_FIM_MHResults,...
                         [fimPDOintens,fimTotal,fimOpt],'log',[],figintens);
 
-%% Save PDO model + results:
+%% Save PDO models + results:
 saveNames = unique({'STL1_4state_PDO'
     'fimTotal'
     'nTotal'
