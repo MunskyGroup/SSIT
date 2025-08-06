@@ -197,7 +197,7 @@ STL1_4state_MH_it.makeFitPlot
 %% Evaluating the MH results
 
 
-%% Save models with MLEs
+%% Save MH models + results:
 saveNames = unique({'STL1_4state_MH'
     'STL1_4state_MH_pars'
     'STL1_4state_MHResults'
@@ -213,4 +213,4 @@ saveNames = unique({'STL1_4state_MH'
     'STL1_4state_MH_it_MHResults'
     });
     
-save('example_8_LoadingandFittingData',saveNames{:})
+save('example_10_LoadingandFittingData_MHA',saveNames{:})

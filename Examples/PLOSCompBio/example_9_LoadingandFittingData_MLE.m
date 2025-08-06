@@ -72,7 +72,7 @@ Model_MLE.makeFitPlot
 STL1_MLE.makeFitPlot
 STL1_4state_MLE.makeFitPlot
 
-%% Save models with MLEs
+%% Save models with MLEs:
 saveNames = unique({'Model_MLE'
     'STL1_MLE'
     'STL1_4state_MLE'

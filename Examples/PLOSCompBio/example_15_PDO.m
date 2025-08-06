@@ -138,10 +138,28 @@ fimsPDOintens = STL1_4state_PDO_intens.computeFIM([],'log');
 fimPDOintens = STL1_4state_PDO_intens.evaluateExperiment(fimsPDOintens,...
                                             nCellsOpt,diag(sig_log10.^2));
 
-nCellsOptPDO = STL1_4state_PDO_intens.optimizeCellCounts(fimsPDOintens,...
-                                                        nTotal,'tr[1:15]');
-
+nCellsOptPDOintens = STL1_4state_PDO_intens.optimizeCellCounts(...
+                            fimsPDOintens,nTotal,'tr[1:15]');
 
 figintens = figure;
 STL1_4state_PDO_intens.plotMHResults(STL1_FIM_MHResults,...
                         [fimPDOintens,fimTotal,fimOpt],'log',[],figintens);
+
+%% Save PDO model + results:
+saveNames = unique({'STL1_4state_PDO'
+    'fimTotal'
+    'nTotal'
+    'nCellsOpt'
+    'nCellsOptAvail'
+    'fimOpt'
+    'fimOptAvail'
+    'fimsPDO'
+    'fimPDO'
+    'nCellsOptPDO'
+    'STL1_4state_PDO_intens'
+    'fimsPDOintens'
+    'fimPDOintens'
+    'nCellsOptPDOintens'
+    });
+    
+save('example_15_PDO',saveNames{:})
