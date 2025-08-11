@@ -18,6 +18,9 @@ addpath(genpath('../../src'));
 % example_4_SolveSSITModels_FSP
 % example_8_LoadingandFittingData_DataLoading
 
+%% Load pre-run results:
+load('example_8_LoadingandFittingData.mat')
+
 % View model summary:
 Model_data.summarizeModel
 STL1_data.summarizeModel

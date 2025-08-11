@@ -19,6 +19,9 @@ addpath(genpath('../../src'));
 % example_4_SolveSSITModels_FSP
 % example_6_SensitivityAnalysis
 
+%% Load pre-run results:
+load('example_6_SensitivityAnalysis.mat')
+
 % View model summaries:
 Model_FSP.summarizeModel
 STL1_FSP.summarizeModel

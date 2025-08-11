@@ -1,6 +1,6 @@
-%% example_7_MetropolisHastings
-% Example script to demonstrate how to use Metropolis-Hastings to sample
-% uncertainty (and improve model parameter fit to data)
+%% example_11_CrossValidation
+% Example script to demonstrate how to use cross-validation to evaluate
+% fitted model predictions
 addpath(genpath('../../src'));
 
 %% Preliminaries

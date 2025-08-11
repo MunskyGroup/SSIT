@@ -25,11 +25,14 @@ addpath(genpath('tmpPropensityFunctions'));
 % example_9_LoadingandFittingData_MLE
 % example_10_LoadingandFittingData_MHA
 
+%% Load pre-run results:
+load('example_10_LoadingandFittingData_MHA.mat')
+
 % View model summary:
-STL1_4state_MH.summarizeModel
+STL1_4state_MH_it.summarizeModel
 
 % Create a copy of the STL1 model for PDO:
-STL1_4state_PDO = STL1_4state_MH_FIM;
+STL1_4state_PDO = STL1_4state_MH_it;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Section 2.5: Complex models
@@ -51,8 +54,8 @@ fimTotal = ...
     STL1_4state_PDO.evaluateExperiment(fimResults,...
     STL1_4state_PDO.dataSet.nCells,diag(sig_log10.^2));
 
-STL1_4state_PDO.plotMHResults(STL1_FIM_MHResults,[fimTotal],'log',[],...
-                              figNew,plotColors)
+STL1_4state_PDO.plotMHResults(STL1_4state_MH_it_MHResults,[fimTotal],...
+                              'log',[],figNew,plotColors)
 
 %%
 
@@ -73,11 +76,11 @@ fimOpt = STL1_4state_PDO.evaluateExperiment(fimResults,nCellsOpt,...
 fimOptAvail = STL1_4state_PDO.evaluateExperiment(fimResults,...
                                         nCellsOptAvail,diag(sig_log10.^2));
 figOpt = figure;
-STL1_4state_PDO.plotMHResults(STL1_FIM_MHResults,[fimOpt,fimTotal],...
-                              'log',[],figOpt,plotColors);
+STL1_4state_PDO.plotMHResults(STL1_4state_MH_it_MHResults,...
+                             [fimOpt,fimTotal],'log',[],figOpt,plotColors);
 figOptAvail = figure;
-STL1_4state_PDO.plotMHResults(STL1_FIM_MHResults,[fimOptAvail,fimTotal],...
-                              'log',[],figOptAvail,plotColors);
+STL1_4state_PDO.plotMHResults(STL1_4state_MH_it_MHResults,...
+                   [fimOptAvail,fimTotal],'log',[],figOptAvail,plotColors);
 
 f = figure;
 set(f,'Position',[616   748   412   170])
@@ -127,7 +130,7 @@ nCellsOptPDO = STL1_4state_PDO.optimizeCellCounts(fimsPDO,nTotal,...
                                                   'tr[1:15]');
 
 figPDO = figure;
-STL1_4state_PDO.plotMHResults(STL1_FIM_MHResults,...
+STL1_4state_PDO.plotMHResults(STL1_4state_MH_it_MHResults,...
                              [fimPDO,fimTotal,fimOpt],'log',[],figPDO);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -142,7 +145,7 @@ nCellsOptPDOintens = STL1_4state_PDO_intens.optimizeCellCounts(...
                             fimsPDOintens,nTotal,'tr[1:15]');
 
 figintens = figure;
-STL1_4state_PDO_intens.plotMHResults(STL1_FIM_MHResults,...
+STL1_4state_PDO_intens.plotMHResults(STL1_4state_MH_it_MHResults,...
                         [fimPDOintens,fimTotal,fimOpt],'log',[],figintens);
 
 %% Save PDO models + results:

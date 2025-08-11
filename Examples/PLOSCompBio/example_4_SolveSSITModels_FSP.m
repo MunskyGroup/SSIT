@@ -150,7 +150,7 @@ STL1_4state.tSpan = linspace(0,20,200);
     STL1_4state_FSP.makePlot(STL1_4state_FSPsoln,'margmovie',[],false,...
                              [101],{'linewidth',2},'STL1_4state_FSP.mp4')
 
-%% Save FSP model + results
+%% Save FSP models & solutions
 saveNames = unique({'Model_FSP'
     'Model_FSPsoln'
     'STL1_FSP'

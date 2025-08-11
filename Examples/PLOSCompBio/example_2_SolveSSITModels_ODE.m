@@ -85,23 +85,35 @@ STL1_4state.tSpan = linspace(0,20,200);
 
 %% STL1 Model:
     % Create a copy of the time-varying STL1 yeast model for ODEs:
-    STL1_ODE_4state = STL1_4state;
+    STL1_4state_ODE = STL1_4state;
 
     % Set solution scheme to 'ode':
-    STL1_ODE_4state.solutionScheme = 'ode';
+    STL1_4state_ODE.solutionScheme = 'ode';
     
     % This function compiles and stores the given reaction propensities  
     % into symbolic expression functions that use sparse matrices to  
     % operate on the system based on the current state. The functions are 
     % stored with the given prefix, in this case, 'STL1_ODE'
-    STL1_ODE_4state = ...
-        STL1_ODE_4state.formPropensitiesGeneral('STL1_ODE_4state');
+    STL1_4state_ODE = ...
+        STL1_4state_ODE.formPropensitiesGeneral('STL1_4state_ODE');
     
     % Solve ODE and make plots:
-    STL1_ODEsoln_4state = STL1_ODE_4state.solve; 
-    plotODE(STL1_ODEsoln_4state,STL1_ODE_4state.species,...
-            STL1_ODE_4state.tSpan)
+    STL1_4state_ODEsoln = STL1_4state_ODE.solve; 
+    plotODE(STL1_4state_ODEsoln,STL1_4state_ODE.species,...
+            STL1_4state_ODE.tSpan)
 
     %% Make a movie of the ODE solution being plotted:
-    makeODEmovie(STL1_ODEsoln_4state, STL1_ODE_4state.species, ...
-                 STL1_ODE_4state.tSpan, 'STL1_ODE_4state.mp4');
+    makeODEmovie(STL1_4state_ODEsoln, STL1_4state_ODE.species, ...
+                 STL1_4state_ODE.tSpan, 'STL1_4state_ODE.mp4');
+
+
+%% Save ODE models & solutions
+saveNames = unique({'Model_ODE'
+    'STL1_ODE'
+    'STL1_4state_ODE'
+    'Model_ODEsoln'
+    'STL1_ODEsoln'
+    'STL1_4state_ODEsoln'
+    });
+    
+save('example_2_SolveSSITModels_ODE',saveNames{:})

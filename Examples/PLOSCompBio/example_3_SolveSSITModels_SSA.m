@@ -77,7 +77,7 @@ STL1_4state.tSpan = linspace(0,20,200);
 % time-varying STL1 yeast model from example_1_CreateSSITModels  
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%% STL1 Model:
+%% STL1 model:
     % Create a copy of the time-varying STL1 yeast model for SSA:
     STL1_SSA = STL1;
 
@@ -123,43 +123,54 @@ STL1_4state.tSpan = linspace(0,20,200);
 % time-varying STL1 yeast model from example_1_CreateSSITModels  
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%% STL1 Model:
+%% STL1 4-state model:
     % Create a copy of the time-varying STL1 yeast model for SSA:
-    STL1_SSA_4state = STL1_4state;
+    STL1_4state_SSA = STL1_4state;
 
     % Set solution scheme to SSA:
-    STL1_SSA_4state.solutionScheme = 'SSA';
+    STL1_4state_SSA.solutionScheme = 'SSA';
 
     % 'nSimsPerExpt' is an SSA option that defaults to 100, sets the number
     % of simulations performed per experiment (set small number for demo)
-    STL1_SSA_4state.ssaOptions.nSimsPerExpt=10;
+    STL1_4state_SSA.ssaOptions.nSimsPerExpt=10;
 
     % 'verbose' defaults to false, prints completed sim number to screen
-    STL1_SSA_4state.ssaOptions.verbose=true;
+    STL1_4state_SSA.ssaOptions.verbose=true;
     
     % This function compiles and stores the given reaction propensities  
     % into symbolic expression functions that use sparse matrices to  
     % operate on the system based on the current state. The functions are 
     % stored with the given prefix, in this case, 'STL1_SSA'
-    STL1_SSA_4state = ...
-        STL1_SSA_4state.formPropensitiesGeneral('STL1_SSA_4state');
+    STL1_4state_SSA = ...
+        STL1_4state_SSA.formPropensitiesGeneral('STL1_4state_SSA');
     
     % A negative initial time is used to allow model to equilibrate 
     % before starting (burn-in). Large burn-in times cause long run times.
-    STL1_SSA_4state.tSpan = [-1,STL1_SSA_4state.tSpan];
+    STL1_4state_SSA.tSpan = [-1,STL1_4state_SSA.tSpan];
 
     % Set the initial time:
-    STL1_SSA_4state.initialTime = STL1_SSA_4state.tSpan(1); 
+    STL1_4state_SSA.initialTime = STL1_4state_SSA.tSpan(1); 
     
     % Run iterations in parallel with multiple cores, or execute serially:
-    STL1_SSA_4state.ssaOptions.useParallel = true;
+    STL1_4state_SSA.ssaOptions.useParallel = true;
     
     % Run SSA:
-    STL1_SSAsoln_4state = STL1_SSA_4state.solve;
+    STL1_4state_SSAsoln = STL1_4state_SSA.solve;
             
     % Plot SSA trajectories and means:
-    plotSSA(STL1_SSAsoln_4state, 'all', 100, STL1_SSA_4state.species);
+    plotSSA(STL1_4state_SSAsoln, 'all', 100, STL1_4state_SSA.species);
 
     %% Make a video of the SSA trajectories being plotted:
-    makeSSAvideo(STL1_SSAsoln_4state, 'all', 100, ...
-        STL1_SSA_4state.species, 'STL1_SSA_video_4state')
+    makeSSAvideo(STL1_4state_SSAsoln, 'all', 100, ...
+        STL1_4state_SSA.species, 'STL1_SSA_video_4state')
+
+%% Save SSA models & solutions
+saveNames = unique({'Model_SSA'
+    'STL1_SSA'
+    'STL1_4state_SSA'
+    'Model_SSAsoln'
+    'STL1_SSAsoln'
+    'STL1_4state_SSAsoln'
+    });
+    
+save('example_3_SolveSSITModels_SSA',saveNames{:})
