@@ -7,20 +7,20 @@
 
 %% Preliminaries
 % Use the STL1 model from example_1_CreateSSITModels, FSP solutions from 
-% example_4_SolveSSITModels_FSP, sensitivities 
-% from example_6_SensitivityAnalysis, the FIM from example_7_FIM, data   
-% loaded in example_8_LoadingandFittingData_DataLoading, and MLE computed 
-% in example_9_LoadingandFittingData_MLE
+% example_4_SolveSSITModels_FSP, data loaded in 
+% example_8_LoadingandFittingData_DataLoading, and MLE computed in
+% example_9_LoadingandFittingData_MLE
 %clear
 %close all
 addpath(genpath('../../src'));
 
 % example_1_CreateSSITModels  
 % example_4_SolveSSITModels_FSP
-% example_6_SensitivityAnalysis
-% example_7_FIM
 % example_8_LoadingandFittingData_DataLoading
 % example_9_LoadingandFittingData_MLE
+
+%% Load pre-computed FSP solutions + loaded data + MLEs:
+load('example_9_LoadingandFittingData_MLE.mat')
 
 % View summary of 4-state STL1 model:
 STL1_4state_MLE.summarizeModel
@@ -197,7 +197,7 @@ STL1_4state_MH_it.makeFitPlot
 %% Evaluating the MH results
 
 
-%% Save MH models + results:
+%% Save models & MH results:
 saveNames = unique({'STL1_4state_MH'
     'STL1_4state_MH_pars'
     'STL1_4state_MHResults'

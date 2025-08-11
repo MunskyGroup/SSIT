@@ -133,3 +133,13 @@ RepGenes_Model = SSIT(ModelChoice);
 
 % View a summary of the 'RepressilatorGenes' model:
 RepGenes_Model.summarizeModel
+
+
+%% Save the basic Bursting Gene model, simple STL1 model, and 4-state STL1 
+%% model for later use:
+saveNames = unique({'Model'
+    'STL1'
+    'STL1_4state'
+    });
+    
+save('example_1_CreateSSITModels',saveNames{:})

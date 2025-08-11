@@ -18,7 +18,7 @@ addpath(genpath('../../src'));
 % example_4_SolveSSITModels_FSP
 % example_8_LoadingandFittingData_DataLoading
 
-%% Load pre-run results:
+%% Load pre-computed FSP solutions & loaded data:
 load('example_8_LoadingandFittingData.mat')
 
 % View model summary:
@@ -75,7 +75,7 @@ Model_MLE.makeFitPlot
 STL1_MLE.makeFitPlot
 STL1_4state_MLE.makeFitPlot
 
-%% Save models with MLEs:
+%% Save models & MLEs:
 saveNames = unique({'Model_MLE'
     'STL1_MLE'
     'STL1_4state_MLE'

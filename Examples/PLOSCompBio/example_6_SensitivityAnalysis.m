@@ -16,7 +16,7 @@ addpath(genpath('../../src'));
 % example_1_CreateSSITModels  
 % example_4_SolveSSITModels_FSP
 
-%% Load pre-run results:
+%% Load pre-computed FSP solutions:
 load('example_4_SolveSSITModels_FSP.mat')
 
 % View model summaries
@@ -96,6 +96,8 @@ fig11 = figure(11);clf; set(fig11,'Name','Marginal Sensitivity, mRNA');
 STL1_4state_sens.makePlot(STL1_4state_sensSoln,'marginals',[],false,...
                    [fig7,fig8,fig9,fig10,fig11],{'b','linewidth',2})
 
+
+%% Save models & sensitivities
 saveNames = unique({'Model_sens'
     'Model_sensSoln'
     'Model_bounds'

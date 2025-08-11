@@ -19,7 +19,7 @@ addpath(genpath('../../src'));
 % example_4_SolveSSITModels_FSP
 % example_6_SensitivityAnalysis
 
-%% Load pre-run results:
+%% Load pre-computed sensitivities:
 load('example_6_SensitivityAnalysis.mat')
 
 % View model summaries:
@@ -140,6 +140,7 @@ legend('FIM')
 % concerning 'kon', leading to rank deficiency for the FIM.
 
 
+%% Save models & FIM results
 saveNames = unique({'Model_FIM'
     'Model_fimResults'
     'Model_cellCounts'

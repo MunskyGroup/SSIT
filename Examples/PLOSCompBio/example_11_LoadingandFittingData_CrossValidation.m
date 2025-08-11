@@ -6,6 +6,7 @@ addpath(genpath('../../src'));
 %% Preliminaries
 % Load our models from example_1_CreateSSITModels; compute FSP solutions 
 % using example_2_SolveSSITModels_FSP and FIMs using example_4_FIM
+
 %% Comment out the following 3 lines if example_4_FIM has already been run:
 % clear
 % close all
