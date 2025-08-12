@@ -28,7 +28,7 @@ function plotODE(ODE_soln, speciesNames, timeVec)
     figure; hold on;
     colors = lines(numSpecies);
     for s = 1:numSpecies
-        plot(timeVec, X(:, s), 'LineWidth', 2, 'Color', colors(s, :));
+        plot(timeVec, X(:, s), 'LineWidth', 4, 'Color', colors(s, :));
     end
 
     xlabel('Time');

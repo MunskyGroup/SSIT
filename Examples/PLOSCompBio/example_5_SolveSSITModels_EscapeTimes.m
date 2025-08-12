@@ -13,13 +13,18 @@ addpath(genpath('../../'));
 
 % example_1_CreateSSITModels
 
+% Load the models created in example_1_CreateSSITModels
+load('example_1_CreateSSITModels.mat')
+
 % View model summaries:
 Model.summarizeModel
 STL1.summarizeModel
+STL1_4state.summarizeModel
 
 % Set the times at which distributions will be computed:
 Model.tSpan = linspace(0,20,200);
 STL1.tSpan = linspace(0,20,200);
+STL1_4state.tSpan = linspace(0,20,200);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(1): Solve escape times for the bursting gene example model 
@@ -67,7 +72,28 @@ STL1_escape.makePlot(STL1_fspSoln_escape,'escapeTimes',[],[],10)
 % reach the level of 50 proteins.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Ex(3): Solve escape times for more complex escape thresholds.
+%% Ex(3): Solve escape times for the 4-state time-varying STL1 yeast model
+%  from example_1_CreateSSITModels
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% STL1 4-state:
+% Create a copy of the time-varying STL1 yeast model:
+STL1_4state_escape = STL1_4state;
+STL1_4state_escape = ...
+    STL1_4state_escape.formPropensitiesGeneral('STL1_escape');
+
+% Solve for the escape time:
+STL1_4state_escape.fspOptions.escapeSinks.f = {'s1';'s2';'s3';'s4';}
+STL1_4state_escape.fspOptions.escapeSinks.b = [0.5;0.5;0.5;0.5];
+[STL1_4state_fspSoln_escape,STL1_4state_escape.fspOptions.bounds] = ...
+    STL1_4state_escape.solve;
+STL1_4state_escape.makePlot(STL1_4state_fspSoln_escape,...
+    'escapeTimes',[],[],10)
+% Note that with the decaying transcription rate not all cells will
+% reach the level of 50 proteins.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Ex(4): Solve escape times for more complex escape thresholds.
 %  In this example we explore the escape time until the number of proteins
 %  proteins is more than 1.25 times the current number of mRNA molecules
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -80,7 +106,7 @@ Model_escape_complex.fspOptions.escapeSinks.b = 1.25;
 Model_escape_complex.makePlot(fspSoln3,'escapeTimes',[],[],10)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Ex(4): Solve for the time until/probability that one specific condition
+%% Ex(5): Solve for the time until/probability that one specific condition
 %% out of multiple possible escape conditions is met.
 % In this example, we assume that there are two potential avenues to
 % escape, and we want to know when and with what probability will each

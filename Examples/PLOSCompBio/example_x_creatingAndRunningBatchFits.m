@@ -1,3 +1,24 @@
+%% example_16_SSITPipelinesAndClusterComputing
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Section 2.4: Loading and fitting time-varying STL1 yeast data 
+%   * Uncertainty sampling using the Metropolis-Hastings Algorithm (MHA)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% Preliminaries
+% Use the STL1 model from example_1_CreateSSITModels, FSP solutions from 
+% example_4_SolveSSITModels_FSP, data loaded in 
+% example_8_LoadingandFittingData_DataLoading, and MLE computed in
+% example_9_LoadingandFittingData_MLE
+%clear
+%close all
+addpath(genpath('../../src'));
+
+% example_1_CreateSSITModels  
+% example_4_SolveSSITModels_FSP
+% example_8_LoadingandFittingData_DataLoading
+% example_9_LoadingandFittingData_MLE
+
 %% Example -- Running SSIT Pipelines Outside of Matlab
 close all
 clear 

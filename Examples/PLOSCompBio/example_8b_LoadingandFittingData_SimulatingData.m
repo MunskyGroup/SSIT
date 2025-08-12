@@ -16,6 +16,7 @@ addpath(genpath('../../'));
 % View model summaries:
 Model_FSP.summarizeModel
 STL1_FSP.summarizeModel
+STL1_FSP_4state.summarizeModel
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Create a complicated model to simulate noisy real data
