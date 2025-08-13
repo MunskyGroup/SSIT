@@ -16,11 +16,14 @@ addpath(genpath('../../src'));
 % example_1_CreateSSITModels 
 % example_4_SolveSSITModels_FSP
 
+%% Load pre-computed FSP solutions:
+load('example_4_SolveSSITModels_FSP.mat')
+
 % View model summary:
-STL1_FSP.summarizeModel
+STL1_4state_FSP.summarizeModel
 
 % Make a copy of the STL1 model to set up for model reduction:
-STL1_MR_setup = STL1_FSP;
+STL1_MR_setup = STL1_4state_FSP;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Choose which type of model reduction to apply. Options include:
@@ -67,7 +70,8 @@ podTimeSetSize = 100;   % Only needed for the POD reduction scheme.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(1): Use Proper Orthogonal Decomposition (POD) to create a reduced 
-%% model for computing FSP solutions for the time-varying STL1 yeast model
+%% model for computing FSP solutions for the 4-state time-varying 
+%% STL1 yeast model
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% STL1:
@@ -78,7 +82,7 @@ STL1_MR_setup.tSpan = linspace(0,180,12);
 % Print the computation time to solve the FSP using "tic" and "toc":
 tic
 [STL1_FSPsoln_expand,STL1_MR_setup.fspOptions.bounds] = ...
-    STL1_MR_setup.solve(STL1_FSPsoln.stateSpace);
+    STL1_MR_setup.solve(STL1_4state_FSPsoln.stateSpace);
 STL1_SolveTime = toc
 
 % Turn off further FSP expansion:

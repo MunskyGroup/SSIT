@@ -39,7 +39,7 @@ STL1_4state_MLE = STL1_4state_data;
 % Let's see which model better fits our data...
 
 % Set fitOptions, with the maximum allowable number of iterations to fit:
-fitOptions = optimset('Display','iter','MaxIter',2000);
+fitOptions = optimset('Display','iter','MaxIter',3000);
 
 % Define which parameters to fit (in this case, all of them)
 % and convert from cell to double
@@ -87,4 +87,4 @@ saveNames = unique({'Model_MLE'
     'STL1_4state_likelihood'
     });
     
-save('example_8_LoadingandFittingData',saveNames{:})
+save('example_9_LoadingandFittingData_MLE',saveNames{:})
