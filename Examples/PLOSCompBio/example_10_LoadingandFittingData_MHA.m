@@ -30,6 +30,7 @@ STL1_4state_MLE.summarizeModel
 %   (and improve model parameter fit to data)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+
 % Make a copy of our 4-state STL1 model for Metropolis-Hastings (MH):
 STL1_4state_MH = STL1_4state_MLE;
 
@@ -42,11 +43,12 @@ STL1_4state_MH = STL1_4state_MLE;
        @(x)x+proposalWidthScale*randn(size(x));
 
 % Set MH runtime options (number of samples, burnin, thin, etc.):
-MHOptions.numberOfSamples = 3000;
-MHOptions.burnin = 300;
-MHOptions.thin = 3;
+MHOptions.numberOfSamples = 2000;
+MHOptions.burnin = 200;
+MHOptions.thin = 2;
 
 % Run Metropolis-Hastings: 
+
 [STL1_4state_MH_pars,~,STL1_4state_MHResults] = ...
     STL1_4state_MH.maximizeLikelihood([], MHOptions, 'MetropolisHastings');
 
