@@ -172,8 +172,10 @@ classdef SSIT
         % Processed propensity functions for use in ODE solver, 
         % default: [];
         propensitiesGeneralODE = [];
+        
         % Model description
         description = {'Add model description here'};
+        GUIProps = [];  % Structure to hold GUI information for faster loading and saving.
     end
 
     properties (Dependent)

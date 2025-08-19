@@ -131,15 +131,15 @@ for iSp = 1:size(app.SSITModel.species,1)
     app.(['Species',num2str(iSp),'Label']).Visible = 'on';
     app.(['Species',num2str(iSp),'Label']).Text = app.SSITModel.species{iSp};
     app.(['DataSpecies',num2str(iSp)]).Visible = 'on';  
-    if iSp==8
-        app.AddMoreDataButton.Visible = 'on';
-        break
-    end
+    % if iSp==8
+    %     app.AddMoreDataButton.Visible = 'on';
+    %     break
+    % end
 end
 for iSp = iSp+1:7
     app.(['Species',num2str(iSp),'Label']).Visible = 'off';
     app.(['DataSpecies',num2str(iSp)]).Visible = 'off';
-    app.AddMoreDataButton.Visible = 'off';
+    % app.AddMoreDataButton.Visible = 'off';
 end
 
 
@@ -170,8 +170,13 @@ if updatePropensityFuns
         propFileName = ['GUIPropensities/',app.ModelFile.modelName];
     end
 
-    if exist([pwd,'/tmpPropensityFunctions/',propFileName],'dir')==7
-        prompt = {['Propensity files already exist at ',propFileName,'.'], 'Do you wish to overwrite?'};
+    folder = [pwd,'/tmpPropensityFunctions/',propFileName];
+    if exist(folder,'dir')==7
+        % Determine date of most recent file
+        files = dir(folder); files = files(~[files.isdir]);  % remove directories
+        % Find the file with the latest date
+        [~, idx] = max([files.datenum]); 
+        prompt = {['Propensity files already exist at ',propFileName],['Most recent was created at: ',files(idx).date], 'Do you wish to overwrite?'};
         dlgtitle = 'Overwrite Propensity Functions';
         propQuest = questdlg(prompt,dlgtitle,'Yes - Overwrite','No - Use Current','No - Specify New Location','Yes - Overwrite');
         switch propQuest

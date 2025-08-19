@@ -24,13 +24,20 @@ else
         app.ChooseSSITModel_2.Visible = 'on';
         app.ChooseSSITModelLabel.Visible = 'on';
         app.ChooseSSITModelLabel_2.Visible = 'on';
-        app.ChooseSSITModel.Items = {info(strcmp({info.class}, 'SSIT')).name};
-        if length(app.ChooseSSITModel.Items)==1
-            Model = load(fileName,app.ChooseSSITModel.Items{1});
-            app.SSITModel = Model.(app.ChooseSSITModel.Items{1});
-            app.ModelFile.modelName = app.ChooseSSITModel.Items{1};
-            updateAppFromSSIT(app);
-        end      
+        app.ChooseSSITModel.Items = {'Select Model',info(strcmp({info.class}, 'SSIT')).name};
+        if length(app.ChooseSSITModel.Items)==2
+            % Model = load(fileName,app.ChooseSSITModel.Items{1});
+            % app.SSITModel = Model.(app.ChooseSSITModel.Items{1});
+            app.ChooseSSITModel.Value = app.ChooseSSITModel.Items{2};
+            app.ModelFile.modelName = app.ChooseSSITModel.Items{2};
+            app = ChooseSSITModelValue(app);
+            % updateAppFromSSIT(app);
+
+            info = dir(app.ModelFile.fileName);
+            app.FileModelLabel.Text = {['File: ',app.ModelFile.fileName];...
+                ['Model: ',app.ModelFile.modelName];...
+                ['Last Saved: ',info.date]};        
+        end
         return
     end
     

@@ -1,4 +1,6 @@
 function parseDataConstraints(app)
+% This function parses the constraints that user enters into the SSIT GUI
+% and then loads the total data.
 
 nSp = length(app.SSITModel.species);
 app.DataLoadingAndFittingTabOutputs.linking = {};
@@ -50,13 +52,24 @@ if isempty(constraints)
     app.SSITModel = app.SSITModel.loadData(...
         app.DataLoadingAndFittingTabOutputs.dataFileName,...
         app.DataLoadingAndFittingTabOutputs.linking);
+    totalNum = num2str(sum(app.SSITModel.dataSet.nCells));
 else
     app.DataLoadingAndFittingTabOutputs.constraints = {[],[],constraints};
     app.SSITModel = app.SSITModel.loadData(...
         app.DataLoadingAndFittingTabOutputs.dataFileName,...
         app.DataLoadingAndFittingTabOutputs.linking,...
         app.DataLoadingAndFittingTabOutputs.constraints);
+
+    % find total number of rows in original file
+    fid = fopen(app.DataLoadingAndFittingTabOutputs.dataFileName);
+    totalNum = 0;
+    while ~feof(fid)
+        fgetl(fid);
+        totalNum = totalNum + 1;
+    end
+    fclose(fid);
 end
 
+app.TotalCellsInDataLabel.Text = ['Total Cells In Data: ',num2str(totalNum-1)];
 app.NumberafterConstraintsLabel.Text = ['Number after Constraints: ',num2str(sum(app.SSITModel.dataSet.nCells))];
 end
