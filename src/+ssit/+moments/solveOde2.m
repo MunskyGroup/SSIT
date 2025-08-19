@@ -57,7 +57,15 @@ end
 
 %% Return your output to ode_solutions
 maxstep = min(tspan(2:end)-tspan(1:end-1))/2;
-options = odeset(RelTol=1e-6,AbsTol=1e-10,MaxStep=maxstep,Jacobian=ode_jac);
+
+% Check to see if sensitivity function is correctly formulated.
+try
+    ode_jac(rand,x0);
+    options = odeset(RelTol=1e-6,AbsTol=1e-10,MaxStep=maxstep,Jacobian=ode_jac);
+catch
+    % Otherwise, do not use this in the ODE.
+    options = odeset(RelTol=1e-6,AbsTol=1e-10,MaxStep=maxstep);
+end
 [t_ode,ode_solutions] = odeIntegrator(ode_rhs,tspan,x0,options);
 
 end

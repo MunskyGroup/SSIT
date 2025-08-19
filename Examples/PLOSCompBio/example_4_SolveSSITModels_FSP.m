@@ -118,6 +118,8 @@ STL1_4state.tSpan = linspace(0,20,200);
 %% STL1 (4-state):
     % Create a copy of the time-varying STL1 yeast model for FSP:
     STL1_4state_FSP = STL1_4state;
+   
+    STL1_4state_ODE.tSpan = linspace(0,3600,200);
     
     % Ensure the solution scheme is set to FSP (default):
     STL1_4state_FSP.solutionScheme = 'FSP';  
@@ -127,7 +129,7 @@ STL1_4state.tSpan = linspace(0,20,200);
     % operate on the system based on the current state. The functions are 
     % stored with the given prefix, in this case, 'STL1_FSP'
     STL1_4state_FSP = ...
-        STL1_4state_FSP.formPropensitiesGeneral('STL1_4state_FSP');
+        STL1_4state_FSP.formPropensitiesGeneral('STL1_4state_FSP',false);
     
     % Set FSP 1-norm error tolerance:
     STL1_4state_FSP.fspOptions.fspTol = 1e-4; 

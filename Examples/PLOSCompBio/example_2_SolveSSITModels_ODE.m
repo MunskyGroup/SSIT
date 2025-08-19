@@ -90,6 +90,8 @@ STL1_4state.tSpan = linspace(0,20,200);
     % Create a copy of the time-varying STL1 yeast model for ODEs:
     STL1_4state_ODE = STL1_4state;
 
+    STL1_4state_ODE.tSpan = linspace(0,3600,200);
+
     % Set solution scheme to 'ode':
     STL1_4state_ODE.solutionScheme = 'ode';
     
@@ -98,7 +100,7 @@ STL1_4state.tSpan = linspace(0,20,200);
     % operate on the system based on the current state. The functions are 
     % stored with the given prefix, in this case, 'STL1_ODE'
     STL1_4state_ODE = ...
-        STL1_4state_ODE.formPropensitiesGeneral('STL1_4state_ODE');
+        STL1_4state_ODE.formPropensitiesGeneral('STL1_4state_ODE',false);
     
     % Solve ODE and make plots:
     STL1_4state_ODEsoln = STL1_4state_ODE.solve; 
