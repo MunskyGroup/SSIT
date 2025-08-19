@@ -14,15 +14,13 @@ addpath(genpath('../../'));
 % example_4_SolveSSITModels_FSP
 
 % View model summaries:
-Model_FSP.summarizeModel
-STL1_FSP.summarizeModel
 STL1_FSP_4state.summarizeModel
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Create a complicated model to simulate noisy real data
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Create a copy of the STL1 model for simulation:
-STL1_sim_model = STL1;
+STL1_sim_model = STL1_FSP_4state;
 
 % Update propensity function for the gene activation reaction:
 STL1_sim_model.propensityFunctions{1} = 'offGene * IHog';

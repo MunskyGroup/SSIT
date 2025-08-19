@@ -30,6 +30,7 @@ STL1_4state_MLE.summarizeModel
 %   (and improve model parameter fit to data)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+
 % Make a copy of our 4-state STL1 model for Metropolis-Hastings (MH):
 STL1_4state_MH = STL1_4state_MLE;
 
@@ -47,11 +48,12 @@ MHOptions.burnin = 200;
 MHOptions.thin = 2;
 
 % Run Metropolis-Hastings: 
+
 [STL1_4state_MH_pars,~,STL1_4state_MHResults] = ...
     STL1_4state_MH.maximizeLikelihood([], MHOptions, 'MetropolisHastings');
 
 % Store MH parameters in model:
-STL1_4state_MH.parameters([1:15],2) = num2cell(STL1_4state_MH_pars);
+STL1_4state_MH.parameters([1:17],2) = num2cell(STL1_4state_MH_pars);
 
 % Plot results:
 STL1_4state_MH.plotMHResults(STL1_4state_MHResults,[],'log',[])
@@ -70,17 +72,17 @@ STL1_4state_MH_FIM = STL1_4state_MLE;
 %% Compute FIM, Run Metropolis Hastings
 % Specify Prior as log-normal distribution with wide uncertainty
 % Prior log-mean:
-mu_log10 = [-1,-1,-0.5,-3,-4,-7,-10,-0.5,1,-1,-0.5,1,-5,1,-15];  
+mu_log10 = [-0.5,0.2,0.1,-2,-1,-1.5,-1.5,-2,-3,-2,0,-1.5,-4,-2,10,-3,0.5];  
 
 % Prior log-standard deviation:
-sig_log10 = 2*ones(1,15);      
+sig_log10 = 2*ones(1,17);      
 
 % Prior:
 STL1_4state_MH_FIM.fittingOptions.logPrior = ...
     @(x)-sum((log10(x)-mu_log10).^2./(2*sig_log10.^2));
 
 % Choose parameters to search:
-STL1_4state_MH_FIM.fittingOptions.modelVarsToFit = [1:15];
+STL1_4state_MH_FIM.fittingOptions.modelVarsToFit = [1:17];
 
 % Create first parameter guess:
 STL1_4state_MH_FIM_pars = [STL1_4state_MH_FIM.parameters{:,2}];         
@@ -93,18 +95,18 @@ fimTotal = STL1_4state_MH_FIM.evaluateExperiment(fimResults,...
            STL1_4state_MH_FIM.dataSet.nCells,diag(sig_log10.^2)); 
 
 % Choose parameters to search:
-STL1_4state_MH_FIM.fittingOptions.modelVarsToFit = [1:15]; 
+STL1_4state_MH_FIM.fittingOptions.modelVarsToFit = [1:17]; 
 
 % Select FIM for free parameters:
-FIMfree = fimTotal{1}([1:15],[1:15]); 
+FIMfree = fimTotal{1}([1:17],[1:17]); 
 
 % Estimate the covariance using CRLB:
 COVfree = (1/2*(FIMfree + FIMfree'))^(-1);  
 
 % Define Metropolis-Hasting settings:
 STL1_4state_MH_FIM.fittingOptions.logPrior = ...
-    @(x)-sum((log10(x)-mu_log10([1:15])).^2./(2*sig_log10([1:15]).^2));
-proposalWidthScale = 0.01;
+    @(x)-sum((log10(x)-mu_log10([1:17])).^2./(2*sig_log10([1:17]).^2));
+proposalWidthScale = 0.001;
 STL1_4state_MH_FIM_FIMOptions = ...
  struct('proposalDistribution',@(x)mvnrnd(x,proposalWidthScale*COVfree),...
  'numberOfSamples',2000,'burnin',200,'thin',2);
@@ -115,7 +117,7 @@ STL1_4state_MH_FIM_FIMOptions = ...
     STL1_4state_MH_FIM_FIMOptions, 'MetropolisHastings'); 
 
 % Store sampled parameters:
-STL1_4state_MH_FIM.parameters([1:15],2) = ...
+STL1_4state_MH_FIM.parameters([1:17],2) = ...
     num2cell(STL1_4state_MH_FIM_pars);
 
 % Plot MH samples, FIM:
@@ -134,17 +136,17 @@ STL1_4state_MH_it = STL1_4state_MH_FIM;
 %% Specify Bayesian Prior and fit
 % Specify Prior as log-normal distribution with wide uncertainty
 % Prior log-mean:
-mu_log10 = [-1,-1,-0.5,-3,-4,-7,-10,-0.5,1,-1,-0.5,1,-5,1,-15]; 
+mu_log10 = [-0.5,0.2,0.1,-2,-1,-1.5,-1.5,-2,-3,-2,0,-1.5,-4,-2,10,-3,0.5];
 
 % Prior log-standard deviation:
-sig_log10 = 2*ones(1,15);  
+sig_log10 = 2*ones(1,17);  
 
 % Prior:
 STL1_4state_MH_it.fittingOptions.logPrior = ...
     @(x)-sum((log10(x)-mu_log10).^2./(2*sig_log10.^2));
 
 % Choose parameters to search:
-STL1_4state_MH_it.fittingOptions.modelVarsToFit = [1:15]; 
+STL1_4state_MH_it.fittingOptions.modelVarsToFit = [1:17]; 
 
 % Create first parameter guess:
 STL1_4state_MH_it_pars = [STL1_4state_MH_it.parameters{:,2}];      
@@ -159,7 +161,7 @@ STL1_4state_MH_it.parameters(:,2) = num2cell(STL1_4state_MH_it_pars);
 % Plot fitting results:
 STL1_4state_MH_it.makeFitPlot  
 % You may need to re-run this multiple times until converged.
-% I got a MLE of -52,454.1 after a few runs. 
+% I got a MLE of -33,833.6 after a few runs. 
 
 
 %% Iterating between MLE and MH
@@ -178,9 +180,9 @@ for i=1:3
        @(x)x+proposalWidthScale*randn(size(x));
 
     % Set MH runtime options (number of samples, burnin, thin, etc.):
-    MHOptions.numberOfSamples = 1000;
-    MHOptions.burnin = 100;
-    MHOptions.thin = 1;
+    MHOptions.numberOfSamples = 2000;
+    MHOptions.burnin = 200;
+    MHOptions.thin = 2;
 
     % Run Metropolis-Hastings: 
     [STL1_4state_MH_it_pars,~,STL1_4state_MH_it_MHResults] = ...
@@ -188,7 +190,7 @@ for i=1:3
         'MetropolisHastings');
     
     % Store MH parameters in model:
-    STL1_4state_MH_it.parameters([1:15],2) = ...
+    STL1_4state_MH_it.parameters([1:17],2) = ...
         num2cell(STL1_4state_MH_it_pars);
 end
 STL1_4state_MH_it.plotMHResults(STL1_4state_MH_it_MHResults);

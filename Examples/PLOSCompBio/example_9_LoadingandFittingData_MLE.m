@@ -16,7 +16,7 @@ addpath(genpath('../../src'));
 
 % example_1_CreateSSITModels  
 % example_4_SolveSSITModels_FSP
-% example_8_LoadingandFittingData_DataLoading
+example_8_LoadingandFittingData_DataLoading
 
 %% Load pre-computed FSP solutions & loaded data:
 load('example_8_LoadingandFittingData.mat')
@@ -39,13 +39,14 @@ STL1_4state_MLE = STL1_4state_data;
 % Let's see which model better fits our data...
 
 % Set fitOptions, with the maximum allowable number of iterations to fit:
-fitOptions = optimset('Display','iter','MaxIter',2000);
+fitOptions = optimset('Display','iter','MaxIter',3000);
 
 % Define which parameters to fit (in this case, all of them)
 % and convert from cell to double
+
 Model_pars = cell2mat(Model_MLE.parameters(1:4,2));
-STL1_pars = cell2mat(STL1_MLE.parameters(1:7,2));
-STL1_4state_pars = cell2mat(STL1_4state_MLE.parameters(1:15,2));
+STL1_pars = cell2mat(STL1_MLE.parameters(1:8,2));
+STL1_4state_pars = cell2mat(STL1_4state_MLE.parameters(1:17,2));
 
 %% Compute the MLEs:
 [Model_pars,Model_likelihood] = ...
@@ -87,4 +88,80 @@ saveNames = unique({'Model_MLE'
     'STL1_4state_likelihood'
     });
     
-save('example_8_LoadingandFittingData',saveNames{:})
+save('example_9_LoadingandFittingData_MLE',saveNames{:})
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Let's tinker with the starting parameters of both models and try again:
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Make a copy of our models for refitting:
+Model_MLE_refit = Model_MLE;
+STL1_MLE_refit = STL1_MLE;
+STL1_4state_MLE_refit = STL1_4state_MLE;
+
+% Adjust the starting parameters:
+% Model_MLE_refit.parameters = ({'kon',0.1;'koff',1;'kr',5;'gr',0.5});
+% STL1_MLE_refit.parameters = ({'koff',1;'kr',5;'gr',0.5; ...
+%                               'a0',0.1;'a1',0.01;'r1',5;'r2',1e-31});
+% STL1_4state_MLE_refit.parameters = ({'k12',0.5; 'k23',0.5; 'k34',0.5;...
+%                       'k21',0.001; 'k32',0.0001; 'k43',5e-08; ...
+%                       'kr1',10e-11; 'kr2',0.1; 'kr3',10; 'kr4',0.1; ...
+%                       'dr',0.5; 'a0',10; 'a1',5e-06; 'r1',10; 'r2',5e-16});
+
+Model_MLE_refit.tSpan = 0:5:60;
+STL1_MLE_refit.tSpan = 0:5:60;
+STL1_4state_MLE_refit.tSpan = 0:5:60;
+
+% Have SSIT approximate the steady state for initial distribution:
+Model_MLE_refit.fspOptions.initApproxSS =true;
+Model_MLE_refit = ...
+    Model_MLE_refit.formPropensitiesGeneral('Model_MLE_refit',true);
+
+STL1_MLE_refit.fspOptions.initApproxSS =true;
+STL1_MLE_refit = ...
+    STL1_MLE_refit.formPropensitiesGeneral('STL1_MLE_refit',true);
+
+STL1_4state_MLE_refit.fspOptions.initApproxSS =true;
+STL1_4state_MLE_refit = ...
+STL1_4state_MLE_refit.formPropensitiesGeneral('STL1_4state_MLE_refit',true);
+
+% Solve the FSP analysis:
+[Model_MLE_refit_FSPsoln,Model_MLE_refit.fspOptions.bounds] = ...
+    Model_MLE_refit.solve;   
+
+[STL1_MLE_refit_FSPsoln,STL1_MLE_refit.fspOptions.bounds] = ...
+    STL1_MLE_refit.solve;  
+
+[STL1_4state_MLE_refit_FSPsoln,STL1_4state_MLE_refit.fspOptions.bounds] = ...
+    STL1_4state_MLE_refit.solve; 
+
+% Format new parameters:
+Modelpars_refit = cell2mat(Model_MLE_refit.parameters(1:4,2));
+STL1pars_refit = cell2mat(STL1_MLE_refit.parameters(1:8,2));
+STL1pars_4state_refit = cell2mat(STL1_4state_MLE_refit.parameters(1:17,2));
+
+% Maximize the likelihood:
+[Modelpars_refit,Model_likelihood_refit] = ...
+    Model_MLE_refit.maximizeLikelihood(Modelpars_refit, fitOptions);
+
+[STL1pars_refit,STL1_likelihood_refit] = ...
+    STL1_MLE_refit.maximizeLikelihood(STL1pars_refit, fitOptions);
+
+[STL1pars_4state_refit,STL1_likelihood_refit_4state] = ...
+STL1_4state_MLE_refit.maximizeLikelihood(STL1pars_4state_refit,fitOptions);
+
+% Update the parameters:
+for j=1:length(Modelpars_refit)
+    Model_MLE_refit.parameters{j,2} = Modelpars_refit(j);
+end
+for k=1:length(STL1pars_refit)
+    STL1_MLE_refit.parameters{k,2} = STL1pars_refit(k);
+end
+for l=1:length(STL1pars_4state_refit)
+    STL1_4state_MLE_refit.parameters{l,2} = STL1pars_4state_refit(l);
+end
+
+% Make plots of the new model parameter fits from the MLEs:
+Model_MLE_refit.makeFitPlot
+STL1_MLE_refit.makeFitPlot
+STL1_4state_MLE_refit.makeFitPlot

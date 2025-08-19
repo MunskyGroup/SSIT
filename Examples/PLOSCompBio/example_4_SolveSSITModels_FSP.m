@@ -64,10 +64,8 @@ STL1_4state.tSpan = linspace(0,20,200);
     Model_FSP.makePlot(Model_FSPsoln,'marginals',[1:100:100],...
                        false,[1,2,3],{'linewidth',2})  
     Model_FSP.makePlot(Model_FSPsoln,'meansAndDevs') 
-    % Model_FSP.makePlot(Model_FSPsoln,'margmovie',[],false,[101],...
-    %                    {'linewidth',2},'Model_FSP.mp4',[1,1,0.5],[2,3]) 
     Model_FSP.makePlot(Model_FSPsoln,'margmovie',[],false,[101],...
-                       {'linewidth',2},'Model_FSP.mp4') 
+                        {'linewidth',2},'Model_FSP.mp4',[1,1,0.5],[2,3]) 
                        
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(2): Use the stochastic Finite State Projection (FSP) 
@@ -108,7 +106,7 @@ STL1_4state.tSpan = linspace(0,20,200);
                            false,[1,2,3],{'linewidth',2}) 
     STL1_FSP.makePlot(STL1_FSPsoln,'meansAndDevs')  
     STL1_FSP.makePlot(STL1_FSPsoln,'margmovie',[],false,[101],...
-                           {'linewidth',2},'STL1_FSP.mp4',[1,1,0.5],[2,3])
+                           {'linewidth',2},'STL1_FSP.mp4')
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(3): Use the stochastic Finite State Projection (FSP) 
@@ -117,7 +115,7 @@ STL1_4state.tSpan = linspace(0,20,200);
 % time-varying STL1 yeast model from example_1_CreateSSITModels 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%% STL1:
+%% STL1 (4-state):
     % Create a copy of the time-varying STL1 yeast model for FSP:
     STL1_4state_FSP = STL1_4state;
     
