@@ -604,19 +604,22 @@ classdef Propensity
                             logicTerms.logJ{n(1),1} = logE;
                             counter = counter+1;
                             logicTerms.logJ{n(1),2} = ['logJ',num2str(counter)];
-                            stNew = strrep(stNew,logE,['(',logicTerms.logJ{n(1),2},')']);
+                            % stNew = strrep(stNew,logE,['(',logicTerms.logJ{n(1),2},')']);
+                            stNew = regexprep(stNew,['\<',logE,'\>'],['(',logicTerms.logJ{n(1),2},')']);
                         elseif contains(logE,'t')
                             n(2)=n(2)+1;
                             logicTerms.logT{n(2),1} = logE;
                             counter = counter+1;
                             logicTerms.logT{n(2),2} = ['logT',num2str(counter)];
-                            stNew = strrep(stNew,logE,['(',logicTerms.logT{n(2),2},')']);
+                            % stNew = strrep(stNew,logE,['(',logicTerms.logT{n(2),2},')']);
+                            stNew = regexprep(stNew,['\<',logE,'\>'],['(',logicTerms.logT{n(2),2},')']);
                         elseif max(contains(logE,species))
                             n(3)=n(3)+1;
                             logicTerms.logX{n(3),1} = logE;
                             counter = counter+1;
                             logicTerms.logX{n(3),2} = ['logX',num2str(counter)];
-                            stNew = strrep(stNew,logE,['(',logicTerms.logX{n(3),2},')']);
+                            % stNew = strrep(stNew,logE,['(',logicTerms.logX{n(3),2},')']);
+                            stNew = regexprep(stNew,['\<',logE,'\>'],['(',logicTerms.logX{n(3),2},')']);
                         end
                     end
                 end
@@ -653,7 +656,7 @@ if (isempty(left_bracket_loc))
         ft = '1';
         fx = expr;
         return;
-    elseif (~contains(strrep(expr,'exp','EP'), 'x')) % Check if it has 'x' and not 'exp'
+    elseif (~contains(regexprep(expr,'\<exp\>','EP'), 'x')) % Check if it has 'x' and not 'exp'
         isFactorizable = true;
         ft = expr;
         fx = '1';
@@ -749,27 +752,31 @@ parStr = ', Parameters';
 if ~isempty(varODEs)
     parStr = [parStr,', varODEs'];
     for i=length(varODEs):-1:1
-        exprStr = strrep(exprStr, ['varODEs',num2str(i)], ['varODEs(',num2str(i),')']);
+        % exprStr = strrep(exprStr, ['varODEs',num2str(i)], ['varODEs(',num2str(i),')']);
+        exprStr = regexprep(exprStr, ['\<varODEs',num2str(i),'\>'], ['varODEs(',num2str(i),')']);
     end
 end
 
 for i=1:length(logicTerms)
     if isfield(logicTerms{i},'logT')
         for j=1:size(logicTerms{i}.logT,1)
-            exprStr=strrep(exprStr,logicTerms{i}.logT{j,2},logicTerms{i}.logT{j,1});
+            % exprStr=strrep(exprStr,logicTerms{i}.logT{j,2},logicTerms{i}.logT{j,1});
+            exprStr=regexprep(exprStr,['\<',logicTerms{i}.logT{j,2},'\>'],logicTerms{i}.logT{j,1});
         end
     end
     if isfield(logicTerms{i},'logX')
         %             state_dep = true;
         for j=1:size(logicTerms{i}.logX,1)
-            exprStr=strrep(exprStr,logicTerms{i}.logX{j,2},logicTerms{i}.logX{j,1});
+            % exprStr=strrep(exprStr,logicTerms{i}.logX{j,2},logicTerms{i}.logX{j,1});
+            exprStr=regexprep(exprStr,['\<',logicTerms{i}.logX{j,2},'\>'],logicTerms{i}.logX{j,1});
         end
     end
     if isfield(logicTerms{i},'logJ')
         %             time_dep = true;
         %             state_dep = true;
         for j=1:size(logicTerms{i}.logX,1)
-            exprStr=strrep(exprStr,logicTerms{i}.logX{j,2},logicTerms{i}.logX{j,1});
+            % exprStr=strrep(exprStr,logicTerms{i}.logX{j,2},logicTerms{i}.logX{j,1});
+            exprStr=regexprep(exprStr,['\<',logicTerms{i}.logX{j,2},'\>'],logicTerms{i}.logX{j,1});
         end
     end
 end
@@ -781,12 +788,13 @@ end
 [~,J] = sort(lens,'descend');
 
 for i = 1:length(nonXTpars)
-    exprStr = strrep(exprStr, nonXTpars{J(i)}, ['$(',num2str(J(i)),')']);
+    % exprStr = strrep(exprStr, nonXTpars{J(i)}, ['$(',num2str(J(i)),')']);
+    exprStr = regexprep(exprStr, ['\<',nonXTpars{J(i)},'\>'], ['Parameters(',num2str(J(i)),')']);
 end
-exprStr = strrep(exprStr,'$','Parameters');
+% exprStr = strrep(exprStr,'$','Parameters');
 
 for i = length(nonXTpars):-1:1
-    exprStr = strrep(exprStr, ['parameters',num2str(i)], ['Parameters(',num2str(i),')']);
+    exprStr = regexprep(exprStr, ['\<parameters',num2str(i),'\>'], ['Parameters(',num2str(i),')']);
 end
 
 
@@ -797,7 +805,8 @@ if (time_dep && state_dep)
         if max(ismember(species, old_name))
             j = find(ismember(species, old_name));
             new_name = ['x(', num2str(j), ', :)'];
-            exprStr = strrep(exprStr, old_name, new_name);
+            % exprStr = strrep(exprStr, old_name, new_name);
+            exprStr = regexprep(exprStr, ['\<',old_name,'\>'], new_name);
         end
     end
     exprHandle = str2func([fhandle_var exprStr]);
@@ -813,7 +822,8 @@ else
             if max(ismember(species, old_name))
                 j = find(ismember(species, old_name));
                 new_name = ['x(', num2str(j), ', :)'];
-                exprStr = strrep(exprStr, old_name, new_name);
+                % exprStr = strrep(exprStr, old_name, new_name);
+                exprStr = regexprep(exprStr, ['\<',old_name,'\>'], new_name);
             end
         end
     else

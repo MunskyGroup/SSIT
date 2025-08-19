@@ -452,7 +452,7 @@ classdef SSIT
             for i = 1:n_reactions
                 st = obj.propensityFunctions{i};
                 for jI = 1:size(obj.inputExpressions,1)
-                    st = strrep(st,obj.inputExpressions{jI,1},['(',obj.inputExpressions{jI,2},')']);
+                    st = regexprep(st,['\<',obj.inputExpressions{jI,1},'\>'],['(',obj.inputExpressions{jI,2},')']);
                 end
                 [st,logicTerms{i},logCounter] = ssit.Propensity.stripLogicals(st,obj.species,logCounter);
                 sm{i} = str2sym(st);
@@ -724,7 +724,8 @@ classdef SSIT
                 reactRate = sbmlobj.Reactions(i).ReactionRate;
                 reactRate = strrep(reactRate,'compartment*','');
                 if contains(reactRate,'time')
-                    obj.propensityFunctions{i,1} = strrep(reactRate,'time','Ig');
+                    % obj.propensityFunctions{i,1} = strrep(reactRate,'time','Ig');
+                    obj.propensityFunctions{i,1} = regexprep(reactRate,'\<time\>','Ig');
                     obj.inputExpressions = {'Ig','t'};
                 else
                     obj.propensityFunctions{i,1} = reactRate;
@@ -736,8 +737,11 @@ classdef SSIT
                 % Replace species numbers (Xi) with concentrations (Xi/Volume).
                 for i = 1:nR
                     for j = 1:nS
-                        obj.propensityFunctions{i,1} = strrep(obj.propensityFunctions{i,1},...
-                            obj.species{j},['(',obj.species{j},'/Volume)']);
+                        % obj.propensityFunctions{i,1} = strrep(obj.propensityFunctions{i,1},...
+                        %     obj.species{j},['(',obj.species{j},'/Volume)']);
+                        obj.propensityFunctions{i,1} = regexprep(obj.propensityFunctions{i,1},...
+                            ['\<',obj.species{j},'\>'],['(',obj.species{j},'/Volume)']);
+                        
                     end
                     obj.propensityFunctions{i,1} = [obj.propensityFunctions{i,1},'*Volume'];
                 end
@@ -807,9 +811,11 @@ classdef SSIT
             % Parse time varying components in the reaction rate equations. 
             props = obj.propensityFunctions;
             for is = 1:size(obj.inputExpressions,1)
-                tvComp = strrep(obj.inputExpressions{is,2},'t','time');
+                % tvComp = strrep(obj.inputExpressions{is,2},'t','time');
+                tvComp = regexprep(obj.inputExpressions{is,2},'\<t\>','time');
                 for ir = 1:length(props)
-                    props{ir} = strrep(props{ir},obj.inputExpressions{is,1},['(',tvComp,')']);
+                    % props{ir} = strrep(props{ir},obj.inputExpressions{is,1},['(',tvComp,')']);
+                    props{ir} = regexprep(props{ir},['\<',obj.inputExpressions{is,1},'\>'],['(',tvComp,')']);
                 end
             end
            
@@ -3721,7 +3727,8 @@ classdef SSIT
 
             [~,order] = sort(Len,'descend');
             for i = 1:length(order)
-                str = strrep(str,species{order(i)},['x',num2str(i)]);
+                % str = strrep(str,species{order(i)},['x',num2str(i)]);
+                str = regexprep(str,['\<',species{order(i)},'\>'],['x',num2str(i)]);
             end
 
         end
@@ -3770,8 +3777,10 @@ classdef SSIT
                 cmd = append(matlabpath,' -nodisplay -nosplash -nodesktop -r "',pth,'SSIT',str2,')',...
                     '; exit;" > ',logFile,' 2>&1 < /dev/null &');
             else
-                clusterPrefix = strrep(clusterPrefix,'#LOG',logFile);
-                clusterPrefix = strrep(clusterPrefix,'#ERR',append('err_',logFile));
+                % clusterPrefix = strrep(clusterPrefix,'#LOG',logFile);
+                % clusterPrefix = strrep(clusterPrefix,'#ERR',append('err_',logFile));
+                clusterPrefix = regexprep(clusterPrefix,'\<#LOG\>',logFile);
+                clusterPrefix = regexprep(clusterPrefix,'\<#ERR\>',append('err_',logFile));
 
                 % pth = strrep(pth,"'","''");
                 % str2 = strrep(str2,"'","''");
