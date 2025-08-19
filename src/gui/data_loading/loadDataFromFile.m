@@ -9,6 +9,7 @@ if nargin<3
 end
 
 app.DataLoadingAndFittingTabOutputs.dataFileName = [pathname,fname];
+app.DataFileNoneSelectedLabel.Text = ['Data File: ',pathname,fname];
 
 Tab = readtable([pathname,fname]);
 

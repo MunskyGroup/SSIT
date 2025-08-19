@@ -6,6 +6,7 @@ app.SSITModel.dataSet = [];
 app.FieldsinDataTextArea.Value = 'None - need to load data first.';
 app.TotalCellsInDataLabel.Text = 'Total Cells In Data:';
 app.NumberafterConstraintsLabel.Text = 'Number after Constraints:';
+app.DataFileNoneSelectedLabel.Text = 'Data File: <None Selected>';
 
 ListItems = {'ParEstFitTimesList','ObservableSpeciesListBox',...
     'DataSpecies1','DataSpecies2','DataSpecies3','DataSpecies4','DataSpecies5',...

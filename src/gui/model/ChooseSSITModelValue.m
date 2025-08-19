@@ -15,9 +15,9 @@ if ~isempty(app.SSITModel.GUIProps)
         app.(app.SSITModel.GUIProps.SaveValue{i}).Value = app.SSITModel.GUIProps.Values.(app.SSITModel.GUIProps.SaveValue{i});
     end
 
-    % for i = 1:length(app.SSITModel.GUIProps.SaveText)
-    %     app.(app.SSITModel.GUIProps.SaveValue{i}).Text = app.SSITModel.GUIProps.Texts.(app.SSITModel.GUIProps.SaveText{i});
-    % end
+    for i = 1:length(app.SSITModel.GUIProps.SaveText)
+        app.(app.SSITModel.GUIProps.SaveText{i}).Text = app.SSITModel.GUIProps.Texts.(app.SSITModel.GUIProps.SaveText{i});
+    end
 
     for i = 1:length(app.SSITModel.GUIProps.SaveData)
         app.(app.SSITModel.GUIProps.SaveData{i}).Data = app.SSITModel.GUIProps.Data.(app.SSITModel.GUIProps.SaveData{i});

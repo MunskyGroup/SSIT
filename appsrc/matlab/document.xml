@@ -232,6 +232,7 @@
         FIMEllipseAxes                  matlab.ui.control.UIAxes
         plotFIMvsTime                   matlab.ui.control.UIAxes
         DataLoadingandFittingTab        matlab.ui.container.Tab
+        DataFileNoneSelectedLabel       matlab.ui.control.Label
         Species9Label                   matlab.ui.control.Label
         DataSpecies9                    matlab.ui.control.DropDown
         Species8Label                   matlab.ui.control.Label
@@ -293,7 +294,6 @@
         FittingAlgorithmDropDown        matlab.ui.control.DropDown
         FittingAlgorithmDropDownLabel   matlab.ui.control.Label
         FitModelButton                  matlab.ui.control.StateButton
-        setdatatofitwithcurrentmodelLabel  matlab.ui.control.Label
         ParameterGuessesandFitsLabel    matlab.ui.control.Label
         selectallButton                 matlab.ui.control.Button
         ParEstFitTimesList              matlab.ui.control.ListBox
@@ -3410,7 +3410,7 @@
             app.DataLoadingPanel = uipanel(app.DataLoadingandFittingTab);
             app.DataLoadingPanel.Title = 'Data Loading ';
             app.DataLoadingPanel.FontWeight = 'bold';
-            app.DataLoadingPanel.Position = [16 510 229 69];
+            app.DataLoadingPanel.Position = [15 541 115 69];
 
             % Create ParEstLoadDataButton
             app.ParEstLoadDataButton = uibutton(app.DataLoadingPanel, 'push');
@@ -3446,12 +3446,6 @@
             app.ParameterGuessesandFitsLabel.FontWeight = 'bold';
             app.ParameterGuessesandFitsLabel.Position = [676 579 171 22];
             app.ParameterGuessesandFitsLabel.Text = 'Parameter Guesses and Fits';
-
-            % Create setdatatofitwithcurrentmodelLabel
-            app.setdatatofitwithcurrentmodelLabel = uilabel(app.DataLoadingandFittingTab);
-            app.setdatatofitwithcurrentmodelLabel.VerticalAlignment = 'top';
-            app.setdatatofitwithcurrentmodelLabel.Position = [134 523 110 30];
-            app.setdatatofitwithcurrentmodelLabel.Text = {'<-- set data to fit'; 'with current model.'};
 
             % Create FitModelButton
             app.FitModelButton = uibutton(app.DataLoadingandFittingTab, 'state');
@@ -3812,6 +3806,11 @@
             app.Species9Label.HorizontalAlignment = 'right';
             app.Species9Label.Position = [25 167 73 22];
             app.Species9Label.Text = 'Species 9';
+
+            % Create DataFileNoneSelectedLabel
+            app.DataFileNoneSelectedLabel = uilabel(app.DataLoadingandFittingTab);
+            app.DataFileNoneSelectedLabel.Position = [143 580 515 22];
+            app.DataFileNoneSelectedLabel.Text = 'Data File: <None Selected>';
 
             % Create ModelSaveButton
             app.ModelSaveButton = uibutton(app.RightPanel, 'push');
