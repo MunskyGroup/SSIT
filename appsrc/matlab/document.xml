@@ -29,7 +29,6 @@
         AddSpeciesButton                matlab.ui.control.StateButton
         DeleteReactionDropDown          matlab.ui.control.DropDown
         DeleteReactionDropDown_2Label   matlab.ui.control.Label
-        CreateNewNStateModelButton      matlab.ui.control.Button
         LoadSBMLModelButton             matlab.ui.control.Button
         SubFolderLabel                  matlab.ui.control.Label
         FontSizeLabelRxn                matlab.ui.control.Label
@@ -103,7 +102,6 @@
         SpeciestoShowListBox_2          matlab.ui.control.ListBox
         SpeciestoShowListBox_2Label     matlab.ui.control.Label
         ExportFSPDatatoWorkspaceForManualPlotsButton  matlab.ui.control.Button
-        LaunchFSPModelReductionToolButton  matlab.ui.control.Button
         FspIntegratorTolerance          matlab.ui.control.DropDown
         ODEToleranceDropDownLabel       matlab.ui.control.Label
         FontSizeLabel_3                 matlab.ui.control.Label
@@ -309,6 +307,8 @@
         DecreaseFontSizeData            matlab.ui.control.Button
         fit_parameters_table            matlab.ui.control.Table
         LoadandConstrainDataButton      matlab.ui.control.Button
+        LaunchFSPModelReductionToolButton  matlab.ui.control.Button
+        CreateNewNStateModelButton      matlab.ui.control.Button
         ChooseSSITModelLabel_2          matlab.ui.control.Label
         ChooseSSITModel_2               matlab.ui.control.DropDown
         LaunchMultiDataFittingToolButton  matlab.ui.control.Button
@@ -1819,7 +1819,7 @@
             app.ModelReactionTable.RowName = {};
             app.ModelReactionTable.ColumnEditable = [false true true true];
             app.ModelReactionTable.CellEditCallback = createCallbackFcn(app, @ModelReactionTableCellEdit, true);
-            app.ModelReactionTable.Tooltip = {'List number of reactants consumed or produced (e.g. ''x1(2)'' corresponds to 2 molecules of S1). Separate multiple reactant/products with comma.'; ''; 'For propensities use x1 x2 x3 for the three species. You may use arbitrary parameter names and regular expressions (e.g. ''cos'' ''exp''  ''log''). '; ''; 'Free parameters that start with ''I'' (e.g. ''I1'' or  ''In2'') will be treated as inputs signals.'; ''; 'If you wish to delete a reaction'; ' enter ''y'' in the final column.'};
+            app.ModelReactionTable.Tooltip = {'List number of reactants consumed or produced (e.g. ''rna(2)'' corresponds to 2 molecules of species ''rna''). Separate multiple reactant/products with comma.'; ''; 'You may use arbitrary parameter names and regular expressions (e.g. ''cos'' ''exp''  ''log''). '; ''; 'Free parameters that start with ''I'' (e.g. ''I1'' or  ''In2'') will be treated as inputs signals.'};
             app.ModelReactionTable.Position = [13 129 638 184];
 
             % Create ModelAddReactionButton
@@ -1868,7 +1868,7 @@
             app.ModelInputTable.RowName = {};
             app.ModelInputTable.ColumnEditable = [false true];
             app.ModelInputTable.CellEditCallback = createCallbackFcn(app, @ModelInputTableCellEdit, true);
-            app.ModelInputTable.Tooltip = {'Adjust form/parameters of input signals here as functions of time (e.g ''k*(1+sin(t)'' ). Any new symbolic variables (e.g. ''k'' ) will be added to the list of free parameters above.'};
+            app.ModelInputTable.Tooltip = {'Adjust form and parameters of input signals here as functions of time (e.g ''k*(1+sin(t)'' ). Any new symbolic variables (e.g. ''k'' ) will be added to the list of free parameters above.'};
             app.ModelInputTable.Position = [14 4 637 86];
 
             % Create DefineTimeVaryingInputSignalsLabel
@@ -1906,6 +1906,7 @@
             app.ModelAbout = uitextarea(app.ModelTab);
             app.ModelAbout.ValueChangedFcn = createCallbackFcn(app, @ModelAboutValueChanged, true);
             app.ModelAbout.BackgroundColor = [0.8 0.8 0.8];
+            app.ModelAbout.Tooltip = {'Use this textbox to write information about model. (e.g., descriptions of species/reactions/inputs and citation information).'};
             app.ModelAbout.Position = [661 393 426 143];
             app.ModelAbout.Value = {'Add model description here.'};
 
@@ -1961,16 +1962,6 @@
             app.LoadSBMLModelButton.Position = [135 502 121 23];
             app.LoadSBMLModelButton.Text = 'Load SBML Model';
 
-            % Create CreateNewNStateModelButton
-            app.CreateNewNStateModelButton = uibutton(app.ModelTab, 'push');
-            app.CreateNewNStateModelButton.ButtonPushedFcn = createCallbackFcn(app, @CreateNewNStateModelButtonPushed, true);
-            app.CreateNewNStateModelButton.BackgroundColor = [1 1 0];
-            app.CreateNewNStateModelButton.FontWeight = 'bold';
-            app.CreateNewNStateModelButton.Enable = 'off';
-            app.CreateNewNStateModelButton.Visible = 'off';
-            app.CreateNewNStateModelButton.Position = [269 503 169 23];
-            app.CreateNewNStateModelButton.Text = 'Create New N-State Model';
-
             % Create DeleteReactionDropDown_2Label
             app.DeleteReactionDropDown_2Label = uilabel(app.ModelTab);
             app.DeleteReactionDropDown_2Label.HorizontalAlignment = 'right';
@@ -1980,12 +1971,13 @@
             % Create DeleteReactionDropDown
             app.DeleteReactionDropDown = uidropdown(app.ModelTab);
             app.DeleteReactionDropDown.ValueChangedFcn = createCallbackFcn(app, @DeleteReactionDropDownValueChanged, true);
+            app.DeleteReactionDropDown.Tooltip = {'Use this to delete a reaction from the model.'};
             app.DeleteReactionDropDown.Position = [300 463 100 22];
 
             % Create AddSpeciesButton
             app.AddSpeciesButton = uibutton(app.ModelTab, 'state');
             app.AddSpeciesButton.ValueChangedFcn = createCallbackFcn(app, @AddSpeciesButtonValueChanged, true);
-            app.AddSpeciesButton.Tooltip = {'Use this button to add another reaction to the model.'};
+            app.AddSpeciesButton.Tooltip = {'Use this button to add another species to the model.'};
             app.AddSpeciesButton.Text = 'Add Species';
             app.AddSpeciesButton.BackgroundColor = [0 1 0];
             app.AddSpeciesButton.Position = [39 419 139 28];
@@ -1999,6 +1991,7 @@
             % Create DeleteSpeciesDropDown
             app.DeleteSpeciesDropDown = uidropdown(app.ModelTab);
             app.DeleteSpeciesDropDown.ValueChangedFcn = createCallbackFcn(app, @DeleteSpeciesDropDownValueChanged, true);
+            app.DeleteSpeciesDropDown.Tooltip = {'Use this to delete a species from the model. Deleted species will be replaced with constants if used in other reactions.'};
             app.DeleteSpeciesDropDown.Position = [505 422 100 22];
 
             % Create AbouttheModelLabel
@@ -2009,7 +2002,7 @@
             % Create AddInputButton
             app.AddInputButton = uibutton(app.ModelTab, 'state');
             app.AddInputButton.ValueChangedFcn = createCallbackFcn(app, @AddInputButtonValueChanged, true);
-            app.AddInputButton.Tooltip = {'Use this button to add another reaction to the model.'};
+            app.AddInputButton.Tooltip = {'Use this button to add another input signal to the model.'};
             app.AddInputButton.Text = 'Add Input';
             app.AddInputButton.BackgroundColor = [0 1 0];
             app.AddInputButton.Position = [39 379 139 28];
@@ -2023,6 +2016,7 @@
             % Create DeleteInputDropDown
             app.DeleteInputDropDown = uidropdown(app.ModelTab);
             app.DeleteInputDropDown.ValueChangedFcn = createCallbackFcn(app, @DeleteInputDropDownValueChanged, true);
+            app.DeleteInputDropDown.Tooltip = {'Use this to delete an input from the model.'};
             app.DeleteInputDropDown.Position = [299 387 100 22];
 
             % Create ChooseSSITModel
@@ -2030,6 +2024,7 @@
             app.ChooseSSITModel.Items = {'Other'};
             app.ChooseSSITModel.ValueChangedFcn = createCallbackFcn(app, @ChooseSSITModelValueChanged, true);
             app.ChooseSSITModel.Visible = 'off';
+            app.ChooseSSITModel.Tooltip = {'Choose which SSIT model to use.'};
             app.ChooseSSITModel.Position = [261 538 366 22];
             app.ChooseSSITModel.Value = 'Other';
 
@@ -2053,7 +2048,7 @@
             app.SpeciesTable.RowName = {};
             app.SpeciesTable.ColumnEditable = [false true];
             app.SpeciesTable.CellEditCallback = createCallbackFcn(app, @SpeciesTableCellEdit, true);
-            app.SpeciesTable.Tooltip = {'Adjust constant parameters here.'};
+            app.SpeciesTable.Tooltip = {'Adjust species initial conditions here.'};
             app.SpeciesTable.Position = [1112 393 244 167];
 
             % Create RenameSpeciesDropDownLabel
@@ -2065,6 +2060,7 @@
             % Create RenameSpeciesDropDown
             app.RenameSpeciesDropDown = uidropdown(app.ModelTab);
             app.RenameSpeciesDropDown.ValueChangedFcn = createCallbackFcn(app, @RenameSpeciesDropDownValueChanged, true);
+            app.RenameSpeciesDropDown.Tooltip = {'Use this to rename a species in the model.'};
             app.RenameSpeciesDropDown.Position = [300 422 100 22];
 
             % Create NewModelButton
@@ -2106,7 +2102,7 @@
 
             % Create SsaNumSimField
             app.SsaNumSimField = uieditfield(app.StochasticSimulationTab, 'numeric');
-            app.SsaNumSimField.Tooltip = {'Number of SSA Simulations to run.'; ''};
+            app.SsaNumSimField.Tooltip = {'Number of SSA Simulations to run.'};
             app.SsaNumSimField.Position = [162 586 100 22];
             app.SsaNumSimField.Value = 100;
 
@@ -2130,7 +2126,7 @@
             app.SsaInitCondField = uieditfield(app.StochasticSimulationTab, 'text');
             app.SsaInitCondField.ValueChangedFcn = createCallbackFcn(app, @SsaInitCondFieldValueChanged, true);
             app.SsaInitCondField.HorizontalAlignment = 'right';
-            app.SsaInitCondField.Tooltip = {'Initial concentrations of each species'; ''; 'Input as vector [x1'; 'x2'; 'x3]'};
+            app.SsaInitCondField.Tooltip = {'Initial concentrations of each species.  See Model tab for order of species.'};
             app.SsaInitCondField.Position = [162 550 100 22];
             app.SsaInitCondField.Value = '[1,0,0]';
 
@@ -2181,14 +2177,14 @@
             app.SsaTimeSlider = uislider(app.StochasticSimulationTab);
             app.SsaTimeSlider.Limits = [0 10];
             app.SsaTimeSlider.ValueChangedFcn = createCallbackFcn(app, @UpdatePlotsButtonPushed, true);
-            app.SsaTimeSlider.Tooltip = {'Time Slider for Histogram'};
+            app.SsaTimeSlider.Tooltip = {'Slider to choose time for displaying SSA Histogram.'};
             app.SsaTimeSlider.Position = [622 507 240 3];
 
             % Create SsaExportFiguresButton
             app.SsaExportFiguresButton = uibutton(app.StochasticSimulationTab, 'push');
             app.SsaExportFiguresButton.ButtonPushedFcn = createCallbackFcn(app, @SsaExportFiguresButtonPushed, true);
             app.SsaExportFiguresButton.BackgroundColor = [0 1 0];
-            app.SsaExportFiguresButton.Tooltip = {'Export both figures @ current time'};
+            app.SsaExportFiguresButton.Tooltip = {'Export both figures at the current time'};
             app.SsaExportFiguresButton.Position = [903 415 150 28];
             app.SsaExportFiguresButton.Text = 'Export Figures';
 
@@ -2204,7 +2200,7 @@
             app.SsaExportHistogramButton = uibutton(app.StochasticSimulationTab, 'push');
             app.SsaExportHistogramButton.ButtonPushedFcn = createCallbackFcn(app, @SsaExportHistogramButtonPushed, true);
             app.SsaExportHistogramButton.BackgroundColor = [0 1 0];
-            app.SsaExportHistogramButton.Tooltip = {'Export Histogram Plot @ current time'};
+            app.SsaExportHistogramButton.Tooltip = {'Export Histogram Plot at the current time'};
             app.SsaExportHistogramButton.Position = [903 318 150 28];
             app.SsaExportHistogramButton.Text = 'Export Histogram';
 
@@ -2270,14 +2266,14 @@
             % Create SsaParallelCheckBox
             app.SsaParallelCheckBox = uicheckbox(app.StochasticSimulationTab);
             app.SsaParallelCheckBox.ValueChangedFcn = createCallbackFcn(app, @SsaParallelCheckBoxValueChanged, true);
-            app.SsaParallelCheckBox.Tooltip = {'Evaluate SSA in parallel'; 'Good for large times and simulations'};
+            app.SsaParallelCheckBox.Tooltip = {'Evaluate SSA in parallel. Good for large times and many simulations.'};
             app.SsaParallelCheckBox.Text = 'Parallel';
             app.SsaParallelCheckBox.Position = [11 446 128 32];
 
             % Create SsaNonParallelCheckBox
             app.SsaNonParallelCheckBox = uicheckbox(app.StochasticSimulationTab);
             app.SsaNonParallelCheckBox.ValueChangedFcn = createCallbackFcn(app, @SsaNonParallelCheckBoxValueChanged, true);
-            app.SsaNonParallelCheckBox.Tooltip = {'Evaluate SSA in series'};
+            app.SsaNonParallelCheckBox.Tooltip = {'Evaluate SSA in series.'};
             app.SsaNonParallelCheckBox.Text = 'Non-Parallel';
             app.SsaNonParallelCheckBox.Position = [11 415 128 32];
             app.SsaNonParallelCheckBox.Value = true;
@@ -2343,7 +2339,7 @@
             % Create SsaNumSimToPlotField
             app.SsaNumSimToPlotField = uieditfield(app.StochasticSimulationTab, 'numeric');
             app.SsaNumSimToPlotField.ValueChangedFcn = createCallbackFcn(app, @UpdatePlotsButtonPushed, true);
-            app.SsaNumSimToPlotField.Tooltip = {'Number of SSA Simulations to show in trajectory plot.'; ''};
+            app.SsaNumSimToPlotField.Tooltip = {'Number of SSA Simulations to show in trajectory plot.'};
             app.SsaNumSimToPlotField.Position = [20 348 34 22];
             app.SsaNumSimToPlotField.Value = 100;
 
@@ -2400,6 +2396,7 @@
             % Create SsaShowOdeCheckBox
             app.SsaShowOdeCheckBox = uicheckbox(app.StochasticSimulationTab);
             app.SsaShowOdeCheckBox.ValueChangedFcn = createCallbackFcn(app, @UpdatePlotsButtonPushed, true);
+            app.SsaShowOdeCheckBox.Tooltip = {'Show ODE solution in plots.'};
             app.SsaShowOdeCheckBox.Text = 'Show ODE';
             app.SsaShowOdeCheckBox.Position = [28 189 82 22];
 
@@ -2414,6 +2411,7 @@
             app.SpeciestoShowListBox.Items = {'x1', 'x2', 'x3'};
             app.SpeciestoShowListBox.Multiselect = 'on';
             app.SpeciestoShowListBox.ValueChangedFcn = createCallbackFcn(app, @SpeciestoShowListBoxValueChanged, true);
+            app.SpeciestoShowListBox.Tooltip = {'Choose which species to show in plots.'};
             app.SpeciestoShowListBox.Position = [47 233 100 74];
             app.SpeciestoShowListBox.Value = {'x1'};
 
@@ -2442,7 +2440,7 @@
             app.FspInitCondField = uieditfield(app.FSPTab, 'text');
             app.FspInitCondField.ValueChangedFcn = createCallbackFcn(app, @SsaInitCondFieldValueChanged, true);
             app.FspInitCondField.HorizontalAlignment = 'right';
-            app.FspInitCondField.Tooltip = {'Initial conditions for FSP '; ''; 'input as vector'; '[x1'; 'x2'; 'x3]'};
+            app.FspInitCondField.Tooltip = {'Initial conditions for FSP. See ''Model'' tab for species order.'};
             app.FspInitCondField.Position = [115 554 100 22];
             app.FspInitCondField.Value = '[1,0,0]';
 
@@ -2471,7 +2469,7 @@
             % Create FspErrorTolField
             app.FspErrorTolField = uieditfield(app.FSPTab, 'numeric');
             app.FspErrorTolField.FontWeight = 'bold';
-            app.FspErrorTolField.Tooltip = {'Error Tolerance for FSP'; ''; 'Input as scalar'};
+            app.FspErrorTolField.Tooltip = {'Error Tolerance for FSP (e.g., 0.001).'};
             app.FspErrorTolField.Position = [115 584 100 22];
             app.FspErrorTolField.Value = 0.001;
 
@@ -2522,7 +2520,7 @@
             app.FspConstraintTable.RowName = {};
             app.FspConstraintTable.ColumnEditable = [true false true];
             app.FspConstraintTable.CellEditCallback = createCallbackFcn(app, @FspConstraintTableCellEdit, true);
-            app.FspConstraintTable.Tooltip = {'Contraints for FSP solution.'; 'Both the constraint functions and the bounds can be editted.'};
+            app.FspConstraintTable.Tooltip = {'Contraints for FSP solution. Both the constraint functions and the bounds can be editted.'};
             app.FspConstraintTable.Position = [15 154 407 300];
 
             % Create FspConstraintsLabel
@@ -2536,7 +2534,7 @@
             app.FspDefaultButton = uibutton(app.FSPTab, 'push');
             app.FspDefaultButton.ButtonPushedFcn = createCallbackFcn(app, @FspDefaultButtonPushed, true);
             app.FspDefaultButton.BackgroundColor = [0 1 0];
-            app.FspDefaultButton.Tooltip = {'Return to default constraits'};
+            app.FspDefaultButton.Tooltip = {'Return to default constraits.'};
             app.FspDefaultButton.Position = [129 466 108 28];
             app.FspDefaultButton.Text = 'Default';
 
@@ -2544,7 +2542,7 @@
             app.FspAddConstraintButton = uibutton(app.FSPTab, 'push');
             app.FspAddConstraintButton.ButtonPushedFcn = createCallbackFcn(app, @FspAddConstraintButtonPushed, true);
             app.FspAddConstraintButton.BackgroundColor = [0 1 0];
-            app.FspAddConstraintButton.Tooltip = {'Add new constraint'};
+            app.FspAddConstraintButton.Tooltip = {'Add new constraint to define FSP statespace.'};
             app.FspAddConstraintButton.Position = [245 466 120 28];
             app.FspAddConstraintButton.Text = 'Add Constraint';
 
@@ -2805,7 +2803,7 @@
             app.FspApproximateSteadyStateButton.BackgroundColor = [0 1 0];
             app.FspApproximateSteadyStateButton.Enable = 'off';
             app.FspApproximateSteadyStateButton.Visible = 'off';
-            app.FspApproximateSteadyStateButton.Tooltip = {'Run FSP calculation with current constraints. If no constraints'; ' runs with default constraints.'};
+            app.FspApproximateSteadyStateButton.Tooltip = {'Approximate FSP steady-state using current statespace and SVD.'};
             app.FspApproximateSteadyStateButton.Position = [18 45 186 28];
             app.FspApproximateSteadyStateButton.Text = 'Approximate Steady State';
 
@@ -2848,18 +2846,9 @@
             % Create FspIntegratorTolerance
             app.FspIntegratorTolerance = uidropdown(app.FSPTab);
             app.FspIntegratorTolerance.Items = {'Relaxed', 'Moderate', 'Strict'};
+            app.FspIntegratorTolerance.Tooltip = {'ODE tolerance to use for time varying CME integration.'};
             app.FspIntegratorTolerance.Position = [394 122 100 22];
             app.FspIntegratorTolerance.Value = 'Relaxed';
-
-            % Create LaunchFSPModelReductionToolButton
-            app.LaunchFSPModelReductionToolButton = uibutton(app.FSPTab, 'push');
-            app.LaunchFSPModelReductionToolButton.ButtonPushedFcn = createCallbackFcn(app, @LaunchFSPModelReductionToolButtonPushed, true);
-            app.LaunchFSPModelReductionToolButton.BackgroundColor = [0.9294 0.6941 0.1255];
-            app.LaunchFSPModelReductionToolButton.FontWeight = 'bold';
-            app.LaunchFSPModelReductionToolButton.Enable = 'off';
-            app.LaunchFSPModelReductionToolButton.Visible = 'off';
-            app.LaunchFSPModelReductionToolButton.Position = [15 12 213 22];
-            app.LaunchFSPModelReductionToolButton.Text = 'Launch FSP Model Reduction Tool';
 
             % Create ExportFSPDatatoWorkspaceForManualPlotsButton
             app.ExportFSPDatatoWorkspaceForManualPlotsButton = uibutton(app.FSPTab, 'push');
@@ -3829,7 +3818,7 @@
             app.ModelSaveButton.ButtonPushedFcn = createCallbackFcn(app, @ModelSaveButtonPushed, true);
             app.ModelSaveButton.BackgroundColor = [0 1 0];
             app.ModelSaveButton.FontWeight = 'bold';
-            app.ModelSaveButton.Tooltip = {'Press this button to save your current model and parameters.'};
+            app.ModelSaveButton.Tooltip = {'Press this button to save your current model and parameters in a new file or model name.'};
             app.ModelSaveButton.Position = [297 13 100 28];
             app.ModelSaveButton.Text = 'Save Model';
 
@@ -3838,7 +3827,7 @@
             app.ModelSaveButton_2.ButtonPushedFcn = createCallbackFcn(app, @ModelSaveButton_2Pushed, true);
             app.ModelSaveButton_2.BackgroundColor = [0 1 0];
             app.ModelSaveButton_2.FontWeight = 'bold';
-            app.ModelSaveButton_2.Tooltip = {'Press this button to save your current model and parameters.'};
+            app.ModelSaveButton_2.Tooltip = {'Press this button to save using the existing file and model names to the right.'};
             app.ModelSaveButton_2.Position = [413 13 75 28];
             app.ModelSaveButton_2.Text = 'Quick Save';
 
@@ -4016,6 +4005,26 @@
             app.ChooseSSITModelLabel_2.Visible = 'off';
             app.ChooseSSITModelLabel_2.Position = [314 -259 112 22];
             app.ChooseSSITModelLabel_2.Text = 'Choose SSIT Model';
+
+            % Create CreateNewNStateModelButton
+            app.CreateNewNStateModelButton = uibutton(app.UIFigure, 'push');
+            app.CreateNewNStateModelButton.ButtonPushedFcn = createCallbackFcn(app, @CreateNewNStateModelButtonPushed, true);
+            app.CreateNewNStateModelButton.BackgroundColor = [1 1 0];
+            app.CreateNewNStateModelButton.FontWeight = 'bold';
+            app.CreateNewNStateModelButton.Enable = 'off';
+            app.CreateNewNStateModelButton.Visible = 'off';
+            app.CreateNewNStateModelButton.Position = [622 -84 169 23];
+            app.CreateNewNStateModelButton.Text = 'Create New N-State Model';
+
+            % Create LaunchFSPModelReductionToolButton
+            app.LaunchFSPModelReductionToolButton = uibutton(app.UIFigure, 'push');
+            app.LaunchFSPModelReductionToolButton.ButtonPushedFcn = createCallbackFcn(app, @LaunchFSPModelReductionToolButtonPushed, true);
+            app.LaunchFSPModelReductionToolButton.BackgroundColor = [0.9294 0.6941 0.1255];
+            app.LaunchFSPModelReductionToolButton.FontWeight = 'bold';
+            app.LaunchFSPModelReductionToolButton.Enable = 'off';
+            app.LaunchFSPModelReductionToolButton.Visible = 'off';
+            app.LaunchFSPModelReductionToolButton.Position = [41 -68 213 22];
+            app.LaunchFSPModelReductionToolButton.Text = 'Launch FSP Model Reduction Tool';
 
             % Show the figure after all components are created
             app.UIFigure.Visible = 'on';
