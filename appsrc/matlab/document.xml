@@ -1346,7 +1346,6 @@
         % Button pushed function: LoadSBMLModelButton
         function LoadSBMLModelButtonPushed(app, event)
             loadModelFromSBML(app)
-            ModelUpdateButtonPushed(app);
         end
 
         % Callback function
@@ -1740,7 +1739,11 @@
         function ModelSaveButton_2Pushed(app, event)
             eval([app.ModelFile.modelName,'=app.SSITModel;'])
             saveGUI(app); % Call function to add GUI elements to save file if desired.
-            save(app.ModelFile.fileName,app.ModelFile.modelName,'-append');
+            if isfile(app.ModelFile.fileName)
+                save(app.ModelFile.fileName,app.ModelFile.modelName,'-append');
+            else
+                save(app.ModelFile.fileName,app.ModelFile.modelName);
+            end          
             info = dir(app.ModelFile.fileName);
             app.FileModelLabel.Text = {['File: ',app.ModelFile.fileName];...
                 ['Model: ',app.ModelFile.modelName];...
@@ -1886,6 +1889,7 @@
             app.ModelUsePresetExampleTypeDropDown = uidropdown(app.ModelTab);
             app.ModelUsePresetExampleTypeDropDown.Items = {'Other'};
             app.ModelUsePresetExampleTypeDropDown.ValueChangedFcn = createCallbackFcn(app, @ModelUsePresetExampleTypeDropDownValueChanged, true);
+            app.ModelUsePresetExampleTypeDropDown.Tooltip = {'Use this to select a directory with pre-made models.'};
             app.ModelUsePresetExampleTypeDropDown.Position = [109 583 314 22];
             app.ModelUsePresetExampleTypeDropDown.Value = 'Other';
 
@@ -1914,6 +1918,7 @@
             % Create ModelDropDown
             app.ModelDropDown = uidropdown(app.ModelTab);
             app.ModelDropDown.ValueChangedFcn = createCallbackFcn(app, @ModelDropDownValueChanged, true);
+            app.ModelDropDown.Tooltip = {'Use this to select a pre-made model.'};
             app.ModelDropDown.Position = [529 583 352 22];
 
             % Create IncreaseFontSizeRxn
@@ -1952,6 +1957,7 @@
             app.LoadSBMLModelButton.ButtonPushedFcn = createCallbackFcn(app, @LoadSBMLModelButtonPushed, true);
             app.LoadSBMLModelButton.BackgroundColor = [1 1 0];
             app.LoadSBMLModelButton.FontWeight = 'bold';
+            app.LoadSBMLModelButton.Tooltip = {'Press this to load a model from SBML.'};
             app.LoadSBMLModelButton.Position = [135 502 121 23];
             app.LoadSBMLModelButton.Text = 'Load SBML Model';
 
@@ -2066,6 +2072,7 @@
             app.NewModelButton.ButtonPushedFcn = createCallbackFcn(app, @NewModelButtonPushed, true);
             app.NewModelButton.BackgroundColor = [1 1 0];
             app.NewModelButton.FontWeight = 'bold';
+            app.NewModelButton.Tooltip = {'Press this to create a new model from scratch.'};
             app.NewModelButton.Position = [13 502 93 23];
             app.NewModelButton.Text = 'New Model';
 
