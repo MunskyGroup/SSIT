@@ -25,16 +25,17 @@ N_t = 3;
 tprint = linspace(0,tstop,N_t);  
 % times of the actual results.
 
-N_run = 1000; 
+% Call code to write a GPU friendly SSA code.
+Write_GPU_SSA(k,w,S,tprint,fun_name);
+return
+%%
+
+N_run = 1000000; 
 % Number of runs to perform.
 
 N_split=gpuDeviceCount;
 % Number of graphics cards over which to split the SSA runs.
 
-% Call code to write a GPU friendly SSA code.
-Write_GPU_SSA(k,w,S,tprint,fun_name);
-return
-%%
 fun = str2func(fun_name);
 % Convert the function name string to a function handle.
 
