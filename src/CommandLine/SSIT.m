@@ -118,7 +118,8 @@ classdef SSIT
         %       'verbose',false
         ssaOptions = struct('Nexp',1,'nSimsPerExpt',100,...
             'useTimeVar',false,'signalUpdateRate',[],...
-            'useParallel',false,'verbose',false); 
+            'useParallel',false,'verbose',false,...
+            'useGPU',false); 
         % Options for PDO
         %   defaults:
         %       'unobservedSpecies',[]
@@ -1372,79 +1373,114 @@ classdef SSIT
                     Solution.T_array = obj.tSpan;
                     Nt = length(Solution.T_array);
                     nSims = obj.ssaOptions.Nexp*obj.ssaOptions.nSimsPerExpt*Nt;
+                    
+                    % Write callable SSA code for better efficiency.
                     W = obj.propensitiesGeneral;
-                    if obj.ssaOptions.useParallel
-                        trajs = zeros(length(obj.species),...
-                            length(obj.tSpan),nSims);% Creates an empty Trajectories matrix from the size of the time array and number of simulations
-                        parfor isim = 1:nSims
-                            trajs(:,:,isim) = ssit.ssa.runSingleSsa(obj.initialCondition,...
-                                obj.stoichiometry,...
-                                W,...
-                                obj.tSpan,...
-                                obj.ssaOptions.useTimeVar,...
-                                obj.ssaOptions.signalUpdateRate,...
-                                [obj.parameters{:,2}]');
-                            if obj.ssaOptions.verbose
-                                disp(['completed sim number: ',num2str(isim)])
-                            end
-                        end
-                        Solution.trajs = trajs;
-                    else
-                        Solution.trajs = zeros(length(obj.species),...
-                            length(obj.tSpan),nSims);% Creates an empty Trajectories matrix from the size of the time array and number of simulations
-                        for isim = 1:nSims
-                            Solution.trajs(:,:,isim) = ssit.ssa.runSingleSsa(obj.initialCondition,...
-                                obj.stoichiometry,...
-                                W,...
-                                obj.tSpan,...
-                                obj.ssaOptions.useTimeVar,...
-                                obj.ssaOptions.signalUpdateRate,...
-                                [obj.parameters{:,2}]');
-                            if obj.ssaOptions.verbose
-                                disp(['completed sim number: ',num2str(isim)])
-                            end
-                        end
+                    % if obj.ssaOptions.useGPU
+                    % Write a GPU Friendly Code and then Execute.
+                    k = [obj.parameters{:,2}];
+                    % Parameters for the model.
+
+                    w = obj.propensityFunctions;
+                    for i = 1:length(obj.species)
+                        w = regexprep(w,['\<',obj.species{i},'\>'],['x',num2str(i)]);
                     end
+                    for i = 1:size(obj.parameters,1)
+                        w = regexprep(w,['\<',obj.parameters{i,1},'\>'],['$',num2str(i)]);
+                    end
+                    w = strrep(w,'$','k');
+
+                    S = obj.stoichiometry;  % Stoichiometry matrix.
+
+                    x0 = obj.initialCondition;
+                    % initial condition.
+
+                    % Call code to write a GPU friendly SSA code.
+                    fun_name = 'TmpGPUSSACode';
+                    ssit.ssa.WriteGPUSSA(k,w,S,obj.tSpan,fun_name);
+
+                    fun = str2func(fun_name);
+                    % Convert the function name string to a function handle.
+
+                    if obj.ssaOptions.useGPU
+                        Solution.trajs=fun(x0,nSims,'GPU');
+                    elseif obj.ssaOptions.useParallel
+                        Solution.trajs=fun(x0,nSims,'Parallel');
+                    else
+                        Solution.trajs=fun(x0,nSims,'Series');
+                    end
+                        
+                    % Call the GPU SSA code previously generated.
+
+                    % elseif obj.ssaOptions.useParallel
+                    %     trajs = zeros(length(obj.species),...
+                    %         length(obj.tSpan),nSims);% Creates an empty Trajectories matrix from the size of the time array and number of simulations
+                    %     parfor isim = 1:nSims
+                    %         trajs(:,:,isim) = ssit.ssa.runSingleSsa(obj.initialCondition,...
+                    %             obj.stoichiometry,...
+                    %             W,...
+                    %             obj.tSpan,...
+                    %             obj.ssaOptions.useTimeVar,...
+                    %             obj.ssaOptions.signalUpdateRate,...
+                    %             [obj.parameters{:,2}]');
+                    %         if obj.ssaOptions.verbose
+                    %             disp(['completed sim number: ',num2str(isim)])
+                    %         end
+                    %     end
+                    %     Solution.trajs = trajs;
+                    % else
+                    %     Solution.trajs = zeros(length(obj.species),...
+                    %         length(obj.tSpan),nSims);% Creates an empty Trajectories matrix from the size of the time array and number of simulations
+                    %     for isim = 1:nSims
+                    %         Solution.trajs(:,:,isim) = ssit.ssa.runSingleSsa(obj.initialCondition,...
+                    %             obj.stoichiometry,...
+                    %             W,...
+                    %             obj.tSpan,...
+                    %             obj.ssaOptions.useTimeVar,...
+                    %             obj.ssaOptions.signalUpdateRate,...
+                    %             [obj.parameters{:,2}]');
+                    %         if obj.ssaOptions.verbose
+                    %             disp(['completed sim number: ',num2str(isim)])
+                    %         end
+                    %     end
+                    % end
                     disp([num2str(nSims),' SSA Runs Completed'])
-                    % try
-                        if ~isempty(obj.pdoOptions.PDO)
-                            Solution.trajsDistorted = zeros(length(obj.species),...
-                                length(obj.tSpan),nSims);% Creates an empty Trajectories matrix from the size of the time array and number of simulations
-                            for iS = 1:length(obj.species)
-                                PDO = obj.pdoOptions.PDO.conditionalPmfs{iS};
-                                nDpossible = size(PDO,1);
-                                Q = Solution.trajs(iS,:,:);
-                                for iD = 1:length(Q(:))
-                                    Q(iD) = randsample([0:nDpossible-1],1,true,PDO(:,Q(iD)+1));
-                                end
-                                Solution.trajsDistorted(iS,:,:) = Q;
+                    if ~isempty(obj.pdoOptions.PDO)
+                        Solution.trajsDistorted = zeros(length(obj.species),...
+                            length(obj.tSpan),nSims);% Creates an empty Trajectories matrix from the size of the time array and number of simulations
+                        for iS = 1:length(obj.species)
+                            PDO = obj.pdoOptions.PDO.conditionalPmfs{iS};
+                            nDpossible = size(PDO,1);
+                            Q = Solution.trajs(iS,:,:);
+                            for iD = 1:length(Q(:))
+                                Q(iD) = randsample([0:nDpossible-1],1,true,PDO(:,Q(iD)+1));
                             end
-                            disp('PDO applied to SSA results')
+                            Solution.trajsDistorted(iS,:,:) = Q;
                         end
-                        if ~isempty(saveFile)
-                            A = table;
-                            for j=1:Nt
-                                A.time((j-1)*obj.ssaOptions.nSimsPerExpt+1:j*obj.ssaOptions.nSimsPerExpt) = obj.tSpan(j);
-                                for i = 1:obj.ssaOptions.Nexp
-                                    for k=1:obj.ssaOptions.nSimsPerExpt
-                                        for s = 1:size(Solution.trajs,1)
-                                            warning('off')
-                                            A.(['exp',num2str(i),'_s',num2str(s)])((j-1)*obj.ssaOptions.nSimsPerExpt+k) = ...
-                                                Solution.trajs(s,j,(i-1)*Nt*obj.ssaOptions.nSimsPerExpt+(j-1)*obj.ssaOptions.nSimsPerExpt+k);
-                                            if ~isempty(obj.pdoOptions.PDO)
-                                                A.(['exp',num2str(i),'_s',num2str(s),'_Distorted'])((j-1)*obj.ssaOptions.nSimsPerExpt+k) = ...
-                                                    Solution.trajsDistorted(s,j,(i-1)*Nt*obj.ssaOptions.nSimsPerExpt+(j-1)*obj.ssaOptions.nSimsPerExpt+k);
-                                            end
+                        disp('PDO applied to SSA results')
+                    end
+                    if ~isempty(saveFile)
+                        A = table;
+                        for j=1:Nt
+                            A.time((j-1)*obj.ssaOptions.nSimsPerExpt+1:j*obj.ssaOptions.nSimsPerExpt) = obj.tSpan(j);
+                            for i = 1:obj.ssaOptions.Nexp
+                                for k=1:obj.ssaOptions.nSimsPerExpt
+                                    for s = 1:size(Solution.trajs,1)
+                                        warning('off')
+                                        A.(['exp',num2str(i),'_s',num2str(s)])((j-1)*obj.ssaOptions.nSimsPerExpt+k) = ...
+                                            Solution.trajs(s,j,(i-1)*Nt*obj.ssaOptions.nSimsPerExpt+(j-1)*obj.ssaOptions.nSimsPerExpt+k);
+                                        if ~isempty(obj.pdoOptions.PDO)
+                                            A.(['exp',num2str(i),'_s',num2str(s),'_Distorted'])((j-1)*obj.ssaOptions.nSimsPerExpt+k) = ...
+                                                Solution.trajsDistorted(s,j,(i-1)*Nt*obj.ssaOptions.nSimsPerExpt+(j-1)*obj.ssaOptions.nSimsPerExpt+k);
                                         end
                                     end
                                 end
                             end
-                            writetable(A,saveFile)
-                            disp(['SSA Results saved to ',saveFile])
                         end
-                    % catch
-                    %     pause;
-                    % end
+                        writetable(A,saveFile)
+                        disp(['SSA Results saved to ',saveFile])
+                    end
+                   
                 case 'fspsens'
                     if strcmp(obj.sensOptions.solutionMethod,'forward')&&isempty(obj.propensitiesGeneral{1}.sensTimeFactorVec)
                         obj = formPropensitiesGeneral(obj,'Sensitivities',true);

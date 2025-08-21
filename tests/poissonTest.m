@@ -169,6 +169,48 @@ classdef poissonTest < matlab.unittest.TestCase
                 'SSA Data Not Generated');            
         end
 
+        function SsaDataGenerationGPU(testCase)
+            % In this test, we check that the code generates and saves data
+            % generated using the Poisson model.
+            testCase.Poiss.ssaOptions.nSimsPerExpt = 100000;
+            testCase.Poiss.ssaOptions.Nexp = 1;
+            testCase.Poiss.solutionScheme = 'SSA';
+            testCase.Poiss.tSpan = [0:10];
+
+            tic
+            testCase.Poiss.ssaOptions.useParalel = false;
+            testCase.Poiss.ssaOptions.useGPU = true;
+            SSAGPU = testCase.Poiss.solve(testCase.PoissSolution);
+            timeGPU = toc;
+           
+            tic
+            testCase.Poiss.ssaOptions.useParallel = true;
+            testCase.Poiss.ssaOptions.useGPU = false;
+            SSACPUp = testCase.Poiss.solve(testCase.PoissSolution);
+            timeCPUp = toc;
+
+            tic
+            testCase.Poiss.ssaOptions.useParallel = false;
+            testCase.Poiss.ssaOptions.useGPU = false;
+            SSACPUs = testCase.Poiss.solve(testCase.PoissSolution);
+            timeCPUs = toc;    
+
+            p = gcp("nocreate");
+            Methods = {'1CPU+1GPU';append(num2str(p.NumWorkers),' CPUs');'1 CPU'};
+            Times = [timeGPU;timeCPUp;timeCPUs];
+            Means = [mean(SSAGPU.trajs(1,end,:));mean(SSACPUp.trajs(1,end,:));mean(SSACPUs.trajs(1,end,:))];
+            Vars = [var(SSAGPU.trajs(1,end,:));var(SSACPUp.trajs(1,end,:));var(SSACPUs.trajs(1,end,:))];
+            
+            disp('GPU/CPU Performance for SSA - 110k sims')
+            table(Methods,Times,Means,Vars)
+            % p = gcp("nocreate");
+            % Methods = {'1CPU+1GPU';[num2str(p.NumWorkers)];' CPUs';'1 CPU'};
+            % Times = [timeGPU;timeCPUp];
+            % Means = [mean(SSAGPU.trajs(1,end,:));mean(SSACPUp.trajs(1,end,:))];
+
+           
+        end
+
         function DataLoading(testCase)
             % In this test, we check that the code correctly loads the data
             % geerated using the Poisson model. 
