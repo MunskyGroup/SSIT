@@ -81,7 +81,7 @@ for i=1:Nspec
 end
 txt3 = [txt,'] = ',fun_name,'_SSA(',txt2,');\r\n'];
 fprintf(fileID,txt3);
-txt4 = ['    X(:,:,i) = ',txt(3:end),'];\r\n'];
+txt4 = ['    X(:,:,i) = reshape(',txt(3:end),'],[Nspec,Nt]);\r\n'];
 fprintf(fileID,txt4);
 fprintf(fileID,'  end\r\n');
 
