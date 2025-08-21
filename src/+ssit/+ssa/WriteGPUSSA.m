@@ -127,7 +127,7 @@ end
 fprintf(fileID,'\r\n');
 
 fprintf(fileID,['%%Initialize the time.\r\n']);
-fprintf(fileID,['t=0;\r\n']);
+fprintf(fileID,['t=',num2str(tprint(1)),';\r\n']);
 
 fprintf(fileID,['%%Start the SSA.\r\n']);
 
