@@ -1375,19 +1375,26 @@ classdef SSIT
                     nSims = obj.ssaOptions.Nexp*obj.ssaOptions.nSimsPerExpt*Nt;
                     
                     % Write callable SSA code for better efficiency.
-                    W = obj.propensitiesGeneral;
+                    % W = obj.propensitiesGeneral;
                     % if obj.ssaOptions.useGPU
                     % Write a GPU Friendly Code and then Execute.
                     k = [obj.parameters{:,2}];
                     % Parameters for the model.
 
                     w = obj.propensityFunctions;
+                    % Replace input signals with their actual functions.
+                    for i = 1:size(obj.inputExpressions,1)
+                        w = regexprep(w,['\<',obj.inputExpressions{i,1},'\>'],['(',obj.inputExpressions{i,2},')']);                        
+                    end
+                    % Replace species with vector
                     for i = 1:length(obj.species)
                         w = regexprep(w,['\<',obj.species{i},'\>'],['x',num2str(i)]);
                     end
+                    % Replace parameters with $i
                     for i = 1:size(obj.parameters,1)
                         w = regexprep(w,['\<',obj.parameters{i,1},'\>'],['$',num2str(i)]);
                     end
+                    % Replace $ with k
                     w = strrep(w,'$','k');
 
                     S = obj.stoichiometry;  % Stoichiometry matrix.
