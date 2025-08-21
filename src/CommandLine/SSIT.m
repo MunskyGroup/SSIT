@@ -1404,6 +1404,7 @@ classdef SSIT
 
                     % Call code to write a GPU friendly SSA code.
                     fun_name = 'TmpGPUSSACode';
+                    clear TmpGPUSSACode % Clear function from cache just in case.
                     ssit.ssa.WriteGPUSSA(k,w,S,obj.tSpan,fun_name);
 
                     fun = str2func(fun_name);
