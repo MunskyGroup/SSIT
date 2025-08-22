@@ -31,13 +31,13 @@ elseif strcmp(useGPU,'Parallel')
    x1_0 = x0(1); % Specific Initial Conditions.
   parfor i = 1:N_run
     [x1_1,x1_2,x1_3,x1_4,x1_5,x1_6,x1_7,x1_8,x1_9,x1_10,x1_11] = TmpGPUSSACode_SSA(x1_0);
-    X(:,:,i) = reshape(  [x1_1,x1_2,x1_3,x1_4,x1_5,x1_6,x1_7,x1_8,x1_9,x1_10,x1_11],[Nspec,Nt,1]);
+    X(:,:,i) = reshape(  [x1_1,x1_2,x1_3,x1_4,x1_5,x1_6,x1_7,x1_8,x1_9,x1_10,x1_11],[Nt,Nspec])';
   end
 elseif strcmp(useGPU,'Series')
   for i = 1:N_run
    x1_0 = x0(1); % Specific Initial Conditions.
     [x1_1,x1_2,x1_3,x1_4,x1_5,x1_6,x1_7,x1_8,x1_9,x1_10,x1_11] = TmpGPUSSACode_SSA(x1_0);
-    X(:,:,i) = reshape(  [x1_1,x1_2,x1_3,x1_4,x1_5,x1_6,x1_7,x1_8,x1_9,x1_10,x1_11],[Nspec,Nt,1]);
+    X(:,:,i) = reshape(  [x1_1,x1_2,x1_3,x1_4,x1_5,x1_6,x1_7,x1_8,x1_9,x1_10,x1_11],[Nt,Nspec])';
   end
 end
 
