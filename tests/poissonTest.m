@@ -206,10 +206,10 @@ classdef poissonTest < matlab.unittest.TestCase
             Means = [mean(SSAGPU.trajs(1,end,:));mean(SSACPUp.trajs(1,end,:));mean(SSACPUs.trajs(1,end,:))];
             Vars = [var(SSAGPU.trajs(1,end,:));var(SSACPUp.trajs(1,end,:));var(SSACPUs.trajs(1,end,:))];
             
-            disp('GPU/CPU Performance for SSA - 110k sims')
+            disp('GPU/CPU Performance for SSA - 1.1Mk sims')
             table(Methods,Times,Means,Vars)
 
-            testCase.Poiss.ssaOptions.nSimsPerExpt = 100000;
+            testCase.Poiss.ssaOptions.nSimsPerExpt = 1000000;
             tic
             testCase.Poiss.ssaOptions.useParalel = false;
             testCase.Poiss.ssaOptions.useGPU = true;
@@ -223,11 +223,11 @@ classdef poissonTest < matlab.unittest.TestCase
             timeCPUp = toc;
 
             Methods = {'1CPU+1GPU';append(num2str(p.NumWorkers),' CPUs')};
-            Times = [timeGPU;timeCPUp;timeCPUs];
+            Times = [timeGPU;timeCPUp];
             Means = [mean(SSAGPU.trajs(1,end,:));mean(SSACPUp.trajs(1,end,:))];
             Vars = [var(SSAGPU.trajs(1,end,:));var(SSACPUp.trajs(1,end,:))];
             
-            disp('GPU/CPU Performance for SSA - 1100k sims')
+            disp('GPU/CPU Performance for SSA - 11M sims')
             table(Methods,Times,Means,Vars)
 
         end
