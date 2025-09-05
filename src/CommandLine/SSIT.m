@@ -2052,6 +2052,7 @@ classdef SSIT
             TAB2.time = timeAr;
 
             % Construct sparse tensor to hold data.
+            TAB2.Variables = max(0,TAB2.Variables);
             obj.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor = sptensor(TAB2.Variables+1,ones(size(TAB2,1),1));
 
             % Define other properties needed in other functions.

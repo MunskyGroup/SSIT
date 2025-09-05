@@ -599,27 +599,27 @@ classdef Propensity
                         % K = strfind(stNew,')');
                         % k2 = min(K(K>J(j)));
                         logE = stNew(k1:k2);
-                        if contains(logE,'t')&&max(contains(logE,species))
+                        if ~isempty(regexp(logE,'\<t\>'))&&max(contains(logE,species))
                             n(1)=n(1)+1;
                             logicTerms.logJ{n(1),1} = logE;
                             counter = counter+1;
                             logicTerms.logJ{n(1),2} = ['logJ',num2str(counter)];
-                            % stNew = strrep(stNew,logE,['(',logicTerms.logJ{n(1),2},')']);
-                            stNew = regexprep(stNew,['\<',logE,'\>'],['(',logicTerms.logJ{n(1),2},')']);
-                        elseif contains(logE,'t')
+                            stNew = strrep(stNew,logE,['(',logicTerms.logJ{n(1),2},')']);
+                            % stNew = regexprep(stNew,['\<',logE,'\>'],['(',logicTerms.logJ{n(1),2},')']);
+                        elseif ~isempty(regexp(logE,'\<t\>'))
                             n(2)=n(2)+1;
                             logicTerms.logT{n(2),1} = logE;
                             counter = counter+1;
                             logicTerms.logT{n(2),2} = ['logT',num2str(counter)];
-                            % stNew = strrep(stNew,logE,['(',logicTerms.logT{n(2),2},')']);
-                            stNew = regexprep(stNew,['\<',logE,'\>'],['(',logicTerms.logT{n(2),2},')']);
+                            stNew = strrep(stNew,logE,['(',logicTerms.logT{n(2),2},')']);
+                            % stNew = regexprep(stNew,['\<',logE,'\>'],['(',logicTerms.logT{n(2),2},')']);
                         elseif max(contains(logE,species))
                             n(3)=n(3)+1;
                             logicTerms.logX{n(3),1} = logE;
                             counter = counter+1;
                             logicTerms.logX{n(3),2} = ['logX',num2str(counter)];
-                            % stNew = strrep(stNew,logE,['(',logicTerms.logX{n(3),2},')']);
-                            stNew = regexprep(stNew,['\<',logE,'\>'],['(',logicTerms.logX{n(3),2},')']);
+                            stNew = strrep(stNew,logE,['(',logicTerms.logX{n(3),2},')']);
+                            % stNew = regexprep(stNew,['\<',logE,'\>'],['(',logicTerms.logX{n(3),2},')']);
                         end
                     end
                 end

@@ -176,3 +176,4 @@ for it = 1:Nt
     end
     fprintf(fileID,'\r\n');
 end
+fclose(fileID);
