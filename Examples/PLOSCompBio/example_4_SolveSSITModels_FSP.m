@@ -24,7 +24,7 @@ STL1_4state.summarizeModel
 % Set the times at which distributions will be computed:
 Model.tSpan = linspace(0,20,200);
 STL1.tSpan = linspace(0,20,200);
-STL1_4state.tSpan = linspace(0,20,200);
+STL1_4state.tSpan = linspace(0,3600,200);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(1): Use the stochastic Finite State Projection (FSP) 
@@ -50,7 +50,7 @@ STL1_4state.tSpan = linspace(0,20,200);
     Model_FSP.fspOptions.fspTol = 1e-4; 
     
     % Guess initial bounds on FSP StateSpace:
-    Model_FSP.fspOptions.bounds = [2,2,400];
+    Model_FSP.fspOptions.bounds = [1,1,400];
     
     % Have FSP approximate the steady state for the initial distribution 
     % by finding the eigenvector corresponding to the smallest magnitude 
@@ -65,7 +65,7 @@ STL1_4state.tSpan = linspace(0,20,200);
                        false,[1,2,3],{'linewidth',2})  
     Model_FSP.makePlot(Model_FSPsoln,'meansAndDevs') 
     Model_FSP.makePlot(Model_FSPsoln,'margmovie',[],false,[101],...
-                        {'linewidth',2},'Model_FSP.mp4',[1,1,0.5],[2,3]) 
+                        {'linewidth',2},'Model_FSP.mp4') 
                        
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(2): Use the stochastic Finite State Projection (FSP) 
@@ -91,7 +91,7 @@ STL1_4state.tSpan = linspace(0,20,200);
     STL1_FSP.fspOptions.fspTol = 1e-4; 
     
     % Guess initial bounds on FSP StateSpace:
-    STL1_FSP.fspOptions.bounds = [2,2,400];
+    STL1_FSP.fspOptions.bounds = [1,1,400];
     
     % Have FSP approximate the steady state for the initial distribution 
     % by finding the eigenvector corresponding to the smallest magnitude 
