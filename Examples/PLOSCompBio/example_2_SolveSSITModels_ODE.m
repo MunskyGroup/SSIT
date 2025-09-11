@@ -7,13 +7,13 @@
 
 %% Preliminaries
 % Use the models from example_1_CreateSSITModels
-%clear
-%close all
+% clear
+% close all
 
-%example_1_CreateSSITModels
+% example_1_CreateSSITModels
 
 % Load the models created in example_1_CreateSSITModels
-load('example_1_CreateSSITModels.mat')
+% load('example_1_CreateSSITModels.mat')
 
 % View model summaries:
 Model.summarizeModel

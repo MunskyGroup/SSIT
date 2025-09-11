@@ -7,13 +7,13 @@
 
 %% Preliminaries
 % Use the models from example_1_CreateSSITModels
-%clear
-%close all
+% clear
+% close all
 
-example_1_CreateSSITModels
+% example_1_CreateSSITModels
 
 % Load the models created in example_1_CreateSSITModels
-load('example_1_CreateSSITModels.mat')
+% load('example_1_CreateSSITModels.mat')
 
 % View model summaries:
 Model.summarizeModel
@@ -70,8 +70,8 @@ STL1_4state.tSpan = linspace(0,3600,200);
     plotSSA(Model_SSAsoln, 'all', 100, Model_SSA.species);
 
     %% Make a video of the SSA trajectories being plotted:
-    makeSSAvideo(Model_SSAsoln, 'all', 100, Model_SSA.species, ...
-        'Model_SSA_video')
+    % makeSSAvideo(Model_SSAsoln, 'all', 100, Model_SSA.species, ...
+    %             'Model_SSA_video')
         
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(2): Use Gillepsie's Stochastic Simulation Algorithm (SSA) 
@@ -116,8 +116,8 @@ STL1_4state.tSpan = linspace(0,3600,200);
     plotSSA(STL1_SSAsoln, 'all', 100, STL1_SSA.species);
 
     %% Make a video of the SSA trajectories being plotted:
-    makeSSAvideo(STL1_SSAsoln, 'all', 100, STL1_SSA.species, ...
-        'STL1_SSA_video')
+    % makeSSAvideo(STL1_SSAsoln, 'all', 100, STL1_SSA.species, ...
+    %             'STL1_SSA_video')
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(3): Use Gillepsie's Stochastic Simulation Algorithm (SSA) 
@@ -163,8 +163,8 @@ STL1_4state.tSpan = linspace(0,3600,200);
     plotSSA(STL1_4state_SSAsoln, 'all', 100, STL1_4state_SSA.species);
 
     %% Make a video of the SSA trajectories being plotted:
-    makeSSAvideo(STL1_4state_SSAsoln, 'all', 100, ...
-        STL1_4state_SSA.species, 'STL1_SSA_video_4state')
+    % makeSSAvideo(STL1_4state_SSAsoln, 'all', 100, ...
+    %              STL1_4state_SSA.species, 'STL1_SSA_video_4state')
 
 %% Save SSA models & solutions
 saveNames = unique({'Model_SSA'

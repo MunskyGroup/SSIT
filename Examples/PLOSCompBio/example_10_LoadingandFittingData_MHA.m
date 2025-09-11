@@ -10,9 +10,9 @@
 % example_4_SolveSSITModels_FSP, data loaded in 
 % example_8_LoadingandFittingData_DataLoading, and MLE computed in
 % example_9_LoadingandFittingData_MLE
-%clear
-%close all
-addpath(genpath('../../src'));
+% clear
+% close all
+% addpath(genpath('../../src'));
 
 % example_1_CreateSSITModels  
 % example_4_SolveSSITModels_FSP
@@ -20,10 +20,10 @@ addpath(genpath('../../src'));
 % example_9_LoadingandFittingData_MLE
 
 %% Load pre-computed FSP solutions + loaded data + MLEs:
-load('example_9_LoadingandFittingData_MLE.mat')
+% load('example_9_LoadingandFittingData_MLE.mat')
 
 % View summary of 4-state STL1 model:
-STL1_4state_MLE.summarizeModel
+STL1_MLE.summarizeModel
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Use Metropolis-Hastings to sample uncertainty 
@@ -32,7 +32,7 @@ STL1_4state_MLE.summarizeModel
 
 
 % Make a copy of our 4-state STL1 model for Metropolis-Hastings (MH):
-STL1_4state_MH = STL1_4state_MLE;
+STL1_MH = STL1_MLE;
 
     % Adjust proposal width scale (the default proposal distribution in 
     % SSIT is "@(x)x+0.1*randn(size(x))", which leads to low acceptance in
@@ -49,15 +49,15 @@ MHOptions.thin = 2;
 
 % Run Metropolis-Hastings: 
 
-[STL1_4state_MH_pars,~,STL1_4state_MHResults] = ...
-    STL1_4state_MH.maximizeLikelihood([], MHOptions, 'MetropolisHastings');
+[STL1_MH_pars,~,STL1_MHResults] = ...
+    STL1_MH.maximizeLikelihood([], MHOptions, 'MetropolisHastings');
 
 % Store MH parameters in model:
-STL1_4state_MH.parameters([1:17],2) = num2cell(STL1_4state_MH_pars);
+STL1_MH.parameters([1:8],2) = num2cell(STL1_MH_pars);
 
 % Plot results:
-STL1_4state_MH.plotMHResults(STL1_4state_MHResults,[],'log',[])
-STL1_4state_MH.makeFitPlot
+STL1_MH.plotMHResults(STL1_MHResults,[],'log',[])
+STL1_MH.makeFitPlot
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -67,63 +67,64 @@ STL1_4state_MH.makeFitPlot
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Make a new copy of our 4-state STL1 model:
-STL1_4state_MH_FIM = STL1_4state_MLE;
+STL1_MH_FIM = STL1_MLE;
 
 %% Compute FIM, Run Metropolis Hastings
 % Specify Prior as log-normal distribution with wide uncertainty
 % Prior log-mean:
-mu_log10 = [-0.5,0.2,0.1,-2,-1,-1.5,-1.5,-2,-3,-2,0,-1.5,-4,-2,10,-3,0.5];  
+%mu_log10 = [2.5,3.5,0.5,0.1,-2,-1,-1.5,-1.5,-2.5,-0.5,-4,-2,10,-3,0.5]; 
+mu_log10 = [-1,-1,1,1,1,1,-2.5,-2]; 
 
 % Prior log-standard deviation:
-sig_log10 = 2*ones(1,17);      
+sig_log10 = 2*ones(1,8);      
 
 % Prior:
-STL1_4state_MH_FIM.fittingOptions.logPrior = ...
+STL1_MH_FIM.fittingOptions.logPrior = ...
     @(x)-sum((log10(x)-mu_log10).^2./(2*sig_log10.^2));
 
 % Choose parameters to search:
-STL1_4state_MH_FIM.fittingOptions.modelVarsToFit = [1:17];
+STL1_MH_FIM.fittingOptions.modelVarsToFit = [1:8];
 
 % Create first parameter guess:
-STL1_4state_MH_FIM_pars = [STL1_4state_MH_FIM.parameters{:,2}];         
+STL1_MH_FIM_pars = [STL1_MH_FIM.parameters{:,2}];         
 
 % Compute individual FIMs:
-fimResults = STL1_4state_MH_FIM.computeFIM([],'log'); 
+fimResults = STL1_MH_FIM.computeFIM([],'log'); 
 
 % Compute total FIM including effect of prior:
-fimTotal = STL1_4state_MH_FIM.evaluateExperiment(fimResults,...
-           STL1_4state_MH_FIM.dataSet.nCells,diag(sig_log10.^2)); 
+fimTotal = STL1_MH_FIM.evaluateExperiment(fimResults,...
+           STL1_MH_FIM.dataSet.nCells,diag(sig_log10.^2)); 
 
 % Choose parameters to search:
-STL1_4state_MH_FIM.fittingOptions.modelVarsToFit = [1:17]; 
+STL1_MH_FIM.fittingOptions.modelVarsToFit = [1:8]; 
 
 % Select FIM for free parameters:
-FIMfree = fimTotal{1}([1:17],[1:17]); 
+FIMfree = fimTotal{1}([1:8],[1:8]); 
 
 % Estimate the covariance using CRLB:
 COVfree = (1/2*(FIMfree + FIMfree'))^(-1);  
 
 % Define Metropolis-Hasting settings:
-STL1_4state_MH_FIM.fittingOptions.logPrior = ...
-    @(x)-sum((log10(x)-mu_log10([1:17])).^2./(2*sig_log10([1:17]).^2));
-proposalWidthScale = 0.001;
-STL1_4state_MH_FIM_FIMOptions = ...
+STL1_MH_FIM.fittingOptions.logPrior = ...
+    @(x)-sum((log10(x)-mu_log10([1:8])).^2./(2*sig_log10([1:8]).^2));
+proposalWidthScale = 0.01;
+STL1_MH_FIM_FIMOptions = ...
  struct('proposalDistribution',@(x)mvnrnd(x,proposalWidthScale*COVfree),...
  'numberOfSamples',2000,'burnin',200,'thin',2);
 
 % Run Metropolis Hastings
-[STL1_4state_MH_FIM_pars,~,STL1_4state_FIM_MHResults] = ...
-    STL1_4state_MH_FIM.maximizeLikelihood([], ...
-    STL1_4state_MH_FIM_FIMOptions, 'MetropolisHastings'); 
+[STL1_MH_FIM_pars,~,STL1_FIM_MHResults] = ...
+    STL1_MH_FIM.maximizeLikelihood([], ...
+    STL1_MH_FIM_FIMOptions, 'MetropolisHastings'); 
 
 % Store sampled parameters:
-STL1_4state_MH_FIM.parameters([1:17],2) = ...
-    num2cell(STL1_4state_MH_FIM_pars);
+STL1_MH_FIM.parameters([1:8],2) = ...
+    num2cell(STL1_MH_FIM_pars);
 
 % Plot MH samples, FIM:
-STL1_4state_MH_FIM.plotMHResults(STL1_4state_FIM_MHResults,...
+STL1_MH_FIM.plotMHResults(STL1_FIM_MHResults,...
                                  FIMfree,'log',[])
-STL1_4state_MH_FIM.makeFitPlot
+STL1_MH_FIM.makeFitPlot
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -131,35 +132,36 @@ STL1_4state_MH_FIM.makeFitPlot
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Make a new copy of our 4-state STL1 model:
-STL1_4state_MH_it = STL1_4state_MH_FIM;
+STL1_MH_it = STL1_MH_FIM;
 
 %% Specify Bayesian Prior and fit
 % Specify Prior as log-normal distribution with wide uncertainty
 % Prior log-mean:
-mu_log10 = [-0.5,0.2,0.1,-2,-1,-1.5,-1.5,-2,-3,-2,0,-1.5,-4,-2,10,-3,0.5];
+%mu_log10 = [2.5,3.5,0.5,0.1,-2,-1,-1.5,-1.5,-2.5,-0.5,-4,-2,10,-3,0.5]; 
+mu_log10 = [-1,-1,1,1,1,1,-2.5,-2]; 
 
 % Prior log-standard deviation:
-sig_log10 = 2*ones(1,17);  
+sig_log10 = 2*ones(1,8);  
 
 % Prior:
-STL1_4state_MH_it.fittingOptions.logPrior = ...
+STL1_MH_it.fittingOptions.logPrior = ...
     @(x)-sum((log10(x)-mu_log10).^2./(2*sig_log10.^2));
 
 % Choose parameters to search:
-STL1_4state_MH_it.fittingOptions.modelVarsToFit = [1:17]; 
+STL1_MH_it.fittingOptions.modelVarsToFit = [1:8]; 
 
 % Create first parameter guess:
-STL1_4state_MH_it_pars = [STL1_4state_MH_it.parameters{:,2}];      
+STL1_MH_it_pars = [STL1_MH_it.parameters{:,2}];      
 
 % Fit to maximize likelihood:
-STL1_4state_MH_it_pars = ...
-    STL1_4state_MH_it.maximizeLikelihood(STL1_4state_MH_it_pars); 
+STL1_MH_it_pars = ...
+    STL1_MH_it.maximizeLikelihood(STL1_MH_it_pars); 
 
 % Update new parameters:
-STL1_4state_MH_it.parameters(:,2) = num2cell(STL1_4state_MH_it_pars); 
+STL1_MH_it.parameters(:,2) = num2cell(STL1_MH_it_pars); 
 
 % Plot fitting results:
-STL1_4state_MH_it.makeFitPlot  
+STL1_MH_it.makeFitPlot  
 % You may need to re-run this multiple times until converged.
 % I got a MLE of -33,833.6 after a few runs. 
 
@@ -167,12 +169,12 @@ STL1_4state_MH_it.makeFitPlot
 %% Iterating between MLE and MH
 %  Running a few rounds of MLE and MH together may improve convergence.
 
-STL1_4state_MH_it.parameters(:,2) = num2cell(STL1_4state_MH_it_pars);
+STL1_MH_it.parameters(:,2) = num2cell(STL1_MH_it_pars);
 for i=1:3
     % Maximize likelihood:
-    STL1_4state_MH_it_pars = STL1_4state_MH_it.maximizeLikelihood([]);    
+    STL1_MH_it_pars = STL1_MH_it.maximizeLikelihood([]);    
     % Update parameters in the model:
-    STL1_4state_MH_it.parameters(:,2) = num2cell(STL1_4state_MH_it_pars);
+    STL1_MH_it.parameters(:,2) = num2cell(STL1_MH_it_pars);
 
     % Run Metropolis-Hastings    
     proposalWidthScale = 0.01;
@@ -185,34 +187,31 @@ for i=1:3
     MHOptions.thin = 2;
 
     % Run Metropolis-Hastings: 
-    [STL1_4state_MH_it_pars,~,STL1_4state_MH_it_MHResults] = ...
-        STL1_4state_MH_it.maximizeLikelihood([], MHOptions,...
+    [STL1_MH_it_pars,~,STL1_MH_it_MHResults] = ...
+        STL1_MH_it.maximizeLikelihood([], MHOptions,...
         'MetropolisHastings');
     
     % Store MH parameters in model:
-    STL1_4state_MH_it.parameters([1:17],2) = ...
-        num2cell(STL1_4state_MH_it_pars);
+    STL1_MH_it.parameters([1:8],2) = ...
+        num2cell(STL1_MH_it_pars);
 end
-STL1_4state_MH_it.plotMHResults(STL1_4state_MH_it_MHResults);
-STL1_4state_MH_it.makeFitPlot
-
-%% Evaluating the MH results
-
+STL1_MH_it.plotMHResults(STL1_MH_it_MHResults);
+STL1_MH_it.makeFitPlot
 
 %% Save models & MH results:
-saveNames = unique({'STL1_4state_MH'
-    'STL1_4state_MH_pars'
-    'STL1_4state_MHResults'
-    'STL1_4state_MH_FIM'
-    'STL1_4state_MH_FIM_pars'
+saveNames = unique({'STL1_MH'
+    'STL1_MH_pars'
+    'STL1_MHResults'
+    'STL1_MH_FIM'
+    'STL1_MH_FIM_pars'
     'fimResults'
     'fimTotal'
     'FIMfree'
     'COVfree'
-    'STL1_4state_FIM_MHResults'
-    'STL1_4state_MH_it'
-    'STL1_4state_MH_it_pars'
-    'STL1_4state_MH_it_MHResults'
+    'STL1_FIM_MHResults'
+    'STL1_MH_it'
+    'STL1_MH_it_pars'
+    'STL1_MH_it_MHResults'
     });
     
 save('example_10_LoadingandFittingData_MHA',saveNames{:})

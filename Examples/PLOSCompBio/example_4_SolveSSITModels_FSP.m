@@ -7,14 +7,14 @@
 
 %% Preliminaries
 % Use the models from example_1_CreateSSITModels
-%clear
-%close all
-%addpath(genpath('../../'));
+% clear
+% close all
+% addpath(genpath('../../'));
 
 % example_1_CreateSSITModels
 
 % Load the models created in example_1_CreateSSITModels
-load('example_1_CreateSSITModels.mat')
+% load('example_1_CreateSSITModels.mat')
 
 % View model summaries:
 Model.summarizeModel
@@ -118,8 +118,6 @@ STL1_4state.tSpan = linspace(0,3600,200);
 %% STL1 (4-state):
     % Create a copy of the time-varying STL1 yeast model for FSP:
     STL1_4state_FSP = STL1_4state;
-   
-    STL1_4state_ODE.tSpan = linspace(0,3600,200);
     
     % Ensure the solution scheme is set to FSP (default):
     STL1_4state_FSP.solutionScheme = 'FSP';  
@@ -135,7 +133,7 @@ STL1_4state.tSpan = linspace(0,3600,200);
     STL1_4state_FSP.fspOptions.fspTol = 1e-4; 
     
     % Guess initial bounds on FSP StateSpace:
-    STL1_4state_FSP.fspOptions.bounds = [2,2,2,2,400];
+    STL1_4state_FSP.fspOptions.bounds = [1,1,1,1,400];
     
     % Have FSP approximate the steady state for the initial distribution 
     % by finding the eigenvector corresponding to the smallest magnitude 

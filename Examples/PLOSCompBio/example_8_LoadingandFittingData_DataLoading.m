@@ -8,15 +8,15 @@
 %% Preliminaries
 % Use the STL1 model from example_1_CreateSSITModels and 
 % example_4_SolveSSITModels_FSP
-%clear
-%close all
-addpath(genpath('../../src'));
+% clear
+% close all
+% addpath(genpath('../../src'));
 
-%example_1_CreateSSITModels 
-%example_4_SolveSSITModels_FSP
+% example_1_CreateSSITModels 
+% example_4_SolveSSITModels_FSP
 
 %% Load pre-computed FSP solutions:
-load('example_4_SolveSSITModels_FSP.mat')
+% load('example_4_SolveSSITModels_FSP.mat')
 
 % View model summaries:
 Model_FSP.summarizeModel

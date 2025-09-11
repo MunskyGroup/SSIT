@@ -34,10 +34,10 @@ Model.stoichiometry = [-1,1,0,0;...
 
 % Set propensity functions:
 Model.propensityFunctions = {'kon * offGene';'koff * onGene';...
-                             'kr * onGene';'gr * mRNA'}; 
+                             'kr * onGene';'dr * mRNA'}; 
 
 % Set initial guesses for parameters:
-Model.parameters = ({'kon',0.2; 'koff',0.2; 'kr',10; 'gr',5});
+Model.parameters = ({'kon',0.2; 'koff',0.2; 'kr',10; 'dr',5});
 
 % Print a summary of STL1 Model:
 Model.summarizeModel
@@ -56,11 +56,11 @@ STL1 = Model;
 % Update propensity function for the gene activation reaction:
 STL1.propensityFunctions{2} = 'onGene*koff/(1+Hog1)';
 
-% Define the time-varying TF/MAPK input signal:
+% Define a simplified time-varying TF/MAPK input signal:
 STL1.inputExpressions = {'Hog1','(a0+a1*exp(-r1*t)*(1-exp(-r2*t))*(t>0))'};
 
 % Add the new parameters from the TF/MAPK input signal:
-STL1.parameters = ({'kon',0.2; 'koff',0.2; 'kr',10; 'gr',5;...
+STL1.parameters = ({'kon',0.2; 'koff',0.2; 'kr',10; 'dr',5;...
                     'a0',5; 'a1',10; 'r1',0.004; 'r2',.01}); 
 
 % Print a summary of STL1 Model:
@@ -79,24 +79,23 @@ STL1_4state.species = {'s1';'s2';'mRNA';'s3';'s4'};
 % Set initial condition:
 STL1_4state.initialCondition = [1;0;0;0;0];  
 
-% Define more complex time-varying TF/MAPK input signal (from Science
-% paper): 
-STL1_4state.inputExpressions = {'Hog1',...
-    'A*(((1-(exp(1)^(-r1*(t-t0))))*exp(1)^(-r2*(t-t0)))/(1+((1-(exp(1)^(-r1*(t-t0))))*exp(1)^(-r2*(t-t0)))/M))^n*(t>t0)'};
-
 % Set stoichiometry of reactions:
-STL1_4state.stoichiometry = [0,-1,1,0,0,0,0,0,0,0,0;...  % gene state 1
-                             0,1,-1,0,-1,1,0,0,0,0,0;... % gene state 2
-                             1,0,0,1,0,0,1,0,0,1,-1;...  % mRNA
-                             0,0,0,0,1,-1,0,-1,1,0,0;... % gene state 3        
-                             0,0,0,0,0,0,0,1,-1,0,0];...  % gene state 4
-                % Reactions: 1,2,3,4,5,6,7,8,9,10,11
+STL1_4state.stoichiometry = [-1,1,0,0,0,0,0,0;...   % gene state 1
+                              1,-1,-1,1,0,0,0,0;... % gene state 2
+                              0,0,0,0,0,0,1,-1;...  % mRNA
+                              0,0,1,-1,-1,1,0,0;... % gene state 3        
+                              0,0,0,0,1,-1,0,0];... % gene state 4
+                 % Reactions: 1,2,3,4,5, 6,7,8
+
+% Add a lag to the time-varying TF/MAPK input signal:
+STL1_4state.inputExpressions = ...
+    {'Hog1','A*(((1-(exp(1)^(-r1*(t-t0))))*exp(1)^(-r2*(t-t0)))/(1+((1-(exp(1)^(-r1*(t-t0))))*exp(1)^(-r2*(t-t0)))/M))^n*(t>t0)'};
 
 % Set propensity functions:
 STL1_4state.propensityFunctions = {...
-          'kr1*s1';'k12*s1';'(max(0,k21o*(1-k21i*Hog1)))*s2';...
-          'kr2*s2';'k23*s2';'k32*s3';...
-          'kr3*s3';'k34*s3';'k43*s4';...
+          'k12*s1';'(max(0,k21o*(1-k21i*Hog1)))*s2';...
+          'k23*s2';'k32*s3';...
+          'k34*s3';'k43*s4';...
           'kr4*s4';'dr*mRNA'}; 
 
 % Add the new parameters for the 4 state model:
@@ -104,8 +103,13 @@ STL1_4state.parameters = ...%({'k21o',1; 'k21i',2.4;...
                         ({'t0',190; 'k21o',3.1080e+03; 'k21i',2.4;...
                           'k12',1.3; 'k23',7e-3; 'k34',0.1;...
                           'k32',3e-2; 'k43',4e-2; 'dr',5e-3;...
-                          'kr1',8e-4; 'kr2',1e-2; 'kr3',1; 'kr4',5e-2;...
+                          'kr4',0.5;...
                           'r1',7e-5; 'r2',7e-3; 'A',9e9; 'M',6e-4; 'n',3});
+                        % ({'k21o',1; 'k21i',2.4;...
+                        %   'k12',1.3; 'k23',7e-3; 'k34',0.1;...
+                        %   'k32',3e-2; 'k43',4e-2;...
+                        %   'kr4',0.1; 'dr',5e-3;...
+                        %   'a0',5; 'a1',10; 'r1',0.004; 'r2',.01});
 
 % Print a summary of STL1 Model:
 STL1_4state.summarizeModel
