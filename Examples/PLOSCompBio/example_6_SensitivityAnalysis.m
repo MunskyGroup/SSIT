@@ -19,6 +19,7 @@ addpath(genpath('../../src'));
 % View model summaries
 Model_FSP.summarizeModel
 STL1_FSP.summarizeModel
+STL1_4state_FSP.summarizeModel
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(1): Solve sensitivities of the bursting gene model
@@ -65,3 +66,29 @@ fig5 = figure(5);clf; set(fig5,'Name','Marginal Sensitivity, onGene');
 fig6 = figure(6);clf; set(fig6,'Name','Marginal Sensitivity, mRNA');
 STL1_sens.makePlot(STL1_sensSoln,'marginals',[],false,...
                    [fig4,fig5,fig6],{'b','linewidth',2})
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Ex(3): Solve sensitivities of the 4-state time-varying STL1 yeast model
+%  from example_1_CreateSSITModels
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Make a copy of the time-varying STL1 yeast model solved by FSP for 
+% sensitivity analysis:
+STL1_4state_sens = STL1_4state_FSP;
+
+%% Solve FSP sensitivities
+% Set solution schemes to FSP sensitivity:
+STL1_4state_sens.solutionScheme = 'fspSens'; 
+
+% Solve the sensitivity problem: 
+[STL1_4state_sensSoln,STL1_4state_bounds] = ...
+    STL1_4state_sens.solve(STL1_4state_FSPsoln.stateSpace); 
+
+% Plot the results from the sensitivity analysis:
+fig7 = figure(7);clf; set(fig7,'Name','Marginal Sensitivity, g1');
+fig8 = figure(8);clf; set(fig8,'Name','Marginal Sensitivity, g2');
+fig9 = figure(9);clf; set(fig9,'Name','Marginal Sensitivity, mRNA');
+fig10 = figure(10);clf; set(fig10,'Name','Marginal Sensitivity, g3');
+fig11 = figure(11);clf; set(fig11,'Name','Marginal Sensitivity, g4');
+STL1_4state_sens.makePlot(STL1_4state_sensSoln,'marginals',[],false,...
+                   [fig7,fig8,fig9,fig10,fig11],{'b','linewidth',2})
