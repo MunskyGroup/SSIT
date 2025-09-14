@@ -25,7 +25,7 @@ Model = SSIT;
 Model.species = {'offGene';'onGene';'mRNA'}; 
 
 % Set initial condition:
-Model.initialCondition = [2;0;0];           
+Model.initialCondition = [1;0;0];           
 
 % Set stoichiometry of reactions:
 Model.stoichiometry = [-1,1,0,0;...
@@ -34,10 +34,10 @@ Model.stoichiometry = [-1,1,0,0;...
 
 % Set propensity functions:
 Model.propensityFunctions = {'kon * offGene';'koff * onGene';...
-                             'kr * onGene';'gr * mRNA'}; 
+                             'kr * onGene';'dr * mRNA'}; 
 
 % Set initial guesses for parameters:
-Model.parameters = ({'kon',0.2; 'koff',0.2; 'kr',10; 'gr',5});
+Model.parameters = ({'kon',0.2; 'koff',0.2; 'kr',10; 'dr',5});
 
 % Print a summary of STL1 Model:
 Model.summarizeModel
@@ -54,21 +54,63 @@ Model.summarizeModel
 STL1 = Model;
 
 % Update propensity function for the gene activation reaction:
-STL1.propensityFunctions{1} = 'offGene * IHog';
+STL1.propensityFunctions{2} = 'onGene*koff/(1+Hog1)';
 
-% Define the time-varying TF/MAPK input signal:
-STL1.inputExpressions = {'IHog',...
-                              '(a0+a1*exp(-r1*t)*(1-exp(-r2*t))*(t>0))'};
+% Define a simplified time-varying TF/MAPK input signal:
+STL1.inputExpressions = {'Hog1','(a0+a1*exp(-r1*t)*(1-exp(-r2*t))*(t>0))'};
 
 % Add the new parameters from the TF/MAPK input signal:
-STL1.parameters = ({'koff',0.2; 'kr',10; 'gr',5;...
+STL1.parameters = ({'kon',0.2; 'koff',0.2; 'kr',10; 'dr',5;...
                     'a0',5; 'a1',10; 'r1',0.004; 'r2',.01}); 
 
 % Print a summary of STL1 Model:
 STL1.summarizeModel
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Ex(3): Copy the 'STL1' model for 4-state dynamics.  
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Create a copy of the STL1 model from above:
+STL1_4state = STL1;
+
+% Set species names for STL1_4state:
+STL1_4state.species = {'s1';'s2';'mRNA';'s3';'s4'};
+
+% Set initial condition:
+STL1_4state.initialCondition = [1;0;0;0;0];  
+
+% Set stoichiometry of reactions:
+STL1_4state.stoichiometry = [-1,1,0,0,0,0,0,0;...   % gene state 1
+                              1,-1,-1,1,0,0,0,0;... % gene state 2
+                              0,0,0,0,0,0,1,-1;...  % mRNA
+                              0,0,1,-1,-1,1,0,0;... % gene state 3        
+                              0,0,0,0,1,-1,0,0];... % gene state 4
+                 % Reactions: 1,2,3,4,5, 6,7,8
+
+% Add a lag to the time-varying TF/MAPK input signal:
+STL1_4state.inputExpressions = ...
+    {'Hog1','A*(((1-(exp(1)^(-r1*(t-t0))))*exp(1)^(-r2*(t-t0)))/(1+((1-(exp(1)^(-r1*(t-t0))))*exp(1)^(-r2*(t-t0)))/M))^n*(t>t0)'};
+
+% Set propensity functions:
+STL1_4state.propensityFunctions = {...
+          'k12*s1';'(max(0,k21o*(1-k21i*Hog1)))*s2';...
+          'k23*s2';'k32*s3';...
+          'k34*s3';'k43*s4';...
+          'kr4*s4';'dr*mRNA'}; 
+
+% Add the new parameters for the 4 state model:
+STL1_4state.parameters = ...%({'k21o',1; 'k21i',2.4;...
+                        ({'t0',5.8; 'k21o',1e+03; 'k21i',1;...
+                          'k12',90; 'k23',5e+02; 'k34',5;...
+                          'k32',1000; 'k43',200; ...
+                          'dr',1;'kr4',2500;...
+                          'r1',35; 'r2',0.5; 'A',3; 'M',25; 'n',0.1});
+
+% Print a summary of STL1 Model:
+STL1_4state.summarizeModel
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Ex.(3) Load and modify a pre-set SSIT model
+%% Ex.(4) Load and modify a pre-set SSIT model
 
 % Several simple models are already coded in SSIT and can be quickly 
 % loaded and modified. Below are currently available SSIT models (2025). 
@@ -93,3 +135,13 @@ RepGenes_Model = SSIT(ModelChoice);
 
 % View a summary of the 'RepressilatorGenes' model:
 RepGenes_Model.summarizeModel
+
+
+%% Save the basic Bursting Gene model, simple STL1 model, and 4-state STL1 
+%% model for later use:
+saveNames = unique({'Model'
+    'STL1'
+    'STL1_4state'
+    });
+    
+save('example_1_CreateSSITModels',saveNames{:})
