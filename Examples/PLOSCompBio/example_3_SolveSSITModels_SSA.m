@@ -23,7 +23,7 @@ STL1_4state.summarizeModel
 % Set the times at which distributions will be computed:
 Model.tSpan = linspace(0,20,200);
 STL1.tSpan = linspace(0,20,200);
-STL1_4state.tSpan = linspace(0,3600,200);
+STL1_4state.tSpan = linspace(0,50,200);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(1): Use Gillepsie's Stochastic Simulation Algorithm (SSA) 
