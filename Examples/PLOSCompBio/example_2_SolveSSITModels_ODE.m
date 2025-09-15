@@ -9,6 +9,7 @@
 % Use the models from example_1_CreateSSITModels
 % clear
 % close all
+% addpath(genpath('../../'));
 
 % example_1_CreateSSITModels
 
@@ -91,13 +92,16 @@ STL1_4state.tSpan = linspace(0,50,200);
 
     % Set solution scheme to 'ode':
     STL1_4state_ODE.solutionScheme = 'ode';
+
+    % Set the ODE integrator (default 'ode23s'):
+    STL1_4state_ODE.odeIntegrator = 'ode23s';
     
     % This function compiles and stores the given reaction propensities  
     % into symbolic expression functions that use sparse matrices to  
     % operate on the system based on the current state. The functions are 
     % stored with the given prefix, in this case, 'STL1_ODE'
     STL1_4state_ODE = ...
-        STL1_4state_ODE.formPropensitiesGeneral('STL1_4state_ODE');
+        STL1_4state_ODE.formPropensitiesGeneral('STL1_4state_ODE',false);
     
     % Solve ODE and make plots:
     STL1_4state_ODEsoln = STL1_4state_ODE.solve; 
