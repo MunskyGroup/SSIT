@@ -14,7 +14,7 @@ addpath(genpath('../../src'));
 % example_1_CreateSSITModels 
 
 % View model summaries:
-STL1_data.summarizeModel
+STL1_4state_data.summarizeModel
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Fit Multiple Models and Data sets with Shared Parameters
@@ -28,33 +28,34 @@ STL1_data.summarizeModel
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Make a copy of the STL1 model for Replica 1:
-STL1_data_rep1 = STL1_data;
+STL1_4state_data_rep1 = STL1_4state_data;
 
 % Set FSP tolerance and model parameters to fit:
-STL1_data_rep1.fspOptions.fspTol = inf;
-STL1_data_rep1.fittingOptions.modelVarsToFit = 1:7;
+STL1_4state_data_rep1.fspOptions.fspTol = inf;
+STL1_4state_data_rep1.fittingOptions.modelVarsToFit = 2:15;
 
 %% Load and associate smFISH Data
 % Each model is associated with its data as usual
 
-% Load the data, assigning 'mRNA' and 'RNA_STL1_total_TS3Full' 
+% Load the data, assigning 'mRNA' and 'RNA_STL1_4state_total_TS3Full' 
 % and condition on 'Replica' = 1
-STL1_data_rep1 = ...
-  STL1_data_rep1.loadData('data/filtered_data_2M_NaCl_Step.csv',...
-                        {'mRNA','RNA_STL1_total_TS3Full'},{'Replica',1}); 
+STL1_4state_data_rep1 = ...
+  STL1_4state_data_rep1.loadData('data/filtered_data_2M_NaCl_Step.csv',...
+                   {'mRNA','RNA_STL1_total_TS3Full'},{'Replica',1});
 
 % Generate functions for model propensities
-STL1_data_rep1 = STL1_data_rep1.formPropensitiesGeneral('STL1_data');
+STL1_4state_data_rep1 = ...
+    STL1_4state_data_rep1.formPropensitiesGeneral('STL1_4state_data');
 
 %% Create Second Model and associate to its own data
-% Make a copy of the 'STL1_data_rep1' model for Replica 2
-STL1_data_rep2 = STL1_data_rep1;
+% Make a copy of the 'STL1_4state_data_rep1' model for Replica 2
+STL1_4state_data_rep2 = STL1_4state_data_rep1;
 
 % Load the data, assigning 'mRNA' and 'RNA_STL1_total_TS3Full' 
 % and condition on 'Replica' = 2
-STL1_data_rep2 = ...
-   STL1_data_rep2.loadData('data/filtered_data_2M_NaCl_Step.csv',...
-                        {'mRNA','RNA_STL1_total_TS3Full'},{'Replica',2});
+STL1_4state_data_rep2 = ...
+   STL1_4state_data_rep2.loadData('data/filtered_data_2M_NaCl_Step.csv',...
+                   {'mRNA','RNA_STL1_total_TS3Full'},{'Replica',2});
 
 %% Set Fitting Options
 fitAlgorithm = 'fminsearch';
@@ -66,10 +67,10 @@ fitOptions = optimset('Display','final','MaxIter',500);
 % set. First, we create a MultiModel class with just our original model:
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-singleModel = SSITMultiModel({STL1_data_rep1},{(1:7)});
+singleModel = SSITMultiModel({STL1_4state_data_rep1},{(2:15)});
 
 % We then copy the original parameters into the MultiModel:
-allParsSingle = ([STL1_data_rep1.parameters{:,2}]);
+allParsSingle = ([STL1_4state_data_rep1.parameters{:,2}]);
 
 % Next, we run a few rounds of fitting:
 for iFit = 1:3
@@ -84,10 +85,10 @@ for iFit = 1:3
     singleModel = singleModel.updateModels(allParsSingle);
 end
 
-% We then copy the parameters back into STL1_data_rep1 and STL1_data_rep2 
+% We then copy the parameters back into STL1_4state_data_rep1 and STL1_4state_data_rep2 
 % so we can reuse them later:
-STL1_data_rep1.parameters = singleModel.SSITModels{1}.parameters;
-STL1_data_rep2.parameters = singleModel.SSITModels{1}.parameters;
+STL1_4state_data_rep1.parameters = singleModel.SSITModels{1}.parameters;
+STL1_4state_data_rep2.parameters = singleModel.SSITModels{1}.parameters;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(1): Add a new model+data to an existing multimodel
@@ -96,10 +97,10 @@ STL1_data_rep2.parameters = singleModel.SSITModels{1}.parameters;
 %   the first model.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-combinedModel = singleModel.addModel({STL1_data_rep2},{8:14});
+combinedModel = singleModel.addModel({STL1_4state_data_rep2},{8:14});
 combinedModel = combinedModel.initializeStateSpaces;
-allParsCombined = ([STL1_data_rep1.parameters{:,2},...
-                   [STL1_data_rep2.parameters{:,2}]]);
+allParsCombined = ([STL1_4state_data_rep1.parameters{:,2},...
+                   [STL1_4state_data_rep2.parameters{:,2}]]);
 allParsCombined = combinedModel.maximizeLikelihood(...
     allParsCombined, fitOptions, fitAlgorithm);
 combinedModel = combinedModel.updateModels(allParsCombined);
@@ -114,11 +115,11 @@ combinedModel = combinedModel.updateModels(allParsCombined);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 combinedModelIndependent = ...
-    SSITMultiModel({STL1_data_rep1,STL1_data_rep2},{1:7,8:14});
+    SSITMultiModel({STL1_4state_data_rep1,STL1_4state_data_rep2},{1:7,8:14});
 combinedModelIndependent = ...
     combinedModelIndependent.initializeStateSpaces;
-allParsIndepdendent = ([STL1_data_rep1.parameters{:,2},...
-                       [STL1_data_rep2.parameters{:,2}]]);
+allParsIndepdendent = ([STL1_4state_data_rep1.parameters{:,2},...
+                       [STL1_4state_data_rep2.parameters{:,2}]]);
 allParsIndepdendent = combinedModelIndependent.maximizeLikelihood(...
     allParsIndepdendent, fitOptions, fitAlgorithm);
 combinedModelIndependent = ...
@@ -128,13 +129,13 @@ combinedModelIndependent = ...
 %% Ex(3): Completely dependent parameters
 %   Use a single set of parameters for both models and data sets. 
 %   In the following we make a joint model where both
-%   STL1_data_rep1 and STL1_data_rep2 use the parameters [1:7].
+%   STL1_4state_data_rep1 and STL1_4state_data_rep2 use the parameters [1:7].
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-combinedModelDependent = SSITMultiModel({STL1_data_rep1,...
-                                         STL1_data_rep2},{1:7,1:7});
+combinedModelDependent = SSITMultiModel({STL1_4state_data_rep1,...
+                                         STL1_4state_data_rep2},{1:7,1:7});
 combinedModelDependent = combinedModelDependent.initializeStateSpaces;
-allParsDependent = ([STL1_data_rep1.parameters{:,2}]);
+allParsDependent = ([STL1_4state_data_rep1.parameters{:,2}]);
 allParsDependent = combinedModelDependent.maximizeLikelihood(...
     allParsDependent, fitOptions, fitAlgorithm);
 combinedModelDependent = ...
@@ -145,23 +146,23 @@ combinedModelDependent = ...
 % more efficient to combine the data from both replicas and fit them at 
 % the same time, e.g. to combined all replicas into one set, simply load 
 % the data as follows:
-% STL1_data = ...
-%       STL1_data.loadData('data/filtered_data_2M_NaCl_Step.csv',...
-%             {'mRNA','RNA_STL1_total_TS3Full'},{'Replica',1});
+% STL1_4state_data = ...
+%       STL1_4state_data.loadData('data/filtered_data_2M_NaCl_Step.csv',...
+%             {'mRNA','RNA_STL1_4state_total_TS3Full'},{'Replica',1});
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(4): Mixed parameters
 %   Sometimes it is desirable to only let some parameters change from
-%   condition to condition.  In this example both STL1_data_rep1 and  
-%   STL1_data_rep2 use the same parameters [1-4], but parameters [5:7] 
-%   are only for STL1_data_rep1 and [8:10] are only for STL1_data_rep2.
+%   condition to condition.  In this example both STL1_4state_data_rep1 and  
+%   STL1_4state_data_rep2 use the same parameters [1-4], but parameters [5:7] 
+%   are only for STL1_4state_data_rep1 and [8:10] are only for STL1_4state_data_rep2.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-combinedModelMixed= SSITMultiModel({STL1_data_rep1,STL1_data_rep2},...
+combinedModelMixed= SSITMultiModel({STL1_4state_data_rep1,STL1_4state_data_rep2},...
                                    {(1:7),[1:4,8:10]});
 combinedModelMixed = combinedModelMixed.initializeStateSpaces;
-allParsMixed = ([STL1_data_rep1.parameters{:,2},...
-                 STL1_data_rep2.parameters{5:7,2}]);
+allParsMixed = ([STL1_4state_data_rep1.parameters{:,2},...
+                 STL1_4state_data_rep2.parameters{5:7,2}]);
 allParsMixed = combinedModelMixed.maximizeLikelihood(allParsMixed, ...
                                                fitOptions, fitAlgorithm);
 combinedModelMixed = combinedModelMixed.updateModels(allParsMixed);
@@ -177,8 +178,8 @@ combinedModelMixed = combinedModelMixed.updateModels(allParsMixed);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 constraint = @(x)-sum((x(5:7)-x(8:10)).^2);
-combinedModelConstrained = SSITMultiModel({STL1_data_rep1,...
-                           STL1_data_rep2},{1:7,[1:4,8:10]},constraint);
+combinedModelConstrained = SSITMultiModel({STL1_4state_data_rep1,...
+                       STL1_4state_data_rep2},{1:7,[1:4,8:10]},constraint);
 combinedModelConstrained = ...
         combinedModelConstrained.initializeStateSpaces;
 allParsConstrained = allParsMixed;

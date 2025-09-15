@@ -10,7 +10,7 @@
 % the model from example_8_LoadingandFittingData_MLE
 %clear
 %close all
-addpath(genpath('../../src'));
+addpath(genpath('../../'));
 
 % example_1_CreateSSITModels  
 

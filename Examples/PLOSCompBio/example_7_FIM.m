@@ -12,7 +12,7 @@
 
 % clear
 % close all
-addpath(genpath('../../src'));
+addpath(genpath('../../'));
 
 % example_1_CreateSSITModels  
 % example_4_SolveSSITModels_FSP
@@ -21,6 +21,7 @@ addpath(genpath('../../src'));
 % View model summaries:
 Model_FSP.summarizeModel
 STL1_FSP.summarizeModel
+STL1_4state_FSP.summarizeModel 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(1): Compute the Fisher Information Matrix for the bursting gene model
@@ -32,7 +33,6 @@ Model_FIM = Model_sens;
 
 %% Compute FIMs using FSP sensitivity results
 % Compute the FIM:
-Model_FIM = Model_sens;
 Model_fimResults = Model_FIM.computeFIM(Model_sensSoln.sens); 
 
 % Generate a count of measured cells (in place of real data):
@@ -44,9 +44,9 @@ Model_cellCounts = 10*ones(size(Model_FIM.tSpan));
     Model_FIM.evaluateExperiment(Model_fimResults,Model_cellCounts)
 
 % Plot the FIMs:
-fig7 = figure(7);clf; set(fig7,'Name',...
+fig12 = figure(12);clf; set(fig12,'Name',...
     'Fim-Predicted Uncertainty Ellipses');
-Model_FIM.plotMHResults([],Model_fimTotal,'log',[],fig7)
+Model_FIM.plotMHResults([],Model_fimTotal,'log',[],fig12)
 legend('FIM')
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -60,7 +60,6 @@ STL1_FIM = STL1_sens;
 
 %% Compute FIMs using FSP sensitivity results
 % Compute the FIM:
-STL1_FIM = STL1_sens;
 STL1_fimResults = STL1_FIM.computeFIM(STL1_sensSoln.sens); 
 
 % Generate a count of measured cells (in place of real data):
@@ -72,9 +71,39 @@ STL1_cellCounts = 10*ones(size(STL1_FIM.tSpan));
     STL1_FIM.evaluateExperiment(STL1_fimResults,STL1_cellCounts)
 
 % Plot the FIMs:
-fig8 = figure(5);clf; set(fig8,'Name',...
+fig13 = figure(13);clf; set(fig13,'Name',...
      'Fim-Predicted Uncertainty Ellipses');
-STL1_FIM.plotMHResults([],STL1_fimTotal,'log',[],fig8)
+STL1_FIM.plotMHResults([],STL1_fimTotal,'log',[],fig13)
+legend('FIM')
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Ex(3): Compute the Fisher Information Matrix for the STL1 yeast model
+%  from example_1_CreateSSITModels
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Make a copy of the time-varying STL1 yeast model with solved 
+% sensitivities:
+STL1_4state_FIM = STL1_4state_sens; 
+
+%% Compute FIMs using FSP sensitivity results
+% Compute the FIM:
+STL1_4state_fimResults = ...
+    STL1_4state_FIM.computeFIM(STL1_4state_sensSoln.sens); 
+
+% Generate a count of measured cells (in place of real data):
+STL1_4state_cellCounts = 10*ones(size(STL1_4state_FIM.tSpan));
+
+% Evaluate the provided experiment design (in "cellCounts") 
+% and produce an array of FIMs (one for each parameter set):
+[STL1_4state_fimTotal, ...
+    STL1_4state_mleCovEstimate,STL1_4state_fimMetrics] = ...
+    STL1_4state_FIM.evaluateExperiment(STL1_4state_fimResults, ...
+    STL1_4state_cellCounts)
+
+% Plot the FIMs:
+fig14 = figure(14);clf; set(fig14,'Name',...
+     'Fim-Predicted Uncertainty Ellipses');
+STL1_4state_FIM.plotMHResults([],STL1_4state_fimTotal,'log',[],fig14)
 legend('FIM')
 
 %%
@@ -99,6 +128,14 @@ legend('FIM')
 %           det: 0
 %         trace: 5.569716495312674e+04
 %     minEigVal: 0
+
+% STL1_4state_fimMetrics = 
+% 
+%   struct with fields:
+% 
+%           det: 2.046706492690019e-35
+%         trace: 3.598923369496922e+06
+%     minEigVal: 5.740620110629801e-13
 
 % The determinant for STL1_fimMetrics indicates a lack of identifiability 
 % between parameters in the STL1 Model, which unlike the base model has a 
