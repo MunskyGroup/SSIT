@@ -68,9 +68,9 @@ fprintf(fileID,'  parfor i = 1:N_run\r\n');
 for i=1:Nspec
     for j=1:Nt
         if i==1&&j==1
-            txt = '    [x1_1';
+            txt0 = '    [x1_1';
         else
-            txt = [txt,',x',num2str(i),'_',num2str(j)];
+            txt0 = [txt0,',x',num2str(i),'_',num2str(j)];
         end
     end
     if i==1
@@ -79,9 +79,13 @@ for i=1:Nspec
         txt2 = [txt2,',x',num2str(i),'_0'];
     end
 end
-txt3 = [txt,'] = ',fun_name,'_SSA(',txt2,');\r\n'];
-fprintf(fileID,txt3);
-txt4 = ['    X(:,:,i) = reshape(',txt(3:end),'],[Nt,Nspec])'';\r\n'];
+txt3 = [txt0,'] = ',fun_name,'_SSA(',txt2,');\r\n'];
+% fprintf(fileID,txt3);
+txt = ['    [x] = collectFun(',txt2,');\r\n'];
+fprintf(fileID,txt);
+
+% txt4 = ['    X(:,:,i) = reshape(',txt(3:end),'],[Nt,Nspec])'';\r\n'];
+txt4 = ['    X(:,:,i) = reshape(x,[Nt,Nspec])'';\r\n'];
 fprintf(fileID,txt4);
 fprintf(fileID,'  end\r\n');
 
@@ -91,12 +95,13 @@ for i=1:Nspec
     fprintf(fileID,['   x',num2str(i),'_0 = x0(',num2str(i),'); %% Specific Initial Conditions.\r\n']);
 end
 fprintf(fileID,txt3);
+txt4 = ['    X(:,:,i) = reshape(',txt0(3:end),'],[Nt,Nspec])'';\r\n'];
 fprintf(fileID,txt4);
 fprintf(fileID,'  end\r\n');
 
 fprintf(fileID,'end\r\n');
 
-% fprintf(fileID,'end\r\n');
+fprintf(fileID,'end\r\n');
 fprintf(fileID,'\r\n\r\n');
 
 %%
@@ -176,4 +181,30 @@ for it = 1:Nt
     end
     fprintf(fileID,'\r\n');
 end
+fprintf(fileID,'end\r\n');
+
+for i=1:Nspec
+    for j=1:Nt
+        if i==1&&j==1
+            txt3 = 'x1_1';
+        else
+            txt3 = [txt3,',x',num2str(i),'_',num2str(j)];
+        end
+    end
+    if i==1
+        txt2 = 'x1';
+    else
+        txt2 = [txt2,',x',num2str(i)];
+    end
+end
+txt = ['function [x] = collectFun(',txt2,')\r\n'];
+fprintf(fileID,txt);
+fprintf(fileID,'%% This function runs the SSA and gathers the results into a single matrix.\r\n');
+txt4 = ['[',txt3,'] = ',fun_name,'_SSA(',txt2,');\r\n'];
+fprintf(fileID,txt4);
+txt5 = ['x=','[',txt3,'];\r\n'];
+fprintf(fileID,txt5);
+fprintf(fileID,'end\r\n');
+
+
 fclose(fileID);
