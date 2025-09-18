@@ -26,7 +26,7 @@ addpath(genpath('tmpPropensityFunctions'));
 % example_10_LoadingandFittingData_MHA
 
 %% Load pre-run results:
-load('example_10_LoadingandFittingData_MHA.mat')
+% load('example_10_LoadingandFittingData_MHA.mat')
 
 % View model summary:
 STL1_4state_MH_it.summarizeModel
@@ -105,7 +105,7 @@ legend('Intuitive Design','Optimal Design')
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 STL1_4state_PDO = ...
   STL1_4state_PDO.calibratePDO('data/filtered_data_2M_NaCl_Step.csv',...
-  {'mRNA'},{'RNA_STL1_total_TS3Full'},{'RNA_STL1_nuc_TS3Full'},...
+  {'mRNA'},{'RNA_STL1_total_TS3Full'},{'RNA_STL1_cyto_TS3Full'},...
    'AffinePoiss',true);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -116,7 +116,7 @@ STL1_4state_PDO_intens = ...
 STL1_4state_PDO_intens.calibratePDO(...
         'data/filtered_data_2M_NaCl_Step.csv',...
         {'mRNA'},{'RNA_STL1_total_TS3Full'},{'STL1_avg_int_TS3Full'},...
-        'AffinePoiss',true,[1,4000,80]);
+        'AffinePoiss',true,[2000,4000,8000]);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% FIM + PDO analyses

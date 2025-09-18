@@ -9,7 +9,7 @@
 % Use the STL1 and 4-state STL1 models from example_1_CreateSSITModels 
 %clear
 %close all
-addpath(genpath('../../src'));
+addpath(genpath('../../'));
 
 % example_1_CreateSSITModels  
 % example_4_SolveSSITModels_FSP
@@ -54,131 +54,127 @@ STL1_4state_multi_2 = ...
 
 %% Set Fitting Options
 fitAlgorithm = 'fminsearch';
-fitOptions = optimset('Display','final','MaxIter',500);
+fitOptions = optimset('Display','final','MaxIter',2000);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Ex(2): Completely dependent parameters
+%% Ex(0): Single model
+% This is a simple example, where we only fit one model to a single data
+% set. First, we create a MultiModel class with just our original model:
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+singleModel = SSITMultiModel({STL1_4state_multi_1},{(1:15)});
+
+% We then copy the original parameters into the MultiModel:
+allParsSingle = ([STL1_4state_multi_1.parameters{:,2}]);
+
+% Next, we run a few rounds of fitting:
+for iFit = 1:3
+    % Initialize state space:
+    singleModel = singleModel.initializeStateSpaces;
+    
+    % Run seach for MLE:
+    allParsSingle = singleModel.maximizeLikelihood(...
+        allParsSingle, fitOptions, fitAlgorithm);
+    
+    % Update Model with new parameters:
+    singleModel = singleModel.updateModels(allParsSingle);
+end
+
+% We then copy the parameters back into Model1 and Model2 so we can reuse 
+% them later:
+STL1_4state_multi_1.parameters = singleModel.SSITModels{1}.parameters;
+STL1_4state_multi_2.parameters = singleModel.SSITModels{1}.parameters;
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Ex(1): Adding new model+data to an existing MultiModel
+% This is how one adds a second model/data combination.  In this case the
+% parameters of the new model are completely independent of the parameter
+% set for the first model.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+combinedModel = singleModel.addModel({STL1_4state_multi_2},{16:30});
+combinedModel = combinedModel.initializeStateSpaces;
+allParsCombined = ([STL1_4state_multi_1.parameters{:,2},...
+                   [STL1_4state_multi_2.parameters{:,2}]]);
+allParsCombined = combinedModel.maximizeLikelihood(...
+    allParsCombined, fitOptions, fitAlgorithm);
+combinedModel = combinedModel.updateModels(allParsCombined);
+
+% Note: This example is shown for illustration purposes only.  Usually, if 
+% one is fitting a single model independently, then it is more efficient to 
+% fit it separately.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Ex(2): Completely independent parameters
+%  Here is how we can create the combined model in one shot.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+combinedModelIndependent = SSITMultiModel({STL1_4state_multi_1,...
+                                        STL1_4state_multi_2},{1:15,16:30});
+combinedModelIndependent = combinedModelIndependent.initializeStateSpaces;
+allParsIndepdendent = ([STL1_4state_multi_1.parameters{:,2},...
+                       [STL1_4state_multi_2.parameters{:,2}]]);
+allParsIndepdendent = combinedModelIndependent.maximizeLikelihood(...
+    allParsIndepdendent, fitOptions, fitAlgorithm);
+combinedModelIndependent = ...
+    combinedModelIndependent.updateModels(allParsIndepdendent);
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Ex(3): Completely dependent parameters
 %  Here is an example of how a single set of parameters can be used for 
 %  both models and data sets. In the following we make a joint model where 
-%  both Model1 and Model2 use the parameters [1:15].
+%  both STL1_4state_multi_1 and STL1_4state_multi_2 use the parameters 
+% [1:15].
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-combinedModel_Dependent = ...
-    SSITMultiModel({STL1_4state_multi_1,STL1_4state_multi_2},{1:15,1:15});
-combinedModel_Dependent = combinedModel_Dependent.initializeStateSpaces;
-allPars_Dependent = ([STL1_4state_multi_1.parameters{:,2}]);
-allPars_Dependent = ...
-    combinedModel_Dependent.maximizeLikelihood(allPars_Dependent,...
-                                               fitOptions,fitAlgorithm);
-combinedModel_Dependent = ...
-    combinedModel_Dependent.updateModels(allPars_Dependent);
+combinedModelDependent = SSITMultiModel({STL1_4state_multi_1,...
+                                         STL1_4state_multi_2},{1:15,1:15});
+combinedModelDependent = combinedModelDependent.initializeStateSpaces;
+allParsDependent = ([STL1_4state_multi_1.parameters{:,2}]);
+allParsDependent = combinedModelDependent.maximizeLikelihood(...
+    allParsDependent, fitOptions, fitAlgorithm);
+combinedModelDependent = ...
+    combinedModelDependent.updateModels(allParsDependent);
 
 % Note: This example is shown for illustration purposes only.  Usually, if 
 % one is fitting two replicas of the exact same experiment, then it is
 % more efficient to combine the data from both replicas and fit them at the
 % same time, e.g. to combined all replicas into one set, simply load the
-% data without setting a condition to filter by replica, e.g. -
-
-% STL1_4state_multi_1 = ...
-%   STL1_4state_multi_1.loadData('data/filtered_data_2M_NaCl_Step.csv',...
-%                               {'mRNA','RNA_STL1_total_TS3Full'},...
-%                               {'Condition','0.2M_NaCl_Step'});
+% data without the replica filtering condition:
+% STL1_4state_data = ...
+%     STL1_4state_data.loadData('data/filtered_data_2M_NaCl_Step.csv',...
+%                              {'mRNA','RNA_STL1_total_TS3Full'},...
+%                              {'Condition','0.2M_NaCl_Step'});
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Ex(3): Completely independent parameters
-%  This is how one adds a second model/data combination.  In this case the
-%  parameters of the new model are completely independent of the parameter
-%  set for the first model.
+%% Ex(4): Mixed parameters
+% Sometimes it is desirable to only let some parameters change from
+% condition to condition.  In this example both STL1_4state_multi_1 and  
+% STL1_4state_multi_1 use the same parameters [1-6], but parameters [7:15] 
+% are only for STL1_4state_multi_1 and [8:16] are only for 
+% STL1_4state_multi_2.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% Set propensity functions:
-% STL1_4state_multi_2.propensityFunctions = ...
-%     {'kr1 * s1';'k12 * s1';'k21 * s2 * IHog';...
-%      'kr2 * s2';'k23 * s2';'k32 * s3';...
-%      'kr3 * s3';'k34 * s3';'k43 * s4';...
-%      'kr4 * s4';'dr * mRNA'}; 
-% 
-% % Create separate parameters for Model2:
-STL1_4state_multi_2.parameters = ...
-    ({'j12',0; 'j23',0; 'j34',0;...
-      'j21',0; 'j32',0; 'j43',0; ...
-      'jr1',0; 'jr2',0; 'jr3',0; 'jr4',0; ...
-      'gr',0; 'b0',0; 'b1',0; 'm1',0; 'm2',0;...
-      'k12',0.2; 'k23',0.2; 'k34',0.5;...
-      'k21',1e-03; 'k32',5e-04; 'k43',5e-04; ...
-      'kr1',0.1; 'kr2',0.1; 'kr3',20; 'kr4',0.1; ...
-      'dr',0.3; 'a0',1e-03; 'a1',1e-03; 'r1',1e-03; 'r2',1e-03});
-% 
-% STL1_4state_multi_2.parameters{16:30} = ...
-%     STL1_4state_multi_1.parameters{1:15};
+combinedModelMixed= SSITMultiModel({STL1_4state_multi_1,...
+                                 STL1_4state_multi_2},{(1:6),[7:15,8:16]});
+combinedModelMixed = combinedModelMixed.initializeStateSpaces;
+allParsMixed = ([STL1_4state_multi_1.parameters{:,2},...
+                 STL1_4state_multi_2.parameters{7:15,2}]);
+allParsMixed = combinedModelMixed.maximizeLikelihood(...
+    allParsMixed, fitOptions, fitAlgorithm);
+combinedModelMixed = combinedModelMixed.updateModels(allParsMixed);
 
-% F = F.addParameter({'kr',0.1})
-
-% Here is how we can create the combined model in one shot.
-combinedModel_Independent = ...
-    SSITMultiModel({STL1_4state_multi_1,STL1_4state_multi_2},{1:15,16:30});
-combinedModel_Independent = ...
-    combinedModel_Independent.initializeStateSpaces;
-allPars_Independent = ([STL1_4state_multi_1.parameters{:,2},...
-                        [STL1_4state_multi_2.parameters{:,2}]]);
-allPars_Independent = combinedModel_Independent.maximizeLikelihood(...
-    allPars_Independent, fitOptions, fitAlgorithm);
-combinedModel_Independent = ...
-    combinedModel_Independent.updateModels(allPars_Independent);
-
-%%      Example 5 -- constrained parameters.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Ex(5): Constrained parameters
 % It is often helpful to place constraints on parameters, since it can
 % be expected that certain parameters should not change that much from one
 % experiment to another, while others could be more sensitive to
-% expeimental error.  Here, we will assume that parameters 1-4 are the same
-% for all cases, and that parameters 5-7 are similar but allowed to change
+% expeimental error.  Here, we will assume that parameters 1-6 are the same
+% for all cases, and that parameters 7-15 are similar but allowed to change
 % by small values.
-constraint = @(x)-sum((x(5:7)-x(8:10)).^2);
-combinedModelConstrained = SSITMultiModel({Model1,Model2},{1:7,[1:4,8:10]},constraint);
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+constraint = @(x)-sum((x(7:15)-x(8:16)).^2);
+combinedModelConstrained = SSITMultiModel({STL1_4state_multi_1,...
+    STL1_4state_multi_2},{1:16,[1:4,8:16]},constraint);
 combinedModelConstrained = combinedModelConstrained.initializeStateSpaces;
 allParsConstrained = allParsMixed;
 allParsConstrained = combinedModelConstrained.maximizeLikelihood(...
     allParsConstrained, fitOptions, fitAlgorithm);
-combinedModelConstrained = combinedModelConstrained.updateModels(allParsMixed);
-
-%%      Example 6 -- using multimodel to explore batch variations
-% In this example, we will use the multimodel to allow parameters to change
-% for different replica data sets (e.g., to allow for batch variations, or
-% to explore how parameters change under different genetic variations).
-% Here, we illustrate a quick means to generate the multimodel starting
-% with a single template and a datafile with multiple replicas.
-
-% Sepcify datafile name and species linking rules
-DataFileName = '../../ExampleData/DUSP1_Dex_100nM_Rep1_Rep2.csv';
-LinkedSpecies = {'rna','RNA_nuc'};
-
-% In this case, let's suppose that we only wish to fit the data at times
-% before 75 minutes.  We will set the global conditions as:
-ConditionsGlobal = {[],[],'TAB.time<=75'};
-
-% We want to split up the replicas to be separate.
-ConditionsReplicas = {'TAB.Rep_num==1';...
-    'TAB.Rep_num==2'};
-
-% Specify constraints on rep-to-rep parameter variations
-Log10Constraints = [0.1,0.1,0.1,0.02,0,0,0];
-% Here, we specify that there is an expected 0.1 log10 deviation expected
-% in the first three parameters, smaller in the 4th parameter, and no
-% deviation at all expected in the last three parameters.
-
-% The full model is created:
-CrossValidationModel = SSITMultiModel.createCrossValMultiModel(Model1,DataFileName, ...
-                LinkedSpecies,ConditionsGlobal,ConditionsReplicas, ...
-                Log10Constraints);
-CrossValidationModel = CrossValidationModel.initializeStateSpaces;
-
-% Now to run the model fitting routines
-crossValPars = CrossValidationModel.parameters;
-crossValPars = CrossValidationModel.maximizeLikelihood(...
-    crossValPars, fitOptions, fitAlgorithm);
-CrossValidationModel = CrossValidationModel.updateModels(crossValPars);
-CrossValidationModel.parameters = crossValPars;
-
-% Make a figure to explore how much the parameters changed between replicas.
-fignum = 12; useRelative = true;
-CrossValidationModel.compareParameters(fignum,useRelative);
+combinedModelConstrained = ...
+    combinedModelConstrained.updateModels(allParsMixed);

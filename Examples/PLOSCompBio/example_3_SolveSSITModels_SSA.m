@@ -144,7 +144,7 @@ STL1_4state.tSpan = linspace(0,50,200);
     % operate on the system based on the current state. The functions are 
     % stored with the given prefix, in this case, 'STL1_SSA'
     STL1_4state_SSA = ...
-        STL1_4state_SSA.formPropensitiesGeneral('STL1_4state_SSA');
+        STL1_4state_SSA.formPropensitiesGeneral('STL1_4state_SSA',false);
     
     % A negative initial time is used to allow model to equilibrate 
     % before starting (burn-in). Large burn-in times cause long run times.
@@ -154,7 +154,7 @@ STL1_4state.tSpan = linspace(0,50,200);
     STL1_4state_SSA.initialTime = STL1_4state_SSA.tSpan(1); 
     
     % Run iterations in parallel with multiple cores, or execute serially:
-    STL1_4state_SSA.ssaOptions.useParallel = true;
+    STL1_4state_SSA.ssaOptions.useParallel = false;
     
     % Run SSA:
     STL1_4state_SSAsoln = STL1_4state_SSA.solve;

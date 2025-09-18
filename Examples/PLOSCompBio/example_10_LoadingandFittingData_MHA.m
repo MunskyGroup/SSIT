@@ -38,7 +38,7 @@ STL1_4state_MH = STL1_4state_MLE;
     % SSIT is "@(x)x+0.1*randn(size(x))", which leads to low acceptance in
     % this case. A rule of thumb, depending on the data being analyzed, is 
     % to aim for an MH acceptance ratio of around 0.3-0.4 (some say 25%):
-    proposalWidthScale = 0.01;
+    proposalWidthScale = 0.005;
     MHOptions.proposalDistribution  = ...
        @(x)x+proposalWidthScale*randn(size(x));
 
@@ -73,7 +73,6 @@ STL1_4state_MH_FIM = STL1_4state_MLE;
 % Specify Prior as log-normal distribution with wide uncertainty
 % Prior log-mean:
 mu_log10 = [0.8,3,-0.1,2,2.75,0.6,3,2.5,0,3.5,1.5,-0.15,0.5,1.5,-1]; 
-%[2.5,3.5,0.5,0.1,-2,-1,-1.5,-1.5,-2.5,-0.5,-4,-2,10,-3,0.5]; 
 
 % Prior log-standard deviation:
 sig_log10 = 2*ones(1,15);      
@@ -176,7 +175,7 @@ for i=1:3
     STL1_4state_MH_it.parameters(:,2) = num2cell(STL1_4state_MH_it_pars);
 
     % Run Metropolis-Hastings    
-    proposalWidthScale = 0.01;
+    proposalWidthScale = 0.001;
     MHOptions.proposalDistribution  = ...
        @(x)x+proposalWidthScale*randn(size(x));
 
