@@ -547,6 +547,17 @@ classdef SSIT
             %   showLines (true) -- show constraints as lines/surfaces in plots.
             %   pointMarker ('o') -- marker type ('o','+','x','s',etc) for
             %                       state points
+            %
+            % 3D Example:
+            %   Model = SSIT('Repressilator');  % Load pre-made model.
+            %   [~,~,Model] = Model.solve;      % Solve to get FSP projection
+            %   RepGenes_Model.plotStatespace(true,true,'s'); % Make plot of FSP projection statespace.
+            %
+            % 2D Example:
+            %   Model = SSIT('ToggleSwitch');  % Load pre-made model.
+            %   [~,~,Model] = Model.solve;     % Solve to get FSP projection
+            %   RepGenes_Model.plotStatespace(true,true,'s'); % Make plot of FSP projection statespace.
+
             arguments 
                 obj
                 showPoints = true;
