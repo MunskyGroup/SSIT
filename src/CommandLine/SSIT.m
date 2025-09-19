@@ -537,6 +537,103 @@ classdef SSIT
             end
         end
 
+        function plotStatespace(obj,showPoints,showLines,pointMarker)
+            % This function makes a plot of the FSP state space based on
+            % the supplied constatint functions and the current bounds.
+            % Plots are only made for 2D and 3D problems.
+            %
+            % Inputs:
+            %   showPoints (true) -- show states as points in plots.
+            %   showLines (true) -- show constraints as lines/surfaces in plots.
+            %   pointMarker ('o') -- marker type ('o','+','x','s',etc) for
+            %                       state points
+            arguments 
+                obj
+                showPoints = true;
+                showLines = true;
+                pointMarker = 'o'
+            end
+
+            map = colormap(jet(length(obj.fspOptions.bounds)+1));
+            
+            switch length(obj.species)
+                case 2
+                    figure;
+                    legs = {};
+                    if isfield(obj.fspOptions,'stateSpace')&&showPoints
+                        scatter(obj.fspOptions.stateSpace.states(1,:)',...
+                            obj.fspOptions.stateSpace.states(2,:)',pointMarker);
+                        hold on;
+                        legs = {'FSP states'};
+                    end
+                    if showLines
+                        fimplicit(@(x,y)(-x-obj.fspOptions.bounds(1)),'linewidth',2);hold on;
+                        fimplicit(@(x,y)(-y-obj.fspOptions.bounds(2)),'linewidth',2);hold on;
+                        fimplicit(@(x,y)(x-obj.fspOptions.bounds(3)),'linewidth',2);hold on;
+                        fimplicit(@(x,y)(y-obj.fspOptions.bounds(4)),'linewidth',2);hold on;
+                        legs = [legs,{[obj.species{1},'>=',num2str(-obj.fspOptions.bounds(1))]}];
+                        legs = [legs,{[obj.species{2},'>=',num2str(-obj.fspOptions.bounds(2))]}];
+                        legs = [legs,{[obj.species{1},'<=',num2str(obj.fspOptions.bounds(3))]}];
+                        legs = [legs,{[obj.species{2},'<=',num2str(obj.fspOptions.bounds(4))]}];
+                        for i = 1:length(obj.customConstraintFuns)
+                            str = ['@(',obj.species{1},',',obj.species{2},')',obj.customConstraintFuns{i},'-',num2str(obj.fspOptions.bounds(4+i))];
+                            fun = eval(str);
+                            fimplicit(fun,'linewidth',2);hold on;
+                            legs = [legs,{[obj.customConstraintFuns{i},'<=',num2str(obj.fspOptions.bounds(i+4))]}];
+                        end
+                    end
+                    set(gca,'xlim',[obj.fspOptions.bounds(1)-1,obj.fspOptions.bounds(3)*1.1]);
+                    set(gca,'ylim',[obj.fspOptions.bounds(2)-1,obj.fspOptions.bounds(4)*1.1]);
+                    xlabel(obj.species{1});
+                    ylabel(obj.species{2});
+                    set(gca,'FontSize',16)
+                    legend(legs)
+
+
+                case 3
+                    figure;
+                    legs = {};
+                    if isfield(obj.fspOptions,'stateSpace')&&showPoints
+                        scatter3(obj.fspOptions.stateSpace.states(1,:)',...
+                            obj.fspOptions.stateSpace.states(2,:)',...
+                            obj.fspOptions.stateSpace.states(3,:)',pointMarker);
+                        hold on;
+                        legs = {'FSP states'};
+                    end
+
+                    if showLines
+                        fimplicit3(@(x,y,z)(-x-obj.fspOptions.bounds(1)),'EdgeColor','none','FaceColor',map(2,:),'FaceAlpha',0.1);hold on;
+                        fimplicit3(@(x,y,z)(-y-obj.fspOptions.bounds(2)),'EdgeColor','none','FaceColor',map(3,:),'FaceAlpha',0.1);hold on;
+                        fimplicit3(@(x,y,z)(-z-obj.fspOptions.bounds(3)),'EdgeColor','none','FaceColor',map(4,:),'FaceAlpha',0.1);hold on;
+                        fimplicit3(@(x,y,z)(x-obj.fspOptions.bounds(4)),'EdgeColor','none','FaceColor',map(5,:),'FaceAlpha',0.1);hold on;
+                        fimplicit3(@(x,y,z)(y-obj.fspOptions.bounds(5)),'EdgeColor','none','FaceColor',map(6,:),'FaceAlpha',0.1);hold on;
+                        fimplicit3(@(x,y,z)(z-obj.fspOptions.bounds(6)),'EdgeColor','none','FaceColor',map(7,:),'FaceAlpha',0.1);hold on;
+                        legs = [legs,{[obj.species{1},'>=',num2str(-obj.fspOptions.bounds(1))]}];
+                        legs = [legs,{[obj.species{2},'>=',num2str(-obj.fspOptions.bounds(2))]}];
+                        legs = [legs,{[obj.species{3},'>=',num2str(-obj.fspOptions.bounds(3))]}];
+                        legs = [legs,{[obj.species{1},'<=',num2str(obj.fspOptions.bounds(4))]}];
+                        legs = [legs,{[obj.species{2},'<=',num2str(obj.fspOptions.bounds(5))]}];
+                        legs = [legs,{[obj.species{3},'<=',num2str(obj.fspOptions.bounds(6))]}];
+                        for i = 1:length(obj.customConstraintFuns)
+                            str = ['@(',obj.species{1},',',obj.species{2},',',obj.species{3},')',obj.customConstraintFuns{i},'-',num2str(obj.fspOptions.bounds(6+i))];
+                            fun = eval(str);
+                            fimplicit3(fun,'EdgeColor','none','FaceColor',map(7+1,:),'FaceAlpha',0.1);hold on;
+                            legs = [legs,{[obj.customConstraintFuns{i},'<=',num2str(obj.fspOptions.bounds(i+6))]}];
+                        end
+                    end
+                    set(gca,'xlim',[obj.fspOptions.bounds(1),obj.fspOptions.bounds(4)*1.1]);
+                    set(gca,'ylim',[obj.fspOptions.bounds(2),obj.fspOptions.bounds(5)*1.1]);
+                    set(gca,'zlim',[obj.fspOptions.bounds(3),obj.fspOptions.bounds(6)*1.1]);
+                    xlabel(obj.species{1});
+                    ylabel(obj.species{2});
+                    ylabel(obj.species{3});
+                    set(gca,'FontSize',16)
+                    legend(legs)
+
+                otherwise 
+                    error('visualization of FSP StateSpace only supported 2D and 3D models.')
+            end
+        end
         %% Model Building Functions
         function [obj] = pregenModel(obj,modelFile)
             % pregenModel - creates a pregenerated model from a template:
