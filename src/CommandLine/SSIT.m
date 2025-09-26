@@ -173,6 +173,10 @@ classdef SSIT
         % Processed propensity functions for use in ODE solver, 
         % default: [];
         propensitiesGeneralODE = [];
+
+        % Solutions
+        Solutions = []; % Field holding solutions for current model and 
+        %                 parameter combinations
         
         % Model description
         description = {'Add model description here'};
@@ -1518,6 +1522,8 @@ classdef SSIT
                     fun = str2func(fun_name);
                     % Convert the function name string to a function handle.
 
+                    % Run SSA on GPU, in parallel, or in series as
+                    % requested.
                     if obj.ssaOptions.useGPU
                         Solution.trajs=fun(x0,nSims,'GPU');
                     elseif obj.ssaOptions.useParallel
@@ -1525,42 +1531,9 @@ classdef SSIT
                     else
                         Solution.trajs=fun(x0,nSims,'Series');
                     end
-                        
-                    % Call the GPU SSA code previously generated.
-
-                    % elseif obj.ssaOptions.useParallel
-                    %     trajs = zeros(length(obj.species),...
-                    %         length(obj.tSpan),nSims);% Creates an empty Trajectories matrix from the size of the time array and number of simulations
-                    %     parfor isim = 1:nSims
-                    %         trajs(:,:,isim) = ssit.ssa.runSingleSsa(obj.initialCondition,...
-                    %             obj.stoichiometry,...
-                    %             W,...
-                    %             obj.tSpan,...
-                    %             obj.ssaOptions.useTimeVar,...
-                    %             obj.ssaOptions.signalUpdateRate,...
-                    %             [obj.parameters{:,2}]');
-                    %         if obj.ssaOptions.verbose
-                    %             disp(['completed sim number: ',num2str(isim)])
-                    %         end
-                    %     end
-                    %     Solution.trajs = trajs;
-                    % else
-                    %     Solution.trajs = zeros(length(obj.species),...
-                    %         length(obj.tSpan),nSims);% Creates an empty Trajectories matrix from the size of the time array and number of simulations
-                    %     for isim = 1:nSims
-                    %         Solution.trajs(:,:,isim) = ssit.ssa.runSingleSsa(obj.initialCondition,...
-                    %             obj.stoichiometry,...
-                    %             W,...
-                    %             obj.tSpan,...
-                    %             obj.ssaOptions.useTimeVar,...
-                    %             obj.ssaOptions.signalUpdateRate,...
-                    %             [obj.parameters{:,2}]');
-                    %         if obj.ssaOptions.verbose
-                    %             disp(['completed sim number: ',num2str(isim)])
-                    %         end
-                    %     end
-                    % end
                     disp([num2str(nSims),' SSA Runs Completed'])
+
+                    % Apply PDO, if applicable
                     if ~isempty(obj.pdoOptions.PDO)
                         Solution.trajsDistorted = zeros(length(obj.species),...
                             length(obj.tSpan),nSims);% Creates an empty Trajectories matrix from the size of the time array and number of simulations
@@ -1575,6 +1548,8 @@ classdef SSIT
                         end
                         disp('PDO applied to SSA results')
                     end
+                    
+                    % Save results if requested.
                     if ~isempty(saveFile)
                         A = table;
                         for j=1:Nt
@@ -1596,6 +1571,9 @@ classdef SSIT
                         writetable(A,saveFile)
                         disp(['SSA Results saved to ',saveFile])
                     end
+                    
+                    bConstraints = max(obj.fspConstraints.f((reshape(Solution.trajs,[size(Solution.trajs,1),size(Solution.trajs,2)*size(Solution.trajs,3)]))),[],2);
+                    bConstraints = max(bConstraints,obj.fspConstraints.b);
                    
                 case 'fspsens'
                     if strcmp(obj.sensOptions.solutionMethod,'forward')&&isempty(obj.propensitiesGeneral{1}.sensTimeFactorVec)
@@ -1641,6 +1619,16 @@ classdef SSIT
                         obj.stoichiometry, obj.propensitiesGeneralODE,  [obj.parameters{:,2}]', ...
                         obj.fspOptions.initApproxSS, obj.odeIntegrator);
             end
+
+            if nargout>=3
+                % Save all new solution fields WITHOUT overwriting existing
+                % solutions.
+                newFields = fieldnames(Solution);
+                for ifield = 1:length(newFields)
+                    obj.Solutions.(newFields{ifield}) = Solution.(newFields{ifield});
+                end
+            end
+
         end
 
         function A = sampleDataFromFSP(obj,fspSoln,saveFile)

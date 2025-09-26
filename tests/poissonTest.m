@@ -20,7 +20,7 @@ classdef poissonTest < matlab.unittest.TestCase
             testCase1.Poiss.fspOptions.fspTol = 1e-5;
             testCase1.Poiss = testCase1.Poiss.formPropensitiesGeneral('Poiss',true);
 
-            [testCase1.PoissSolution,testCase1.Poiss.fspOptions.bounds] = testCase1.Poiss.solve;
+            [testCase1.PoissSolution, testCase1.Poiss.fspOptions.bounds, testCase1.Poiss] = testCase1.Poiss.solve;
             tic
             [testCase1.PoissSolution,testCase1.Poiss.fspOptions.bounds] = testCase1.Poiss.solve(testCase1.PoissSolution.stateSpace);
             testCase1.PoissSolution.time = toc;
