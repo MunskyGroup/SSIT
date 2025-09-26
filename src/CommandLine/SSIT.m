@@ -511,6 +511,8 @@ classdef SSIT
                 Data(nSpecies+i,:) = {['x',num2str(i)],'<',1};
             end
             
+            % Add custom constraints into the FSP state space
+            % determination.
             if ~isempty(obj.customConstraintFuns)
                 [~,J] = sort(cellfun('length',stochasticSpecies),'descend');                
                 for i = 1:length(obj.customConstraintFuns)
@@ -526,6 +528,9 @@ classdef SSIT
                 constraints.b = obj.fspOptions.bounds;
             end
 
+            % Define polynomial constraints for first passage time sinks
+            % (i.e., states corresponding to boundaries that we are trying
+            % to calculate the escape times toward).
             if ~isempty(obj.fspOptions.escapeSinks)
                 nEscape = length(obj.fspOptions.escapeSinks.f);
                 escapeData = cell(nEscape,3);
