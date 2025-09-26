@@ -2635,7 +2635,13 @@ classdef SSIT
             % This function computes general loss functions forthe data given
             % the model.
             % obj -- (SSIT class)
-            % lossFun -- ('cdf_one_norm') Name of predefined loss function.
+            % lossFun -- ('cdf_one_norm') Name of predefined loss function
+            % or handle to user-defined loss function. If using a
+            % userdefined loss function, it should take as inputs the
+            % histograms Hdata and Hmodel which will be evaluated for every
+            % time point and every species and the results will be summed
+            % together. Example:
+            %       customLossMeans = @(Hmod,Hdata)([0:length(Hmod)-1]*Hmod-[0:length(Hdata)-1]*Hdata).^2;
             % pars -- parameters of model in linear space.  Matches the
             %   order in obj.parameters, and downselected to the free
             %   parameters in obj.fittingOptions.modelVarsToFit.
@@ -2784,16 +2790,35 @@ classdef SSIT
                 end
             end
 
-            switch lower(lossFun)
-                case 'cdf_one_norm'
-                    lossFunction = 0;
-                    for is = 1:numSpecies
-                        for it = 1:numTimes
-                            lossFunction = lossFunction + sum(abs(Hmod{is,it}-Hdata{is,it}));
-                        end
+            if isa(lossFun,'function_handle')
+                lossFunction = 0;
+                for is = 1:numSpecies
+                    for it = 1:numTimes
+                        lossFunction = lossFunction + lossFun(Hmod{is,it},Hdata{is,it});
                     end
-                otherwise
-                    error(['Loss function ''',lossFun,''' not defined'])
+                end
+            else
+
+                switch lower(lossFun)
+                    case 'cdf_one_norm'
+                        lossFunction = 0;
+                        for is = 1:numSpecies
+                            for it = 1:numTimes
+                                lossFunction = lossFunction + sum(abs(Hmod{is,it}-Hdata{is,it}));
+                            end
+                        end
+                    case 'maxks'
+                        lossFunction = 0;
+                        for is = 1:numSpecies
+                            for it = 1:numTimes
+                                lossFunction = max(lossFunction,max(abs(Hmod{is,it}-Hdata{is,it})));
+                            end
+                        end
+                    case ''
+
+                    otherwise
+                        error(['Loss function ''',lossFun,''' not defined'])
+                end
             end
 
 

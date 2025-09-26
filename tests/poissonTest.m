@@ -186,7 +186,15 @@ classdef poissonTest < matlab.unittest.TestCase
             [lossFunction] = testCase.Poiss.computeLossFunctionSSA('cdf_one_norm',[],true,true);
 
             testCase.verifyEqual(lossFunction, 0, ...
-                'SSA Loss Function Incorrectly Calculated');            
+                'SSA Loss Function Incorrectly Calculated');   
+
+            % Test custom loss function
+            customLossMeans = @(Hmod,Hdata)([0:length(Hmod)-1]*Hmod-[0:length(Hdata)-1]*Hdata).^2;
+            [lossFunction] = testCase.Poiss.computeLossFunctionSSA(customLossMeans,[],true,true);
+
+            testCase.verifyEqual(lossFunction, 0, ...
+                'SSA Loss Function Incorrectly Calculated');   
+
         end
 
         function SsaDataGenerationGPU(testCase)
