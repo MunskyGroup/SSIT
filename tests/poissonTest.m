@@ -169,6 +169,26 @@ classdef poissonTest < matlab.unittest.TestCase
                 'SSA Data Not Generated');            
         end
 
+        function SSALossFunction(testCase)
+            % In this test, we check that the code generates and saves data
+            % generated using the Poisson model.
+            testCase.Poiss.ssaOptions.useParalel = true;
+            testCase.Poiss.ssaOptions.nSimsPerExpt = 1000;
+            testCase.Poiss.ssaOptions.Nexp = 1;
+            testCase.Poiss.solutionScheme = 'SSA';
+
+            % Generate new data
+            [~,~,testCase.Poiss] = testCase.Poiss.solve(testCase.PoissSolution,'testDataSSANEW.csv');
+            
+            % load new data and check that the loss function is now zero.
+            testCase.Poiss = testCase.Poiss.loadData('testDataSSANEW.csv',{'rna','exp1_s1'});
+            
+            [lossFunction] = testCase.Poiss.computeLossFunctionSSA('cdf_one_norm',[],true,true);
+
+            testCase.verifyEqual(lossFunction, 0, ...
+                'SSA Loss Function Incorrectly Calculated');            
+        end
+
         function SsaDataGenerationGPU(testCase)
             % In this test, we check that the code generates and saves data
             % generated using the Poisson model.
