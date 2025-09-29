@@ -2707,7 +2707,7 @@ classdef SSIT
                 obj.parameters(indsParsToFit,2) =  num2cell(pars(1:nModelPars));
 
                 % Solve model
-                [solutions] = obj.solve(stateSpace);  % Solve the FSP analysis
+                [solutions] = obj.solve;  % Solve the SSA analysis
 
                 obj.parameters =  originalPars; % Reset back to the original parameters.
             end
@@ -2784,7 +2784,7 @@ classdef SSIT
                     % Pad the shorter of the two vectors.
                     if length(Hdata{is,it})>length(Hmod{is,it})
                         Hmod{is,it}(end+1:length(Hdata{is,it})) = 1;
-                    elseif length(Hdata)<length(Hmod{is,it})
+                    elseif length(Hdata{is,it})<length(Hmod{is,it})
                         Hdata{is,it}(end+1:length(Hmod{is,it})) = 1;
                     end
                 end
@@ -2820,9 +2820,6 @@ classdef SSIT
                         error(['Loss function ''',lossFun,''' not defined'])
                 end
             end
-
-
-
         end
 
         function fitErrors = likelihoodSweep(obj,parIndices,scalingRange,makePlot)
@@ -2881,6 +2878,9 @@ classdef SSIT
                 fitOptions = optimset('Display','iter','MaxIter',2000);
                 fitAlgorithm = 'fminsearch';
             end
+            % Compute the maximum likelihood estimate (if priors are not
+            % provided) or the maximum posterior estimate (if priors are
+            % provided).  
 
             % parse fitting options
             allFitOptions.suppressFSPExpansion = true;
@@ -3111,6 +3111,48 @@ classdef SSIT
 
         end
 
+        function [pars,minimumLossFunction,Results,obj] = runABCsearch(obj,parGuess,lossFunction,logPriorLoss,fitOptions,enforceIndependence)
+            % This function runs an MCMC for approximate bayesian computing
+            % (ABC) to sample an approximate posterior distribution.  
+            % Parameters:
+            %    parGuess -- ([]) initial guess of parameters.  If empty,
+            %                the fit will start wit the current set of
+            %                parameters in the model.
+            %    lossFunction -- ('cdf_one_norm') choice of loss function
+            %                or functionHandle. Positive values are WORSE
+            %                fits.
+            %    logPriorLoss -- (@(x)0) functionHandle that computes the
+            %                initial loss function for a parameter guess,
+            %                used to create a prior on parameters. The
+            %                default (@(x)0) results in no prior.
+            %    fitOptions -- ([]) options to use for parameter fitting.
+            %    enforceIndependence -- (TRUE) flag to determine if SSA
+            %                runs should be downsampled to guarantee that
+            %                all model data points are independent of one
+            %                another. 
+            arguments
+                obj
+                parGuess = [] 
+                lossFunction = 'cdf_one_norm';
+                logPriorLoss = @(x)0; % Loss function applied to prior (e.g., -logNormal)
+                fitOptions = [];
+                enforceIndependence = false % Should SSA model be downsampled to guarantee independence?
+            end
+
+            if isempty(lossFunction)
+                lossFunction = 'cdf_one_norm';
+            end
+            if isempty(logPriorLoss)
+                logPriorLoss = @(x)0; % Loss function applied to prior (e.g., -logNormal)
+            end
+
+            % Because the MCMC will seek to maximize the provided function,
+            % we need to take its negative before sending to the MH.
+            fitOptions.obj = @(pars)-obj.computeLossFunctionSSA(lossFunction,pars,enforceIndependence) - logPriorLoss(pars);
+            [pars,minimumLossFunction,Results] = obj.maximizeLikelihood(parGuess,fitOptions,'MetropolisHastings');
+
+
+        end
         %% Model Reduction Functions
         function [obj,fspSoln] = computeModelReductionTransformMatrices(obj,fspSoln,phi)
             % This function computes linear transformation matrices (PHI

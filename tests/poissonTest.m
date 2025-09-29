@@ -193,7 +193,12 @@ classdef poissonTest < matlab.unittest.TestCase
             [lossFunction] = testCase.Poiss.computeLossFunctionSSA(customLossMeans,[],true,true);
 
             testCase.verifyEqual(lossFunction, 0, ...
-                'SSA Loss Function Incorrectly Calculated');   
+                'SSA Loss Function Incorrectly Calculated');
+
+            % Test ABC for a short run.
+            fitOptions.numberOfSamples=100;
+            [~,~,Results] = testCase.Poiss.runABCsearch([],[],[],fitOptions);
+            
 
         end
 
