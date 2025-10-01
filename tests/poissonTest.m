@@ -104,6 +104,28 @@ classdef poissonTest < matlab.unittest.TestCase
                 'Solution Mean is not within 1% Tolerance');
         end
 
+        function PoissonMoments(testCase)            
+            % This test verifies that the moment closure approach is
+            % working for the Poisson case.
+            model = testCase.Poiss;
+
+            t = testCase.Poiss.tSpan;
+            mn = testCase.Poiss.parameters{1,2}/testCase.Poiss.parameters{2,2}*...
+                (1-exp(-testCase.Poiss.parameters{2,2}*t));
+
+            model.solutionScheme = 'moments';
+            [~,~,model] = model.solve;
+
+            errMean = max(abs((model.Solutions.moments(1,:)-mn)./mn));
+
+            var = model.Solutions.moments(2,:)-model.Solutions.moments(1,:).^2;
+            errVar = max(abs((var-mn)./mn));
+
+            testCase.verifyEqual(errMean+errVar<0.01, true, ...
+                'Solution Mean and Variance not within 1% Tolerance');
+            
+        end
+
         function PoissonSpeed(testCase)
             disp(['Poiss time = ',num2str(testCase.PoissSolution.time)]);
             testCase.verifyEqual(testCase.PoissSolution.time<0.2, true, ...

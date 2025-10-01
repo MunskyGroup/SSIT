@@ -1623,6 +1623,46 @@ classdef SSIT
                     [~,Solution.ode] = ssit.moments.solveOde2(obj.initialCondition, obj.tSpan, ...
                         obj.stoichiometry, obj.propensitiesGeneralODE,  [obj.parameters{:,2}]', ...
                         obj.fspOptions.initApproxSS, obj.odeIntegrator);
+                    bConstraints = max(obj.fspConstraints.f((reshape(Solution.ode,[nSp,length(obj.tSpan)]))),[],2);
+                    bConstraints = max(bConstraints,obj.fspConstraints.b);
+            
+                case {'moments','momentsgaussian'}
+                    % [~,Solution.ode] = ssit.moments.solveOde2(obj.initialCondition, obj.tSpan, ...
+                    %     obj.stoichiometry, obj.propensitiesGeneralODE,  [obj.parameters{:,2}]', ...
+                    %     obj.fspOptions.initApproxSS, obj.odeIntegrator);
+                    % w = {'p1'; 'p2*A'; 'p3'; 'p4*B'; 'p5'; 'p6*C'};
+                    % x = {'A','B','C'};
+                    % p = {'p1','p2','p3','p4','p5','p6'};
+                    momentOdeFileName = 'tmpMomentOdeRHS';
+                    delete(momentOdeFileName);
+                    ssit.moments.writeFunForMomentsODESymb(obj.stoichiometry,...
+                        obj.propensityFunctions,...
+                        obj.species,...
+                        obj.parameters(:,1),...
+                        momentOdeFileName)
+
+                    % Initial condition is assumed to be a delta
+                    % distribution, where the
+                    initMeans = obj.initialCondition;
+
+                    nSp = length(obj.species);
+                    initMeansSquared = zeros(nSp*(nSp+1)/2,1);
+                    k = 0;
+                    for iS = 1:nSp
+                        for jS = iS:nSp
+                            k =k+1;
+                            initMeansSquared(k) = obj.initialCondition(iS)*obj.initialCondition(jS);
+                        end
+                    end
+                    initCond = [initMeans;initMeansSquared];
+
+                    RHS = @(t,v)tmpMomentOdeRHS(v,[obj.parameters{:,2}]);
+
+                    [~,soln] =  ode45(RHS,obj.tSpan,initCond);
+                    Solution.moments = soln';
+                   
+                    bConstraints = max(obj.fspConstraints.f((reshape(Solution.moments(1:nSp,:),[nSp,length(obj.tSpan)]))),[],2);
+                    bConstraints = max(bConstraints,obj.fspConstraints.b);
             end
 
             if nargout>=3
