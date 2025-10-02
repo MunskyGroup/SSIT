@@ -173,6 +173,8 @@ classdef SSIT
         % Processed propensity functions for use in ODE solver,
         % default: [];
         propensitiesGeneralODE = [];
+        propensitiesGeneralMean = [];
+        propensitiesGeneralMoments = [];
 
         % Solutions
         Solutions = []; % Field holding solutions for current model and
@@ -447,6 +449,32 @@ classdef SSIT
             end
             % This function starts the process to write m-file for each
             % propensity function.
+
+
+            if strcmpi(obj.solutionScheme,'ode')
+                momentOdeFileName = [prefixName,'_mean'];
+                ssit.moments.writeFunForMomentsODESymb(obj.stoichiometry,...
+                    obj.propensityFunctions,...
+                    obj.species,...
+                    obj.parameters(:,1),...
+                    momentOdeFileName, ...
+                    false,...
+                    obj.inputExpressions);
+                obj.propensitiesGeneralMean = eval(['@(t,v,pars)',momentOdeFileName,'(t,v,pars)']);
+                return
+            elseif strcmpi(obj.solutionScheme,'moments')||strcmpi(obj.solutionScheme,'gaussian')
+                momentOdeFileName = [prefixName,'_momentsgaussian'];
+                ssit.moments.writeFunForMomentsODESymb(obj.stoichiometry,...
+                    obj.propensityFunctions,...
+                    obj.species,...
+                    obj.parameters(:,1),...
+                    momentOdeFileName, ...
+                    true,...
+                    obj.inputExpressions);
+                obj.propensitiesGeneralMoments = eval(['@(t,v,pars)',momentOdeFileName,'(t,v,pars)']);
+                return
+            end
+
 
             n_reactions = length(obj.propensityFunctions);
             % Propensity for hybrid models will include
@@ -1424,32 +1452,48 @@ classdef SSIT
                 stateSpace = obj.fspOptions.stateSpace;
             end
 
-            if strcmp(obj.solutionScheme,'ode')
-                propensityGeneral = obj.propensitiesGeneralODE;
-            else
+            if strcmpi(obj.solutionScheme(1:3),'fsp')
                 propensityGeneral = obj.propensitiesGeneral;
-            end
-
-            if isempty(propensityGeneral)
-                disp('Forming Propensity Functions.')
-                obj = formPropensitiesGeneral(obj);
-            elseif ~isempty(obj.hybridOptions)&&~strcmp(obj.solutionScheme,'ode')&&length(obj.hybridOptions.upstreamODEs)~=length(propensityGeneral{1}.ODEstoichVector)
-                disp('(Re)Forming Propensity Functions Due to Detected Change in Hybrid Model Dimension.')
-                obj = formPropensitiesGeneral(obj,'hybrid',true);
-            end
-
-            if obj.modelReductionOptions.useModReduction
-                if ~isfield(obj.modelReductionOptions,'phi')
-                    error('Model Reduction Matrices have not yet been Defined.')
+                if isempty(propensityGeneral)
+                    disp('Forming Propensity Functions.')
+                    obj = formPropensitiesGeneral(obj);
+                elseif ~isempty(obj.hybridOptions)&&~strcmp(obj.solutionScheme,'ode')&&length(obj.hybridOptions.upstreamODEs)~=length(propensityGeneral{1}.ODEstoichVector)
+                    disp('(Re)Forming Propensity Functions Due to Detected Change in Hybrid Model Dimension.')
+                    obj = formPropensitiesGeneral(obj,'hybrid',true);
                 end
-                useReducedModel = true;
-                modRedTransformMatrices.phi = obj.modelReductionOptions.phi;
-                modRedTransformMatrices.phi_inv = obj.modelReductionOptions.phi_inv;
-                modRedTransformMatrices.phiScale = obj.modelReductionOptions.phiScale;
-                modRedTransformMatrices.phiPlot = obj.modelReductionOptions.phiPlot;
-            else
-                useReducedModel = false;
-                modRedTransformMatrices = [];
+
+
+                if obj.modelReductionOptions.useModReduction
+                    if ~isfield(obj.modelReductionOptions,'phi')
+                        error('Model Reduction Matrices have not yet been Defined.')
+                    end
+                    useReducedModel = true;
+                    modRedTransformMatrices.phi = obj.modelReductionOptions.phi;
+                    modRedTransformMatrices.phi_inv = obj.modelReductionOptions.phi_inv;
+                    modRedTransformMatrices.phiScale = obj.modelReductionOptions.phiScale;
+                    modRedTransformMatrices.phiPlot = obj.modelReductionOptions.phiPlot;
+                else
+                    useReducedModel = false;
+                    modRedTransformMatrices = [];
+                end
+            elseif strcmpi(obj.solutionScheme,'moments')||strcmpi(obj.solutionScheme,'momentsgaussian')
+                propensityGeneral = obj.propensitiesGeneralMoments;
+                if isempty(propensityGeneral)
+                    disp('Forming Propensity Functions.')
+                    obj = formPropensitiesGeneral(obj);
+                elseif ~isempty(obj.hybridOptions)&&~strcmp(obj.solutionScheme,'ode')&&length(obj.hybridOptions.upstreamODEs)~=length(propensityGeneral{1}.ODEstoichVector)
+                    disp('(Re)Forming Propensity Functions Due to Detected Change in Hybrid Model Dimension.')
+                    obj = formPropensitiesGeneral(obj,'hybrid',true);
+                end
+            elseif strcmpi(obj.solutionScheme,'ode')
+                propensityGeneral = obj.propensitiesGeneralMean;
+                if isempty(propensityGeneral)
+                    disp('Forming Propensity Functions.')
+                    obj = formPropensitiesGeneral(obj);
+                elseif ~isempty(obj.hybridOptions)&&~strcmp(obj.solutionScheme,'ode')&&length(obj.hybridOptions.upstreamODEs)~=length(propensityGeneral{1}.ODEstoichVector)
+                    disp('(Re)Forming Propensity Functions Due to Detected Change in Hybrid Model Dimension.')
+                    obj = formPropensitiesGeneral(obj,'hybrid',true);
+                end
             end
 
             switch lower(obj.solutionScheme)
@@ -1620,26 +1664,43 @@ classdef SSIT
                     %                     Solution.plotable = exportSensResults(app);
 
                 case 'ode'
-                    [~,Solution.ode] = ssit.moments.solveOde2(obj.initialCondition, obj.tSpan, ...
-                        obj.stoichiometry, obj.propensitiesGeneralODE,  [obj.parameters{:,2}]', ...
-                        obj.fspOptions.initApproxSS, obj.odeIntegrator);
-                    bConstraints = max(obj.fspConstraints.f((reshape(Solution.ode,[nSp,length(obj.tSpan)]))),[],2);
-                    bConstraints = max(bConstraints,obj.fspConstraints.b);
-            
-                case {'moments','momentsgaussian'}
-                    % [~,Solution.ode] = ssit.moments.solveOde2(obj.initialCondition, obj.tSpan, ...
+                    %  [~,Solution.ode] = ssit.moments.solveOde2(obj.initialCondition, obj.tSpan, ...
                     %     obj.stoichiometry, obj.propensitiesGeneralODE,  [obj.parameters{:,2}]', ...
                     %     obj.fspOptions.initApproxSS, obj.odeIntegrator);
-                    % w = {'p1'; 'p2*A'; 'p3'; 'p4*B'; 'p5'; 'p6*C'};
-                    % x = {'A','B','C'};
-                    % p = {'p1','p2','p3','p4','p5','p6'};
-                    momentOdeFileName = 'tmpMomentOdeRHS';
-                    delete(momentOdeFileName);
-                    ssit.moments.writeFunForMomentsODESymb(obj.stoichiometry,...
-                        obj.propensityFunctions,...
-                        obj.species,...
-                        obj.parameters(:,1),...
-                        momentOdeFileName)
+                    % bConstraints = max(obj.fspConstraints.f((reshape(Solution.ode,[nSp,length(obj.tSpan)]))),[],2);
+                    % bConstraints = max(bConstraints,obj.fspConstraints.b);
+                    % momentOdeFileName = 'tmpMeanOdeRHS';
+                    % delete(momentOdeFileName);
+                    % ssit.moments.writeFunForMomentsODESymb(obj.stoichiometry,...
+                    %     obj.propensityFunctions,...
+                    %     obj.species,...
+                    %     obj.parameters(:,1),...
+                    %     momentOdeFileName, ...
+                    %     false,...
+                    %     obj.inputExpressions);
+
+                    % Initial condition is assumed to be a delta
+                    % distribution, where the
+                    initMeans = obj.initialCondition;
+                    RHS = @(t,v)obj.propensitiesGeneralMean(t,v,[obj.parameters{:,2}]);
+                    odeIntegrat = str2func(obj.odeIntegrator);
+
+                    [~,soln] =  odeIntegrat(RHS,obj.tSpan,initMeans);
+                    Solution.ode = soln;
+
+                    bConstraints = max(obj.fspConstraints.f(Solution.ode),[],2);
+                    bConstraints = max(bConstraints,obj.fspConstraints.b);
+
+                case {'moments','momentsgaussian'}
+                    % momentOdeFileName = 'tmpMomentOdeRHS';
+                    % delete(momentOdeFileName);
+                    % ssit.moments.writeFunForMomentsODESymb(obj.stoichiometry,...
+                    %     obj.propensityFunctions,...
+                    %     obj.species,...
+                    %     obj.parameters(:,1),...
+                    %     momentOdeFileName, ...
+                    %     true,...
+                    %     obj.inputExpressions);
 
                     % Initial condition is assumed to be a delta
                     % distribution, where the
@@ -1656,9 +1717,10 @@ classdef SSIT
                     end
                     initCond = [initMeans;initMeansSquared];
 
-                    RHS = @(t,v)tmpMomentOdeRHS(v,[obj.parameters{:,2}]);
+                    RHS = @(t,v)obj.propensitiesGeneralMoments(t,v,[obj.parameters{:,2}]);
+                    odeIntegrat = str2func(obj.odeIntegrator);
 
-                    [~,soln] =  ode45(RHS,obj.tSpan,initCond);
+                    [~,soln] =  odeIntegrat(RHS,obj.tSpan,initCond);
                     Solution.moments = soln';
                    
                     bConstraints = max(obj.fspConstraints.f((reshape(Solution.moments(1:nSp,:),[nSp,length(obj.tSpan)]))),[],2);

@@ -122,7 +122,7 @@ classdef miscelaneousTests < matlab.unittest.TestCase
             resultsSB = zeros(Ntests,4);
 
             tic
-            for i=1:100
+            for i=1:Ntests
                 TwoDNonLinearTV.parameters(:,2) = num2cell(parVectorSets(i,:));
                 [odeSoln1] = TwoDNonLinearTV.solve;
                 results(i,:) = odeSoln1.ode(end,:);
@@ -135,7 +135,7 @@ classdef miscelaneousTests < matlab.unittest.TestCase
             
             [t,x,names] = sbiosimulate(sbModel);
             tic
-            for i=1:100
+            for i=1:Ntests
                 for j=1:length(parVector)
                     sbModel.Parameters(j).Value = parVectorSets(i,j);
                 end

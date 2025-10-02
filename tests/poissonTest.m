@@ -113,6 +113,9 @@ classdef poissonTest < matlab.unittest.TestCase
             mn = testCase.Poiss.parameters{1,2}/testCase.Poiss.parameters{2,2}*...
                 (1-exp(-testCase.Poiss.parameters{2,2}*t));
 
+            model.solutionScheme = 'ode';
+            [~,~,model] = model.solve;
+
             model.solutionScheme = 'moments';
             [~,~,model] = model.solve;
 
