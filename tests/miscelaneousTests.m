@@ -214,8 +214,8 @@ classdef miscelaneousTests < matlab.unittest.TestCase
 
              relErr = max((fspMn3_2 - ThreeDNLinearTV.Solutions.moments(end,:))./fspMn3_2,[],'all');
 
-            tc.verifyEqual(relErr<0.01, true, ...
-                'Relative error of second moment is not below 1%.');
+             tc.verifyEqual(relErr<0.01, true, ...
+                 'Relative error of second moment is not below 1%.');
 
 
 

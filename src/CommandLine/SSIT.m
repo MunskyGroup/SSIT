@@ -1561,6 +1561,12 @@ classdef SSIT
                     fun_name = 'TmpGPUSSACode';
                     clear TmpGPUSSACode % Clear function from cache just in case.
                     ssit.ssa.WriteGPUSSA(k,w,S,obj.tSpan,fun_name);
+                    % TODO -- this part where the SSA codes are written
+                    % could be moved out of the solve routine.  Right now,
+                    % the code is being re-written for every new parameter
+                    % set.  Because the code writing time is short compared
+                    % to the solution time (~2%), this is not a big concern.
+
 
                     fun = str2func(fun_name);
                     % Convert the function name string to a function handle.
@@ -1568,11 +1574,11 @@ classdef SSIT
                     % Run SSA on GPU, in parallel, or in series as
                     % requested.
                     if obj.ssaOptions.useGPU
-                        Solution.trajs=fun(x0,nSims,'GPU');
+                        Solution.trajs=fun(x0,nSims,k,'GPU');
                     elseif obj.ssaOptions.useParallel
-                        Solution.trajs=fun(x0,nSims,'Parallel');
+                        Solution.trajs=fun(x0,nSims,k,'Parallel');
                     else
-                        Solution.trajs=fun(x0,nSims,'Series');
+                        Solution.trajs=fun(x0,nSims,k,'Series');
                     end
                     disp([num2str(nSims),' SSA Runs Completed'])
 
@@ -1658,24 +1664,10 @@ classdef SSIT
                     %                     Solution.plotable = exportSensResults(app);
 
                 case 'ode'
-                    %  [~,Solution.ode] = ssit.moments.solveOde2(obj.initialCondition, obj.tSpan, ...
-                    %     obj.stoichiometry, obj.propensitiesGeneralODE,  [obj.parameters{:,2}]', ...
-                    %     obj.fspOptions.initApproxSS, obj.odeIntegrator);
-                    % bConstraints = max(obj.fspConstraints.f((reshape(Solution.ode,[nSp,length(obj.tSpan)]))),[],2);
-                    % bConstraints = max(bConstraints,obj.fspConstraints.b);
-                    % momentOdeFileName = 'tmpMeanOdeRHS';
-                    % delete(momentOdeFileName);
-                    % ssit.moments.writeFunForMomentsODESymb(obj.stoichiometry,...
-                    %     obj.propensityFunctions,...
-                    %     obj.species,...
-                    %     obj.parameters(:,1),...
-                    %     momentOdeFileName, ...
-                    %     false,...
-                    %     obj.inputExpressions);
-
                     % Initial condition is assumed to be a delta
                     % distribution, where the
                     initMeans = obj.initialCondition;
+                    
                     RHS = @(t,v)obj.propensitiesGeneralMean(t,v,[obj.parameters{:,2}]);
                     odeIntegrat = str2func(obj.odeIntegrator);
 
@@ -1686,16 +1678,6 @@ classdef SSIT
                     bConstraints = max(bConstraints,obj.fspConstraints.b);
 
                 case {'moments','momentsgaussian'}
-                    % momentOdeFileName = 'tmpMomentOdeRHS';
-                    % delete(momentOdeFileName);
-                    % ssit.moments.writeFunForMomentsODESymb(obj.stoichiometry,...
-                    %     obj.propensityFunctions,...
-                    %     obj.species,...
-                    %     obj.parameters(:,1),...
-                    %     momentOdeFileName, ...
-                    %     true,...
-                    %     obj.inputExpressions);
-
                     % Initial condition is assumed to be a delta
                     % distribution, where the
                     initMeans = obj.initialCondition;
