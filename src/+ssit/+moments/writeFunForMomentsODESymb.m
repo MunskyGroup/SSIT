@@ -70,7 +70,7 @@ for in = 1:nS
 end
 
 %% Create symbolic variables for parameters
-syms('Parameter',[1,nP],'real');
+syms('ParameterX',[1,nP],'real');
 
 %% Change species names to x1, x2, ... in propensity functions.
 
@@ -85,7 +85,7 @@ for im = 1:nR
     end
     % Change parameters to symbolic variables in propensities.
     for ip = 1:nP
-        wString{im} = regexprep(wString{im},['\<',parString{ip},'\>'],['Parameter',num2str(ip)]);
+        wString{im} = regexprep(wString{im},['\<',parString{ip},'\>'],['ParameterX',num2str(ip)]);
     end
     
     w(im,1) = str2sym(wString{im});
@@ -106,7 +106,7 @@ if ~includeSecondMom
     %% Define RHS of mean and 2nd moment ODEs in terms of monomials.
     RHS = S*w; % rhs of ode that describes the means
     %% Finalize RHS and saves as a matlab function.
-    matlabFunction(RHS,'Vars',{t,[x],[Parameter]},'File',momentOdeFileName); % save moment equation as a matlab function
+    matlabFunction(RHS,'Vars',{t,[x],[ParameterX]},'File',momentOdeFileName); % save moment equation as a matlab function
 
 else
     %%  Create symbolic variables for all 1st and 2nd order moments.
@@ -208,5 +208,5 @@ else
         RHS = A0 + A1*v; % write ode with lower order terms only
     end
     %% Finalize RHS and saves as a matlab function.
-    matlabFunction(RHS,'Vars',{t,[v],[Parameter]},'File',momentOdeFileName); % save moment equation as a matlab function
+    matlabFunction(RHS,'Vars',{t,[v],[ParameterX]},'File',momentOdeFileName); % save moment equation as a matlab function
 end
