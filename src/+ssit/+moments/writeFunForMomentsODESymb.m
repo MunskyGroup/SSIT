@@ -77,7 +77,7 @@ syms('Parameter',[1,nP],'real');
 for im = 1:nR
     % Change inputs to complete expressions in propensities.
     for iI = 1:nI
-        wString{im} = regexprep(wString{im},['\<',inputExpressions{iI,1},'\>'],inputExpressions{iI,2});
+        wString{im} = regexprep(wString{im},['\<',inputExpressions{iI,1},'\>'],['(',inputExpressions{iI,2},')']);
     end
     % Change species to symbolic variables in propensities.
     for in = 1:nS

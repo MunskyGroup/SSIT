@@ -1481,18 +1481,12 @@ classdef SSIT
                 if isempty(propensityGeneral)
                     disp('Forming Propensity Functions.')
                     obj = formPropensitiesGeneral(obj);
-                elseif ~isempty(obj.hybridOptions)&&~strcmp(obj.solutionScheme,'ode')&&length(obj.hybridOptions.upstreamODEs)~=length(propensityGeneral{1}.ODEstoichVector)
-                    disp('(Re)Forming Propensity Functions Due to Detected Change in Hybrid Model Dimension.')
-                    obj = formPropensitiesGeneral(obj,'hybrid',true);
                 end
             elseif strcmpi(obj.solutionScheme,'ode')
                 propensityGeneral = obj.propensitiesGeneralMean;
                 if isempty(propensityGeneral)
                     disp('Forming Propensity Functions.')
                     obj = formPropensitiesGeneral(obj);
-                elseif ~isempty(obj.hybridOptions)&&~strcmp(obj.solutionScheme,'ode')&&length(obj.hybridOptions.upstreamODEs)~=length(propensityGeneral{1}.ODEstoichVector)
-                    disp('(Re)Forming Propensity Functions Due to Detected Change in Hybrid Model Dimension.')
-                    obj = formPropensitiesGeneral(obj,'hybrid',true);
                 end
             end
 

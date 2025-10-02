@@ -93,28 +93,28 @@ classdef miscelaneousTests < matlab.unittest.TestCase
 
          function test2DSpeedVsSimBiol(tc)
             close all
-            TwoDNonLinearTV = SSIT;
-            TwoDNonLinearTV.species = {'rna','prot','phosProt','GFP'};
-            TwoDNonLinearTV.initialCondition = [0;0;0;0];
-            TwoDNonLinearTV.propensityFunctions = {'kr';'gr*rna*(1/(1+(phosProt/M)^eta*Ir))';...
+            FourDNonLinearTV = SSIT;
+            FourDNonLinearTV.species = {'rna','prot','phosProt','GFP'};
+            FourDNonLinearTV.initialCondition = [0;0;0;0];
+            FourDNonLinearTV.propensityFunctions = {'kr';'gr*rna*(1/(1+(phosProt/M)^eta*Ir))';...
                 'kp*rna';'gp*prot';...
                 'kx*prot';'gx*phosProt';...
                 'kg*rna';'ggfp*GFP'};
-            TwoDNonLinearTV.stoichiometry = [1,-1,0,0,0,0,0,0;...
+            FourDNonLinearTV.stoichiometry = [1,-1,0,0,0,0,0,0;...
                 0,0,1,-1,-1,0,0,0;...
                 0,0,0,0,1,-1,0,0;...
                 0,0,0,0,0,0,1,-1];
-            TwoDNonLinearTV.parameters = ({'kr',20;'gr',1;'kp',18;'gp',1;'M',20;'eta',5;...
+            FourDNonLinearTV.parameters = ({'kr',20;'gr',1;'kp',18;'gp',1;'M',20;'eta',5;...
                 'kx',2;'gx',1;'kg',12;'ggfp',0.5});
-            TwoDNonLinearTV.inputExpressions = {'Ir','1+cos(t)'};
-            TwoDNonLinearTV.tSpan = linspace(0,10,40);
-            TwoDNonLinearTV.solutionScheme = 'ode';
-            TwoDNonLinearTV = TwoDNonLinearTV.formPropensitiesGeneral('TwoDTV',false);
+            FourDNonLinearTV.inputExpressions = {'Ir','1+cos(t)'};
+            FourDNonLinearTV.tSpan = linspace(0,10,40);
+            FourDNonLinearTV.solutionScheme = 'ode';
+            FourDNonLinearTV = FourDNonLinearTV.formPropensitiesGeneral('TwoDTV',false);
             
-            TwoDNonLinearTV.odeIntegrator = 'ode45';
+            FourDNonLinearTV.odeIntegrator = 'ode45';
 
-            [odeSoln1] = TwoDNonLinearTV.solve;
-            parVector = [TwoDNonLinearTV.parameters{:,2}];
+            [odeSoln1] = FourDNonLinearTV.solve;
+            parVector = [FourDNonLinearTV.parameters{:,2}];
 
             Ntests = 100;
             parVectorSets = repmat(parVector,Ntests,1).*(1+0.1*randn(Ntests,size(parVector,2)));
@@ -123,15 +123,15 @@ classdef miscelaneousTests < matlab.unittest.TestCase
 
             tic
             for i=1:Ntests
-                TwoDNonLinearTV.parameters(:,2) = num2cell(parVectorSets(i,:));
-                [odeSoln1] = TwoDNonLinearTV.solve;
+                FourDNonLinearTV.parameters(:,2) = num2cell(parVectorSets(i,:));
+                [odeSoln1] = FourDNonLinearTV.solve;
                 results(i,:) = odeSoln1.ode(end,:);
             end
             SSITSolveTime100pars = toc
 
-            sbModel = TwoDNonLinearTV.exportSimBiol;
+            sbModel = FourDNonLinearTV.exportSimBiol;
             csObj = getconfigset(sbModel,'active');
-            set(csObj,'Stoptime',max(TwoDNonLinearTV.tSpan));
+            set(csObj,'Stoptime',max(FourDNonLinearTV.tSpan));
             
             [t,x,names] = sbiosimulate(sbModel);
             tic
@@ -156,6 +156,68 @@ classdef miscelaneousTests < matlab.unittest.TestCase
             % choose the ODE solver.  For stiff problems, ODE23s is much
             % faster, but for non-stiff problems (like this one) ODE45 is
             % faster. 
+
+         end
+
+         function testMoments(tc)
+             close all
+             ThreeDNLinearTV = SSIT;
+             ThreeDNLinearTV.species = {'rna','prot','phosProt'};
+             ThreeDNLinearTV.initialCondition = [0;0;0];
+             ThreeDNLinearTV.propensityFunctions = {'kr';'gr*rna*Ir';...
+                 'kp*rna';'gp*prot';...
+                 'kx*prot';'gx*phosProt'};
+             ThreeDNLinearTV.stoichiometry = [1,-1,0,0,0,0;...
+                 0,0,1,-1,-1,0;...
+                 0,0,0,0,1,-1];
+             ThreeDNLinearTV.parameters = ({'kr',5;'gr',1;'kp',3;'gp',1;'M',20;'eta',5;...
+                 'kx',2;'gx',1});
+             ThreeDNLinearTV.inputExpressions = {'Ir','1+cos(t)'};
+             ThreeDNLinearTV.tSpan = linspace(0,10,40);
+
+             ThreeDNLinearTV.odeIntegrator = 'ode45';
+
+             ThreeDNLinearTV.solutionScheme = 'ode';
+             ThreeDNLinearTV = ThreeDNLinearTV.formPropensitiesGeneral('TwoDTV',false);
+             [~,~,ThreeDNLinearTV] = ThreeDNLinearTV.solve;
+
+             ThreeDNLinearTV.solutionScheme = 'moments';
+             ThreeDNLinearTV = ThreeDNLinearTV.formPropensitiesGeneral('TwoDTV',false);
+             [~,~,ThreeDNLinearTV] = ThreeDNLinearTV.solve;
+
+             maxRelError = max((ThreeDNLinearTV.Solutions.moments(1:3,:) - ThreeDNLinearTV.Solutions.ode')./ThreeDNLinearTV.Solutions.ode',[],'all');
+
+             tc.verifyEqual(maxRelError<0.01, true, ...
+                'ODE and moments mean solutions do not match.');
+
+
+             ThreeDNLinearTV.solutionScheme = 'fsp';
+             ThreeDNLinearTV.fspOptions.verbose = true;
+             ThreeDNLinearTV = ThreeDNLinearTV.formPropensitiesGeneral('TwoDTV',false);
+             [~,~,ThreeDNLinearTV] = ThreeDNLinearTV.solve;
+
+             % sum(double(ThreeDNLinearTV.Solutions.fsp{end}.p.data),[2,3])ThreeDNLinearTV.Solutions.stateSpace.states
+             % finalMean = ThreeDNLinearTV.Solutions.fsp{end}.p
+
+             for i = 1:length(ThreeDNLinearTV.Solutions.fsp)
+                 sz = size(ThreeDNLinearTV.Solutions.fsp{i}.p.data);
+                 fspMn1(i) = [0:sz(1)-1]*double(ThreeDNLinearTV.Solutions.fsp{i}.p.sumOver([2,3]).data);
+                 fspMn2(i) = [0:sz(2)-1]*double(ThreeDNLinearTV.Solutions.fsp{i}.p.sumOver([1,3]).data);
+                 fspMn3(i) = [0:sz(3)-1]*double(ThreeDNLinearTV.Solutions.fsp{i}.p.sumOver([1,2]).data);
+                 fspMn1_2(i) = [0:sz(1)-1].^2*double(ThreeDNLinearTV.Solutions.fsp{i}.p.sumOver([2,3]).data);
+                 fspMn2_2(i) = [0:sz(2)-1].^2*double(ThreeDNLinearTV.Solutions.fsp{i}.p.sumOver([1,3]).data);
+                 fspMn3_2(i) = [0:sz(3)-1].^2*double(ThreeDNLinearTV.Solutions.fsp{i}.p.sumOver([1,2]).data);
+             end
+
+             % plot(fspMn3_2); hold on;
+             % plot(ThreeDNLinearTV.Solutions.moments(end,:),'x')
+
+             relErr = max((fspMn3_2 - ThreeDNLinearTV.Solutions.moments(end,:))./fspMn3_2,[],'all');
+
+            tc.verifyEqual(relErr<0.01, true, ...
+                'Relative error of second moment is not below 1%.');
+
+
 
          end
          
