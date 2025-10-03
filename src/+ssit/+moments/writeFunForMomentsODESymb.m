@@ -87,7 +87,26 @@ for im = 1:nR
     for ip = 1:nP
         wString{im} = regexprep(wString{im},['\<',parString{ip},'\>'],['ParameterX',num2str(ip)]);
     end
-    
+
+    logs = {'<','>','='};
+    k = 0;
+    for il = 1:3
+        j = strfind(wString{im},logs{il});
+        while ~isempty(j)
+            j1 = strfind(wString{im}(1:j(1)-1),'(');
+            j2 = strfind(wString{im}(j(1)+1:end),')');
+            k=k+1;
+            subStrings(k,1:2) = {['$',num2str(k)],['piecewise(',wString{im}(j1(end):j+j2(1)),',1,0)']};
+            wString{im} = strrep(wString{im},wString{im}(j1(end):j+j2(1)),['$',num2str(k)]);                
+            
+            j = strfind(wString{im},logs{il});
+        end
+
+    end
+    for ik = 1:k
+        wString{im} = strrep(wString{im},['$',num2str(k)],subStrings{k,2});
+    end
+
     w(im,1) = str2sym(wString{im});
 end
 
