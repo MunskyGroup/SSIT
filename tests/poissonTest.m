@@ -484,13 +484,16 @@ classdef poissonTest < matlab.unittest.TestCase
             
             % Skip first time point for fitting.
             Model.fittingOptions.timesToFit = Model.tSpan>0;
+            Model.odeIntegrator = 'ode45';
+
             odeLogL = Model.computeLikelihoodODE;
             
             t = Model.tSpan(2:end);
             mn = Model.parameters{1,2}/Model.parameters{2,2}*...
                 (1-exp(-Model.parameters{2,2}*t));
 
-            logLExact = -1/2*sum(Model.dataSet.nCells(2:end).*(Model.dataSet.mean(2:end)-mn').^2./Model.dataSet.var(2:end));
+            logLExact = -1/2*sum(Model.dataSet.nCells(2:end).*(Model.dataSet.mean(2:end)-mn').^2./ ...
+                Model.dataSet.var(2:end));
 
             relDiff = abs((logLExact-odeLogL)/logLExact);
 

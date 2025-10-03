@@ -85,7 +85,7 @@ for i=1:Nspec
         txt2 = [txt2,',x',num2str(i),'_0'];
     end
 end
-txt3 = [txt0,'] = ',fun_name,'_SSA(',txt2,'parametersIn);\r\n'];
+txt3 = [txt0,'] = ',fun_name,'_SSA(',txt2,',parametersIn);\r\n'];
 % fprintf(fileID,txt3);
 txt = ['    [x] = collectFun(',txt2,',parametersIn);\r\n'];
 fprintf(fileID,txt);
