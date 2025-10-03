@@ -174,7 +174,9 @@ classdef SSIT
         % default: [];
         propensitiesGeneralODE = [];
         propensitiesGeneralMean = [];
+        propensitiesGeneralMeanJac = [];
         propensitiesGeneralMoments = [];
+        propensitiesGeneralMomentsJac
 
         % Solutions
         Solutions = []; % Field holding solutions for current model and
@@ -459,8 +461,10 @@ classdef SSIT
                     obj.parameters(:,1),...
                     momentOdeFileName, ...
                     false,...
-                    obj.inputExpressions);
+                    obj.inputExpressions, ...
+                    [momentOdeFileName,'_jac']);
                 obj.propensitiesGeneralMean = eval(['@(t,v,pars)',momentOdeFileName,'(t,v,pars)']);
+                obj.propensitiesGeneralMeanJac = eval(['@(t,v,pars)',[momentOdeFileName,'_jac'],'(t,v,pars)']);
                 return
             elseif strcmpi(obj.solutionScheme,'moments')||strcmpi(obj.solutionScheme,'gaussian')
                 momentOdeFileName = [prefixName,'_momentsgaussian'];
@@ -470,8 +474,10 @@ classdef SSIT
                     obj.parameters(:,1),...
                     momentOdeFileName, ...
                     true,...
-                    obj.inputExpressions);
+                    obj.inputExpressions,...
+                    ['momentOdeFileName','_jac']);
                 obj.propensitiesGeneralMoments = eval(['@(t,v,pars)',momentOdeFileName,'(t,v,pars)']);
+                obj.propensitiesGeneralMomentsJac = eval(['@(t,v,pars)',['momentOdeFileName','_jac'],'(t,v,pars)']);
                 return
             end
 
@@ -1671,7 +1677,14 @@ classdef SSIT
                     RHS = @(t,v)obj.propensitiesGeneralMean(t,v,[obj.parameters{:,2}]);
                     odeIntegrat = str2func(obj.odeIntegrator);
 
-                    [~,soln] =  odeIntegrat(RHS,obj.tSpan,initMeans);
+                    if ~isempty(obj.propensitiesGeneralMeanJac)
+                        JAC = @(t,v)obj.propensitiesGeneralMeanJac(t,v,[obj.parameters{:,2}]);
+                        options = odeset('Jacobian',JAC);
+                    else
+                        options = [];
+                    end
+
+                    [~,soln] =  odeIntegrat(RHS,obj.tSpan,initMeans,options);
                     Solution.ode = soln;
 
                     bConstraints = max(obj.fspConstraints.f(Solution.ode),[],2);
@@ -1696,7 +1709,14 @@ classdef SSIT
                     RHS = @(t,v)obj.propensitiesGeneralMoments(t,v,[obj.parameters{:,2}]);
                     odeIntegrat = str2func(obj.odeIntegrator);
 
-                    [~,soln] =  odeIntegrat(RHS,obj.tSpan,initCond);
+                    if ~isempty(obj.propensitiesGeneralMomentsJac)
+                        JAC = @(t,v)obj.propensitiesGeneralMomentsJac(t,v,[obj.parameters{:,2}]);
+                        options = odeset('Jacobian',JAC);
+                    else
+                        options = [];
+                    end
+
+                    [~,soln] =  odeIntegrat(RHS,obj.tSpan,initCond,options);
                     Solution.moments = soln';
                    
                     bConstraints = max(obj.fspConstraints.f((reshape(Solution.moments(1:nSp,:),[nSp,length(obj.tSpan)]))),[],2);

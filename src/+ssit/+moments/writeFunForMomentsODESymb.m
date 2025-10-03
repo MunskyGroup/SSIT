@@ -1,5 +1,5 @@
 function writeFunForMomentsODESymb(S,wString,xString,parString, ...
-    momentOdeFileName,includeSecondMom,inputExpressions)
+    momentOdeFileName,includeSecondMom,inputExpressions,jacobianFileName)
 %% function writeFunForMomentsODE(S,wString,x,momentOdeFileName,includeSecondMom)
 % Creates ODE for solving 1st and 2nd moments using an Assumption of
 % Gaussian Moments.
@@ -55,6 +55,7 @@ arguments
     momentOdeFileName
     includeSecondMom = true
     inputExpressions =[];
+    jacobianFileName = [momentOdeFileName,'_jac']
 end
 
 nS = size(S,1);   % number of species
@@ -127,6 +128,11 @@ if ~includeSecondMom
     %% Finalize RHS and saves as a matlab function.
     matlabFunction(RHS,'Vars',{t,[x],[ParameterX]},'File',momentOdeFileName); % save moment equation as a matlab function
 
+    try 
+        jac = jacobian(RHS,x);
+        matlabFunction(jac,'Vars',{t,[x],[ParameterX]},'File',jacobianFileName); % save moment equation as a matlab function
+    catch
+    end
 else
     %%  Create symbolic variables for all 1st and 2nd order moments.
     for i=1:nS % loops through each species
@@ -228,4 +234,11 @@ else
     end
     %% Finalize RHS and saves as a matlab function.
     matlabFunction(RHS,'Vars',{t,[v],[ParameterX]},'File',momentOdeFileName); % save moment equation as a matlab function
+    
+    try 
+        jac = jacobian(RHS,v);
+        matlabFunction(jac,'Vars',{t,[v],[ParameterX]},'File',jacobianFileName); % save moment equation as a matlab function
+    catch
+    end
+
 end
