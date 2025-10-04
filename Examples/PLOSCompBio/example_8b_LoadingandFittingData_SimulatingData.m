@@ -14,24 +14,24 @@ addpath(genpath('../../'));
 % example_4_SolveSSITModels_FSP
 
 % View model summaries:
-STL1_FSP_4state.summarizeModel
+STL1_FSP.summarizeModel
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Create a complicated model to simulate noisy real data
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Create a copy of the STL1 model for simulation:
-STL1_sim_model = STL1_FSP_4state;
+STL1_sim_model = STL1_FSP;
 
 % Update propensity function for the gene activation reaction:
-STL1_sim_model.propensityFunctions{1} = 'offGene * IHog';
+STL1_sim_model.propensityFunctions{1} = 'offGene * Hog1';
 
 % Define the time-varying TF/MAPK input signal with added noise:
-STL1_sim_model.inputExpressions = {'IHog',...
-               'a0 + a1*exp(-r1*t)*(1-exp(-r2*t))*(t>0) + sigma'};
+STL1_sim_model.inputExpressions = {'Hog1',...
+               'a0 + a1*exp(-r1*t)*(1-exp(-r2*t))*(t>0) + sig'};
 
 % Add the new parameters from the TF/MAPK input signal:
-STL1_sim_model.parameters = ({'koff',0.01; 'kr',100; 'gr',0.5; ...
-'kleak',0.5; 'a0',0.01; 'a1',10; 'r1',0.004; 'r2',.01; 'sigma',randn(1)*5});
+STL1_sim_model.parameters = ({'koff',0.01; 'kr',100; 'dr',0.5; ...
+'kleak',0.5; 'a0',0.01; 'a1',10; 'r1',0.004; 'r2',.01; 'sig',randn(1)*5});
 % Note that the simulated data will differ each time it is run.
 
 % Set stoichiometry of reactions:
@@ -96,19 +96,13 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Make new copies of our model:
-Model_sim_data = Model_FSP;
 STL1_sim_data = STL1_FSP;
 
 % Load the simulated data, matching the species name of the model  
 % (e.g., the model species 'offGene' is column 'exp1_s1' in the file):
-
-Model_sim_data = Model_sim_data.loadData('data/STL1_sim.csv',...
-                {'offGene','exp1_s1';'onGene','exp1_s2';'mRNA','exp1_s3'});
-
 STL1_sim_data = STL1_sim_data.loadData('data/STL1_sim.csv',...
                 {'offGene','exp1_s1';'onGene','exp1_s2';'mRNA','exp1_s3'});
 
 % This plot is unnecessary, as the model parameters have not been fit to
 % the data yet.  However, it illustrates the improvement to come later:
-Model_sim_data.makeFitPlot
 STL1_sim_data.makeFitPlot

@@ -17,7 +17,7 @@
 % example_4_SolveSSITModels_FSP
 
 %% Load pre-computed FSP solutions:
-load('example_4_SolveSSITModels_FSP.mat')
+% load('example_4_SolveSSITModels_FSP.mat')
 
 % View model summaries
 Model_FSP.summarizeModel

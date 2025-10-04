@@ -13,7 +13,7 @@
 
 % clear
 % close all
-addpath(genpath('../../src'));
+addpath(genpath('../../'));
 
 % example_1_CreateSSITModels  
 % example_4_SolveSSITModels_FSP
@@ -23,9 +23,9 @@ addpath(genpath('../../src'));
 load('example_6_SensitivityAnalysis.mat')
 
 % View model summaries:
-Model_FSP.summarizeModel
-STL1_FSP.summarizeModel
-STL1_4state_FSP.summarizeModel
+Model_sens.summarizeModel
+STL1_sens.summarizeModel
+STL1_4state_sens.summarizeModel
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(1): Compute the Fisher Information Matrix for the bursting gene model
@@ -93,7 +93,7 @@ STL1_4state_FIM = STL1_4state_sens;
 %% Compute FIMs using FSP sensitivity results
 % Compute the FIM:
 STL1_4state_fimResults = ...
-    STL1_4state_FIM.computeFIM(STL1_4state_sensSoln.sens); 
+    STL1_4state_FIM.computeFIM(); 
 
 % Generate a count of measured cells (in place of real data):
 STL1_4state_cellCounts = 10*ones(size(STL1_4state_FIM.tSpan));
