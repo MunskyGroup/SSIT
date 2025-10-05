@@ -252,7 +252,7 @@ classdef miscelaneousTests < matlab.unittest.TestCase
 
              SSIT.generateCommandLinePipeline(saveFile,'Model',[],Pipeline,pipelineArgs,saveFile2,'logFile.txt',true)
 
-             disp('pausing to give time for background run to comlete.')
+             disp('Pausing to give time for background run to complete.')
              tic
              success = false;
              while toc<90

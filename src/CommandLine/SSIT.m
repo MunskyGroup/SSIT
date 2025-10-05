@@ -455,7 +455,7 @@ classdef SSIT
 
             if strcmpi(obj.solutionScheme,'ode')
                 momentOdeFileName = [prefixName,'_mean'];
-                ssit.moments.writeFunForMomentsODESymb(obj.stoichiometry,...
+                jacCreated = ssit.moments.writeFunForMomentsODESymb(obj.stoichiometry,...
                     obj.propensityFunctions,...
                     obj.species,...
                     obj.parameters(:,1),...
@@ -464,11 +464,15 @@ classdef SSIT
                     obj.inputExpressions, ...
                     [momentOdeFileName,'_jac']);
                 obj.propensitiesGeneralMean = eval(['@(t,v,pars)',momentOdeFileName,'(t,v,pars)']);
-                obj.propensitiesGeneralMeanJac = eval(['@(t,v,pars)',[momentOdeFileName,'_jac'],'(t,v,pars)']);
+                if jacCreated
+                    obj.propensitiesGeneralMeanJac = eval(['@(t,v,pars)',[momentOdeFileName,'_jac'],'(t,v,pars)']);
+                else
+                    obj.propensitiesGeneralMeanJac = [];
+                end
                 return
             elseif strcmpi(obj.solutionScheme,'moments')||strcmpi(obj.solutionScheme,'gaussian')
                 momentOdeFileName = [prefixName,'_momentsgaussian'];
-                ssit.moments.writeFunForMomentsODESymb(obj.stoichiometry,...
+                jacCreated = ssit.moments.writeFunForMomentsODESymb(obj.stoichiometry,...
                     obj.propensityFunctions,...
                     obj.species,...
                     obj.parameters(:,1),...
@@ -477,7 +481,11 @@ classdef SSIT
                     obj.inputExpressions,...
                     ['momentOdeFileName','_jac']);
                 obj.propensitiesGeneralMoments = eval(['@(t,v,pars)',momentOdeFileName,'(t,v,pars)']);
-                obj.propensitiesGeneralMomentsJac = eval(['@(t,v,pars)',['momentOdeFileName','_jac'],'(t,v,pars)']);
+                if jacCreated
+                    obj.propensitiesGeneralMomentsJac = eval(['@(t,v,pars)',['momentOdeFileName','_jac'],'(t,v,pars)']);
+                else
+                    obj.propensitiesGeneralMomentsJac = [];
+                end
                 return
             end
 

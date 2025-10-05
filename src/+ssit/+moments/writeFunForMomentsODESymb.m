@@ -1,4 +1,4 @@
-function writeFunForMomentsODESymb(S,wString,xString,parString, ...
+function [jacCreated] = writeFunForMomentsODESymb(S,wString,xString,parString, ...
     momentOdeFileName,includeSecondMom,inputExpressions,jacobianFileName)
 %% function writeFunForMomentsODE(S,wString,x,momentOdeFileName,includeSecondMom)
 % Creates ODE for solving 1st and 2nd moments using an Assumption of
@@ -74,7 +74,8 @@ end
 syms('ParameterX',[1,nP],'real');
 
 %% Change species names to x1, x2, ... in propensity functions.
-
+specialFuns = {'max','min'}; nSF = 2;
+containsSpecialFuns = false; 
 for im = 1:nR
     % Change inputs to complete expressions in propensities.
     for iI = 1:nI
@@ -108,6 +109,14 @@ for im = 1:nR
         wString{im} = strrep(wString{im},['$',num2str(k)],subStrings{k,2});
     end
 
+    % Change if function contains special functions that would make
+    % differentiation incorrect.
+    for isp = 1:nSF
+        if ~isempty(regexp(wString{im},['\<',specialFuns{isp},'\>'],'once'))
+            containsSpecialFuns = true;
+        end
+    end
+
     w(im,1) = str2sym(wString{im});
 end
 
@@ -129,9 +138,17 @@ if ~includeSecondMom
     matlabFunction(RHS,'Vars',{t,[x],[ParameterX]},'File',momentOdeFileName); % save moment equation as a matlab function
 
     try 
-        jac = jacobian(RHS,x);
-        matlabFunction(jac,'Vars',{t,[x],[ParameterX]},'File',jacobianFileName); % save moment equation as a matlab function
+        if ~containsSpecialFuns
+            jac = jacobian(RHS,x);
+            matlabFunction(jac,'Vars',{t,[x],[ParameterX]},'File',jacobianFileName); % save moment equation as a matlab function
+            jacCreated = true;
+        else
+            delete([jacobianFileName,'.m'])
+            jacCreated = false;
+        end
     catch
+        delete(jacobianFileName)
+        jacCreated = false;
     end
 else
     %%  Create symbolic variables for all 1st and 2nd order moments.
@@ -235,10 +252,16 @@ else
     %% Finalize RHS and saves as a matlab function.
     matlabFunction(RHS,'Vars',{t,[v],[ParameterX]},'File',momentOdeFileName); % save moment equation as a matlab function
     
-    try 
-        jac = jacobian(RHS,v);
-        matlabFunction(jac,'Vars',{t,[v],[ParameterX]},'File',jacobianFileName); % save moment equation as a matlab function
+    try
+        if ~containsSpecialFuns
+            jac = jacobian(RHS,v);
+            matlabFunction(jac,'Vars',{t,[v],[ParameterX]},'File',jacobianFileName); % save moment equation as a matlab function
+        else
+            delete([jacobianFileName,'.m'])
+            jacCreated = false;
+        end
     catch
+        delete([jacobianFileName,'.m'])
+        jacCreated = false;
     end
-
 end
