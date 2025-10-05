@@ -452,9 +452,14 @@ classdef SSIT
             % This function starts the process to write m-file for each
             % propensity function.
 
+            if ~exist([pwd,'/tmpPropensityFunctions'],'dir')
+                mkdir([pwd,'/tmpPropensityFunctions'])
+            end
+            addpath([pwd,'/tmpPropensityFunctions'])
 
             if strcmpi(obj.solutionScheme,'ode')
-                momentOdeFileName = [prefixName,'_mean'];
+                clear([prefixName,'_mean'],[prefixName,'_mean_jac']);
+                momentOdeFileName = [pwd,'/tmpPropensityFunctions/',prefixName,'_mean'];
                 jacCreated = ssit.moments.writeFunForMomentsODESymb(obj.stoichiometry,...
                     obj.propensityFunctions,...
                     obj.species,...
@@ -463,15 +468,16 @@ classdef SSIT
                     false,...
                     obj.inputExpressions, ...
                     [momentOdeFileName,'_jac']);
-                obj.propensitiesGeneralMean = eval(['@(t,v,pars)',momentOdeFileName,'(t,v,pars)']);
+                obj.propensitiesGeneralMean = eval(['@(t,v,pars)',prefixName,'_mean(t,v,pars)']);
                 if jacCreated
-                    obj.propensitiesGeneralMeanJac = eval(['@(t,v,pars)',[momentOdeFileName,'_jac'],'(t,v,pars)']);
+                    obj.propensitiesGeneralMeanJac = eval(['@(t,v,pars)',prefixName,'_mean_jac(t,v,pars)']);
                 else
                     obj.propensitiesGeneralMeanJac = [];
                 end
                 return
             elseif strcmpi(obj.solutionScheme,'moments')||strcmpi(obj.solutionScheme,'gaussian')
-                momentOdeFileName = [prefixName,'_momentsgaussian'];
+                clear([prefixName,'_momentsgaussian'],[prefixName,'_momentsgaussian_jac']);
+                momentOdeFileName = [pwd,'/tmpPropensityFunctions/',prefixName,'_momentsgaussian'];
                 jacCreated = ssit.moments.writeFunForMomentsODESymb(obj.stoichiometry,...
                     obj.propensityFunctions,...
                     obj.species,...
@@ -480,9 +486,9 @@ classdef SSIT
                     true,...
                     obj.inputExpressions,...
                     ['momentOdeFileName','_jac']);
-                obj.propensitiesGeneralMoments = eval(['@(t,v,pars)',momentOdeFileName,'(t,v,pars)']);
+                obj.propensitiesGeneralMoments = eval(['@(t,v,pars)',prefixName,'_momentsgaussian(t,v,pars)']);
                 if jacCreated
-                    obj.propensitiesGeneralMomentsJac = eval(['@(t,v,pars)',['momentOdeFileName','_jac'],'(t,v,pars)']);
+                    obj.propensitiesGeneralMomentsJac = eval(['@(t,v,pars)',prefixName,'_momentsgaussian_jac(t,v,pars)']);
                 else
                     obj.propensitiesGeneralMomentsJac = [];
                 end
