@@ -8,7 +8,7 @@
 %% Preliminaries:
 %clear
 %close all
-addpath(genpath('../../'));
+% addpath(genpath('../../'));
 
 % example_1_CreateSSITModels
 % example_4_SolveSSITModels_FSP
@@ -106,3 +106,9 @@ STL1_sim_data = STL1_sim_data.loadData('data/STL1_sim.csv',...
 % This plot is unnecessary, as the model parameters have not been fit to
 % the data yet.  However, it illustrates the improvement to come later:
 STL1_sim_data.makeFitPlot
+
+%% Save models with loaded data
+saveNames = unique({'STL1_sim_model'
+    'STL1_sim_data'});
+    
+save('example_8b_LoadingandFittingData_SimulatingData',saveNames{:})

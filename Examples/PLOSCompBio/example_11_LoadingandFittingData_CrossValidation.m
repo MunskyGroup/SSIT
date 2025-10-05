@@ -16,7 +16,7 @@ addpath(genpath('../../src'));
 % example_4_SolveSSITModels_FSP
 
 %% Load pre-computed FSP solutions:
-load('example_4_SolveSSITModels_FSP.mat')
+% load('example_4_SolveSSITModels_FSP.mat')
 
 % View summary of 4-state STL1 model:
 STL1_4state_FSP.summarizeModel
