@@ -9,6 +9,7 @@
 % Use the models from example_1_CreateSSITModels
 % clear
 % close all
+addpath(genpath('../../'));
 
 % example_1_CreateSSITModels
 
