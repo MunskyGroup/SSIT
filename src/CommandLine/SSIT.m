@@ -3736,12 +3736,12 @@ classdef SSIT
                 speciesNames = []
                 timeVec = [];               
                 lineProps = {'linewidth',2};
-                plotTitle = ''                        % kept for backward compatibility
-                opts.Title (1,1) string = ""          % overrides plotTitle if provided
+                plotTitle = ''                        
                 opts.TitleFontSize (1,1) double {mustBePositive} = 18
                 opts.AxisLabelSize (1,1) double {mustBePositive} = 18
                 opts.TickLabelSize (1,1) double {mustBePositive} = 18
                 opts.LegendFontSize (1,1) double {mustBePositive} = 18
+                opts.LegendLocation (1,1) string = "best"
             end
             % plotODE - Plots ODE solution for all model species over time.
             %
@@ -3767,14 +3767,7 @@ classdef SSIT
                 %speciesNames = arrayfun(@(s) sprintf('Species %d', s), 1:numSpecies, 'UniformOutput', false);
             elseif length(speciesNames) ~= numSpecies
                 error('The number of species names must match the number of species (%d).', numSpecies);
-            end
-        
-            % Determine title (opts.Title overrides legacy plotTitle)
-            if strlength(opts.Title) > 0
-                titleText = opts.Title;
-            else
-                titleText = plotTitle;
-            end
+            end        
         
             % Plot
             figure; hold on;
@@ -3784,17 +3777,25 @@ classdef SSIT
             end
         
             ax = gca;
-            ax.FontSize = opts.TickLabelSize;                         % tick labels
+            ax.FontSize = opts.TickLabelSize;
             xlabel('Time','FontSize',opts.AxisLabelSize);
             ylabel('Molecule Count / Concentration','FontSize',opts.AxisLabelSize);
-            if ~isempty(titleText)
-                title(titleText,'FontSize',opts.TitleFontSize);
+            if ~isempty(plotTitle)
+                title(plotTitle,'FontSize',opts.TitleFontSize);
             else
                 title('ODE Solution Trajectories','FontSize',opts.TitleFontSize);
             end
-            lgd = legend(speciesNames, 'Location', 'Best');
-            if ~isempty(lgd), lgd.FontSize = opts.LegendFontSize; end
-            grid on; box on; hold off;
+            grid on; box on;
+            
+            % ----- Legend handling -----
+            if ~strcmpi(opts.LegendLocation,"none")
+                lgd = legend(speciesNames, 'Location', char(opts.LegendLocation));
+                if ~isempty(lgd)
+                    lgd.FontSize = opts.LegendFontSize;
+                end
+            end
+
+            hold off;
         end
 
         function figHandles = makeFitPlot(obj,fitSolution,smoothWindow,fignums,usePanels, ...

@@ -37,7 +37,7 @@ STL1_4state.tSpan = linspace(0,50,200);
     Model_ODE = Model;
 
     % Set solution scheme to 'ode':
-    Model_ODE.solutionScheme = 'ode';
+    Model_ODE.solutionScheme = 'ODE';
     
     % This function compiles and stores the given reaction propensities  
     % into symbolic expression functions that use sparse matrices to  
@@ -47,9 +47,10 @@ STL1_4state.tSpan = linspace(0,50,200);
     
     % Solve ODE and make plots:
     [~,~,Model_ODE] = Model_ODE.solve; 
-    Model_ODE.plotODE(Model_ODE.species,Model_ODE.tSpan,...
-      {'linewidth',4},'Bursting Gene',...
-      TitleFontSize=24,AxisLabelSize=18,TickLabelSize=18,LegendFontSize=18)
+    Model_ODE.plotODE(Model_ODE.species, Model_ODE.tSpan, ...
+        {'linewidth',4}, 'Bursting Gene', TitleFontSize=24, ...
+        AxisLabelSize=18, TickLabelSize=18, ...
+        LegendFontSize=18, LegendLocation='southeast')
 
     %% Make a movie of the ODE solution being plotted:
     makeODEmovie(Model_ODEsoln, Model_ODE.species, Model_ODE.tSpan, ...
