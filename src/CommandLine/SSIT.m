@@ -3730,18 +3730,20 @@ classdef SSIT
             end
         end
 
-        function plotODE(obj,speciesNames,timeVec,lineProps,plotTitle,opts)%plotODE(ODE_soln, speciesNames, timeVec)
+        function plotODE(obj,speciesNames,timeVec,lineProps,opts)%plotODE(ODE_soln, speciesNames, timeVec)
             arguments
                 obj
                 speciesNames = []
                 timeVec = [];               
                 lineProps = {'linewidth',2};
-                plotTitle = ''                        
+                opts.Title (1,1) string = ""                       
                 opts.TitleFontSize (1,1) double {mustBePositive} = 18
                 opts.AxisLabelSize (1,1) double {mustBePositive} = 18
                 opts.TickLabelSize (1,1) double {mustBePositive} = 18
                 opts.LegendFontSize (1,1) double {mustBePositive} = 18
                 opts.LegendLocation (1,1) string = "best"
+                opts.XLabel (1,1) string = "Time"
+                opts.YLabel (1,1) string = "Molecule Count / Concentration"
             end
             % plotODE - Plots ODE solution for all model species over time.
             %
@@ -3778,10 +3780,14 @@ classdef SSIT
         
             ax = gca;
             ax.FontSize = opts.TickLabelSize;
-            xlabel('Time','FontSize',opts.AxisLabelSize);
-            ylabel('Molecule Count / Concentration','FontSize',opts.AxisLabelSize);
-            if ~isempty(plotTitle)
-                title(plotTitle,'FontSize',opts.TitleFontSize);
+
+            % ---- Use custom axis labels (with font sizes) ----
+            xlabel(opts.XLabel, 'FontSize', opts.AxisLabelSize);
+            ylabel(opts.YLabel, 'FontSize', opts.AxisLabelSize);
+
+            % ---- Title ----
+            if ~isempty(opts.Title)
+                title(opts.Title,'FontSize',opts.TitleFontSize);
             else
                 title('ODE Solution Trajectories','FontSize',opts.TitleFontSize);
             end
