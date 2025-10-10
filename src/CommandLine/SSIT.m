@@ -3730,6 +3730,73 @@ classdef SSIT
             end
         end
 
+        function plotODE(obj,speciesNames,timeVec,lineProps,plotTitle,opts)%plotODE(ODE_soln, speciesNames, timeVec)
+            arguments
+                obj
+                speciesNames = []
+                timeVec = [];               
+                lineProps = {'linewidth',2};
+                plotTitle = ''                        % kept for backward compatibility
+                opts.Title (1,1) string = ""          % overrides plotTitle if provided
+                opts.TitleFontSize (1,1) double {mustBePositive} = 18
+                opts.AxisLabelSize (1,1) double {mustBePositive} = 18
+                opts.TickLabelSize (1,1) double {mustBePositive} = 18
+                opts.LegendFontSize (1,1) double {mustBePositive} = 18
+            end
+            % plotODE - Plots ODE solution for all model species over time.
+            %
+            % Inputs:
+            %   * ODE_soln - struct with field 'ode' (nTime × nSpecies)
+            %   * speciesNames (optional) - cell array of species names for plot
+            %                               legend
+            %   * timeVec (optional) - time vector [nTime × 1]
+            %
+            % Example: plotODE(Model_ODEsoln,Model_ODE.species,Model_ODE.tSpan)
+        
+            X = obj.Solutions.ode;  % size: [nTime × nSpecies]
+            [nTime, numSpecies] = size(X);
+        
+            % Default time vector if not provided
+            if nargin < 3 || isempty(timeVec)
+                timeVec = 1:nTime;  % Use indices if no time vector
+            end
+        
+            % Generate default species names if not provided
+            if nargin < 2 || isempty(speciesNames)
+                speciesNames = obj.species;
+                %speciesNames = arrayfun(@(s) sprintf('Species %d', s), 1:numSpecies, 'UniformOutput', false);
+            elseif length(speciesNames) ~= numSpecies
+                error('The number of species names must match the number of species (%d).', numSpecies);
+            end
+        
+            % Determine title (opts.Title overrides legacy plotTitle)
+            if strlength(opts.Title) > 0
+                titleText = opts.Title;
+            else
+                titleText = plotTitle;
+            end
+        
+            % Plot
+            figure; hold on;
+            colors = lines(numSpecies);
+            for s = 1:numSpecies
+                plot(timeVec, X(:, s), lineProps{:}, 'Color', colors(s, :));
+            end
+        
+            ax = gca;
+            ax.FontSize = opts.TickLabelSize;                         % tick labels
+            xlabel('Time','FontSize',opts.AxisLabelSize);
+            ylabel('Molecule Count / Concentration','FontSize',opts.AxisLabelSize);
+            if ~isempty(titleText)
+                title(titleText,'FontSize',opts.TitleFontSize);
+            else
+                title('ODE Solution Trajectories','FontSize',opts.TitleFontSize);
+            end
+            lgd = legend(speciesNames, 'Location', 'Best');
+            if ~isempty(lgd), lgd.FontSize = opts.LegendFontSize; end
+            grid on; box on; hold off;
+        end
+
         function figHandles = makeFitPlot(obj,fitSolution,smoothWindow,fignums,usePanels, ...
                 varianceType,IQRrange,suppressFigures)
             % Produces plots to compare model to experimental data.

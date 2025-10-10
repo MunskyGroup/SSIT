@@ -46,8 +46,10 @@ STL1_4state.tSpan = linspace(0,50,200);
     Model_ODE = Model_ODE.formPropensitiesGeneral('Model_ODE');
     
     % Solve ODE and make plots:
-    Model_ODEsoln = Model_ODE.solve; 
-    plotODE(Model_ODEsoln,Model_ODE.species,Model_ODE.tSpan)
+    [~,~,Model_ODE] = Model_ODE.solve; 
+    Model_ODE.plotODE(Model_ODE.species,Model_ODE.tSpan,...
+      {'linewidth',4},'Bursting Gene',...
+      TitleFontSize=24,AxisLabelSize=18,TickLabelSize=18,LegendFontSize=18)
 
     %% Make a movie of the ODE solution being plotted:
     makeODEmovie(Model_ODEsoln, Model_ODE.species, Model_ODE.tSpan, ...
