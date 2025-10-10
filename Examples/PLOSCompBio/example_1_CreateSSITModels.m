@@ -74,7 +74,7 @@ STL1.summarizeModel
 STL1_4state = STL1;
 
 % Set species names for STL1_4state:
-STL1_4state.species = {'g1';'g2';'mRNA';'g3';'g4'};
+STL1_4state.species = {'g1';'g2';'g3';'g4';'mRNA'};
 
 % Set initial condition:
 STL1_4state.initialCondition = [1;0;0;0;0];  
@@ -82,10 +82,10 @@ STL1_4state.initialCondition = [1;0;0;0;0];
 % Set stoichiometry of reactions:
 STL1_4state.stoichiometry = [-1,1,0,0,0,0,0,0;...   % gene state 1
                               1,-1,-1,1,0,0,0,0;... % gene state 2
-                              0,0,0,0,0,0,1,-1;...  % mRNA
                               0,0,1,-1,-1,1,0,0;... % gene state 3        
-                              0,0,0,0,1,-1,0,0];... % gene state 4
-                 % Reactions: 1,2,3,4,5, 6,7,8
+                              0,0,0,0,1,-1,0,0;...  % gene state 4
+                              0,0,0,0,0,0,1,-1]     % mRNA
+                 % Reactions: 1,2,3,4,5,6,7, 8
 
 % Add a lag to the time-varying TF/MAPK input signal:
 STL1_4state.inputExpressions = ...
