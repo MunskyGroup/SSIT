@@ -36,7 +36,7 @@ STL1_4state.tSpan = linspace(0,50,200);
     % Create a copy of the bursting gene model for ODEs:
     Model_ODE = Model;
 
-    % Set solution scheme to 'ode':
+    % Set solution scheme to 'ODE':
     Model_ODE.solutionScheme = 'ODE';
     
     % This function compiles and stores the given reaction propensities  
@@ -47,15 +47,15 @@ STL1_4state.tSpan = linspace(0,50,200);
     
     % Solve ODE and make plots:
     [~,~,Model_ODE] = Model_ODE.solve; 
-    Model_ODE.plotODE(Model_ODE.species, Model_ODE.tSpan, {'linewidth',4}, ...
-        Title='Bursting Gene', TitleFontSize=24, ...
+    Model_ODE.plotODE(Model_ODE.species, Model_ODE.tSpan, ...
+        {'linewidth',4}, Title='Bursting Gene', TitleFontSize=24, ...
         AxisLabelSize=18, TickLabelSize=18, ...
         LegendFontSize=18, LegendLocation='southeast', ...
         XLabel='Time', YLabel='Molecule Count')
 
     %% Make a movie of the ODE solution being plotted:
-    makeODEmovie(Model_ODEsoln, Model_ODE.species, Model_ODE.tSpan, ...
-                'Model_ODE.mp4');
+    % makeODEmovie(Model_ODEsoln, Model_ODE.species, Model_ODE.tSpan, ...
+    %             'Model_ODE.mp4');
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(2): Use deterministic, ordinary differential equations (ODEs) 
@@ -67,8 +67,8 @@ STL1_4state.tSpan = linspace(0,50,200);
     % Create a copy of the time-varying STL1 yeast model for ODEs:
     STL1_ODE = STL1;
 
-    % Set solution scheme to 'ode':
-    STL1_ODE.solutionScheme = 'ode';
+    % Set solution scheme to 'ODE':
+    STL1_ODE.solutionScheme = 'ODE';
     
     % This function compiles and stores the given reaction propensities  
     % into symbolic expression functions that use sparse matrices to  
@@ -77,12 +77,16 @@ STL1_4state.tSpan = linspace(0,50,200);
     STL1_ODE = STL1_ODE.formPropensitiesGeneral('STL1_ODE');
     
     % Solve ODE and make plots:
-    STL1_ODEsoln = STL1_ODE.solve; 
-    plotODE(STL1_ODEsoln,STL1_ODE.species,STL1_ODE.tSpan)
+    [~,~,STL1_ODE] = STL1_ODE.solve; 
+    STL1_ODE.plotODE(STL1_ODE.species, STL1_ODE.tSpan, ...
+        {'linewidth',4}, Title='Bursting Gene', TitleFontSize=24, ...
+        AxisLabelSize=18, TickLabelSize=18, ...
+        LegendFontSize=18, LegendLocation='southeast', ...
+        XLabel='Time', YLabel='Molecule Count')
 
     %% Make a movie of the ODE solution being plotted:
-    makeODEmovie(STL1_ODEsoln, STL1_ODE.species, STL1_ODE.tSpan, ...
-                'STL1_ODE.mp4');
+    % makeODEmovie(STL1_ODEsoln, STL1_ODE.species, STL1_ODE.tSpan, ...
+    %             'STL1_ODE.mp4');
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(3): Use deterministic, ordinary differential equations (ODEs) 
@@ -108,13 +112,23 @@ STL1_4state.tSpan = linspace(0,50,200);
         STL1_4state_ODE.formPropensitiesGeneral('STL1_4state_ODE',false);
     
     % Solve ODE and make plots:
-    STL1_4state_ODEsoln = STL1_4state_ODE.solve; 
-    plotODE(STL1_4state_ODEsoln,STL1_4state_ODE.species,...
-            STL1_4state_ODE.tSpan)
+    [~,~,STL1_4state_ODE] = STL1_4state_ODE.solve; 
+    STL1_4state_ODE.plotODE(STL1_4state_ODE.species, STL1_4state_ODE.tSpan, ...
+        {'linewidth',4}, Title='Bursting Gene', TitleFontSize=24, ...
+        AxisLabelSize=18, TickLabelSize=18, ...
+        LegendFontSize=18, LegendLocation='northeast', ...
+        XLabel='Time', YLabel='Molecule Count')
+
+    % Zoom in on gene states
+    STL1_4state_ODE.plotODE(STL1_4state_ODE.species, STL1_4state_ODE.tSpan, ...
+        {'linewidth',4}, Title='Bursting Gene', TitleFontSize=24, ...
+        AxisLabelSize=18, TickLabelSize=18, ...
+        LegendFontSize=18, LegendLocation='northeast', ...
+        XLabel='Time', YLabel='Molecule Count', XLim=[5,30], YLim=[0,1])
 
     %% Make a movie of the ODE solution being plotted:
-    makeODEmovie(STL1_4state_ODEsoln, STL1_4state_ODE.species, ...
-                 STL1_4state_ODE.tSpan, 'STL1_4state_ODE.mp4');
+    % makeODEmovie(STL1_4state_ODEsoln, STL1_4state_ODE.species, ...
+    %              STL1_4state_ODE.tSpan, 'STL1_4state_ODE.mp4');
 
 
 %% Save ODE models & solutions

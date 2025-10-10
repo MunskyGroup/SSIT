@@ -3730,7 +3730,8 @@ classdef SSIT
             end
         end
 
-        function plotODE(obj,speciesNames,timeVec,lineProps,opts)%plotODE(ODE_soln, speciesNames, timeVec)
+        % plotODE - Plots ODE solution for all model species over time
+        function plotODE(obj,speciesNames,timeVec,lineProps,opts)
             arguments
                 obj
                 speciesNames = []
@@ -3744,16 +3745,9 @@ classdef SSIT
                 opts.LegendLocation (1,1) string = "best"
                 opts.XLabel (1,1) string = "Time"
                 opts.YLabel (1,1) string = "Molecule Count / Concentration"
-            end
-            % plotODE - Plots ODE solution for all model species over time.
-            %
-            % Inputs:
-            %   * ODE_soln - struct with field 'ode' (nTime × nSpecies)
-            %   * speciesNames (optional) - cell array of species names for plot
-            %                               legend
-            %   * timeVec (optional) - time vector [nTime × 1]
-            %
-            % Example: plotODE(Model_ODEsoln,Model_ODE.species,Model_ODE.tSpan)
+                opts.XLim double = []       % e.g., [0 50]
+                opts.YLim double = []       % e.g., [0 200]
+            end        
         
             X = obj.Solutions.ode;  % size: [nTime × nSpecies]
             [nTime, numSpecies] = size(X);
@@ -3780,6 +3774,15 @@ classdef SSIT
         
             ax = gca;
             ax.FontSize = opts.TickLabelSize;
+
+            % ----- Set axes limits -----
+            if ~isempty(opts.XLim)
+                xlim(opts.XLim);
+            end
+        
+            if ~isempty(opts.YLim)
+                ylim(opts.YLim);
+            end
 
             % ---- Use custom axis labels (with font sizes) ----
             xlabel(opts.XLabel, 'FontSize', opts.AxisLabelSize);
