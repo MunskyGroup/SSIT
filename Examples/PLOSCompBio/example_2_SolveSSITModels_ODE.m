@@ -42,8 +42,8 @@ STL1_4state.tSpan = linspace(0,50,200);
     % This function compiles and stores the given reaction propensities  
     % into symbolic expression functions that use sparse matrices to  
     % operate on the system based on the current state. The functions are 
-    % stored with the given prefix, in this case, 'Model_ODE'
-    Model_ODE = Model_ODE.formPropensitiesGeneral('Model_ODE');
+    % stored with the given prefix, in this case, 'Model_ODE':
+    Model_ODE.formPropensitiesGeneral('Model_ODE');
     
     % Solve ODE and make plots:
     [~,~,Model_ODE] = Model_ODE.solve; 
@@ -73,8 +73,8 @@ STL1_4state.tSpan = linspace(0,50,200);
     % This function compiles and stores the given reaction propensities  
     % into symbolic expression functions that use sparse matrices to  
     % operate on the system based on the current state. The functions are 
-    % stored with the given prefix, in this case, 'STL1_ODE'
-    STL1_ODE = STL1_ODE.formPropensitiesGeneral('STL1_ODE');
+    % stored with the given prefix, in this case, 'STL1_ODE':
+    STL1_ODE.formPropensitiesGeneral('STL1_ODE');
     
     % Solve ODE and make plots:
     [~,~,STL1_ODE] = STL1_ODE.solve; 
@@ -98,8 +98,8 @@ STL1_4state.tSpan = linspace(0,50,200);
     % Create a copy of the time-varying STL1 yeast model for ODEs:
     STL1_4state_ODE = STL1_4state;
 
-    % Set solution scheme to 'ode':
-    STL1_4state_ODE.solutionScheme = 'ode';
+    % Set solution scheme to 'ODE':
+    STL1_4state_ODE.solutionScheme = 'ODE';
 
     % Set the ODE integrator (default 'ode23s'):
     STL1_4state_ODE.odeIntegrator = 'ode23s';
@@ -107,12 +107,13 @@ STL1_4state.tSpan = linspace(0,50,200);
     % This function compiles and stores the given reaction propensities  
     % into symbolic expression functions that use sparse matrices to  
     % operate on the system based on the current state. The functions are 
-    % stored with the given prefix, in this case, 'STL1_ODE'
-    STL1_4state_ODE = ...
-        STL1_4state_ODE.formPropensitiesGeneral('STL1_4state_ODE',false);
+    % stored with the given prefix, in this case, 'STL1_4state_ODE':
+    STL1_4state_ODE.formPropensitiesGeneral('STL1_4state_ODE',false);
     
-    % Solve ODE and make plots:
+    % Solve ODEs:
     [~,~,STL1_4state_ODE] = STL1_4state_ODE.solve; 
+
+    % Make plot:
     STL1_4state_ODE.plotODE(...
         STL1_4state_ODE.species, STL1_4state_ODE.tSpan, {'linewidth',4},...
         Title='4-state STL1', TitleFontSize=24,...
@@ -137,9 +138,6 @@ STL1_4state.tSpan = linspace(0,50,200);
 saveNames = unique({'Model_ODE'
     'STL1_ODE'
     'STL1_4state_ODE'
-    'Model_ODEsoln'
-    'STL1_ODEsoln'
-    'STL1_4state_ODEsoln'
     });
     
 save('example_2_SolveSSITModels_ODE',saveNames{:})
