@@ -3815,7 +3815,8 @@ classdef SSIT
                 numTraj = []
                 speciesNames = []
                 lineProps = {'linewidth',2};
-                opts.Title (1,1) string = ""                       
+                opts.Title (1,1) string = ""
+                opts.MeanOnly (1,1) logical = false
                 opts.TitleFontSize (1,1) double {mustBePositive} = 18
                 opts.AxisLabelSize (1,1) double {mustBePositive} = 18
                 opts.TickLabelSize (1,1) double {mustBePositive} = 18
@@ -3882,8 +3883,10 @@ classdef SSIT
                     X = squeeze(ssaSoln.trajs(s, validIdx, :)); % Extract valid species trajectories
                     randIdx = randperm(numTotalTraj, numTraj); % Select random trajectories
                     
-                    for i = 1:numTraj
-                        plot(T, X(:, randIdx(i)), 'Color', [speciesColors(s, :), 0.2]); % Transparent individual trajectories
+                    if ~opts.MeanOnly
+                        for i = 1:numTraj
+                            plot(T, X(:, randIdx(i)), 'Color', [speciesColors(s, :), 0.2]); % Transparent individual trajectories
+                        end
                     end
                     
                     % Plot mean trajectory in the correct color
@@ -3914,12 +3917,12 @@ classdef SSIT
                 legendEntries = {speciesNames{speciesIdx}};
             end
         
-            % Axes styling
+            % ----- Axes styling -----
             ax = gca; ax.FontSize = opts.TickLabelSize;
             xlabel(opts.XLabel, 'FontSize', opts.AxisLabelSize);
             ylabel(opts.YLabel, 'FontSize', opts.AxisLabelSize);
         
-            % Title
+            % ----- Title -----
             if strlength(opts.Title) > 0
                 title(string(opts.Title), 'FontSize', opts.TitleFontSize);
             else
@@ -3932,15 +3935,16 @@ classdef SSIT
                 end
             end
         
-            % Zoom / axis limits
+            % ----- Set axes limits -----
             if ~isempty(opts.XLim)
-                validateLimits(opts.XLim,'XLim'); xlim(opts.XLim);
-            end
-            if ~isempty(opts.YLim)
-                validateLimits(opts.YLim,'YLim'); ylim(opts.YLim);
+                xlim(opts.XLim);
             end
         
-            % Legend
+            if ~isempty(opts.YLim)
+                ylim(opts.YLim);
+            end
+        
+            % ----- Legend -----
             if ~strcmpi(opts.LegendLocation, "none")
                 lgd = legend(legendHandles, legendEntries, 'Location', char(opts.LegendLocation));
                 if ~isempty(lgd)
