@@ -9,7 +9,7 @@
 % Use the models from example_1_CreateSSITModels
 % clear
 % close all
-addpath(genpath('../../'));
+addpath(genpath('../../src'));
 
 % example_1_CreateSSITModels
 
@@ -62,13 +62,19 @@ STL1_4state.tSpan = linspace(0,50,200);
     Model_SSA.initialTime = Model_SSA.tSpan(1); 
     
     % Run iterations in parallel with multiple cores, or execute serially:
-    Model_SSA.ssaOptions.useParallel = true;
+    Model_SSA.ssaOptions.useParallel = false;
     
     % Run SSA:
-    Model_SSAsoln = Model_SSA.solve;
+    [~,~,Model_SSA] = Model_SSA.solve;
     
     % Plot SSA trajectories and means:
-    plotSSA(Model_SSAsoln, 'all', 100, Model_SSA.species);
+    Model_SSA.plotSSA('all', 100, Model_SSA.species);
+    % plotSSA(obj,speciesNames,speciesIdx,numTraj,lineProps,opts)
+    % Model_ODE.plotODE(Model_ODE.species, Model_ODE.tSpan,...
+    %     {'linewidth',4}, Title='Bursting Gene', TitleFontSize=24,...
+    %     AxisLabelSize=18, TickLabelSize=18,...
+    %     LegendFontSize=15, LegendLocation='southeast',...
+    %     XLabel='Time', YLabel='Molecule Count')
 
     %% Make a video of the SSA trajectories being plotted:
     % makeSSAvideo(Model_SSAsoln, 'all', 100, Model_SSA.species, ...
