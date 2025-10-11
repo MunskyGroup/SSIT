@@ -3808,12 +3808,12 @@ classdef SSIT
         end
 
         % plotSSA - Plots SSA trajectories and histograms from ssaSoln struct
-        function plotSSA(obj,speciesNames,speciesIdx,numTraj,lineProps,opts)
+        function plotSSA(obj,speciesIdx,numTraj,speciesNames,lineProps,opts)
             arguments
-                obj
-                speciesNames = []
+                obj                
                 speciesIdx = []
                 numTraj = []
+                speciesNames = []
                 lineProps = {'linewidth',2};
                 opts.Title (1,1) string = ""                       
                 opts.TitleFontSize (1,1) double {mustBePositive} = 18
@@ -3828,19 +3828,39 @@ classdef SSIT
             end
 
             ssaSoln = obj.Solutions;
-        
-            numSpecies = size(ssaSoln.trajs, 1); % Automatically detect number of species
-            numTotalTraj = size(ssaSoln.trajs, 3);
-            numTraj = min(numTraj, numTotalTraj); % Ensure we don't exceed available trajectories
-        
-            % If species names are not provided, generate default names
-            if nargin < 4 || isempty(speciesNames)
-                speciesNames = arrayfun(@(s) sprintf('Species %d', s), 1:numSpecies, 'UniformOutput', false);
-            elseif length(speciesNames) ~= numSpecies
-                error('The number of species names must match the number of species (%d).', numSpecies);
+             
+            numSpecies    = size(ssaSoln.trajs, 1);  % Extract # of species            
+            nTime         = size(ssaSoln.trajs, 2);  % Extract time
+            numTotalTraj  = size(ssaSoln.trajs, 3);  % Extract total # trajectories
+
+            % Number of trajectories to draw if not provided
+            if isempty(numTraj)
+                numTraj = min(10, numTotalTraj);
+            else
+                % Ensure we don't exceed available trajectories
+                numTraj = min(numTraj, numTotalTraj);
             end
         
-            % Extract time points and filter valid ones (t >= 0)
+            % Species names
+            if isempty(speciesNames)
+                speciesNames = arrayfun(@(s) sprintf('Species %d', s), 1:numSpecies, 'UniformOutput', false);
+            elseif numel(speciesNames) ~= numSpecies
+                error('The number of species names must match the number of species (%d).', numSpecies);
+            end
+
+            % Normalise speciesIdx to a numeric vector of valid indices
+            if ischar(speciesIdx) || (isstring(speciesIdx) && strlength(speciesIdx)==3 && strcmpi(speciesIdx,"all"))
+                spList = 1:numSpecies;
+            elseif isnumeric(speciesIdx)
+                spList = unique(speciesIdx(:))';
+                if any(spList < 1 | spList > numSpecies)
+                    error('speciesIdx must be within 1..%d, or "all".', numSpecies);
+                end
+            else
+                error('speciesIdx must be a numeric index/vector or "all".');
+            end     
+
+             % Extract time points and filter valid ones (t >= 0)
             T = ssaSoln.T_array;
             validIdx = T >= 0;
             T = T(validIdx);
@@ -3848,13 +3868,14 @@ classdef SSIT
             % Locate the index closest to time = 100
             [~, t100_idx] = min(abs(T - 100));
         
-            % Define colors dynamically based on the number of species
-            speciesColors = lines(numSpecies); % Generate distinct colors for all species
+            % Generate distinct colors for all species
+            speciesColors = lines(numSpecies); 
             
+            % ------------ TRAJECTORY PLOT ------------
             figure; hold on;
             legendEntries = {}; % Store legend labels
             legendHandles = []; % Store handles for legend colors
-        
+            
             if strcmp(speciesIdx, 'all')
                 % Plot all species in different colors
                 for s = 1:numSpecies
@@ -3866,7 +3887,7 @@ classdef SSIT
                     end
                     
                     % Plot mean trajectory in the correct color
-                    h = plot(T, mean(X, 2), 'Color', speciesColors(s, :), 'LineWidth', 2);
+                    h = plot(T, mean(X, 2), lineProps{:}, 'Color', speciesColors(s, :), 'LineWidth', 2);
                     
                     % Store handle and label for legend
                     legendHandles(end+1) = h; %#ok<AGROW>
@@ -3893,40 +3914,70 @@ classdef SSIT
                 legendEntries = {speciesNames{speciesIdx}};
             end
         
-            % Labels
-            xlabel('Time');
-            ylabel('Molecule Count');
-            if strcmp(speciesIdx, 'all')
-                title('SSA Trajectories for All Species (Starting at t=0)');
+            % Axes styling
+            ax = gca; ax.FontSize = opts.TickLabelSize;
+            xlabel(opts.XLabel, 'FontSize', opts.AxisLabelSize);
+            ylabel(opts.YLabel, 'FontSize', opts.AxisLabelSize);
+        
+            % Title
+            if strlength(opts.Title) > 0
+                title(string(opts.Title), 'FontSize', opts.TitleFontSize);
             else
-                title(sprintf('SSA Trajectories for %s (Starting at t=0)', speciesNames{speciesIdx}));
+                if numel(spList) == numSpecies
+                    title('SSA Trajectories (Starting at t = 0)', 'FontSize', opts.TitleFontSize);
+                elseif numel(spList) == 1
+                    title(sprintf('SSA Trajectories for %s (Starting at t = 0)', speciesNames{spList}), 'FontSize', opts.TitleFontSize);
+                else
+                    title(sprintf('SSA Trajectories for Selected Species (Starting at t = 0)'), 'FontSize', opts.TitleFontSize);
+                end
             end
-            legend(legendHandles, legendEntries, 'Location', 'Best'); % Ensure correct species names in legend
-            grid on;
-            hold off;
         
-            % -------- HISTOGRAM AT TIME = 100 --------
+            % Zoom / axis limits
+            if ~isempty(opts.XLim)
+                validateLimits(opts.XLim,'XLim'); xlim(opts.XLim);
+            end
+            if ~isempty(opts.YLim)
+                validateLimits(opts.YLim,'YLim'); ylim(opts.YLim);
+            end
+        
+            % Legend
+            if ~strcmpi(opts.LegendLocation, "none")
+                lgd = legend(legendHandles, legendEntries, 'Location', char(opts.LegendLocation));
+                if ~isempty(lgd)
+                    lgd.FontSize = opts.LegendFontSize;
+                end
+            end
+        
+            grid on; box on; hold off;
+        
+            % ------------ HISTOGRAM PLOT(S) at t ~ 100 ------------
+            % If t=100 isn't in the window, this uses the closest time.
             figure;
-            numRows = ceil(sqrt(numSpecies)); % Adjust subplot grid dynamically
-            numCols = ceil(numSpecies / numRows);
-        
-            if strcmp(speciesIdx, 'all')
-                for s = 1:numSpecies
-                    subplot(numRows, numCols, s);
-                    X_t100 = squeeze(ssaSoln.trajs(s, t100_idx, :)); % Extract values at t=100
-                    histogram(X_t100, 'FaceColor', speciesColors(s, :), 'EdgeColor', 'k');
-                    xlabel(sprintf('Molecule Count (%s)', speciesNames{s}));
-                    ylabel('Frequency');
-                    title(sprintf('Distribution at Time = 100 (%s)', speciesNames{s}));
-                    grid on;
+            if numel(spList) > 1
+                % grid for subplots
+                numPanels = numel(spList);
+                numRows = ceil(sqrt(numPanels));
+                numCols = ceil(numPanels / numRows);
+                for k = 1:numPanels
+                    s = spList(k);
+                    subplot(numRows, numCols, k);
+                    X_t = squeeze(ssaSoln.trajs(s, t100_idx, :)); % values at closest-to-100 time
+                    histogram(X_t, 'FaceColor', speciesColors(s, :), 'EdgeColor', 'k');
+                    ax = gca; ax.FontSize = opts.TickLabelSize;
+                    xlabel(sprintf('Molecule Count (%s)', speciesNames{s}), 'FontSize', opts.AxisLabelSize);
+                    ylabel('Frequency', 'FontSize', opts.AxisLabelSize);
+                    title(sprintf('Distribution at t ≈ %.2f (%s)', ssaSoln.T_array(t100_idx), speciesNames{s}), 'FontSize', opts.TitleFontSize);
+                    grid on; box on;
                 end
             else
-                X_t100 = squeeze(ssaSoln.trajs(speciesIdx, t100_idx, :)); % Extract values at t=100
-                histogram(X_t100, 'FaceColor', speciesColors(speciesIdx, :), 'EdgeColor', 'k');
-                xlabel(sprintf('Molecule Count (%s)', speciesNames{speciesIdx}));
-                ylabel('Frequency');
-                title(sprintf('Distribution at Time = 100 (%s)', speciesNames{speciesIdx}));
-                grid on;
+                s = spList(1);
+                X_t = squeeze(ssaSoln.trajs(s, t100_idx, :));
+                histogram(X_t, 'FaceColor', speciesColors(s, :), 'EdgeColor', 'k');
+                ax = gca; ax.FontSize = opts.TickLabelSize;
+                xlabel(sprintf('Molecule Count (%s)', speciesNames{s}), 'FontSize', opts.AxisLabelSize);
+                ylabel('Frequency', 'FontSize', opts.AxisLabelSize);
+                title(sprintf('Distribution at t ≈ %.2f (%s)', ssaSoln.T_array(t100_idx), speciesNames{s}), 'FontSize', opts.TitleFontSize);
+                grid on; box on;
             end
         end
 

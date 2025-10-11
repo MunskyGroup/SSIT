@@ -45,7 +45,7 @@ STL1_4state.tSpan = linspace(0,50,200);
     % into symbolic expression functions that use sparse matrices to  
     % operate on the system based on the current state. The functions are 
     % stored with the given prefix, in this case, 'Model_SSA'
-    Model_SSA = Model_SSA.formPropensitiesGeneral('Model_SSA');
+    Model_SSA.formPropensitiesGeneral('Model_SSA');
 
     % 'nSimsPerExpt' is an SSA option that defaults to 100, sets the number
     % of simulations performed per experiment (set small number for demo)
@@ -68,13 +68,11 @@ STL1_4state.tSpan = linspace(0,50,200);
     [~,~,Model_SSA] = Model_SSA.solve;
     
     % Plot SSA trajectories and means:
-    Model_SSA.plotSSA('all', 100, Model_SSA.species);
-    % plotSSA(obj,speciesNames,speciesIdx,numTraj,lineProps,opts)
-    % Model_ODE.plotODE(Model_ODE.species, Model_ODE.tSpan,...
-    %     {'linewidth',4}, Title='Bursting Gene', TitleFontSize=24,...
-    %     AxisLabelSize=18, TickLabelSize=18,...
-    %     LegendFontSize=15, LegendLocation='southeast',...
-    %     XLabel='Time', YLabel='Molecule Count')
+    Model_SSA.plotSSA('all', 100, Model_SSA.species, {'linewidth',4}, ...
+        Title="Bursting Gene", TitleFontSize=24,...
+        AxisLabelSize=18, TickLabelSize=18,...
+        LegendFontSize=15, LegendLocation='northeast',...
+        XLabel='Time', YLabel='Molecule Count');
 
     %% Make a video of the SSA trajectories being plotted:
     % makeSSAvideo(Model_SSAsoln, 'all', 100, Model_SSA.species, ...
@@ -104,7 +102,7 @@ STL1_4state.tSpan = linspace(0,50,200);
     % into symbolic expression functions that use sparse matrices to  
     % operate on the system based on the current state. The functions are 
     % stored with the given prefix, in this case, 'STL1_SSA'
-    STL1_SSA = STL1_SSA.formPropensitiesGeneral('STL1_SSA');
+    STL1_SSA.formPropensitiesGeneral('STL1_SSA');
     
     % A negative initial time is used to allow model to equilibrate 
     % before starting (burn-in). Large burn-in times cause long run times.
@@ -114,13 +112,17 @@ STL1_4state.tSpan = linspace(0,50,200);
     STL1_SSA.initialTime = STL1_SSA.tSpan(1); 
     
     % Run iterations in parallel with multiple cores, or execute serially:
-    STL1_SSA.ssaOptions.useParallel = true;
+    STL1_SSA.ssaOptions.useParallel = false;
     
     % Run SSA:
-    STL1_SSAsoln = STL1_SSA.solve;
+    [~,~,STL1_SSA] = STL1_SSA.solve;
             
     % Plot SSA trajectories and means:
-    plotSSA(STL1_SSAsoln, 'all', 100, STL1_SSA.species);
+    STL1_SSA.plotSSA('all', 100, STL1_SSA.species, {'linewidth',4}, ...
+        Title="STL1", TitleFontSize=24,...
+        AxisLabelSize=18, TickLabelSize=18,...
+        LegendFontSize=15, LegendLocation='northeast',...
+        XLabel='Time', YLabel='Molecule Count');
 
     %% Make a video of the SSA trajectories being plotted:
     % makeSSAvideo(STL1_SSAsoln, 'all', 100, STL1_SSA.species, ...
@@ -150,8 +152,7 @@ STL1_4state.tSpan = linspace(0,50,200);
     % into symbolic expression functions that use sparse matrices to  
     % operate on the system based on the current state. The functions are 
     % stored with the given prefix, in this case, 'STL1_SSA'
-    STL1_4state_SSA = ...
-        STL1_4state_SSA.formPropensitiesGeneral('STL1_4state_SSA',false);
+    STL1_4state_SSA.formPropensitiesGeneral('STL1_4state_SSA',false);
     
     % A negative initial time is used to allow model to equilibrate 
     % before starting (burn-in). Large burn-in times cause long run times.
@@ -164,10 +165,14 @@ STL1_4state.tSpan = linspace(0,50,200);
     STL1_4state_SSA.ssaOptions.useParallel = false;
     
     % Run SSA:
-    STL1_4state_SSAsoln = STL1_4state_SSA.solve;
+    [~,~,STL1_4state_SSA] = STL1_4state_SSA.solve;
             
     % Plot SSA trajectories and means:
-    plotSSA(STL1_4state_SSAsoln, 'all', 100, STL1_4state_SSA.species);
+    STL1_4state_SSA.plotSSA('all', 100, STL1_4state_SSA.species, ...
+        {'linewidth',4}, Title="4-state STL1", TitleFontSize=24,...
+        AxisLabelSize=18, TickLabelSize=18,...
+        LegendFontSize=15, LegendLocation='northeast',...
+        XLabel='Time', YLabel='Molecule Count');    
 
     %% Make a video of the SSA trajectories being plotted:
     % makeSSAvideo(STL1_4state_SSAsoln, 'all', 100, ...
@@ -177,9 +182,6 @@ STL1_4state.tSpan = linspace(0,50,200);
 saveNames = unique({'Model_SSA'
     'STL1_SSA'
     'STL1_4state_SSA'
-    'Model_SSAsoln'
-    'STL1_SSAsoln'
-    'STL1_4state_SSAsoln'
     });
     
 save('example_3_SolveSSITModels_SSA',saveNames{:})
