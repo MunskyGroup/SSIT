@@ -105,10 +105,19 @@ STL1_4state_cellCounts = 10*ones(size(STL1_4state_FIM.tSpan));
     STL1_4state_FIM.evaluateExperiment(STL1_4state_fimResults,...
                                        STL1_4state_cellCounts)
 
+% Sanitize for negative eigenvalues (numerical instability):
+FIMfree = STL1_4state_fimTotal{1}(1:15,1:15);
+if min(eig(FIMfree))<1
+    disp('Warning -- FIM has one or more small eigenvalues. Reducing proposal width to 10x in those directions. MH Convergence may be slow.')
+    FIMfree = FIMfree + 1*eye(length(FIMfree));
+end
+covFree = FIMfree^-1;
+covFree = 0.5*(covFree+covFree');
+
 % Plot the FIMs:
 fig14 = figure(14);clf; set(fig14,'Name',...
      'Fim-Predicted Uncertainty Ellipses');
-STL1_4state_FIM.plotMHResults([],STL1_4state_fimTotal,'log',[],fig14)
+STL1_4state_FIM.plotMHResults([],covFree,'log',[],fig14)
 legend('FIM')
 
 %%
