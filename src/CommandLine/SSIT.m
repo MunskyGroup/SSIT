@@ -4139,6 +4139,11 @@ classdef SSIT
                     FIMi = FIMi(obj.fittingOptions.modelVarsToFit,obj.fittingOptions.modelVarsToFit);
                     if isempty(mhPlotScale)||strcmp(mhPlotScale,'log10')
                         covFIM{i} = FIMi^(-1)/log(10)^2;
+                    elseif min(eig(FIMi))<1
+                        disp('Warning -- FIM has one or more small eigenvalues.  Sanitize negative eigenvalues (numerical instability) for ellipse:')
+                        FIMi = FIMi + 1*eye(length(FIMi));
+                        covFree{i} = FIMi^(-1);
+                        covFIM{i} = allFitOptions.CovFIMscale*(covFree{i}+covFree{i}')/2;
                     else
                         covFIM{i} = FIMi^(-1);
                     end
