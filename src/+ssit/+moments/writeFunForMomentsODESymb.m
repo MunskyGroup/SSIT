@@ -256,6 +256,7 @@ else
         if ~containsSpecialFuns
             jac = jacobian(RHS,v);
             matlabFunction(jac,'Vars',{t,[v],[ParameterX]},'File',jacobianFileName); % save moment equation as a matlab function
+            jacCreated = true;
         else
             delete([jacobianFileName,'.m'])
             jacCreated = false;
