@@ -108,7 +108,7 @@ STL1_4state_cellCounts = 10*ones(size(STL1_4state_FIM.tSpan));
 % Plot the FIMs:
 fig14 = figure(14);clf; set(fig14,'Name',...
      'Fim-Predicted Uncertainty Ellipses');
-STL1_4state_FIM.plotMHResults([],STL1_4state_fimTotal,'log',[],fig14)
+STL1_4state_FIM.plotMHResults([],covFree,'log',[],fig14)
 legend('FIM')
 
 %%

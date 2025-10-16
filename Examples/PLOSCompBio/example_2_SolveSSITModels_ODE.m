@@ -36,22 +36,26 @@ STL1_4state.tSpan = linspace(0,50,200);
     % Create a copy of the bursting gene model for ODEs:
     Model_ODE = Model;
 
-    % Set solution scheme to 'ode':
-    Model_ODE.solutionScheme = 'ode';
+    % Set solution scheme to 'ODE':
+    Model_ODE.solutionScheme = 'ODE';
     
     % This function compiles and stores the given reaction propensities  
     % into symbolic expression functions that use sparse matrices to  
     % operate on the system based on the current state. The functions are 
-    % stored with the given prefix, in this case, 'Model_ODE'
-    Model_ODE = Model_ODE.formPropensitiesGeneral('Model_ODE');
+    % stored with the given prefix, in this case, 'Model_ODE':
+    Model_ODE.formPropensitiesGeneral('Model_ODE');
     
     % Solve ODE and make plots:
-    Model_ODEsoln = Model_ODE.solve; 
-    plotODE(Model_ODEsoln,Model_ODE.species,Model_ODE.tSpan)
+    [~,~,Model_ODE] = Model_ODE.solve; 
+    Model_ODE.plotODE(Model_ODE.species, Model_ODE.tSpan,...
+        {'linewidth',4}, Title='Bursting Gene', TitleFontSize=24,...
+        AxisLabelSize=18, TickLabelSize=18,...
+        LegendFontSize=15, LegendLocation='southeast',...
+        XLabel='Time', YLabel='Molecule Count')
 
     %% Make a movie of the ODE solution being plotted:
-    makeODEmovie(Model_ODEsoln, Model_ODE.species, Model_ODE.tSpan, ...
-                'Model_ODE.mp4');
+    % makeODEmovie(Model_ODEsoln, Model_ODE.species, Model_ODE.tSpan, ...
+    %             'Model_ODE.mp4');
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(2): Use deterministic, ordinary differential equations (ODEs) 
@@ -63,22 +67,26 @@ STL1_4state.tSpan = linspace(0,50,200);
     % Create a copy of the time-varying STL1 yeast model for ODEs:
     STL1_ODE = STL1;
 
-    % Set solution scheme to 'ode':
-    STL1_ODE.solutionScheme = 'ode';
+    % Set solution scheme to 'ODE':
+    STL1_ODE.solutionScheme = 'ODE';
     
     % This function compiles and stores the given reaction propensities  
     % into symbolic expression functions that use sparse matrices to  
     % operate on the system based on the current state. The functions are 
-    % stored with the given prefix, in this case, 'STL1_ODE'
-    STL1_ODE = STL1_ODE.formPropensitiesGeneral('STL1_ODE');
+    % stored with the given prefix, in this case, 'STL1_ODE':
+    STL1_ODE.formPropensitiesGeneral('STL1_ODE');
     
     % Solve ODE and make plots:
-    STL1_ODEsoln = STL1_ODE.solve; 
-    plotODE(STL1_ODEsoln,STL1_ODE.species,STL1_ODE.tSpan)
+    [~,~,STL1_ODE] = STL1_ODE.solve; 
+    STL1_ODE.plotODE(STL1_ODE.species, STL1_ODE.tSpan,...
+        {'linewidth',4}, Title='STL1', TitleFontSize=24,...
+        AxisLabelSize=18, TickLabelSize=18,...
+        LegendFontSize=15, LegendLocation='southeast',...
+        XLabel='Time', YLabel='Molecule Count')
 
     %% Make a movie of the ODE solution being plotted:
-    makeODEmovie(STL1_ODEsoln, STL1_ODE.species, STL1_ODE.tSpan, ...
-                'STL1_ODE.mp4');
+    % makeODEmovie(STL1_ODEsoln, STL1_ODE.species, STL1_ODE.tSpan, ...
+    %             'STL1_ODE.mp4');
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(3): Use deterministic, ordinary differential equations (ODEs) 
@@ -86,12 +94,12 @@ STL1_4state.tSpan = linspace(0,50,200);
 % 4-state time-varying STL1 yeast model from example_1_CreateSSITModels
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%% STL1 Model:
+%% 4-state STL1 Model:
     % Create a copy of the time-varying STL1 yeast model for ODEs:
     STL1_4state_ODE = STL1_4state;
 
-    % Set solution scheme to 'ode':
-    STL1_4state_ODE.solutionScheme = 'ode';
+    % Set solution scheme to 'ODE':
+    STL1_4state_ODE.solutionScheme = 'ODE';
 
     % Set the ODE integrator (default 'ode23s'):
     STL1_4state_ODE.odeIntegrator = 'ode23s';
@@ -99,27 +107,37 @@ STL1_4state.tSpan = linspace(0,50,200);
     % This function compiles and stores the given reaction propensities  
     % into symbolic expression functions that use sparse matrices to  
     % operate on the system based on the current state. The functions are 
-    % stored with the given prefix, in this case, 'STL1_ODE'
-    STL1_4state_ODE = ...
-        STL1_4state_ODE.formPropensitiesGeneral('STL1_4state_ODE',false);
+    % stored with the given prefix, in this case, 'STL1_4state_ODE':
+    STL1_4state_ODE.formPropensitiesGeneral('STL1_4state_ODE',false);
     
-    % Solve ODE and make plots:
-    STL1_4state_ODEsoln = STL1_4state_ODE.solve; 
-    plotODE(STL1_4state_ODEsoln,STL1_4state_ODE.species,...
-            STL1_4state_ODE.tSpan)
+    % Solve ODEs:
+    [~,~,STL1_4state_ODE] = STL1_4state_ODE.solve; 
+
+    % Make plot:
+    STL1_4state_ODE.plotODE(...
+        STL1_4state_ODE.species, STL1_4state_ODE.tSpan, {'linewidth',4},...
+        Title='4-state STL1', TitleFontSize=24,...
+        AxisLabelSize=18, TickLabelSize=18,...
+        LegendFontSize=15, LegendLocation='northeast',...
+        XLabel='Time', YLabel='Molecule Count', XLim=[0,50], YLim=[0,25])
+
+    % Zoom in on gene states:
+    STL1_4state_ODE.plotODE(...
+        STL1_4state_ODE.species, STL1_4state_ODE.tSpan, {'linewidth',4},...
+        Title='4-state STL1 (zoomed)', TitleFontSize=24,...
+        AxisLabelSize=18, TickLabelSize=18,...
+        LegendFontSize=15, LegendLocation='east',...
+        XLabel='Time', YLabel='Molecule Count', XLim=[1,50], YLim=[0,1])
 
     %% Make a movie of the ODE solution being plotted:
-    makeODEmovie(STL1_4state_ODEsoln, STL1_4state_ODE.species, ...
-                 STL1_4state_ODE.tSpan, 'STL1_4state_ODE.mp4');
+    % makeODEmovie(STL1_4state_ODEsoln, STL1_4state_ODE.species, ...
+    %              STL1_4state_ODE.tSpan, 'STL1_4state_ODE.mp4');
 
 
 %% Save ODE models & solutions
 saveNames = unique({'Model_ODE'
     'STL1_ODE'
     'STL1_4state_ODE'
-    'Model_ODEsoln'
-    'STL1_ODEsoln'
-    'STL1_4state_ODEsoln'
     });
     
 save('example_2_SolveSSITModels_ODE',saveNames{:})

@@ -173,6 +173,10 @@ classdef SSIT
         % Processed propensity functions for use in ODE solver,
         % default: [];
         propensitiesGeneralODE = [];
+        propensitiesGeneralMean = [];
+        propensitiesGeneralMeanJac = [];
+        propensitiesGeneralMoments = [];
+        propensitiesGeneralMomentsJac
 
         % Solutions
         Solutions = []; % Field holding solutions for current model and
@@ -447,6 +451,50 @@ classdef SSIT
             end
             % This function starts the process to write m-file for each
             % propensity function.
+
+            if ~exist([pwd,'/tmpPropensityFunctions'],'dir')
+                mkdir([pwd,'/tmpPropensityFunctions'])
+            end
+            addpath([pwd,'/tmpPropensityFunctions'])
+
+            if strcmpi(obj.solutionScheme,'ode')
+                clear([prefixName,'_mean'],[prefixName,'_mean_jac']);
+                momentOdeFileName = [pwd,'/tmpPropensityFunctions/',prefixName,'_mean'];
+                jacCreated = ssit.moments.writeFunForMomentsODESymb(obj.stoichiometry,...
+                    obj.propensityFunctions,...
+                    obj.species,...
+                    obj.parameters(:,1),...
+                    momentOdeFileName, ...
+                    false,...
+                    obj.inputExpressions, ...
+                    [momentOdeFileName,'_jac']);
+                obj.propensitiesGeneralMean = eval(['@(t,v,pars)',prefixName,'_mean(t,v,pars)']);
+                if jacCreated
+                    obj.propensitiesGeneralMeanJac = eval(['@(t,v,pars)',prefixName,'_mean_jac(t,v,pars)']);
+                else
+                    obj.propensitiesGeneralMeanJac = [];
+                end
+                return
+            elseif strcmpi(obj.solutionScheme,'moments')||strcmpi(obj.solutionScheme,'gaussian')
+                clear([prefixName,'_momentsgaussian'],[prefixName,'_momentsgaussian_jac']);
+                momentOdeFileName = [pwd,'/tmpPropensityFunctions/',prefixName,'_momentsgaussian'];
+                jacCreated = ssit.moments.writeFunForMomentsODESymb(obj.stoichiometry,...
+                    obj.propensityFunctions,...
+                    obj.species,...
+                    obj.parameters(:,1),...
+                    momentOdeFileName, ...
+                    true,...
+                    obj.inputExpressions,...
+                    [momentOdeFileName,'_jac']);
+                obj.propensitiesGeneralMoments = eval(['@(t,v,pars)',prefixName,'_momentsgaussian(t,v,pars)']);
+                if jacCreated
+                    obj.propensitiesGeneralMomentsJac = eval(['@(t,v,pars)',prefixName,'_momentsgaussian_jac(t,v,pars)']);
+                else
+                    obj.propensitiesGeneralMomentsJac = [];
+                end
+                return
+            end
+
 
             n_reactions = length(obj.propensityFunctions);
             % Propensity for hybrid models will include
@@ -1424,32 +1472,42 @@ classdef SSIT
                 stateSpace = obj.fspOptions.stateSpace;
             end
 
-            if strcmp(obj.solutionScheme,'ode')
-                propensityGeneral = obj.propensitiesGeneralODE;
-            else
+            if strcmpi(obj.solutionScheme(1:3),'fsp')
                 propensityGeneral = obj.propensitiesGeneral;
-            end
-
-            if isempty(propensityGeneral)
-                disp('Forming Propensity Functions.')
-                obj = formPropensitiesGeneral(obj);
-            elseif ~isempty(obj.hybridOptions)&&~strcmp(obj.solutionScheme,'ode')&&length(obj.hybridOptions.upstreamODEs)~=length(propensityGeneral{1}.ODEstoichVector)
-                disp('(Re)Forming Propensity Functions Due to Detected Change in Hybrid Model Dimension.')
-                obj = formPropensitiesGeneral(obj,'hybrid',true);
-            end
-
-            if obj.modelReductionOptions.useModReduction
-                if ~isfield(obj.modelReductionOptions,'phi')
-                    error('Model Reduction Matrices have not yet been Defined.')
+                if isempty(propensityGeneral)
+                    disp('Forming Propensity Functions.')
+                    obj = formPropensitiesGeneral(obj);
+                elseif ~isempty(obj.hybridOptions)&&~strcmp(obj.solutionScheme,'ode')&&length(obj.hybridOptions.upstreamODEs)~=length(propensityGeneral{1}.ODEstoichVector)
+                    disp('(Re)Forming Propensity Functions Due to Detected Change in Hybrid Model Dimension.')
+                    obj = formPropensitiesGeneral(obj,'hybrid',true);
                 end
-                useReducedModel = true;
-                modRedTransformMatrices.phi = obj.modelReductionOptions.phi;
-                modRedTransformMatrices.phi_inv = obj.modelReductionOptions.phi_inv;
-                modRedTransformMatrices.phiScale = obj.modelReductionOptions.phiScale;
-                modRedTransformMatrices.phiPlot = obj.modelReductionOptions.phiPlot;
-            else
-                useReducedModel = false;
-                modRedTransformMatrices = [];
+
+
+                if obj.modelReductionOptions.useModReduction
+                    if ~isfield(obj.modelReductionOptions,'phi')
+                        error('Model Reduction Matrices have not yet been Defined.')
+                    end
+                    useReducedModel = true;
+                    modRedTransformMatrices.phi = obj.modelReductionOptions.phi;
+                    modRedTransformMatrices.phi_inv = obj.modelReductionOptions.phi_inv;
+                    modRedTransformMatrices.phiScale = obj.modelReductionOptions.phiScale;
+                    modRedTransformMatrices.phiPlot = obj.modelReductionOptions.phiPlot;
+                else
+                    useReducedModel = false;
+                    modRedTransformMatrices = [];
+                end
+            elseif strcmpi(obj.solutionScheme,'moments')||strcmpi(obj.solutionScheme,'momentsgaussian')
+                propensityGeneral = obj.propensitiesGeneralMoments;
+                if isempty(propensityGeneral)
+                    disp('Forming Propensity Functions.')
+                    obj = formPropensitiesGeneral(obj);
+                end
+            elseif strcmpi(obj.solutionScheme,'ode')
+                propensityGeneral = obj.propensitiesGeneralMean;
+                if isempty(propensityGeneral)
+                    disp('Forming Propensity Functions.')
+                    obj = formPropensitiesGeneral(obj);
+                end
             end
 
             switch lower(obj.solutionScheme)
@@ -1523,6 +1581,12 @@ classdef SSIT
                     fun_name = 'TmpGPUSSACode';
                     clear TmpGPUSSACode % Clear function from cache just in case.
                     ssit.ssa.WriteGPUSSA(k,w,S,obj.tSpan,fun_name);
+                    % TODO -- this part where the SSA codes are written
+                    % could be moved out of the solve routine.  Right now,
+                    % the code is being re-written for every new parameter
+                    % set.  Because the code writing time is short compared
+                    % to the solution time (~2%), this is not a big concern.
+
 
                     fun = str2func(fun_name);
                     % Convert the function name string to a function handle.
@@ -1530,11 +1594,11 @@ classdef SSIT
                     % Run SSA on GPU, in parallel, or in series as
                     % requested.
                     if obj.ssaOptions.useGPU
-                        Solution.trajs=fun(x0,nSims,'GPU');
+                        Solution.trajs=fun(x0,nSims,k,'GPU');
                     elseif obj.ssaOptions.useParallel
-                        Solution.trajs=fun(x0,nSims,'Parallel');
+                        Solution.trajs=fun(x0,nSims,k,'Parallel');
                     else
-                        Solution.trajs=fun(x0,nSims,'Series');
+                        Solution.trajs=fun(x0,nSims,k,'Series');
                     end
                     disp([num2str(nSims),' SSA Runs Completed'])
 
@@ -1620,9 +1684,57 @@ classdef SSIT
                     %                     Solution.plotable = exportSensResults(app);
 
                 case 'ode'
-                    [~,Solution.ode] = ssit.moments.solveOde2(obj.initialCondition, obj.tSpan, ...
-                        obj.stoichiometry, obj.propensitiesGeneralODE,  [obj.parameters{:,2}]', ...
-                        obj.fspOptions.initApproxSS, obj.odeIntegrator);
+                    % Initial condition is assumed to be a delta
+                    % distribution, where the
+                    initMeans = obj.initialCondition;
+                    
+                    RHS = @(t,v)obj.propensitiesGeneralMean(t,v,[obj.parameters{:,2}]);
+                    odeIntegrat = str2func(obj.odeIntegrator);
+
+                    if ~isempty(obj.propensitiesGeneralMeanJac)
+                        JAC = @(t,v)obj.propensitiesGeneralMeanJac(t,v,[obj.parameters{:,2}]);
+                        options = odeset('Jacobian',JAC);
+                    else
+                        options = [];
+                    end
+
+                    [~,soln] =  odeIntegrat(RHS,obj.tSpan,initMeans,options);
+                    Solution.ode = soln;
+
+                    bConstraints = max(obj.fspConstraints.f(Solution.ode),[],2);
+                    bConstraints = max(bConstraints,obj.fspConstraints.b);
+
+                case {'moments','momentsgaussian'}
+                    % Initial condition is assumed to be a delta
+                    % distribution, where the
+                    initMeans = obj.initialCondition;
+
+                    nSp = length(obj.species);
+                    initMeansSquared = zeros(nSp*(nSp+1)/2,1);
+                    k = 0;
+                    for iS = 1:nSp
+                        for jS = iS:nSp
+                            k =k+1;
+                            initMeansSquared(k) = obj.initialCondition(iS)*obj.initialCondition(jS);
+                        end
+                    end
+                    initCond = [initMeans;initMeansSquared];
+
+                    RHS = @(t,v)obj.propensitiesGeneralMoments(t,v,[obj.parameters{:,2}]);
+                    odeIntegrat = str2func(obj.odeIntegrator);
+
+                    if ~isempty(obj.propensitiesGeneralMomentsJac)
+                        JAC = @(t,v)obj.propensitiesGeneralMomentsJac(t,v,[obj.parameters{:,2}]);
+                        options = odeset('Jacobian',JAC);
+                    else
+                        options = [];
+                    end
+
+                    [~,soln] =  odeIntegrat(RHS,obj.tSpan,initCond,options);
+                    Solution.moments = soln';
+                   
+                    bConstraints = max(obj.fspConstraints.f((reshape(Solution.moments(1:nSp,:),[nSp,length(obj.tSpan)]))),[],2);
+                    bConstraints = max(bConstraints,obj.fspConstraints.b);
             end
 
             if nargout>=3
@@ -3618,6 +3730,261 @@ classdef SSIT
             end
         end
 
+        % plotODE - Plots ODE solution for all model species over time
+        function plotODE(obj,speciesNames,timeVec,lineProps,opts)
+            arguments
+                obj
+                speciesNames = []
+                timeVec = []            
+                lineProps = {'linewidth',2};
+                opts.Title (1,1) string = ""                       
+                opts.TitleFontSize (1,1) double {mustBePositive} = 18
+                opts.AxisLabelSize (1,1) double {mustBePositive} = 18
+                opts.TickLabelSize (1,1) double {mustBePositive} = 18
+                opts.LegendFontSize (1,1) double {mustBePositive} = 18
+                opts.LegendLocation (1,1) string = "best"
+                opts.XLabel (1,1) string = "Time"
+                opts.YLabel (1,1) string = "Molecule Count / Concentration"
+                opts.XLim double = []       % e.g., [0 50]
+                opts.YLim double = []       % e.g., [0 200]
+            end        
+        
+            X = obj.Solutions.ode;  % size: [nTime × nSpecies]
+            [nTime, numSpecies] = size(X);
+        
+            % Default time vector if not provided
+            if nargin < 3 || isempty(timeVec)
+                timeVec = 1:nTime;  % Use indices if no time vector
+            end
+        
+            % Generate default species names if not provided
+            if nargin < 2 || isempty(speciesNames)
+                speciesNames = obj.species;
+                %speciesNames = arrayfun(@(s) sprintf('Species %d', s), 1:numSpecies, 'UniformOutput', false);
+            elseif length(speciesNames) ~= numSpecies
+                error('The number of species names must match the number of species (%d).', numSpecies);
+            end        
+        
+            % Plot
+            figure; hold on;
+            colors = lines(numSpecies);
+            for s = 1:numSpecies
+                plot(timeVec, X(:, s), lineProps{:}, 'Color', colors(s, :));
+            end
+        
+            ax = gca;
+            ax.FontSize = opts.TickLabelSize;
+
+            % ----- Set axes limits -----
+            if ~isempty(opts.XLim)
+                xlim(opts.XLim);
+            end
+        
+            if ~isempty(opts.YLim)
+                ylim(opts.YLim);
+            end
+
+            % ---- Use custom axis labels (with font sizes) ----
+            xlabel(opts.XLabel, 'FontSize', opts.AxisLabelSize);
+            ylabel(opts.YLabel, 'FontSize', opts.AxisLabelSize);
+
+            % ---- Title ----
+            if ~isempty(opts.Title)
+                title(opts.Title,'FontSize',opts.TitleFontSize);
+            else
+                title('ODE Solution Trajectories','FontSize',opts.TitleFontSize);
+            end
+            grid on; box on;
+            
+            % ----- Legend handling -----
+            if ~strcmpi(opts.LegendLocation,"none")
+                lgd = legend(speciesNames, 'Location', char(opts.LegendLocation));
+                if ~isempty(lgd)
+                    lgd.FontSize = opts.LegendFontSize;
+                end
+            end
+
+            hold off;
+        end
+
+        % plotSSA - Plots SSA trajectories and histograms from ssaSoln struct
+        function plotSSA(obj,speciesIdx,numTraj,speciesNames,lineProps,opts)
+            arguments
+                obj                
+                speciesIdx = []
+                numTraj = []
+                speciesNames = []
+                lineProps = {'linewidth',2};
+                opts.Title (1,1) string = ""
+                opts.MeanOnly (1,1) logical = false
+                opts.TitleFontSize (1,1) double {mustBePositive} = 18
+                opts.AxisLabelSize (1,1) double {mustBePositive} = 18
+                opts.TickLabelSize (1,1) double {mustBePositive} = 18
+                opts.LegendFontSize (1,1) double {mustBePositive} = 18
+                opts.LegendLocation (1,1) string = "best"
+                opts.XLabel (1,1) string = "Time"
+                opts.YLabel (1,1) string = "Molecule Count / Concentration"
+                opts.XLim double = []       % e.g., [0 50]
+                opts.YLim double = []       % e.g., [0 200]
+            end
+
+            ssaSoln = obj.Solutions;
+             
+            numSpecies    = size(ssaSoln.trajs, 1);  % Extract # of species            
+            nTime         = size(ssaSoln.trajs, 2);  % Extract time
+            numTotalTraj  = size(ssaSoln.trajs, 3);  % Extract total # trajectories
+
+            % Number of trajectories to draw if not provided
+            if isempty(numTraj)
+                numTraj = min(10, numTotalTraj);
+            else
+                % Ensure we don't exceed available trajectories
+                numTraj = min(numTraj, numTotalTraj);
+            end
+        
+            % Species names
+            if isempty(speciesNames)
+                speciesNames = arrayfun(@(s) sprintf('Species %d', s), 1:numSpecies, 'UniformOutput', false);
+            elseif numel(speciesNames) ~= numSpecies
+                error('The number of species names must match the number of species (%d).', numSpecies);
+            end
+
+            % Normalise speciesIdx to a numeric vector of valid indices
+            if ischar(speciesIdx) || (isstring(speciesIdx) && strlength(speciesIdx)==3 && strcmpi(speciesIdx,"all"))
+                spList = 1:numSpecies;
+            elseif isnumeric(speciesIdx)
+                spList = unique(speciesIdx(:))';
+                if any(spList < 1 | spList > numSpecies)
+                    error('speciesIdx must be within 1..%d, or "all".', numSpecies);
+                end
+            else
+                error('speciesIdx must be a numeric index/vector or "all".');
+            end     
+
+             % Extract time points and filter valid ones (t >= 0)
+            T = ssaSoln.T_array;
+            validIdx = T >= 0;
+            T = T(validIdx);
+            
+            % Locate the index closest to time = 100
+            [~, t100_idx] = min(abs(T - 100));
+        
+            % Generate distinct colors for all species
+            speciesColors = lines(numSpecies); 
+            
+            % ------------ TRAJECTORY PLOT ------------
+            figure; hold on;
+            legendEntries = {}; % Store legend labels
+            legendHandles = []; % Store handles for legend colors
+            
+            if strcmp(speciesIdx, 'all')
+                % Plot all species in different colors
+                for s = 1:numSpecies
+                    X = squeeze(ssaSoln.trajs(s, validIdx, :)); % Extract valid species trajectories
+                    randIdx = randperm(numTotalTraj, numTraj); % Select random trajectories
+                    
+                    if ~opts.MeanOnly
+                        for i = 1:numTraj
+                            plot(T, X(:, randIdx(i)), 'Color', [speciesColors(s, :), 0.2]); % Transparent individual trajectories
+                        end
+                    end
+                    
+                    % Plot mean trajectory in the correct color
+                    h = plot(T, mean(X, 2), lineProps{:}, 'Color', speciesColors(s, :), 'LineWidth', 2);
+                    
+                    % Store handle and label for legend
+                    legendHandles(end+1) = h; %#ok<AGROW>
+                    legendEntries{end+1} = speciesNames{s}; % Use provided species name
+                end
+            else
+                % Single species case
+                if length(speciesIdx) < 1 || length(speciesIdx) > numSpecies
+                     error('speciesIdx must be between 1 and %d, or ''all''.', numSpecies);
+                end
+                
+                X = squeeze(ssaSoln.trajs(length(speciesIdx), validIdx, :)); % Extract valid species trajectories
+                randIdx = randperm(numTotalTraj, numTraj); % Select random trajectories
+                
+                for i = 1:numTraj
+                    plot(T, X(:, randIdx(i)), 'LineWidth', 4, 'Color', [speciesColors(speciesIdx, :), 0.2]); % Transparent individual trajectories
+                end
+                
+                % Plot mean trajectory in the correct color
+                h = plot(T, mean(X, 2), 'Color', speciesColors(speciesIdx, :), 'LineWidth', 2);
+                
+                % Store handle and label for legend
+                legendHandles = h;
+                legendEntries = {speciesNames{speciesIdx}};
+            end
+        
+            % ----- Axes styling -----
+            ax = gca; ax.FontSize = opts.TickLabelSize;
+            xlabel(opts.XLabel, 'FontSize', opts.AxisLabelSize);
+            ylabel(opts.YLabel, 'FontSize', opts.AxisLabelSize);
+        
+            % ----- Title -----
+            if strlength(opts.Title) > 0
+                title(string(opts.Title), 'FontSize', opts.TitleFontSize);
+            else
+                if numel(spList) == numSpecies
+                    title('SSA Trajectories (Starting at t = 0)', 'FontSize', opts.TitleFontSize);
+                elseif numel(spList) == 1
+                    title(sprintf('SSA Trajectories for %s (Starting at t = 0)', speciesNames{spList}), 'FontSize', opts.TitleFontSize);
+                else
+                    title(sprintf('SSA Trajectories for Selected Species (Starting at t = 0)'), 'FontSize', opts.TitleFontSize);
+                end
+            end
+        
+            % ----- Set axes limits -----
+            if ~isempty(opts.XLim)
+                xlim(opts.XLim);
+            end
+        
+            if ~isempty(opts.YLim)
+                ylim(opts.YLim);
+            end
+        
+            % ----- Legend -----
+            if ~strcmpi(opts.LegendLocation, "none")
+                lgd = legend(legendHandles, legendEntries, 'Location', char(opts.LegendLocation));
+                if ~isempty(lgd)
+                    lgd.FontSize = opts.LegendFontSize;
+                end
+            end
+        
+            grid on; box on; hold off;
+        
+            % ------------ HISTOGRAM PLOT(S) at t ~ 100 ------------
+            % If t=100 isn't in the window, this uses the closest time.
+            figure;
+            if numel(spList) > 1
+                % grid for subplots
+                numPanels = numel(spList);
+                numRows = ceil(sqrt(numPanels));
+                numCols = ceil(numPanels / numRows);
+                for k = 1:numPanels
+                    s = spList(k);
+                    subplot(numRows, numCols, k);
+                    X_t = squeeze(ssaSoln.trajs(s, t100_idx, :)); % values at closest-to-100 time
+                    histogram(X_t, 'FaceColor', speciesColors(s, :), 'EdgeColor', 'k');
+                    ax = gca; ax.FontSize = opts.TickLabelSize;
+                    xlabel(sprintf('Molecule Count (%s)', speciesNames{s}), 'FontSize', opts.AxisLabelSize);
+                    ylabel('Frequency', 'FontSize', opts.AxisLabelSize);
+                    title(sprintf('Distribution at t ≈ %.2f (%s)', ssaSoln.T_array(t100_idx), speciesNames{s}), 'FontSize', opts.TitleFontSize);
+                    grid on; box on;
+                end
+            else
+                s = spList(1);
+                X_t = squeeze(ssaSoln.trajs(s, t100_idx, :));
+                histogram(X_t, 'FaceColor', speciesColors(s, :), 'EdgeColor', 'k');
+                ax = gca; ax.FontSize = opts.TickLabelSize;
+                xlabel(sprintf('Molecule Count (%s)', speciesNames{s}), 'FontSize', opts.AxisLabelSize);
+                ylabel('Frequency', 'FontSize', opts.AxisLabelSize);
+                title(sprintf('Distribution at t ≈ %.2f (%s)', ssaSoln.T_array(t100_idx), speciesNames{s}), 'FontSize', opts.TitleFontSize);
+                grid on; box on;
+            end
+        end
+
         function figHandles = makeFitPlot(obj,fitSolution,smoothWindow,fignums,usePanels, ...
                 varianceType,IQRrange,suppressFigures)
             % Produces plots to compare model to experimental data.
@@ -3772,6 +4139,11 @@ classdef SSIT
                     FIMi = FIMi(obj.fittingOptions.modelVarsToFit,obj.fittingOptions.modelVarsToFit);
                     if isempty(mhPlotScale)||strcmp(mhPlotScale,'log10')
                         covFIM{i} = FIMi^(-1)/log(10)^2;
+                    elseif min(eig(FIMi))<1
+                        disp('Warning -- FIM has one or more small eigenvalues.  Sanitize negative eigenvalues (numerical instability) for ellipse:')
+                        FIMi = (1/2)*(FIMi + FIMi');
+                        %covFree{i} = FIMi^(-1);
+                        covFIM{i} = FIMi;
                     else
                         covFIM{i} = FIMi^(-1);
                     end

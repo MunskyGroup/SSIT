@@ -104,6 +104,31 @@ classdef poissonTest < matlab.unittest.TestCase
                 'Solution Mean is not within 1% Tolerance');
         end
 
+        function PoissonMoments(testCase)            
+            % This test verifies that the moment closure approach is
+            % working for the Poisson case.
+            model = testCase.Poiss;
+
+            t = testCase.Poiss.tSpan;
+            mn = testCase.Poiss.parameters{1,2}/testCase.Poiss.parameters{2,2}*...
+                (1-exp(-testCase.Poiss.parameters{2,2}*t));
+
+            model.solutionScheme = 'ode';
+            [~,~,model] = model.solve;
+
+            model.solutionScheme = 'moments';
+            [~,~,model] = model.solve;
+
+            errMean = max(abs((model.Solutions.moments(1,:)-mn)./mn));
+
+            var = model.Solutions.moments(2,:)-model.Solutions.moments(1,:).^2;
+            errVar = max(abs((var-mn)./mn));
+
+            testCase.verifyEqual(errMean+errVar<0.01, true, ...
+                'Solution Mean and Variance not within 1% Tolerance');
+            
+        end
+
         function PoissonSpeed(testCase)
             disp(['Poiss time = ',num2str(testCase.PoissSolution.time)]);
             testCase.verifyEqual(testCase.PoissSolution.time<0.2, true, ...
@@ -459,13 +484,16 @@ classdef poissonTest < matlab.unittest.TestCase
             
             % Skip first time point for fitting.
             Model.fittingOptions.timesToFit = Model.tSpan>0;
+            Model.odeIntegrator = 'ode45';
+
             odeLogL = Model.computeLikelihoodODE;
             
             t = Model.tSpan(2:end);
             mn = Model.parameters{1,2}/Model.parameters{2,2}*...
                 (1-exp(-Model.parameters{2,2}*t));
 
-            logLExact = -1/2*sum(Model.dataSet.nCells(2:end).*(Model.dataSet.mean(2:end)-mn').^2./Model.dataSet.var(2:end));
+            logLExact = -1/2*sum(Model.dataSet.nCells(2:end).*(Model.dataSet.mean(2:end)-mn').^2./ ...
+                Model.dataSet.var(2:end));
 
             relDiff = abs((logLExact-odeLogL)/logLExact);
 
