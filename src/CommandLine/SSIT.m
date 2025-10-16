@@ -3734,10 +3734,10 @@ classdef SSIT
         function plotODE(obj,speciesNames,timeVec,lineProps,opts)
             arguments
                 obj
-                speciesNames = []
-                timeVec = []            
+                speciesNames = []                  
+                timeVec = []
                 lineProps = {'linewidth',2};
-                opts.Title (1,1) string = ""                       
+                opts.Title (1,1) string = ""
                 opts.TitleFontSize (1,1) double {mustBePositive} = 18
                 opts.AxisLabelSize (1,1) double {mustBePositive} = 18
                 opts.TickLabelSize (1,1) double {mustBePositive} = 18
@@ -3745,65 +3745,82 @@ classdef SSIT
                 opts.LegendLocation (1,1) string = "best"
                 opts.XLabel (1,1) string = "Time"
                 opts.YLabel (1,1) string = "Molecule Count / Concentration"
-                opts.XLim double = []       % e.g., [0 50]
-                opts.YLim double = []       % e.g., [0 200]
-            end        
-        
-            X = obj.Solutions.ode;  % size: [nTime × nSpecies]
-            [nTime, numSpecies] = size(X);
-        
-            % Default time vector if not provided
-            if nargin < 3 || isempty(timeVec)
-                timeVec = 1:nTime;  % Use indices if no time vector
+                opts.XLim double = []
+                opts.YLim double = []
             end
         
-            % Generate default species names if not provided
-            if nargin < 2 || isempty(speciesNames)
-                speciesNames = obj.species;
-                %speciesNames = arrayfun(@(s) sprintf('Species %d', s), 1:numSpecies, 'UniformOutput', false);
-            elseif length(speciesNames) ~= numSpecies
-                error('The number of species names must match the number of species (%d).', numSpecies);
-            end        
+            X = obj.Solutions.ode;  % size: [nTime × nSpecies]
+            [nTime, nSpecies] = size(X);
         
-            % Plot
+            % ----- Default/validate time vector -----
+            if isempty(timeVec)
+                timeVec = (1:nTime).';       
+            else
+                if numel(timeVec) ~= nTime
+                    error('timeVec length (%d) must match number of ODE time points (%d).', numel(timeVec), nTime);
+                end
+                timeVec = timeVec(:);    
+            end
+        
+            % ----- Determine which species to plot -----
+            allNames = obj.species;              
+            if isstring(allNames), allNames = cellstr(allNames); end
+        
+            if isempty(speciesNames)
+                selIdx = 1:nSpecies;
+                selNames = allNames;
+            elseif isnumeric(speciesNames)
+                selIdx = speciesNames(:).';
+                if any(selIdx < 1 | selIdx > nSpecies) || numel(unique(selIdx)) ~= numel(selIdx)
+                    error('Invalid or duplicate species indices. Must be unique integers in [1,%d].', nSpecies);
+                end
+                selNames = allNames(selIdx);
+            else
+                % treat as names (string array or cellstr)
+                if isstring(speciesNames), speciesNames = cellstr(speciesNames); end
+                [tf, loc] = ismember(speciesNames, allNames);
+                if any(~tf)
+                    bad = speciesNames(~tf);
+                    exampleList = strjoin(allNames, ', ');
+                    error('Unknown species name(s): %s. Available: %s', strjoin(bad, ', '), exampleList);
+                end
+                selIdx = loc(:).';
+                selNames = allNames(selIdx);
+            end
+        
+            % ----- Plot subset -----
             figure; hold on;
-            colors = lines(numSpecies);
-            for s = 1:numSpecies
-                plot(timeVec, X(:, s), lineProps{:}, 'Color', colors(s, :));
+            nPlot = numel(selIdx);
+            colors = lines(nPlot);
+            for k = 1:nPlot
+                s = selIdx(k);
+                plot(timeVec, X(:, s), lineProps{:}, 'Color', colors(k, :));
             end
         
             ax = gca;
             ax.FontSize = opts.TickLabelSize;
-
-            % ----- Set axes limits -----
-            if ~isempty(opts.XLim)
-                xlim(opts.XLim);
-            end
         
-            if ~isempty(opts.YLim)
-                ylim(opts.YLim);
-            end
-
-            % ---- Use custom axis labels (with font sizes) ----
+            % ----- Axes limits -----
+            if ~isempty(opts.XLim), xlim(opts.XLim); end
+            if ~isempty(opts.YLim), ylim(opts.YLim); end
+        
+            % ----- Labels & title -----
             xlabel(opts.XLabel, 'FontSize', opts.AxisLabelSize);
             ylabel(opts.YLabel, 'FontSize', opts.AxisLabelSize);
-
-            % ---- Title ----
+        
             if ~isempty(opts.Title)
                 title(opts.Title,'FontSize',opts.TitleFontSize);
             else
                 title('ODE Solution Trajectories','FontSize',opts.TitleFontSize);
             end
             grid on; box on;
-            
-            % ----- Legend handling -----
+        
+            % ----- Legend -----
             if ~strcmpi(opts.LegendLocation,"none")
-                lgd = legend(speciesNames, 'Location', char(opts.LegendLocation));
-                if ~isempty(lgd)
-                    lgd.FontSize = opts.LegendFontSize;
-                end
+                lgd = legend(selNames, 'Location', char(opts.LegendLocation));
+                if ~isempty(lgd), lgd.FontSize = opts.LegendFontSize; end
             end
-
+        
             hold off;
         end
 
