@@ -3730,7 +3730,6 @@ classdef SSIT
             end
         end
 
-        % plotODE - Plots ODE solution for all model species over time
         function plotODE(obj,speciesNames,timeVec,lineProps,opts)
             arguments
                 obj
@@ -3747,23 +3746,25 @@ classdef SSIT
                 opts.YLabel (1,1) string = "Molecule Count / Concentration"
                 opts.XLim double = []
                 opts.YLim double = []
+                opts.Colors = []  
+                % [] | n×3 RGB | cell of ColorSpec/RGB | colormap name string
             end
         
-            X = obj.Solutions.ode;  % size: [nTime × nSpecies]
+            X = obj.Solutions.ode;  % [nTime × nSpecies]
             [nTime, nSpecies] = size(X);
         
-            % ----- Default/validate time vector -----
+            % ----- timeVec -----
             if isempty(timeVec)
-                timeVec = (1:nTime).';       
+                timeVec = (1:nTime).';
             else
                 if numel(timeVec) ~= nTime
                     error('timeVec length (%d) must match number of ODE time points (%d).', numel(timeVec), nTime);
                 end
-                timeVec = timeVec(:);    
+                timeVec = timeVec(:);
             end
         
-            % ----- Determine which species to plot -----
-            allNames = obj.species;              
+            % ----- Species selection -----
+            allNames = obj.species;
             if isstring(allNames), allNames = cellstr(allNames); end
         
             if isempty(speciesNames)
@@ -3776,7 +3777,6 @@ classdef SSIT
                 end
                 selNames = allNames(selIdx);
             else
-                % treat as names (string array or cellstr)
                 if isstring(speciesNames), speciesNames = cellstr(speciesNames); end
                 [tf, loc] = ismember(speciesNames, allNames);
                 if any(~tf)
@@ -3788,23 +3788,76 @@ classdef SSIT
                 selNames = allNames(selIdx);
             end
         
-            % ----- Plot subset -----
-            figure; hold on;
             nPlot = numel(selIdx);
-            colors = lines(nPlot);
+        
+            % ----- Colors -----
+            useCellColors = false;
+            C = [];          % numeric nPlot×3
+            cellColors = {}; % 1×nPlot cell for mixed ColorSpecs
+        
+            if isempty(opts.Colors)
+                C = lines(nPlot);
+            elseif ischar(opts.Colors) || (isstring(opts.Colors) && isscalar(opts.Colors))
+                cmName = char(opts.Colors);
+                try
+                    % Sample the colormap to exactly nPlot colors
+                    bigN = max(nPlot, 64);
+                    cm = feval(cmName, bigN);
+                    idx = round(linspace(1, bigN, nPlot));
+                    C = cm(idx, :);
+                catch
+                    error('opts.Colors="%s" is not a valid colormap name.', cmName);
+                end
+            elseif isnumeric(opts.Colors)
+                C = double(opts.Colors);
+                if size(C,2) ~= 3 || size(C,1) < nPlot
+                    error('opts.Colors numeric must be at least %d×3 RGB values.', nPlot);
+                end
+                if any(C(:) < 0 | C(:) > 1) || ~all(isfinite(C(:)))
+                    error('opts.Colors numeric RGB values must be finite and in [0,1].');
+                end
+                C = C(1:nPlot, :);
+            elseif iscell(opts.Colors)
+                if numel(opts.Colors) < nPlot
+                    error('opts.Colors cell must provide at least %d entries.', nPlot);
+                end
+                cellColors = cell(1,nPlot);
+                for k = 1:nPlot
+                    c = opts.Colors{k};
+                    if ischar(c) || (isstring(c) && isscalar(c))
+                        cellColors{k} = char(c);              
+                    elseif isnumeric(c) && isequal(size(c), [1,3])
+                        if any(c < 0 | c > 1) || ~all(isfinite(c))
+                            error('opts.Colors{%d}: RGB must be finite in [0,1].', k);
+                        end
+                        cellColors{k} = double(c);
+                    else
+                        error('opts.Colors{%d} must be a ColorSpec char or a 1×3 RGB vector.', k);
+                    end
+                end
+                useCellColors = true;
+            else
+                error('opts.Colors must be: [], an n×3 RGB matrix, a cell array of colors, or a colormap name string.');
+            end
+        
+            % ----- Plot -----
+            figure; hold on;
             for k = 1:nPlot
                 s = selIdx(k);
-                plot(timeVec, X(:, s), lineProps{:}, 'Color', colors(k, :));
+                if useCellColors
+                    thisColor = cellColors{k};
+                else
+                    thisColor = C(k, :);
+                end
+                plot(timeVec, X(:, s), lineProps{:}, 'Color', thisColor);
             end
         
             ax = gca;
             ax.FontSize = opts.TickLabelSize;
         
-            % ----- Axes limits -----
             if ~isempty(opts.XLim), xlim(opts.XLim); end
             if ~isempty(opts.YLim), ylim(opts.YLim); end
         
-            % ----- Labels & title -----
             xlabel(opts.XLabel, 'FontSize', opts.AxisLabelSize);
             ylabel(opts.YLabel, 'FontSize', opts.AxisLabelSize);
         
@@ -3815,14 +3868,13 @@ classdef SSIT
             end
             grid on; box on;
         
-            % ----- Legend -----
             if ~strcmpi(opts.LegendLocation,"none")
                 lgd = legend(selNames, 'Location', char(opts.LegendLocation));
                 if ~isempty(lgd), lgd.FontSize = opts.LegendFontSize; end
             end
-        
             hold off;
         end
+
 
         % plotSSA - Plots SSA trajectories and histograms from ssaSoln struct
         function plotSSA(obj,speciesIdx,numTraj,speciesNames,lineProps,opts)
