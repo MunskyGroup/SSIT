@@ -315,11 +315,13 @@ classdef Propensity
                     expr_x = subs(expr_x,upstreamODEs{i2},varODEs(i2));
                 end
 
-                if ~isempty(string(symvar(expr_t)))&&~max(contains(string(symvar(expr_t)),'t'))||~max(contains(string(symvar(expr_t)),'logT'))
-                    % Check that there is actually a t-dependent reaction
-                    % and otherwise combine.
-                    expr_x = expr_x*expr_t;
-                    expr_t=sym(1);
+                if ~isempty(string(symvar(expr_t)))
+                    if ~max(contains(string(symvar(expr_t)),'t'))||~max(contains(string(symvar(expr_t)),'logT'))
+                        % Check that there is actually a t-dependent reaction
+                        % and otherwise combine.
+                        expr_x = expr_x*expr_t;
+                        expr_t=sym(1);
+                    end
                 end
 
 
