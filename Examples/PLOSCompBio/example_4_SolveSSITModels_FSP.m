@@ -39,12 +39,6 @@ STL1_4state.tSpan = linspace(0,50,200);
     
     % Ensure the solution scheme is set to FSP (default):
     Model_FSP.solutionScheme = 'FSP';  
-
-    % This function compiles and stores the given reaction propensities  
-    % into symbolic expression functions that use sparse matrices to  
-    % operate on the system based on the current state. The functions are 
-    % stored with the given prefix, in this case, 'Model_FSP'
-    Model_FSP = Model_FSP.formPropensitiesGeneral('Model_FSP');
     
     % Set FSP 1-norm error tolerance:
     Model_FSP.fspOptions.fspTol = 1e-4; 
@@ -55,16 +49,15 @@ STL1_4state.tSpan = linspace(0,50,200);
     % Have FSP approximate the steady state for the initial distribution 
     % by finding the eigenvector corresponding to the smallest magnitude 
     % eigenvalue (i.e., zero, for generator matrix A, d/dtP(t)=AP(t)):
-    Model_FSP.fspOptions.initApproxSS = false; 
+    Model_FSP.fspOptions.initApproxSS = true; 
     
     % Solve with FSP:
     [Model_FSPsoln,Model_FSP.fspOptions.bounds] = Model_FSP.solve; 
     
-    % Plot marginal distributions:
-    Model_FSP.makePlot(Model_FSPsoln,'marginals',[1:100:100],...
-                       false,[1,2,3],{'linewidth',2})  
+    % Plot marginal distributions:  
     Model_FSP.makePlot(Model_FSPsoln,'meansAndDevs') 
-    Model_FSP.makePlot(Model_FSPsoln,'margmovie',[],false) 
+    Model_FSP.makePlot(Model_FSPsoln,'marginals')
+    %Model_FSP.makePlot(Model_FSPsoln,'margmovie')
                        
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(2): Use the stochastic Finite State Projection (FSP) 
@@ -80,12 +73,6 @@ STL1_4state.tSpan = linspace(0,50,200);
     % Ensure the solution scheme is set to FSP (default):
     STL1_FSP.solutionScheme = 'FSP';  
 
-    % This function compiles and stores the given reaction propensities  
-    % into symbolic expression functions that use sparse matrices to  
-    % operate on the system based on the current state. The functions are 
-    % stored with the given prefix, in this case, 'STL1_FSP'
-    STL1_FSP = STL1_FSP.formPropensitiesGeneral('STL1_FSP');
-    
     % Set FSP 1-norm error tolerance:
     STL1_FSP.fspOptions.fspTol = 1e-4; 
     
@@ -95,16 +82,16 @@ STL1_4state.tSpan = linspace(0,50,200);
     % Have FSP approximate the steady state for the initial distribution 
     % by finding the eigenvector corresponding to the smallest magnitude 
     % eigenvalue (i.e., zero, for generator matrix A, d/dtP(t)=AP(t)):
-    STL1_FSP.fspOptions.initApproxSS = false; 
+    STL1_FSP.fspOptions.initApproxSS = true; 
     
     % Solve Model:
     [STL1_FSPsoln,STL1_FSP.fspOptions.bounds] = STL1_FSP.solve; 
     
     % Plot marginal distributions:
+    STL1_FSP.makePlot(STL1_FSPsoln,'meansAndDevs')  
     STL1_FSP.makePlot(STL1_FSPsoln,'marginals',[1:100:100],...
                            false,[1,2,3],{'linewidth',2}) 
-    STL1_FSP.makePlot(STL1_FSPsoln,'meansAndDevs')  
-    STL1_FSP.makePlot(STL1_FSPsoln,'margmovie',[],false)
+    %STL1_FSP.makePlot(STL1_FSPsoln,'margmovie')
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(3): Use the stochastic Finite State Projection (FSP) 
@@ -119,13 +106,6 @@ STL1_4state.tSpan = linspace(0,50,200);
     
     % Ensure the solution scheme is set to FSP (default):
     STL1_4state_FSP.solutionScheme = 'FSP';  
-
-    % This function compiles and stores the given reaction propensities  
-    % into symbolic expression functions that use sparse matrices to  
-    % operate on the system based on the current state. The functions are 
-    % stored with the given prefix, in this case, 'STL1_FSP'
-    STL1_4state_FSP = ...
-        STL1_4state_FSP.formPropensitiesGeneral('STL1_4state_FSP',false);
     
     % Set FSP 1-norm error tolerance:
     STL1_4state_FSP.fspOptions.fspTol = 1e-4; 
@@ -136,17 +116,18 @@ STL1_4state.tSpan = linspace(0,50,200);
     % Have FSP approximate the steady state for the initial distribution 
     % by finding the eigenvector corresponding to the smallest magnitude 
     % eigenvalue (i.e., zero, for generator matrix A, d/dtP(t)=AP(t)):
-    STL1_4state_FSP.fspOptions.initApproxSS = false; 
+    STL1_4state_FSP.fspOptions.initApproxSS = true; 
     
     % Solve Model:
     [STL1_4state_FSPsoln,STL1_4state_FSP.fspOptions.bounds] = ...
         STL1_4state_FSP.solve; 
     
     % Plot marginal distributions:
-    STL1_4state_FSP.makePlot(STL1_4state_FSPsoln,'marginals',...
-                             [1:100:100],false,[1,2,3,4,5],{'linewidth',2})
-    STL1_4state_FSP.makePlot(STL1_4state_FSPsoln,'meansAndDevs')  
-    STL1_4state_FSP.makePlot(STL1_4state_FSPsoln,'margmovie',[],false)
+    STL1_4state_FSP.plotFSP(STL1_4state_FSPsoln, STL1_4state_FSP.species, 'meansAndDevs');
+    STL1_4state_FSP.plotFSP(STL1_4state_FSPsoln, STL1_4state_FSP.species, 'marginals')
+    % STL1_4state_FSP.plotFSP(STL1_4state_FSPsoln,'meansAndDevs',1:100:200,{'linewidth',2}, ...
+    % struct('SpeciesNames', STL1_4state_FSP.species(1:3), 'Colors','turbo'));
+
 
 %% Save FSP models & solutions
 saveNames = unique({'Model_FSP'

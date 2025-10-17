@@ -3540,10 +3540,10 @@ classdef SSIT
                                     bar([0:length(solution.Marginals{i}{movieSpecies(j)})-1],...
                                         solution.Marginals{i}{movieSpecies(j)},lineProps{:});
                                     set(gca,'fontsize',15,'ylim',[0,maxY(movieSpecies(j))])
-                                    if isempty(plotTitle)
+                                    if isempty(opt.Title)
                                         title([obj.species{movieSpecies(j)},'; t = ',num2str(solution.T_array(i),'%.0f')])
                                     else
-                                        title(sprintf('%s; t = %.0f', plotTitle, solution.T_array(i)))
+                                        title(sprintf('%s; t = %.0f', opt.Title, solution.T_array(i)))
                                     end
 
                                 end
@@ -4115,6 +4115,225 @@ classdef SSIT
                 grid on; box on;
             end
         end
+            
+         function plotFSP(obj, solution, speciesNames, plotType, indTimes, figureNums, lineProps, opts)
+            % plotFSP — Plot FSP results like plotODE/plotSSA.
+            %
+            % Inputs
+            %   obj         : provides obj.species (names)
+            %   solution    : struct with fields:
+            %                  - fsp: {Nt×1} cell, each has fields .time, .p (ssit.FspVector)
+            %                  - stateSpace: ssit.FiniteStateSet with fields:
+            %                        .states [Nd×nStates], .state2indMap (dictionary cell->double)
+            %   speciesNames: 
+            %   plotType    : "means" | "meansAndDevs" | "marginals" | "joints"
+            %   indTimes    : [] or vector of time indices to plot (default: all)
+            %   lineProps   : e.g., {'linewidth',2}
+            %   opts        : struct with optional fields:
+            %       .SpeciesIdx   [] | numeric vector
+            %       .Colors       [] | colormap name | n×3 RGB | cell array of ColorSpec/RGB
+            %       .Title (string, default ""), .TitleFontSize (18), .AxisLabelSize (18),
+            %       .TickLabelSize (18), .LegendFontSize (18), .LegendLocation ("best"),
+            %       .XLabel ("Time"), .YLabel ("Molecule Count / Concentration"),
+            %       .XLim ([]), .YLim ([])
+            
+                arguments
+                    obj
+                    solution
+                    speciesNames = []
+                    plotType (1,1) string = "means"
+                    indTimes = []
+                    figureNums = []
+                    lineProps = {'linewidth',2}
+                    opts.SpeciesIdx = []
+                    opts.Colors = []
+                    opts.Title (1,1) string = ""
+                    opts.TitleFontSize (1,1) double {mustBePositive} = 18
+                    opts.AxisLabelSize (1,1) double {mustBePositive} = 18
+                    opts.TickLabelSize (1,1) double {mustBePositive} = 18
+                    opts.LegendFontSize (1,1) double {mustBePositive} = 18
+                    opts.LegendLocation (1,1) string = "best"
+                    opts.XLabel (1,1) string = "Time"
+                    opts.YLabel (1,1) string = "Molecule Count / Concentration"
+                    opts.XLim double = []
+                    opts.YLim double = []
+                end  
+
+                nSpecies =  size(obj.species);
+            
+                % ----- Species selection -----
+                allNames = obj.species;
+                if isstring(allNames), allNames = cellstr(allNames); end
+            
+                if isempty(speciesNames)
+                    selIdx = 1:nSpecies;
+                    selNames = allNames;
+                elseif isnumeric(speciesNames)
+                    selIdx = speciesNames(:).';
+                    if any(selIdx < 1 | selIdx > nSpecies) || numel(unique(selIdx)) ~= numel(selIdx)
+                        error('Invalid or duplicate species indices. Must be unique integers in [1,%d].', nSpecies);
+                    end
+                    selNames = allNames(selIdx);
+                else
+                    if isstring(speciesNames), speciesNames = cellstr(speciesNames); end
+                    [tf, loc] = ismember(speciesNames, allNames);
+                    if any(~tf)
+                        bad = speciesNames(~tf);
+                        exampleList = strjoin(allNames, ', ');
+                        error('Unknown species name(s): %s. Available: %s', strjoin(bad, ', '), exampleList);
+                    end
+                    selIdx = loc(:).';
+                    selNames = allNames(selIdx);
+                end
+
+                app.FspTabOutputs.solutions = solution.fsp;
+                app.FspPrintTimesField.Value = mat2str(obj.tSpan);
+                solution = exportFSPResults(app);
+                Nd = length(solution.Marginals{end});
+                if isempty(indTimes)
+                    indTimes = 1:length(solution.T_array);
+                end
+                Nt = length(indTimes);
+                if isempty(figureNums)
+                    h =  findobj('type','figure');
+                    if isfield(h,'Number')
+                        figureNums = max([h.Number])+(1:10);
+                    else
+                        figureNums = (1:10);
+                    end
+                end
+                kfig = 1;
+                switch plotType
+                    case 'means'
+                        plot(solution.T_array(indTimes),solution.Means(indTimes,:),lineProps{:});
+                    case 'meansAndDevs'
+                        fg = figure(figureNums(kfig)); set(0,'CurrentFigure',fg);
+                        kfig=kfig+1;
+                        for i = 1:Nd
+                            subplot(Nd,1,i); hold on
+                            errorbar(solution.T_array(indTimes),solution.Means(indTimes,i),sqrt(solution.Var(indTimes,i)),lineProps{:});
+                            ylabel(speciesNames{i})
+                        end
+                        xlabel('time')
+                    case 'marginals'
+                        for j = 1:Nd
+                            f = figure(figureNums(kfig)); kfig=kfig+1;
+                            set(0,'CurrentFigure',f);
+                            f.Name = ['Marginal Distributions of ',speciesNames{j}];
+                            Nr = ceil(sqrt(Nt));
+                            Nc = ceil(Nt/Nr);
+                            for i = 1:Nt
+                                i2 = indTimes(i);
+                                subplot(Nr,Nc,i); hold on
+                                stairs(solution.Marginals{i2}{j},lineProps{:});
+                                set(gca,'fontsize',15)
+                                title(['t = ',num2str(solution.T_array(i2),2)])
+                            end
+                        end
+
+                    case 'joints'
+                        if Nd<2
+                            error('Joint distributions only avaialble for 2 or more species.')
+                        else
+                            for j1 = 1:Nd
+                                for j2 = j1+1:Nd
+                                    h = figure(figureNums(kfig)); set(0,'CurrentFigure',h); kfig=kfig+1;
+                                    h.Name = ['Joint Distribution of ',speciesNames{j1},' and ',speciesNames{j2}];
+                                    Nr = ceil(sqrt(Nt));
+                                    Nc = ceil(Nt/Nr);
+                                    for i = 1:Nt
+                                        i2 = indTimes(i);
+                                        subplot(Nr,Nc,i);
+                                        contourf(log10(max(1e-16,solution.Joints{i2}{j1,j2})));
+                                        colorbar
+                                        title(['t = ',num2str(solution.T_array(i2),2)])
+                                        %                                             if mod(i-1,Nc)==0;
+                                        ylabel(['x',num2str(j1)]);
+                                        %                                             end
+                                        %                                             if (i+Nc)>Nt;
+                                        xlabel(['x',num2str(j2)]);
+                                        %                                             end
+                                        set(gca,'FontSize',15)
+                                    end
+                                end
+                            end
+                        end
+                        
+                    case 'escapeTimes'
+                        f = figure(figureNums(kfig)); set(0,'CurrentFigure',f); kfig=kfig+1;
+                        subplot(2,1,1)
+                        z = solution.EscapeCDF(indTimes,:);
+                        t = solution.T_array(indTimes);
+                        plot(t,z,'linewidth',3); hold on
+                        set(gca,'fontsize',16)
+                        ylabel('Escape CDF')
+
+                        subplot(2,1,2)
+                        zp = (z(2:end,:)-z(1:end-1,:))./(t(2:end)-t(1:end-1))';
+                        tp = (t(2:end)+t(1:end-1))/2;
+                        plot(tp',zp,'linewidth',3); hold on
+                        set(gca,'fontsize',16)
+                        ylabel('Escape PDF')
+                        xlabel('time')
+                % 
+                % case 'fspSens'
+                % 
+                %     if includePDO
+                %         if ~isempty(obj.pdoOptions.PDO)
+                %             for i=1:length(solution.sens.data)
+                %                 for j=1:length(solution.sens.data{i}.S)
+                %                     solution.sens.data{i}.S(j) = obj.pdoOptions.PDO.computeObservationDist(solution.sens.data{i}.S(j));
+                %                 end
+                %             end
+                %         else
+                %             warning('obj.pdoOptions.PDO has not been set')
+                %         end
+                %  end
+                    % 
+                    % app.SensFspTabOutputs.solutions = solution.sens;
+                    % app.SensPrintTimesEditField.Value = mat2str(obj.tSpan);
+                    % if ~isempty(obj.parameters)
+                    %     app.ReactionsTabOutputs.parameters = obj.parameters(:,1);
+                    % else
+                    %     app.ReactionsTabOutputs.parameters = [];
+                    % end
+                    % app.ReactionsTabOutputs.varNames = specNames;
+                    % solution.plotable = exportSensResults(app);
+                    % 
+                    % Np = size(solution.plotable.sensmdist,1);
+                    % Nd = size(solution.plotable.sensmdist,2);
+                    % if isempty(indTimes)
+                    %     if strcmp(plotType,'margmovie')
+                    %         indTimes = solution.plotable.T_array;
+                    %     else
+                    %         indTimes = length(solution.plotable.T_array);
+                    %     end
+                    % end
+                    % Nt = length(indTimes);
+                    % Nr = ceil(sqrt(Np));
+                    % Nc = ceil(Np/Nr);
+                    % case 'marginals'
+                    %     for it = 1:Nt
+                    %         it2 = indTimes(it);
+                    %         for id = 1:Nd
+                    %             f = figure(figureNums(kfig)); set(0,'CurrentFigure',f); kfig=kfig+1;
+                    %             f.Name = ['Marg. Dist. Sensitivities of x',num2str(id),' at t=',num2str(solution.plotable.T_array(it2))];
+                    %             for j = 1:Np
+                    %                 subplot(Nr,Nc,j); hold on;
+                    %                 stairs(solution.plotable.sensmdist{j,id,it2},lineProps{:});
+                    %                 set(gca,'fontsize',15)
+                    %                 title(obj.parameters{j,1})
+                    %                 %                                         if mod(j-1,Nc)==0;
+                    %                 ylabel(['sensitivity']);
+                    %                 %                                         end
+                    %                 %                                         if (j+Nc)>Np;
+                    %                 xlabel(['x',num2str(id)]);
+                    %                 %                                         end
+                    %             end
+                    %         end
+                    %     end
+                end
+         end
 
 
         function figHandles = makeFitPlot(obj,fitSolution,smoothWindow,fignums,usePanels, ...
