@@ -4272,15 +4272,39 @@ classdef SSIT
                         f = figure(figureNums(kfig)); clf; kfig=kfig+1;
                         f.Name = ['Marginal Distributions of ', selNames{jj}];
                         Nr = ceil(sqrt(Nt)); Nc = ceil(Nt/Nr);
+                
                         for ii = 1:Nt
                             i2 = indTimes(ii);
+                            pmf = solution.Marginals{i2}{s}(:);
+                            x = 0:numel(pmf)-1;
+                
+                            % Optional crop to XLim (for performance and cleaner view)
+                            if ~isempty(opts.XLim)
+                                mask = (x >= opts.XLim(1)) & (x <= opts.XLim(2));
+                                xPlot = x(mask);
+                                yPlot = pmf(mask);
+                            else
+                                xPlot = x;
+                                yPlot = pmf;
+                            end
+                
                             subplot(Nr, Nc, ii); hold on
-                            stairs(solution.Marginals{i2}{s}, lineProps{:}, 'Color', getC(C,jj));
+                            stairs(xPlot, yPlot, lineProps{:}, 'Color', getC(C,jj));
                             set(gca,'FontSize',opts.TickLabelSize)
-                            title(sprintf('t = %.3g', solution.T_array(i2)), 'FontSize', max(opts.TitleFontSize-2,8))
+                            title(sprintf('t = %.3g', solution.T_array(i2)), ...
+                                  'FontSize', max(opts.TitleFontSize-2,8))
+                            xlabel(sprintf('%s count', selNames{jj}), 'FontSize', opts.AxisLabelSize-2);
+                            ylabel('Probability', 'FontSize', opts.AxisLabelSize-2);
+                
+                            % Apply limits if provided
+                            if ~isempty(opts.XLim), xlim(opts.XLim); end
+                            if ~isempty(opts.YLim), ylim(opts.YLim); end
+                
                             grid on; box on;
                         end
-                        sgtitle(sprintf('Marginal Distributions — %s', selNames{jj}), 'FontSize', opts.TitleFontSize);
+                
+                        sgtitle(sprintf('Marginal Distributions — %s', selNames{jj}), ...
+                                'FontSize', opts.TitleFontSize);
                     end
         
                 case 'joints'
