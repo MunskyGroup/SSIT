@@ -40,13 +40,13 @@ STL1_4state.tSpan = linspace(0,50,200);
     Model_escape.fspOptions.escapeSinks.f = {'mRNA'};
     Model_escape.fspOptions.verbose = false;
     Model_escape.fspOptions.escapeSinks.b = 5;
-    Model_escape.formPropensitiesGeneral('Model_escape');
-    [fspSoln_escape_1,Model_escape.fspOptions.bounds] = Model_escape.solve;
+    [Model_escape_fspSoln,Model_escape.fspOptions.bounds] = ...
+        Model_escape.solve;
 
     % Plot the CDF and PDF
-    fig1 = figure(1); clf; set(fig1,'Name','Bursting Gene');
-    Model_escape.makePlot(fspSoln_escape_1,'escapeTimes',[],false,fig1)
-    legend(Model_escape.fspOptions.escapeSinks.f)
+    Model_escape.plotFSP(Model_escape_fspSoln, [],...
+        "escapeTimes", [], [], {'linewidth',3}, XLabel="Time",...
+        Title="Bursting Gene (mRNA)", Colors=[0.23,0.67,0.20]);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(2): Solve escape times for the time-varying STL1 yeast model
@@ -56,18 +56,17 @@ STL1_4state.tSpan = linspace(0,50,200);
 %% STL1:
     % Create a copy of the time-varying STL1 yeast model:
     STL1_escape = STL1;
-    STL1_escape.formPropensitiesGeneral('STL1_escape');
     
     % Solve for the escape time:
-    STL1_escape.fspOptions.escapeSinks.f = {'offGene';'onGene'};
+    STL1_escape.fspOptions.escapeSinks.f = {'offGene','onGene'};
     STL1_escape.fspOptions.escapeSinks.b = [0.5;0.5];
-    [STL1_fspSoln_escape,STL1_escape.fspOptions.bounds] = ...
+    [STL1_escape_fspSoln,STL1_escape.fspOptions.bounds] = ...
         STL1_escape.solve;
 
     % Plot the CDF and PDF
-    fig2 = figure(2); clf; set(fig2,'Name','STL1');
-    STL1_escape.makePlot(STL1_fspSoln_escape,'escapeTimes',[],false,fig2)
-    legend(STL1_escape.fspOptions.escapeSinks.f)
+    STL1_escape.plotFSP(STL1_escape_fspSoln, [],...
+        "escapeTimes", [], [], {'linewidth',3}, XLabel="Time",...
+        Title="STL1 (offGene, onGene)");
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(3): Solve escape times for the 4-state time-varying STL1 yeast model
@@ -77,15 +76,16 @@ STL1_4state.tSpan = linspace(0,50,200);
 %% 4-state STL1:
     % Create a copy of the time-varying STL1 yeast model:
     STL1_4state_escape = STL1_4state;
-    STL1_4state_escape.formPropensitiesGeneral('STL1_4state_escape');
     
-    % Solve for the escape time:
-    STL1_4state_escape.fspOptions.escapeSinks.f = {'g2+g3'}
-    STL1_4state_escape.fspOptions.escapeSinks.b = [0.5];
+    % Solve for time to turn transcribing gene "OFF"
+    % Start from ON (g4=1) with moderate mRNA, absorb on g4=0:
+    STL1_4state_escape.fspOptions.escapeSinks.f = {'g4'};
+    STL1_4state_escape.fspOptions.escapeSinks.b = 0;       
+
     [STL1_4state_fspSoln_escape,STL1_4state_escape.fspOptions.bounds] = ...
         STL1_4state_escape.solve;
 
     % Plot the CDF and PDF
     STL1_4state_escape.plotFSP(STL1_4state_fspSoln_escape, [],...
-        "escapeTimes", 1:5:200, [], {'linewidth',2},...
-        Title="First-Passage Statistics", XLabel="Time", XLim=[0 50]);
+        "escapeTimes", [], [], {'linewidth',3}, XLim=[0,20],...
+        Title="4-state STL1 (g4)", XLabel="Time", Colors=[0.52,0.09,0.82]);

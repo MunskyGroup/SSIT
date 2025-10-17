@@ -4265,7 +4265,6 @@ classdef SSIT
                         title('FSP Means ± SD', 'FontSize', opts.TitleFontSize);
                     end
                     grid on; box on; hold off;
-
         
                 case 'marginals'
                     for jj = 1:nSel
@@ -4331,64 +4330,75 @@ classdef SSIT
                     end
 
                 case 'escapeTimes'
-                    % Compute escape CDF z(t). Prefer exported field if available.
+                    % ---- Gather times ----
                     tt = solution.T_array(:);
                     if isempty(indTimes), indTimes = 1:numel(tt); end
-                    t = tt(indTimes);
+                    t  = tt(indTimes);
                 
+                    % ---- Get names for sinks (legend labels) ----
+                    sinkNames = {};
+                    try
+                        sinkNames = obj.fspOptions.escapeSinks.f;
+                        if isstring(sinkNames), sinkNames = cellstr(sinkNames); end
+                        if ~iscell(sinkNames), sinkNames = {}; end
+                    catch
+                        sinkNames = {};
+                    end
+                
+                    % ---- Get Escape CDF matrix [Nt x nSinks] ----
                     if isfield(solution, 'EscapeCDF') && ~isempty(solution.EscapeCDF)
-                        z = solution.EscapeCDF(indTimes, :);
-                        % If EscapeCDF is a column vector, this is fine; if matrix, assume first column.
-                        if size(z,2) > 1, z = z(:,1); end
+                        Z_all = solution.EscapeCDF;                 % Nt x nSinks
+                        if isvector(Z_all), Z_all = Z_all(:); end   % ensure 2D
+                        Z = Z_all(indTimes, :);
                     else
-                        % Build from raw FSP (sum of escape/sink mass over time)
-                        Nt_all = numel(rawSol.fsp);
-                        t_all  = zeros(Nt_all,1);
-                        z_all  = zeros(Nt_all,1);
-                        for i = 1:Nt_all
-                            Fi = rawSol.fsp{i};
-                            if isfield(Fi,'time'), t_all(i) = Fi.time;
-                            elseif isfield(Fi,'T'), t_all(i) = Fi.T;
-                            elseif isfield(Fi,'t'), t_all(i) = Fi.t;
-                            else, t_all(i) = tt(i); % fallback to exported times
-                            end
-                            if isfield(Fi, 'escapeProbs') && ~isempty(Fi.escapeProbs)
-                                z_all(i) = sum(Fi.escapeProbs);
-                            elseif isfield(Fi, 'sinks') && ~isempty(Fi.sinks)
-                                z_all(i) = sum(Fi.sinks);
-                            else
-                                z_all(i) = NaN; % nothing to sum
-                            end
+                        % Build per-sink CDF from raw FSP (supports multiple sinks)
+                        [t_raw, Z_raw] = computeEscapeCDFFromRawMulti(rawSol);   % Nt x nSinks
+                        % align to exported times if needed
+                        if numel(t_raw) ~= numel(tt)
+                            Z = interp1(t_raw, Z_raw, tt, 'previous', 'extrap');
+                        else
+                            Z = Z_raw;
                         end
-                        % If times differ slightly from exported, we still index by indTimes (same length expected).
-                        z = z_all(indTimes);
-                        t = t_all(indTimes);
+                        Z = Z(indTimes, :);
                     end
                 
-                    % Clean up NaNs (if any)
-                    nanMask = ~isfinite(z);
-                    if any(nanMask)
-                        z(nanMask) = 0;
+                    % ---- Clean & clamp ----
+                    Z(~isfinite(Z)) = 0;
+                    Z = max(0, min(1, Z));       % keep in [0,1]
+                    nSinks = size(Z,2);
+                    if isempty(sinkNames) || numel(sinkNames) ~= nSinks
+                        sinkNames = arrayfun(@(k) sprintf('Sink %d', k), 1:nSinks, 'UniformOutput', false);
                     end
-                    % Clamp to [0,1]
-                    z = max(0, min(1, z));
                 
-                    % PDF via finite differences over the selected window
+                    % ---- Colors: one per sink ----
+                    C = resolveColors(opts.Colors, nSinks);
+                
+                    % ---- Compute PDFs per sink via finite differences ----
                     if numel(t) >= 2
-                        tp = (t(2:end)+t(1:end-1))/2;
-                        zp = (z(2:end)-z(1:end-1)) ./ max(eps, (t(2:end)-t(1:end-1)));
+                        dt  = max(eps, t(2:end) - t(1:end-1));
+                        tp  = (t(2:end) + t(1:end-1))/2;
+                        dZ  = Z(2:end, :) - Z(1:end-1, :);
+                        Zp  = dZ ./ dt;             % [Nt-1 x nSinks]
                     else
-                        tp = t;  zp = 0*t;
+                        tp = t; Zp = zeros(numel(t), nSinks);
                     end
                 
-                    % ---- Plot CDF (top) and PDF (bottom) ----
-                    figure(figureNums(kfig)); clf; kfig=kfig+1;
-                
-                    subplot(2,1,1);
-                    plot(t, z, lineProps{:}); grid on; box on;
+                    % ---- Plot: CDF (top) ----
+                    figure(figureNums(kfig)); clf; kfig = kfig+1;
+                    subplot(2,1,1); hold on
+                    hC = gobjects(1, nSinks);
+                    for k = 1:nSinks
+                        col = getC(C, k);
+                        hC(k) = plot(t, Z(:,k), lineProps{:}, 'Color', col, 'DisplayName', sinkNames{k});
+                    end
+                    grid on; box on;
                     ax = gca; ax.FontSize = opts.TickLabelSize;
                     xlabel(opts.XLabel, 'FontSize', opts.AxisLabelSize);
                     ylabel('Escape CDF', 'FontSize', opts.AxisLabelSize);
+                    if ~strcmpi(opts.LegendLocation, "none")
+                        lgd = legend(hC, sinkNames, 'Location', char(opts.LegendLocation));
+                        if ~isempty(lgd), lgd.FontSize = opts.LegendFontSize; end
+                    end
                     if ~isempty(opts.XLim), xlim(opts.XLim); end
                     if ~isempty(opts.YLim), ylim(opts.YLim); end
                     if strlength(opts.Title) > 0
@@ -4397,13 +4407,17 @@ classdef SSIT
                         title('Escape / First-Passage CDF', 'FontSize', opts.TitleFontSize);
                     end
                 
-                    subplot(2,1,2);
-                    plot(tp, zp, lineProps{:}); grid on; box on;
+                    % ---- Plot: PDF (bottom) ----
+                    subplot(2,1,2); hold on
+                    for k = 1:nSinks
+                        col = getC(C, k);
+                        plot(tp, Zp(:,k), lineProps{:}, 'Color', col);
+                    end
+                    grid on; box on;
                     ax = gca; ax.FontSize = opts.TickLabelSize;
                     xlabel(opts.XLabel, 'FontSize', opts.AxisLabelSize);
                     ylabel('Escape PDF', 'FontSize', opts.AxisLabelSize);
                     if ~isempty(opts.XLim), xlim(opts.XLim); end
-                    % Let Y auto unless user pinned it:
                     if ~isempty(opts.YLim), ylim(opts.YLim); end
         
                 otherwise
@@ -4412,14 +4426,51 @@ classdef SSIT
         
             % ---------- helpers ----------
             function C = resolveColors(userC, n)
-                if isempty(userC), C = lines(n); return; end
+                if isempty(userC)
+                    C = lines(n); 
+                    return
+                end
+            
+                % Colormap name
                 if ischar(userC) || (isstring(userC) && isscalar(userC))
                     cm = feval(char(userC), max(n,64));
-                    C = cm(round(linspace(1,size(cm,1),n)),:); return
+                    C  = cm(round(linspace(1,size(cm,1),n)),:);
+                    return
                 end
-                if isnumeric(userC), C = userC(1:n,:); return; end
-                if iscell(userC),    C = userC(1:n);   return; end
-                error('opts.Colors must be: [], colormap name, n×3 RGB, or cell array.');
+            
+                % Numeric: RGB row(s)
+                if isnumeric(userC)
+                    userC = double(userC);
+                    if isvector(userC) && numel(userC)==3
+                        C = repmat(userC(:).', n, 1);       % replicate single RGB to n rows
+                        return
+                    end
+                    % userC is k×3
+                    assert(size(userC,2)==3, 'opts.Colors numeric must be 1x3 or kx3.');
+                    k = size(userC,1);
+                    if k >= n
+                        C = userC(1:n,:);                   % take first n
+                    else
+                        idx = round(linspace(1, k, n));     % resample to n rows
+                        C = userC(idx, :);
+                    end
+                    return
+                end
+            
+                % Cell array of colors (char ColorSpec or 1x3 RGB)
+                if iscell(userC)
+                    k = numel(userC);
+                    if k < n
+                        % repeat entries to reach n
+                        userC = userC(1+mod(0:n-1, max(1,k)));
+                    else
+                        userC = userC(1:n);
+                    end
+                    C = userC;
+                    return
+                end
+            
+                error('opts.Colors must be: [], colormap name, 1x3 or kx3 RGB, or cell array.');
             end
             
             function c = getC(Cin, j)
@@ -4450,6 +4501,105 @@ classdef SSIT
                     title(defaultTitle, 'FontSize', o.TitleFontSize);
                 end
             end
+
+            function [t_out, z_cum] = computeEscapeCDFFromRaw(rawSol)
+                Nt = numel(rawSol.fsp);
+                t_out = zeros(Nt,1);
+                flux  = zeros(Nt,1);
+                for i = 1:Nt
+                    S = rawSol.fsp{i};
+                    if isfield(S,'time'), t_out(i) = S.time;
+                    elseif isfield(S,'T'), t_out(i) = S.T;
+                    elseif isfield(S,'t'), t_out(i) = S.t;
+                    else, t_out(i) = i;
+                    end
+                    if isfield(S,'escapeProbs') && ~isempty(S.escapeProbs)
+                        v = S.escapeProbs(:);
+                    elseif isfield(S,'sinks') && ~isempty(S.sinks)
+                        v = S.sinks(:);
+                    else
+                        v = 0;
+                    end
+                    flux(i) = nansum(v);
+                end
+                tol = 1e-12;
+                looksCum = all(diff(max(0,min(1,flux))) >= -tol) && flux(end) <= 1+1e-6;
+                if looksCum, z_cum = max(0,min(1,flux));
+                else,        z_cum = max(0,min(1,cumsum(max(0,flux))));
+                end
+            end
+            
+            function col = resolveOneColor(userC)
+                if isempty(userC), col = lines(1); return; end
+                if ischar(userC) || (isstring(userC) && isscalar(userC))
+                    cm = feval(char(userC), 64); col = cm(1,:); return
+                end
+                if isnumeric(userC)
+                    if isvector(userC) && numel(userC)==3, col = double(userC(:)).';
+                    else, col = double(userC(1,:)); end
+                    return
+                end
+                if iscell(userC)
+                    c = userC{1}; if isstring(c), c = char(c); end
+                    if isnumeric(c) && numel(c)==3, col = double(c(:)).'; else, col = c; end
+                    return
+                end
+                col = lines(1);
+            end
+
+            function [t_out, Z_cum] = computeEscapeCDFFromRawMulti(rawSol)
+                % Returns:
+                %   t_out : Nt x 1 time vector
+                %   Z_cum : Nt x nSinks cumulative probabilities, one column per sink
+                Nt = numel(rawSol.fsp);
+                t_out = zeros(Nt,1);
+            
+                % Determine number of sinks from first timestep
+                S1 = rawSol.fsp{1};
+                if isfield(S1, 'escapeProbs') && ~isempty(S1.escapeProbs)
+                    nSinks = numel(S1.escapeProbs);
+                    modeField = 'escapeProbs';
+                elseif isfield(S1, 'sinks') && ~isempty(S1.sinks)
+                    nSinks = numel(S1.sinks);
+                    modeField = 'sinks';
+                else
+                    nSinks = 1; modeField = '';   % degenerate
+                end
+            
+                flux = zeros(Nt, nSinks);    % per-step flux into each sink
+                for i = 1:Nt
+                    Si = rawSol.fsp{i};
+                    % time
+                    if isfield(Si,'time'), t_out(i) = Si.time;
+                    elseif isfield(Si,'T'), t_out(i) = Si.T;
+                    elseif isfield(Si,'t'), t_out(i) = Si.t;
+                    else, t_out(i) = i;
+                    end
+                    % per-sink increments
+                    v = zeros(1, nSinks);
+                    if ~isempty(modeField)
+                        vv = Si.(modeField);
+                        if ~isempty(vv), v = vv(:).'; end
+                    end
+                    % store
+                    flux(i, :) = v(1, 1:nSinks);
+                end
+            
+                % Heuristic: if looks cumulative already, use as-is; else cumsum
+                Z_cum = zeros(Nt, nSinks);
+                for k = 1:nSinks
+                    col = flux(:,k);
+                    col(~isfinite(col)) = 0;
+                    col = max(0, min(1, col));
+                    looksCum = all(diff(col) >= -1e-12) && col(end) <= 1 + 1e-6;
+                    if looksCum
+                        Z_cum(:,k) = col;
+                    else
+                        Z_cum(:,k) = max(0, min(1, cumsum(max(0,col))));
+                    end
+                end
+            end
+            
          end
 
 
