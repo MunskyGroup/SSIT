@@ -15,7 +15,6 @@ addpath(genpath('../../src'));
 
 % View model summaries:
 STL1.summarizeModel
-STL1_4state.summarizeModel
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Adjust a model to treat some species (i.e., upstream reactions) use an 
@@ -26,23 +25,18 @@ STL1_4state.summarizeModel
 
 % Create copies of our models:
 STL1_hybrid = STL1;
-STL1_4state_hybrid = STL1_4state;
 
 % Set the times at distributions will be computed:
 STL1_hybrid.tSpan = linspace(0,20,200);
-STL1_4state_hybrid.tSpan = linspace(0,20,200);
 
 % Set 'useHybrid' to true:
 STL1_hybrid.useHybrid = true;
-STL1_4state_hybrid.useHybrid = true;
 
 % Define which species will be solved by ODEs:
 STL1_hybrid.hybridOptions.upstreamODEs = {'offGene','onGene'};
-STL1_4state_hybrid.hybridOptions.upstreamODEs = {'s1','s2','s3','s4'};
 
 % Set solution scheme to FSP:
 STL1_hybrid.solutionScheme = 'FSP';
-STL1_4state_hybrid.solutionScheme = 'FSP';
 
 % View summary of hybrid STL1 model, expecting:
     %   Species:
@@ -51,27 +45,15 @@ STL1_4state_hybrid.solutionScheme = 'FSP';
     %       mRNA; IC = 0;  discrete stochastic
 STL1_hybrid.summarizeModel
 
-% View summary of hybrid STL1 4-state model, expecting:
-    %   Species:
-    %       s1; IC = 2;  upstream ODE
-    %       s2; IC = 0;  upstream ODE
-    %       s3; IC = 0;  upstream ODE
-    %       s4; IC = 0;  upstream ODE
-    %       mRNA; IC = 0;  discrete stochastic
-STL1_4state_hybrid.summarizeModel
-
 % Optionally, define a custom constraint on the species: 
 % (e.g.,'offGene'+'onGene')
 STL1_hybrid.customConstraintFuns = [];
-STL1_4state_hybrid.customConstraintFuns = [];
 
 % Set FSP 1-norm error tolerance:
 STL1_hybrid.fspOptions.fspTol = 1e-4; 
-STL1_4state_hybrid.fspOptions.fspTol = 1e-4; 
     
 % Guess initial bounds on FSP StateSpace:
 STL1_hybrid.fspOptions.bounds = [2,2,400];
-STL1_4state_hybrid.fspOptions.bounds = [2,2,400];
 
 % This function compiles and stores the given reaction propensities  
 % into symbolic expression functions that use sparse matrices to  
@@ -79,28 +61,16 @@ STL1_4state_hybrid.fspOptions.bounds = [2,2,400];
 % stored with the given prefix, in this case, 'STL1_hybrid' and
 % 'STL1_4state_hybrid'
 STL1_hybrid = STL1_hybrid.formPropensitiesGeneral('STL1_hybrid');
-STL1_4state_hybrid = ...
-    STL1_4state_hybrid.formPropensitiesGeneral('STL1_4state_hybrid');
 
 % Have FSP approximate the steady state for the initial distribution 
 % by finding the eigenvector corresponding to the smallest magnitude 
 % eigenvalue (i.e., zero, for generator matrix A, d/dtP(t)=AP(t)):
 STL1_hybrid.fspOptions.initApproxSS = false; 
-STL1_4state_hybrid.fspOptions.initApproxSS = false; 
     
 % Solve STL1_hybrid:
 [STL1_hybrid_FSPsoln,STL1_hybrid.fspOptions.bounds] = STL1_hybrid.solve; 
-
-% Solve STL1_4state_hybrid:
-[STL1_4state_hybrid_FSPsoln,STL1_4state_hybrid.fspOptions.bounds] = ...
-    STL1_4state_hybrid.solve; 
     
 % Plot marginal distributions:
 STL1_hybrid.makePlot(STL1_hybrid_FSPsoln,'meansAndDevs')  
 STL1_hybrid.makePlot(STL1_hybrid_FSPsoln,'margmovie',[],false,[101],...
                   {'linewidth',2},'STL1_hybrid.mp4',[],[],plotTitle='mRNA')
-
-STL1_4state_hybrid.makePlot(STL1_4state_hybrid_FSPsoln,'meansAndDevs')  
-STL1_4state_hybrid.makePlot(STL1_4state_hybrid_FSPsoln,'margmovie',...
-    [],false,[101],{'linewidth',2},'STL1_4state_hybrid.mp4',[],[],...
-    plotTitle='mRNA')

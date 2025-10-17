@@ -315,6 +315,17 @@ classdef Propensity
                     expr_x = subs(expr_x,upstreamODEs{i2},varODEs(i2));
                 end
 
+                if ~isempty(string(symvar(expr_t)))
+                    if ~max(contains(string(symvar(expr_t)),'t'))&&~max(contains(string(symvar(expr_t)),'logT'))&&isempty(upstreamODEs)
+                        % Check that there is actually a t-dependent
+                        % reaction (including an upstream ODE)
+                        % and otherwise combine.
+                        expr_x = expr_x*expr_t;
+                        expr_t=sym(1);
+                    end
+                end
+
+
                 if (~isempty(string(symvar(expr_x)))&&max(contains(string(symvar(expr_x)),'logT')))||...
                         (~isempty(string(symvar(expr_t)))&&max(contains(string(symvar(expr_t)),'logX')))
                     obj{iRxn}.isFactorizable = false;

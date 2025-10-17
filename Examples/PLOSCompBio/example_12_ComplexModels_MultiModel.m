@@ -17,8 +17,11 @@ addpath(genpath('../../'));
 % example_9_LoadingandFittingData_MLE
 % example_10_LoadingandFittingData_MHA
 
+%% Load pre-computed model fit
+load('example_9_LoadingandFittingData_MLE.mat')
+
 % View model summariy:
-STL1_4state_MH_it.summarizeModel
+STL1_4state_MLE.summarizeModel
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Example script to show how multiple SSIT models and data sets can be fit
@@ -31,7 +34,7 @@ STL1_4state_MH_it.summarizeModel
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Make a copy of our model:
-STL1_4state_multi_1 = STL1_4state_MH_it;
+STL1_4state_multi_1 = STL1_4state_MLE;
 
 %% Load and associate smFISH data
 %  Associate the data with an SSIT model data as usual 
