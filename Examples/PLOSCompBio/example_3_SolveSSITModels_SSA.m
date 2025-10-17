@@ -40,12 +40,6 @@ STL1_4state.tSpan = linspace(0,50,200);
 
     % Set solution scheme to SSA:
     Model_SSA.solutionScheme = 'SSA';
-    
-    % This function compiles and stores the given reaction propensities  
-    % into symbolic expression functions that use sparse matrices to  
-    % operate on the system based on the current state. The functions are 
-    % stored with the given prefix, in this case, 'Model_SSA'
-    Model_SSA.formPropensitiesGeneral('Model_SSA');
 
     % 'nSimsPerExpt' is an SSA option that defaults to 100, sets the number
     % of simulations performed per experiment (set small number for demo)
@@ -69,7 +63,7 @@ STL1_4state.tSpan = linspace(0,50,200);
     
     % Plot SSA trajectories and means:
     Model_SSA.plotSSA('all', 100, Model_SSA.species, {'linewidth',4}, ...
-        Title="Bursting Gene", MeanOnly=false, TitleFontSize=24,...
+        Title="Bursting Gene", MeanOnly=true, TitleFontSize=24,...
         AxisLabelSize=18, TickLabelSize=18,...
         LegendFontSize=15, LegendLocation='northeast',...
         XLabel='Time', YLabel='Molecule Count');
@@ -98,12 +92,6 @@ STL1_4state.tSpan = linspace(0,50,200);
     % 'verbose' defaults to false, prints completed sim number to screen
     STL1_SSA.ssaOptions.verbose=true;
     
-    % This function compiles and stores the given reaction propensities  
-    % into symbolic expression functions that use sparse matrices to  
-    % operate on the system based on the current state. The functions are 
-    % stored with the given prefix, in this case, 'STL1_SSA'
-    STL1_SSA.formPropensitiesGeneral('STL1_SSA');
-    
     % A negative initial time is used to allow model to equilibrate 
     % before starting (burn-in). Large burn-in times cause long run times.
     STL1_SSA.tSpan = [-1,STL1_SSA.tSpan];
@@ -119,7 +107,7 @@ STL1_4state.tSpan = linspace(0,50,200);
             
     % Plot SSA trajectories and means:
     STL1_SSA.plotSSA('all', 100, STL1_SSA.species, {'linewidth',4}, ...
-        Title="STL1", MeanOnly=false, TitleFontSize=24,...
+        Title="STL1", MeanOnly=true, TitleFontSize=24,...
         AxisLabelSize=18, TickLabelSize=18,...
         LegendFontSize=15, LegendLocation='northeast',...
         XLabel='Time', YLabel='Molecule Count');
@@ -148,11 +136,6 @@ STL1_4state.tSpan = linspace(0,50,200);
     % 'verbose' defaults to false, prints completed sim number to screen
     STL1_4state_SSA.ssaOptions.verbose=true;
     
-    % This function compiles and stores the given reaction propensities  
-    % into symbolic expression functions that use sparse matrices to  
-    % operate on the system based on the current state. The functions are 
-    % stored with the given prefix, in this case, 'STL1_SSA'
-    STL1_4state_SSA.formPropensitiesGeneral('STL1_4state_SSA',false);
     
     % A negative initial time is used to allow model to equilibrate 
     % before starting (burn-in). Large burn-in times cause long run times.
@@ -167,16 +150,16 @@ STL1_4state.tSpan = linspace(0,50,200);
     % Run SSA:
     [~,~,STL1_4state_SSA] = STL1_4state_SSA.solve;
             
-    % Plot SSA trajectories and means:
-    STL1_4state_SSA.plotSSA('all', 100, STL1_4state_SSA.species, ...
-        {'linewidth',4}, Title="4-state STL1", MeanOnly=false,...
+    % Plot SSA trajectories and means (mRNA):
+    STL1_4state_SSA.plotSSA('all', 100, STL1_4state_SSA.species(5),...
+        {'linewidth',4}, Title="4-state STL1 (mRNA)", MeanOnly=false,...
         TitleFontSize=24, AxisLabelSize=18, TickLabelSize=18,...
-        LegendFontSize=15, LegendLocation='northeast',...
-        XLabel='Time', YLabel='Molecule Count');    
+        LegendFontSize=15, LegendLocation='northeast', HistTime=20,...
+        XLabel='Time', YLabel='Molecule Count', Colors=[0.23,0.67,0.20]);  
 
-    % Zoom in on gene states:
-    STL1_4state_SSA.plotSSA('all', 100, STL1_4state_SSA.species, ...
-        {'linewidth',4}, Title="4-state STL1 (zoomed, means only)",...
+    % Plot SSA trajectories and means (gene states):
+    STL1_4state_SSA.plotSSA('all', 100, STL1_4state_SSA.species(1:4),...
+        {'linewidth',4}, Title="4-state STL1 (gene states)",...
         MeanOnly=true, TitleFontSize=24, AxisLabelSize=18,...
         TickLabelSize=18, LegendFontSize=15, LegendLocation='east',...
         XLabel='Time', YLabel='Molecule Count', XLim=[0,50], YLim=[0,1]); 
