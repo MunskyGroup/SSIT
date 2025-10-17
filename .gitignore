@@ -93,3 +93,5 @@ tests/testData.csv
 tests/testData.csv
 tests/testData1.csv
 tests/testData2.csv
+tests/TMPmh_*
+tests/TmpGPUSSACode.m
