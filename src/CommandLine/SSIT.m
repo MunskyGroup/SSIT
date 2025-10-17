@@ -3879,13 +3879,14 @@ classdef SSIT
         % plotSSA - Plots SSA trajectories and histograms from ssaSoln struct
         function plotSSA(obj,speciesIdx,numTraj,speciesNames,lineProps,opts)
             arguments
-                obj                
-                speciesIdx = []
-                numTraj = []
-                speciesNames = []
-                lineProps = {'linewidth',2};
+                obj
+                speciesIdx = []                     
+                numTraj = []                % [] -> min(10, numTotalTraj)
+                speciesNames = []             
+                lineProps = {'linewidth',2};        
                 opts.Title (1,1) string = ""
                 opts.MeanOnly (1,1) logical = false
+                opts.HistTime double = 100  % histogram time (closest used)
                 opts.TitleFontSize (1,1) double {mustBePositive} = 18
                 opts.AxisLabelSize (1,1) double {mustBePositive} = 18
                 opts.TickLabelSize (1,1) double {mustBePositive} = 18
@@ -3893,97 +3894,156 @@ classdef SSIT
                 opts.LegendLocation (1,1) string = "best"
                 opts.XLabel (1,1) string = "Time"
                 opts.YLabel (1,1) string = "Molecule Count / Concentration"
-                opts.XLim double = []       % e.g., [0 50]
-                opts.YLim double = []       % e.g., [0 200]
+                opts.XLim double = []
+                opts.YLim double = []
+                opts.Colors = []      
+                % [] | species ×3 RGB | cell array | colormap name               
             end
-
+        
+            % ----- Extract SSA solution & sizes -----
             ssaSoln = obj.Solutions;
-             
-            numSpecies    = size(ssaSoln.trajs, 1);  % Extract # of species            
-            nTime         = size(ssaSoln.trajs, 2);  % Extract time
-            numTotalTraj  = size(ssaSoln.trajs, 3);  % Extract total # trajectories
-
-            % Number of trajectories to draw if not provided
+            numSpecies    = size(ssaSoln.trajs, 1);
+            nTime         = size(ssaSoln.trajs, 2);
+            numTotalTraj  = size(ssaSoln.trajs, 3);
+        
+            % ----- Number of trajectories to draw -----
             if isempty(numTraj)
                 numTraj = min(10, numTotalTraj);
             else
-                % Ensure we don't exceed available trajectories
                 numTraj = min(numTraj, numTotalTraj);
             end
         
-            % Species names
-            if isempty(speciesNames)
-                speciesNames = arrayfun(@(s) sprintf('Species %d', s), 1:numSpecies, 'UniformOutput', false);
-            elseif numel(speciesNames) ~= numSpecies
-                error('The number of species names must match the number of species (%d).', numSpecies);
+            % ----- Species master names -----
+            allNames = obj.species;
+            if isempty(allNames)
+                allNames = arrayfun(@(s) sprintf('Species %d', s), 1:numSpecies, 'UniformOutput', false);
             end
-
-            % Normalise speciesIdx to a numeric vector of valid indices
-            if ischar(speciesIdx) || (isstring(speciesIdx) && strlength(speciesIdx)==3 && strcmpi(speciesIdx,"all"))
-                spList = 1:numSpecies;
-            elseif isnumeric(speciesIdx)
-                spList = unique(speciesIdx(:))';
-                if any(spList < 1 | spList > numSpecies)
-                    error('speciesIdx must be within 1..%d, or "all".', numSpecies);
-                end
-            else
-                error('speciesIdx must be a numeric index/vector or "all".');
-            end     
-
-             % Extract time points and filter valid ones (t >= 0)
-            T = ssaSoln.T_array;
-            validIdx = T >= 0;
-            T = T(validIdx);
-            
-            % Locate the index closest to time = 100
-            [~, t100_idx] = min(abs(T - 100));
+            if isstring(allNames), allNames = cellstr(allNames); end
         
-            % Generate distinct colors for all species
-            speciesColors = lines(numSpecies); 
-            
-            % ------------ TRAJECTORY PLOT ------------
-            figure; hold on;
-            legendEntries = {}; % Store legend labels
-            legendHandles = []; % Store handles for legend colors
-            
-            if strcmp(speciesIdx, 'all')
-                % Plot all species in different colors
-                for s = 1:numSpecies
-                    X = squeeze(ssaSoln.trajs(s, validIdx, :)); % Extract valid species trajectories
-                    randIdx = randperm(numTotalTraj, numTraj); % Select random trajectories
-                    
-                    if ~opts.MeanOnly
-                        for i = 1:numTraj
-                            plot(T, X(:, randIdx(i)), 'Color', [speciesColors(s, :), 0.2]); % Transparent individual trajectories
-                        end
-                    end
-                    
-                    % Plot mean trajectory in the correct color
-                    h = plot(T, mean(X, 2), lineProps{:}, 'Color', speciesColors(s, :), 'LineWidth', 2);
-                    
-                    % Store handle and label for legend
-                    legendHandles(end+1) = h; %#ok<AGROW>
-                    legendEntries{end+1} = speciesNames{s}; % Use provided species name
+            % ----- Select species by names (priority) or indices -----
+            if ~isempty(speciesNames)
+                if isstring(speciesNames), speciesNames = cellstr(speciesNames); end
+                [tf, loc] = ismember(speciesNames, allNames);
+                if any(~tf)
+                    bad = speciesNames(~tf);
+                    error('Unknown species name(s): %s. Available: %s', strjoin(bad, ', '), strjoin(allNames, ', '));
                 end
+                spList = loc(:).';
+                selNames = allNames(spList);
             else
-                % Single species case
-                if length(speciesIdx) < 1 || length(speciesIdx) > numSpecies
-                     error('speciesIdx must be between 1 and %d, or ''all''.', numSpecies);
+                if ischar(speciesIdx) || (isstring(speciesIdx) && isscalar(speciesIdx))
+                    if strcmpi(char(speciesIdx), 'all')
+                        spList = 1:numSpecies;
+                    else
+                        error('speciesIdx string must be "all" or provide a numeric vector.');
+                    end
+                elseif isempty(speciesIdx)
+                    spList = 1:numSpecies;
+                elseif isnumeric(speciesIdx)
+                    spList = unique(speciesIdx(:)).';
+                    if any(spList < 1 | spList > numSpecies)
+                        error('speciesIdx must be within 1..%d, or "all".', numSpecies);
+                    end
+                else
+                    error('speciesIdx must be a numeric vector or "all".');
                 end
-                
-                X = squeeze(ssaSoln.trajs(length(speciesIdx), validIdx, :)); % Extract valid species trajectories
-                randIdx = randperm(numTotalTraj, numTraj); % Select random trajectories
-                
-                for i = 1:numTraj
-                    plot(T, X(:, randIdx(i)), 'LineWidth', 4, 'Color', [speciesColors(speciesIdx, :), 0.2]); % Transparent individual trajectories
+                selNames = allNames(spList);
+            end
+            nSel = numel(spList);
+        
+            % ----- Time vector & valid window -----
+            Tfull = ssaSoln.T_array(:);         % full time vector
+            validIdx = Tfull >= 0;              % adjust as needed
+            T = Tfull(validIdx);
+        
+            % Histogram time index (closest to opts.HistTime)
+            if isempty(opts.HistTime) || ~isfinite(opts.HistTime)
+                histTarget = 100;
+            else
+                histTarget = opts.HistTime;
+            end
+            [~, tHist_idx] = min(abs(Tfull - histTarget));
+        
+            % ----- Colors for selected species -----
+            C = []; useCellColors = false; cellColors = {};
+            if isempty(opts.Colors)
+                C = lines(nSel);
+            elseif ischar(opts.Colors) || (isstring(opts.Colors) && isscalar(opts.Colors))
+                cmName = char(opts.Colors);
+                bigN = max(nSel, 64);
+                try
+                    cm = feval(cmName, bigN);
+                catch
+                    error('opts.Colors="%s" is not a valid colormap name.', cmName);
                 end
-                
-                % Plot mean trajectory in the correct color
-                h = plot(T, mean(X, 2), 'Color', speciesColors(speciesIdx, :), 'LineWidth', 2);
-                
-                % Store handle and label for legend
-                legendHandles = h;
-                legendEntries = {speciesNames{speciesIdx}};
+                idx = round(linspace(1, bigN, nSel));
+                C = cm(idx, :);
+            elseif isnumeric(opts.Colors)
+                C = double(opts.Colors);
+                if size(C,2) ~= 3 || size(C,1) < nSel
+                    error('opts.Colors numeric must be at least %d×3 RGB.', nSel);
+                end
+                if any(~isfinite(C(:)) | C(:) < 0 | C(:) > 1)
+                    error('opts.Colors RGB must be finite in [0,1].');
+                end
+                C = C(1:nSel, :);
+            elseif iscell(opts.Colors)
+                if numel(opts.Colors) < nSel
+                    error('opts.Colors cell must provide at least %d entries.', nSel);
+                end
+                cellColors = cell(1,nSel);
+                for k = 1:nSel
+                    c = opts.Colors{k};
+                    if ischar(c) || (isstring(c) && isscalar(c))
+                        cellColors{k} = char(c);
+                    elseif isnumeric(c) && isequal(size(c), [1,3]) && all(isfinite(c)) && all(c>=0 & c<=1)
+                        cellColors{k} = double(c);
+                    else
+                        error('opts.Colors{%d} must be ColorSpec char or 1×3 RGB.', k);
+                    end
+                end
+                useCellColors = true;
+            else
+                error('opts.Colors must be: [], colormap name, n×3 RGB, or cell array.');
+            end
+        
+            % Helper: lighten color toward white (simulate transparency)
+            function lc = lighten(baseRGB, alpha)
+                lc = (1 - alpha)*[1 1 1] + alpha*baseRGB;
+            end
+        
+            % ----- TRAJECTORY PLOT -----
+            figure; hold on;
+            legendEntries = cell(1, nSel);
+            legendHandles = gobjects(1, nSel);
+        
+            randIdx = randperm(numTotalTraj, numTraj);
+        
+            for j = 1:nSel
+                s = spList(j);
+                        
+                if useCellColors
+                    baseColor = cellColors{j};
+                else
+                    baseColor = C(j, :);
+                end
+        
+                if ~opts.MeanOnly
+                    trajColor = baseColor;
+                    if isnumeric(baseColor)
+                        trajColor = lighten(baseColor, 0.25); % lighter lines for single trajectories
+                    end
+                    Xs = squeeze(ssaSoln.trajs(s, validIdx, :));
+                    for i = 1:numTraj
+                        plot(T, Xs(:, randIdx(i)), 'LineWidth', 0.75, 'Color', trajColor, ...
+                             'HandleVisibility', 'off');
+                    end
+                end
+        
+                Xs_full = squeeze(ssaSoln.trajs(s, validIdx, :));
+                h = plot(T, mean(Xs_full, 2), lineProps{:}, 'Color', baseColor);
+                legendHandles(j) = h;
+                legendEntries{j} = selNames{j};
             end
         
             % ----- Axes styling -----
@@ -3995,64 +4055,67 @@ classdef SSIT
             if strlength(opts.Title) > 0
                 title(string(opts.Title), 'FontSize', opts.TitleFontSize);
             else
-                if numel(spList) == numSpecies
+                if nSel == numSpecies
                     title('SSA Trajectories (Starting at t = 0)', 'FontSize', opts.TitleFontSize);
-                elseif numel(spList) == 1
-                    title(sprintf('SSA Trajectories for %s (Starting at t = 0)', speciesNames{spList}), 'FontSize', opts.TitleFontSize);
+                elseif nSel == 1
+                    title(sprintf('SSA Trajectories for %s (Starting at t = 0)', selNames{1}), 'FontSize', opts.TitleFontSize);
                 else
-                    title(sprintf('SSA Trajectories for Selected Species (Starting at t = 0)'), 'FontSize', opts.TitleFontSize);
+                    title('SSA Trajectories for Selected Species (Starting at t = 0)', 'FontSize', opts.TitleFontSize);
                 end
             end
         
-            % ----- Set axes limits -----
-            if ~isempty(opts.XLim)
-                xlim(opts.XLim);
-            end
-        
-            if ~isempty(opts.YLim)
-                ylim(opts.YLim);
-            end
+            % ----- Axes limits -----
+            if ~isempty(opts.XLim), xlim(opts.XLim); end
+            if ~isempty(opts.YLim), ylim(opts.YLim); end
         
             % ----- Legend -----
             if ~strcmpi(opts.LegendLocation, "none")
                 lgd = legend(legendHandles, legendEntries, 'Location', char(opts.LegendLocation));
-                if ~isempty(lgd)
-                    lgd.FontSize = opts.LegendFontSize;
-                end
+                if ~isempty(lgd), lgd.FontSize = opts.LegendFontSize; end
             end
-        
             grid on; box on; hold off;
         
-            % ------------ HISTOGRAM PLOT(S) at t ~ 100 ------------
-            % If t=100 isn't in the window, this uses the closest time.
+            % ----- HISTOGRAM PLOT(S) at t ≈ opts.HistTime -----
             figure;
-            if numel(spList) > 1
-                % grid for subplots
-                numPanels = numel(spList);
+            if nSel > 1
+                numPanels = nSel;
                 numRows = ceil(sqrt(numPanels));
                 numCols = ceil(numPanels / numRows);
-                for k = 1:numPanels
-                    s = spList(k);
-                    subplot(numRows, numCols, k);
-                    X_t = squeeze(ssaSoln.trajs(s, t100_idx, :)); % values at closest-to-100 time
-                    histogram(X_t, 'FaceColor', speciesColors(s, :), 'EdgeColor', 'k');
+                for j = 1:nSel
+                    s = spList(j);
+                    subplot(numRows, numCols, j);
+                    X_t = squeeze(ssaSoln.trajs(s, tHist_idx, :));
+                    if useCellColors
+                        fc = cellColors{j};
+                        if ischar(fc), fc = C(j,:); end
+                    else
+                        fc = C(j, :);
+                    end
+                    histogram(X_t, 'FaceColor', fc, 'EdgeColor', 'k');
                     ax = gca; ax.FontSize = opts.TickLabelSize;
-                    xlabel(sprintf('Molecule Count (%s)', speciesNames{s}), 'FontSize', opts.AxisLabelSize);
+                    xlabel(sprintf('Molecule Count (%s)', selNames{j}), 'FontSize', opts.AxisLabelSize);
                     ylabel('Frequency', 'FontSize', opts.AxisLabelSize);
-                    title(sprintf('Distribution at t ≈ %.2f (%s)', ssaSoln.T_array(t100_idx), speciesNames{s}), 'FontSize', opts.TitleFontSize);
+                    title(sprintf('Distribution at t ≈ %.2f (%s)', Tfull(tHist_idx), selNames{j}), 'FontSize', opts.TitleFontSize);
                     grid on; box on;
                 end
             else
-                s = spList(1);
-                X_t = squeeze(ssaSoln.trajs(s, t100_idx, :));
-                histogram(X_t, 'FaceColor', speciesColors(s, :), 'EdgeColor', 'k');
+                j = 1; s = spList(j);
+                X_t = squeeze(ssaSoln.trajs(s, tHist_idx, :));
+                if useCellColors
+                    fc = cellColors{j};
+                    if ischar(fc), fc = C(j,:); end
+                else
+                    fc = C(j, :);
+                end
+                histogram(X_t, 'FaceColor', fc, 'EdgeColor', 'k');
                 ax = gca; ax.FontSize = opts.TickLabelSize;
-                xlabel(sprintf('Molecule Count (%s)', speciesNames{s}), 'FontSize', opts.AxisLabelSize);
+                xlabel(sprintf('Molecule Count (%s)', selNames{j}), 'FontSize', opts.AxisLabelSize);
                 ylabel('Frequency', 'FontSize', opts.AxisLabelSize);
-                title(sprintf('Distribution at t ≈ %.2f (%s)', ssaSoln.T_array(t100_idx), speciesNames{s}), 'FontSize', opts.TitleFontSize);
+                title(sprintf('Distribution at t ≈ %.2f (%s)', Tfull(tHist_idx), selNames{j}), 'FontSize', opts.TitleFontSize);
                 grid on; box on;
             end
         end
+
 
         function figHandles = makeFitPlot(obj,fitSolution,smoothWindow,fignums,usePanels, ...
                 varianceType,IQRrange,suppressFigures)
