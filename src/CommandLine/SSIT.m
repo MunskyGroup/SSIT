@@ -4199,34 +4199,72 @@ classdef SSIT
             switch plotType
                 case 'means'
                     figure(figureNums(kfig)); clf; kfig=kfig+1; hold on
+                    hMean = gobjects(1, nSel);
+                    tt = solution.T_array(indTimes);
                     for j = 1:nSel
                         s = selIdx(j);
-                        plot(solution.T_array(indTimes), solution.Means(indTimes, s), ...
-                             lineProps{:}, 'Color', getC(C,j));
+                        col = getC(C, j);
+                        hMean(j) = plot(tt, solution.Means(indTimes, s), ...
+                                        lineProps{:}, 'Color', col, ...
+                                        'DisplayName', selNames{j});
                     end
-                    styleAxesAndLegend(selNames, opts);
-                    applyLimits(opts);
-                    applyTitle(opts, "FSP Means");
+                    ax = gca; ax.FontSize = opts.TickLabelSize;
+                    xlabel(opts.XLabel, 'FontSize', opts.AxisLabelSize);
+                    ylabel(opts.YLabel, 'FontSize', opts.AxisLabelSize);
+                    if ~strcmpi(opts.LegendLocation, "none")
+                        lgd = legend(hMean, selNames, 'Location', char(opts.LegendLocation));
+                        if ~isempty(lgd), lgd.FontSize = opts.LegendFontSize; end
+                    end
+                    if ~isempty(opts.XLim), xlim(opts.XLim); end
+                    if ~isempty(opts.YLim), ylim(opts.YLim); end
+                    if strlength(opts.Title)>0
+                        title(string(opts.Title), 'FontSize', opts.TitleFontSize);
+                    else
+                        title('FSP Means', 'FontSize', opts.TitleFontSize);
+                    end
                     grid on; box on; hold off;
         
                 case 'meansAndDevs'
                     figure(figureNums(kfig)); clf; kfig=kfig+1; hold on
+                    hMean = gobjects(1, nSel);                 % handles for legend
+                
+                    tt = solution.T_array(indTimes);
                     for j = 1:nSel
                         s  = selIdx(j);
                         mu = solution.Means(indTimes, s);
                         sd = sqrt(max(0, solution.Var(indTimes, s)));
-                    
-                        col = getC(C, j);                % char ColorSpec (e.g. 'r') or 1x3 RGB
-                        plot(solution.T_array(indTimes), mu, lineProps{:}, 'Color', col);
-                    
-                        eb = errorbar(solution.T_array(indTimes), mu, sd, 'LineStyle', 'none');
-                        eb.Color = col;                   % works for both RGB and char ColorSpec
+                        col = getC(C, j);
+                
+                        % mean line (legend handle)
+                        hMean(j) = plot(tt, mu, lineProps{:}, 'Color', col, ...
+                                         'DisplayName', selNames{j});
+                
+                        % std bars (keep out of legend)
+                        eb = errorbar(tt, mu, sd, 'LineStyle','none');
+                        eb.Color = col;
+                        eb.HandleVisibility = 'off';
                     end
-
-                    styleAxesAndLegend(selNames, opts);
-                    applyLimits(opts);
-                    applyTitle(opts, "FSP Means ± SD");
+                
+                    % axes + labels
+                    ax = gca; ax.FontSize = opts.TickLabelSize;
+                    xlabel(opts.XLabel, 'FontSize', opts.AxisLabelSize);
+                    ylabel(opts.YLabel, 'FontSize', opts.AxisLabelSize);
+                
+                    % legend with mean lines only (one entry per species)
+                    if ~strcmpi(opts.LegendLocation, "none")
+                        lgd = legend(hMean, selNames, 'Location', char(opts.LegendLocation));
+                        if ~isempty(lgd), lgd.FontSize = opts.LegendFontSize; end
+                    end
+                
+                    if ~isempty(opts.XLim), xlim(opts.XLim); end
+                    if ~isempty(opts.YLim), ylim(opts.YLim); end
+                    if strlength(opts.Title)>0
+                        title(string(opts.Title), 'FontSize', opts.TitleFontSize);
+                    else
+                        title('FSP Means ± SD', 'FontSize', opts.TitleFontSize);
+                    end
                     grid on; box on; hold off;
+
         
                 case 'marginals'
                     for jj = 1:nSel
@@ -4272,6 +4310,23 @@ classdef SSIT
             end
         
             % ---------- helpers ----------
+            function C = resolveColors(userC, n)
+                if isempty(userC), C = lines(n); return; end
+                if ischar(userC) || (isstring(userC) && isscalar(userC))
+                    cm = feval(char(userC), max(n,64));
+                    C = cm(round(linspace(1,size(cm,1),n)),:); return
+                end
+                if isnumeric(userC), C = userC(1:n,:); return; end
+                if iscell(userC),    C = userC(1:n);   return; end
+                error('opts.Colors must be: [], colormap name, n×3 RGB, or cell array.');
+            end
+            
+            function c = getC(Cin, j)
+                % Returns either 1x3 RGB or a char ColorSpec ('r','red', etc.)
+                if iscell(Cin), c = Cin{j}; else, c = Cin(j,:); end
+                if isstring(c), c = char(c); end
+            end
+            
             function styleAxesAndLegend(names, o)
                 ax = gca; ax.FontSize = o.TickLabelSize;
                 xlabel(o.XLabel, 'FontSize', o.AxisLabelSize);
@@ -4281,39 +4336,18 @@ classdef SSIT
                     if ~isempty(lgd), lgd.FontSize = o.LegendFontSize; end
                 end
             end
+            
             function applyLimits(o)
                 if ~isempty(o.XLim), xlim(o.XLim); end
                 if ~isempty(o.YLim), ylim(o.YLim); end
             end
+            
             function applyTitle(o, defaultTitle)
                 if strlength(o.Title) > 0
                     title(string(o.Title), 'FontSize', o.TitleFontSize);
                 else
                     title(defaultTitle, 'FontSize', o.TitleFontSize);
                 end
-            end
-            function C = resolveColors(userC, n)
-                if isempty(userC)
-                    C = lines(n); return
-                end
-                if ischar(userC) || (isstring(userC) && isscalar(userC))
-                    cm = feval(char(userC), max(n,64));
-                    C = cm(round(linspace(1,size(cm,1),n)),:); return
-                end
-                if isnumeric(userC)
-                    assert(size(userC,2)==3 && size(userC,1)>=n, 'opts.Colors must be at least %d×3.', n);
-                    C = userC(1:n,:); return
-                end
-                if iscell(userC)
-                    assert(numel(userC)>=n, 'opts.Colors cell must have at least %d entries.', n);
-                    C = userC(1:n); return
-                end
-                error('opts.Colors must be: [], colormap name, n×3 RGB, or cell array.');
-            end
-            function c = getC(Cin, j)
-                % Returns either 1x3 RGB or a char ColorSpec ('r','red', etc.)
-                if iscell(Cin), c = Cin{j}; else, c = Cin(j,:); end
-                if isstring(c), c = char(c); end
             end
          end
 

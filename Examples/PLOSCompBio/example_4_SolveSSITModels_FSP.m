@@ -122,11 +122,11 @@ STL1_4state.tSpan = linspace(0,50,200);
     [STL1_4state_FSPsoln,STL1_4state_FSP.fspOptions.bounds] = ...
         STL1_4state_FSP.solve; 
     
-    % Plot marginal distributions:
+    % Plots for FSP solutions:
+    STL1_4state_FSP.plotFSP(STL1_4state_FSPsoln, STL1_4state_FSP.species, 'means');
     STL1_4state_FSP.plotFSP(STL1_4state_FSPsoln, STL1_4state_FSP.species, 'meansAndDevs');
     STL1_4state_FSP.plotFSP(STL1_4state_FSPsoln, STL1_4state_FSP.species(5), 'marginals')
-    STL1_4state_FSP.plotFSP(STL1_4state_FSPsoln, STL1_4state_FSP.species, 'meansAndDevs')
-
+    %STL1_4state_FSP.plotFSP(STL1_4state_FSPsoln, STL1_4state_FSP.species, 'joints')
 
 %% Save FSP models & solutions
 saveNames = unique({'Model_FSP'
