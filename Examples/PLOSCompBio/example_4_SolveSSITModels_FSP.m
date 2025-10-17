@@ -54,10 +54,8 @@ STL1_4state.tSpan = linspace(0,50,200);
     % Solve with FSP:
     [Model_FSPsoln,Model_FSP.fspOptions.bounds] = Model_FSP.solve; 
     
-    % Plot marginal distributions:  
-    Model_FSP.makePlot(Model_FSPsoln,'meansAndDevs') 
-    Model_FSP.makePlot(Model_FSPsoln,'marginals')
-    %Model_FSP.makePlot(Model_FSPsoln,'margmovie')
+    % Plot marginal distributions at t=20:  
+    Model_FSP.plotFSP(Model_FSPsoln, Model_FSP.species, 'marginals', 200)
                        
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(2): Use the stochastic Finite State Projection (FSP) 
@@ -87,11 +85,8 @@ STL1_4state.tSpan = linspace(0,50,200);
     % Solve Model:
     [STL1_FSPsoln,STL1_FSP.fspOptions.bounds] = STL1_FSP.solve; 
     
-    % Plot marginal distributions:
-    STL1_FSP.makePlot(STL1_FSPsoln,'meansAndDevs')  
-    STL1_FSP.makePlot(STL1_FSPsoln,'marginals',[1:100:100],...
-                           false,[1,2,3],{'linewidth',2}) 
-    %STL1_FSP.makePlot(STL1_FSPsoln,'margmovie')
+    % Plot marginal distributions at t=20:  
+    STL1_FSP.plotFSP(STL1_FSPsoln, STL1_FSP.species, 'marginals', 200)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(3): Use the stochastic Finite State Projection (FSP) 
@@ -123,6 +118,10 @@ STL1_4state.tSpan = linspace(0,50,200);
         STL1_4state_FSP.solve; 
     
     %% Plots for FSP solutions:
+    % Means only:
+    % STL1_4state_FSP.plotFSP(STL1_4state_FSPsoln,...
+    %     STL1_4state_FSP.species, 'means')
+
     % Means and standard deviations:
     STL1_4state_FSP.plotFSP(STL1_4state_FSPsoln,...
         STL1_4state_FSP.species(5), 'meansAndDevs', [], [],...
