@@ -124,9 +124,8 @@ STL1_4state.tSpan = linspace(0,50,200);
     
     % Plot marginal distributions:
     STL1_4state_FSP.plotFSP(STL1_4state_FSPsoln, STL1_4state_FSP.species, 'meansAndDevs');
-    STL1_4state_FSP.plotFSP(STL1_4state_FSPsoln, STL1_4state_FSP.species, 'marginals')
-    % STL1_4state_FSP.plotFSP(STL1_4state_FSPsoln,'meansAndDevs',1:100:200,{'linewidth',2}, ...
-    % struct('SpeciesNames', STL1_4state_FSP.species(1:3), 'Colors','turbo'));
+    STL1_4state_FSP.plotFSP(STL1_4state_FSPsoln, STL1_4state_FSP.species(5), 'marginals')
+    STL1_4state_FSP.plotFSP(STL1_4state_FSPsoln, STL1_4state_FSP.species, 'meansAndDevs')
 
 
 %% Save FSP models & solutions
