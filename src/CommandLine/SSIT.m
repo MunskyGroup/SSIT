@@ -4174,6 +4174,7 @@ classdef SSIT
             nSel = numel(selIdx);
         
             % ----- Export FSP to plottable struct -----
+            rawSol = solution;   % <- copy to compute escape CDF if needed
             app.FspTabOutputs.solutions = solution.fsp;
             app.FspPrintTimesField.Value = mat2str(obj.tSpan);
             solution = exportFSPResults(app);
@@ -4328,6 +4329,82 @@ classdef SSIT
                             end
                         end
                     end
+
+                case 'escapeTimes'
+                    % Compute escape CDF z(t). Prefer exported field if available.
+                    tt = solution.T_array(:);
+                    if isempty(indTimes), indTimes = 1:numel(tt); end
+                    t = tt(indTimes);
+                
+                    if isfield(solution, 'EscapeCDF') && ~isempty(solution.EscapeCDF)
+                        z = solution.EscapeCDF(indTimes, :);
+                        % If EscapeCDF is a column vector, this is fine; if matrix, assume first column.
+                        if size(z,2) > 1, z = z(:,1); end
+                    else
+                        % Build from raw FSP (sum of escape/sink mass over time)
+                        Nt_all = numel(rawSol.fsp);
+                        t_all  = zeros(Nt_all,1);
+                        z_all  = zeros(Nt_all,1);
+                        for i = 1:Nt_all
+                            Fi = rawSol.fsp{i};
+                            if isfield(Fi,'time'), t_all(i) = Fi.time;
+                            elseif isfield(Fi,'T'), t_all(i) = Fi.T;
+                            elseif isfield(Fi,'t'), t_all(i) = Fi.t;
+                            else, t_all(i) = tt(i); % fallback to exported times
+                            end
+                            if isfield(Fi, 'escapeProbs') && ~isempty(Fi.escapeProbs)
+                                z_all(i) = sum(Fi.escapeProbs);
+                            elseif isfield(Fi, 'sinks') && ~isempty(Fi.sinks)
+                                z_all(i) = sum(Fi.sinks);
+                            else
+                                z_all(i) = NaN; % nothing to sum
+                            end
+                        end
+                        % If times differ slightly from exported, we still index by indTimes (same length expected).
+                        z = z_all(indTimes);
+                        t = t_all(indTimes);
+                    end
+                
+                    % Clean up NaNs (if any)
+                    nanMask = ~isfinite(z);
+                    if any(nanMask)
+                        z(nanMask) = 0;
+                    end
+                    % Clamp to [0,1]
+                    z = max(0, min(1, z));
+                
+                    % PDF via finite differences over the selected window
+                    if numel(t) >= 2
+                        tp = (t(2:end)+t(1:end-1))/2;
+                        zp = (z(2:end)-z(1:end-1)) ./ max(eps, (t(2:end)-t(1:end-1)));
+                    else
+                        tp = t;  zp = 0*t;
+                    end
+                
+                    % ---- Plot CDF (top) and PDF (bottom) ----
+                    figure(figureNums(kfig)); clf; kfig=kfig+1;
+                
+                    subplot(2,1,1);
+                    plot(t, z, lineProps{:}); grid on; box on;
+                    ax = gca; ax.FontSize = opts.TickLabelSize;
+                    xlabel(opts.XLabel, 'FontSize', opts.AxisLabelSize);
+                    ylabel('Escape CDF', 'FontSize', opts.AxisLabelSize);
+                    if ~isempty(opts.XLim), xlim(opts.XLim); end
+                    if ~isempty(opts.YLim), ylim(opts.YLim); end
+                    if strlength(opts.Title) > 0
+                        title(string(opts.Title), 'FontSize', opts.TitleFontSize);
+                    else
+                        title('Escape / First-Passage CDF', 'FontSize', opts.TitleFontSize);
+                    end
+                
+                    subplot(2,1,2);
+                    plot(tp, zp, lineProps{:}); grid on; box on;
+                    ax = gca; ax.FontSize = opts.TickLabelSize;
+                    xlabel(opts.XLabel, 'FontSize', opts.AxisLabelSize);
+                    ylabel('Escape PDF', 'FontSize', opts.AxisLabelSize);
+                    if ~isempty(opts.XLim), xlim(opts.XLim); end
+                    % Let Y auto unless user pinned it:
+                    if ~isempty(opts.YLim), ylim(opts.YLim); end
         
                 otherwise
                     error('Unknown plotType "%s". Use: "means", "meansAndDevs", "marginals", or "joints".', plotType);
