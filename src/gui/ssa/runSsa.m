@@ -19,6 +19,7 @@ app.SSITModel.ssaOptions.nSimsPerExpt = app.SsaNumSimField.Value/length(app.SSIT
 app.SSITModel.ssaOptions.useTimeVar = ~isempty(app.SSITModel.inputExpressions);
 app.SSITModel.ssaOptions.signalUpdateRate = str2double(app.SsaSignalUpdateRateField.Value);
 app.SSITModel.ssaOptions.useParallel = app.SsaParallelCheckBox.Value;
+app.SSITModel.ssaOptions.useGPU = app.SsaGPUCheckBox.Value;
 app.SSITModel.solutionScheme = 'SSA';
 
 tic

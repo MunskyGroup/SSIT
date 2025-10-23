@@ -189,6 +189,7 @@ if updatePropensityFuns
                 end
             case 'No - Use Current'
                 % do nothing
+                addpath(folder);
             case 'No - Specify New Location'
                 [propFileName] = uigetdir([pwd,'/tmpPropensityFunctions/'],'Create or choose folder for new propensity functions.');
                 propFileName = strrep(propFileName,[pwd,'/tmpPropensityFunctions/'],'');

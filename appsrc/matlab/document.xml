@@ -13,6 +13,7 @@
         ModelSaveButton                 matlab.ui.control.Button
         TabGroup                        matlab.ui.container.TabGroup
         ModelTab                        matlab.ui.container.Tab
+        RefreshFoldersButton            matlab.ui.control.Button
         NewModelButton                  matlab.ui.control.Button
         RenameSpeciesDropDown           matlab.ui.control.DropDown
         RenameSpeciesDropDownLabel      matlab.ui.control.Label
@@ -50,6 +51,7 @@
         ModelReactionTable              matlab.ui.control.Table
         ReactionTextAxes                matlab.ui.control.UIAxes
         StochasticSimulationTab         matlab.ui.container.Tab
+        SsaGPUCheckBox                  matlab.ui.control.CheckBox
         SpeciestoShowListBox            matlab.ui.control.ListBox
         SpeciestoShowListBoxLabel       matlab.ui.control.Label
         SsaShowOdeCheckBox              matlab.ui.control.CheckBox
@@ -215,7 +217,7 @@
         CellsEditField                  matlab.ui.control.NumericEditField
         CellsEditFieldLabel             matlab.ui.control.Label
         foratotalofLabel                matlab.ui.control.Label
-        OptimizeButton_2                matlab.ui.control.Button
+        OptimizeButton                  matlab.ui.control.Button
         orLabel                         matlab.ui.control.Label
         ManuallyAllocateMeasurementsperTimePointButton  matlab.ui.control.Button
         ObservableSpeciesListBox        matlab.ui.control.ListBox
@@ -420,10 +422,7 @@
             addpath(genpath('src'));
             clc
             initializeApp(app);
-            app.SSITModel = SSIT('Empty');
-            app.ModelUsePresetExampleTypeDropDown.Value = 'gene_expression';
             ModelUsePresetExampleTypeDropDownValueChanged(app);   % This runs the next drop down callback
-            app.ModelDropDown.Value = 'M00_Poisson_Process.mat';
             ModelDropDownValueChanged(app,[]);
         end
 
@@ -489,7 +488,8 @@
             plotSsaInGui(app); % Plots the SSA Results within the app
         end
 
-        % Value changed function: ModelUsePresetExampleTypeDropDown
+        % Callback function: ModelUsePresetExampleTypeDropDown, 
+        % ...and 1 other component
         function ModelUsePresetExampleTypeDropDownValueChanged(app, event)
             selectPresetExampleDropDown(app);
             % ModelDropDownValueChanged(app);
@@ -1421,8 +1421,8 @@
             FIMEstimateUncertainty(app)
         end
 
-        % Button pushed function: OptimizeButton_2
-        function OptimizeButton_2Pushed(app, event)
+        % Button pushed function: OptimizeButton
+        function OptimizeButtonPushed(app, event)
             FIMOptimize(app)
         end
 
@@ -1757,6 +1757,11 @@
             app.SSITModel = SSIT('Empty');
             updateAppFromSSIT(app,false,true);
         end
+
+        % Callback function
+        function ModelLoadButton_2Pushed(app, event)
+            
+        end
     end
 
     % Component initialization
@@ -1810,7 +1815,7 @@
             app.ReactionTextAxes.Color = 'none';
             app.ReactionTextAxes.GridColor = 'none';
             app.ReactionTextAxes.MinorGridColor = 'none';
-            app.ReactionTextAxes.Position = [661 -5 421 390];
+            app.ReactionTextAxes.Position = [664 12 421 375];
 
             % Create ModelReactionTable
             app.ModelReactionTable = uitable(app.ModelTab);
@@ -1918,9 +1923,11 @@
 
             % Create ModelDropDown
             app.ModelDropDown = uidropdown(app.ModelTab);
+            app.ModelDropDown.Items = {};
             app.ModelDropDown.ValueChangedFcn = createCallbackFcn(app, @ModelDropDownValueChanged, true);
             app.ModelDropDown.Tooltip = {'Use this to select a pre-made model.'};
             app.ModelDropDown.Position = [529 583 352 22];
+            app.ModelDropDown.Value = {};
 
             % Create IncreaseFontSizeRxn
             app.IncreaseFontSizeRxn = uibutton(app.ModelTab, 'push');
@@ -2072,6 +2079,15 @@
             app.NewModelButton.Position = [13 502 93 23];
             app.NewModelButton.Text = 'New Model';
 
+            % Create RefreshFoldersButton
+            app.RefreshFoldersButton = uibutton(app.ModelTab, 'push');
+            app.RefreshFoldersButton.ButtonPushedFcn = createCallbackFcn(app, @ModelUsePresetExampleTypeDropDownValueChanged, true);
+            app.RefreshFoldersButton.BackgroundColor = [0 1 0];
+            app.RefreshFoldersButton.FontWeight = 'bold';
+            app.RefreshFoldersButton.Tooltip = {'Press this button to load a saved model.'};
+            app.RefreshFoldersButton.Position = [900 580 106 28];
+            app.RefreshFoldersButton.Text = 'Refresh Folders';
+
             % Create StochasticSimulationTab
             app.StochasticSimulationTab = uitab(app.TabGroup);
             app.StochasticSimulationTab.Tooltip = {'Use this tab to generate stochastic trajectories for the model dynamics.'};
@@ -2149,7 +2165,7 @@
             % Create showLabel
             app.showLabel = uilabel(app.StochasticSimulationTab);
             app.showLabel.VerticalAlignment = 'top';
-            app.showLabel.Position = [12 386 65 29];
+            app.showLabel.Position = [12 352 65 29];
             app.showLabel.Text = 'show:';
 
             % Create SsaRunStatus
@@ -2163,7 +2179,7 @@
             app.SsaUpdatePlotsButton.ButtonPushedFcn = createCallbackFcn(app, @UpdatePlotsButtonPushed, true);
             app.SsaUpdatePlotsButton.BackgroundColor = [0 1 0];
             app.SsaUpdatePlotsButton.Visible = 'off';
-            app.SsaUpdatePlotsButton.Position = [76 386 107 28];
+            app.SsaUpdatePlotsButton.Position = [76 358 107 28];
             app.SsaUpdatePlotsButton.Text = 'Update Plots';
 
             % Create timeSliderLabel
@@ -2268,14 +2284,14 @@
             app.SsaParallelCheckBox.ValueChangedFcn = createCallbackFcn(app, @SsaParallelCheckBoxValueChanged, true);
             app.SsaParallelCheckBox.Tooltip = {'Evaluate SSA in parallel. Good for large times and many simulations.'};
             app.SsaParallelCheckBox.Text = 'Parallel';
-            app.SsaParallelCheckBox.Position = [11 446 128 32];
+            app.SsaParallelCheckBox.Position = [15 433 128 32];
 
             % Create SsaNonParallelCheckBox
             app.SsaNonParallelCheckBox = uicheckbox(app.StochasticSimulationTab);
             app.SsaNonParallelCheckBox.ValueChangedFcn = createCallbackFcn(app, @SsaNonParallelCheckBoxValueChanged, true);
             app.SsaNonParallelCheckBox.Tooltip = {'Evaluate SSA in series.'};
             app.SsaNonParallelCheckBox.Text = 'Non-Parallel';
-            app.SsaNonParallelCheckBox.Position = [11 415 128 32];
+            app.SsaNonParallelCheckBox.Position = [15 457 128 32];
             app.SsaNonParallelCheckBox.Value = true;
 
             % Create XmaxLabel_2
@@ -2333,14 +2349,14 @@
             % Create NSimsEditFieldLabel
             app.NSimsEditFieldLabel = uilabel(app.StochasticSimulationTab);
             app.NSimsEditFieldLabel.VerticalAlignment = 'top';
-            app.NSimsEditFieldLabel.Position = [15 369 88 22];
+            app.NSimsEditFieldLabel.Position = [15 335 88 22];
             app.NSimsEditFieldLabel.Text = 'N Sims:';
 
             % Create SsaNumSimToPlotField
             app.SsaNumSimToPlotField = uieditfield(app.StochasticSimulationTab, 'numeric');
             app.SsaNumSimToPlotField.ValueChangedFcn = createCallbackFcn(app, @UpdatePlotsButtonPushed, true);
             app.SsaNumSimToPlotField.Tooltip = {'Number of SSA Simulations to show in trajectory plot.'};
-            app.SsaNumSimToPlotField.Position = [20 348 34 22];
+            app.SsaNumSimToPlotField.Position = [20 314 34 22];
             app.SsaNumSimToPlotField.Value = 100;
 
             % Create SignalUpdateRateEditFieldLabel
@@ -2365,7 +2381,7 @@
             app.SsaExportExcelButton.ButtonPushedFcn = createCallbackFcn(app, @SsaExportExcelButtonPushed, true);
             app.SsaExportExcelButton.BackgroundColor = [0 1 0];
             app.SsaExportExcelButton.Tooltip = {'Export trajectories to Excel datasheet '};
-            app.SsaExportExcelButton.Position = [9 122 130 28];
+            app.SsaExportExcelButton.Position = [11 103 130 28];
             app.SsaExportExcelButton.Text = 'Export to Excel';
 
             % Create DecreaseFontSizeSSA
@@ -2398,12 +2414,12 @@
             app.SsaShowOdeCheckBox.ValueChangedFcn = createCallbackFcn(app, @UpdatePlotsButtonPushed, true);
             app.SsaShowOdeCheckBox.Tooltip = {'Show ODE solution in plots.'};
             app.SsaShowOdeCheckBox.Text = 'Show ODE';
-            app.SsaShowOdeCheckBox.Position = [28 189 82 22];
+            app.SsaShowOdeCheckBox.Position = [28 155 82 22];
 
             % Create SpeciestoShowListBoxLabel
             app.SpeciestoShowListBoxLabel = uilabel(app.StochasticSimulationTab);
             app.SpeciestoShowListBoxLabel.HorizontalAlignment = 'right';
-            app.SpeciestoShowListBoxLabel.Position = [23 309 96 22];
+            app.SpeciestoShowListBoxLabel.Position = [23 275 96 22];
             app.SpeciestoShowListBoxLabel.Text = 'Species to Show';
 
             % Create SpeciestoShowListBox
@@ -2412,8 +2428,14 @@
             app.SpeciestoShowListBox.Multiselect = 'on';
             app.SpeciestoShowListBox.ValueChangedFcn = createCallbackFcn(app, @SpeciestoShowListBoxValueChanged, true);
             app.SpeciestoShowListBox.Tooltip = {'Choose which species to show in plots.'};
-            app.SpeciestoShowListBox.Position = [47 233 100 74];
+            app.SpeciestoShowListBox.Position = [47 199 100 74];
             app.SpeciestoShowListBox.Value = {'x1'};
+
+            % Create SsaGPUCheckBox
+            app.SsaGPUCheckBox = uicheckbox(app.StochasticSimulationTab);
+            app.SsaGPUCheckBox.Tooltip = {'Evaluate SSA in series.'};
+            app.SsaGPUCheckBox.Text = 'GPU';
+            app.SsaGPUCheckBox.Position = [15 406 128 32];
 
             % Create FSPTab
             app.FSPTab = uitab(app.TabGroup);
@@ -3168,13 +3190,13 @@
             app.orLabel.Position = [868 403 25 22];
             app.orLabel.Text = 'or';
 
-            % Create OptimizeButton_2
-            app.OptimizeButton_2 = uibutton(app.FisherInformationTab, 'push');
-            app.OptimizeButton_2.ButtonPushedFcn = createCallbackFcn(app, @OptimizeButton_2Pushed, true);
-            app.OptimizeButton_2.BackgroundColor = [1 1 0];
-            app.OptimizeButton_2.FontWeight = 'bold';
-            app.OptimizeButton_2.Position = [883 404 67 23];
-            app.OptimizeButton_2.Text = 'Optimize';
+            % Create OptimizeButton
+            app.OptimizeButton = uibutton(app.FisherInformationTab, 'push');
+            app.OptimizeButton.ButtonPushedFcn = createCallbackFcn(app, @OptimizeButtonPushed, true);
+            app.OptimizeButton.BackgroundColor = [1 1 0];
+            app.OptimizeButton.FontWeight = 'bold';
+            app.OptimizeButton.Position = [883 404 67 23];
+            app.OptimizeButton.Text = 'Optimize';
 
             % Create foratotalofLabel
             app.foratotalofLabel = uilabel(app.FisherInformationTab);
