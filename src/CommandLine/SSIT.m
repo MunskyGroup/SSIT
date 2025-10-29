@@ -3618,6 +3618,982 @@ classdef SSIT
             end
         end
 
+        function plotODE(obj,speciesNames,timeVec,lineProps,opts)
+            arguments
+                obj
+                speciesNames = []                  
+                timeVec = []
+                lineProps = {'linewidth',2};
+                opts.Title (1,1) string = ""
+                opts.TitleFontSize (1,1) double {mustBePositive} = 18
+                opts.AxisLabelSize (1,1) double {mustBePositive} = 18
+                opts.TickLabelSize (1,1) double {mustBePositive} = 18
+                opts.LegendFontSize (1,1) double {mustBePositive} = 18
+                opts.LegendLocation (1,1) string = "best"
+                opts.XLabel (1,1) string = "Time"
+                opts.YLabel (1,1) string = "Molecule Count / Concentration"
+                opts.XLim double = []
+                opts.YLim double = []
+                opts.Colors = []  
+                % [] | n×3 RGB | cell of ColorSpec/RGB | colormap name string
+            end
+        
+            X = obj.Solutions.ode;  % [nTime × nSpecies]
+            [nTime, nSpecies] = size(X);
+        
+            % ----- timeVec -----
+            if isempty(timeVec)
+                timeVec = (1:nTime).';
+            else
+                if numel(timeVec) ~= nTime
+                    error('timeVec length (%d) must match number of ODE time points (%d).', numel(timeVec), nTime);
+                end
+                timeVec = timeVec(:);
+            end
+        
+            % ----- Species selection -----
+            allNames = obj.species;
+            if isstring(allNames), allNames = cellstr(allNames); end
+        
+            if isempty(speciesNames)
+                selIdx = 1:nSpecies;
+                selNames = allNames;
+            elseif isnumeric(speciesNames)
+                selIdx = speciesNames(:).';
+                if any(selIdx < 1 | selIdx > nSpecies) || numel(unique(selIdx)) ~= numel(selIdx)
+                    error('Invalid or duplicate species indices. Must be unique integers in [1,%d].', nSpecies);
+                end
+                selNames = allNames(selIdx);
+            else
+                if isstring(speciesNames), speciesNames = cellstr(speciesNames); end
+                [tf, loc] = ismember(speciesNames, allNames);
+                if any(~tf)
+                    bad = speciesNames(~tf);
+                    exampleList = strjoin(allNames, ', ');
+                    error('Unknown species name(s): %s. Available: %s', strjoin(bad, ', '), exampleList);
+                end
+                selIdx = loc(:).';
+                selNames = allNames(selIdx);
+            end
+        
+            nPlot = numel(selIdx);
+        
+            % ----- Colors -----
+            useCellColors = false;
+            C = [];          % numeric nPlot×3
+            cellColors = {}; % 1×nPlot cell for mixed ColorSpecs
+        
+            if isempty(opts.Colors)
+                C = lines(nPlot);
+            elseif ischar(opts.Colors) || (isstring(opts.Colors) && isscalar(opts.Colors))
+                cmName = char(opts.Colors);
+                try
+                    % Sample the colormap to exactly nPlot colors
+                    bigN = max(nPlot, 64);
+                    cm = feval(cmName, bigN);
+                    idx = round(linspace(1, bigN, nPlot));
+                    C = cm(idx, :);
+                catch
+                    error('opts.Colors="%s" is not a valid colormap name.', cmName);
+                end
+            elseif isnumeric(opts.Colors)
+                C = double(opts.Colors);
+                if size(C,2) ~= 3 || size(C,1) < nPlot
+                    error('opts.Colors numeric must be at least %d×3 RGB values.', nPlot);
+                end
+                if any(C(:) < 0 | C(:) > 1) || ~all(isfinite(C(:)))
+                    error('opts.Colors numeric RGB values must be finite and in [0,1].');
+                end
+                C = C(1:nPlot, :);
+            elseif iscell(opts.Colors)
+                if numel(opts.Colors) < nPlot
+                    error('opts.Colors cell must provide at least %d entries.', nPlot);
+                end
+                cellColors = cell(1,nPlot);
+                for k = 1:nPlot
+                    c = opts.Colors{k};
+                    if ischar(c) || (isstring(c) && isscalar(c))
+                        cellColors{k} = char(c);              
+                    elseif isnumeric(c) && isequal(size(c), [1,3])
+                        if any(c < 0 | c > 1) || ~all(isfinite(c))
+                            error('opts.Colors{%d}: RGB must be finite in [0,1].', k);
+                        end
+                        cellColors{k} = double(c);
+                    else
+                        error('opts.Colors{%d} must be a ColorSpec char or a 1×3 RGB vector.', k);
+                    end
+                end
+                useCellColors = true;
+            else
+                error('opts.Colors must be: [], an n×3 RGB matrix, a cell array of colors, or a colormap name string.');
+            end
+        
+            % ----- Plot -----
+            figure; hold on;
+            for k = 1:nPlot
+                s = selIdx(k);
+                if useCellColors
+                    thisColor = cellColors{k};
+                else
+                    thisColor = C(k, :);
+                end
+                plot(timeVec, X(:, s), lineProps{:}, 'Color', thisColor);
+            end
+        
+            ax = gca;
+            ax.FontSize = opts.TickLabelSize;
+        
+            if ~isempty(opts.XLim), xlim(opts.XLim); end
+            if ~isempty(opts.YLim), ylim(opts.YLim); end
+        
+            xlabel(opts.XLabel, 'FontSize', opts.AxisLabelSize);
+            ylabel(opts.YLabel, 'FontSize', opts.AxisLabelSize);
+        
+            if ~isempty(opts.Title)
+                title(opts.Title,'FontSize',opts.TitleFontSize);
+            else
+                title('ODE Solution Trajectories','FontSize',opts.TitleFontSize);
+            end
+            grid on; box on;
+        
+            if ~strcmpi(opts.LegendLocation,"none")
+                lgd = legend(selNames, 'Location', char(opts.LegendLocation));
+                if ~isempty(lgd), lgd.FontSize = opts.LegendFontSize; end
+            end
+            hold off;
+        end
+
+
+        % plotSSA - Plots SSA trajectories and histograms from ssaSoln struct
+        function plotSSA(obj,speciesIdx,numTraj,speciesNames,lineProps,opts)
+            arguments
+                obj
+                speciesIdx = []                     
+                numTraj = []                % [] -> min(10, numTotalTraj)
+                speciesNames = []             
+                lineProps = {'linewidth',2};        
+                opts.Title (1,1) string = ""
+                opts.MeanOnly (1,1) logical = false
+                opts.HistTime double = 100  % histogram time (closest used)
+                opts.TitleFontSize (1,1) double {mustBePositive} = 18
+                opts.AxisLabelSize (1,1) double {mustBePositive} = 18
+                opts.TickLabelSize (1,1) double {mustBePositive} = 18
+                opts.LegendFontSize (1,1) double {mustBePositive} = 18
+                opts.LegendLocation (1,1) string = "best"
+                opts.XLabel (1,1) string = "Time"
+                opts.YLabel (1,1) string = "Molecule Count / Concentration"
+                opts.XLim double = []
+                opts.YLim double = []
+                opts.Colors = []      
+                % [] | species ×3 RGB | cell array | colormap name               
+            end
+        
+            % ----- Extract SSA solution & sizes -----
+            ssaSoln = obj.Solutions;
+            numSpecies    = size(ssaSoln.trajs, 1);
+            nTime         = size(ssaSoln.trajs, 2);
+            numTotalTraj  = size(ssaSoln.trajs, 3);
+        
+            % ----- Number of trajectories to draw -----
+            if isempty(numTraj)
+                numTraj = min(10, numTotalTraj);
+            else
+                numTraj = min(numTraj, numTotalTraj);
+            end
+        
+            % ----- Species master names -----
+            allNames = obj.species;
+            if isempty(allNames)
+                allNames = arrayfun(@(s) sprintf('Species %d', s), 1:numSpecies, 'UniformOutput', false);
+            end
+            if isstring(allNames), allNames = cellstr(allNames); end
+        
+            % ----- Select species by names (priority) or indices -----
+            if ~isempty(speciesNames)
+                if isstring(speciesNames), speciesNames = cellstr(speciesNames); end
+                [tf, loc] = ismember(speciesNames, allNames);
+                if any(~tf)
+                    bad = speciesNames(~tf);
+                    error('Unknown species name(s): %s. Available: %s', strjoin(bad, ', '), strjoin(allNames, ', '));
+                end
+                spList = loc(:).';
+                selNames = allNames(spList);
+            else
+                if ischar(speciesIdx) || (isstring(speciesIdx) && isscalar(speciesIdx))
+                    if strcmpi(char(speciesIdx), 'all')
+                        spList = 1:numSpecies;
+                    else
+                        error('speciesIdx string must be "all" or provide a numeric vector.');
+                    end
+                elseif isempty(speciesIdx)
+                    spList = 1:numSpecies;
+                elseif isnumeric(speciesIdx)
+                    spList = unique(speciesIdx(:)).';
+                    if any(spList < 1 | spList > numSpecies)
+                        error('speciesIdx must be within 1..%d, or "all".', numSpecies);
+                    end
+                else
+                    error('speciesIdx must be a numeric vector or "all".');
+                end
+                selNames = allNames(spList);
+            end
+            nSel = numel(spList);
+        
+            % ----- Time vector & valid window -----
+            Tfull = ssaSoln.T_array(:);         % full time vector
+            validIdx = Tfull >= 0;              % adjust as needed
+            T = Tfull(validIdx);
+        
+            % Histogram time index (closest to opts.HistTime)
+            if isempty(opts.HistTime) || ~isfinite(opts.HistTime)
+                histTarget = 100;
+            else
+                histTarget = opts.HistTime;
+            end
+            [~, tHist_idx] = min(abs(Tfull - histTarget));
+        
+            % ----- Colors for selected species -----
+            C = []; useCellColors = false; cellColors = {};
+            if isempty(opts.Colors)
+                C = lines(nSel);
+            elseif ischar(opts.Colors) || (isstring(opts.Colors) && isscalar(opts.Colors))
+                cmName = char(opts.Colors);
+                bigN = max(nSel, 64);
+                try
+                    cm = feval(cmName, bigN);
+                catch
+                    error('opts.Colors="%s" is not a valid colormap name.', cmName);
+                end
+                idx = round(linspace(1, bigN, nSel));
+                C = cm(idx, :);
+            elseif isnumeric(opts.Colors)
+                C = double(opts.Colors);
+                if size(C,2) ~= 3 || size(C,1) < nSel
+                    error('opts.Colors numeric must be at least %d×3 RGB.', nSel);
+                end
+                if any(~isfinite(C(:)) | C(:) < 0 | C(:) > 1)
+                    error('opts.Colors RGB must be finite in [0,1].');
+                end
+                C = C(1:nSel, :);
+            elseif iscell(opts.Colors)
+                if numel(opts.Colors) < nSel
+                    error('opts.Colors cell must provide at least %d entries.', nSel);
+                end
+                cellColors = cell(1,nSel);
+                for k = 1:nSel
+                    c = opts.Colors{k};
+                    if ischar(c) || (isstring(c) && isscalar(c))
+                        cellColors{k} = char(c);
+                    elseif isnumeric(c) && isequal(size(c), [1,3]) && all(isfinite(c)) && all(c>=0 & c<=1)
+                        cellColors{k} = double(c);
+                    else
+                        error('opts.Colors{%d} must be ColorSpec char or 1×3 RGB.', k);
+                    end
+                end
+                useCellColors = true;
+            else
+                error('opts.Colors must be: [], colormap name, n×3 RGB, or cell array.');
+            end
+        
+            % Helper: lighten color toward white (simulate transparency)
+            function lc = lighten(baseRGB, alpha)
+                lc = (1 - alpha)*[1 1 1] + alpha*baseRGB;
+            end
+        
+            % ----- TRAJECTORY PLOT -----
+            figure; hold on;
+            legendEntries = cell(1, nSel);
+            legendHandles = gobjects(1, nSel);
+        
+            randIdx = randperm(numTotalTraj, numTraj);
+        
+            for j = 1:nSel
+                s = spList(j);
+                        
+                if useCellColors
+                    baseColor = cellColors{j};
+                else
+                    baseColor = C(j, :);
+                end
+        
+                if ~opts.MeanOnly
+                    trajColor = baseColor;
+                    if isnumeric(baseColor)
+                        trajColor = lighten(baseColor, 0.25); % lighter lines for single trajectories
+                    end
+                    Xs = squeeze(ssaSoln.trajs(s, validIdx, :));
+                    for i = 1:numTraj
+                        plot(T, Xs(:, randIdx(i)), 'LineWidth', 0.75, 'Color', trajColor, ...
+                             'HandleVisibility', 'off');
+                    end
+                end
+        
+                Xs_full = squeeze(ssaSoln.trajs(s, validIdx, :));
+                h = plot(T, mean(Xs_full, 2), lineProps{:}, 'Color', baseColor);
+                legendHandles(j) = h;
+                legendEntries{j} = selNames{j};
+            end
+        
+            % ----- Axes styling -----
+            ax = gca; ax.FontSize = opts.TickLabelSize;
+            xlabel(opts.XLabel, 'FontSize', opts.AxisLabelSize);
+            ylabel(opts.YLabel, 'FontSize', opts.AxisLabelSize);
+        
+            % ----- Title -----
+            if strlength(opts.Title) > 0
+                title(string(opts.Title), 'FontSize', opts.TitleFontSize);
+            else
+                if nSel == numSpecies
+                    title('SSA Trajectories (Starting at t = 0)', 'FontSize', opts.TitleFontSize);
+                elseif nSel == 1
+                    title(sprintf('SSA Trajectories for %s (Starting at t = 0)', selNames{1}), 'FontSize', opts.TitleFontSize);
+                else
+                    title('SSA Trajectories for Selected Species (Starting at t = 0)', 'FontSize', opts.TitleFontSize);
+                end
+            end
+        
+            % ----- Axes limits -----
+            if ~isempty(opts.XLim), xlim(opts.XLim); end
+            if ~isempty(opts.YLim), ylim(opts.YLim); end
+        
+            % ----- Legend -----
+            if ~strcmpi(opts.LegendLocation, "none")
+                lgd = legend(legendHandles, legendEntries, 'Location', char(opts.LegendLocation));
+                if ~isempty(lgd), lgd.FontSize = opts.LegendFontSize; end
+            end
+            grid on; box on; hold off;
+        
+            % ----- HISTOGRAM PLOT(S) at t ≈ opts.HistTime -----
+            figure;
+            if nSel > 1
+                numPanels = nSel;
+                numRows = ceil(sqrt(numPanels));
+                numCols = ceil(numPanels / numRows);
+                for j = 1:nSel
+                    s = spList(j);
+                    subplot(numRows, numCols, j);
+                    X_t = squeeze(ssaSoln.trajs(s, tHist_idx, :));
+                    if useCellColors
+                        fc = cellColors{j};
+                        if ischar(fc), fc = C(j,:); end
+                    else
+                        fc = C(j, :);
+                    end
+                    histogram(X_t, 'FaceColor', fc, 'EdgeColor', 'k');
+                    ax = gca; ax.FontSize = opts.TickLabelSize;
+                    xlabel(sprintf('Molecule Count (%s)', selNames{j}), 'FontSize', opts.AxisLabelSize);
+                    ylabel('Frequency', 'FontSize', opts.AxisLabelSize);
+                    title(sprintf('Distribution at t ≈ %.2f (%s)', Tfull(tHist_idx), selNames{j}), 'FontSize', opts.TitleFontSize);
+                    grid on; box on;
+                end
+            else
+                j = 1; s = spList(j);
+                X_t = squeeze(ssaSoln.trajs(s, tHist_idx, :));
+                if useCellColors
+                    fc = cellColors{j};
+                    if ischar(fc), fc = C(j,:); end
+                else
+                    fc = C(j, :);
+                end
+                histogram(X_t, 'FaceColor', fc, 'EdgeColor', 'k');
+                ax = gca; ax.FontSize = opts.TickLabelSize;
+                xlabel(sprintf('Molecule Count (%s)', selNames{j}), 'FontSize', opts.AxisLabelSize);
+                ylabel('Frequency', 'FontSize', opts.AxisLabelSize);
+                title(sprintf('Distribution at t ≈ %.2f (%s)', Tfull(tHist_idx), selNames{j}), 'FontSize', opts.TitleFontSize);
+                grid on; box on;
+            end
+        end
+            
+         function plotFSP(obj, solution, speciesNames, plotType, indTimes, figureNums, lineProps, opts)
+            % plotFSP — Plot FSP results like plotODE/plotSSA, with species subsetting
+            arguments
+                obj
+                solution
+                speciesNames = []
+                plotType (1,1) string = "means"
+                indTimes = []
+                figureNums = []
+                lineProps = {'linewidth',2}
+                opts.SpeciesIdx = []
+                opts.Colors = []
+                opts.Title (1,1) string = ""
+                opts.TitleFontSize (1,1) double {mustBePositive} = 18
+                opts.AxisLabelSize (1,1) double {mustBePositive} = 18
+                opts.TickLabelSize (1,1) double {mustBePositive} = 18
+                opts.LegendFontSize (1,1) double {mustBePositive} = 18
+                opts.LegendLocation (1,1) string = "best"
+                opts.XLabel (1,1) string = "Time"
+                opts.YLabel (1,1) string = "Molecule Count / Concentration"
+                opts.XLim double = []
+                opts.YLim double = []
+            end
+        
+            % ----- Species selection -----
+            nSpecies = numel(obj.species);
+            allNames = obj.species;
+            if isstring(allNames), allNames = cellstr(allNames); end
+        
+            if isempty(speciesNames) && isempty(opts.SpeciesIdx)
+                selIdx = 1:nSpecies;
+                selNames = allNames;
+            elseif ~isempty(opts.SpeciesIdx)
+                selIdx = unique(opts.SpeciesIdx(:).');
+                if any(selIdx < 1 | selIdx > nSpecies)
+                    error('opts.SpeciesIdx must be in 1..%d', nSpecies);
+                end
+                selNames = allNames(selIdx);
+            elseif isnumeric(speciesNames)
+                selIdx = unique(speciesNames(:).');
+                if any(selIdx < 1 | selIdx > nSpecies)
+                    error('speciesNames (indices) must be in 1..%d', nSpecies);
+                end
+                selNames = allNames(selIdx);
+            else
+                if isstring(speciesNames), speciesNames = cellstr(speciesNames); end
+                [tf, loc] = ismember(speciesNames, allNames);
+                if any(~tf)
+                    bad = speciesNames(~tf);
+                    error('Unknown species name(s): %s. Available: %s', ...
+                          strjoin(bad, ', '), strjoin(allNames, ', '));
+                end
+                selIdx = loc(:).';
+                selNames = allNames(selIdx);
+            end
+            nSel = numel(selIdx);
+        
+            % ----- Export FSP to plottable struct -----
+            rawSol = solution;   % <- copy to compute escape CDF if needed
+            app.FspTabOutputs.solutions = solution.fsp;
+            app.FspPrintTimesField.Value = mat2str(obj.tSpan);
+            solution = exportFSPResults(app);
+        
+            % Time selection
+            if isempty(indTimes), indTimes = 1:length(solution.T_array); end
+            Nt = numel(indTimes);
+        
+            % ----- Figure numbers -----
+            if isempty(figureNums)
+                h = findobj('type','figure');
+                if ~isempty(h)
+                    figureNums = max([h.Number])+(1:10);
+                else
+                    figureNums = (1:10);
+                end
+            end
+            kfig = 1;
+        
+            % ----- Colors for selected series -----
+            C = resolveColors(opts.Colors, nSel);  % nSel×3 or cell of nSel entries
+        
+            switch plotType
+                case 'means'
+                    figure(figureNums(kfig)); clf; kfig=kfig+1; hold on
+                    hMean = gobjects(1, nSel);
+                    tt = solution.T_array(indTimes);
+                    for j = 1:nSel
+                        s = selIdx(j);
+                        col = getC(C, j);
+                        hMean(j) = plot(tt, solution.Means(indTimes, s), ...
+                                        lineProps{:}, 'Color', col, ...
+                                        'DisplayName', selNames{j});
+                    end
+                    ax = gca; ax.FontSize = opts.TickLabelSize;
+                    xlabel(opts.XLabel, 'FontSize', opts.AxisLabelSize);
+                    ylabel(opts.YLabel, 'FontSize', opts.AxisLabelSize);
+                    if ~strcmpi(opts.LegendLocation, "none")
+                        lgd = legend(hMean, selNames, 'Location', char(opts.LegendLocation));
+                        if ~isempty(lgd), lgd.FontSize = opts.LegendFontSize; end
+                    end
+                    if ~isempty(opts.XLim), xlim(opts.XLim); end
+                    if ~isempty(opts.YLim), ylim(opts.YLim); end
+                    if strlength(opts.Title)>0
+                        title(string(opts.Title), 'FontSize', opts.TitleFontSize);
+                    else
+                        title('FSP Means', 'FontSize', opts.TitleFontSize);
+                    end
+                    grid on; box on; hold off;
+        
+                case 'meansAndDevs'
+                    figure(figureNums(kfig)); clf; kfig=kfig+1; hold on
+                    hMean = gobjects(1, nSel);                 % handles for legend
+                
+                    tt = solution.T_array(indTimes);
+                    for j = 1:nSel
+                        s  = selIdx(j);
+                        mu = solution.Means(indTimes, s);
+                        sd = sqrt(max(0, solution.Var(indTimes, s)));
+                        col = getC(C, j);
+                
+                        % mean line (legend handle)
+                        hMean(j) = plot(tt, mu, lineProps{:}, 'Color', col, ...
+                                         'DisplayName', selNames{j});
+                
+                        % std bars (keep out of legend)
+                        eb = errorbar(tt, mu, sd, 'LineStyle','none');
+                        eb.Color = col;
+                        eb.HandleVisibility = 'off';
+                    end
+                
+                    % axes + labels
+                    ax = gca; ax.FontSize = opts.TickLabelSize;
+                    xlabel(opts.XLabel, 'FontSize', opts.AxisLabelSize);
+                    ylabel(opts.YLabel, 'FontSize', opts.AxisLabelSize);
+                
+                    % legend with mean lines only (one entry per species)
+                    if ~strcmpi(opts.LegendLocation, "none")
+                        lgd = legend(hMean, selNames, 'Location', char(opts.LegendLocation));
+                        if ~isempty(lgd), lgd.FontSize = opts.LegendFontSize; end
+                    end
+                
+                    if ~isempty(opts.XLim), xlim(opts.XLim); end
+                    if ~isempty(opts.YLim), ylim(opts.YLim); end
+                    if strlength(opts.Title)>0
+                        title(string(opts.Title), 'FontSize', opts.TitleFontSize);
+                    else
+                        title('FSP Means ± SD', 'FontSize', opts.TitleFontSize);
+                    end
+                    grid on; box on; hold off;
+        
+                case 'marginals'
+                    for jj = 1:nSel
+                        s = selIdx(jj);
+                        f = figure(figureNums(kfig)); clf; kfig=kfig+1;
+                        f.Name = ['Marginal Distributions of ', selNames{jj}];
+                        Nr = ceil(sqrt(Nt)); Nc = ceil(Nt/Nr);
+                
+                        for ii = 1:Nt
+                            i2 = indTimes(ii);
+                            pmf = solution.Marginals{i2}{s}(:);
+                            x = 0:numel(pmf)-1;
+                
+                            % Optional crop to XLim (for performance and cleaner view)
+                            if ~isempty(opts.XLim)
+                                mask = (x >= opts.XLim(1)) & (x <= opts.XLim(2));
+                                xPlot = x(mask);
+                                yPlot = pmf(mask);
+                            else
+                                xPlot = x;
+                                yPlot = pmf;
+                            end
+                
+                            subplot(Nr, Nc, ii); hold on
+                            stairs(xPlot, yPlot, lineProps{:}, 'Color', getC(C,jj));
+                            set(gca,'FontSize',opts.TickLabelSize)
+                            title(sprintf('t = %.3g', solution.T_array(i2)), ...
+                                  'FontSize', max(opts.TitleFontSize-2,8))
+                            xlabel(sprintf('%s count', selNames{jj}), 'FontSize', opts.AxisLabelSize-2);
+                            ylabel('Probability', 'FontSize', opts.AxisLabelSize-2);
+                
+                            % Apply limits if provided
+                            if ~isempty(opts.XLim), xlim(opts.XLim); end
+                            if ~isempty(opts.YLim), ylim(opts.YLim); end
+                
+                            grid on; box on;
+                        end
+                
+                        sgtitle(sprintf('Marginal Distributions — %s', selNames{jj}), ...
+                                'FontSize', opts.TitleFontSize);
+                    end
+        
+                case 'joints'
+                    if nSel < 2
+                        error('Joint distributions only available when 2 or more species are selected.');
+                    end
+                    for a = 1:nSel
+                        for b = a+1:nSel
+                            s1 = selIdx(a); s2 = selIdx(b);
+                            h = figure(figureNums(kfig)); clf; kfig=kfig+1;
+                            h.Name = sprintf('Joint Distribution of %s and %s', selNames{a}, selNames{b});
+                            Nr = ceil(sqrt(Nt)); Nc = ceil(Nt/Nr);
+                            for ii = 1:Nt
+                                i2 = indTimes(ii);
+                                subplot(Nr,Nc,ii);
+                                contourf(log10(max(1e-16, solution.Joints{i2}{s1,s2})));
+                                colorbar
+                                title(sprintf('t = %.3g', solution.T_array(i2)), 'FontSize', max(opts.TitleFontSize-2,8))
+                                ylabel(selNames{a}); xlabel(selNames{b});
+                                set(gca,'FontSize',opts.TickLabelSize)
+                            end
+                        end
+                    end
+
+                case 'escapeTimes'
+                    % ---- Gather times ----
+                    tt = solution.T_array(:);
+                    if isempty(indTimes), indTimes = 1:numel(tt); end
+                    t  = tt(indTimes);
+                
+                    % ---- Get names for sinks (legend labels) ----
+                    sinkNames = {};
+                    try
+                        sinkNames = obj.fspOptions.escapeSinks.f;
+                        if isstring(sinkNames), sinkNames = cellstr(sinkNames); end
+                        if ~iscell(sinkNames), sinkNames = {}; end
+                    catch
+                        sinkNames = {};
+                    end
+                
+                    % ---- Get Escape CDF matrix [Nt x nSinks] ----
+                    if isfield(solution, 'EscapeCDF') && ~isempty(solution.EscapeCDF)
+                        Z_all = solution.EscapeCDF;                 % Nt x nSinks
+                        if isvector(Z_all), Z_all = Z_all(:); end   % ensure 2D
+                        Z = Z_all(indTimes, :);
+                    else
+                        % Build per-sink CDF from raw FSP (supports multiple sinks)
+                        [t_raw, Z_raw] = computeEscapeCDFFromRawMulti(rawSol);   % Nt x nSinks
+                        % align to exported times if needed
+                        if numel(t_raw) ~= numel(tt)
+                            Z = interp1(t_raw, Z_raw, tt, 'previous', 'extrap');
+                        else
+                            Z = Z_raw;
+                        end
+                        Z = Z(indTimes, :);
+                    end
+                
+                    % ---- Clean & clamp ----
+                    Z(~isfinite(Z)) = 0;
+                    Z = max(0, min(1, Z));       % keep in [0,1]
+                    nSinks = size(Z,2);
+                    if isempty(sinkNames) || numel(sinkNames) ~= nSinks
+                        sinkNames = arrayfun(@(k) sprintf('Sink %d', k), 1:nSinks, 'UniformOutput', false);
+                    end
+                
+                    % ---- Colors: one per sink ----
+                    C = resolveColors(opts.Colors, nSinks);
+                
+                    % ---- Compute PDFs per sink via finite differences ----
+                    if numel(t) >= 2
+                        dt  = max(eps, t(2:end) - t(1:end-1));
+                        tp  = (t(2:end) + t(1:end-1))/2;
+                        dZ  = Z(2:end, :) - Z(1:end-1, :);
+                        Zp  = dZ ./ dt;             % [Nt-1 x nSinks]
+                    else
+                        tp = t; Zp = zeros(numel(t), nSinks);
+                    end
+                
+                    % ---- Plot: CDF (top) ----
+                    figure(figureNums(kfig)); clf; kfig = kfig+1;
+                    subplot(2,1,1); hold on
+                    hC = gobjects(1, nSinks);
+                    for k = 1:nSinks
+                        col = getC(C, k);
+                        hC(k) = plot(t, Z(:,k), lineProps{:}, 'Color', col, 'DisplayName', sinkNames{k});
+                    end
+                    grid on; box on;
+                    ax = gca; ax.FontSize = opts.TickLabelSize;
+                    xlabel(opts.XLabel, 'FontSize', opts.AxisLabelSize);
+                    ylabel('Escape CDF', 'FontSize', opts.AxisLabelSize);
+                    if ~strcmpi(opts.LegendLocation, "none")
+                        lgd = legend(hC, sinkNames, 'Location', char(opts.LegendLocation));
+                        if ~isempty(lgd), lgd.FontSize = opts.LegendFontSize; end
+                    end
+                    if ~isempty(opts.XLim), xlim(opts.XLim); end
+                    if ~isempty(opts.YLim), ylim(opts.YLim); end
+                    if strlength(opts.Title) > 0
+                        title(string(opts.Title), 'FontSize', opts.TitleFontSize);
+                    else
+                        title('Escape / First-Passage CDF', 'FontSize', opts.TitleFontSize);
+                    end
+                
+                    % ---- Plot: PDF (bottom) ----
+                    subplot(2,1,2); hold on
+                    for k = 1:nSinks
+                        col = getC(C, k);
+                        plot(tp, Zp(:,k), lineProps{:}, 'Color', col);
+                    end
+                    grid on; box on;
+                    ax = gca; ax.FontSize = opts.TickLabelSize;
+                    xlabel(opts.XLabel, 'FontSize', opts.AxisLabelSize);
+                    ylabel('Escape PDF', 'FontSize', opts.AxisLabelSize);
+                    if ~isempty(opts.XLim), xlim(opts.XLim); end
+                    if ~isempty(opts.YLim), ylim(opts.YLim); end
+
+                case 'fspSens'
+                    % ----- Build plottable sensitivity results (same as before) -----
+                    app.SensFspTabOutputs.solutions = solution.sens;
+                    app.SensPrintTimesEditField.Value = mat2str(obj.tSpan);
+                    if ~isempty(obj.parameters)
+                        app.ReactionsTabOutputs.parameters = obj.parameters(:,1);
+                    else
+                        app.ReactionsTabOutputs.parameters = [];
+                    end
+                    % Use the same species names you already computed (selIdx/selNames)
+                    app.ReactionsTabOutputs.varNames = obj.species;  % exporter expects all; we subset below
+                    solution.plotable = exportSensResults(app);
+                
+                    % Dimensions
+                    Np = size(solution.plotable.sensmdist,1);      % # parameters
+                    Nd_all = size(solution.plotable.sensmdist,2);  % # species in export
+                
+                    % Time selection
+                    if isempty(indTimes)
+                        indTimes = 1:length(solution.plotable.T_array);
+                    end
+                    Nt = numel(indTimes);
+                
+                    % Figure numbering
+                    if isempty(figureNums)
+                        h = findobj('type','figure');
+                        if ~isempty(h)
+                            figureNums = max([h.Number])+(1:10);
+                        else
+                            figureNums = (1:10);
+                        end
+                    end
+                    kfig = 1;
+                
+                    % Colors: one per selected species (like 'marginals')
+                    C = resolveColors(opts.Colors, numel(selIdx));
+                
+                    % Grid layout over parameters
+                    Nr = ceil(sqrt(Np));
+                    Nc = ceil(Np/Nr);
+                
+                    % ----- Plot: for each selected species and selected time -----
+                    for jj = 1:numel(selIdx)
+                        s = selIdx(jj);                            % species index in exported arrays
+                        spName = selNames{jj};
+                        col = getC(C, jj);
+                
+                        for ii = 1:Nt
+                            it2 = indTimes(ii);
+                            f = figure(figureNums(kfig)); clf; kfig = kfig+1;
+                            f.Name = sprintf('Sensitivity of Marginals — %s @ t=%.3g', spName, solution.plotable.T_array(it2));
+                
+                            for j = 1:Np
+                                subplot(Nr, Nc, j); hold on;
+                
+                                % Sensitivity vector for parameter j, species s, time it2
+                                sv = solution.plotable.sensmdist{j, s, it2};
+                                if isempty(sv), sv = 0; end
+                                sv = sv(:);
+                                x = 0:numel(sv)-1;
+                
+                                % Optional crop to XLim (like 'marginals')
+                                if ~isempty(opts.XLim)
+                                    mask = (x >= opts.XLim(1)) & (x <= opts.XLim(2));
+                                    xPlot = x(mask);
+                                    yPlot = sv(mask);
+                                else
+                                    xPlot = x;
+                                    yPlot = sv;
+                                end
+                
+                                stairs(xPlot, yPlot, lineProps{:}, 'Color', col);
+                
+                                % Axes styling
+                                ax = gca; ax.FontSize = opts.TickLabelSize;
+                                if ~isempty(opts.XLim), xlim(opts.XLim); end
+                                if ~isempty(opts.YLim), ylim(opts.YLim); end
+                                grid on; box on;
+                
+                                % Subplot title: parameter name
+                                try
+                                    pName = obj.parameters{j,1};
+                                    if isstring(pName), pName = char(pName); end
+                                catch
+                                    pName = sprintf('Param %d', j);
+                                end
+                                title(pName, 'FontSize', max(opts.TitleFontSize-4, 8));
+                
+                                % Axis labels per subplot (smaller fonts like 'marginals')
+                                xlabel(sprintf('%s count', spName), 'FontSize', max(opts.AxisLabelSize-2, 8));
+                                ylabel('Sensitivity', 'FontSize', max(opts.AxisLabelSize-2, 8));
+                            end
+                
+                            % Figure-level title (like sgtitle in 'marginals')
+                            if strlength(opts.Title) > 0
+                                sgtitle(string(opts.Title), 'FontSize', opts.TitleFontSize);
+                            else
+                                sgtitle(sprintf('Marginal Sensitivities — %s (t = %.3g)', spName, solution.plotable.T_array(it2)), ...
+                                        'FontSize', opts.TitleFontSize);
+                            end
+                        end
+                    end
+
+                otherwise
+                    error('Unknown plotType "%s". Use: "means", "meansAndDevs", "marginals", or "joints".', plotType);
+            end
+        
+            % ---------- helpers ----------
+            function C = resolveColors(userC, n)
+                if isempty(userC)
+                    C = lines(n); 
+                    return
+                end
+            
+                % Colormap name
+                if ischar(userC) || (isstring(userC) && isscalar(userC))
+                    cm = feval(char(userC), max(n,64));
+                    C  = cm(round(linspace(1,size(cm,1),n)),:);
+                    return
+                end
+            
+                % Numeric: RGB row(s)
+                if isnumeric(userC)
+                    userC = double(userC);
+                    if isvector(userC) && numel(userC)==3
+                        C = repmat(userC(:).', n, 1);       % replicate single RGB to n rows
+                        return
+                    end
+                    % userC is k×3
+                    assert(size(userC,2)==3, 'opts.Colors numeric must be 1x3 or kx3.');
+                    k = size(userC,1);
+                    if k >= n
+                        C = userC(1:n,:);                   % take first n
+                    else
+                        idx = round(linspace(1, k, n));     % resample to n rows
+                        C = userC(idx, :);
+                    end
+                    return
+                end
+            
+                % Cell array of colors (char ColorSpec or 1x3 RGB)
+                if iscell(userC)
+                    k = numel(userC);
+                    if k < n
+                        % repeat entries to reach n
+                        userC = userC(1+mod(0:n-1, max(1,k)));
+                    else
+                        userC = userC(1:n);
+                    end
+                    C = userC;
+                    return
+                end
+            
+                error('opts.Colors must be: [], colormap name, 1x3 or kx3 RGB, or cell array.');
+            end
+            
+            function c = getC(Cin, j)
+                % Returns either 1x3 RGB or a char ColorSpec ('r','red', etc.)
+                if iscell(Cin), c = Cin{j}; else, c = Cin(j,:); end
+                if isstring(c), c = char(c); end
+            end
+            
+            function styleAxesAndLegend(names, o)
+                ax = gca; ax.FontSize = o.TickLabelSize;
+                xlabel(o.XLabel, 'FontSize', o.AxisLabelSize);
+                ylabel(o.YLabel, 'FontSize', o.AxisLabelSize);
+                if ~strcmpi(o.LegendLocation, "none")
+                    lgd = legend(names, 'Location', char(o.LegendLocation));
+                    if ~isempty(lgd), lgd.FontSize = o.LegendFontSize; end
+                end
+            end
+            
+            function applyLimits(o)
+                if ~isempty(o.XLim), xlim(o.XLim); end
+                if ~isempty(o.YLim), ylim(o.YLim); end
+            end
+            
+            function applyTitle(o, defaultTitle)
+                if strlength(o.Title) > 0
+                    title(string(o.Title), 'FontSize', o.TitleFontSize);
+                else
+                    title(defaultTitle, 'FontSize', o.TitleFontSize);
+                end
+            end
+
+            function [t_out, z_cum] = computeEscapeCDFFromRaw(rawSol)
+                Nt = numel(rawSol.fsp);
+                t_out = zeros(Nt,1);
+                flux  = zeros(Nt,1);
+                for i = 1:Nt
+                    S = rawSol.fsp{i};
+                    if isfield(S,'time'), t_out(i) = S.time;
+                    elseif isfield(S,'T'), t_out(i) = S.T;
+                    elseif isfield(S,'t'), t_out(i) = S.t;
+                    else, t_out(i) = i;
+                    end
+                    if isfield(S,'escapeProbs') && ~isempty(S.escapeProbs)
+                        v = S.escapeProbs(:);
+                    elseif isfield(S,'sinks') && ~isempty(S.sinks)
+                        v = S.sinks(:);
+                    else
+                        v = 0;
+                    end
+                    flux(i) = nansum(v);
+                end
+                tol = 1e-12;
+                looksCum = all(diff(max(0,min(1,flux))) >= -tol) && flux(end) <= 1+1e-6;
+                if looksCum, z_cum = max(0,min(1,flux));
+                else,        z_cum = max(0,min(1,cumsum(max(0,flux))));
+                end
+            end
+            
+            function col = resolveOneColor(userC)
+                if isempty(userC), col = lines(1); return; end
+                if ischar(userC) || (isstring(userC) && isscalar(userC))
+                    cm = feval(char(userC), 64); col = cm(1,:); return
+                end
+                if isnumeric(userC)
+                    if isvector(userC) && numel(userC)==3, col = double(userC(:)).';
+                    else, col = double(userC(1,:)); end
+                    return
+                end
+                if iscell(userC)
+                    c = userC{1}; if isstring(c), c = char(c); end
+                    if isnumeric(c) && numel(c)==3, col = double(c(:)).'; else, col = c; end
+                    return
+                end
+                col = lines(1);
+            end
+
+            function [t_out, Z_cum] = computeEscapeCDFFromRawMulti(rawSol)
+                % Returns:
+                %   t_out : Nt x 1 time vector
+                %   Z_cum : Nt x nSinks cumulative probabilities, one column per sink
+                Nt = numel(rawSol.fsp);
+                t_out = zeros(Nt,1);
+            
+                % Determine number of sinks from first timestep
+                S1 = rawSol.fsp{1};
+                if isfield(S1, 'escapeProbs') && ~isempty(S1.escapeProbs)
+                    nSinks = numel(S1.escapeProbs);
+                    modeField = 'escapeProbs';
+                elseif isfield(S1, 'sinks') && ~isempty(S1.sinks)
+                    nSinks = numel(S1.sinks);
+                    modeField = 'sinks';
+                else
+                    nSinks = 1; modeField = '';   % degenerate
+                end
+            
+                flux = zeros(Nt, nSinks);    % per-step flux into each sink
+                for i = 1:Nt
+                    Si = rawSol.fsp{i};
+                    % time
+                    if isfield(Si,'time'), t_out(i) = Si.time;
+                    elseif isfield(Si,'T'), t_out(i) = Si.T;
+                    elseif isfield(Si,'t'), t_out(i) = Si.t;
+                    else, t_out(i) = i;
+                    end
+                    % per-sink increments
+                    v = zeros(1, nSinks);
+                    if ~isempty(modeField)
+                        vv = Si.(modeField);
+                        if ~isempty(vv), v = vv(:).'; end
+                    end
+                    % store
+                    flux(i, :) = v(1, 1:nSinks);
+                end
+            
+                % Heuristic: if looks cumulative already, use as-is; else cumsum
+                Z_cum = zeros(Nt, nSinks);
+                for k = 1:nSinks
+                    col = flux(:,k);
+                    col(~isfinite(col)) = 0;
+                    col = max(0, min(1, col));
+                    looksCum = all(diff(col) >= -1e-12) && col(end) <= 1 + 1e-6;
+                    if looksCum
+                        Z_cum(:,k) = col;
+                    else
+                        Z_cum(:,k) = max(0, min(1, cumsum(max(0,col))));
+                    end
+                end
+            end
+            
+         end
+
+
         function figHandles = makeFitPlot(obj,fitSolution,smoothWindow,fignums,usePanels, ...
                 varianceType,IQRrange,suppressFigures)
             % Produces plots to compare model to experimental data.
