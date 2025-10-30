@@ -4515,7 +4515,7 @@ classdef SSIT
                     
                                 % Figure-level title (editable, like other cases)
                                 if strlength(opts.Title) > 0
-                                    sgtitle(string(opts.Title), 'FontSize', opts.TitleFontSize);
+                                    sgtitle(string(opts.Title), 'FontSize', opts.TitleFontSize, 'FontWeight','bold');
                                 else
                                     sgtitle(sprintf('Marginal Sensitivities — %s (t = %.3g)', spName, solution.plotable.T_array(it2)), ...
                                             'FontSize', opts.TitleFontSize);
