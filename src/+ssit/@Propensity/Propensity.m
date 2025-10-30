@@ -916,9 +916,13 @@ if writeFiles
             exprHandle = matlabFunction(symbolicExpression,'Vars',{states,parameters,varODEs},'File',fn,'Sparse',true);
         end
     end
-    if ~strcmp(which(func2str(exprHandle)),fn)
-        disp('WARNING -- it appears that new propensity functions is redundant to one already on the search path.')
-        disp(['at: ',which(func2str(exprHandle))]);
+    oldFile = which(func2str(exprHandle));
+    while ~isempty(oldFile)&&~strcmp(oldFile,fn)
+        disp('WARNING -- it appears that a new propensity functions is redundant to one already on the search path. Moving old version to backup')
+        oldFile = which(func2str(exprHandle));
+        if ~isempty(oldFile)
+            movefile(oldFile,[oldFile(1:end-2),'_bak.m']);
+        end
     end
 else
     exprHandle=[];

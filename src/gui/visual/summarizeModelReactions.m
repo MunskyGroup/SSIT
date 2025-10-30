@@ -17,7 +17,7 @@ end
 
 nSpecies = length(Species);
 nRxn = size(Reactions,1);
-S = zeros(nSpecies,nRxn);                      % Assigns a zeros ReactionsTabOutputs.stoichMatrixiometry matrix for the three species to be filled in with the following for-loops
+Stoich = zeros(nSpecies,nRxn);                      % Assigns a zeros ReactionsTabOutputs.stoichMatrixiometry matrix for the three species to be filled in with the following for-loops
 for iRxn=1:nRxn                                       % For-loop over all rows in the Reactions Table
     %% Build ReactionsTabOutputs.stoichMatrixiometry matrix
     Rcts = Reactions{iRxn,2};
@@ -28,7 +28,7 @@ for iRxn=1:nRxn                                       % For-loop over all rows i
         J1 = strfind(Rcts,'(');
         J2 = strfind(Rcts,')');
         for j=1:length(J)
-            S(iSp,iRxn)=S(iSp,iRxn)-str2num(Rcts(J1(j)+1:J2(j)-1));      % Assign reaction effect on stoichiometry
+            Stoich(iSp,iRxn)=Stoich(iSp,iRxn)-str2num(Rcts(J1(j)+1:J2(j)-1));      % Assign reaction effect on stoichiometry
         end
 
         % Products
@@ -36,7 +36,7 @@ for iRxn=1:nRxn                                       % For-loop over all rows i
         J1 = strfind(Prods,'(');
         J2 = strfind(Prods,')');
         for j=1:length(J)                                % For-loop over the number of products found by J
-            S(iSp,iRxn)=S(iSp,iRxn)+str2num(Prods(J1(j)+1:J2(j)-1)); % Assign product effect on stoichiometry
+            Stoich(iSp,iRxn)=Stoich(iSp,iRxn)+str2num(Prods(J1(j)+1:J2(j)-1)); % Assign product effect on stoichiometry
         end
     end
 end
@@ -54,7 +54,7 @@ intps{end+1} = 'latex';
 
 for iR = 1:nRxn
     % Reactants
-    s=S(:,iR);
+    s=Stoich(:,iR);
     jReactant = find(s<0);
     jProd = find(s>0);
     if isempty(jReactant)

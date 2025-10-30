@@ -181,7 +181,7 @@ if updatePropensityFuns
         propQuest = questdlg(prompt,dlgtitle,'Yes - Overwrite','No - Use Current','No - Specify New Location','Yes - Overwrite');
         switch propQuest
             case 'Yes - Overwrite'
-                addpath(genpath([pwd,'/tmpPropensityFunctions/',propFileName]));
+                addpath(genpath(folder));
                 try
                     app.SSITModel = app.SSITModel.formPropensitiesGeneral([propFileName,'/',app.ModelFile.modelName],true);
                 catch
@@ -189,7 +189,7 @@ if updatePropensityFuns
                 end
             case 'No - Use Current'
                 % do nothing
-                addpath(folder);
+                addpath(genpath(folder));
             case 'No - Specify New Location'
                 [propFileName] = uigetdir([pwd,'/tmpPropensityFunctions/'],'Create or choose folder for new propensity functions.');
                 propFileName = strrep(propFileName,[pwd,'/tmpPropensityFunctions/'],'');
