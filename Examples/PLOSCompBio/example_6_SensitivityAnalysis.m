@@ -41,11 +41,9 @@ Model_sens.solutionScheme = 'fspSens';
 [Model_sensSoln,Model_bounds] = Model_sens.solve(Model_FSPsoln.stateSpace);
 
 % Plot the results from the sensitivity analysis:
-fig1 = figure(1);clf; set(fig1,'Name','Marginal Sensitivity, offGene');
-fig2 = figure(2);clf; set(fig2,'Name','Marginal Sensitivity, onGene');
-fig3 = figure(3);clf; set(fig3,'Name','Marginal Sensitivity, mRNA');
-Model_sens.makePlot(Model_sensSoln,'marginals',[],false,...
-                    [fig1,fig2,fig3],{'b','linewidth',2})
+Model_sens.plotFSP(Model_sensSoln, Model_FSP.species(3), 'sens', 20, [],...
+   {'linewidth',3}, AxisLabelSize=12, TickLabelSize=12, XLim=[0,10],...
+   TitleFontSize=22, Title="Bursting Gene (mRNA)", Colors=[0.93,0.69,0.13])
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(2): Solve sensitivities of the time-varying STL1 yeast model
@@ -64,19 +62,16 @@ STL1_sens.solutionScheme = 'fspSens';
 [STL1_sensSoln,STL1_bounds] = STL1_sens.solve(STL1_FSPsoln.stateSpace); 
 
 % Plot the results from the sensitivity analysis:
-fig4 = figure(4);clf; set(fig4,'Name','Marginal Sensitivity, offGene');
-fig5 = figure(5);clf; set(fig5,'Name','Marginal Sensitivity, onGene');
-fig6 = figure(6);clf; set(fig6,'Name','Marginal Sensitivity, mRNA');
-STL1_sens.makePlot(STL1_sensSoln,'marginals',[],false,...
-                   [fig4,fig5,fig6],{'b','linewidth',2})
+STL1_sens.plotFSP(STL1_sensSoln, STL1_FSP.species(3), 'sens', 20, [],...
+    {'linewidth',3}, AxisLabelSize=12, TickLabelSize=12, XLim=[0,10],...
+    Title="STL1 (mRNA)", TitleFontSize=22, Colors=[0.93,0.69,0.13])
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(3): Solve sensitivities of the 4-state time-varying STL1 yeast model
 %  from example_1_CreateSSITModels
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% Make a copy of the time-varying STL1 yeast model solved by FSP for 
-% sensitivity analysis:
+% Make a copy of the 4-state time-varying STL1 yeast model solved by FSP:
 STL1_4state_sens = STL1_4state_FSP;
 
 %% Solve FSP sensitivities
@@ -88,13 +83,10 @@ STL1_4state_sens.solutionScheme = 'fspSens';
     STL1_4state_sens.solve(STL1_4state_FSPsoln.stateSpace); 
 
 % Plot the results from the sensitivity analysis:
-fig7 = figure(7);clf; set(fig7,'Name','Marginal Sensitivity, s1');
-fig8 = figure(8);clf; set(fig8,'Name','Marginal Sensitivity, s2');
-fig9 = figure(9);clf; set(fig9,'Name','Marginal Sensitivity, s3');
-fig10 = figure(10);clf; set(fig10,'Name','Marginal Sensitivity, s4');
-fig11 = figure(11);clf; set(fig11,'Name','Marginal Sensitivity, mRNA');
-STL1_4state_sens.makePlot(STL1_4state_sensSoln,'marginals',[],false,...
-                   [fig7,fig8,fig9,fig10,fig11],{'b','linewidth',2})
+STL1_4state_sens.plotFSP(STL1_4state_sensSoln,...
+    STL1_4state_FSP.species(5), 'sens', 20, [], {'linewidth',3}, ...
+    Colors=[0.23,0.67,0.2], AxisLabelSize=14, TickLabelSize=10, ...
+    XLim=[0,10], Title="4-state STL1 (mRNA)", TitleFontSize=18)
 
 
 %% Save models & sensitivities
