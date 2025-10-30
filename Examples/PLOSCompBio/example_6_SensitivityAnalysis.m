@@ -75,8 +75,7 @@ STL1_sens.makePlot(STL1_sensSoln,'marginals',[],false,...
 %  from example_1_CreateSSITModels
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% Make a copy of the time-varying STL1 yeast model solved by FSP for 
-% sensitivity analysis:
+% Make a copy of the 4-state time-varying STL1 yeast model solved by FSP:
 STL1_4state_sens = STL1_4state_FSP;
 
 %% Solve FSP sensitivities
@@ -86,6 +85,8 @@ STL1_4state_sens.solutionScheme = 'fspSens';
 % Solve the sensitivity problem: 
 [STL1_4state_sensSoln,STL1_4state_bounds] = ...
     STL1_4state_sens.solve(STL1_4state_FSPsoln.stateSpace); 
+
+STL1_4state_sens.plotFSP(STL1_4state_sensSoln,STL1_4state_sens.species,'sens')
 
 % Plot the results from the sensitivity analysis:
 fig7 = figure(7);clf; set(fig7,'Name','Marginal Sensitivity, s1');
