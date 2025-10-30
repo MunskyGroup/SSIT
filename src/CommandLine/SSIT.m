@@ -4004,7 +4004,7 @@ classdef SSIT
             end
         end
             
-         function plotFSP(obj, solution, speciesNames, plotType, indTimes, figureNums, lineProps, opts)
+        function plotFSP(obj, solution, speciesNames, plotType, indTimes, figureNums, lineProps, opts)
             % plotFSP — Plot FSP results like plotODE/plotSSA, with species subsetting
             arguments
                 obj
@@ -4063,13 +4063,19 @@ classdef SSIT
         
             % ----- Export FSP to plottable struct -----
             rawSol = solution;   % <- copy to compute escape CDF if needed
-            app.FspTabOutputs.solutions = solution.fsp;
-            app.FspPrintTimesField.Value = mat2str(obj.tSpan);
-            solution = exportFSPResults(app);
-        
-            % Time selection
-            if isempty(indTimes), indTimes = 1:length(solution.T_array); end
-            Nt = numel(indTimes);
+            if plotType=="sens"
+                app.FspTabOutputs.solutions = solution.sens;
+                app.FspPrintTimesField.Value = mat2str(obj.tSpan);
+                %solution = exportFSPResults(app);
+            else
+                app.FspTabOutputs.solutions = solution.fsp;
+                app.FspPrintTimesField.Value = mat2str(obj.tSpan);
+                solution = exportFSPResults(app);
+                % Time selection
+                if isempty(indTimes), indTimes = 1:length(solution.T_array); 
+                end
+                Nt = numel(indTimes);
+            end
         
             % ----- Figure numbers -----
             if isempty(figureNums)
@@ -4308,109 +4314,103 @@ classdef SSIT
                     if ~isempty(opts.XLim), xlim(opts.XLim); end
                     if ~isempty(opts.YLim), ylim(opts.YLim); end
 
-                case 'fspSens'
-                    % ----- Build plottable sensitivity results (same as before) -----
-                    app.SensFspTabOutputs.solutions = solution.sens;
-                    app.SensPrintTimesEditField.Value = mat2str(obj.tSpan);
-                    if ~isempty(obj.parameters)
-                        app.ReactionsTabOutputs.parameters = obj.parameters(:,1);
-                    else
-                        app.ReactionsTabOutputs.parameters = [];
-                    end
-                    % Use the same species names you already computed (selIdx/selNames)
-                    app.ReactionsTabOutputs.varNames = obj.species;  % exporter expects all; we subset below
-                    solution.plotable = exportSensResults(app);
-                
-                    % Dimensions
-                    Np = size(solution.plotable.sensmdist,1);      % # parameters
-                    Nd_all = size(solution.plotable.sensmdist,2);  % # species in export
-                
-                    % Time selection
-                    if isempty(indTimes)
-                        indTimes = 1:length(solution.plotable.T_array);
-                    end
-                    Nt = numel(indTimes);
-                
-                    % Figure numbering
-                    if isempty(figureNums)
-                        h = findobj('type','figure');
-                        if ~isempty(h)
-                            figureNums = max([h.Number])+(1:10);
+                    case 'sens'
+                        % ---- Build plottable sensitivity results (as before) ----
+                        app.SensFspTabOutputs.solutions = solution.sens;
+                        app.SensPrintTimesEditField.Value = mat2str(obj.tSpan);
+                        if ~isempty(obj.parameters)
+                            app.ReactionsTabOutputs.parameters = obj.parameters(:,1);
                         else
-                            figureNums = (1:10);
+                            app.ReactionsTabOutputs.parameters = [];
                         end
-                    end
-                    kfig = 1;
-                
-                    % Colors: one per selected species (like 'marginals')
-                    C = resolveColors(opts.Colors, numel(selIdx));
-                
-                    % Grid layout over parameters
-                    Nr = ceil(sqrt(Np));
-                    Nc = ceil(Np/Nr);
-                
-                    % ----- Plot: for each selected species and selected time -----
-                    for jj = 1:numel(selIdx)
-                        s = selIdx(jj);                            % species index in exported arrays
-                        spName = selNames{jj};
-                        col = getC(C, jj);
-                
-                        for ii = 1:Nt
-                            it2 = indTimes(ii);
-                            f = figure(figureNums(kfig)); clf; kfig = kfig+1;
-                            f.Name = sprintf('Sensitivity of Marginals — %s @ t=%.3g', spName, solution.plotable.T_array(it2));
-                
-                            for j = 1:Np
-                                subplot(Nr, Nc, j); hold on;
-                
-                                % Sensitivity vector for parameter j, species s, time it2
-                                sv = solution.plotable.sensmdist{j, s, it2};
-                                if isempty(sv), sv = 0; end
-                                sv = sv(:);
-                                x = 0:numel(sv)-1;
-                
-                                % Optional crop to XLim (like 'marginals')
-                                if ~isempty(opts.XLim)
-                                    mask = (x >= opts.XLim(1)) & (x <= opts.XLim(2));
-                                    xPlot = x(mask);
-                                    yPlot = sv(mask);
+                        app.ReactionsTabOutputs.varNames = obj.species;   % exporter expects all; we subset below
+                        solution.plotable = exportSensResults(app);
+                    
+                        % Dimensions
+                        Np = size(solution.plotable.sensmdist, 1);    % # parameters
+                        % Nd_all = size(solution.plotable.sensmdist, 2);  % total species in export (unused; we use selIdx)
+                    
+                        % Time selection
+                        if isempty(indTimes)
+                            indTimes = 1:length(solution.plotable.T_array);
+                        end
+                        Nt = numel(indTimes);
+                    
+                        % Figure numbering
+                        if isempty(figureNums)
+                            h = findobj('type','figure');
+                            if ~isempty(h), figureNums = max([h.Number])+(1:10);
+                            else,            figureNums = (1:10);
+                            end
+                        end
+                        kfig = 1;
+                    
+                        % Colors: one per selected species (like 'means'/'marginals')
+                        C = resolveColors(opts.Colors, numel(selIdx));
+                    
+                        % Grid layout over parameters
+                        Nr = ceil(sqrt(Np));
+                        Nc = ceil(Np/Nr);
+                    
+                        % ---- Plot: for each selected species and selected time ----
+                        for jj = 1:numel(selIdx)
+                            s = selIdx(jj);                 % species index (into exporter arrays)
+                            spName = selNames{jj};
+                            col = getC(C, jj);
+                    
+                            for ii = 1:Nt
+                                it2 = indTimes(ii);
+                                f = figure(figureNums(kfig)); clf; kfig = kfig+1;
+                                f.Name = sprintf('Marginal Sensitivities — %s @ t=%.3g', spName, solution.plotable.T_array(it2));
+                    
+                                for j = 1:Np
+                                    % Sensitivity vector for parameter j, species s, time it2
+                                    sv = solution.plotable.sensmdist{j, s, it2};
+                                    if isempty(sv), sv = 0; end
+                                    sv = sv(:);
+                                    x = 0:numel(sv)-1;
+                    
+                                    % Optional crop to XLim (as in 'marginals')
+                                    if ~isempty(opts.XLim)
+                                        mask  = (x >= opts.XLim(1)) & (x <= opts.XLim(2));
+                                        xPlot = x(mask);
+                                        yPlot = sv(mask);
+                                    else
+                                        xPlot = x;
+                                        yPlot = sv;
+                                    end
+                    
+                                    subplot(Nr, Nc, j); hold on
+                                    stairs(xPlot, yPlot, lineProps{:}, 'Color', col);
+                    
+                                    % Axes styling + labels (match other cases)
+                                    ax = gca; ax.FontSize = opts.TickLabelSize;
+                                    xlabel(sprintf('%s count', spName), 'FontSize', max(opts.AxisLabelSize-2, 8));
+                                    ylabel('Sensitivity',               'FontSize', max(opts.AxisLabelSize-2, 8));
+                                    if ~isempty(opts.XLim), xlim(opts.XLim); end
+                                    if ~isempty(opts.YLim), ylim(opts.YLim); end
+                                    grid on; box on;
+                    
+                                    % Subplot title = parameter name
+                                    try
+                                        pName = obj.parameters{j,1};
+                                        if isstring(pName), pName = char(pName); end
+                                    catch
+                                        pName = sprintf('Param %d', j);
+                                    end
+                                    title(pName, 'FontSize', max(opts.TitleFontSize-4, 8));
+                                end
+                    
+                                % Figure-level title (editable, like other cases)
+                                if strlength(opts.Title) > 0
+                                    sgtitle(string(opts.Title), 'FontSize', opts.TitleFontSize, 'FontWeight','bold');
                                 else
-                                    xPlot = x;
-                                    yPlot = sv;
+                                    sgtitle(sprintf('Marginal Sensitivities — %s (t = %.3g)', spName, solution.plotable.T_array(it2)), ...
+                                            'FontSize', opts.TitleFontSize);
                                 end
-                
-                                stairs(xPlot, yPlot, lineProps{:}, 'Color', col);
-                
-                                % Axes styling
-                                ax = gca; ax.FontSize = opts.TickLabelSize;
-                                if ~isempty(opts.XLim), xlim(opts.XLim); end
-                                if ~isempty(opts.YLim), ylim(opts.YLim); end
-                                grid on; box on;
-                
-                                % Subplot title: parameter name
-                                try
-                                    pName = obj.parameters{j,1};
-                                    if isstring(pName), pName = char(pName); end
-                                catch
-                                    pName = sprintf('Param %d', j);
-                                end
-                                title(pName, 'FontSize', max(opts.TitleFontSize-4, 8));
-                
-                                % Axis labels per subplot (smaller fonts like 'marginals')
-                                xlabel(sprintf('%s count', spName), 'FontSize', max(opts.AxisLabelSize-2, 8));
-                                ylabel('Sensitivity', 'FontSize', max(opts.AxisLabelSize-2, 8));
-                            end
-                
-                            % Figure-level title (like sgtitle in 'marginals')
-                            if strlength(opts.Title) > 0
-                                sgtitle(string(opts.Title), 'FontSize', opts.TitleFontSize);
-                            else
-                                sgtitle(sprintf('Marginal Sensitivities — %s (t = %.3g)', spName, solution.plotable.T_array(it2)), ...
-                                        'FontSize', opts.TitleFontSize);
                             end
                         end
-                    end
-
+        
                 otherwise
                     error('Unknown plotType "%s". Use: "means", "meansAndDevs", "marginals", or "joints".', plotType);
             end
@@ -4589,11 +4589,10 @@ classdef SSIT
                         Z_cum(:,k) = max(0, min(1, cumsum(max(0,col))));
                     end
                 end
-            end
-            
-         end
+            end            
+        end
 
-
+        
         function figHandles = makeFitPlot(obj,fitSolution,smoothWindow,fignums,usePanels, ...
                 varianceType,IQRrange,suppressFigures)
             % Produces plots to compare model to experimental data.
