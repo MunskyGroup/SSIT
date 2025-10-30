@@ -46,7 +46,7 @@ STL1_4state.tSpan = linspace(0,50,200);
     % Plot the CDF and PDF
     Model_escape.plotFSP(Model_escape_fspSoln, [],...
         "escapeTimes", [], [], {'linewidth',3}, XLabel="Time",...
-        Title="Bursting Gene (mRNA)", Colors=[0.23,0.67,0.20]);
+        Title="Bursting Gene (mRNA)", Colors=[0.93,0.69,0.13]);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(2): Solve escape times for the time-varying STL1 yeast model

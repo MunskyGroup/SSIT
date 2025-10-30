@@ -42,7 +42,8 @@ Model_sens.solutionScheme = 'fspSens';
 
 % Plot the results from the sensitivity analysis:
 Model_sens.plotFSP(Model_sensSoln, Model_FSP.species(3), 'sens', 20, [],...
-    {'linewidth',3}, AxisLabelSize=12, TickLabelSize=12)
+    {'linewidth',3}, AxisLabelSize=12, TickLabelSize=12,...
+    Title="Bursting Gene (mRNA)", Colors=[0.93,0.69,0.13])
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(2): Solve sensitivities of the time-varying STL1 yeast model
@@ -62,7 +63,8 @@ STL1_sens.solutionScheme = 'fspSens';
 
 % Plot the results from the sensitivity analysis:
 STL1_sens.plotFSP(STL1_sensSoln, STL1_FSP.species(3), 'sens', 20, [],...
-    {'linewidth',3}, AxisLabelSize=12, TickLabelSize=12)
+    {'linewidth',3}, AxisLabelSize=12, TickLabelSize=12,...
+    Title="STL1 (mRNA)", Colors=[0.93,0.69,0.13])
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(3): Solve sensitivities of the 4-state time-varying STL1 yeast model
@@ -84,7 +86,7 @@ STL1_4state_sens.solutionScheme = 'fspSens';
 STL1_4state_sens.plotFSP(STL1_4state_sensSoln,...
     STL1_4state_FSP.species(5), 'sens', 20, [], {'linewidth',3}, ...
     Colors=[0.23,0.67,0.2], AxisLabelSize=12, TickLabelSize=12, ...
-    XLim=[0,100])
+    XLim=[0,30], Title="4-state STL1 (mRNA)")
 
 
 %% Save models & sensitivities
