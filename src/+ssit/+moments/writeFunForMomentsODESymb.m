@@ -143,7 +143,9 @@ if ~includeSecondMom
             matlabFunction(jac,'Vars',{t,[x],[ParameterX]},'File',jacobianFileName); % save moment equation as a matlab function
             jacCreated = true;
         else
-            delete([jacobianFileName,'.m'])
+            if exist([jacobianFileName,'.m'],'file')
+                delete([jacobianFileName,'.m'])
+            end
             jacCreated = false;
         end
     catch
