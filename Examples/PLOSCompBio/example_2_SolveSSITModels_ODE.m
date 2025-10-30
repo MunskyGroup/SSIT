@@ -7,14 +7,14 @@
 
 %% Preliminaries
 % Use the models from example_1_CreateSSITModels
-% clear
-% close all
-% addpath(genpath('../../'));
+clear
+close all
+addpath(genpath('../../'));
 
 % example_1_CreateSSITModels
 
 % Load the models created in example_1_CreateSSITModels
-% load('example_1_CreateSSITModels.mat')
+load('example_1_CreateSSITModels.mat')
 
 % View model summaries:
 Model.summarizeModel
@@ -43,7 +43,7 @@ STL1_4state.tSpan = linspace(0,50,200);
     % into symbolic expression functions that use sparse matrices to  
     % operate on the system based on the current state. The functions are 
     % stored with the given prefix, in this case, 'Model_ODE':
-    Model_ODE.formPropensitiesGeneral('Model_ODE');
+    Model_ODE = Model_ODE.formPropensitiesGeneral('Model_ODE');
     
     % Solve ODEs:
     [~,~,Model_ODE] = Model_ODE.solve; 
@@ -76,7 +76,7 @@ STL1_4state.tSpan = linspace(0,50,200);
     % into symbolic expression functions that use sparse matrices to  
     % operate on the system based on the current state. The functions are 
     % stored with the given prefix, in this case, 'STL1_ODE':
-    STL1_ODE.formPropensitiesGeneral('STL1_ODE');
+    STL1_ODE = STL1_ODE.formPropensitiesGeneral('STL1_ODE');
     
     % Solve ODEs:
     [~,~,STL1_ODE] = STL1_ODE.solve; 
@@ -112,7 +112,7 @@ STL1_4state.tSpan = linspace(0,50,200);
     % into symbolic expression functions that use sparse matrices to  
     % operate on the system based on the current state. The functions are 
     % stored with the given prefix, in this case, 'STL1_4state_ODE':
-    STL1_4state_ODE.formPropensitiesGeneral('STL1_4state_ODE',false);
+    STL1_4state_ODE = STL1_4state_ODE.formPropensitiesGeneral('STL1_4state_ODE',false);
     
     % Solve ODEs:
     [~,~,STL1_4state_ODE] = STL1_4state_ODE.solve; 
