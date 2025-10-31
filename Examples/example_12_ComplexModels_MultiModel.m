@@ -186,12 +186,20 @@ combinedModelMixed = combinedModelMixed.updateModels(allParsMixed);
 % for all cases, and that parameters 7-15 are similar but allowed to change
 % by small values.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-constraint = @(x)-sum((x(7:15)-x(8:16)).^2);
-combinedModelConstrained = SSITMultiModel({STL1_4state_multi_1,...
-    STL1_4state_multi_2},{1:16,[1:4,8:16]},constraint);
-combinedModelConstrained = combinedModelConstrained.initializeStateSpaces;
-allParsConstrained = allParsMixed;
-allParsConstrained = combinedModelConstrained.maximizeLikelihood(...
-    allParsConstrained, fitOptions, fitAlgorithm);
-combinedModelConstrained = ...
-    combinedModelConstrained.updateModels(allParsMixed);
+
+sigma = 1.0;
+constraint = @(x) -(1/(2*sigma^2)) * sum( (x(7:15) - x(16:24)).^2 );
+
+parIdx = { [1:6, 7:15], [1:6, 16:24] };
+
+combinedModelConstrained = SSITMultiModel( ...
+    {STL1_4state_multi_1, STL1_4state_multi_2}, ...
+    parIdx, constraint);
+
+combinedModelConstrained = combinedModelConstrained.initializeStateSpaces();
+
+x0 = allParsMixed;      % 1..15 exist
+x0(16:24) = x0(7:15);   % seed the second block
+
+xOpt = combinedModelConstrained.maximizeLikelihood(x0, fitOptions, fitAlgorithm);
+combinedModelConstrained = combinedModelConstrained.updateModels(xOpt);
