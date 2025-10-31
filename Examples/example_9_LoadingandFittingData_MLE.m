@@ -12,7 +12,7 @@
 % example_8_LoadingandFittingData_DataLoading
 % clear
 % close all
-% addpath(genpath('../../src'));
+addpath(genpath('../src'));
 
 % example_1_CreateSSITModels  
 % example_4_SolveSSITModels_FSP

@@ -9,7 +9,7 @@
 % Use the STL1 model from example_1_CreateSSITModels
 %clear
 %close all
-addpath(genpath('../../src'));
+addpath(genpath('../src'));
 
 % example_1_CreateSSITModels 
 

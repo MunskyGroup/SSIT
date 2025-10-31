@@ -14,8 +14,8 @@
 % Metropolis-Hastings results from example_10_LoadingandFittingData_MHA
 %clear
 %close all
-addpath(genpath('../../'));
-addpath(genpath('tmpPropensityFunctions'));
+addpath(genpath('../'));
+%addpath(genpath('tmpPropensityFunctions'));
 
 % example_1_CreateSSITModels  
 % example_4_SolveSSITModels_FSP

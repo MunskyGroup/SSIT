@@ -9,7 +9,7 @@
 % Use the STL1 and 4-state STL1 models from example_1_CreateSSITModels 
 %clear
 %close all
-addpath(genpath('../../'));
+addpath(genpath('../'));
 
 % example_1_CreateSSITModels  
 % example_4_SolveSSITModels_FSP
