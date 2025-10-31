@@ -9,7 +9,7 @@
 % Use the models from example_1_CreateSSITModels
 % clear
 % close all
-addpath(genpath('../../src'));
+addpath(genpath('../src'));
 
 % example_1_CreateSSITModels
 
@@ -57,6 +57,12 @@ STL1_4state.tSpan = linspace(0,50,200);
     
     % Run iterations in parallel with multiple cores, or execute serially:
     Model_SSA.ssaOptions.useParallel = false;
+
+    % This function compiles and stores the given reaction propensities  
+    % into symbolic expression functions that use sparse matrices to  
+    % operate on the system based on the current state. The functions are 
+    % stored with the given prefix, in this case, 'Model_SSA':
+    Model_SSA = Model_SSA.formPropensitiesGeneral('Model_SSA');
     
     % Run SSA:
     [~,~,Model_SSA] = Model_SSA.solve;

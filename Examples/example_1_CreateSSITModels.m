@@ -7,7 +7,7 @@
 %% Preliminaries:
 % clear
 % close all
-addpath(genpath('../../src'));
+addpath(genpath('../src'));
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(1): Create a simple Bursting Gene model in SSIT

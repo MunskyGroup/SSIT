@@ -13,14 +13,14 @@
 
 % clear
 % close all
-addpath(genpath('../../'));
+addpath(genpath('../'));
 
 % example_1_CreateSSITModels  
 % example_4_SolveSSITModels_FSP
 % example_6_SensitivityAnalysis
 
 %% Load pre-computed sensitivities:
-load('example_6_SensitivityAnalysis.mat')
+% load('example_6_SensitivityAnalysis.mat')
 
 % View model summaries:
 Model_sens.summarizeModel
@@ -49,9 +49,9 @@ Model_cellCounts = 10*ones(size(Model_FIM.tSpan));
     Model_FIM.evaluateExperiment(Model_fimResults,Model_cellCounts)
 
 % Plot the FIMs:
-fig12 = figure(12);clf; set(fig12,'Name',...
+fig1 = figure(12);clf; set(fig1,'Name',...
     'Fim-Predicted Uncertainty Ellipses');
-Model_FIM.plotMHResults([],Model_fimTotal,'log',[],fig12)
+Model_FIM.plotMHResults([],Model_fimTotal,'log',[],fig1)
 legend('FIM')
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -76,9 +76,9 @@ STL1_cellCounts = 10*ones(size(STL1_FIM.tSpan));
     STL1_FIM.evaluateExperiment(STL1_fimResults,STL1_cellCounts)
 
 % Plot the FIMs:
-fig13 = figure(13);clf; set(fig13,'Name',...
+fig2 = figure(13);clf; set(fig2,'Name',...
      'Fim-Predicted Uncertainty Ellipses');
-STL1_FIM.plotMHResults([],STL1_fimTotal,'log',[],fig13)
+STL1_FIM.plotMHResults([],STL1_fimTotal,'log',[],fig2)
 legend('FIM')
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -106,9 +106,9 @@ STL1_4state_cellCounts = 10*ones(size(STL1_4state_FIM.tSpan));
                                        STL1_4state_cellCounts)
 
 % Plot the FIMs:
-fig14 = figure(14);clf; set(fig14,'Name',...
+fig3 = figure(14);clf; set(fig3,'Name',...
      'Fim-Predicted Uncertainty Ellipses');
-STL1_4state_FIM.plotMHResults([],covFree,'log',[],fig14)
+STL1_4state_FIM.plotMHResults([],STL1_4state_fimTotal,'log',[],fig3)
 legend('FIM')
 
 %%
