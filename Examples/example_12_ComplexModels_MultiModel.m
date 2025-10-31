@@ -18,7 +18,7 @@ addpath(genpath('../'));
 % example_10_LoadingandFittingData_MHA
 
 %% Load pre-computed model fit
-load('example_9_LoadingandFittingData_MLE.mat')
+% load('example_9_LoadingandFittingData_MLE.mat')
 
 % View model summariy:
 STL1_4state_MLE.summarizeModel

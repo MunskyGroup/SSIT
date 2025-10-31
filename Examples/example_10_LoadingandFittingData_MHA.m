@@ -168,7 +168,7 @@ STL1_4state_MH_it.makeFitPlot
 %  Running a few rounds of MLE and MH together may improve convergence.
 
 STL1_4state_MH_it.parameters(:,2) = num2cell(STL1_4state_MH_it_pars);
-for i=1:3
+for i=1:2
     % Maximize likelihood:
     STL1_4state_MH_it_pars = STL1_4state_MH_it.maximizeLikelihood([]);    
     % Update parameters in the model:
