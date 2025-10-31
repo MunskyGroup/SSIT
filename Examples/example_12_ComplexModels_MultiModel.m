@@ -57,20 +57,23 @@ STL1_4state_multi_2 = ...
 
 %% Set Fitting Options
 fitAlgorithm = 'fminsearch';
-fitOptions = optimset('Display','final','MaxIter',2000);
+fitOptions = optimset('Display','final','MaxIter',200);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(0): Single model
 % This is a simple example, where we only fit one model to a single data
 % set. First, we create a MultiModel class with just our original model:
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-singleModel = SSITMultiModel({STL1_4state_multi_1},{(1:15)});
+npars = size(STL1_4state_multi_1.parameters,1);
+STL1_4state_multi_1.fittingOptions.modelVarsToFit = 1:npars;   
+% or your intended subset, all ≤ npar
+singleModel = SSITMultiModel({STL1_4state_multi_1},{1:npars});
 
 % We then copy the original parameters into the MultiModel:
 allParsSingle = ([STL1_4state_multi_1.parameters{:,2}]);
 
 % Next, we run a few rounds of fitting:
-for iFit = 1:3
+for iFit = 1:2
     % Initialize state space:
     singleModel = singleModel.initializeStateSpaces;
     
@@ -93,7 +96,11 @@ STL1_4state_multi_2.parameters = singleModel.SSITModels{1}.parameters;
 % parameters of the new model are completely independent of the parameter
 % set for the first model.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-combinedModel = singleModel.addModel({STL1_4state_multi_2},{16:30});
+npars2 = size(STL1_4state_multi_2.parameters,1);
+STL1_4state_multi_2.fittingOptions.modelVarsToFit = 1:npars2;   
+% or your intended subset, all ≤ npar
+
+combinedModel = singleModel.addModel({STL1_4state_multi_2},{1:npars2});
 combinedModel = combinedModel.initializeStateSpaces;
 allParsCombined = ([STL1_4state_multi_1.parameters{:,2},...
                    [STL1_4state_multi_2.parameters{:,2}]]);
@@ -149,13 +156,20 @@ combinedModelDependent = ...
 %% Ex(4): Mixed parameters
 % Sometimes it is desirable to only let some parameters change from
 % condition to condition.  In this example both STL1_4state_multi_1 and  
-% STL1_4state_multi_1 use the same parameters [1-6], but parameters [7:15] 
-% are only for STL1_4state_multi_1 and [8:16] are only for 
+% STL1_4state_multi_2 use the same parameters [1-11], but parameters 
+% [12:13] are only for STL1_4state_multi_1 and [14:15] are only for 
 % STL1_4state_multi_2.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-combinedModelMixed= SSITMultiModel({STL1_4state_multi_1,...
-                                 STL1_4state_multi_2},{(1:6),[7:15,8:16]});
+% Model 1 contributes shared [1:11] plus its own [12:13]
+STL1_4state_multi_1.fittingOptions.modelVarsToFit = [1:11, 12:13];
+
+% Model 2 contributes shared [1:11] plus its own [14:15]
+STL1_4state_multi_2.fittingOptions.modelVarsToFit = [1:11, 14:15];
+
+combinedModelMixed = SSITMultiModel( ...
+    {STL1_4state_multi_1, STL1_4state_multi_2}, ...
+    { [1:11, 12:13],       [1:11, 14:15] } );
 combinedModelMixed = combinedModelMixed.initializeStateSpaces;
 allParsMixed = ([STL1_4state_multi_1.parameters{:,2},...
                  STL1_4state_multi_2.parameters{7:15,2}]);
