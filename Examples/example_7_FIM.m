@@ -20,7 +20,7 @@ addpath(genpath('../'));
 % example_6_SensitivityAnalysis
 
 %% Load pre-computed sensitivities:
-% load('example_6_SensitivityAnalysis.mat')
+load('example_6_SensitivityAnalysis.mat')
 
 % View model summaries:
 Model_sens.summarizeModel
@@ -112,32 +112,39 @@ STL1_4state_FIM.plotMHResults([],STL1_4state_fimTotal,'log',[],fig3)
 legend('FIM')
 
 %%
-% Note:  Under certain circumstances, the FIM calculation will fail.  For 
-% example, without the removel of the 'kon' parameter from STL1 (which has 
-% no effect on STL1 unlike the basic bursting gene Model), Model_fimMetrics 
-% (from the basic bursting gene Model) and STL1_fimMetrics (from the 
-% time-varying input model) become:
+% Note:  If detI(θ)=0, then at least one eigenvalue 𝜆𝑘=0. That means the 
+% FIM is rank-deficient, so there is at least one non-trivial linear 
+% combination of parameters whose variance (via the Cramér–Rao bound) is 
+% infinite. That direction is locally non-identifiable at 𝜃; the likelihood 
+% is flat in that direction.  If detI(θ) is nonzero but extremely small, 
+% that usually means one or more eigenvalues are tiny (but not exactly 
+% zero). Then there is practical non-identifiability or very strong 
+% parameter correlation: those directions in parameter space are only very 
+% weakly constrained by your experiment.
 
-% fimMetrics = 
+% Model_fimMetrics = 
 % 
 %   struct with fields:
 % 
-%           det: 1.050283981892288e+12
-%         trace: 1.875101485843730e+04
-%     minEigVal: 1.010862869918453e+02
+%           det: 3.978068235240957e+08
+%         trace: 2.291624663469069e+04
+%     minEigVal: 1.859230327938760e-01
 
 % STL1_fimMetrics = 
 % 
 %   struct with fields:
 % 
-%           det: 0
-%         trace: 5.569716495312674e+04
-%     minEigVal: 0
+%           det: 3.956395658594882e-14
+%         trace: 3.491622747290549e+04
+%     minEigVal: -7.945218142991907e-14
 
-% The determinant for STL1_fimMetrics indicates a lack of identifiability 
-% between parameters in the STL1 Model, which unlike the base model has a 
-% time-varying input signal. There is not information for the STL1 Model 
-% concerning 'kon', leading to rank deficiency for the FIM.
+% STL1_4state_fimMetrics = 
+% 
+%   struct with fields:
+% 
+%           det: 1.585910799906740e+24
+%         trace: 1.276663861682894e+11
+%     minEigVal: 2.408883953969782e-11
 
 
 %% Save models & FIM results
