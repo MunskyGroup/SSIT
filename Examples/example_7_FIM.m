@@ -54,6 +54,8 @@ fig1 = figure(12);clf; set(fig1,'Name',...
 Model_FIM.plotMHResults([],Model_fimTotal,'log',[],fig1)
 legend('FIM')
 
+Model_FIM.plotFIMResults(Model_fimTotal,Model_FIM.parameters)
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(2): Compute the Fisher Information Matrix for the STL1 yeast model
 %  from example_1_CreateSSITModels
@@ -81,6 +83,8 @@ fig2 = figure(13);clf; set(fig2,'Name',...
 STL1_FIM.plotMHResults([],STL1_fimTotal,'log',[],fig2)
 legend('FIM')
 
+STL1_FIM.plotFIMResults(STL1_fimTotal,STL1_FIM.parameters)
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(3): Compute the FIM for the 4-state STL1 yeast model
 %  from example_1_CreateSSITModels
@@ -95,7 +99,10 @@ STL1_4state_FIM = STL1_4state_sens;
 STL1_4state_fimResults = ...
     STL1_4state_FIM.computeFIM(); 
 
-% Generate a count of measured cells (in place of real data):
+% Generate a count of measured cells - or get the number of cells using 
+% 'nCells' - e.g., "STL1_4state_data.dataSet.nCells", which becomes:
+% STL1_4state_cellCounts = ...
+% STL1_4state_data.dataSet.nCells*ones(size(STL1_4state_FIM.tSpan));
 STL1_4state_cellCounts = 10*ones(size(STL1_4state_FIM.tSpan));
 
 % Evaluate the provided experiment design (in "cellCounts") 
@@ -110,6 +117,9 @@ fig3 = figure(14);clf; set(fig3,'Name',...
      'Fim-Predicted Uncertainty Ellipses');
 STL1_4state_FIM.plotMHResults([],STL1_4state_fimTotal,'log',[],fig3)
 legend('FIM')
+
+STL1_4state_FIM.plotFIMResults(STL1_4state_fimTotal,...
+    STL1_4state_FIM.parameters)
 
 %%
 % Note:  If detI(θ)=0, then at least one eigenvalue 𝜆𝑘=0. That means the 

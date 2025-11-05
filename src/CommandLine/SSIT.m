@@ -4655,6 +4655,146 @@ classdef SSIT
 
         end
 
+        function plotFIMResults(obj,fimInput,paramNames,opts)
+            % plotFIMResults  Visualize a Fisher Information Matrix (FIM)
+            %
+            %   plotFIMResults(fimInput)
+            %   plotFIMResults(fimInput, paramNames)
+            %   plotFIMResults(fimInput, paramNames, opts)
+            %
+            %   fimInput   : either an n x n numeric FIM, or a 1x1 cell containing it
+            %                e.g., Model_fimTotal = {4x4 double}
+            %   paramNames : cell array of parameter names, e.g., {'k_{on}','k_{off}','k_r','k_d'}
+            %                If empty or omitted, defaults to {'\theta_1', ..., '\theta_n'}.
+            %   opts       : struct with optional fields:
+            %                  .UseLog10 (default: true)  – log10-scale matrix & eigenvalues
+            %                  .FigureHandle             – existing figure handle to plot into
+            %
+            %   Example:
+            %       fimTotal = Model_fimTotal{1};
+            %       paramNames = {'k_{on}','k_{off}','k_r','k_d'};
+            %       plotFIMResults(Model_fimTotal, paramNames);
+            %
+            %   This function produces:
+            %     (1) Heatmap of the FIM (or log10 FIM)
+            %     (2) Bar plot of diagonal entries (per-parameter information)
+            %     (3) Bar plot of eigenvalues of FIM (stiff/sloppy directions)
+                arguments
+                    obj
+                    fimInput = []
+                    paramNames = []
+                    opts = []
+                end
+            
+                % -------- Arguments handling --------
+                if nargin < 2 || isempty(paramNames)
+                    % Will be set after we know n
+                    paramNames = [];
+                end
+            
+                if nargin < 3
+                    opts = struct();
+                end
+            
+                if ~isfield(opts, 'UseLog10')
+                    opts.UseLog10 = true;
+                end
+            
+                % -------- Extract numeric FIM --------
+                if iscell(fimInput)
+                    fim = fimInput{1};
+                else
+                    fim = fimInput;
+                end
+            
+                if ~ismatrix(fim) || size(fim,1) ~= size(fim,2)
+                    error('FIM must be a square matrix or a 1x1 cell containing a square matrix.');
+                end
+            
+                nParams = size(fim,1);
+            
+                % Default parameter names if not provided
+                if isempty(paramNames)
+                    paramNames = arrayfun(@(i) sprintf('\\theta_{%d}', i), 1:nParams, 'UniformOutput', false);
+                end
+            
+                % -------- Basic spectral info --------
+                % Make sure FIM is symmetric (numerical noise)
+                fimSym = 0.5 * (fim + fim.');
+            
+                [eigVec, eigValMat] = eig(fimSym);
+                eigVals = diag(eigValMat);
+            
+                % Condition number (ignore tiny / negative eigs)
+                posEig = eigVals(eigVals > 0);
+                if isempty(posEig)
+                    condInfo = NaN;
+                else
+                    condInfo = max(posEig) / min(posEig);
+                end
+            
+                % -------- Prepare plotting values --------
+                if opts.UseLog10
+                    % Avoid taking log10 of non-positive values
+                    epsVal   = 1e-16;
+                    fimDisp  = log10(max(fimSym, epsVal));
+                    eigDisp  = log10(max(eigVals, epsVal));
+                    fimLabel = 'log_{10} FIM';
+                    eigLabel = 'log_{10} eigenvalues';
+                else
+                    fimDisp  = fimSym;
+                    eigDisp  = eigVals;
+                    fimLabel = 'FIM';
+                    eigLabel = 'Eigenvalues';
+                end
+            
+                diagInfo = diag(fimSym);
+            
+                % -------- Create figure --------
+                if isfield(opts, 'FigureHandle') && ishghandle(opts.FigureHandle)
+                    fig = opts.FigureHandle;
+                    figure(fig); clf;
+                else
+                    fig = figure;
+                end
+            
+                set(fig, 'Name', 'FIM Results', 'NumberTitle', 'off');
+            
+                % Layout: 2x2 grid
+                % (1) Heatmap of FIM
+                subplot(2,2,[1 3]); % big panel on left
+                imagesc(fimDisp);
+                axis square;
+                colorbar;
+                colormap(parula);
+                set(gca, 'XTick', 1:nParams, 'XTickLabel', paramNames, ...
+                         'YTick', 1:nParams, 'YTickLabel', paramNames, ...
+                         'TickLabelInterpreter', 'tex', 'FontSize', 12);
+                xlabel('Parameter', 'FontSize', 14);
+                ylabel('Parameter', 'FontSize', 14);
+                title(fimLabel, 'FontSize', 16, 'FontWeight', 'bold');
+            
+                % (2) Bar plot of diagonal (per-parameter information)
+                subplot(2,2,2);
+                bar(diagInfo);
+                set(gca, 'XTick', 1:nParams, 'XTickLabel', paramNames, ...
+                         'TickLabelInterpreter', 'tex', 'FontSize', 12);
+                xlabel('Parameter', 'FontSize', 14);
+                ylabel('Diagonal entry of FIM', 'FontSize', 14);
+                title('Per-parameter information (diag(FIM))', ...
+                      'FontSize', 14, 'FontWeight', 'bold');
+            
+                % (3) Bar plot of eigenvalues
+                subplot(2,2,4);
+                bar(eigDisp);
+                xlabel('Eigenvalue index', 'FontSize', 14);
+                ylabel(eigLabel, 'FontSize', 14);
+                title(sprintf('FIM spectrum (cond. ~ %.2e)', condInfo), ...
+                      'FontSize', 14, 'FontWeight', 'bold');
+            
+            end
+
+
         function plotMHResults(obj,mhResults,FIM,fimScale,mhPlotScale,scatterFig,showConvergence)
             arguments
                 obj
