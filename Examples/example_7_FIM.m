@@ -48,13 +48,15 @@ Model_cellCounts = 10*ones(size(Model_FIM.tSpan));
 [Model_fimTotal,Model_mleCovEstimate,Model_fimMetrics] = ...
     Model_FIM.evaluateExperiment(Model_fimResults,Model_cellCounts)
 
-% Plot the FIMs:
-fig1 = figure(12);clf; set(fig1,'Name',...
-    'Fim-Predicted Uncertainty Ellipses');
-Model_FIM.plotMHResults([],Model_fimTotal,'log',[],fig1)
-legend('FIM')
+ellipsePairs = [1 2;
+                1 4;
+                3 4];
 
-Model_FIM.plotFIMResults(Model_fimTotal,Model_FIM.parameters)
+theta0 = [Model_FIM.parameters{:,2}];
+
+Model_FIM.plotFIMResults(Model_fimTotal, Model_FIM.parameters, theta0, ...
+                         PlotEllipses=true, EllipseLevel=0.9, ...
+                         EllipsePairs=ellipsePairs);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(2): Compute the Fisher Information Matrix for the STL1 yeast model
@@ -78,11 +80,6 @@ STL1_cellCounts = 10*ones(size(STL1_FIM.tSpan));
     STL1_FIM.evaluateExperiment(STL1_fimResults,STL1_cellCounts)
 
 % Plot the FIMs:
-fig2 = figure(13);clf; set(fig2,'Name',...
-     'Fim-Predicted Uncertainty Ellipses');
-STL1_FIM.plotMHResults([],STL1_fimTotal,'log',[],fig2)
-legend('FIM')
-
 STL1_FIM.plotFIMResults(STL1_fimTotal,STL1_FIM.parameters)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -113,11 +110,6 @@ STL1_4state_cellCounts = 10*ones(size(STL1_4state_FIM.tSpan));
                                        STL1_4state_cellCounts)
 
 % Plot the FIMs:
-fig3 = figure(14);clf; set(fig3,'Name',...
-     'Fim-Predicted Uncertainty Ellipses');
-STL1_4state_FIM.plotMHResults([],STL1_4state_fimTotal,'log',[],fig3)
-legend('FIM')
-
 STL1_4state_FIM.plotFIMResults(STL1_4state_fimTotal,...
     STL1_4state_FIM.parameters)
 

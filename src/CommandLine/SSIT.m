@@ -4655,49 +4655,54 @@ classdef SSIT
 
         end
 
-        function plotFIMResults(obj,fimInput,paramNames,opts)
-            % plotFIMResults  Visualize a Fisher Information Matrix (FIM)
+
+       function plotFIMResults(obj, fimInput, paramNames, theta0, opts)
+            % plotFIMResults  Visualize a Fisher Information Matrix (FIM) and
+            %                 FIM-based parameter uncertainty ellipses.
             %
-            %   plotFIMResults(fimInput)
-            %   plotFIMResults(fimInput, paramNames)
-            %   plotFIMResults(fimInput, paramNames, opts)
+            %   obj.plotFIMResults(fimInput)
+            %   obj.plotFIMResults(fimInput, paramNames)
+            %   obj.plotFIMResults(fimInput, paramNames, theta0)
+            %   obj.plotFIMResults(fimInput, paramNames, theta0, opts)
             %
             %   fimInput   : either an n x n numeric FIM, or a 1x1 cell containing it
             %                e.g., Model_fimTotal = {4x4 double}
-            %   paramNames : cell array of parameter names, e.g., {'k_{on}','k_{off}','k_r','k_d'}
-            %                If empty or omitted, defaults to {'\theta_1', ..., '\theta_n'}.
-            %   opts       : struct with optional fields:
-            %                  .UseLog10 (default: true)  – log10-scale matrix & eigenvalues
-            %                  .FigureHandle             – existing figure handle to plot into
             %
-            %   Example:
-            %       fimTotal = Model_fimTotal{1};
-            %       paramNames = {'k_{on}','k_{off}','k_r','k_d'};
-            %       plotFIMResults(Model_fimTotal, paramNames);
+            %   paramNames : cell array of parameter names, e.g.,
+            %                  {'k_{on}','k_{off}','k_r','k_d'}
+            %                If empty or omitted, defaults to {'\theta_1', ..., '\theta_n'}.
+            %
+            %   theta0     : 1 x n vector of nominal parameter values
+            %                (center of ellipses; e.g., log10-parameters).
+            %                If empty or omitted, defaults to zeros(1,n).
+            %
+            %   opts (name-value via arguments block):
+            %       .UseLog10       (logical, default true)
+            %       .FigureHandle   (default: new figure)
+            %       .PlotEllipses   (logical, default true)
+            %       .EllipseLevel   (double, default 0.9) – confidence level
+            %       .EllipseFigure  (default: new figure)
+            %       .EllipsePairs   (default: []) – subset of parameter index pairs
+            %                       to plot as ellipses; numeric Kx2 matrix:
+            %                       [i1 j1; i2 j2; ...], 1 <= i < j <= nParams.
             %
             %   This function produces:
             %     (1) Heatmap of the FIM (or log10 FIM)
             %     (2) Bar plot of diagonal entries (per-parameter information)
             %     (3) Bar plot of eigenvalues of FIM (stiff/sloppy directions)
+            %     (4) Optional: grid of 2D confidence ellipses from FIM-based covariance.
+            
                 arguments
                     obj
-                    fimInput = []
+                    fimInput
                     paramNames = []
-                    opts = []
-                end
-            
-                % -------- Arguments handling --------
-                if nargin < 2 || isempty(paramNames)
-                    % Will be set after we know n
-                    paramNames = [];
-                end
-            
-                if nargin < 3
-                    opts = struct();
-                end
-            
-                if ~isfield(opts, 'UseLog10')
-                    opts.UseLog10 = true;
+                    theta0 = []
+                    opts.UseLog10 (1,1) logical = true
+                    opts.FigureHandle = []
+                    opts.PlotEllipses (1,1) logical = true
+                    opts.EllipseLevel (1,1) double {mustBePositive} = 0.9
+                    opts.EllipseFigure = []
+                    opts.EllipsePairs = []   
                 end
             
                 % -------- Extract numeric FIM --------
@@ -4715,7 +4720,16 @@ classdef SSIT
             
                 % Default parameter names if not provided
                 if isempty(paramNames)
-                    paramNames = arrayfun(@(i) sprintf('\\theta_{%d}', i), 1:nParams, 'UniformOutput', false);
+                    paramNames = arrayfun(@(i) sprintf('\\theta_{%d}', i), ...
+                                          1:nParams, 'UniformOutput', false);
+                end
+            
+                % Default theta0 (ellipse centers)
+                if isempty(theta0)
+                    theta0 = zeros(1, nParams);
+                end
+                if numel(theta0) ~= nParams
+                    error('theta0 must be a vector of length %d (number of parameters).', nParams);
                 end
             
                 % -------- Basic spectral info --------
@@ -4725,7 +4739,7 @@ classdef SSIT
                 [eigVec, eigValMat] = eig(fimSym);
                 eigVals = diag(eigValMat);
             
-                % Condition number (ignore tiny / negative eigs)
+                % Condition number using positive eigenvalues only
                 posEig = eigVals(eigVals > 0);
                 if isempty(posEig)
                     condInfo = NaN;
@@ -4750,14 +4764,13 @@ classdef SSIT
             
                 diagInfo = diag(fimSym);
             
-                % -------- Create figure --------
-                if isfield(opts, 'FigureHandle') && ishghandle(opts.FigureHandle)
+                % -------- Figure for FIM matrix/diag/eigs --------
+                if ~isempty(opts.FigureHandle) && ishghandle(opts.FigureHandle)
                     fig = opts.FigureHandle;
                     figure(fig); clf;
                 else
                     fig = figure;
                 end
-            
                 set(fig, 'Name', 'FIM Results', 'NumberTitle', 'off');
             
                 % Layout: 2x2 grid
@@ -4792,6 +4805,116 @@ classdef SSIT
                 title(sprintf('FIM spectrum (cond. ~ %.2e)', condInfo), ...
                       'FontSize', 14, 'FontWeight', 'bold');
             
+                % -------- Optional: ellipse plots --------
+                if opts.PlotEllipses
+                    % FIM-based covariance (sanitized inverse using eigen-decomposition)
+                    epsShift = 1e-12;
+                    [V,D] = eig(fimSym);
+                    lam   = diag(D);
+                    lamSafe = max(lam, epsShift);
+                    covFIM = V * diag(1 ./ lamSafe) * V.';
+                    covFIM = 0.5 * (covFIM + covFIM.');   % symmetrize inverse
+            
+                    % Make or reuse ellipse figure
+                    if ~isempty(opts.EllipseFigure) && ishghandle(opts.EllipseFigure)
+                        figEll = opts.EllipseFigure;
+                        figure(figEll); clf;
+                    else
+                        figEll = figure;
+                    end
+                    set(figEll, 'Name', 'FIM-based covariance ellipses', 'NumberTitle', 'off');
+            
+                    % chi^2 quantile for given confidence level, df=2
+                    chi2val = icdf('chi2', opts.EllipseLevel, 2);
+            
+                    ellipsePairs = opts.EllipsePairs;
+            
+                    if isempty(ellipsePairs)
+                        % --- Default: plot all upper-triangular pairs in an (n-1)x(n-1) grid ---
+                        for iParam = 1:nParams-1
+                            for jParam = iParam+1:nParams
+                                subplot(nParams-1, nParams-1, (iParam-1)*(nParams-1) + jParam-1);
+            
+                                % 2x2 sub-covariance and center (order [theta_j, theta_i])
+                                subCov = covFIM([jParam iParam],[jParam iParam]);
+                                mu     = theta0([jParam iParam]);
+            
+                                % Plot FIM ellipse using existing SSIT helper
+                                ssit.parest.ellipse(mu, chi2val * subCov, 'k-', 'LineWidth', 2); hold on;
+                                plot(mu(1), mu(2), 'ks', 'MarkerSize', 8, 'MarkerFaceColor', 'w');
+            
+                                xlabel(sprintf('%s', paramNames{jParam}), 'Interpreter', 'tex');
+                                ylabel(sprintf('%s', paramNames{iParam}), 'Interpreter', 'tex');
+                                axis equal; grid on;
+                            end
+                        end
+                    else
+                        % --- Subset mode: ellipsePairs is Kx2 matrix of [i j] index pairs ---
+                        if ~ismatrix(ellipsePairs) || size(ellipsePairs,2) ~= 2
+                            error('EllipsePairs must be a Kx2 numeric matrix of parameter index pairs [i j].');
+                        end
+                        K = size(ellipsePairs,1);
+                        % Layout: as square as possible
+                        nRows = ceil(sqrt(K));
+                        nCols = ceil(K / nRows);
+            
+                        for k = 1:K
+                            iParam = ellipsePairs(k,1);
+                            jParam = ellipsePairs(k,2);
+            
+                            if ~isscalar(iParam) || ~isscalar(jParam) || ...
+                                    iParam < 1 || jParam < 1 || ...
+                                    iParam > nParams || jParam > nParams || iParam == jParam
+                                error('Invalid EllipsePairs entry at row %d: [%d %d].', k, iParam, jParam);
+                            end
+            
+                            subplot(nRows, nCols, k);
+            
+                            % 2x2 sub-covariance and center (order [theta_j, theta_i])
+                            subCov = covFIM([jParam iParam],[jParam iParam]);
+                            mu     = theta0([jParam iParam]);
+            
+                            % Plot FIM ellipse
+                            ssit.parest.ellipse(mu, chi2val * subCov, 'k-', 'LineWidth', 2); hold on;
+                            plot(mu(1), mu(2), 'ks', 'MarkerSize', 8, 'MarkerFaceColor', 'w');
+            
+                            xlabel(sprintf('%s', paramNames{jParam}), 'Interpreter', 'tex');
+                            ylabel(sprintf('%s', paramNames{iParam}), 'Interpreter', 'tex');
+                            axis equal; grid on;
+                        end
+                    end
+                end
+       end
+
+            
+            % --------- Helper: numerically safe inverse of symmetric matrix ----------
+            function Ainv = safeInverseSym(A, epsShift)
+                % Symmetrize
+                A = 0.5 * (A + A.');
+                [V,D] = eig(A);
+                lam = diag(D);
+                % Shift tiny/negative eigenvalues
+                lamSafe = max(lam, epsShift);
+                Ainv = V * diag(1./lamSafe) * V.';
+                % Symmetrize the inverse too
+                Ainv = 0.5 * (Ainv + Ainv.');
+            end
+            
+            % --------- Helper: draw ellipse given mean + covariance ------------------
+            function h = plotEllipse(mu, Sigma, varargin)
+                % Ensures Sigma is symmetric positive semidefinite and plots the ellipse
+                Sigma = 0.5 * (Sigma + Sigma.');
+                [V,D] = eig(Sigma);
+                lam   = diag(D);
+                lam(lam < 0) = 0;  % clamp negatives (should be small numerical errors)
+                Dpsd  = diag(sqrt(lam));
+                % Parametric circle
+                t  = linspace(0, 2*pi, 200);
+                xy = [cos(t); sin(t)];
+                % Transform
+                R  = V * Dpsd;
+                pts = R * xy + mu(:);
+                h = plot(pts(1,:), pts(2,:), varargin{:});
             end
 
 
