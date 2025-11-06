@@ -20,7 +20,7 @@ addpath(genpath('../'));
 % example_6_SensitivityAnalysis
 
 %% Load pre-computed sensitivities:
-load('example_6_SensitivityAnalysis.mat')
+% load('example_6_SensitivityAnalysis.mat')
 
 % View model summaries:
 Model_sens.summarizeModel
@@ -109,9 +109,22 @@ STL1_4state_cellCounts = 10*ones(size(STL1_4state_FIM.tSpan));
     STL1_4state_FIM.evaluateExperiment(STL1_4state_fimResults,...
                                        STL1_4state_cellCounts)
 
+ellipsePairs = [6 11;
+                6 14;
+                10 15;
+                9 15;
+                10 12;
+                11 14;
+                7 10;
+                7 12;
+                7 8];
+
+theta0 = [STL1_4state_FIM.parameters{:,2}];
+
 % Plot the FIMs:
 STL1_4state_FIM.plotFIMResults(STL1_4state_fimTotal,...
-    STL1_4state_FIM.parameters)
+    STL1_4state_FIM.parameters, theta0, PlotEllipses=true,...
+    EllipseLevel=0.9, EllipsePairs=ellipsePairs);
 
 %%
 % Note:  If detI(θ)=0, then at least one eigenvalue 𝜆𝑘=0. That means the 
@@ -144,9 +157,9 @@ STL1_4state_FIM.plotFIMResults(STL1_4state_fimTotal,...
 % 
 %   struct with fields:
 % 
-%           det: 1.585910799906740e+24
-%         trace: 1.276663861682894e+11
-%     minEigVal: 2.408883953969782e-11
+%           det: 3.235888697269839e-49
+%         trace: 3.603813426122739e+06
+%     minEigVal: 1.123207852843959e-14
 
 
 %% Save models & FIM results
