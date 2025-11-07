@@ -4642,6 +4642,8 @@ classdef SSIT
                     opts.LegendLocation (1,1) string = "best"
                     opts.XLabel (1,1) string = "Time"
                     opts.YLabel (1,1) string = "Response"
+                    opts.XLim double = []
+                    opts.YLim double = []
                 end
             
                 % ---- Compute fitSolution if needed ----
@@ -4842,226 +4844,239 @@ classdef SSIT
                     end
                 end
             
-                function figs = plotTrajectories(app, fnums, lineProps, o, visible)
-                    figs = {};
-            
-                    % Choose figure
-                    if isempty(fnums)
-                        figHandle = figure('Visible',visible);
-                    elseif iscell(fnums)
-                        figHandle = fnums{3}; set(0,'CurrentFigure',figHandle);
-                    else
-                        figHandle = figure(fnums(3));
-                    end
-                    set(figHandle,'Name','Mean vs time (Model + Data)');
-            
-                    ax = gca;
-                    hold(ax,'on');
-                    meanVarTrajAxis = ax;
-            
-                    numTimes = length(app.ParEstFitTimesList.Value);
-                    % Full counts
-                    NdDatAll = length(app.SpeciesForFitPlot.Value);
-                    NdModFit = max(1, length(size(app.DataLoadingAndFittingTabOutputs.fitResults.current))-1);
-                    if NdModFit ~= NdDatAll
-                        error('Model and Data size do not match in fitting routine');
-                    end
-            
-                    % Only work with selected fitted species:
-                    [selIdx, selNames] = getSelectedFitSpecies(app, o);
-                    NdDat = numel(selIdx);
-                    %NdDat = length(app.SpeciesForFitPlot.Value);
-                    NdModFit = max(1, length(size(app.DataLoadingAndFittingTabOutputs.fitResults.current))-1);
-                    if NdModFit ~= NdDat
-                        error('Model and Data size do not match in fitting routine');
-                    end
-            
-                    tArrayModel = eval(app.FspPrintTimesField.Value);
-                    cols  = ['b','r','g','m','c','k'];
-                    cols2 = [.90 .90 1.00; 1.00 .90 .90; .90 1.00 .90; .60 .60 1.00; 1.00 .60 .60; .60 1.00 .60];
-                    LG = {};
-            
-                    % ---- MODEL: compute means and variances ----
-                    mnsMod  = zeros(length(tArrayModel), NdDat);
-                    mns2Mod = zeros(length(tArrayModel), NdDat);
-                    lowIQRmod  = zeros(length(tArrayModel), NdDat);
-                    highIQRmod = zeros(length(tArrayModel), NdDat);
-            
-                    for iTime = 1:length(tArrayModel)
-                        for j = 1:NdDat
-                            soInds = find(~strcmp(app.SpeciesForFitPlot.Items, app.SpeciesForFitPlot.Value{j}));
-                            px = app.FspTabOutputs.solutions{iTime}.p;
-                            if ~isempty(app.FIMTabOutputs.distortionOperator)
-                                px = app.FIMTabOutputs.distortionOperator.computeObservationDist(px, soInds);
-                            end
-                            if isempty(soInds)
-                                Z = double(px.data);
-                            else
-                                Z = double(px.sumOver(soInds).data);
-                            end
-                            Z = Z(:);
-                            mnsMod(iTime,j)  = (0:length(Z)-1) * Z;
-                            mns2Mod(iTime,j) = (0:length(Z)-1).^2 * Z;
-            
-                            if strcmpi(o.VarianceType,'IQR')
-                                sumZ = cumsum(Z);
-                                [~,I] = unique(sumZ);
-                                if sumZ(1) > o.IQRRange
-                                    lowIQRmod(iTime,j) = 0;
-                                else
-                                    lowIQRmod(iTime,j) = interp1(sumZ(I), I-1, o.IQRRange);
-                                end
-                                if sumZ(1) > 1-o.IQRRange
-                                    highIQRmod(iTime,j) = 0;
-                                else
-                                    highIQRmod(iTime,j) = interp1(sumZ(I), I-1, 1-o.IQRRange);
-                                end
-                            end
-                        end
-                    end
-                    varsMod = mns2Mod - mnsMod.^2;
-            
-                    % ---- Plot model trajectories ----
-                    for k = 1:NdDat
-                        j = selIdx(k);
-                        speciesName = selNames{k};
-            
-                        switch upper(char(o.VarianceType))
-                            case 'STD'
-                                BD = [ mnsMod(:,j)' + sqrt(varsMod(:,j)'), ...
-                                       mnsMod(end:-1:1,j)' - sqrt(varsMod(end:-1:1,j)') ];
-                            case 'IQR'
-                                BD = [ highIQRmod(:,j)', ...
-                                       lowIQRmod(end:-1:1,j)' ];
-                            otherwise
-                                BD = [ mnsMod(:,j)' + sqrt(varsMod(:,j)'), ...
-                                       mnsMod(end:-1:1,j)' - sqrt(varsMod(end:-1:1,j)') ];
-                        end
-                        TT = [tArrayModel(1:end), tArrayModel(end:-1:1)];
-            
-                        ipCol = mod(k-1, size(cols2,1)) + 1;
-                        fill(meanVarTrajAxis, TT, BD, cols2(ipCol,:), 'EdgeColor','none');
-                        hold(meanVarTrajAxis,'on');
-                        plot(meanVarTrajAxis, tArrayModel, mnsMod(:,j), cols(ipCol), lineProps{:});
-            
-                        LG{end+1} = sprintf('%s Model Mean \x00B1 %s', speciesName, o.VarianceType); 
-                        LG{end+1} = sprintf('%s Model Mean',          speciesName);               
-                    end
-            
-                    % ---- DATA: compute means/variances from data tensor ----
-                    mnsDat  = zeros(numTimes, NdDat);
-                    mns2Dat = zeros(numTimes, NdDat);
-                    lowIQRdat  = zeros(numTimes, NdDat);
-                    highIQRdat = zeros(numTimes, NdDat);
-            
-                    T_array = app.DataLoadingAndFittingTabOutputs.fittingOptions.dataTimes;
-                    dataTensorAll = double(app.DataLoadingAndFittingTabOutputs.dataTensor);
-            
-                    for iTime = 1:numTimes
-                        for k = 1:NdDat
-                            j = selIdx(k);  % global species index in fit
-                            indsToSumOver = setdiff(1:NdDatAll, j);
-            
-                            if ndims(app.DataLoadingAndFittingTabOutputs.dataTensor) == 1
-                                Hdat = dataTensorAll;
-                            else
-                                Hdat = squeeze(dataTensorAll(iTime,:,:,:,:,:,:,:,:,:));
-                            end
-                            if ~isempty(indsToSumOver)
-                                Hdat = sum(Hdat, indsToSumOver);
-                            end
-                            Hdat = Hdat(:);
-                            Hdat = Hdat / max(sum(Hdat), eps);
-            
-                            mnsDat(iTime,k)  = (0:length(Hdat)-1) * Hdat;
-                            mns2Dat(iTime,k) = (0:length(Hdat)-1).^2 * Hdat;
-            
-                            if strcmpi(o.VarianceType,'IQR')
-                                sumZ = cumsum(Hdat);
-                                [~,I] = unique(sumZ);
-                                if sumZ(1) > o.IQRRange
-                                    lowIQRdat(iTime,k) = 0;
-                                else
-                                    lowIQRdat(iTime,k) = interp1(sumZ(I), I-1, o.IQRRange);
-                                end
-                                if sumZ(1) > 1-o.IQRRange
-                                    highIQRdat(iTime,k) = 0;
-                                else
-                                    highIQRdat(iTime,k) = interp1(sumZ(I), I-1, 1-o.IQRRange);
-                                end
-                            end
-                        end
-                    end
-                    varDat = mns2Dat - mnsDat.^2;
-            
-                    % ---- Plot data error bars on top ----
-                    for k = 1:NdDat
-                        speciesName = selNames{k};
-                        ipCol = mod(k-1, length(cols)) + 1;
-                        switch upper(char(o.VarianceType))
-                            case 'STD'
-                                errorbar(meanVarTrajAxis, T_array, ...
-                                    mnsDat(:,k), sqrt(varDat(:,k)), ...
-                                    [cols(ipCol),'o'], 'MarkerSize',12, ...
-                                    'MarkerFaceColor', cols(ipCol), ...
-                                    lineProps{:});
-                            case 'IQR'
-                                errorbar(meanVarTrajAxis, T_array, ...
-                                    mnsDat(:,k), ...
-                                    (mnsDat(:,k) - lowIQRdat(:,k)), ...
-                                    (highIQRdat(:,k) - mnsDat(:,k)), ...
-                                    [cols(ipCol),'o'], 'MarkerSize',12, ...
-                                    'MarkerFaceColor', cols(ipCol), ...
-                                    lineProps{:});
-                        end
-                        LG{end+1} = sprintf('%s Data mean \x00B1 %s', speciesName, o.VarianceType); 
-                    end
-
-                    varDat = mns2Dat - mnsDat.^2;
-            
-                    % ---- Plot data error bars on top ----
-                    for j = 1:NdDat
-                        ipCol = mod(j-1, length(cols)) + 1;
-                        switch upper(char(o.VarianceType))
-                            case 'STD'
-                                errorbar(meanVarTrajAxis, T_array, ...
-                                    mnsDat(:,j), sqrt(varDat(:,j)), ...
-                                    [cols(ipCol),'o'], 'MarkerSize',12, ...
-                                    'MarkerFaceColor', cols(ipCol), ...
-                                    lineProps{:});
-                            case 'IQR'
-                                errorbar(meanVarTrajAxis, T_array, ...
-                                    mnsDat(:,j), ...
-                                    (mnsDat(:,j) - lowIQRdat(:,j)), ...
-                                    (highIQRdat(:,j) - mnsDat(:,j)), ...
-                                    [cols(ipCol),'o'], 'MarkerSize',12, ...
-                                    'MarkerFaceColor', cols(ipCol), ...
-                                    lineProps{:});
-                        end
-                        LG{end+1} = sprintf('%s Data mean ± %s', char(app.NameTable.Data(j)), o.VarianceType); 
-                    end
-            
-                    % ---- Axis styling ----
-                    legend(meanVarTrajAxis, LG, 'Location', char(o.LegendLocation));
-                    ax.FontSize = o.TickLabelSize;
-                    xlabel(meanVarTrajAxis, o.XLabel, 'FontSize', o.AxisLabelSize);
-                    ylabel(meanVarTrajAxis, o.YLabel, 'FontSize', o.AxisLabelSize);
-                    grid(ax,'on'); box(ax,'on');
-            
-                    if max(T_array) > 0
-                        xlim(meanVarTrajAxis, [0, max(T_array)]);
-                    end
-            
-                    if strlength(o.Title) > 0
-                        title(meanVarTrajAxis, string(o.Title), ...
-                              'FontSize', o.TitleFontSize, 'FontWeight','bold');
-                    else
-                        title(meanVarTrajAxis, sprintf('Trajectory of Means and %s', o.VarianceType), ...
-                              'FontSize', o.TitleFontSize, 'FontWeight','bold');
-                    end
-            
-                    figs{end+1} = figHandle;
+             function figs = plotTrajectories(app, fnums, lineProps, o, visible)
+                figs = {};
+        
+                % --- pull options consistent with original code ---
+                varianceType = char(o.VarianceType);   % 'STD' or 'IQR'
+                IQRrange     = o.IQRRange;
+        
+                % --- choose / create figure as before ---
+                if isempty(fnums)
+                    figHandle = figure('Visible',visible);
+                elseif iscell(fnums)
+                    figHandle = fnums{3}; set(0,'CurrentFigure',figHandle);
+                else
+                    figHandle = figure(fnums(3));
                 end
+        
+                switch upper(varianceType)
+                    case 'STD'
+                        set(figHandle,'Name','Mean +/- STD vs. time');
+                    otherwise
+                        set(figHandle,'Name','Mean vs. time');
+                end
+        
+                meanVarTrajAxis = gca;
+                hold(meanVarTrajAxis,'on');
+        
+                % ----- core dimensions from original code -----
+                numTimes = length(app.ParEstFitTimesList.Value);              % # data time points
+                NdDat    = length(app.SpeciesForFitPlot.Value);               % # fitted species
+        
+                % ----- rebuild dataHistTime exactly as before -----
+                % (so trajectories use the same data as the histogram plots)
+                dataHistTime = cell(numTimes, NdDat);
+                dataTensor   = double(app.DataLoadingAndFittingTabOutputs.dataTensor);
+        
+                NdModFit = max(1, length(size(app.DataLoadingAndFittingTabOutputs.fitResults.current)) - 1);
+                if NdModFit ~= NdDat
+                    error('Model and Data size do not match in fitting routine');
+                end
+        
+                for iTime = 1:numTimes
+                    if ndims(app.DataLoadingAndFittingTabOutputs.dataTensor) == 1
+                        baseSlice = dataTensor;
+                    else
+                        baseSlice = squeeze(dataTensor(iTime,:,:,:,:,:,:,:,:,:));
+                    end
+        
+                    for icb = 1:NdDat
+                        indsToSumOver = setdiff(1:NdModFit, icb);
+                        H1 = baseSlice;
+                        if ~isempty(indsToSumOver)
+                            H1 = sum(H1, indsToSumOver);
+                        end
+                        H1 = H1(:);
+                        H1 = H1 / max(sum(H1), eps);      % normalize (same as original)
+                        dataHistTime{iTime, icb} = H1;
+                    end
+                end
+        
+                % ----- MODEL mean / variance as in original code -----
+                tArrayModel = eval(app.FspPrintTimesField.Value);
+        
+                mnsMod     = zeros(length(tArrayModel), NdDat);
+                mns2Mod    = zeros(length(tArrayModel), NdDat);
+                lowIQRmod  = zeros(length(tArrayModel), NdDat);
+                highIQRmod = zeros(length(tArrayModel), NdDat);
+        
+                for iTime = 1:length(tArrayModel)
+                    for j = 1:NdDat
+                        % original "soInds" logic (by name, not simple index setdiff)
+                        soInds = find(~strcmp(app.SpeciesForFitPlot.Items, app.SpeciesForFitPlot.Value{j}));
+        
+                        px = app.FspTabOutputs.solutions{iTime}.p;
+                        if ~isempty(app.FIMTabOutputs.distortionOperator)
+                            px = app.FIMTabOutputs.distortionOperator.computeObservationDist(px, soInds);
+                        end
+                        if isempty(soInds)
+                            Z = double(px.data);
+                        else
+                            Z = double(px.sumOver(soInds).data);
+                        end
+                        Z = Z(:);
+        
+                        inds = 0:length(Z)-1;
+                        mnsMod(iTime,j)  = inds * Z;
+                        mns2Mod(iTime,j) = (inds.^2) * Z;
+        
+                        if strcmpi(varianceType, 'IQR')
+                            sumZ = cumsum(Z);
+                            [~, Iu] = unique(sumZ);
+        
+                            if sumZ(1) > IQRrange
+                                lowIQRmod(iTime,j) = 0;
+                            else
+                                lowIQRmod(iTime,j) = interp1(sumZ(Iu), Iu-1, IQRrange);
+                            end
+                            if sumZ(1) > 1 - IQRrange
+                                highIQRmod(iTime,j) = 0;
+                            else
+                                highIQRmod(iTime,j) = interp1(sumZ(Iu), Iu-1, 1 - IQRrange);
+                            end
+                        end
+                    end
+                end
+        
+                varsMod = mns2Mod - mnsMod.^2;
+                cols  = ['b','r','g','m','c','k'];
+                cols2 = [.90 .90 1.00; 1.00 .90 .90; .90 1.00 .90; ...
+                         .60 .60 1.00; 1.00 .60 .60; .60 1.00 .60];
+        
+                LG = {};
+        
+                % ----- plot MODEL trajectories (all fitted species) -----
+                for iplt = 1:NdDat
+                    switch upper(varianceType)
+                        case 'STD'
+                            BD = [ mnsMod(:,iplt)' + sqrt(varsMod(:,iplt)'), ...
+                                   mnsMod(end:-1:1,iplt)' - sqrt(varsMod(end:-1:1,iplt)') ];
+                        case 'IQR'
+                            BD = [ highIQRmod(:,iplt)', ...
+                                   lowIQRmod(end:-1:1,iplt)' ];
+                        otherwise
+                            BD = [ mnsMod(:,iplt)' + sqrt(varsMod(:,iplt)'), ...
+                                   mnsMod(end:-1:1,iplt)' - sqrt(varsMod(end:-1:1,iplt)') ];
+                    end
+                    TT    = [tArrayModel(1:end), tArrayModel(end:-1:1)];
+                    ipCol = mod(iplt-1, size(cols2,1)) + 1;
+        
+                    fill(meanVarTrajAxis, TT, BD, cols2(ipCol,:), 'EdgeColor','none');
+                    plot(meanVarTrajAxis, tArrayModel, mnsMod(:,iplt), cols(ipCol), lineProps{:});
+        
+                    % Legend name from fitted species
+                    spName = app.SpeciesForFitPlot.Value{iplt};
+                    if isstring(spName), spName = char(spName); end
+        
+                    LG{end+1} = sprintf('%s Model Mean \x00B1 %s', spName, varianceType); 
+                    LG{end+1} = sprintf('%s Model Mean',          spName);                
+                end
+        
+                % ----- DATA means/vars from dataHistTime (original logic) -----
+                mnsDat     = zeros(numTimes, NdDat);
+                mns2Dat    = zeros(numTimes, NdDat);
+                lowIQRdat  = zeros(numTimes, NdDat);
+                highIQRdat = zeros(numTimes, NdDat);
+        
+                for iTime = 1:numTimes
+                    for j = 1:NdDat
+                        H = dataHistTime{iTime,j};
+                        H = H(:);
+                        inds = 0:length(H)-1;
+        
+                        mnsDat(iTime,j)  = inds * H;
+                        mns2Dat(iTime,j) = (inds.^2) * H;
+        
+                        if strcmpi(varianceType, 'IQR')
+                            sumZ = cumsum(H);
+                            [~, Iu] = unique(sumZ);
+        
+                            if sumZ(1) > IQRrange
+                                lowIQRdat(iTime,j) = 0;
+                            else
+                                lowIQRdat(iTime,j) = interp1(sumZ(Iu), Iu-1, IQRrange);
+                            end
+                            if sumZ(1) > 1 - IQRrange
+                                highIQRdat(iTime,j) = 0;
+                            else
+                                highIQRdat(iTime,j) = interp1(sumZ(Iu), Iu-1, 1 - IQRrange);
+                            end
+                        end
+                    end
+                end
+        
+                varDat  = mns2Dat - mnsDat.^2;
+                T_array = app.DataLoadingAndFittingTabOutputs.fittingOptions.dataTimes;
+        
+                % ----- plot DATA errorbars (all fitted species) -----
+                for j = 1:NdDat
+                    ipCol  = mod(j-1, length(cols)) + 1;
+                    spName = app.SpeciesForFitPlot.Value{j};
+                    if isstring(spName), spName = char(spName); end
+        
+                    switch upper(varianceType)
+                        case 'STD'
+                            errorbar(meanVarTrajAxis, T_array, ...
+                                mnsDat(:,j), sqrt(varDat(:,j)), ...
+                                [cols(ipCol),'o'], 'MarkerSize',12, ...
+                                'MarkerFaceColor', cols(ipCol), ...
+                                lineProps{:});
+                        case 'IQR'
+                            errorbar(meanVarTrajAxis, T_array, ...
+                                mnsDat(:,j), ...
+                                (mnsDat(:,j) - lowIQRdat(:,j)), ...
+                                (highIQRdat(:,j) - mnsDat(:,j)), ...
+                                [cols(ipCol),'o'], 'MarkerSize',12, ...
+                                'MarkerFaceColor', cols(ipCol), ...
+                                lineProps{:});
+                    end
+        
+                    % Legend name from fitted species
+                    LG{end+1} = sprintf('%s Data mean \x00B1 %s', spName, varianceType); 
+                end
+        
+                % ----- axes labels, title, legend & styling using opts -----
+                ax = meanVarTrajAxis;
+                ax.FontSize = o.TickLabelSize;
+        
+                xlabel(ax, o.XLabel, 'FontSize', o.AxisLabelSize);
+                ylabel(ax, o.YLabel, 'FontSize', o.AxisLabelSize);
+        
+                if max(T_array) > 0
+                    xlim(ax, [0, max(T_array)]);
+                end
+                if ~isempty(o.XLim), xlim(ax, o.XLim); end
+                if ~isempty(o.YLim), ylim(ax, o.YLim); end
+        
+                if strlength(o.Title) > 0
+                    title(ax, string(o.Title), ...
+                        'FontSize', o.TitleFontSize, 'FontWeight','bold');
+                else
+                    title(ax, 'Trajectory of means and standard deviations', ...
+                        'FontSize', o.TitleFontSize, 'FontWeight','bold');
+                end
+        
+                grid(ax,'on'); box(ax,'on');
+        
+                if ~isempty(LG) && ~strcmpi(o.LegendLocation,"none")
+                    lgd = legend(ax, LG, 'Location', char(o.LegendLocation));
+                    if ~isempty(lgd), lgd.FontSize = o.LegendFontSize; end
+                end
+        
+                figs{end+1} = figHandle;
+            end
+
             
                 function figs = plotLikelihood(app, fnums, lineProps, o, visible)
                     figs = {};
