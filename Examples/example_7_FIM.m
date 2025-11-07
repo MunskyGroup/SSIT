@@ -109,22 +109,10 @@ STL1_4state_cellCounts = 10*ones(size(STL1_4state_FIM.tSpan));
     STL1_4state_FIM.evaluateExperiment(STL1_4state_fimResults,...
                                        STL1_4state_cellCounts)
 
-ellipsePairs = [6 11;
-                6 14;
-                10 15;
-                9 15;
-                10 12;
-                11 14;
-                7 10;
-                7 12;
-                7 8];
-
-theta0 = [STL1_4state_FIM.parameters{:,2}];
-
 % Plot the FIMs:
 STL1_4state_FIM.plotFIMResults(STL1_4state_fimTotal,...
-    STL1_4state_FIM.parameters, theta0, PlotEllipses=true,...
-    EllipseLevel=0.9, EllipsePairs=ellipsePairs);
+    STL1_4state_FIM.parameters, [STL1_4state_FIM.parameters{:,2}],...
+    PlotEllipses=true, EllipsePairs=[6 14; 7 12; 13 15; 11 14]);
 
 %%
 % Note:  If detI(θ)=0, then at least one eigenvalue 𝜆𝑘=0. That means the 
