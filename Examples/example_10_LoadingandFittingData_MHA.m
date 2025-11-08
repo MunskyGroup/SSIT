@@ -57,8 +57,10 @@ STL1_4state_MH.parameters([1:15],2) = num2cell(STL1_4state_MH_pars);
 
 % Plot results:
 STL1_4state_MH.plotMHResults(STL1_4state_MHResults,[],'log',[])
-STL1_4state_MH.makeFitPlot
 
+STL1_4state_MLE.plotFits([], "all", [], {'linewidth',2},...
+    Title='4-state STL1', YLabel='Molecule Count',...
+    LegendLocation='northeast', LegendFontSize=12);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(2): Use FIM for Metropolis-Hastings proposal distribution 
@@ -123,7 +125,10 @@ STL1_4state_MH_FIM.parameters([1:15],2) = ...
 % Plot MH samples, FIM:
 STL1_4state_MH_FIM.plotMHResults(STL1_4state_FIM_MHResults,...
                                  FIMfree,'log',[])
-STL1_4state_MH_FIM.makeFitPlot
+
+STL1_4state_MH.plotFits([], "all", [], {'linewidth',2},...
+    Title='4-state STL1', YLabel='Molecule Count',...
+    LegendLocation='northeast', LegendFontSize=12);
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -159,7 +164,10 @@ STL1_4state_MH_it_pars = ...
 STL1_4state_MH_it.parameters(:,2) = num2cell(STL1_4state_MH_it_pars); 
 
 % Plot fitting results:
-STL1_4state_MH_it.makeFitPlot  
+STL1_4state_MH.plotFits([], "all", [], {'linewidth',2},...
+    Title='4-state STL1', YLabel='Molecule Count',...
+    LegendLocation='northeast', LegendFontSize=12);
+
 % You may need to re-run this multiple times until converged.
 % I got a MLE of -34,003.3 after a few runs. 
 
@@ -175,7 +183,7 @@ for i=1:2
     STL1_4state_MH_it.parameters(:,2) = num2cell(STL1_4state_MH_it_pars);
 
     % Run Metropolis-Hastings    
-    proposalWidthScale = 0.001;
+    proposalWidthScale = 0.01;
     MHOptions.proposalDistribution  = ...
        @(x)x+proposalWidthScale*randn(size(x));
 
@@ -194,7 +202,10 @@ for i=1:2
         num2cell(STL1_4state_MH_it_pars);
 end
 STL1_4state_MH_it.plotMHResults(STL1_4state_MH_it_MHResults);
-STL1_4state_MH_it.makeFitPlot
+
+STL1_4state_MH.plotFits([], "all", [], {'linewidth',2},...
+    Title='4-state STL1', YLabel='Molecule Count',...
+    LegendLocation='northeast', LegendFontSize=12, ProbXLim = [0 80]);
 
 %% Save models & MH results:
 saveNames = unique({'STL1_4state_MH'

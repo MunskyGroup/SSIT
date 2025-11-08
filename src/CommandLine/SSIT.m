@@ -4644,6 +4644,8 @@ classdef SSIT
                     opts.YLabel (1,1) string = "Response"
                     opts.XLim double = []
                     opts.YLim double = []
+                    opts.ProbXLim double = []    
+                    opts.ProbYLim double = []    % only used for DistType == 1 (PDF)
                 end
             
                 % ---- Compute fitSolution if needed ----
@@ -4782,6 +4784,17 @@ classdef SSIT
                             LegNames{end+1} = [speciesName,'-data']; 
                             xm = max(xm, length(Hdat));
                             ym = max(ym, max(yDat));
+
+                            % ----- style for this subplot -----
+                            title(ax, ['t = ', app.ParEstFitTimesList.Value{iTime}], 'FontSize', o.TitleFontSize-2);
+                            ylabel(ax, 'Probability', 'FontSize', o.AxisLabelSize-2);
+                            set(ax,'FontSize',o.TickLabelSize);
+                    
+                            % NEW: apply per-plot limits only to Probability Distributions
+                            if DistType == 1
+                                if ~isempty(o.ProbXLim), xlim(ax, o.ProbXLim); end
+                                if ~isempty(o.ProbYLim), ylim(ax, o.ProbYLim); end
+                            end
                 
                             %% --- Model histogram for species j ---
                             modelTensorAll = app.DataLoadingAndFittingTabOutputs.fitResults.current;
@@ -4816,7 +4829,7 @@ classdef SSIT
                                 ylabel(ax, 'Probability', 'FontSize', o.AxisLabelSize);
                             end
                             if iTime > numTimes - subPlotSize(2)
-                                xlabel(ax, 'Num. Mol.', 'FontSize', o.AxisLabelSize);
+                                xlabel(ax, 'Molecule Count', 'FontSize', o.AxisLabelSize);
                             end
                             grid(ax,'on'); box(ax,'on');
             
@@ -4862,7 +4875,7 @@ classdef SSIT
         
                 switch upper(varianceType)
                     case 'STD'
-                        set(figHandle,'Name','Mean +/- STD vs. time');
+                        set(figHandle,'Name','Mean +/- std vs. time');
                     otherwise
                         set(figHandle,'Name','Mean vs. time');
                 end
