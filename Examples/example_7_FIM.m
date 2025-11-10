@@ -1,4 +1,4 @@
-%% example_7_FIM
+%% SSIT/Examples/example_7_FIM
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Section 2.3: Sensitivity analysis and Fisher Information Matrix 

@@ -1,4 +1,4 @@
-%% example_9_LoadingandFittingData_MLE
+%% SSIT/Examples/example_9_LoadingandFittingData_MLE
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Section 2.4: Loading and fitting time-varying STL1 yeast data 

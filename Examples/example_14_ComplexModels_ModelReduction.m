@@ -1,4 +1,4 @@
-%% example_14_ModelReduction
+%% SSIT/Examples/example_14_ModelReduction
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Section 2.5: Complex models

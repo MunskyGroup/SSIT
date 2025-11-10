@@ -1,4 +1,4 @@
-%% example_11_LoadingandFittingData_CrossValidation
+%% SSIT/Examples/example_11_LoadingandFittingData_CrossValidation
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Section 2.4: Loading and fitting time-varying STL1 yeast data 
@@ -33,13 +33,12 @@ STL1_4state_CrossVal = STL1_4state_FSP;
 DataFileName = 'data/filtered_data_2M_NaCl_Step.csv';
 LinkedSpecies = {'mRNA','RNA_STL1_total_TS3Full'};
 
-% In this case, let's suppose that we only wish to fit the data at times
-% before 75 minutes.  We will set the global conditions as:
-ConditionsGlobal = {[],[],'TAB.time<=75'};
+% Suppose that we only wish to fit the data at times before 25 minutes.  
+% Set the global conditions as:
+ConditionsGlobal = {[],[],'TAB.time<=25'};
 
-% We want to split up the replicas to be separate.
-ConditionsReplicas = {'TAB.Replica==1';...
-    'TAB.Replica==2'};
+% We want to split up the replicas to be separate:
+ConditionsReplicas = {'TAB.Replica==1'; 'TAB.Replica==2'};
 
 modelLibrary = 'crossValidationModels_STL1';
 

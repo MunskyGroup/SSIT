@@ -1,4 +1,4 @@
-%% example_5_SolveSSITModels_EscapeTimes 
+%% SSIT/Examples/example_5_SolveSSITModels_EscapeTimes 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Section 2.2: Finding and visualizing master equation solutions

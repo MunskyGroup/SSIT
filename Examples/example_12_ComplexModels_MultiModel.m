@@ -1,4 +1,4 @@
-%% example_12_ComplexModels_MultiModel
+%% SSIT/Examples/example_12_ComplexModels_MultiModel
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Section 2.5: Complex models
@@ -201,5 +201,6 @@ combinedModelConstrained = combinedModelConstrained.initializeStateSpaces();
 x0 = allParsMixed;      % 1..15 exist
 x0(16:24) = x0(7:15);   % seed the second block
 
-xOpt = combinedModelConstrained.maximizeLikelihood(x0, fitOptions, fitAlgorithm);
+xOpt = combinedModelConstrained.maximizeLikelihood(x0, fitOptions,...
+                                                    fitAlgorithm);
 combinedModelConstrained = combinedModelConstrained.updateModels(xOpt);

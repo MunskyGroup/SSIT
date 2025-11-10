@@ -1,4 +1,4 @@
-%% example_8_LoadingandFittingData_DataLoading
+%% SSIT/Examples/example_8_LoadingandFittingData_DataLoading
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Section 2.4: Loading and fitting Hog1-MAPK pathway STL1 yeast data 
@@ -37,7 +37,7 @@ STL1_4state_data = STL1_4state_FSP;
 STL1_4state_data = ...
     STL1_4state_data.loadData('data/filtered_data_2M_NaCl_Step.csv',...
                              {'mRNA','RNA_STL1_total_TS3Full'},...
-                             {'Replica',2;'Condition','0.2M_NaCl_Step'});
+                             {'Replica',1;'Condition','0.2M_NaCl_Step'});
 
 % This plot is unnecessary, as the model parameters have not been fit to
 % the data yet.  However, it illustrates the improvement to come later:

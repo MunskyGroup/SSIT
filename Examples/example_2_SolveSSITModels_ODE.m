@@ -1,4 +1,4 @@
-%% example_2_SolveSSITModels_ODE
+%% SSIT/Examples/example_2_SolveSSITModels_ODE
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Section 2.2: Finding and visualizing master equation solutions

@@ -1,4 +1,4 @@
-%% example_13_SolveSSITModels_Hybrid
+%% SSIT/Examples/example_13_SolveSSITModels_Hybrid
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Section 2.5: Complex models

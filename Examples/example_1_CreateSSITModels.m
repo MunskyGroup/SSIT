@@ -1,4 +1,4 @@
-%% example_1_CreateSSITModels
+%% SSIT/Examples/example_1_CreateSSITModels
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Section 2.1: Creating, Saving, and Loading Models in SSIT
