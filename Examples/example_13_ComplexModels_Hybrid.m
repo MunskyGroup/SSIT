@@ -14,7 +14,7 @@ addpath(genpath('../src'));
 % example_1_CreateSSITModels 
 
 % View model summaries:
-STL1.summarizeModel
+STL1_4state.summarizeModel
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Adjust a model to treat some species (i.e., upstream reactions) use an 
@@ -24,36 +24,38 @@ STL1.summarizeModel
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Create copies of our models:
-STL1_hybrid = STL1;
+STL1_hybrid = STL1_4state;
 
 % Set the times at distributions will be computed:
-STL1_hybrid.tSpan = linspace(0,20,200);
+STL1_hybrid.tSpan = linspace(0,50,200);
 
 % Set 'useHybrid' to true:
 STL1_hybrid.useHybrid = true;
 
 % Define which species will be solved by ODEs:
-STL1_hybrid.hybridOptions.upstreamODEs = {'offGene','onGene'};
+STL1_hybrid.hybridOptions.upstreamODEs = {'g1','g2','g3','g4'};
 
 % Set solution scheme to FSP:
 STL1_hybrid.solutionScheme = 'FSP';
 
 % View summary of hybrid STL1 model, expecting:
     %   Species:
-    %       offGene; IC = 1;  upstream ODE
-    %       onGene; IC = 0;  upstream ODE
+    %       g1; IC = 1;  upstream ODE
+    %       g2; IC = 0;  upstream ODE
+    %       g3; IC = 0;  upstream ODE
+    %       g4; IC = 0;  upstream ODE
     %       mRNA; IC = 0;  discrete stochastic
 STL1_hybrid.summarizeModel
 
 % Optionally, define a custom constraint on the species: 
 % (e.g.,'offGene'+'onGene')
-STL1_hybrid.customConstraintFuns = [];
+%STL1_hybrid.customConstraintFuns = [];
 
 % Set FSP 1-norm error tolerance:
 STL1_hybrid.fspOptions.fspTol = 1e-4; 
     
 % Guess initial bounds on FSP StateSpace:
-STL1_hybrid.fspOptions.bounds = [2,2,400];
+%STL1_hybrid.fspOptions.bounds = [1,1,1,1,300];
 
 % This function compiles and stores the given reaction propensities  
 % into symbolic expression functions that use sparse matrices to  
@@ -65,7 +67,7 @@ STL1_hybrid = STL1_hybrid.formPropensitiesGeneral('STL1_hybrid');
 % Have FSP approximate the steady state for the initial distribution 
 % by finding the eigenvector corresponding to the smallest magnitude 
 % eigenvalue (i.e., zero, for generator matrix A, d/dtP(t)=AP(t)):
-STL1_hybrid.fspOptions.initApproxSS = false; 
+STL1_hybrid.fspOptions.initApproxSS = true; 
     
 % Solve STL1_hybrid:
 [STL1_hybrid_FSPsoln,STL1_hybrid.fspOptions.bounds] = STL1_hybrid.solve; 
