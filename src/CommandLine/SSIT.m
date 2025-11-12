@@ -1057,45 +1057,47 @@ classdef SSIT
             obj.stoichiometry = obj.stoichiometry(:,inds);
             obj.propensityFunctions = obj.propensityFunctions(inds);
         end
+
         function [obj] = calibratePDO(obj,dataFileName,measuredSpecies,...
-                trueColumns,measuredColumns,pdoType,showPlot,parGuess)
-            %% SSIT.calibratePDO - This function calibrates a probabilistic
-            %% distortion operator (PDO) to match 'true' and 'observed'
-            %% (distorted) spot numbers.  Note: it also calls generatePDO()
-            %
-            % Calibrate the PDO from empirical data, for example, the
-            % number of spots that have been measured using different
-            % assays in data columns 'nTotal' for the 'true' data set and
-            % in the columns 'nSpots0' for a different label, or in columns
-            % 'intens1' for the integrated fluorescent intensity.
-            %
-            % Inputs:
-            %   * obj
-            %   * dataFileName - (string), name of the data file
-            %   * measuredSpecies - (string), name of the model species
-            %   * trueColumns - (string), name of the 'true' data for the
-            %                    model species
-            %   * measuredColumns - (string), name of the 'observed', or
-            %                        distorted, data for the model species
-            %   * pdoType - (string), the type of distribution that
-            %                represents the type
-            %       default: 'AffinePoiss'
-            %   * showPlot - (logical), default: false
-            %   * parGuess - (double), guesses for the hyperparameter
-            %                 values, i.e., the parameters that define the
-            %                 PDO distribution (not to be confused with the
-            %                 model parameters)
-            %       default: [];
-            %
-            % Outputs:
-            %
-            % Example:
-            % Model_PDO = Model.calibratePDO('/data/pdoData.csv',...
-            % {'rna'},{'nTotal'},{'nSpots0'},'AffinePoiss',true);
-            %
-            % The 'AffinePoiss' PDO models the obervation probability with
-            % a Poisson distribution, where the mean value is affine
-            % linearly related to the true value: P(y|x) = Poiss(a0 + a1*x);
+            trueColumns,measuredColumns,pdoType,showPlot,parGuess,...
+            conditions, opts)
+            %% SSIT.calibratePDO - This function calibrates a probabilistic 
+            %% distortion operator (PDO) to match 'true' and 'observed' 
+            %% (distorted) spot numbers. Note: it also calls generatePDO() 
+            %% Calibrate the PDO from empirical data, for example, the 
+            % number of spots that have been measured using different 
+            % assays in data columns 'nTotal' for the 'true' data set and 
+            % in the columns 'nSpots0' for a different label, or in columns 
+            % 'intens1' for the integrated fluorescent intensity. 
+            %% Inputs: 
+            % * obj 
+            % * dataFileName - (string), name of the data file 
+            % * measuredSpecies - (string), name of the model species 
+            % * trueColumns - (string), name of the 'true' data for the model species 
+            % * measuredColumns - (string), name of the 'observed', or distorted, data for the model species 
+            % * pdoType - (string), the type of distribution that represents the type (default: 'AffinePoiss')
+            % * showPlot - (logical), default: false 
+            % * parGuess - (double), guesses for the hyperparameter values, i.e., the parameters that define the 
+            % PDO distribution (not to be confused with the model parameters) default: []; 
+            % * conditions - (cell) filters to apply before calibration, 
+            %       e.g. {'Replica',1} or {'Drug_Conc','>=',100}
+            % Plotting opts (used only when showPlot==true):
+            %   opts.Title (1,1) string = ""
+            %   opts.TitleFontSize (1,1) double {mustBePositive} = 18
+            %   opts.LegendFontSize (1,1) double {mustBePositive} = 18
+            %   opts.LegendLocation (1,1) string = "best"
+            %   opts.XLabel (1,1) string = "Observed data"
+            %   opts.YLabel (1,1) string = "True counts"
+            %   opts.XLim double = []
+            %   opts.YLim double = []
+            %% Outputs: 
+            %% Example: 
+            % Model_PDO = Model.calibratePDO('/data/pdoData.csv',... 
+            % {'rna'},{'nTotal'},{'nSpots0'},'AffinePoiss',true); 
+            %% The 'AffinePoiss' PDO models the obervation probability with 
+            % a Poisson distribution, where the mean value is affine 
+            % linearly related to the true value: P(y|x) = Poiss(a0 + a1*x); arguments
+
             arguments
                 obj
                 dataFileName
@@ -1104,76 +1106,183 @@ classdef SSIT
                 measuredColumns
                 pdoType = 'AffinePoiss'
                 showPlot = false
-                parGuess=[];
+                parGuess = []
+                conditions = {}
+                opts.Title (1,1) string = ""
+                opts.TitleFontSize (1,1) double {mustBePositive} = 18
+                opts.LegendFontSize (1,1) double {mustBePositive} = 18
+                opts.LegendLocation (1,1) string = "best"
+                opts.XLabel (1,1) string = "Observed data"
+                opts.YLabel (1,1) string = "True counts"
+                opts.XLim double = []
+                opts.YLim double = []
             end
 
             obj.pdoOptions.type = pdoType;
-            % app.DistortionTypeDropDown.Value = obj.pdoOptions.type;
-            % app.FIMTabOutputs.PDOProperties.props = obj.pdoOptions.props;
 
-            Tab = readtable(dataFileName);
-
-            % Convert float values in trueColumns and measuredColumns
-            Tab.(trueColumns{1}) = double(int64(Tab.(trueColumns{1})));
-            Tab.(measuredColumns{1}) = double(int64(Tab.(measuredColumns{1})));
-
-            dataNames = Tab.Properties.VariableNames;
-
-            % Check that the data column being asked for actually exists in the file and throw an error if not.
-            % TODO - make this type of check accessible to all of SSIT, not just calibratePDO
-            present = any(cellfun(@(y) strcmp(y, measuredColumns{1}),dataNames));
-            if ~present
-                error(measuredColumns + " does not exist in the data file.");
+            % Read table(s)
+            if ischar(dataFileName) || isstring(dataFileName)
+                TAB = readtable(dataFileName);
+            elseif iscell(dataFileName)
+                TAB = table;
+                for iCell = 1:numel(dataFileName)
+                    iTAB = readtable(dataFileName{iCell});
+                    TAB = [TAB; iTAB];
+                end
+            else
+                error('dataFileName must be string/char or cell array of file names.');
             end
 
-            DATA = table2cell(Tab);
+            % Apply conditions (same logic as loadData)
+            for i = 1:size(conditions,1)
+                if size(conditions,2)==2
+                    if isnumeric(conditions{i,2}) && isnumeric(TAB.(conditions{i,1})(1))
+                        TAB = TAB(TAB.(conditions{i,1})==conditions{i,2},:);
+                    elseif ischar(conditions{i,2}) && iscell(TAB.(conditions{i,1})(1)) && ischar(TAB.(conditions{i,1}){1})
+                        TAB = TAB(strcmp(TAB.(conditions{i,1}),conditions{i,2}),:);
+                    elseif ischar(conditions{i,2}) && ischar(TAB.(conditions{i,1})(1))
+                        TAB = TAB(strcmp(TAB.(conditions{i,1}),conditions{i,2}),:);
+                    elseif isnumeric(TAB.(conditions{i,1})(1))
+                        TAB = TAB((TAB.(conditions{i,1}))==eval(conditions{i,2}),:);
+                    end
+                else
+                    try
+                        eval(['TAB = TAB(TAB.(conditions{i,1})',conditions{i,3},'conditions{i,2},:);'])
+                    catch
+                        eval(['TAB = TAB(',conditions{i,3},',:);'])
+                    end
+                end
+            end
 
+            if height(TAB)==0
+                error('calibratePDO:NoRowsAfterFilter', ...
+                      'No rows remain after applying conditions. Check your filters.');
+            end
+
+            dataNames = TAB.Properties.VariableNames;
+
+            % Validate requested columns exist
+            for k = 1:numel(trueColumns)
+                if ~any(strcmp(dataNames,trueColumns{k}))
+                    error('calibratePDO:MissingTrueColumn', ...
+                          'True column "%s" not found in the data file.', trueColumns{k});
+                end
+            end
+            for k = 1:numel(measuredColumns)
+                if ~any(strcmp(dataNames,measuredColumns{k}))
+                    error('calibratePDO:MissingMeasuredColumn', ...
+                          'Measured column "%s" not found in the data file.', measuredColumns{k});
+                end
+            end
+
+            % Cast specified true/measured columns to integer counts
+            for k = 1:numel(trueColumns)
+                col = trueColumns{k};
+                if ~isempty(col) && isnumeric(TAB.(col))
+                    TAB.(col) = double(int64(TAB.(col)));
+                end
+            end
+            for k = 1:numel(measuredColumns)
+                col = measuredColumns{k};
+                if ~isempty(col) && isnumeric(TAB.(col))
+                    TAB.(col) = double(int64(TAB.(col)));
+                end
+            end
+
+            DATA = table2cell(TAB);
+
+            % Initial guess for PDO parameters
             if isempty(parGuess)
                 lambdaTemplate = obj.findPdoError(pdoType);
             else
-                lambdaTemplate=parGuess;
+                lambdaTemplate = parGuess;
             end
 
             lambda = [];
 
+            % Identify stochastic species (exclude upstream ODEs in hybrids)
             if isfield(obj.hybridOptions,'upstreamODEs')
-                speciesStochastic = setdiff(obj.species,obj.hybridOptions.upstreamODEs,'stable');
+                speciesStochastic = setdiff(obj.species, obj.hybridOptions.upstreamODEs, 'stable');
             else
                 speciesStochastic = obj.species;
             end
 
             maxSize = zeros(1,length(speciesStochastic));
             options = optimset('display','none');
-            for i=1:length(speciesStochastic)
-                if sum(strcmp(measuredSpecies,speciesStochastic{i}))==1
-                    k = find(strcmp(measuredSpecies,speciesStochastic{i}));
-                    jTrue = find(strcmp(dataNames,trueColumns{k}));
-                    jObsv = find(strcmp(dataNames,measuredColumns{k}));
+
+            for i = 1:length(speciesStochastic)
+                if sum(strcmp(measuredSpecies, speciesStochastic{i})) == 1
+                    k = find(strcmp(measuredSpecies, speciesStochastic{i}));
+                    jTrue = find(strcmp(dataNames, trueColumns{k}));
+                    jObsv = find(strcmp(dataNames, measuredColumns{k}));
+
+                    if isempty(jTrue) || isempty(jObsv)
+                        error('calibratePDO:ColumnIndexError', ...
+                              'Could not resolve true/measured columns for species "%s".', speciesStochastic{i});
+                    end
+
                     xTrue = [DATA{:,jTrue}]';
                     xObsv = [DATA{:,jObsv}]';
-                    maxSize(i)=max(xTrue);
-                    objPDO = @(x)-obj.findPdoError(pdoType,x,xTrue,xObsv);
-                    lambdaNew = fminsearch(objPDO,lambdaTemplate,options);
+                    if isempty(xTrue) || isempty(xObsv)
+                        error('calibratePDO:EmptyColumns', ...
+                              'Columns for species "%s" are empty after filtering.', speciesStochastic{i});
+                    end
+
+                    maxSize(i) = max(xTrue);
+
+                    objPDO = @(x) -obj.findPdoError(pdoType, x, xTrue, xObsv);
+                    lambdaNew = fminsearch(objPDO, lambdaTemplate, options);
+
                     if showPlot
-                        [~,PDO] = obj.findPdoError(pdoType,lambdaNew,xTrue,xObsv);
-                        Z = max(-25,log10(PDO));
+                        [~,PDO] = obj.findPdoError(pdoType, lambdaNew, xTrue, xObsv);
+                        Z = max(-25, log10(PDO));
                         fg = figure; set(0,'CurrentFigure',fg);
-                        contourf([0:size(PDO,2)-1],[0:size(PDO,1)-1],Z);
+                        contourf(0:size(PDO,2)-1, 0:size(PDO,1)-1, Z);
                         colorbar
                         hold on
-                        scatter(xTrue,xObsv,100,'sk','filled')
-                        set(gca,'fontsize',15)
-                        legend('PDO','Data')
+                        scatter(xTrue, xObsv, 100, 'sk', 'filled')
+
+                        % --- Apply opts ---
+                        if strlength(opts.XLabel) > 0
+                            xlabel(opts.XLabel);
+                        end
+                        if strlength(opts.YLabel) > 0
+                            ylabel(opts.YLabel);
+                        end
+                        if ~isempty(opts.XLim)
+                            xlim(opts.XLim);
+                        end
+                        if ~isempty(opts.YLim)
+                            ylim(opts.YLim);
+                        end
+                        lgd = legend('PDO','Data','Location',char(opts.LegendLocation));
+                        if ~isempty(lgd) && isvalid(lgd)
+                            lgd.FontSize = opts.LegendFontSize;
+                        end
+                        if strlength(opts.Title) > 0
+                            tt = title(opts.Title);
+                        else
+                            tt = title(sprintf('PDO fit: %s', speciesStochastic{i}));
+                        end
+                        if ~isempty(tt) && isvalid(tt)
+                            tt.FontSize = opts.TitleFontSize;
+                        end
+                        % ---------------
+
+                        set(gca, 'fontsize', max(10, round(0.8*opts.TitleFontSize))); % modest tie-in
                     end
                 else
-                    maxSize(i)=0;
+                    maxSize(i) = 0;
                     lambdaNew = 0*lambdaTemplate;
                 end
-                lambda = [lambda,lambdaNew];
+                lambda = [lambda, lambdaNew];
             end
+
             obj.pdoOptions.props.PDOpars = lambda;
-            obj.pdoOptions.PDO = obj.generatePDO(obj.pdoOptions,lambda,[],[],maxSize);
+            obj.pdoOptions.PDO = obj.generatePDO(obj.pdoOptions, lambda, [], [], maxSize);
         end
+
+
 
         function obj = setICfromFspVector(obj,stateSpace,fspVector)
             % This function converts an FSP vector to initial states
@@ -4005,7 +4114,6 @@ classdef SSIT
         end
             
         function plotFSP(obj, solution, speciesNames, plotType, indTimes, figureNums, lineProps, opts)
-            % plotFSP — Plot FSP results like plotODE/plotSSA, with species subsetting
             arguments
                 obj
                 solution
