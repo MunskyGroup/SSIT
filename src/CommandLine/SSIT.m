@@ -4060,6 +4060,32 @@ classdef SSIT
                 selNames = allNames(selIdx);
             end
             nSel = numel(selIdx);
+
+            % ----- Map to FSP species indices for hybrid models -----
+            % For hybrid models, only non-upstream species appear in the FSP
+            if isprop(obj,'useHybrid') && obj.useHybrid
+                upNames = obj.hybridOptions.upstreamODEs;
+                if isstring(upNames), upNames = cellstr(upNames); end
+                if ischar(upNames),   upNames = {upNames};        end
+
+                allNamesForMap = allNames;
+                if isstring(allNamesForMap), allNamesForMap = cellstr(allNamesForMap); end
+
+                isUpstream       = ismember(allNamesForMap, upNames);
+                discIdxAll       = find(~isUpstream);   % indices of discrete/FSP species
+                fspSelIdx        = zeros(size(selIdx));
+
+                for j = 1:nSel
+                    k = find(discIdxAll == selIdx(j), 1);
+                    if isempty(k)
+                        error('Selected species "%s" is an upstream ODE-only species and has no FSP distribution.', selNames{j});
+                    end
+                    fspSelIdx(j) = k;   % index into FSP arrays (Means, Var, Marginals, etc.)
+                end
+            else
+                % Non-hybrid model: FSP species == all species
+                fspSelIdx = selIdx;
+            end
         
             % ----- Export FSP to plottable struct -----
             rawSol = solution;   % <- copy to compute escape CDF if needed
@@ -4097,7 +4123,7 @@ classdef SSIT
                     hMean = gobjects(1, nSel);
                     tt = solution.T_array(indTimes);
                     for j = 1:nSel
-                        s = selIdx(j);
+                        s = fspSelIdx(j);
                         col = getC(C, j);
                         hMean(j) = plot(tt, solution.Means(indTimes, s), ...
                                         lineProps{:}, 'Color', col, ...
@@ -4125,7 +4151,7 @@ classdef SSIT
                 
                     tt = solution.T_array(indTimes);
                     for j = 1:nSel
-                        s  = selIdx(j);
+                        s  = fspSelIdx(j);
                         mu = solution.Means(indTimes, s);
                         sd = sqrt(max(0, solution.Var(indTimes, s)));
                         col = getC(C, j);
@@ -4162,7 +4188,7 @@ classdef SSIT
         
                 case 'marginals'
                     for jj = 1:nSel
-                        s = selIdx(jj);
+                        s = fspSelIdx(jj);
                         f = figure(figureNums(kfig)); clf; kfig=kfig+1;
                         f.Name = ['Marginal Distributions of ', selNames{jj}];
                         Nr = ceil(sqrt(Nt)); Nc = ceil(Nt/Nr);
@@ -4207,7 +4233,7 @@ classdef SSIT
                     end
                     for a = 1:nSel
                         for b = a+1:nSel
-                            s1 = selIdx(a); s2 = selIdx(b);
+                            s1 = fspSelIdx(a); s2 = fspSelIdx(b);
                             h = figure(figureNums(kfig)); clf; kfig=kfig+1;
                             h.Name = sprintf('Joint Distribution of %s and %s', selNames{a}, selNames{b});
                             Nr = ceil(sqrt(Nt)); Nc = ceil(Nt/Nr);

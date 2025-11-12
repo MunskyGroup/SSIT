@@ -271,44 +271,44 @@ classdef FspMatrix
             else
                 v1 = v(1:end-nUpstream);
                 v2 = v(end-nUpstream+1:end);
-                Sode = zeros(nUpstream,length(obj.terms));
-                dwdv = obj.terms{1}.propensity.DhybridFactorDodesVec(t,parameters,v2');
-                gB = sparse(zeros(length(v1),length(v2)));
-                for i = 1:length(obj.terms)
-                    Sode(:,i) = obj.terms{i}.propensity.ODEstoichVector;
-                    if ~max(abs(obj.terms{i}.propensity.stoichVector)>0)
-                        gB = gB + sparse(obj.terms{i}.matrix*v1*dwdv(i,:));
+                % Sode = zeros(nUpstream,length(obj.terms));
+                % dwdv = obj.terms{1}.propensity.DhybridFactorDodesVec(t,parameters,v2');
+                % gB = sparse(zeros(length(v1),length(v2)));
+                % for i = 1:length(obj.terms)
+                %     Sode(:,i) = obj.terms{i}.propensity.ODEstoichVector;
+                %     if ~max(abs(obj.terms{i}.propensity.stoichVector)>0)
+                %         gB = gB + sparse(obj.terms{i}.matrix*v1*dwdv(i,:));
+                %     end
+                % end
+                % gD = Sode*dwdv;
+
+                gA = hybridMatrix(obj, t, parameters, v2);
+                gC = zeros(length(v2), length(v1));
+                
+                % Use finite-difference approximation for gB and gD
+                gB = zeros(length(v1), length(v2));
+                gD = zeros(nUpstream, nUpstream);   % nUpstream = length(v2) here
+                
+                for i = 1:length(v2)
+                    delt = max(1e-6, abs(v2(i))/1000);
+                    v2p = v2;
+                    v2p(i) = v2p(i) + delt;
+                
+                    % Base hybrid matrix and factor
+                    % (you already have gA)
+                    w  = obj.terms{1}.propensity.hybridFactorVector(t, parameters, v2');
+                    w2 = obj.terms{1}.propensity.hybridFactorVector(t, parameters, v2p');
+                    wp = (w2 - w) / delt;  % ~ ∂(hybrid factor) / ∂v2(i) for each term
+                
+                    % Update gB via matrix difference
+                    gB(:, i) = (hybridMatrix(obj, t, parameters, v2p) - gA) * v1 / delt;
+                
+                    % Update gD via stoichiometry of upstream ODE species
+                    for k = 1:length(obj.terms)
+                        gD(:, i) = gD(:, i) + obj.terms{k}.propensity.ODEstoichVector * wp(k);
                     end
                 end
-                gD = Sode*dwdv;
-
-                gA = hybridMatrix(obj,t,parameters,v2);
-                gC = zeros(length(v2),length(v1));
-                % gB = zeros(length(v1),length(v2));
-                % for i = 1:length(v2)
-                    % delt = max(1e-6,abs(v2(i))/1000);
-                    % v2p = v2+delt;
-                    % gB(:,i) = (hybridMatrix(obj,t,parameters,v2p)-gA)*v1/delt;
-
-                    % w = obj.terms{1}.propensity.hybridFactorVector(t,parameters,v2');
-                    % w2 = obj.terms{1}.propensity.hybridFactorVector(t,parameters,v2p');
-                    % wp = (w2-w)/delt;
-                    
-                    % for k = 1:length(obj.terms)
-                    %     % gD(:,i) =  gD(:,i) + obj.terms{k}.propensity.ODEstoichVector*...
-                    %     %     (obj.terms{k}.propensity.hybridFactor(t,v2p)-...
-                    %     %     obj.terms{k}.propensity.hybridFactor(t,v2))/delt;
-                    %     gD(:,i) =  gD(:,i) + obj.terms{k}.propensity.ODEstoichVector*wp(k);
-                    % end
-                % end
-                A = [gA,gB;gC,gD];
-                ANaN = isnan(A);
-                if sum(ANaN(:))>0
-                    warning('NaNs detected and set to zero. Errors may be present.')
-                    A(ANaN) = 0;
-                end
             end
-
         end
         function A = hybridMatrix(obj,t,parameters,v2)
             % Form the infinitesimal generator matrix A

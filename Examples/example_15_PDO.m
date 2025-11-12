@@ -29,10 +29,10 @@ addpath(genpath('../'));
 % load('example_10_LoadingandFittingData_MHA.mat')
 
 % View model summary:
-STL1_4state_MH_it.summarizeModel
+STL1_4state_MH.summarizeModel
 
 % Create a copy of the STL1 model for PDO:
-STL1_4state_PDO = STL1_4state_MH_it;
+STL1_4state_PDO = STL1_4state_MH;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Section 2.5: Complex models
