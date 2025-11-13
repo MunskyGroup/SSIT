@@ -36,7 +36,7 @@ STL1_4state_PDO = STL1_4state_MH;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Section 2.5: Complex models
-%   * Apply an affine Poisson conditional probability distribution 
+%   * Apply an Affine Poisson conditional probability distribution 
 %     operator (PDO) to transform parameter probabilities computed   
 %     from average intensity data according to parameter probabilities 
 %     computed from mRNA spot count data
@@ -54,7 +54,7 @@ fimTotal = ...
     STL1_4state_PDO.evaluateExperiment(fimResults,...
     STL1_4state_PDO.dataSet.nCells,diag(sig_log10.^2));
 
-STL1_4state_PDO.plotMHResults(STL1_4state_MH_it_MHResults,[fimTotal],...
+STL1_4state_PDO.plotMHResults(STL1_4state_MH_MHResults,[fimTotal],...
                               'log',[],figNew,plotColors)
 
 %%
@@ -106,7 +106,9 @@ legend('Intuitive Design','Optimal Design')
 STL1_4state_PDO = ...
   STL1_4state_PDO.calibratePDO('data/filtered_data_2M_NaCl_Step.csv',...
   {'mRNA'},{'RNA_STL1_total_TS3Full'},{'RNA_STL1_cyto_TS3Full'},...
-   'AffinePoiss', true, [], {'Replica',2}, LegendLocation="northwest");
+   'AffinePoiss', true, [], {'Replica',1}, LegendLocation="northwest",...
+   Title="4-state STL1 PDO: Cytoplasmic mRNA",...
+   YLabel="Total mRNA counts", XLabel="Cytoplasmic mRNA counts only");
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(2): Calibrate PDO from average intensity data
@@ -121,12 +123,12 @@ STL1_4state_PDO_intens = STL1_4state_PDO_intens.calibratePDO( ...
     'data/filtered_data_2M_NaCl_Step.csv', {'mRNA'},...
     {'RNA_STL1_total_TS3Full'}, {'STL1_avg_int_TS3Full'}, 'AffinePoiss',...
     true, parGuess, {'Replica',2}, LegendLocation="southeast", ...
-    Title="PDO from avg intensity", YLabel="True mRNA counts",...
-    XLabel="Discretized average intensity data");
+    Title="4-state STL1 PDO: Average intensity",...
+    YLabel="True mRNA counts",XLabel="Discretized average intensity data");
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% FIM + PDO analyses
-%   * Analyze FIM with PDO for nuclear mRNA count
+%   * Analyze FIM with PDO for cytoplasmic mRNA count
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 fimsPDO = STL1_4state_PDO.computeFIM([],'log');
 fimPDO = STL1_4state_PDO.evaluateExperiment(fimsPDO,nCellsOpt,...
@@ -136,7 +138,7 @@ nCellsOptPDO = STL1_4state_PDO.optimizeCellCounts(fimsPDO,nTotal,...
                                                   'tr[1:15]');
 
 figPDO = figure;
-STL1_4state_PDO.plotMHResults(STL1_4state_MH_it_MHResults,...
+STL1_4state_PDO.plotMHResults(STL1_4state_MH_MHResults,...
                              [fimPDO,fimTotal,fimOpt],'log',[],figPDO);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -151,8 +153,62 @@ nCellsOptPDOintens = STL1_4state_PDO_intens.optimizeCellCounts(...
                             fimsPDOintens,nTotal,'tr[1:15]');
 
 figintens = figure;
-STL1_4state_PDO_intens.plotMHResults(STL1_4state_MH_it_MHResults,...
+STL1_4state_PDO_intens.plotMHResults(STL1_4state_MH_MHResults,...
                         [fimPDOintens,fimTotal,fimOpt],'log',[],figintens);
+
+%% Plot legend
+axs = findall(figintens, 'Type', 'axes');
+ax  = axs(1);        
+hold(ax,'on');
+
+% Helpers:
+near = @(c,tol,tgt) (numel(c)==3) && all(abs(c(:)'-tgt)<=tol);
+isMagenta = @(c) near(c,0.15,[1 0 1]);
+isCyan    = @(c) near(c,0.15,[0 1 1]);
+isBlue    = @(c) near(c,0.15,[0 0 1]);
+isGreen   = @(c) near(c,0.15,[0 1 0]);
+
+% MCMC 90% credible interval (magenta dashed):
+hMHell = findobj(ax,'Type','line','LineStyle','--');
+hMHell = hMHell(arrayfun(@(h) isMagenta(h.Color), hMHell));
+
+% FIM ellipses (solid lines):
+hFIM = findobj(ax,'Type','line','LineStyle','-');
+
+% Classify FIM ellipses by color:
+hFIM_cyan  = hFIM(arrayfun(@(h) isCyan(h.Color),  hFIM));
+hFIM_blue  = hFIM(arrayfun(@(h) isBlue(h.Color),  hFIM));
+hFIM_green = hFIM(arrayfun(@(h) isGreen(h.Color), hFIM));
+
+% Find MCMC samples (scatter) and MLE (square marker):
+hSamples = findobj(ax,'Type','scatter');
+if isempty(hSamples)
+    cand = findobj(ax,'Type','line','Marker','o');
+    hSamples = cand(~arrayfun(@(h) strcmp(get(h,'MarkerFaceColor'),'none'), cand));
+end
+hMLE = findobj(ax,'Type','line','Marker','s');
+
+% Build legend in a sensible order:
+L = []; names = {};
+if ~isempty(hSamples),L(end+1)=hSamples(1);names{end+1}='MCMC samples';end
+if ~isempty(hMLE),L(end+1)=hMLE(1); names{end+1}='MLE';end
+if ~isempty(hMHell),L(end+1)=hMHell(1);names{end+1}='MCMC 90% CI';end
+if ~isempty(hFIM_cyan),L(end+1)=hFIM_cyan(1);names{end+1}='FIM PDO intens.';end
+if ~isempty(hFIM_blue),L(end+1)=hFIM_blue(1);names{end+1}='FIM total';end
+if ~isempty(hFIM_green),L(end+1)=hFIM_green(1);names{end+1}='FIM optimal';end
+
+% Fallback: if color classification failed, just take first three FIM lines
+if numel(L)<5
+    remainingFIM = setdiff(hFIM, [hFIM_cyan; hFIM_blue; hFIM_green]);
+    for k = 1:min(3, numel(remainingFIM))
+        L(end+1) = remainingFIM(k);
+        names{end+1} = sprintf('FIM #%d', k);
+    end
+end
+
+lgd = legend(ax, L, names, 'Location','best');
+lgd.FontSize = 12;
+
 
 %% Save PDO models + results:
 saveNames = unique({'STL1_4state_PDO'
