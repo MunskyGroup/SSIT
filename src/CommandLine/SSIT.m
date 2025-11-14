@@ -1083,7 +1083,7 @@ classdef SSIT
             %       e.g. {'Replica',1} or {'Drug_Conc','>=',100}
             % Plotting opts (used only when showPlot==true):
             %   opts.Title (1,1) string = ""
-            %   opts.TitleFontSize (1,1) double {mustBePositive} = 18
+            %   opts.FontSize (1,1) double {mustBePositive} = 18
             %   opts.LegendFontSize (1,1) double {mustBePositive} = 18
             %   opts.LegendLocation (1,1) string = "best"
             %   opts.XLabel (1,1) string = "Observed data"
@@ -1109,7 +1109,7 @@ classdef SSIT
                 parGuess = []
                 conditions = {}
                 opts.Title (1,1) string = ""
-                opts.TitleFontSize (1,1) double {mustBePositive} = 18
+                opts.FontSize (1,1) double {mustBePositive} = 18
                 opts.LegendFontSize (1,1) double {mustBePositive} = 18
                 opts.LegendLocation (1,1) string = "best"
                 opts.XLabel (1,1) string = "Observed data"
@@ -1265,11 +1265,11 @@ classdef SSIT
                             tt = title(sprintf('PDO fit: %s', speciesStochastic{i}));
                         end
                         if ~isempty(tt) && isvalid(tt)
-                            tt.FontSize = opts.TitleFontSize;
+                            tt.FontSize = opts.FontSize;
                         end
                         % ---------------
 
-                        set(gca, 'fontsize', max(10, round(0.8*opts.TitleFontSize))); % modest tie-in
+                        set(gca, 'fontsize', max(10, round(0.8*opts.FontSize))); % modest tie-in
                     end
                 else
                     maxSize(i) = 0;

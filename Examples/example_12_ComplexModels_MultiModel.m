@@ -187,10 +187,14 @@ combinedModelMixed = combinedModelMixed.updateModels(allParsMixed);
 % by small values.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+% Each STL1_4state_multi_* model has 15 fit parameters locally
+STL1_4state_multi_1.fittingOptions.modelVarsToFit = 1:15;
+STL1_4state_multi_2.fittingOptions.modelVarsToFit = 1:15;
+
 sigma = 1.0;
 constraint = @(x) -(1/(2*sigma^2)) * sum( (x(7:15) - x(16:24)).^2 );
 
-parIdx = { [1:6, 7:15], [1:6, 16:24] };
+parIdx = { 1:15, [1:6, 16:24] };
 
 combinedModelConstrained = SSITMultiModel( ...
     {STL1_4state_multi_1, STL1_4state_multi_2}, ...
