@@ -9,7 +9,7 @@
 % Use the models from example_1_CreateSSITModels
 % clear
 % close all
-addpath(genpath('../'));
+addpath(genpath('../src'));
 
 % example_1_CreateSSITModels
 
@@ -112,7 +112,8 @@ STL1_4state.tSpan = linspace(0,50,200);
     % into symbolic expression functions that use sparse matrices to  
     % operate on the system based on the current state. The functions are 
     % stored with the given prefix, in this case, 'STL1_4state_ODE':
-    STL1_4state_ODE = STL1_4state_ODE.formPropensitiesGeneral('STL1_4state_ODE',false);
+    STL1_4state_ODE = ...
+        STL1_4state_ODE.formPropensitiesGeneral('STL1_4state_ODE',false);
     
     % Solve ODEs:
     [~,~,STL1_4state_ODE] = STL1_4state_ODE.solve; 

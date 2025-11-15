@@ -142,11 +142,11 @@ allParsDependent = combinedModelDependent.maximizeLikelihood(...
 combinedModelDependent = ...
     combinedModelDependent.updateModels(allParsDependent);
 
-% Note: This example is shown for illustration purposes only.  Usually, if 
-% one is fitting two replicas of the exact same experiment, then it is
-% more efficient to combine the data from both replicas and fit them at the
-% same time, e.g. to combined all replicas into one set, simply load the
-% data without the replica filtering condition:
+%% Note: This example is shown for illustration purposes only.  
+% Usually, if one is fitting two replicas of the exact same experiment, 
+% then it is more efficient to combine the data from both replicas and fit 
+% them at the same time, e.g. to combined all replicas into one set, simply 
+% load the data without the replica filtering condition:
 % STL1_4state_data = ...
 %     STL1_4state_data.loadData('data/filtered_data_2M_NaCl_Step.csv',...
 %                              {'mRNA','RNA_STL1_total_TS3Full'},...
@@ -155,24 +155,23 @@ combinedModelDependent = ...
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(4): Mixed parameters
 % Sometimes it is desirable to only let some parameters change from
-% condition to condition.  In this example both STL1_4state_multi_1 and  
-% STL1_4state_multi_2 use the same parameters [1-11], but parameters 
-% [12:13] are only for STL1_4state_multi_1 and [14:15] are only for 
-% STL1_4state_multi_2.
+% condition to condition.  In this example, both STL1_4state_multi_1 and  
+% STL1_4state_multi_2 use the same parameters [1-13], but each model has 
+% its own 'kr' and 'dr' [14-15].
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% Model 1 contributes shared [1:11] plus its own [12:13]
-STL1_4state_multi_1.fittingOptions.modelVarsToFit = [1:11, 12:13];
+% Model 1 contributes shared [1:13] plus its own [14-15]
+STL1_4state_multi_1.fittingOptions.modelVarsToFit = [1:13, 14:15];
 
-% Model 2 contributes shared [1:11] plus its own [14:15]
-STL1_4state_multi_2.fittingOptions.modelVarsToFit = [1:11, 14:15];
+% Model 2 contributes shared [1:13] plus its own [14-15]
+STL1_4state_multi_2.fittingOptions.modelVarsToFit = [1:13, 14:15];
 
 combinedModelMixed = SSITMultiModel( ...
     {STL1_4state_multi_1, STL1_4state_multi_2}, ...
-    { [1:11, 12:13],       [1:11, 14:15] } );
+    { [1:13, 14:15],       [1:13, 14:15] } );
 combinedModelMixed = combinedModelMixed.initializeStateSpaces;
 allParsMixed = ([STL1_4state_multi_1.parameters{:,2},...
-                 STL1_4state_multi_2.parameters{7:15,2}]);
+                 STL1_4state_multi_2.parameters{:,2}]);
 allParsMixed = combinedModelMixed.maximizeLikelihood(...
     allParsMixed, fitOptions, fitAlgorithm);
 combinedModelMixed = combinedModelMixed.updateModels(allParsMixed);
@@ -197,8 +196,7 @@ constraint = @(x) -(1/(2*sigma^2)) * sum( (x(7:15) - x(16:24)).^2 );
 parIdx = { 1:15, [1:6, 16:24] };
 
 combinedModelConstrained = SSITMultiModel( ...
-    {STL1_4state_multi_1, STL1_4state_multi_2}, ...
-    parIdx, constraint);
+    {STL1_4state_multi_1, STL1_4state_multi_2}, parIdx, constraint);
 
 combinedModelConstrained = combinedModelConstrained.initializeStateSpaces();
 
@@ -208,3 +206,41 @@ x0(16:24) = x0(7:15);   % seed the second block
 xOpt = combinedModelConstrained.maximizeLikelihood(x0, fitOptions,...
                                                     fitAlgorithm);
 combinedModelConstrained = combinedModelConstrained.updateModels(xOpt);
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Ex(6): Different models, same data
+% In this example, both the simple Bursting Gene "Model_multi" and the
+% "STL1_4state_multi" model use parameters "kr" and "dr", [3-4] and [14:15], 
+% respectively, but parameters [1:2] are only for Model_multi and [1:13] 
+% are only for STL1_4state_multi.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% Make copies of our models:
+Model_multi = Model_MLE;
+STL1_4state_multi = STL1_4state_MLE;
+
+% Load and associate data:
+Model_multi = ...
+   Model_multi.loadData('data/filtered_data_2M_NaCl_Step.csv',...
+                       {'mRNA','RNA_STL1_total_TS3Full'},...
+                       {'Replica',1;'Condition','0.2M_NaCl_Step'});
+
+STL1_4state_multi = ...
+   STL1_4state_multi.loadData('data/filtered_data_2M_NaCl_Step.csv',...
+                             {'mRNA','RNA_STL1_total_TS3Full'},...
+                             {'Replica',1;'Condition','0.2M_NaCl_Step'});
+
+% Model_multi contributes shared [3:4] plus its own [1:2]
+Model_multi.fittingOptions.modelVarsToFit = [3:4, 1:2];
+
+% STL1_4state_multi contributes shared [14:15] plus its own [1:13]
+STL1_4state_multi.fittingOptions.modelVarsToFit = [14:15, 1:13];
+
+multiModels = SSITMultiModel({Model_multi, STL1_4state_multi}, ...
+                            { [3:4, 1:2], [14:15, 1:13] } );
+multiModels = multiModels.initializeStateSpaces;
+allPars = ([Model_multi.parameters{:,2},STL1_4state_multi.parameters{:,2}]);
+allPars = multiModels.maximizeLikelihood(allPars,fitOptions,fitAlgorithm);
+multiModels = multiModels.updateModels(allPars);
+
+
