@@ -18,10 +18,10 @@ addpath(genpath('../'));
 % example_10_LoadingandFittingData_MHA
 
 %% Load pre-computed model fit
-% load('example_9_LoadingandFittingData_MLE.mat')
+% load('example_10_LoadingandFittingData_MH.mat')
 
 % View model summariy:
-STL1_4state_MLE.summarizeModel
+STL1_4state_MH.summarizeModel
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Example script to show how multiple SSIT models and data sets can be fit
@@ -34,7 +34,7 @@ STL1_4state_MLE.summarizeModel
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Make a copy of our model:
-STL1_4state_multi_1 = STL1_4state_MLE;
+STL1_4state_multi_1 = STL1_4state_MH;
 
 %% Load and associate smFISH data
 %  Associate the data with an SSIT model data as usual 
@@ -216,30 +216,34 @@ combinedModelConstrained = combinedModelConstrained.updateModels(xOpt);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Make copies of our models:
-Model_multi = Model_MLE;
+STL1_multi = STL1_MLE;
 STL1_4state_multi = STL1_4state_MLE;
 
 % Load and associate data:
-Model_multi = ...
-   Model_multi.loadData('data/filtered_data_2M_NaCl_Step.csv',...
-                       {'mRNA','RNA_STL1_total_TS3Full'},...
-                       {'Replica',1;'Condition','0.2M_NaCl_Step'});
+STL1_multi = STL1_multi.loadData('data/filtered_data_2M_NaCl_Step.csv',...
+                               {'mRNA','RNA_STL1_total_TS3Full'},...
+                               {'Replica',1;'Condition','0.2M_NaCl_Step'});
 
 STL1_4state_multi = ...
    STL1_4state_multi.loadData('data/filtered_data_2M_NaCl_Step.csv',...
                              {'mRNA','RNA_STL1_total_TS3Full'},...
                              {'Replica',1;'Condition','0.2M_NaCl_Step'});
 
-% Model_multi contributes shared [3:4] plus its own [1:2]
-Model_multi.fittingOptions.modelVarsToFit = [3:4, 1:2];
+% Number of parameters (rows of the cell array)
+nPars = size(STL1_multi.parameters, 1);
+sharedIdx = 3:4;  % 'kr' and 'dr'
+otherIdx  = setdiff(1:nPars, sharedIdx, 'stable');
+
+% STL1_multi contributes shared (3:4) plus its own (1,2,5-8)
+STL1_multi.fittingOptions.modelVarsToFit = [sharedIdx, otherIdx];
 
 % STL1_4state_multi contributes shared [14:15] plus its own [1:13]
 STL1_4state_multi.fittingOptions.modelVarsToFit = [14:15, 1:13];
 
-multiModels = SSITMultiModel({Model_multi, STL1_4state_multi}, ...
-                            { [3:4, 1:2], [14:15, 1:13] } );
+multiModels = SSITMultiModel({STL1_multi, STL1_4state_multi}, ...
+                            { [sharedIdx, otherIdx], [14:15, 1:13] } );
 multiModels = multiModels.initializeStateSpaces;
-allPars = ([Model_multi.parameters{:,2},STL1_4state_multi.parameters{:,2}]);
+allPars = ([STL1_multi.parameters{:,2},STL1_4state_multi.parameters{:,2}]);
 allPars = multiModels.maximizeLikelihood(allPars,fitOptions,fitAlgorithm);
 multiModels = multiModels.updateModels(allPars);
 

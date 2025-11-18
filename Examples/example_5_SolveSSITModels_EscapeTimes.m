@@ -24,7 +24,6 @@ STL1_4state.summarizeModel
 % Set the times at which distributions will be computed:
 Model.tSpan = linspace(0,20,200);
 STL1.tSpan = linspace(0,20,200);
-STL1_4state.tSpan = linspace(0,50,200);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(1): Solve escape times for the bursting gene example model 
@@ -45,7 +44,7 @@ STL1_4state.tSpan = linspace(0,50,200);
 
     % Plot the CDF and PDF
     Model_escape.plotFSP(Model_escape_fspSoln, [],...
-        "escapeTimes", [], [], {'linewidth',3}, XLabel="Time",...
+        "escapeTimes", [], [], {'linewidth',3},...
         Title="Bursting Gene (mRNA)", Colors=[0.93,0.69,0.13],...
         LegendLocation="southeast");
 
@@ -66,7 +65,7 @@ STL1_4state.tSpan = linspace(0,50,200);
 
     % Plot the CDF and PDF
     STL1_escape.plotFSP(STL1_escape_fspSoln, [],...
-        "escapeTimes", [], [], {'linewidth',3}, XLabel="Time",...
+        "escapeTimes", [], [], {'linewidth',3},...
         Title="STL1 (offGene, onGene)", LegendLocation="east");
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -77,10 +76,15 @@ STL1_4state.tSpan = linspace(0,50,200);
 %% 4-state STL1:
     % Create a copy of the time-varying STL1 yeast model:
     STL1_4state_escape = STL1_4state;
-    
-    % Solve for time to turn transcribing gene "OFF"
-    % Start from ON (g4=1) with moderate mRNA, absorb on g4=0:
-    STL1_4state_escape.fspOptions.escapeSinks.f = {'g4'};
+
+    % Set the initial populations:
+    STL1_4state_escape.initialCondition = [0;0;0;1;0];
+
+    % Set the times at which distributions will be computed:
+    STL1_4state_escape.tSpan = linspace(0,1,200);
+
+    % Solve for time to mRNA=0:
+    STL1_4state_escape.fspOptions.escapeSinks.f = {'mRNA'};
     STL1_4state_escape.fspOptions.escapeSinks.b = 0;       
 
     [STL1_4state_fspSoln_escape,STL1_4state_escape.fspOptions.bounds] = ...
@@ -88,6 +92,6 @@ STL1_4state.tSpan = linspace(0,50,200);
 
     % Plot the CDF and PDF
     STL1_4state_escape.plotFSP(STL1_4state_fspSoln_escape, [],...
-        "escapeTimes", [], [], {'linewidth',3}, XLim=[0,20],...
-        TitleFontSize=24, Title="4-state STL1 (g4)", XLabel="Time",...
-        Colors=[0.52,0.09,0.82], LegendLocation="southeast");
+        "escapeTimes", [], [], {'linewidth',3}, XLim=[0,0.25],...
+        TitleFontSize=24, Title="4-state STL1 (mRNA)",...
+        Colors=[0.23,0.67,0.2], LegendLocation="southeast");

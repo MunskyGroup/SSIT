@@ -60,7 +60,7 @@ STL1_4state_PDO.plotMHResults(STL1_4state_MH_MHResults,[fimTotal],...
 %%
 
 % Find and store the total number of cells in your data set (already
-% computed by SSIT when data was loaded in example_8:
+% computed by SSIT when data was loaded in example_7_FIM:
 nTotal = sum(STL1_4state_PDO.dataSet.nCells);
 
 % Compute the optimal number of cells from the FIM results computed in 
@@ -84,7 +84,7 @@ STL1_4state_PDO.plotMHResults(STL1_4state_MH_it_MHResults,...
 
 f = figure;
 set(f,'Position',[616   748   412   170])
-bar([1:16],STL1_4state_PDO.dataSet.nCells,0.45)
+bar([1:16],nTotal,0.45)
 hold on
 bar([1:16]+0.5,nCellsOpt,0.45)
 set(gca,'xtick',[1:16]+0.25,'xticklabel',STL1_4state_PDO.dataSet.times,...
