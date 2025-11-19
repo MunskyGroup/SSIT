@@ -46,18 +46,21 @@ pipelineArgs.makePlot = false;
 
 SSIT(saveFile,'STL1_4state_pipe',[],Pipeline,pipelineArgs,saveFile);
 
-%% Get command to run job in background.
-% Here is a way to generate the command so you can run it from terminal.
-cmd = SSIT.generateCommandLinePipeline(saveFile,'STL1_4state_pipe',[],Pipeline,pipelineArgs,saveFile,'logFile.txt')
+%% Get command to run job in background
+% Generate the command to run from terminal:
+cmd = SSIT.generateCommandLinePipeline(saveFile,'STL1_4state_pipe',[],...
+    Pipeline,pipelineArgs,saveFile,'logFile.txt')
 
-%% Run that command from matlab.
+%% Run that command from matlab:
 system(cmd);
 
 %% Run on cluster
-% Note that this is set up for a specific cluster that uses sbatch. To run
-% on your own cluster, change the argument 'clusterPrefix' 
-% Generate the command so you can run it from terminal.
-cmd = SSIT.generateCommandLinePipeline(saveFile,'STL1_4state_pipe',[],Pipeline,pipelineArgs,saveFile,'logFile.txt',0,1)
+% Note: This is set up for a specific cluster that uses sbatch. To run on
+% another cluster, change the argument 'clusterPrefix' 
+% Generate the command to run from terminal:
+cmd = SSIT.generateCommandLinePipeline(saveFile,'STL1_4state_pipe',[],...
+    Pipeline,pipelineArgs,saveFile,'logFile.txt',0,1)
 
-% Run it directly.
-cmd = SSIT.generateCommandLinePipeline(saveFile,'STL1_4state_pipe',[],Pipeline,pipelineArgs,saveFile,'logFile.txt',1,1)
+% Run it directly:
+cmd = SSIT.generateCommandLinePipeline(saveFile,'STL1_4state_pipe',[],...
+    Pipeline,pipelineArgs,saveFile,'logFile.txt',1,1)
