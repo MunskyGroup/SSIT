@@ -265,11 +265,12 @@ LinkedSpecies = {'mRNA','RNA_STL1_total_TS3Full'};
 ConditionsGlobal = {[],[],'TAB.time<=25'};
 
 % We want to split up the replicas to be separate.
-ConditionsReplicas = {'TAB.Replica==1';...
-    'TAB.Replica==2'};
+ConditionsReplicas = {'TAB.Replica==1';'TAB.Replica==2'};
 
-% Specify constraints on rep-to-rep parameter variations
-Log10Constraints = [0.8,3,-0.1,2,2.75,0.6,3,2.5,0,3.5,1.5,-0.15,0.5,1.5,-1]; 
+% Specify constraints on rep-to-rep parameter variations. Here, we specify 
+% that there is an expected 0.1 log10 deviation expected in some parameters 
+% and smaller in others.  No deviation at all is indicated by 0.
+Log10Constraints = [0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.02,0.02,0.02,0.02,0.02,0.1,0.1]; 
 
 % The full model is created:
 CrossValidationModel = SSITMultiModel.createCrossValMultiModel(...
