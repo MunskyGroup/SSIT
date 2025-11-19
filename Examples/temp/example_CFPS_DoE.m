@@ -119,3 +119,104 @@ CFPS_DoE.parameters = ({ ...
 
 % Print a summary of CFPS model:
 CFPS_DoE.summarizeModel
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Ordinary differential equations (ODEs) 
+% to average the time evolution of state space probabilities 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% % Set the times at which distributions will be computed:
+% CFPS_DoE.tSpan = linspace(0,20,200);
+% 
+%     % Create a copy of the bursting gene model for ODEs:
+%     CFPS_DoE_ODE = CFPS_DoE;
+% 
+%     % Set solution scheme to 'ODE':
+%     CFPS_DoE_ODE.solutionScheme = 'ODE';
+% 
+%     % This function compiles and stores the given reaction propensities  
+%     % into symbolic expression functions that use sparse matrices to  
+%     % operate on the system based on the current state. 
+%     CFPS_DoE_ODE = CFPS_DoE_ODE.formPropensitiesGeneral('CFPS_DoE_ODE');
+% 
+%     % Solve ODEs:
+%     [~,~,CFPS_DoE_ODE] = CFPS_DoE_ODE.solve; 
+% 
+%     % Plot ODE solutions:
+%     CFPS_DoE_ODE.plotODE(CFPS_DoE_ODE.species, CFPS_DoE_ODE.tSpan,...
+%         {'linewidth',4}, Title='CFPS DoE', TitleFontSize=24,...
+%         AxisLabelSize=18, TickLabelSize=18,...
+%         LegendFontSize=15, LegendLocation='southeast')
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Gillepsie's Stochastic Simulation Algorithm (SSA) 
+% to solve the time evolution of state space probabilities 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    % % Create a copy of the bursting gene model for SSA:
+    % CFPS_DoE_SSA = CFPS_DoE;
+    % 
+    % % Set solution scheme to SSA:
+    % CFPS_DoE_SSA.solutionScheme = 'SSA';
+    % 
+    % % 'nSimsPerExpt' is an SSA option that defaults to 100, sets the number
+    % % of simulations performed per experiment (set small number for demo)
+    % CFPS_DoE_SSA.ssaOptions.nSimsPerExpt=10;
+    % 
+    % % 'verbose' defaults to false, prints completed sim number to screen
+    % CFPS_DoE_SSA.ssaOptions.verbose=true;
+    % 
+    % % A negative initial time is used to allow model to equilibrate 
+    % % before starting (burn-in). Large burn-in times cause long run times.
+    % CFPS_DoE_SSA.tSpan = [-1,CFPS_DoE_SSA.tSpan];
+    % 
+    % % Set the initial time:
+    % CFPS_DoE_SSA.initialTime = CFPS_DoE_SSA.tSpan(1); 
+    % 
+    % % Run iterations in parallel with multiple cores, or execute serially:
+    % CFPS_DoE_SSA.ssaOptions.useParallel = false;
+    % 
+    % % This function compiles and stores the given reaction propensities  
+    % % into symbolic expression functions that use sparse matrices to  
+    % % operate on the system based on the current state. 
+    % CFPS_DoE_SSA = CFPS_DoE_SSA.formPropensitiesGeneral('CFPS_DoE_SSA');
+    % 
+    % % Run SSA:
+    % [~,~,CFPS_DoE_SSA] = CFPS_DoE_SSA.solve;
+    % 
+    % % Plot SSA trajectories and means:
+    % CFPS_DoE_SSA.plotSSA('all', 100, CFPS_DoE_SSA.species, {'linewidth',4}, ...
+    %     Title="CFPS DoE", MeanOnly=true, TitleFontSize=24,...
+    %     AxisLabelSize=18, TickLabelSize=18, LegendFontSize=15);
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Finite State Projection (FSP) 
+% approximation of the Chemical Master Equation (CME) to solve the time 
+% evolution of state space probabilities
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+    % Create a copy of the bursting gene model for FSP:
+    CFPS_DoE_FSP = CFPS_DoE;
+    
+    % Ensure the solution scheme is set to FSP (default):
+    CFPS_DoE_FSP.solutionScheme = 'FSP';  
+    
+    % Set FSP 1-norm error tolerance:
+    CFPS_DoE_FSP.fspOptions.fspTol = 1e-4; 
+    
+    % Guess initial bounds on FSP StateSpace:
+    % CFPS_DoE_FSP.fspOptions.bounds = [1,1,400];
+    
+    % Have FSP approximate the steady state for the initial distribution 
+    % by finding the eigenvector corresponding to the smallest magnitude 
+    % eigenvalue (i.e., zero, for generator matrix A, d/dtP(t)=AP(t)):
+    CFPS_DoE_FSP.fspOptions.initApproxSS = true; 
+    
+    % Solve with FSP:
+    [CFPS_DoE_FSPsoln,CFPS_DoE_FSP.fspOptions.bounds] = CFPS_DoE_FSP.solve; 
+    
+    % Plot means & stds and marginal distributions:  
+    CFPS_DoE_FSP.plotFSP(CFPS_DoE_FSPsoln,CFPS_DoE_FSP.species,'meansAndDevs',[],[])
+    CFPS_DoE_FSP.plotFSP(CFPS_DoE_FSPsoln,CFPS_DoE_FSP.species, 'marginals',...
+                     [1,12,24,50,101,200], [], LegendLocation='southeast')
+                       
