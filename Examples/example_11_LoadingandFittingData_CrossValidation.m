@@ -14,34 +14,62 @@ addpath(genpath('../src'));
 
 % example_1_CreateSSITModels  
 % example_4_SolveSSITModels_FSP
+% example_1_CreateSSITModels  
+% example_4_SolveSSITModels_FSP
+% example_8_LoadingandFittingData_DataLoading
+% example_9_LoadingandFittingData_MLE
+% example_10_LoadingandFittingData_MH
 
-%% Load pre-computed FSP solutions:
-% load('example_4_SolveSSITModels_FSP.mat')
+%% Load model fitted using Metropolis-Hastings:
+% load('example_10_LoadingandFittingData_MH.mat')
 
 % View summary of 4-state STL1 model:
-STL1_4state_FSP.summarizeModel
+STL1_4state_MH.summarizeModel
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Perform Cross-Validation fitting different replicas at the same time
 %  using SSITMultiModel
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%
+% In this example, we will use the multimodel to allow parameters to change
+% for different replica data sets (e.g., to allow for batch variations, or
+% to explore how parameters change under different genetic variations).
+% Here, we illustrate a quick means to generate the multimodel starting
+% with a single template and a datafile with multiple replicas.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% Make a copy of our 4-state STL1 model for Metropolis-Hastings (MH):
-STL1_4state_CrossVal = STL1_4state_FSP;
+% Make a copy of our 4-state STL1 model:
+STL1_4state_CrossVal = STL1_4state_MH;
 
-% Specify datafile name and species linking rules
+% Specify datafile name and species linking rules:
 DataFileName = 'data/filtered_data_2M_NaCl_Step.csv';
 LinkedSpecies = {'mRNA','RNA_STL1_total_TS3Full'};
 
-% Suppose that we only wish to fit the data at times before 75 minutes.  
-% Set the global conditions as:
-ConditionsGlobal = {[],[],'TAB.time<=75'};
+% Suppose we only wish to fit the data at times before 25 minutes.  
+% Set the global conditions:
+ConditionsGlobal = {[],[],'TAB.time<=25'};
 
-% We want to split up the replicas to be separate:
-ConditionsReplicas = {'TAB.Replica==1'; 'TAB.Replica==2'};
+% Split up the replicas to be separate:
+ConditionsReplicas = {'TAB.Replica==1';'TAB.Replica==2'};
 
-modelLibrary = 'crossValidationModels_STL1';
+% Specify constraints on rep-to-rep parameter variations. Here, we specify 
+% that there is an expected 0.1 log10 deviation expected in some parameters 
+% and smaller in others.  No deviation at all is indicated by 0.
+Log10Constraints = ...
+    [0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.02,0.02,0.02,0.02,0.02,0.1,0.1]; 
 
-STL1_4state_CrossVal.runCrossValidation(STL1_4state_CrossVal,...
-     DataFileName,LinkedSpecies,ConditionsGlobal,ConditionsReplicas, ...
-     modelLibrary)
+% Create full model:
+CrossValidationModel = SSITMultiModel.createCrossValMultiModel(...
+    STL1_4state_CrossVal, DataFileName, LinkedSpecies, ConditionsGlobal,...
+    ConditionsReplicas, Log10Constraints);
+CrossValidationModel = CrossValidationModel.initializeStateSpaces;
+
+% Run the model fitting routines:
+crossValPars = CrossValidationModel.parameters;
+crossValPars = CrossValidationModel.maximizeLikelihood(...
+    crossValPars, fitOptions, fitAlgorithm);
+CrossValidationModel = CrossValidationModel.updateModels(crossValPars);
+CrossValidationModel.parameters = crossValPars;
+
+% Make a figure to explore how much the parameters changed between replicas:
+fignum = 12; useRelative = true;
+CrossValidationModel.compareParameters(fignum,useRelative);
