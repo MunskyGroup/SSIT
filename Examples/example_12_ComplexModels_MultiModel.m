@@ -247,4 +247,43 @@ allPars = ([STL1_multi.parameters{:,2},STL1_4state_multi.parameters{:,2}]);
 allPars = multiModels.maximizeLikelihood(allPars,fitOptions,fitAlgorithm);
 multiModels = multiModels.updateModels(allPars);
 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Ex(7): Explore batch variations using cross validation
+% In this example, we will use the multimodel to allow parameters to change
+% for different replica data sets (e.g., to allow for batch variations, or
+% to explore how parameters change under different genetic variations).
+% Here, we illustrate a quick means to generate the multimodel starting
+% with a single template and a datafile with multiple replicas.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+% Sepcify datafile name and species linking rules
+DataFileName = 'data/filtered_data_2M_NaCl_Step.csv';
+LinkedSpecies = {'mRNA','RNA_STL1_total_TS3Full'};
+
+% In this case, let's suppose that we only wish to fit the data at times
+% before 25 minutes.  We will set the global conditions as:
+ConditionsGlobal = {[],[],'TAB.time<=25'};
+
+% We want to split up the replicas to be separate.
+ConditionsReplicas = {'TAB.Replica==1';...
+    'TAB.Replica==2'};
+
+% Specify constraints on rep-to-rep parameter variations
+Log10Constraints = [0.8,3,-0.1,2,2.75,0.6,3,2.5,0,3.5,1.5,-0.15,0.5,1.5,-1]; 
+
+% The full model is created:
+CrossValidationModel = SSITMultiModel.createCrossValMultiModel(...
+    STL1_4state_MH, DataFileName, LinkedSpecies, ConditionsGlobal,...
+    ConditionsReplicas, Log10Constraints);
+CrossValidationModel = CrossValidationModel.initializeStateSpaces;
+
+% Now to run the model fitting routines
+crossValPars = CrossValidationModel.parameters;
+crossValPars = CrossValidationModel.maximizeLikelihood(...
+    crossValPars, fitOptions, fitAlgorithm);
+CrossValidationModel = CrossValidationModel.updateModels(crossValPars);
+CrossValidationModel.parameters = crossValPars;
+
+% Make a figure to explore how much the parameters changed between replicas
+fignum = 12; useRelative = true;
+CrossValidationModel.compareParameters(fignum,useRelative);

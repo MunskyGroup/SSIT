@@ -33,9 +33,9 @@ STL1_4state_CrossVal = STL1_4state_FSP;
 DataFileName = 'data/filtered_data_2M_NaCl_Step.csv';
 LinkedSpecies = {'mRNA','RNA_STL1_total_TS3Full'};
 
-% Suppose that we only wish to fit the data at times before 25 minutes.  
+% Suppose that we only wish to fit the data at times before 75 minutes.  
 % Set the global conditions as:
-ConditionsGlobal = {[],[],'TAB.time<=25'};
+ConditionsGlobal = {[],[],'TAB.time<=75'};
 
 % We want to split up the replicas to be separate:
 ConditionsReplicas = {'TAB.Replica==1'; 'TAB.Replica==2'};
@@ -43,6 +43,5 @@ ConditionsReplicas = {'TAB.Replica==1'; 'TAB.Replica==2'};
 modelLibrary = 'crossValidationModels_STL1';
 
 STL1_4state_CrossVal.runCrossValidation(STL1_4state_CrossVal,...
-    DataFileName,LinkedSpecies,ConditionsGlobal,ConditionsReplicas, ...
-    modelLibrary)
-
+     DataFileName,LinkedSpecies,ConditionsGlobal,ConditionsReplicas, ...
+     modelLibrary)

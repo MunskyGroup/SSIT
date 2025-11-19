@@ -504,11 +504,20 @@ classdef SSITMultiModel
         end
         function parConstraints = computeReplicaMismatch(pars,indsFree,matchedInds,Log10Constraints)
             % compute the likelihood of given parameter variation given
-            % lognormal distribution with specified log10 deviation.
-            log10ParsMatched = log10(pars(matchedInds(:,indsFree)));
+            % lognormal distribution with specified log10 deviation
+        
+            % matchedInds is nReps x nConstrainedPars; its entries are global
+            % indices into 'pars', so we can index 'pars' directly:
+            log10ParsMatched = log10(pars(matchedInds));   % size: nReps x nConstrainedPars
+        
             nReps = size(matchedInds,1);
-            deviation2 = sum(log10ParsMatched - repmat(mean(log10ParsMatched),nReps,1)).^2;
-            parConstraints = -sum(deviation2./(2*Log10Constraints(indsFree).^2));
+        
+            % Mean across replicas (row-wise mean), subtract, and square
+            deviation2 = sum(log10ParsMatched - repmat(mean(log10ParsMatched,1), nReps, 1)).^2;
+        
+            % Only penalize parameters with nonzero Log10Constraints (those in indsFree)
+            parConstraints = -sum(deviation2 ./ (2 * Log10Constraints(indsFree).^2));
         end
+
     end
 end
