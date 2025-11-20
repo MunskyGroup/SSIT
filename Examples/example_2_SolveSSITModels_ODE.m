@@ -1,4 +1,4 @@
-%% example_2_SolveSSITModels_ODE
+%% SSIT/Examples/example_2_SolveSSITModels_ODE
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Section 2.2: Finding and visualizing master equation solutions
@@ -9,7 +9,7 @@
 % Use the models from example_1_CreateSSITModels
 % clear
 % close all
-addpath(genpath('../'));
+addpath(genpath('../src'));
 
 % example_1_CreateSSITModels
 
@@ -46,7 +46,7 @@ STL1_4state.tSpan = linspace(0,50,200);
     Model_ODE = Model_ODE.formPropensitiesGeneral('Model_ODE');
     
     % Solve ODEs:
-    [~,~,Model_ODE] = Model_ODE.solve; 
+    Model_ODE.Solutions = Model_ODE.solve; 
 
     % Plot ODE solutions:
     Model_ODE.plotODE(Model_ODE.species, Model_ODE.tSpan,...
@@ -79,7 +79,7 @@ STL1_4state.tSpan = linspace(0,50,200);
     STL1_ODE = STL1_ODE.formPropensitiesGeneral('STL1_ODE');
     
     % Solve ODEs:
-    [~,~,STL1_ODE] = STL1_ODE.solve; 
+    STL1_ODE.Solutions = STL1_ODE.solve; 
 
     % Plot ODE solutions:
     STL1_ODE.plotODE(STL1_ODE.species, STL1_ODE.tSpan,...
@@ -102,7 +102,7 @@ STL1_4state.tSpan = linspace(0,50,200);
     % Create a copy of the time-varying STL1 yeast model for ODEs:
     STL1_4state_ODE = STL1_4state;
 
-    % Set solution scheme to 'ODE':
+    % Set solution scheme to 'ODE':E 
     STL1_4state_ODE.solutionScheme = 'ODE';
 
     % Set the ODE integrator (default 'ode23s'):
@@ -112,10 +112,11 @@ STL1_4state.tSpan = linspace(0,50,200);
     % into symbolic expression functions that use sparse matrices to  
     % operate on the system based on the current state. The functions are 
     % stored with the given prefix, in this case, 'STL1_4state_ODE':
-    STL1_4state_ODE = STL1_4state_ODE.formPropensitiesGeneral('STL1_4state_ODE',false);
+    STL1_4state_ODE = ...
+        STL1_4state_ODE.formPropensitiesGeneral('STL1_4state_ODE');
     
     % Solve ODEs:
-    [~,~,STL1_4state_ODE] = STL1_4state_ODE.solve; 
+    STL1_4state_ODE.Solutions = STL1_4state_ODE.solve; 
 
     % Plot ODE solutions for mRNA:
     STL1_4state_ODE.plotODE(STL1_4state_ODE.species(5),...

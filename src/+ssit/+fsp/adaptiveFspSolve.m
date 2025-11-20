@@ -392,8 +392,8 @@ while (tNow < maxOutputTime)
 
             elseif useHybrid
                 matvec = @(t, p) full(AfspFull.hybridRHS(t, p, parameters, hybridOptions.upstreamODEs));
-                % jac = [];  % Jacobian calculation is not currently available for hybrid models.
-                jac = @(t, p)AfspFull.createJacHybridMatrix(t, p, parameters, length(hybridOptions.upstreamODEs));
+                jac = [];  % Jacobian calculation is not currently available for hybrid models.
+                %jac = @(t, p)AfspFull.createJacHybridMatrix(t, p, parameters, length(hybridOptions.upstreamODEs));
             else
                 if constantJacobian
                     jac = sparse(AfspFull.createSingleMatrix(constantJacobianTime, parameters));

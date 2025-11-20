@@ -2,7 +2,7 @@
 % In this example, we show how to sample an FSM  model over intrinsic noise
 % in its various parameters. 
 close all 
-clear
+clear all
 addpath(genpath('../src'));
 %% Example 1 - transcription and translation
 % First create a full model (e.g., for mRNA and protein)

@@ -1,4 +1,4 @@
-%% example_9_LoadingandFittingData_MLE
+%% SSIT/Examples/example_9_LoadingandFittingData_MLE
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Section 2.4: Loading and fitting time-varying STL1 yeast data 
@@ -30,12 +30,11 @@ STL1_4state_data.summarizeModel
 %% Fit experimental data using maximum likelihood estimates (MLEs)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% Make new copies of our model, a simple bursting gene model and a more 
-% complex bursting gene model that has a time-varying input signal that 
-% turns on the STL1 gene:
+% Make new copies of our model:
 Model_MLE = Model_data;
 STL1_MLE = STL1_data;
 STL1_4state_MLE = STL1_4state_data;
+
 % Let's see which model better fits our data...
 
 % Set fitOptions, with the maximum allowable number of iterations to fit:
@@ -72,9 +71,17 @@ for l=1:length(STL1_4state_pars)
 end
 
 % Make plots of the parameter fits from the MLEs:
-Model_MLE.makeFitPlot
-STL1_MLE.makeFitPlot
-STL1_4state_MLE.makeFitPlot
+Model_MLE.plotFits([], "all", [], {'linewidth',2},...
+    Title='4-state STL1', YLabel='Molecule Count',...
+    LegendLocation='northeast', LegendFontSize=12);
+
+STL1_MLE.plotFits([], "all", [], {'linewidth',2},...
+    Title='4-state STL1', YLabel='Molecule Count',...
+    LegendLocation='northeast', LegendFontSize=12);
+
+STL1_4state_MLE.plotFits([], "all", [], {'linewidth',2},...
+    Title='4-state STL1', YLabel='Molecule Count',...
+    LegendLocation='northeast', LegendFontSize=12);
 
 %% Save models & MLEs:
 saveNames = unique({'Model_MLE'

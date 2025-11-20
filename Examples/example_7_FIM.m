@@ -1,4 +1,4 @@
-%% example_7_FIM
+%% SSIT/Examples/example_7_FIM
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Section 2.3: Sensitivity analysis and Fisher Information Matrix 
@@ -48,11 +48,15 @@ Model_cellCounts = 10*ones(size(Model_FIM.tSpan));
 [Model_fimTotal,Model_mleCovEstimate,Model_fimMetrics] = ...
     Model_FIM.evaluateExperiment(Model_fimResults,Model_cellCounts)
 
-% Plot the FIMs:
-fig1 = figure(12);clf; set(fig1,'Name',...
-    'Fim-Predicted Uncertainty Ellipses');
-Model_FIM.plotMHResults([],Model_fimTotal,'log',[],fig1)
-legend('FIM')
+ellipsePairs = [1 2;
+                1 4;
+                3 4];
+
+theta0 = [Model_FIM.parameters{:,2}];
+
+Model_FIM.plotFIMResults(Model_fimTotal, Model_FIM.parameters, theta0, ...
+                         PlotEllipses=true, EllipseLevel=0.9, ...
+                         EllipsePairs=ellipsePairs);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(2): Compute the Fisher Information Matrix for the STL1 yeast model
@@ -76,10 +80,7 @@ STL1_cellCounts = 10*ones(size(STL1_FIM.tSpan));
     STL1_FIM.evaluateExperiment(STL1_fimResults,STL1_cellCounts)
 
 % Plot the FIMs:
-fig2 = figure(13);clf; set(fig2,'Name',...
-     'Fim-Predicted Uncertainty Ellipses');
-STL1_FIM.plotMHResults([],STL1_fimTotal,'log',[],fig2)
-legend('FIM')
+STL1_FIM.plotFIMResults(STL1_fimTotal,STL1_FIM.parameters)
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(3): Compute the FIM for the 4-state STL1 yeast model
@@ -95,7 +96,10 @@ STL1_4state_FIM = STL1_4state_sens;
 STL1_4state_fimResults = ...
     STL1_4state_FIM.computeFIM(); 
 
-% Generate a count of measured cells (in place of real data):
+% Generate a count of measured cells - or get the number of cells using 
+% 'nCells' - e.g., "STL1_4state_data.dataSet.nCells", which becomes:
+% STL1_4state_cellCounts = ...
+% STL1_4state_data.dataSet.nCells*ones(size(STL1_4state_FIM.tSpan));
 STL1_4state_cellCounts = 10*ones(size(STL1_4state_FIM.tSpan));
 
 % Evaluate the provided experiment design (in "cellCounts") 
@@ -106,38 +110,44 @@ STL1_4state_cellCounts = 10*ones(size(STL1_4state_FIM.tSpan));
                                        STL1_4state_cellCounts)
 
 % Plot the FIMs:
-fig3 = figure(14);clf; set(fig3,'Name',...
-     'Fim-Predicted Uncertainty Ellipses');
-STL1_4state_FIM.plotMHResults([],STL1_4state_fimTotal,'log',[],fig3)
-legend('FIM')
+STL1_4state_FIM.plotFIMResults(STL1_4state_fimTotal,...
+    STL1_4state_FIM.parameters, [STL1_4state_FIM.parameters{:,2}],...
+    PlotEllipses=true, EllipsePairs=[6 14; 7 12; 13 15; 11 14]);
 
 %%
-% Note:  Under certain circumstances, the FIM calculation will fail.  For 
-% example, without the removel of the 'kon' parameter from STL1 (which has 
-% no effect on STL1 unlike the basic bursting gene Model), Model_fimMetrics 
-% (from the basic bursting gene Model) and STL1_fimMetrics (from the 
-% time-varying input model) become:
+% Note:  If detI(θ)=0, then at least one eigenvalue 𝜆𝑘=0. That means the 
+% FIM is rank-deficient, so there is at least one non-trivial linear 
+% combination of parameters whose variance (via the Cramér–Rao bound) is 
+% infinite. That direction is locally non-identifiable at 𝜃; the likelihood 
+% is flat in that direction.  If detI(θ) is nonzero but extremely small, 
+% that usually means one or more eigenvalues are tiny (but not exactly 
+% zero). Then there is practical non-identifiability or very strong 
+% parameter correlation: those directions in parameter space are only very 
+% weakly constrained by your experiment.
 
-% fimMetrics = 
+% Model_fimMetrics = 
 % 
 %   struct with fields:
 % 
-%           det: 1.050283981892288e+12
-%         trace: 1.875101485843730e+04
-%     minEigVal: 1.010862869918453e+02
+%           det: 3.978068235240957e+08
+%         trace: 2.291624663469069e+04
+%     minEigVal: 1.859230327938760e-01
 
 % STL1_fimMetrics = 
 % 
 %   struct with fields:
 % 
-%           det: 0
-%         trace: 5.569716495312674e+04
-%     minEigVal: 0
+%           det: 3.956395658594882e-14
+%         trace: 3.491622747290549e+04
+%     minEigVal: -7.945218142991907e-14
 
-% The determinant for STL1_fimMetrics indicates a lack of identifiability 
-% between parameters in the STL1 Model, which unlike the base model has a 
-% time-varying input signal. There is not information for the STL1 Model 
-% concerning 'kon', leading to rank deficiency for the FIM.
+% STL1_4state_fimMetrics = 
+% 
+%   struct with fields:
+% 
+%           det: 3.235888697269839e-49
+%         trace: 3.603813426122739e+06
+%     minEigVal: 1.123207852843959e-14
 
 
 %% Save models & FIM results

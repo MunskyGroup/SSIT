@@ -1,4 +1,4 @@
-%% example_14_ModelReduction
+%% SSIT/Examples/example_14_ModelReduction
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Section 2.5: Complex models
@@ -54,7 +54,7 @@ STL1_MR_setup = STL1_4state_FSP;
 reductionType = 'Proper Orthogonal Decomposition'; 
 reductionOrder = 100;
 %qssaSpecies = 2;       % Only needed for the QSSA reduction scheme.
-podTimeSetSize = 100;   % Only needed for the POD reduction scheme.
+podTimeSetSize = 520;   % Only needed for the POD reduction scheme.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -63,24 +63,23 @@ podTimeSetSize = 100;   % Only needed for the POD reduction scheme.
 %% STL1 yeast model
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%% STL1:
+%% 4-state STL1:
 % Set up to solve FSP solution again to time following expansion:
 STL1_MR_setup.fspOptions.initApproxSS = true;
-STL1_MR_setup.tSpan = linspace(0,180,12);
+STL1_MR_setup.tSpan = linspace(0,50,500);
 
 % Print the computation time to solve the FSP using "tic" and "toc":
 tic
-[STL1_FSPsoln_expand,STL1_MR_setup.fspOptions.bounds] = ...
-    STL1_MR_setup.solve(STL1_4state_FSPsoln.stateSpace);
+[STL1_FSPsoln_expand,STL1_MR_setup.fspOptions.bounds] = STL1_MR_setup.solve;
 STL1_SolveTime = toc
 
 % Turn off further FSP expansion:
 STL1_MR_setup.fspOptions.fspTol = inf;
 
-% If using the POD, we will also need to generate basis set using solution
+% If using the POD, we also need to generate a basis set using solution
 % at finer resolution. Note -- this means that the POD will be inefficient
 % for the initial set up of the reduction.  The benefits typically come
-% from solving the model multiple times with different parameters sets.
+% from solving the model multiple times with different parameter sets.
 if strcmp(reductionType,'Proper Orthogonal Decomposition')
     tSpan = STL1_MR_setup.tSpan;
     STL1_MR_setup.tSpan = linspace(min(STL1_MR_setup.tSpan),...
@@ -96,32 +95,32 @@ STL1_MR = STL1_MR_setup;
 
 % Set the solver to use ModelReduction:
 STL1_MR.modelReductionOptions.useModReduction = true;
-% FSP expansion should be supressed when using Model Reductions
+% FSP expansion should be suppressed when using Model Reductions
 
 % Set type and order of Model Reduction:
 STL1_MR.modelReductionOptions.reductionType = reductionType;
 STL1_MR.modelReductionOptions.reductionOrder = reductionOrder;
-%Model_MR.modelReductionOptions.qssaSpecies = qssaSpecies;
+%STL1_MR.modelReductionOptions.qssaSpecies = qssaSpecies;
 
-% Call SSIT to compute the model reduction transformation matrices:
+% Call the SSIT to compute the model reduction transformation matrices:
 STL1_MR = ...
     STL1_MR.computeModelReductionTransformMatrices(STL1_FSPsoln_fine);
 
-% Solve the reduce model:
+% Solve the reduced model:
 tic
 STL1_FSPsoln_Red = STL1_MR.solve(STL1_FSPsoln_fine.stateSpace);
 STL1_SolveTimeReduced = toc
 
-% Make Figures to compare the results. Here, we will plot the original
-% model in blue and the reduced model in red lines.
-STL1_MR_setup.makePlot(STL1_FSPsoln_expand,'meansAndDevs',...
-                        [],[],1,{'Color',[0,0,1]})
-STL1_MR.makePlot(STL1_FSPsoln_Red,'meansAndDevs',...
-                        [],[],1,{'Color',[1,0,0]})
-figure(1);legend('Full','Reduced','Location','southeast')
 
-STL1_MR_setup.makePlot(STL1_FSPsoln_expand,'marginals',...
-                        [],[],[],{'Color',[0,0,1]})
-STL1_MR.makePlot(STL1_FSPsoln_Red,'marginals',[],[],[],{'Color',[1,0,0]})
-figure(2);legend('Full','Reduced','Location','eastoutside')
-figure(3);legend('Full','Reduced','Location','eastoutside')
+%% Plot the full and reduced FSP solutions:
+STL1_MR_setup.plotFSP(STL1_FSPsoln_expand,...
+    STL1_MR_setup.species(5), 'means', [], [], {'linewidth',4},...
+    Title='4-state STL1 (FSP full)', TitleFontSize=24, AxisLabelSize=18,...
+    TickLabelSize=18, XLabel='Time', YLabel='Molecule Count',...
+    LegendFontSize=15, LegendLocation='northeast', Colors=[0.23,0.67,0.2]);
+
+STL1_MR.plotFSP(STL1_FSPsoln_Red,...
+    STL1_MR.species(5), 'means', [], [], {'linewidth',4}, XLabel='Time',...
+    YLabel='Molecule Count', Title='4-state STL1 (FSP reduced)',...
+    TitleFontSize=24, AxisLabelSize=18, TickLabelSize=18,...
+    Colors=[0.23,0.67,0.2], LegendFontSize=15, LegendLocation='northeast');

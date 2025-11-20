@@ -1,4 +1,4 @@
-%% example_3_SolveSSITModels_SSA
+%% SSIT/Examples/example_3_SolveSSITModels_SSA
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Section 2.2: Finding and visualizing master equation solutions
@@ -65,7 +65,7 @@ STL1_4state.tSpan = linspace(0,50,200);
     Model_SSA = Model_SSA.formPropensitiesGeneral('Model_SSA');
     
     % Run SSA:
-    [~,~,Model_SSA] = Model_SSA.solve;
+    Model_SSA.Solutions = Model_SSA.solve;
     
     % Plot SSA trajectories and means:
     Model_SSA.plotSSA('all', 100, Model_SSA.species, {'linewidth',4}, ...
@@ -109,7 +109,7 @@ STL1_4state.tSpan = linspace(0,50,200);
     STL1_SSA.ssaOptions.useParallel = false;
     
     % Run SSA:
-    [~,~,STL1_SSA] = STL1_SSA.solve;
+    STL1_SSA.Solutions = STL1_SSA.solve;
             
     % Plot SSA trajectories and means:
     STL1_SSA.plotSSA('all', 100, STL1_SSA.species, {'linewidth',4}, ...
@@ -154,7 +154,7 @@ STL1_4state.tSpan = linspace(0,50,200);
     STL1_4state_SSA.ssaOptions.useParallel = false;
     
     % Run SSA:
-    [~,~,STL1_4state_SSA] = STL1_4state_SSA.solve;
+    STL1_4state_SSA.Solutions = STL1_4state_SSA.solve;
             
     % Plot SSA trajectories and means (mRNA):
     STL1_4state_SSA.plotSSA('all', 100, STL1_4state_SSA.species(5),...

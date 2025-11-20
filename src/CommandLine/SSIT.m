@@ -1113,45 +1113,47 @@ classdef SSIT
             obj.stoichiometry = obj.stoichiometry(:,inds);
             obj.propensityFunctions = obj.propensityFunctions(inds);
         end
+
         function [obj] = calibratePDO(obj,dataFileName,measuredSpecies,...
-                trueColumns,measuredColumns,pdoType,showPlot,parGuess)
-            %% SSIT.calibratePDO - This function calibrates a probabilistic
-            %% distortion operator (PDO) to match 'true' and 'observed'
-            %% (distorted) spot numbers.  Note: it also calls generatePDO()
-            %
-            % Calibrate the PDO from empirical data, for example, the
-            % number of spots that have been measured using different
-            % assays in data columns 'nTotal' for the 'true' data set and
-            % in the columns 'nSpots0' for a different label, or in columns
-            % 'intens1' for the integrated fluorescent intensity.
-            %
-            % Inputs:
-            %   * obj
-            %   * dataFileName - (string), name of the data file
-            %   * measuredSpecies - (string), name of the model species
-            %   * trueColumns - (string), name of the 'true' data for the
-            %                    model species
-            %   * measuredColumns - (string), name of the 'observed', or
-            %                        distorted, data for the model species
-            %   * pdoType - (string), the type of distribution that
-            %                represents the type
-            %       default: 'AffinePoiss'
-            %   * showPlot - (logical), default: false
-            %   * parGuess - (double), guesses for the hyperparameter
-            %                 values, i.e., the parameters that define the
-            %                 PDO distribution (not to be confused with the
-            %                 model parameters)
-            %       default: [];
-            %
-            % Outputs:
-            %
-            % Example:
-            % Model_PDO = Model.calibratePDO('/data/pdoData.csv',...
-            % {'rna'},{'nTotal'},{'nSpots0'},'AffinePoiss',true);
-            %
-            % The 'AffinePoiss' PDO models the obervation probability with
-            % a Poisson distribution, where the mean value is affine
-            % linearly related to the true value: P(y|x) = Poiss(a0 + a1*x);
+            trueColumns,measuredColumns,pdoType,showPlot,parGuess,...
+            conditions, opts)
+            %% SSIT.calibratePDO - This function calibrates a probabilistic 
+            %% distortion operator (PDO) to match 'true' and 'observed' 
+            %% (distorted) spot numbers. Note: it also calls generatePDO() 
+            %% Calibrate the PDO from empirical data, for example, the 
+            % number of spots that have been measured using different 
+            % assays in data columns 'nTotal' for the 'true' data set and 
+            % in the columns 'nSpots0' for a different label, or in columns 
+            % 'intens1' for the integrated fluorescent intensity. 
+            %% Inputs: 
+            % * obj 
+            % * dataFileName - (string), name of the data file 
+            % * measuredSpecies - (string), name of the model species 
+            % * trueColumns - (string), name of the 'true' data for the model species 
+            % * measuredColumns - (string), name of the 'observed', or distorted, data for the model species 
+            % * pdoType - (string), the type of distribution that represents the type (default: 'AffinePoiss')
+            % * showPlot - (logical), default: false 
+            % * parGuess - (double), guesses for the hyperparameter values, i.e., the parameters that define the 
+            % PDO distribution (not to be confused with the model parameters) default: []; 
+            % * conditions - (cell) filters to apply before calibration, 
+            %       e.g. {'Replica',1} or {'Drug_Conc','>=',100}
+            % Plotting opts (used only when showPlot==true):
+            %   opts.Title (1,1) string = ""
+            %   opts.FontSize (1,1) double {mustBePositive} = 18
+            %   opts.LegendFontSize (1,1) double {mustBePositive} = 18
+            %   opts.LegendLocation (1,1) string = "best"
+            %   opts.XLabel (1,1) string = "Observed data"
+            %   opts.YLabel (1,1) string = "True counts"
+            %   opts.XLim double = []
+            %   opts.YLim double = []
+            %% Outputs: 
+            %% Example: 
+            % Model_PDO = Model.calibratePDO('/data/pdoData.csv',... 
+            % {'rna'},{'nTotal'},{'nSpots0'},'AffinePoiss',true); 
+            %% The 'AffinePoiss' PDO models the obervation probability with 
+            % a Poisson distribution, where the mean value is affine 
+            % linearly related to the true value: P(y|x) = Poiss(a0 + a1*x); arguments
+
             arguments
                 obj
                 dataFileName
@@ -1160,76 +1162,183 @@ classdef SSIT
                 measuredColumns
                 pdoType = 'AffinePoiss'
                 showPlot = false
-                parGuess=[];
+                parGuess = []
+                conditions = {}
+                opts.Title (1,1) string = ""
+                opts.FontSize (1,1) double {mustBePositive} = 18
+                opts.LegendFontSize (1,1) double {mustBePositive} = 18
+                opts.LegendLocation (1,1) string = "best"
+                opts.XLabel (1,1) string = "Observed data"
+                opts.YLabel (1,1) string = "True counts"
+                opts.XLim double = []
+                opts.YLim double = []
             end
 
             obj.pdoOptions.type = pdoType;
-            % app.DistortionTypeDropDown.Value = obj.pdoOptions.type;
-            % app.FIMTabOutputs.PDOProperties.props = obj.pdoOptions.props;
 
-            Tab = readtable(dataFileName);
-
-            % Convert float values in trueColumns and measuredColumns
-            Tab.(trueColumns{1}) = double(int64(Tab.(trueColumns{1})));
-            Tab.(measuredColumns{1}) = double(int64(Tab.(measuredColumns{1})));
-
-            dataNames = Tab.Properties.VariableNames;
-
-            % Check that the data column being asked for actually exists in the file and throw an error if not.
-            % TODO - make this type of check accessible to all of SSIT, not just calibratePDO
-            present = any(cellfun(@(y) strcmp(y, measuredColumns{1}),dataNames));
-            if ~present
-                error(measuredColumns + " does not exist in the data file.");
+            % Read table(s)
+            if ischar(dataFileName) || isstring(dataFileName)
+                TAB = readtable(dataFileName);
+            elseif iscell(dataFileName)
+                TAB = table;
+                for iCell = 1:numel(dataFileName)
+                    iTAB = readtable(dataFileName{iCell});
+                    TAB = [TAB; iTAB];
+                end
+            else
+                error('dataFileName must be string/char or cell array of file names.');
             end
 
-            DATA = table2cell(Tab);
+            % Apply conditions (same logic as loadData)
+            for i = 1:size(conditions,1)
+                if size(conditions,2)==2
+                    if isnumeric(conditions{i,2}) && isnumeric(TAB.(conditions{i,1})(1))
+                        TAB = TAB(TAB.(conditions{i,1})==conditions{i,2},:);
+                    elseif ischar(conditions{i,2}) && iscell(TAB.(conditions{i,1})(1)) && ischar(TAB.(conditions{i,1}){1})
+                        TAB = TAB(strcmp(TAB.(conditions{i,1}),conditions{i,2}),:);
+                    elseif ischar(conditions{i,2}) && ischar(TAB.(conditions{i,1})(1))
+                        TAB = TAB(strcmp(TAB.(conditions{i,1}),conditions{i,2}),:);
+                    elseif isnumeric(TAB.(conditions{i,1})(1))
+                        TAB = TAB((TAB.(conditions{i,1}))==eval(conditions{i,2}),:);
+                    end
+                else
+                    try
+                        eval(['TAB = TAB(TAB.(conditions{i,1})',conditions{i,3},'conditions{i,2},:);'])
+                    catch
+                        eval(['TAB = TAB(',conditions{i,3},',:);'])
+                    end
+                end
+            end
 
+            if height(TAB)==0
+                error('calibratePDO:NoRowsAfterFilter', ...
+                      'No rows remain after applying conditions. Check your filters.');
+            end
+
+            dataNames = TAB.Properties.VariableNames;
+
+            % Validate requested columns exist
+            for k = 1:numel(trueColumns)
+                if ~any(strcmp(dataNames,trueColumns{k}))
+                    error('calibratePDO:MissingTrueColumn', ...
+                          'True column "%s" not found in the data file.', trueColumns{k});
+                end
+            end
+            for k = 1:numel(measuredColumns)
+                if ~any(strcmp(dataNames,measuredColumns{k}))
+                    error('calibratePDO:MissingMeasuredColumn', ...
+                          'Measured column "%s" not found in the data file.', measuredColumns{k});
+                end
+            end
+
+            % Cast specified true/measured columns to integer counts
+            for k = 1:numel(trueColumns)
+                col = trueColumns{k};
+                if ~isempty(col) && isnumeric(TAB.(col))
+                    TAB.(col) = double(int64(TAB.(col)));
+                end
+            end
+            for k = 1:numel(measuredColumns)
+                col = measuredColumns{k};
+                if ~isempty(col) && isnumeric(TAB.(col))
+                    TAB.(col) = double(int64(TAB.(col)));
+                end
+            end
+
+            DATA = table2cell(TAB);
+
+            % Initial guess for PDO parameters
             if isempty(parGuess)
                 lambdaTemplate = obj.findPdoError(pdoType);
             else
-                lambdaTemplate=parGuess;
+                lambdaTemplate = parGuess;
             end
 
             lambda = [];
 
+            % Identify stochastic species (exclude upstream ODEs in hybrids)
             if isfield(obj.hybridOptions,'upstreamODEs')
-                speciesStochastic = setdiff(obj.species,obj.hybridOptions.upstreamODEs,'stable');
+                speciesStochastic = setdiff(obj.species, obj.hybridOptions.upstreamODEs, 'stable');
             else
                 speciesStochastic = obj.species;
             end
 
             maxSize = zeros(1,length(speciesStochastic));
             options = optimset('display','none');
-            for i=1:length(speciesStochastic)
-                if sum(strcmp(measuredSpecies,speciesStochastic{i}))==1
-                    k = find(strcmp(measuredSpecies,speciesStochastic{i}));
-                    jTrue = find(strcmp(dataNames,trueColumns{k}));
-                    jObsv = find(strcmp(dataNames,measuredColumns{k}));
+
+            for i = 1:length(speciesStochastic)
+                if sum(strcmp(measuredSpecies, speciesStochastic{i})) == 1
+                    k = find(strcmp(measuredSpecies, speciesStochastic{i}));
+                    jTrue = find(strcmp(dataNames, trueColumns{k}));
+                    jObsv = find(strcmp(dataNames, measuredColumns{k}));
+
+                    if isempty(jTrue) || isempty(jObsv)
+                        error('calibratePDO:ColumnIndexError', ...
+                              'Could not resolve true/measured columns for species "%s".', speciesStochastic{i});
+                    end
+
                     xTrue = [DATA{:,jTrue}]';
                     xObsv = [DATA{:,jObsv}]';
-                    maxSize(i)=max(xTrue);
-                    objPDO = @(x)-obj.findPdoError(pdoType,x,xTrue,xObsv);
-                    lambdaNew = fminsearch(objPDO,lambdaTemplate,options);
+                    if isempty(xTrue) || isempty(xObsv)
+                        error('calibratePDO:EmptyColumns', ...
+                              'Columns for species "%s" are empty after filtering.', speciesStochastic{i});
+                    end
+
+                    maxSize(i) = max(xTrue);
+
+                    objPDO = @(x) -obj.findPdoError(pdoType, x, xTrue, xObsv);
+                    lambdaNew = fminsearch(objPDO, lambdaTemplate, options);
+
                     if showPlot
-                        [~,PDO] = obj.findPdoError(pdoType,lambdaNew,xTrue,xObsv);
-                        Z = max(-25,log10(PDO));
+                        [~,PDO] = obj.findPdoError(pdoType, lambdaNew, xTrue, xObsv);
+                        Z = max(-25, log10(PDO));
                         fg = figure; set(0,'CurrentFigure',fg);
-                        contourf([0:size(PDO,2)-1],[0:size(PDO,1)-1],Z);
+                        contourf(0:size(PDO,2)-1, 0:size(PDO,1)-1, Z);
                         colorbar
                         hold on
-                        scatter(xTrue,xObsv,100,'sk','filled')
-                        set(gca,'fontsize',15)
-                        legend('PDO','Data')
+                        scatter(xTrue, xObsv, 100, 'sk', 'filled')
+
+                        % --- Apply opts ---
+                        if strlength(opts.XLabel) > 0
+                            xlabel(opts.XLabel);
+                        end
+                        if strlength(opts.YLabel) > 0
+                            ylabel(opts.YLabel);
+                        end
+                        if ~isempty(opts.XLim)
+                            xlim(opts.XLim);
+                        end
+                        if ~isempty(opts.YLim)
+                            ylim(opts.YLim);
+                        end
+                        lgd = legend('PDO','Data','Location',char(opts.LegendLocation));
+                        if ~isempty(lgd) && isvalid(lgd)
+                            lgd.FontSize = opts.LegendFontSize;
+                        end
+                        if strlength(opts.Title) > 0
+                            tt = title(opts.Title);
+                        else
+                            tt = title(sprintf('PDO fit: %s', speciesStochastic{i}));
+                        end
+                        if ~isempty(tt) && isvalid(tt)
+                            tt.FontSize = opts.FontSize;
+                        end
+                        % ---------------
+
+                        set(gca, 'fontsize', max(10, round(0.8*opts.FontSize))); % modest tie-in
                     end
                 else
-                    maxSize(i)=0;
+                    maxSize(i) = 0;
                     lambdaNew = 0*lambdaTemplate;
                 end
-                lambda = [lambda,lambdaNew];
+                lambda = [lambda, lambdaNew];
             end
+
             obj.pdoOptions.props.PDOpars = lambda;
-            obj.pdoOptions.PDO = obj.generatePDO(obj.pdoOptions,lambda,[],[],maxSize);
+            obj.pdoOptions.PDO = obj.generatePDO(obj.pdoOptions, lambda, [], [], maxSize);
         end
+
+
 
         function obj = setICfromFspVector(obj,stateSpace,fspVector)
             % This function converts an FSP vector to initial states
@@ -3737,6 +3846,151 @@ classdef SSIT
                     end
             end
         end
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        function plotODE(obj,speciesNames,timeVec,lineProps,opts)
+            arguments
+                obj
+                speciesNames = []                  
+                timeVec = []
+                lineProps = {'linewidth',2};
+                opts.Title (1,1) string = ""
+                opts.TitleFontSize (1,1) double {mustBePositive} = 18
+                opts.AxisLabelSize (1,1) double {mustBePositive} = 18
+                opts.TickLabelSize (1,1) double {mustBePositive} = 18
+                opts.LegendFontSize (1,1) double {mustBePositive} = 18
+                opts.LegendLocation (1,1) string = "best"
+                opts.XLabel (1,1) string = "Time"
+                opts.YLabel (1,1) string = "Molecule Count / Concentration"
+                opts.XLim double = []
+                opts.YLim double = []
+                opts.Colors = []  
+                % [] | n×3 RGB | cell of ColorSpec/RGB | colormap name string
+            end
+        
+            X = obj.Solutions.ode;  % [nTime × nSpecies]
+            [nTime, nSpecies] = size(X);
+        
+            % ----- timeVec -----
+            if isempty(timeVec)
+                timeVec = (1:nTime).';
+            else
+                if numel(timeVec) ~= nTime
+                    error('timeVec length (%d) must match number of ODE time points (%d).', numel(timeVec), nTime);
+                end
+                timeVec = timeVec(:);
+            end
+        
+            % ----- Species selection -----
+            allNames = obj.species;
+            if isstring(allNames), allNames = cellstr(allNames); end
+        
+            if isempty(speciesNames)
+                selIdx = 1:nSpecies;
+                selNames = allNames;
+            elseif isnumeric(speciesNames)
+                selIdx = speciesNames(:).';
+                if any(selIdx < 1 | selIdx > nSpecies) || numel(unique(selIdx)) ~= numel(selIdx)
+                    error('Invalid or duplicate species indices. Must be unique integers in [1,%d].', nSpecies);
+                end
+                selNames = allNames(selIdx);
+            else
+                if isstring(speciesNames), speciesNames = cellstr(speciesNames); end
+                [tf, loc] = ismember(speciesNames, allNames);
+                if any(~tf)
+                    bad = speciesNames(~tf);
+                    exampleList = strjoin(allNames, ', ');
+                    error('Unknown species name(s): %s. Available: %s', strjoin(bad, ', '), exampleList);
+                end
+                selIdx = loc(:).';
+                selNames = allNames(selIdx);
+            end
+        
+            nPlot = numel(selIdx);
+        
+            % ----- Colors -----
+            useCellColors = false;
+            C = [];          % numeric nPlot×3
+            cellColors = {}; % 1×nPlot cell for mixed ColorSpecs
+        
+            if isempty(opts.Colors)
+                C = lines(nPlot);
+            elseif ischar(opts.Colors) || (isstring(opts.Colors) && isscalar(opts.Colors))
+                cmName = char(opts.Colors);
+                try
+                    % Sample the colormap to exactly nPlot colors
+                    bigN = max(nPlot, 64);
+                    cm = feval(cmName, bigN);
+                    idx = round(linspace(1, bigN, nPlot));
+                    C = cm(idx, :);
+                catch
+                    error('opts.Colors="%s" is not a valid colormap name.', cmName);
+                end
+            elseif isnumeric(opts.Colors)
+                C = double(opts.Colors);
+                if size(C,2) ~= 3 || size(C,1) < nPlot
+                    error('opts.Colors numeric must be at least %d×3 RGB values.', nPlot);
+                end
+                if any(C(:) < 0 | C(:) > 1) || ~all(isfinite(C(:)))
+                    error('opts.Colors numeric RGB values must be finite and in [0,1].');
+                end
+                C = C(1:nPlot, :);
+            elseif iscell(opts.Colors)
+                if numel(opts.Colors) < nPlot
+                    error('opts.Colors cell must provide at least %d entries.', nPlot);
+                end
+                cellColors = cell(1,nPlot);
+                for k = 1:nPlot
+                    c = opts.Colors{k};
+                    if ischar(c) || (isstring(c) && isscalar(c))
+                        cellColors{k} = char(c);              
+                    elseif isnumeric(c) && isequal(size(c), [1,3])
+                        if any(c < 0 | c > 1) || ~all(isfinite(c))
+                            error('opts.Colors{%d}: RGB must be finite in [0,1].', k);
+                        end
+                        cellColors{k} = double(c);
+                    else
+                        error('opts.Colors{%d} must be a ColorSpec char or a 1×3 RGB vector.', k);
+                    end
+                end
+                useCellColors = true;
+            else
+                error('opts.Colors must be: [], an n×3 RGB matrix, a cell array of colors, or a colormap name string.');
+            end
+        
+            % ----- Plot -----
+            figure; hold on;
+            for k = 1:nPlot
+                s = selIdx(k);
+                if useCellColors
+                    thisColor = cellColors{k};
+                else
+                    thisColor = C(k, :);
+                end
+                plot(timeVec, X(:, s), lineProps{:}, 'Color', thisColor);
+            end
+        
+            ax = gca;
+            ax.FontSize = opts.TickLabelSize;
+        
+            if ~isempty(opts.XLim), xlim(opts.XLim); end
+            if ~isempty(opts.YLim), ylim(opts.YLim); end
+        
+            xlabel(opts.XLabel, 'FontSize', opts.AxisLabelSize);
+            ylabel(opts.YLabel, 'FontSize', opts.AxisLabelSize);
+        
+            if ~isempty(opts.Title)
+                title(opts.Title,'FontSize',opts.TitleFontSize);
+            else
+                title('ODE Solution Trajectories','FontSize',opts.TitleFontSize);
+            end
+            grid on; box on;
+        
+            if ~strcmpi(opts.LegendLocation,"none")
+                lgd = legend(selNames, 'Location', char(opts.LegendLocation));
+                if ~isempty(lgd), lgd.FontSize = opts.LegendFontSize; end
+            end
+            hold off;
+        end
 
         function plotODE(obj,speciesNames,timeVec,lineProps,opts)
             arguments
@@ -4124,7 +4378,7 @@ classdef SSIT
             end
         end
             
-         function plotFSP(obj, solution, speciesNames, plotType, indTimes, figureNums, lineProps, opts)
+        function plotFSP(obj, solution, speciesNames, plotType, indTimes, figureNums, lineProps, opts)
             % plotFSP — Plot FSP results like plotODE/plotSSA, with species subsetting
             arguments
                 obj
@@ -4180,6 +4434,32 @@ classdef SSIT
                 selNames = allNames(selIdx);
             end
             nSel = numel(selIdx);
+
+            % ----- Map to FSP species indices for hybrid models -----
+            % For hybrid models, only non-upstream species appear in the FSP
+            if isprop(obj,'useHybrid') && obj.useHybrid
+                upNames = obj.hybridOptions.upstreamODEs;
+                if isstring(upNames), upNames = cellstr(upNames); end
+                if ischar(upNames),   upNames = {upNames};        end
+
+                allNamesForMap = allNames;
+                if isstring(allNamesForMap), allNamesForMap = cellstr(allNamesForMap); end
+
+                isUpstream       = ismember(allNamesForMap, upNames);
+                discIdxAll       = find(~isUpstream);   % indices of discrete/FSP species
+                fspSelIdx        = zeros(size(selIdx));
+
+                for j = 1:nSel
+                    k = find(discIdxAll == selIdx(j), 1);
+                    if isempty(k)
+                        error('Selected species "%s" is an upstream ODE-only species and has no FSP distribution.', selNames{j});
+                    end
+                    fspSelIdx(j) = k;   % index into FSP arrays (Means, Var, Marginals, etc.)
+                end
+            else
+                % Non-hybrid model: FSP species == all species
+                fspSelIdx = selIdx;
+            end
         
             % ----- Export FSP to plottable struct -----
             rawSol = solution;   % <- copy to compute escape CDF if needed
@@ -4217,7 +4497,7 @@ classdef SSIT
                     hMean = gobjects(1, nSel);
                     tt = solution.T_array(indTimes);
                     for j = 1:nSel
-                        s = selIdx(j);
+                        s = fspSelIdx(j);
                         col = getC(C, j);
                         hMean(j) = plot(tt, solution.Means(indTimes, s), ...
                                         lineProps{:}, 'Color', col, ...
@@ -4245,7 +4525,7 @@ classdef SSIT
                 
                     tt = solution.T_array(indTimes);
                     for j = 1:nSel
-                        s  = selIdx(j);
+                        s  = fspSelIdx(j);
                         mu = solution.Means(indTimes, s);
                         sd = sqrt(max(0, solution.Var(indTimes, s)));
                         col = getC(C, j);
@@ -4282,7 +4562,7 @@ classdef SSIT
         
                 case 'marginals'
                     for jj = 1:nSel
-                        s = selIdx(jj);
+                        s = fspSelIdx(jj);
                         f = figure(figureNums(kfig)); clf; kfig=kfig+1;
                         f.Name = ['Marginal Distributions of ', selNames{jj}];
                         Nr = ceil(sqrt(Nt)); Nc = ceil(Nt/Nr);
@@ -4327,7 +4607,7 @@ classdef SSIT
                     end
                     for a = 1:nSel
                         for b = a+1:nSel
-                            s1 = selIdx(a); s2 = selIdx(b);
+                            s1 = fspSelIdx(a); s2 = fspSelIdx(b);
                             h = figure(figureNums(kfig)); clf; kfig=kfig+1;
                             h.Name = sprintf('Joint Distribution of %s and %s', selNames{a}, selNames{b});
                             Nr = ceil(sqrt(Nt)); Nc = ceil(Nt/Nr);
@@ -4709,11 +4989,607 @@ classdef SSIT
                         Z_cum(:,k) = max(0, min(1, cumsum(max(0,col))));
                     end
                 end
-            end
+            end            
+        end
+
+        function figHandles = plotFits(obj, fitSolution, plotType, figureNums, lineProps, opts)
+            % plotFits — Compare model FSP fits to experimental data.
+            %
+            % figHandles = plotFits(obj, fitSolution, plotType, figureNums, lineProps, opts)
+            %
+            % Inputs:
+            %   obj          : SSIT object (with fields like DataLoadingAndFittingTabOutputs, etc.)
+            %   fitSolution  : struct returned by computeLikelihood (3rd output), or [] to recompute
+            %   plotType     : "histograms" | "trajectories" | "likelihood" | "all"
+            %   figureNums   : [] or vector of figure numbers to reuse
+            %   lineProps    : e.g., {'linewidth',2}
+            %   opts         : struct with fields:
+            %       .SmoothWindow       (double, default=1)
+            %       .UsePanels          (logical, default=true)
+            %       .VarianceType       ("STD" or "IQR", default="STD")
+            %       .IQRRange           (double, default=0.25)
+            %       .SuppressFigures    (logical, default=false)
+            %       .Title              (string, default="")
+            %       .TitleFontSize      (double, default=18)
+            %       .AxisLabelSize      (double, default=18)
+            %       .TickLabelSize      (double, default=18)
+            %       .LegendFontSize     (double, default=16)
+            %       .LegendLocation     (string, default="best")
+            %       .XLabel             (string, default="Time")
+            %       .YLabel             (string, default="Response")
+            %
+            % Output:
+            %   figHandles   : cell array of figure handles (in order of creation)
             
-         end
+                arguments
+                    obj
+                    fitSolution = []
+                    plotType (1,1) string = "histograms"
+                    figureNums = []
+                    lineProps = {'linewidth',2}
+                    opts.SpeciesNames = []   
+                    opts.SpeciesIdx   = []   
+                    opts.SmoothWindow (1,1) double {mustBePositive} = 1
+                    opts.UsePanels (1,1) logical = true
+                    opts.VarianceType (1,1) string = "STD" % or "IQR"
+                    opts.IQRRange (1,1) double {mustBePositive} = 0.25
+                    opts.SuppressFigures (1,1) logical = false
+                    opts.Title (1,1) string = ""
+                    opts.TitleFontSize (1,1) double {mustBePositive} = 18
+                    opts.AxisLabelSize (1,1) double {mustBePositive} = 18
+                    opts.TickLabelSize (1,1) double {mustBePositive} = 18
+                    opts.LegendFontSize (1,1) double {mustBePositive} = 16
+                    opts.LegendLocation (1,1) string = "best"
+                    opts.XLabel (1,1) string = "Time"
+                    opts.YLabel (1,1) string = "Response"
+                    opts.XLim double = []
+                    opts.YLim double = []
+                    opts.ProbXLim double = []    
+                    opts.ProbYLim double = []    % only used for DistType == 1 (PDF)
+                end
+            
+                % ---- Compute fitSolution if needed ----
+                if isempty(fitSolution)
+                    [~,~,fitSolution] = obj.computeLikelihood;
+                end
+                app = fitSolution;  
+            
+                figHandles = {};
+            
+                % ---- Figure visibility ----
+                if opts.SuppressFigures
+                    visible = 'off';
+                    set(0,'DefaultFigureVisible','off');
+                    if ~isempty(figureNums) && (~iscell(figureNums) || ~ishandle(figureNums{1}))
+                        disp('Creating new figures -- to reuse figures, figureNums must be a cell of figure handles');
+                        figureNums = [];
+                    end
+                else
+                    visible = 'on';
+                end
+            
+                % ---- Dispatch by plotType ----
+                switch lower(char(plotType))
+                    case 'histograms'
+                        figHandles = [figHandles, plotHistograms(app, figureNums, lineProps, opts, visible)];
+            
+                    case 'trajectories'
+                        figHandles = [figHandles, plotTrajectories(app, figureNums, lineProps, opts, visible)];
+            
+                    case 'likelihood'
+                        figHandles = [figHandles, plotLikelihood(app, figureNums, lineProps, opts, visible)];
+            
+                    case 'all'
+                        figHandles = [figHandles, plotHistograms(app, figureNums, lineProps, opts, visible)];
+                        figHandles = [figHandles, plotTrajectories(app, figureNums, lineProps, opts, visible)];
+                        figHandles = [figHandles, plotLikelihood(app, figureNums, lineProps, opts, visible)];
+            
+                    otherwise
+                        error('Unknown plotType "%s". Use "histograms", "trajectories", "likelihood", or "all".', plotType);
+                end
+            
+                % Reset default figure visibility if we changed it
+                if opts.SuppressFigures
+                    set(0,'DefaultFigureVisible','on');
+                end
+            
+                % ---------------- nested helpers ----------------
+            
+                function figs = plotHistograms(app, fnums, lineProps, o, visible)
+                    figs = {};
+                    numTimes = length(app.ParEstFitTimesList.Value);
+            
+                    % Full model/data dimensions
+                    NdModFit = max(1, length(size(app.DataLoadingAndFittingTabOutputs.fitResults.current))-1);
+                    NdDatAll = length(app.SpeciesForFitPlot.Value);
+                    if NdModFit ~= NdDatAll
+                        error('Model and Data size do not match in fitting routine');
+                    end
+            
+                    % Species selection (subset of fitted species)
+                    [selIdx, selNames] = getSelectedFitSpecies(app, o);
+                    NdDat = numel(selIdx);
+            
+                    % Loop over DistType: 0 = CDF, 1 = PDF
+                    for DistType = 0:1
+                        % Choose figure
+                        if isempty(fnums)
+                            figHandle = figure('Visible',visible);
+                        elseif iscell(fnums)
+                            figHandle = fnums{DistType+1};
+                            set(0,'CurrentFigure',figHandle);
+                        else
+                            figHandle = figure(fnums(DistType+1));
+                        end
+            
+                        if DistType==0
+                            set(figHandle,'Name','Cumulative Distributions versus Time');
+                        else
+                            set(figHandle,'Name','Probability Distributions versus Time');
+                        end
+            
+                        % Subplot layout
+                        if numTimes <= 4
+                            subPlotSize = [1, numTimes];
+                        else
+                            subPlotSize(2) = ceil(sqrt(numTimes));
+                            subPlotSize(1) = ceil(numTimes/subPlotSize(2));
+                        end
+            
+                        % Hold legend names across all subplots
+                        allLegNames = {};
+            
+                        % Loop over times
+                        for iTime = 1:numTimes
+                            if o.UsePanels
+                                subplot(subPlotSize(1), subPlotSize(2), iTime);
+                            end
+                            ax = gca;
+                            hold(ax,'on');
+                            ax.FontSize = o.TickLabelSize;
+            
+                            LegNames = {};
+                            dataTensor = double(app.DataLoadingAndFittingTabOutputs.dataTensor);
+                            modelTensorAll = app.DataLoadingAndFittingTabOutputs.fitResults.current;
+                            xm = 0; ym = 0;
+            
+                        for k = 1:NdDat
+                            j = selIdx(k);              % index into fitted species
+                            speciesName = selNames{k};  % correct plotted species name
+                
+                            % indices to sum over in model tensor (other species)
+                            indsToSumOver = setdiff(1:NdModFit, j);
+                
+                            %% --- Data histogram for species j ---
+                            dataTensor = double(app.DataLoadingAndFittingTabOutputs.dataTensor);
+                            if ndims(app.DataLoadingAndFittingTabOutputs.dataTensor) == 1
+                                Hdat = dataTensor;
+                            else
+                                Hdat = squeeze(dataTensor(iTime,:,:,:,:,:,:,:,:,:));
+                            end
+                            if ~isempty(indsToSumOver)
+                                Hdat = sum(Hdat, indsToSumOver);
+                            end
+                            Hdat = Hdat(:);
+                            Hdat = Hdat / max(sum(Hdat), eps);
+                            xDat = 0:length(Hdat)-1;
+                
+                            if DistType == 1   % PDF
+                                yDat = smoothBins(Hdat, o.SmoothWindow);
+                            else               % CDF
+                                yDat = cumsum(Hdat);
+                            end
+                
+                            stairs(ax, xDat, yDat, lineProps{:});
+                            LegNames{end+1} = [speciesName,'-data']; 
+                            xm = max(xm, length(Hdat));
+                            ym = max(ym, max(yDat));
 
+                            % ----- style for this subplot -----
+                            title(ax, ['t = ', app.ParEstFitTimesList.Value{iTime}], 'FontSize', o.TitleFontSize-2);
+                            ylabel(ax, 'Probability', 'FontSize', o.AxisLabelSize-2);
+                            set(ax,'FontSize',o.TickLabelSize);
+                    
+                            % NEW: apply per-plot limits only to Probability Distributions
+                            if DistType == 1
+                                if ~isempty(o.ProbXLim), xlim(ax, o.ProbXLim); end
+                                if ~isempty(o.ProbYLim), ylim(ax, o.ProbYLim); end
+                            end
+                
+                            %% --- Model histogram for species j ---
+                            modelTensorAll = app.DataLoadingAndFittingTabOutputs.fitResults.current;
+                            inds = modelTensorAll.subs;
+                            inds = inds(inds(:,1) == iTime,:);
+                            vals = modelTensorAll(inds);
+                            modelTensor = double(sptensor(inds(:,2:end), vals));
+                            if ~isempty(indsToSumOver)
+                                Hmod = squeeze(sum(modelTensor, indsToSumOver));
+                            else
+                                Hmod = squeeze(modelTensor);
+                            end
+                            Hmod = Hmod(:);
+                            xMod = 0:length(Hmod)-1;
+                
+                            if DistType == 1
+                                yMod = smoothBins(Hmod, o.SmoothWindow);
+                            else
+                                yMod = cumsum(Hmod);
+                            end
+                
+                            stairs(ax, xMod, yMod, lineProps{:});
+                            LegNames{end+1} = [speciesName,'-mod']; 
+                
+                            xm = max(xm, length(Hmod));
+                            ym = max(ym, max(yMod));
+                                    end
+            
+                            title(ax, sprintf('t = %s', app.ParEstFitTimesList.Value{iTime}), ...
+                                  'FontSize', max(o.TitleFontSize-2, 8), 'FontWeight','bold');
+                            if mod(iTime, subPlotSize(2)) == 1
+                                ylabel(ax, 'Probability', 'FontSize', o.AxisLabelSize);
+                            end
+                            if iTime > numTimes - subPlotSize(2)
+                                xlabel(ax, 'Molecule Count', 'FontSize', o.AxisLabelSize);
+                            end
+                            grid(ax,'on'); box(ax,'on');
+            
+                            allLegNames = [allLegNames, LegNames];
+                        end
+            
+                        if ~isempty(allLegNames)
+                            lgd = legend(allLegNames, 'Location', char(o.LegendLocation));
+                            if ~isempty(lgd), lgd.FontSize = o.LegendFontSize; end
+                        end
+            
+                        if strlength(o.Title) > 0
+                            sgtitle(string(o.Title), 'FontSize', o.TitleFontSize, 'FontWeight','bold');
+                        else
+                            if DistType==0
+                                sgtitle('Cumulative Distributions versus Time', ...
+                                        'FontSize', o.TitleFontSize, 'FontWeight','bold');
+                            else
+                                sgtitle('Probability Distributions versus Time', ...
+                                        'FontSize', o.TitleFontSize, 'FontWeight','bold');
+                            end
+                        end
+            
+                        figs{end+1} = figHandle; 
+                    end
+                end
+            
+             function figs = plotTrajectories(app, fnums, lineProps, o, visible)
+                figs = {};
+        
+                % --- pull options consistent with original code ---
+                varianceType = char(o.VarianceType);   % 'STD' or 'IQR'
+                IQRrange     = o.IQRRange;
+        
+                % --- choose / create figure as before ---
+                if isempty(fnums)
+                    figHandle = figure('Visible',visible);
+                elseif iscell(fnums)
+                    figHandle = fnums{3}; set(0,'CurrentFigure',figHandle);
+                else
+                    figHandle = figure(fnums(3));
+                end
+        
+                switch upper(varianceType)
+                    case 'STD'
+                        set(figHandle,'Name','Mean +/- std vs. time');
+                    otherwise
+                        set(figHandle,'Name','Mean vs. time');
+                end
+        
+                meanVarTrajAxis = gca;
+                hold(meanVarTrajAxis,'on');
+        
+                % ----- core dimensions from original code -----
+                numTimes = length(app.ParEstFitTimesList.Value);              % # data time points
+                NdDat    = length(app.SpeciesForFitPlot.Value);               % # fitted species
+        
+                % ----- rebuild dataHistTime exactly as before -----
+                % (so trajectories use the same data as the histogram plots)
+                dataHistTime = cell(numTimes, NdDat);
+                dataTensor   = double(app.DataLoadingAndFittingTabOutputs.dataTensor);
+        
+                NdModFit = max(1, length(size(app.DataLoadingAndFittingTabOutputs.fitResults.current)) - 1);
+                if NdModFit ~= NdDat
+                    error('Model and Data size do not match in fitting routine');
+                end
+        
+                for iTime = 1:numTimes
+                    if ndims(app.DataLoadingAndFittingTabOutputs.dataTensor) == 1
+                        baseSlice = dataTensor;
+                    else
+                        baseSlice = squeeze(dataTensor(iTime,:,:,:,:,:,:,:,:,:));
+                    end
+        
+                    for icb = 1:NdDat
+                        indsToSumOver = setdiff(1:NdModFit, icb);
+                        H1 = baseSlice;
+                        if ~isempty(indsToSumOver)
+                            H1 = sum(H1, indsToSumOver);
+                        end
+                        H1 = H1(:);
+                        H1 = H1 / max(sum(H1), eps);      % normalize (same as original)
+                        dataHistTime{iTime, icb} = H1;
+                    end
+                end
+        
+                % ----- MODEL mean / variance as in original code -----
+                tArrayModel = eval(app.FspPrintTimesField.Value);
+        
+                mnsMod     = zeros(length(tArrayModel), NdDat);
+                mns2Mod    = zeros(length(tArrayModel), NdDat);
+                lowIQRmod  = zeros(length(tArrayModel), NdDat);
+                highIQRmod = zeros(length(tArrayModel), NdDat);
+        
+                for iTime = 1:length(tArrayModel)
+                    for j = 1:NdDat
+                        % original "soInds" logic (by name, not simple index setdiff)
+                        soInds = find(~strcmp(app.SpeciesForFitPlot.Items, app.SpeciesForFitPlot.Value{j}));
+        
+                        px = app.FspTabOutputs.solutions{iTime}.p;
+                        if ~isempty(app.FIMTabOutputs.distortionOperator)
+                            px = app.FIMTabOutputs.distortionOperator.computeObservationDist(px, soInds);
+                        end
+                        if isempty(soInds)
+                            Z = double(px.data);
+                        else
+                            Z = double(px.sumOver(soInds).data);
+                        end
+                        Z = Z(:);
+        
+                        inds = 0:length(Z)-1;
+                        mnsMod(iTime,j)  = inds * Z;
+                        mns2Mod(iTime,j) = (inds.^2) * Z;
+        
+                        if strcmpi(varianceType, 'IQR')
+                            sumZ = cumsum(Z);
+                            [~, Iu] = unique(sumZ);
+        
+                            if sumZ(1) > IQRrange
+                                lowIQRmod(iTime,j) = 0;
+                            else
+                                lowIQRmod(iTime,j) = interp1(sumZ(Iu), Iu-1, IQRrange);
+                            end
+                            if sumZ(1) > 1 - IQRrange
+                                highIQRmod(iTime,j) = 0;
+                            else
+                                highIQRmod(iTime,j) = interp1(sumZ(Iu), Iu-1, 1 - IQRrange);
+                            end
+                        end
+                    end
+                end
+        
+                varsMod = mns2Mod - mnsMod.^2;
+                cols  = ['b','r','g','m','c','k'];
+                cols2 = [.90 .90 1.00; 1.00 .90 .90; .90 1.00 .90; ...
+                         .60 .60 1.00; 1.00 .60 .60; .60 1.00 .60];
+        
+                LG = {};
+        
+                % ----- plot MODEL trajectories (all fitted species) -----
+                for iplt = 1:NdDat
+                    switch upper(varianceType)
+                        case 'STD'
+                            BD = [ mnsMod(:,iplt)' + sqrt(varsMod(:,iplt)'), ...
+                                   mnsMod(end:-1:1,iplt)' - sqrt(varsMod(end:-1:1,iplt)') ];
+                        case 'IQR'
+                            BD = [ highIQRmod(:,iplt)', ...
+                                   lowIQRmod(end:-1:1,iplt)' ];
+                        otherwise
+                            BD = [ mnsMod(:,iplt)' + sqrt(varsMod(:,iplt)'), ...
+                                   mnsMod(end:-1:1,iplt)' - sqrt(varsMod(end:-1:1,iplt)') ];
+                    end
+                    TT    = [tArrayModel(1:end), tArrayModel(end:-1:1)];
+                    ipCol = mod(iplt-1, size(cols2,1)) + 1;
+        
+                    fill(meanVarTrajAxis, TT, BD, cols2(ipCol,:), 'EdgeColor','none');
+                    plot(meanVarTrajAxis, tArrayModel, mnsMod(:,iplt), cols(ipCol), lineProps{:});
+        
+                    % Legend name from fitted species
+                    spName = app.SpeciesForFitPlot.Value{iplt};
+                    if isstring(spName), spName = char(spName); end
+        
+                    LG{end+1} = sprintf('%s Model Mean \x00B1 %s', spName, varianceType); 
+                    LG{end+1} = sprintf('%s Model Mean',          spName);                
+                end
+        
+                % ----- DATA means/vars from dataHistTime (original logic) -----
+                mnsDat     = zeros(numTimes, NdDat);
+                mns2Dat    = zeros(numTimes, NdDat);
+                lowIQRdat  = zeros(numTimes, NdDat);
+                highIQRdat = zeros(numTimes, NdDat);
+        
+                for iTime = 1:numTimes
+                    for j = 1:NdDat
+                        H = dataHistTime{iTime,j};
+                        H = H(:);
+                        inds = 0:length(H)-1;
+        
+                        mnsDat(iTime,j)  = inds * H;
+                        mns2Dat(iTime,j) = (inds.^2) * H;
+        
+                        if strcmpi(varianceType, 'IQR')
+                            sumZ = cumsum(H);
+                            [~, Iu] = unique(sumZ);
+        
+                            if sumZ(1) > IQRrange
+                                lowIQRdat(iTime,j) = 0;
+                            else
+                                lowIQRdat(iTime,j) = interp1(sumZ(Iu), Iu-1, IQRrange);
+                            end
+                            if sumZ(1) > 1 - IQRrange
+                                highIQRdat(iTime,j) = 0;
+                            else
+                                highIQRdat(iTime,j) = interp1(sumZ(Iu), Iu-1, 1 - IQRrange);
+                            end
+                        end
+                    end
+                end
+        
+                varDat  = mns2Dat - mnsDat.^2;
+                T_array = app.DataLoadingAndFittingTabOutputs.fittingOptions.dataTimes;
+        
+                % ----- plot DATA errorbars (all fitted species) -----
+                for j = 1:NdDat
+                    ipCol  = mod(j-1, length(cols)) + 1;
+                    spName = app.SpeciesForFitPlot.Value{j};
+                    if isstring(spName), spName = char(spName); end
+        
+                    switch upper(varianceType)
+                        case 'STD'
+                            errorbar(meanVarTrajAxis, T_array, ...
+                                mnsDat(:,j), sqrt(varDat(:,j)), ...
+                                [cols(ipCol),'o'], 'MarkerSize',12, ...
+                                'MarkerFaceColor', cols(ipCol), ...
+                                lineProps{:});
+                        case 'IQR'
+                            errorbar(meanVarTrajAxis, T_array, ...
+                                mnsDat(:,j), ...
+                                (mnsDat(:,j) - lowIQRdat(:,j)), ...
+                                (highIQRdat(:,j) - mnsDat(:,j)), ...
+                                [cols(ipCol),'o'], 'MarkerSize',12, ...
+                                'MarkerFaceColor', cols(ipCol), ...
+                                lineProps{:});
+                    end
+        
+                    % Legend name from fitted species
+                    LG{end+1} = sprintf('%s Data mean \x00B1 %s', spName, varianceType); 
+                end
+        
+                % ----- axes labels, title, legend & styling using opts -----
+                ax = meanVarTrajAxis;
+                ax.FontSize = o.TickLabelSize;
+        
+                xlabel(ax, o.XLabel, 'FontSize', o.AxisLabelSize);
+                ylabel(ax, o.YLabel, 'FontSize', o.AxisLabelSize);
+        
+                if max(T_array) > 0
+                    xlim(ax, [0, max(T_array)]);
+                end
+                if ~isempty(o.XLim), xlim(ax, o.XLim); end
+                if ~isempty(o.YLim), ylim(ax, o.YLim); end
+        
+                if strlength(o.Title) > 0
+                    title(ax, string(o.Title), ...
+                        'FontSize', o.TitleFontSize, 'FontWeight','bold');
+                else
+                    title(ax, 'Trajectory of means and standard deviations', ...
+                        'FontSize', o.TitleFontSize, 'FontWeight','bold');
+                end
+        
+                grid(ax,'on'); box(ax,'on');
+        
+                if ~isempty(LG) && ~strcmpi(o.LegendLocation,"none")
+                    lgd = legend(ax, LG, 'Location', char(o.LegendLocation));
+                    if ~isempty(lgd), lgd.FontSize = o.LegendFontSize; end
+                end
+        
+                figs{end+1} = figHandle;
+            end
 
+            
+                function figs = plotLikelihood(app, fnums, lineProps, o, visible)
+                    figs = {};
+            
+                    if isempty(fnums)
+                        figHandle = figure('Visible',visible);
+                    elseif iscell(fnums)
+                        figHandle = fnums{4}; set(0, 'CurrentFigure', figHandle);
+                    else
+                        figHandle = figure(fnums(4));
+                    end
+                    set(figHandle,'Name','Likelihood vs Time');
+            
+                    tData = app.DataLoadingAndFittingTabOutputs.fittingOptions.dataTimes;
+                    V_LogLk    = app.DataLoadingAndFittingTabOutputs.V_LogLk;
+                    perfectMod = app.DataLoadingAndFittingTabOutputs.perfectMod;
+                    numCells   = app.DataLoadingAndFittingTabOutputs.numCells;
+            
+                    % 1) Log-likelihoods
+                    subplot(3,1,1);
+                    plot(tData, V_LogLk, lineProps{:}); hold on
+                    plot(tData, perfectMod, lineProps{:});
+                    ylabel('Log(L(D(t)|M))', 'FontSize', o.AxisLabelSize);
+                    legend({'log(L) - best fit for model', 'log(L) - theoretical limit'}, ...
+                           'Location','best', 'FontSize', o.LegendFontSize);
+                    set(gca,'FontSize', o.TickLabelSize);
+            
+                    % 2) Number of cells
+                    subplot(3,1,2);
+                    plot(tData, numCells, lineProps{:});
+                    ylabel('# Cells', 'FontSize', o.AxisLabelSize);
+                    set(gca,'FontSize', o.TickLabelSize);
+            
+                    % 3) Per-cell delta log-likelihood
+                    subplot(3,1,3);
+                    plot(tData, (V_LogLk - perfectMod)./max(numCells,eps), lineProps{:});
+                    ylabel('\Delta Log(L) / Cell', 'FontSize', o.AxisLabelSize);
+                    xlabel('Time', 'FontSize', o.AxisLabelSize);
+                    set(gca,'FontSize', o.TickLabelSize);
+            
+                    if strlength(o.Title) > 0
+                        sgtitle(string(o.Title), 'FontSize', o.TitleFontSize, 'FontWeight','bold');
+                    else
+                        sgtitle('Log-Likelihood Diagnostics vs Time', ...
+                                'FontSize', o.TitleFontSize, 'FontWeight','bold');
+                    end
+            
+                    figs{end+1} = figHandle;
+                end
+            
+                function sb = smoothBins(x,bnsz)
+                    sb = zeros(size(x));
+                    for i = 1:length(x)
+                        j = bnsz * floor((i-1)/bnsz);
+                        idx = j+1:min(j+bnsz, length(x));
+                        sb(idx) = sb(idx) + x(i);
+                    end
+                end
+
+                function [selIdx, selNames] = getSelectedFitSpecies(app, o)
+                    % Base list = fitted species (the ones in the fitting tab)
+                    allNames = app.SpeciesForFitPlot.Value;
+                    if isstring(allNames), allNames = cellstr(allNames); end
+                    nFit = numel(allNames);
+            
+                    % User-specified by name
+                    if ~isempty(o.SpeciesNames)
+                        names = o.SpeciesNames;
+                        if isstring(names), names = cellstr(names); end
+                        if ischar(names),   names = {names};       end
+            
+                        [tf, loc] = ismember(names, allNames);
+                        if any(~tf)
+                            bad = names(~tf);
+                            error('Unknown species name(s) in opts.SpeciesNames: %s. Available: %s', ...
+                                strjoin(bad, ', '), strjoin(allNames, ', '));
+                        end
+                        selIdx   = loc(:).';
+                        selNames = allNames(selIdx);
+                        return;
+                    end
+            
+                    % User-specified by index
+                    if ~isempty(o.SpeciesIdx)
+                        idx = unique(o.SpeciesIdx(:).');
+                        if any(idx < 1 | idx > nFit)
+                            error('opts.SpeciesIdx must be in 1..%d (number of fitted species).', nFit);
+                        end
+                        selIdx   = idx;
+                        selNames = allNames(selIdx);
+                        return;
+                    end
+            
+                    % Default = all fitted species
+                    selIdx   = 1:nFit;
+                    selNames = allNames;
+                end
+            end
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        
         function figHandles = makeFitPlot(obj,fitSolution,smoothWindow,fignums,usePanels, ...
                 varianceType,IQRrange,suppressFigures)
             % Produces plots to compare model to experimental data.
@@ -4775,6 +5651,323 @@ classdef SSIT
             legend(legs)
 
         end
+
+
+       function plotFIMResults(obj, fimInput, paramNames, theta0, opts)
+            % plotFIMResults  Visualize a Fisher Information Matrix (FIM) and
+            %                 FIM-based parameter uncertainty ellipses.
+            %
+            %   obj.plotFIMResults(fimInput)
+            %   obj.plotFIMResults(fimInput, paramNames)
+            %   obj.plotFIMResults(fimInput, paramNames, theta0)
+            %   obj.plotFIMResults(fimInput, paramNames, theta0, opts)
+            %
+            %   fimInput   : either an n x n numeric FIM, or a 1x1 cell containing it
+            %                e.g., Model_fimTotal = {4x4 double}
+            %
+            %   paramNames : cell array of parameter names, e.g.,
+            %                  {'k_{on}','k_{off}','k_r','k_d'}
+            %                If empty or omitted, defaults to {'\theta_1', ..., '\theta_n'}.
+            %
+            %   theta0     : 1 x n vector of nominal parameter values
+            %                (center of ellipses; e.g., log10-parameters).
+            %                If empty or omitted, defaults to zeros(1,n).
+            %
+            %   opts (name-value via arguments block):
+            %       .UseLog10        (logical, default true)
+            %       .FigureHandle    (default: new figure)
+            %       .PlotEllipses    (logical, default true)
+            %       .EllipseLevel    (double, default 0.9) – confidence level
+            %       .EllipseFigure   (default: new figure)
+            %       .EllipsePairs    (default: []) – subset of parameter index pairs
+            %                        to plot as ellipses; numeric Kx2 matrix:
+            %                        [i1 j1; i2 j2; ...], 1 <= i < j <= nParams
+            %
+            %       .Colors          (struct or [], default [])
+            %           Optional fields:
+            %               .HeatmapColormap – colormap handle or name (e.g. parula, 'hot')
+            %               .DiagBars        – color for diag(FIM) bars
+            %               .EigBars         – color for eigenvalue bars
+            %               .Ellipse         – line spec for ellipses (e.g. 'r--')
+            %
+            %       .Title           (string, default "")
+            %       .TitleFontSize   (double, default 14)
+            %       .AxisLabelSize   (double, default 14)
+            %       .TickLabelSize   (double, default 12)
+            %       .LegendFontSize  (double, default 14)   
+            %       .LegendLocation  (string, default "best")
+            
+                arguments
+                    obj
+                    fimInput
+                    paramNames = []
+                    theta0 = []
+                    opts.UseLog10 (1,1) logical = true
+                    opts.FigureHandle = []
+                    opts.PlotEllipses (1,1) logical = true
+                    opts.EllipseLevel (1,1) double {mustBePositive} = 0.9
+                    opts.EllipseFigure = []
+                    opts.EllipsePairs = []
+            
+                    opts.Colors = []   
+                    opts.Title (1,1) string = ""
+                    opts.TitleFontSize (1,1) double {mustBePositive} = 14
+                    opts.AxisLabelSize (1,1) double {mustBePositive} = 14
+                    opts.TickLabelSize (1,1) double {mustBePositive} = 12
+                    opts.LegendFontSize (1,1) double {mustBePositive} = 14
+                    opts.LegendLocation (1,1) string = "best"
+                end
+            
+                % -------- Extract numeric FIM --------
+                if iscell(fimInput)
+                    fim = fimInput{1};
+                else
+                    fim = fimInput;
+                end
+            
+                if ~ismatrix(fim) || size(fim,1) ~= size(fim,2)
+                    error('FIM must be a square matrix or a 1x1 cell containing a square matrix.');
+                end
+            
+                nParams = size(fim,1);
+            
+                % Default parameter names if not provided
+                if isempty(paramNames)
+                    paramNames = arrayfun(@(i) sprintf('\\theta_{%d}', i), ...
+                                          1:nParams, 'UniformOutput', false);
+                end
+            
+                % Default theta0 (ellipse centers)
+                if isempty(theta0)
+                    theta0 = zeros(1, nParams);
+                end
+                if numel(theta0) ~= nParams
+                    error('theta0 must be a vector of length %d (number of parameters).', nParams);
+                end
+            
+                % Convenience alias
+                C = opts.Colors;
+            
+                % -------- Basic spectral info --------
+                % Make sure FIM is symmetric (numerical noise)
+                fimSym = 0.5 * (fim + fim.');
+            
+                [eigVec, eigValMat] = eig(fimSym);
+                eigVals = diag(eigValMat);
+            
+                % Condition number using positive eigenvalues only
+                posEig = eigVals(eigVals > 0);
+                if isempty(posEig)
+                    condInfo = NaN;
+                else
+                    condInfo = max(posEig) / min(posEig);
+                end
+            
+                % -------- Prepare plotting values --------
+                if opts.UseLog10
+                    % Avoid taking log10 of non-positive values
+                    epsVal   = 1e-16;
+                    fimDisp  = log10(max(fimSym, epsVal));
+                    eigDisp  = log10(max(eigVals, epsVal));
+                    fimLabel = 'log_{10} FIM';
+                    eigLabel = 'log_{10} eigenvalues';
+                else
+                    fimDisp  = fimSym;
+                    eigDisp  = eigVals;
+                    fimLabel = 'FIM';
+                    eigLabel = 'Eigenvalues';
+                end
+            
+                diagInfo = diag(fimSym);
+            
+                % -------- Figure for FIM matrix/diag/eigs --------
+                if ~isempty(opts.FigureHandle) && ishghandle(opts.FigureHandle)
+                    fig = opts.FigureHandle;
+                    figure(fig); clf;
+                else
+                    fig = figure;
+                end
+                set(fig, 'Name', 'FIM Results', 'NumberTitle', 'off');
+            
+                % Optional global title
+                if opts.Title ~= ""
+                    sgtitle(opts.Title, 'FontSize', opts.TitleFontSize, 'FontWeight', 'bold');
+                end
+            
+                % Layout: 2x2 grid
+                % (1) Heatmap of FIM
+                subplot(2,2,[1 3]); % big panel on left
+                imagesc(fimDisp);
+                axis square;
+                cb = colorbar;
+                if ~isempty(C) && isstruct(C) && isfield(C,'HeatmapColormap')
+                    colormap(C.HeatmapColormap);
+                else
+                    colormap(parula);
+                end
+                set(gca, 'XTick', 1:nParams, 'XTickLabel', paramNames, ...
+                         'YTick', 1:nParams, 'YTickLabel', paramNames, ...
+                         'TickLabelInterpreter', 'tex', ...
+                         'FontSize', opts.TickLabelSize);
+                xlabel('Parameter', 'FontSize', opts.AxisLabelSize);
+                ylabel('Parameter', 'FontSize', opts.AxisLabelSize);
+                title(fimLabel, 'FontSize', opts.AxisLabelSize, 'FontWeight', 'bold');
+                cb.Label.String = fimLabel;
+                cb.Label.FontSize = opts.AxisLabelSize;
+            
+                % (2) Bar plot of diagonal (per-parameter information)
+                subplot(2,2,2);
+                hBarDiag = bar(diagInfo);
+                if ~isempty(C) && isstruct(C) && isfield(C,'DiagBars')
+                    set(hBarDiag, 'FaceColor', C.DiagBars);
+                end
+                set(gca, 'XTick', 1:nParams, 'XTickLabel', paramNames, ...
+                         'TickLabelInterpreter', 'tex', ...
+                         'FontSize', opts.TickLabelSize);
+                xlabel('Parameter', 'FontSize', opts.AxisLabelSize);
+                ylabel('Diagonal entry of FIM', 'FontSize', opts.AxisLabelSize);
+                title('Per-parameter information (diag(FIM))', ...
+                      'FontSize', opts.AxisLabelSize, 'FontWeight', 'bold');
+            
+                % (3) Bar plot of eigenvalues
+                subplot(2,2,4);
+                hBarEig = bar(eigDisp);
+                if ~isempty(C) && isstruct(C) && isfield(C,'EigBars')
+                    set(hBarEig, 'FaceColor', C.EigBars);
+                end
+                set(gca, 'FontSize', opts.TickLabelSize);
+                xlabel('Eigenvalue index', 'FontSize', opts.AxisLabelSize);
+                ylabel(eigLabel, 'FontSize', opts.AxisLabelSize);
+                title(sprintf('FIM spectrum (cond. ~ %.2e)', condInfo), ...
+                      'FontSize', opts.AxisLabelSize, 'FontWeight', 'bold');
+            
+                % -------- Optional: ellipse plots --------
+                if opts.PlotEllipses
+                    % FIM-based covariance (sanitized inverse using eigen-decomposition)
+                    epsShift = 1e-12;
+                    [V,D] = eig(fimSym);
+                    lam   = diag(D);
+                    lamSafe = max(lam, epsShift);
+                    covFIM = V * diag(1 ./ lamSafe) * V.';
+                    covFIM = 0.5 * (covFIM + covFIM.');   % symmetrize inverse
+            
+                    % Make or reuse ellipse figure
+                    if ~isempty(opts.EllipseFigure) && ishghandle(opts.EllipseFigure)
+                        figEll = opts.EllipseFigure;
+                        figure(figEll); clf;
+                    else
+                        figEll = figure;
+                    end
+                    set(figEll, 'Name', 'FIM-based covariance ellipses', 'NumberTitle', 'off');
+            
+                    if opts.Title ~= ""
+                        sgtitle(opts.Title, 'FontSize', opts.TitleFontSize, 'FontWeight', 'bold');
+                    end
+            
+                    % chi^2 quantile for given confidence level, df=2
+                    chi2val = icdf('chi2', opts.EllipseLevel, 2);
+            
+                    ellipsePairs = opts.EllipsePairs;
+            
+                    % Choose line style for ellipses
+                    if ~isempty(C) && isstruct(C) && isfield(C,'Ellipse')
+                        ellipseSpec = C.Ellipse;
+                    else
+                        ellipseSpec = 'k-';
+                    end
+            
+                    if isempty(ellipsePairs)
+                        % --- Default: plot all upper-triangular pairs in an (n-1)x(n-1) grid ---
+                        for iParam = 1:nParams-1
+                            for jParam = iParam+1:nParams
+                                subplot(nParams-1, nParams-1, (iParam-1)*(nParams-1) + jParam-1);
+            
+                                % 2x2 sub-covariance and center (order [theta_j, theta_i])
+                                subCov = covFIM([jParam iParam],[jParam iParam]);
+                                mu     = theta0([jParam iParam]);
+            
+                                ssit.parest.ellipse(mu, chi2val * subCov, ellipseSpec, 'LineWidth', 2); hold on;
+                                plot(mu(1), mu(2), 'ks', 'MarkerSize', 8, 'MarkerFaceColor', 'w');
+            
+                                xlabel(sprintf('%s', paramNames{jParam}), 'Interpreter', 'tex', ...
+                                       'FontSize', opts.AxisLabelSize);
+                                ylabel(sprintf('%s', paramNames{iParam}), 'Interpreter', 'tex', ...
+                                       'FontSize', opts.AxisLabelSize);
+                                set(gca, 'FontSize', opts.TickLabelSize);
+                                axis equal; grid on;
+                            end
+                        end
+                    else
+                        % --- Subset mode: ellipsePairs is Kx2 matrix of [i j] index pairs ---
+                        if ~ismatrix(ellipsePairs) || size(ellipsePairs,2) ~= 2
+                            error('EllipsePairs must be a Kx2 numeric matrix of parameter index pairs [i j].');
+                        end
+                        K = size(ellipsePairs,1);
+                        % Layout: as square as possible
+                        nRows = ceil(sqrt(K));
+                        nCols = ceil(K / nRows);
+            
+                        for k = 1:K
+                            iParam = ellipsePairs(k,1);
+                            jParam = ellipsePairs(k,2);
+            
+                            if ~isscalar(iParam) || ~isscalar(jParam) || ...
+                                    iParam < 1 || jParam < 1 || ...
+                                    iParam > nParams || jParam > nParams || iParam == jParam
+                                error('Invalid EllipsePairs entry at row %d: [%d %d].', k, iParam, jParam);
+                            end
+            
+                            subplot(nRows, nCols, k);
+            
+                            % 2x2 sub-covariance and center (order [theta_j, theta_i])
+                            subCov = covFIM([jParam iParam],[jParam iParam]);
+                            mu     = theta0([jParam iParam]);
+            
+                            ssit.parest.ellipse(mu, chi2val * subCov, ellipseSpec, 'LineWidth', 2); hold on;
+                            plot(mu(1), mu(2), 'ks', 'MarkerSize', 8, 'MarkerFaceColor', 'w');
+            
+                            xlabel(sprintf('%s', paramNames{jParam}), 'Interpreter', 'tex', ...
+                                   'FontSize', opts.AxisLabelSize);
+                            ylabel(sprintf('%s', paramNames{iParam}), 'Interpreter', 'tex', ...
+                                   'FontSize', opts.AxisLabelSize);
+                            set(gca, 'FontSize', opts.TickLabelSize);
+                            axis equal; grid on;
+                        end
+                    end
+                end
+            end
+
+            
+            % --------- Helper: numerically safe inverse of symmetric matrix ----------
+            function Ainv = safeInverseSym(A, epsShift)
+                % Symmetrize
+                A = 0.5 * (A + A.');
+                [V,D] = eig(A);
+                lam = diag(D);
+                % Shift tiny/negative eigenvalues
+                lamSafe = max(lam, epsShift);
+                Ainv = V * diag(1./lamSafe) * V.';
+                % Symmetrize the inverse too
+                Ainv = 0.5 * (Ainv + Ainv.');
+            end
+            
+            % --------- Helper: draw ellipse given mean + covariance ------------------
+            function h = plotEllipse(mu, Sigma, varargin)
+                % Ensures Sigma is symmetric positive semidefinite and plots the ellipse
+                Sigma = 0.5 * (Sigma + Sigma.');
+                [V,D] = eig(Sigma);
+                lam   = diag(D);
+                lam(lam < 0) = 0;  % clamp negatives (should be small numerical errors)
+                Dpsd  = diag(sqrt(lam));
+                % Parametric circle
+                t  = linspace(0, 2*pi, 200);
+                xy = [cos(t); sin(t)];
+                % Transform
+                R  = V * Dpsd;
+                pts = R * xy + mu(:);
+                h = plot(pts(1,:), pts(2,:), varargin{:});
+            end
+
 
         function plotMHResults(obj,mhResults,FIM,fimScale,mhPlotScale,scatterFig,showConvergence)
             arguments

@@ -886,7 +886,7 @@ if isempty(prefixName)
 end
 
 ifn = sum(contains({dir('tmpPropensityFunctions').name},[prefixName,'_fun']))+1;
-fn = [pwd,'/tmpPropensityFunctions/',prefixName,'_fun_',num2str(ifn),'.m'];
+fn = [pwd, filesep,'tmpPropensityFunctions',filesep,prefixName,'_fun_',num2str(ifn),'.m'];
 
 if jacobian&&~isempty(varODEs)
     exprJac = sym(zeros([1,length(varODEs)]));

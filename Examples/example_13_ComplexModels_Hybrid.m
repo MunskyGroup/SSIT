@@ -1,4 +1,4 @@
-%% example_13_SolveSSITModels_Hybrid
+%% SSIT/Examples/example_13_SolveSSITModels_Hybrid
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Section 2.5: Complex models
@@ -14,34 +14,36 @@ addpath(genpath('../src'));
 % example_1_CreateSSITModels 
 
 % View model summaries:
-STL1.summarizeModel
+STL1_4state.summarizeModel
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Adjust a model to treat some species (i.e., upstream reactions) use an 
+% Adjust a model to treat some species (i.e., upstream reactions) using an 
 % ODE formulation, while having other species (i.e., downstream species) 
-% evolving in a discrete stochastic manner. This runs significantly faster 
-% than full FSP solutions.
+% evolve in a discrete stochastic manner using FSP. This runs significantly 
+% faster than full FSP solutions.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% Create copies of our models:
-STL1_hybrid = STL1;
+% Create a copy of our models:
+STL1_hybrid = STL1_4state;
 
 % Set the times at distributions will be computed:
-STL1_hybrid.tSpan = linspace(0,20,200);
+STL1_hybrid.tSpan = linspace(0,50,200);
 
 % Set 'useHybrid' to true:
 STL1_hybrid.useHybrid = true;
 
 % Define which species will be solved by ODEs:
-STL1_hybrid.hybridOptions.upstreamODEs = {'offGene','onGene'};
+STL1_hybrid.hybridOptions.upstreamODEs = {'g1','g2','g3','g4'};
 
 % Set solution scheme to FSP:
 STL1_hybrid.solutionScheme = 'FSP';
 
 % View summary of hybrid STL1 model, expecting:
     %   Species:
-    %       offGene; IC = 1;  upstream ODE
-    %       onGene; IC = 0;  upstream ODE
+    %       g1; IC = 1;  upstream ODE
+    %       g2; IC = 0;  upstream ODE
+    %       g3; IC = 0;  upstream ODE
+    %       g4; IC = 0;  upstream ODE
     %       mRNA; IC = 0;  discrete stochastic
 STL1_hybrid.summarizeModel
 
@@ -53,24 +55,26 @@ STL1_hybrid.customConstraintFuns = [];
 STL1_hybrid.fspOptions.fspTol = 1e-4; 
     
 % Guess initial bounds on FSP StateSpace:
-STL1_hybrid.fspOptions.bounds = [2,2,400];
+STL1_hybrid.fspOptions.bounds = [1,1,1,1,300];
 
 % This function compiles and stores the given reaction propensities  
-% into symbolic expression functions that use sparse matrices to  
-% operate on the system based on the current state. The functions are 
-% stored with the given prefix, in this case, 'STL1_hybrid' and
-% 'STL1_4state_hybrid'
+% into symbolic expression functions that use sparse matrices:
 STL1_hybrid = STL1_hybrid.formPropensitiesGeneral('STL1_hybrid');
 
-% Have FSP approximate the steady state for the initial distribution 
-% by finding the eigenvector corresponding to the smallest magnitude 
-% eigenvalue (i.e., zero, for generator matrix A, d/dtP(t)=AP(t)):
-STL1_hybrid.fspOptions.initApproxSS = false; 
+% Have FSP approximate the steady state for the initial distribution:
+STL1_hybrid.fspOptions.initApproxSS = true; 
     
 % Solve STL1_hybrid:
 [STL1_hybrid_FSPsoln,STL1_hybrid.fspOptions.bounds] = STL1_hybrid.solve; 
-    
-% Plot marginal distributions:
-STL1_hybrid.makePlot(STL1_hybrid_FSPsoln,'meansAndDevs')  
-STL1_hybrid.makePlot(STL1_hybrid_FSPsoln,'margmovie',[],false,[101],...
-                  {'linewidth',2},'STL1_hybrid.mp4',[],[],plotTitle='mRNA')
+
+%% Plots for FSP solutions:
+% Means and standard deviations:
+STL1_hybrid.plotFSP(STL1_hybrid_FSPsoln, STL1_hybrid.species(5),...
+    'meansAndDevs', [], [], {'linewidth',4}, Colors=[0.23,0.67,0.2],...
+    Title='4-state STL1 (hybrid)', TitleFontSize=24, YLim=[-10,40],...
+    YLabel='Molecule Count',LegendFontSize=15,LegendLocation='northeast');
+
+% Marginal distributions:
+STL1_hybrid.plotFSP(STL1_hybrid_FSPsoln, STL1_hybrid.species(5),...
+    'marginals', [1,12,24,50,101,200],[],{'linewidth',3}, XLim=[0,100],...
+    Colors=[0.23,0.67,0.2], TickLabelSize=15)

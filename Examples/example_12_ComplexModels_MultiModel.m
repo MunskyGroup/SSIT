@@ -1,4 +1,4 @@
-%% example_12_ComplexModels_MultiModel
+%% SSIT/Examples/example_12_ComplexModels_MultiModel
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Section 2.5: Complex models
@@ -18,10 +18,10 @@ addpath(genpath('../'));
 % example_10_LoadingandFittingData_MHA
 
 %% Load pre-computed model fit
-% load('example_9_LoadingandFittingData_MLE.mat')
+% load('example_10_LoadingandFittingData_MH.mat')
 
 % View model summariy:
-STL1_4state_MLE.summarizeModel
+STL1_4state_MH.summarizeModel
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Example script to show how multiple SSIT models and data sets can be fit
@@ -34,7 +34,7 @@ STL1_4state_MLE.summarizeModel
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Make a copy of our model:
-STL1_4state_multi_1 = STL1_4state_MLE;
+STL1_4state_multi_1 = STL1_4state_MH;
 
 %% Load and associate smFISH data
 %  Associate the data with an SSIT model data as usual 
@@ -142,11 +142,11 @@ allParsDependent = combinedModelDependent.maximizeLikelihood(...
 combinedModelDependent = ...
     combinedModelDependent.updateModels(allParsDependent);
 
-% Note: This example is shown for illustration purposes only.  Usually, if 
-% one is fitting two replicas of the exact same experiment, then it is
-% more efficient to combine the data from both replicas and fit them at the
-% same time, e.g. to combined all replicas into one set, simply load the
-% data without the replica filtering condition:
+%% Note: This example is shown for illustration purposes only.  
+% Usually, if one is fitting two replicas of the exact same experiment, 
+% then it is more efficient to combine the data from both replicas and fit 
+% them at the same time, e.g. to combined all replicas into one set, simply 
+% load the data without the replica filtering condition:
 % STL1_4state_data = ...
 %     STL1_4state_data.loadData('data/filtered_data_2M_NaCl_Step.csv',...
 %                              {'mRNA','RNA_STL1_total_TS3Full'},...
@@ -155,24 +155,23 @@ combinedModelDependent = ...
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(4): Mixed parameters
 % Sometimes it is desirable to only let some parameters change from
-% condition to condition.  In this example both STL1_4state_multi_1 and  
-% STL1_4state_multi_2 use the same parameters [1-11], but parameters 
-% [12:13] are only for STL1_4state_multi_1 and [14:15] are only for 
-% STL1_4state_multi_2.
+% condition to condition.  In this example, both STL1_4state_multi_1 and  
+% STL1_4state_multi_2 use the same parameters [1-13], but each model has 
+% its own 'kr' and 'dr' [14-15].
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% Model 1 contributes shared [1:11] plus its own [12:13]
-STL1_4state_multi_1.fittingOptions.modelVarsToFit = [1:11, 12:13];
+% Model 1 contributes shared [1:13] plus its own [14-15]
+STL1_4state_multi_1.fittingOptions.modelVarsToFit = [1:13, 14:15];
 
-% Model 2 contributes shared [1:11] plus its own [14:15]
-STL1_4state_multi_2.fittingOptions.modelVarsToFit = [1:11, 14:15];
+% Model 2 contributes shared [1:13] plus its own [14-15]
+STL1_4state_multi_2.fittingOptions.modelVarsToFit = [1:13, 14:15];
 
 combinedModelMixed = SSITMultiModel( ...
     {STL1_4state_multi_1, STL1_4state_multi_2}, ...
-    { [1:11, 12:13],       [1:11, 14:15] } );
+    { [1:13, 14:15],       [1:13, 14:15] } );
 combinedModelMixed = combinedModelMixed.initializeStateSpaces;
 allParsMixed = ([STL1_4state_multi_1.parameters{:,2},...
-                 STL1_4state_multi_2.parameters{7:15,2}]);
+                 STL1_4state_multi_2.parameters{:,2}]);
 allParsMixed = combinedModelMixed.maximizeLikelihood(...
     allParsMixed, fitOptions, fitAlgorithm);
 combinedModelMixed = combinedModelMixed.updateModels(allParsMixed);
@@ -187,19 +186,106 @@ combinedModelMixed = combinedModelMixed.updateModels(allParsMixed);
 % by small values.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+% Each STL1_4state_multi_* model has 15 fit parameters locally
+STL1_4state_multi_1.fittingOptions.modelVarsToFit = 1:15;
+STL1_4state_multi_2.fittingOptions.modelVarsToFit = 1:15;
+
 sigma = 1.0;
 constraint = @(x) -(1/(2*sigma^2)) * sum( (x(7:15) - x(16:24)).^2 );
 
-parIdx = { [1:6, 7:15], [1:6, 16:24] };
+parIdx = { 1:15, [1:6, 16:24] };
 
 combinedModelConstrained = SSITMultiModel( ...
-    {STL1_4state_multi_1, STL1_4state_multi_2}, ...
-    parIdx, constraint);
+    {STL1_4state_multi_1, STL1_4state_multi_2}, parIdx, constraint);
 
 combinedModelConstrained = combinedModelConstrained.initializeStateSpaces();
 
 x0 = allParsMixed;      % 1..15 exist
 x0(16:24) = x0(7:15);   % seed the second block
 
-xOpt = combinedModelConstrained.maximizeLikelihood(x0, fitOptions, fitAlgorithm);
+xOpt = combinedModelConstrained.maximizeLikelihood(x0, fitOptions,...
+                                                    fitAlgorithm);
 combinedModelConstrained = combinedModelConstrained.updateModels(xOpt);
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Ex(6): Different models, same data
+% In this example, both the simple Bursting Gene "Model_multi" and the
+% "STL1_4state_multi" model use parameters "kr" and "dr", [3-4] and [14:15], 
+% respectively, but parameters [1:2] are only for Model_multi and [1:13] 
+% are only for STL1_4state_multi.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% Make copies of our models:
+STL1_multi = STL1_MLE;
+STL1_4state_multi = STL1_4state_MLE;
+
+% Load and associate data:
+STL1_multi = STL1_multi.loadData('data/filtered_data_2M_NaCl_Step.csv',...
+                               {'mRNA','RNA_STL1_total_TS3Full'},...
+                               {'Replica',1;'Condition','0.2M_NaCl_Step'});
+
+STL1_4state_multi = ...
+   STL1_4state_multi.loadData('data/filtered_data_2M_NaCl_Step.csv',...
+                             {'mRNA','RNA_STL1_total_TS3Full'},...
+                             {'Replica',1;'Condition','0.2M_NaCl_Step'});
+
+% Number of parameters (rows of the cell array)
+nPars = size(STL1_multi.parameters, 1);
+sharedIdx = 3:4;  % 'kr' and 'dr'
+otherIdx  = setdiff(1:nPars, sharedIdx, 'stable');
+
+% STL1_multi contributes shared (3:4) plus its own (1,2,5-8)
+STL1_multi.fittingOptions.modelVarsToFit = [sharedIdx, otherIdx];
+
+% STL1_4state_multi contributes shared [14:15] plus its own [1:13]
+STL1_4state_multi.fittingOptions.modelVarsToFit = [14:15, 1:13];
+
+multiModels = SSITMultiModel({STL1_multi, STL1_4state_multi}, ...
+                            { [sharedIdx, otherIdx], [14:15, 1:13] } );
+multiModels = multiModels.initializeStateSpaces;
+allPars = ([STL1_multi.parameters{:,2},STL1_4state_multi.parameters{:,2}]);
+allPars = multiModels.maximizeLikelihood(allPars,fitOptions,fitAlgorithm);
+multiModels = multiModels.updateModels(allPars);
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Ex(7): Explore batch variations using cross validation
+% In this example, we will use the multimodel to allow parameters to change
+% for different replica data sets (e.g., to allow for batch variations, or
+% to explore how parameters change under different genetic variations).
+% Here, we illustrate a quick means to generate the multimodel starting
+% with a single template and a datafile with multiple replicas.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Specify datafile name and species linking rules:
+DataFileName = 'data/filtered_data_2M_NaCl_Step.csv';
+LinkedSpecies = {'mRNA','RNA_STL1_total_TS3Full'};
+
+% Suppose we only wish to fit the data at times before 25 minutes.  
+% Set the global conditions:
+ConditionsGlobal = {[],[],'TAB.time<=25'};
+
+% Split up the replicas to be separate:
+ConditionsReplicas = {'TAB.Replica==1';'TAB.Replica==2'};
+
+% Specify constraints on rep-to-rep parameter variations. Here, we specify 
+% that there is an expected 0.1 log10 deviation expected in some parameters 
+% and smaller in others.  No deviation at all is indicated by 0.
+Log10Constraints = ...
+    [0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.02,0.02,0.02,0.02,0.02,0.1,0.1]; 
+
+% Create full model:
+CrossValidationModel = SSITMultiModel.createCrossValMultiModel(...
+    STL1_4state_MH, DataFileName, LinkedSpecies, ConditionsGlobal,...
+    ConditionsReplicas, Log10Constraints);
+CrossValidationModel = CrossValidationModel.initializeStateSpaces;
+
+% Run the model fitting routines:
+crossValPars = CrossValidationModel.parameters;
+crossValPars = CrossValidationModel.maximizeLikelihood(...
+    crossValPars, fitOptions, fitAlgorithm);
+CrossValidationModel = CrossValidationModel.updateModels(crossValPars);
+CrossValidationModel.parameters = crossValPars;
+
+% Make a figure to explore how much the parameters changed between replicas:
+fignum = 12; useRelative = true;
+CrossValidationModel.compareParameters(fignum,useRelative);
