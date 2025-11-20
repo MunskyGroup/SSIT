@@ -491,6 +491,16 @@
         % Callback function: ModelUsePresetExampleTypeDropDown, 
         % ...and 1 other component
         function ModelUsePresetExampleTypeDropDownValueChanged(app, event)
+            AA = dir('Models/');
+            v2 = {AA.name};
+            I = zeros(1,length(v2),'logical');
+            for i=1:length(v2)
+                if AA(i).name(1) ~= '.'
+                    I(i)=1;
+                end
+            end
+            v2 = v2(I);
+            app.ModelUsePresetExampleTypeDropDown.Items = v2;
             selectPresetExampleDropDown(app);
             % ModelDropDownValueChanged(app);
         end
@@ -567,8 +577,8 @@
             dlgtitle = 'Save Model';
             dims = [1 50];  % [height width] of input field
             % Check if any variable is of class 'SSIT'
-            if exist([filePath,'/',fileName],'file')
-                info = whos('-file', [filePath,'/',fileName]);
+            if exist([filePath,fileName],'file')
+                info = whos('-file', [filePath,fileName]);
                 if any(strcmp({info.class}, 'SSIT'))
                     Models = {info(strcmp({info.class}, 'SSIT')).name};
                     k = length(Models);
@@ -579,22 +589,22 @@
                     
                     eval([saveSettings{1},'=app.SSITModel;'])
                     if strcmp(saveSettings{2},'yes')
-                        save([filePath,'/',fileName],saveSettings{1},'-append')
+                        save([filePath,fileName],saveSettings{1},'-append')
                     else
-                        save([filePath,'/',fileName],saveSettings{1})
+                        save([filePath,fileName],saveSettings{1})
                     end
                 else
                     error('File exists and does not contain SSIT models.')
                 end
-                app.ModelFile.fileName = [filePath,'/',fileName];
+                app.ModelFile.fileName = [filePath,fileName];
                 app.ModelFile.modelName = saveSettings{1};
             else
                 defaultInput = {['Model',],'yes'};
                 prompt = {'Model Name'};
                 saveSettings = inputdlg(prompt, dlgtitle, dims, defaultInput);
                 eval([saveSettings{1},'=app.SSITModel;'])
-                save([filePath,'/',fileName],saveSettings{1});
-                app.ModelFile.fileName = [filePath,'/',fileName];
+                save([filePath,fileName],saveSettings{1});
+                app.ModelFile.fileName = [filePath,fileName];
                 app.ModelFile.modelName = saveSettings{1};
             end
             app.FileModelLabel.Text = {['File: ',app.ModelFile.fileName];['Model: ',app.ModelFile.modelName]};
