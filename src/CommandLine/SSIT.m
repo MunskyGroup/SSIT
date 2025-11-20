@@ -503,7 +503,6 @@ classdef SSIT
                 return
             end
 
-
             n_reactions = length(obj.propensityFunctions);
             % Propensity for hybrid models will include
             % solutions from the upstream ODEs.
@@ -516,6 +515,15 @@ classdef SSIT
                     st = regexprep(st,['\<',obj.inputExpressions{jI,1},'\>'],['(',obj.inputExpressions{jI,2},')']);
                 end
                 [st,logicTerms{i},logCounter] = ssit.Propensity.stripLogicals(st,obj.species,logCounter);
+                
+                % Detect variables automatically
+                vars = symvar(st);    
+                % Create symbolic variables and assume they are real
+                for k = 1:numel(vars)
+                    syms(vars{k},'real')
+                end
+
+                % Convert the string into a symbolic expression
                 sm{i} = str2sym(st);
             end
 
