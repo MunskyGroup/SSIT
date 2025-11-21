@@ -47,7 +47,7 @@ log10_sigma = 0.5 * ones(size(log10_mu));  % std dev in log10-space
 logPriorLoss = @(theta)0.5*sum(((log10(theta(:))-log10_mu)./log10_sigma).^2);
 
 % For testing (use default: @(x)allFitOptions.obj(exp(x))):
-% logPriorLoss = [];
+%logPriorLoss = [];
 
 % Flat prior:
 % logPriorLoss = @(theta) 0;
@@ -57,11 +57,12 @@ logPriorLoss = @(theta)0.5*sum(((log10(theta(:))-log10_mu)./log10_sigma).^2);
 % 'MetropolisHastings' algorithm. Tune these depending on your problem size.
 
 fitOptions = struct();
-fitOptions.maxIter       = 200;      % total MH iterations 
+fitOptions.maxIter       = 2000;     % total MH iterations 
 fitOptions.burnIn        = 20;       % discard first samples
-fitOptions.thin          = 1;        % keep every 1th sample
+fitOptions.thin          = 2;        % keep every 1th sample
 fitOptions.display       = 'iter';   % or 'none'
-fitOptions.stepScale     = 0.01;     % proposal scale 
+proposalWidthScale       = 1e-3;     % proposal scale 
+fitOptions.proposalDistribution  = @(x)x+proposalWidthScale*randn(size(x));
 % You can also add a proposal covariance, e.g.,
 % fitOptions.proposalCov = diag((0.1*theta0).^2);
 
