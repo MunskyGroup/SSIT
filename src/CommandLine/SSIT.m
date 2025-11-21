@@ -3220,48 +3220,106 @@ classdef SSIT
 
         end
 
-        function [pars,minimumLossFunction,Results,obj] = runABCsearch(obj,parGuess,lossFunction,logPriorLoss,fitOptions,enforceIndependence)
-            % This function runs an MCMC for approximate bayesian computing
+        % function [pars,minimumLossFunction,Results,obj] = runABCsearch(obj,parGuess,lossFunction,logPriorLoss,fitOptions,enforceIndependence)
+        %     % This function runs an MCMC for approximate bayesian computing
+        %     % (ABC) to sample an approximate posterior distribution.  
+        %     % Parameters:
+        %     %    parGuess -- ([]) initial guess of parameters.  If empty,
+        %     %                the fit will start wit the current set of
+        %     %                parameters in the model.
+        %     %    lossFunction -- ('cdf_one_norm') choice of loss function
+        %     %                or functionHandle. Positive values are WORSE
+        %     %                fits.
+        %     %    logPriorLoss -- (@(x)0) functionHandle that computes the
+        %     %                initial loss function for a parameter guess,
+        %     %                used to create a prior on parameters. The
+        %     %                default (@(x)0) results in no prior.
+        %     %    fitOptions -- ([]) options to use for parameter fitting.
+        %     %    enforceIndependence -- (TRUE) flag to determine if SSA
+        %     %                runs should be downsampled to guarantee that
+        %     %                all model data points are independent of one
+        %     %                another. 
+        %     arguments
+        %         obj
+        %         parGuess = [] 
+        %         lossFunction = 'cdf_one_norm';
+        %         logPriorLoss = @(x)0; % Loss function applied to prior (e.g., -logNormal)
+        %         fitOptions = [];
+        %         enforceIndependence = false % Should SSA model be downsampled to guarantee independence?
+        %     end
+        % 
+        %     if isempty(lossFunction)
+        %         lossFunction = 'cdf_one_norm';
+        %     end
+        %     if isempty(logPriorLoss)
+        %         logPriorLoss = @(x)0; % Loss function applied to prior (e.g., -logNormal)
+        %     end
+        % 
+        %     % Because the MCMC will seek to maximize the provided function,
+        %     % we need to take its negative before sending to the MH.
+        %     fitOptions.obj = @(pars)-obj.computeLossFunctionSSA(lossFunction,pars,enforceIndependence) - logPriorLoss(pars);
+        %     [pars,minimumLossFunction,Results] = obj.maximizeLikelihood(parGuess,fitOptions,'MetropolisHastings');
+        % 
+        % end
+        function [pars,minimumLossFunction,Results,obj] = runABCsearch( ...
+        obj, parGuess, lossFunction, logPriorLoss, fitOptions, enforceIndependence)
+
+            % This function runs an MCMC for approximate Bayesian computing
             % (ABC) to sample an approximate posterior distribution.  
+            %
             % Parameters:
-            %    parGuess -- ([]) initial guess of parameters.  If empty,
-            %                the fit will start wit the current set of
-            %                parameters in the model.
-            %    lossFunction -- ('cdf_one_norm') choice of loss function
-            %                or functionHandle. Positive values are WORSE
-            %                fits.
-            %    logPriorLoss -- (@(x)0) functionHandle that computes the
-            %                initial loss function for a parameter guess,
-            %                used to create a prior on parameters. The
-            %                default (@(x)0) results in no prior.
-            %    fitOptions -- ([]) options to use for parameter fitting.
-            %    enforceIndependence -- (TRUE) flag to determine if SSA
-            %                runs should be downsampled to guarantee that
-            %                all model data points are independent of one
-            %                another. 
+            %    parGuess        -- ([]) initial guess of parameters. If empty,
+            %                       the fit will start with the current model parameters.
+            %    lossFunction    -- ('cdf_one_norm') choice of loss function or
+            %                       function handle. Positive values are WORSE fits.
+            %    logPriorLoss    -- (@(x)0) loss-style function for the prior
+            %                       (e.g., quadratic in log10-space).
+            %    fitOptions      -- ([]) options passed to maximizeLikelihood.
+            %    enforceIndependence -- (false) downsample SSA to enforce
+            %                       independence of simulated data points.
+        
             arguments
                 obj
-                parGuess = [] 
-                lossFunction = 'cdf_one_norm';
-                logPriorLoss = @(x)0; % Loss function applied to prior (e.g., -logNormal)
-                fitOptions = [];
-                enforceIndependence = false % Should SSA model be downsampled to guarantee independence?
+                parGuess = []
+                lossFunction = 'cdf_one_norm'
+                logPriorLoss = @(x)0      % Loss contribution from prior
+                fitOptions = []
+                enforceIndependence logical = false
             end
-
+        
+            % Normalize empty inputs
             if isempty(lossFunction)
                 lossFunction = 'cdf_one_norm';
             end
             if isempty(logPriorLoss)
-                logPriorLoss = @(x)0; % Loss function applied to prior (e.g., -logNormal)
+                logPriorLoss = @(x)0;
             end
-
-            % Because the MCMC will seek to maximize the provided function,
-            % we need to take its negative before sending to the MH.
-            fitOptions.obj = @(pars)-obj.computeLossFunctionSSA(lossFunction,pars,enforceIndependence) - logPriorLoss(pars);
-            [pars,minimumLossFunction,Results] = obj.maximizeLikelihood(parGuess,fitOptions,'MetropolisHastings');
-
-
+            if isempty(fitOptions)
+                fitOptions = struct();
+            end
+        
+            % Define the objective in *parameter* space (theta, not log-theta)
+            %   - computeLossFunctionSSA returns a positive loss; we negate it
+            %     because MetropolisHastings expects a logpdf-like quantity to maximize.
+            %   - logPriorLoss should also be a loss (penalty), so we negate it too.
+            fitOptions.obj = @(pars) ...
+                -obj.computeLossFunctionSSA(lossFunction, pars, enforceIndependence) ...
+                - logPriorLoss(pars);
+        
+            % debugging:
+            if isempty(parGuess)
+                parGuess = cell2mat(obj.parameters(obj.fittingOptions.modelVarsToFit,2));
+            end
+            % This line will throw the error location if something is wrong:
+            testVal = fitOptions.obj(parGuess);
+        
+            % Call MH as usual (this will internally wrap fitOptions.obj as
+            % @(x) allFitOptions.obj(exp(x)), working in log-parameter space).
+            [pars, minimumLossFunction, Results] = ...
+                obj.maximizeLikelihood(parGuess, fitOptions, 'MetropolisHastings');
         end
+
+
         %% Model Reduction Functions
         function [obj,fspSoln] = computeModelReductionTransformMatrices(obj,fspSoln,phi)
             % This function computes linear transformation matrices (PHI
