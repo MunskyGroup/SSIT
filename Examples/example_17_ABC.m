@@ -101,15 +101,15 @@ disp(parsABC(:).');
 %% Inspect ABC results 
 % The 'ResultsABC' struct is returned by maximizeLikelihood with the
 % 'MetropolisHastings' algorithm. 
-%   ResultsABC.parChain   - MCMC chain of parameter samples
+%   ResultsABC.mhSamples   - MCMC chain of parameter samples
 %   ResultsABC.lossChain  - corresponding loss values
 %   ResultsABC.acceptRate - acceptance fraction, etc.
 %
 % Here we show a simple marginal histogram for each fitted parameter, if
 % a 'parChain' field is available.
 
-if isfield(ResultsABC, 'parChain')
-    parChain = ResultsABC.parChain;   % size: [nIter x nPars] or similar
+if isfield(ResultsABC, 'mhSamples')
+    parChain = ResultsABC.mhSamples;   % size: [nIter x nPars] or similar
     nPars    = size(parChain, 2);
 
     figure;
@@ -124,8 +124,35 @@ if isfield(ResultsABC, 'parChain')
     end
     sgtitle('ABC posterior marginals (approximate)');
 else
-    warning('ResultsABC.parChain not found. Check SSIT.maximizeLikelihood outputs for your version.');
+    warning('ResultsABC.mhSamples not found.');
 end
+
+%%
+minLoss = minimumLoss;  % from ABC or MH run
+nTimes  = sum(STL1_4state_ABC.fittingOptions.timesToFit);
+nSpecies = 1;  % or however many you're actually fitting
+nConds   = 1;  % replicate groups / dose groups etc., if applicable
+
+avgLossPerCDF = minLoss / (nTimes * nSpecies * nConds);
+fprintf('Average CDF L1 discrepancy per time/species: %.4f\n', avgLossPerCDF);
+
+L_init = STL1_4state_ABC.computeLossFunctionSSA(lossFunction, theta0, enforceIndependence);
+L_min  = minimumLoss;
+
+fprintf('Initial loss: %.3f,  Final (min) loss: %.3f\n', L_init, L_min);
+fprintf('Relative improvement: %.1f%%\n', 100 * (L_init - L_min)/L_init);
+
 
 %% Compare ABC posterior sample to MLE
 % TODO: Overlay parameter values and compute predictive distributions.
+
+thetaMLE = cell2mat(STL1_4state_MLE.parameters(1:15,2));
+
+L_MLE = STL1_4state_ABC.computeLossFunctionSSA(lossFunction,...
+                                            thetaMLE, enforceIndependence);
+L_min  = minimumLoss;
+
+fprintf('MLE loss: %.3f,  Final (min) ABC loss: %.3f\n', L_MLE, L_min);
+fprintf('Relative improvement: %.1f%%\n', 100 * (L_MLE - L_min)/L_MLE);
+
+
