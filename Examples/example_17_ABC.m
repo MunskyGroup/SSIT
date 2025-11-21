@@ -57,7 +57,7 @@ logPriorLoss = @(theta)0.5*sum(((log10(theta(:))-log10_mu)./log10_sigma).^2);
 % 'MetropolisHastings' algorithm. Tune these depending on your problem size.
 
 fitOptions = struct();
-fitOptions.maxIter       = 200;      % total MH iterations (toy example)
+fitOptions.maxIter       = 200;      % total MH iterations 
 fitOptions.burnIn        = 20;       % discard first samples
 fitOptions.thin          = 1;        % keep every 1th sample
 fitOptions.display       = 'iter';   % or 'none'
@@ -101,15 +101,13 @@ disp(parsABC(:).');
 %% Inspect ABC results 
 % The 'ResultsABC' struct is returned by maximizeLikelihood with the
 % 'MetropolisHastings' algorithm. 
-%   ResultsABC.mhSamples   - MCMC chain of parameter samples
-%   ResultsABC.lossChain  - corresponding loss values
-%   ResultsABC.acceptRate - acceptance fraction, etc.
-%
-% Here we show a simple marginal histogram for each fitted parameter, if
-% a 'parChain' field is available.
+%       ResultsABC.mhSamples   - MCMC chain of parameter samples
+%       ResultsABC.mhValue  - corresponding loss values
+%       ResultsABC.mhAcceptance - MH acceptance fraction
+% Below we show a simple marginal histogram for each fitted parameter.
 
 if isfield(ResultsABC, 'mhSamples')
-    parChain = ResultsABC.mhSamples;   % size: [nIter x nPars] or similar
+    parChain = ResultsABC.mhSamples;   % size: [nIter x nPars] 
     nPars    = size(parChain, 2);
 
     figure;
@@ -127,16 +125,21 @@ else
     warning('ResultsABC.mhSamples not found.');
 end
 
-%%
-minLoss = minimumLoss;  % from ABC or MH run
+%% Compare initial vs. final (ABC) parameter losses 
+%% (Experimental data vs. data simulated by the SSA):
+% Minimum loss from ABC run:
+minLoss = minimumLoss;  
 nTimes  = sum(STL1_4state_ABC.fittingOptions.timesToFit);
-nSpecies = 1;  % or however many you're actually fitting
-nConds   = 1;  % replicate groups / dose groups etc., if applicable
+% Set the number of species being fitting (in this case, only mRNA):
+nSpecies = 1;  
+% Replicate groups / dose groups etc., if applicable:
+nConds   = 1; 
 
 avgLossPerCDF = minLoss / (nTimes * nSpecies * nConds);
-fprintf('Average CDF L1 discrepancy per time/species: %.4f\n', avgLossPerCDF);
+fprintf('Average CDF L1 discrepancy per time/species: %.4f\n',avgLossPerCDF);
 
-L_init = STL1_4state_ABC.computeLossFunctionSSA(lossFunction, theta0, enforceIndependence);
+L_init = STL1_4state_ABC.computeLossFunctionSSA(lossFunction,...
+                                                theta0, enforceIndependence);
 L_min  = minimumLoss;
 
 fprintf('Initial loss: %.3f,  Final (min) loss: %.3f\n', L_init, L_min);

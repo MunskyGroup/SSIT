@@ -3220,47 +3220,7 @@ classdef SSIT
 
         end
 
-        % function [pars,minimumLossFunction,Results,obj] = runABCsearch(obj,parGuess,lossFunction,logPriorLoss,fitOptions,enforceIndependence)
-        %     % This function runs an MCMC for approximate bayesian computing
-        %     % (ABC) to sample an approximate posterior distribution.  
-        %     % Parameters:
-        %     %    parGuess -- ([]) initial guess of parameters.  If empty,
-        %     %                the fit will start wit the current set of
-        %     %                parameters in the model.
-        %     %    lossFunction -- ('cdf_one_norm') choice of loss function
-        %     %                or functionHandle. Positive values are WORSE
-        %     %                fits.
-        %     %    logPriorLoss -- (@(x)0) functionHandle that computes the
-        %     %                initial loss function for a parameter guess,
-        %     %                used to create a prior on parameters. The
-        %     %                default (@(x)0) results in no prior.
-        %     %    fitOptions -- ([]) options to use for parameter fitting.
-        %     %    enforceIndependence -- (TRUE) flag to determine if SSA
-        %     %                runs should be downsampled to guarantee that
-        %     %                all model data points are independent of one
-        %     %                another. 
-        %     arguments
-        %         obj
-        %         parGuess = [] 
-        %         lossFunction = 'cdf_one_norm';
-        %         logPriorLoss = @(x)0; % Loss function applied to prior (e.g., -logNormal)
-        %         fitOptions = [];
-        %         enforceIndependence = false % Should SSA model be downsampled to guarantee independence?
-        %     end
-        % 
-        %     if isempty(lossFunction)
-        %         lossFunction = 'cdf_one_norm';
-        %     end
-        %     if isempty(logPriorLoss)
-        %         logPriorLoss = @(x)0; % Loss function applied to prior (e.g., -logNormal)
-        %     end
-        % 
-        %     % Because the MCMC will seek to maximize the provided function,
-        %     % we need to take its negative before sending to the MH.
-        %     fitOptions.obj = @(pars)-obj.computeLossFunctionSSA(lossFunction,pars,enforceIndependence) - logPriorLoss(pars);
-        %     [pars,minimumLossFunction,Results] = obj.maximizeLikelihood(parGuess,fitOptions,'MetropolisHastings');
-        % 
-        % end
+        %% Approximate Bayesian Computation
         function [pars,minimumLossFunction,Results,obj] = runABCsearch( ...
         obj, parGuess, lossFunction, logPriorLoss, fitOptions, enforceIndependence)
 
