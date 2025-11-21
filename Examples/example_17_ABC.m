@@ -7,11 +7,11 @@
 % using the runABCsearch method.
 %
 % This example:
-%   1. Builds or loads a simple Birth–Death model.
-%   2. Associates the model with single-cell data.
-%   3. Defines a prior over parameters (optional).
+%   1. Loads our 4-state STL1 model with SSA solution scheme.
+%   2. Associates the 4-state STL1 model with STL1 smFISH data.
+%   3. Defines a prior over parameters.
 %   4. Runs ABC via Metropolis–Hastings using 'cdf_one_norm' loss.
-%   5. Shows how to access and lightly visualize the ABC results.
+%   5. Visualizes the ABC results.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Preliminaries
