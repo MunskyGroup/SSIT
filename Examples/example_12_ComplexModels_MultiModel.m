@@ -55,7 +55,7 @@ STL1_4state_multi_2 = ...
                                {'mRNA','RNA_STL1_total_TS3Full'},...
                                {'Replica',2;'Condition','0.2M_NaCl_Step'});
 
-%% Set Fitting Options
+%% Set Fitting Options:
 fitAlgorithm = 'fminsearch';
 fitOptions = optimset('Display','final','MaxIter',200);
 

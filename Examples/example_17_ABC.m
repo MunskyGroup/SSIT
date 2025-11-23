@@ -19,8 +19,14 @@
 % close all
 addpath(genpath('../src'));
 
-% Make copy of our 4-state STL1 model (solution scheme must be set to SSA):
-STL1_4state_ABC = STL1_4state_SSA;
+% Make copy of our 4-state STL1 model:
+STL1_4state_ABC = STL1_4state;
+
+%Set solution scheme to SSA:
+STL1_4state_ABC.solutionScheme = 'SSA';
+
+% Run iterations in parallel with multiple cores:
+STL1_4state_ABC.ssaOptions.useParallel = true;
 
 % Associate STL1 data:
 STL1_4state_ABC = ...
@@ -58,10 +64,10 @@ logPriorLoss = @(theta)0.5*sum(((log10(theta(:))-log10_mu)./log10_sigma).^2);
 
 fitOptions = struct();
 fitOptions.maxIter       = 2000;     % total MH iterations 
-fitOptions.burnIn        = 20;       % discard first samples
+fitOptions.burnIn        = 200;       % discard first samples
 fitOptions.thin          = 2;        % keep every 1th sample
 fitOptions.display       = 'iter';   % or 'none'
-proposalWidthScale       = 1e-3;     % proposal scale 
+proposalWidthScale       = 1e-6;     % proposal scale 
 fitOptions.proposalDistribution  = @(x)x+proposalWidthScale*randn(size(x));
 % You can also add a proposal covariance, e.g.,
 % fitOptions.proposalCov = diag((0.1*theta0).^2);

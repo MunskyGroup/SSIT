@@ -39,6 +39,7 @@ STL1.tSpan = linspace(0,20,200);
     Model_escape.fspOptions.escapeSinks.f = {'mRNA'};
     Model_escape.fspOptions.verbose = false;
     Model_escape.fspOptions.escapeSinks.b = 5;
+    Model_escape = Model_escape.formPropensitiesGeneral('Model_escape');
     [Model_escape_fspSoln,Model_escape.fspOptions.bounds] = ...
         Model_escape.solve;
 
@@ -60,6 +61,7 @@ STL1.tSpan = linspace(0,20,200);
     % Solve for the escape time:
     STL1_escape.fspOptions.escapeSinks.f = {'offGene','onGene'};
     STL1_escape.fspOptions.escapeSinks.b = [0.5;0.5];
+    STL1_escape = STL1_escape.formPropensitiesGeneral('STL1_escape');
     [STL1_escape_fspSoln,STL1_escape.fspOptions.bounds] = ...
         STL1_escape.solve;
 
@@ -85,7 +87,10 @@ STL1.tSpan = linspace(0,20,200);
 
     % Solve for time to mRNA=0:
     STL1_4state_escape.fspOptions.escapeSinks.f = {'mRNA'};
-    STL1_4state_escape.fspOptions.escapeSinks.b = 0;       
+    STL1_4state_escape.fspOptions.escapeSinks.b = 0;    
+
+    STL1_4state_escape = ...
+        STL1_4state_escape.formPropensitiesGeneral('STL1_4state_escape');
 
     [STL1_4state_fspSoln_escape,STL1_4state_escape.fspOptions.bounds] = ...
         STL1_4state_escape.solve;

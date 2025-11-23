@@ -57,7 +57,6 @@ fimTotal = ...
 STL1_4state_PDO.plotMHResults(STL1_4state_MH_MHResults,[fimTotal],...
                               'log',[],figNew,plotColors)
 
-%%
 
 % Find and store the total number of cells in your data set (already
 % computed by SSIT when data was loaded in example_7_FIM:
@@ -76,10 +75,10 @@ fimOpt = STL1_4state_PDO.evaluateExperiment(fimResults,nCellsOpt,...
 fimOptAvail = STL1_4state_PDO.evaluateExperiment(fimResults,...
                                         nCellsOptAvail,diag(sig_log10.^2));
 figOpt = figure;
-STL1_4state_PDO.plotMHResults(STL1_4state_MH_it_MHResults,...
+STL1_4state_PDO.plotMHResults(STL1_4state_MH_MHResults,...
                              [fimOpt,fimTotal],'log',[],figOpt,plotColors);
 figOptAvail = figure;
-STL1_4state_PDO.plotMHResults(STL1_4state_MH_it_MHResults,...
+STL1_4state_PDO.plotMHResults(STL1_4state_MH_MHResults,...
                    [fimOptAvail,fimTotal],'log',[],figOptAvail,plotColors);
 
 f = figure;
@@ -155,7 +154,7 @@ figintens = figure;
 STL1_4state_PDO_intens.plotMHResults(STL1_4state_MH_MHResults,...
                         [fimPDOintens,fimTotal,fimOpt],'log',[],figintens);
 
-%% Plot legend
+% Plot legend
 axs = findall(figintens, 'Type', 'axes');
 ax  = axs(1);        
 hold(ax,'on');

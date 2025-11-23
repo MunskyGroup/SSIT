@@ -105,7 +105,7 @@ STL1_4state_MH.plotFits([], "all", [], {'linewidth',2},...
 %% Save models & MH results:
 saveNames = unique({'STL1_4state_MH'
     'STL1_4state_MH_pars'
-    'STL1_4state_MHResults'
+    'STL1_4state_MH_MHResults'
     });
     
 save('example_10_LoadingandFittingData_MH',saveNames{:})
