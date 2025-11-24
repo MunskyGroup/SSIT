@@ -30,7 +30,7 @@ STL1_4state_ABC.solutionScheme = 'SSA';
 STL1_4state_ABC.ssaOptions.nSimsPerExpt=10;
     
 % Equilibrate before starting (burn-in):
-STL1_4state_ABC.tSpan = [-1,STL1_4state_ABC.tSpan];
+STL1_4state_ABC.tSpan = [-100,STL1_4state_ABC.tSpan];
 
 % Run iterations in parallel with multiple cores:
 STL1_4state_ABC.ssaOptions.useParallel = true;
