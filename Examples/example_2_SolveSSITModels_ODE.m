@@ -22,8 +22,8 @@ STL1.summarizeModel
 STL1_4state.summarizeModel
 
 % Set the times at which distributions will be computed:
-Model.tSpan = linspace(0,20,200);
-STL1.tSpan = linspace(0,20,200);
+Model.tSpan = linspace(0,50,200);
+STL1.tSpan = linspace(0,50,200);
 STL1_4state.tSpan = linspace(0,50,200);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

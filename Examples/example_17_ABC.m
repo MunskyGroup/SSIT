@@ -19,16 +19,23 @@
 % close all
 addpath(genpath('../src'));
 
+%% Set SSA options:
 % Make copy of our 4-state STL1 model:
 STL1_4state_ABC = STL1_4state;
 
 %Set solution scheme to SSA:
 STL1_4state_ABC.solutionScheme = 'SSA';
 
+% Set number of simulations performed per experiment (small # for demo):
+STL1_4state_ABC.ssaOptions.nSimsPerExpt=10;
+    
+% Equilibrate before starting (burn-in):
+STL1_4state_ABC.tSpan = [-1,STL1_4state_ABC.tSpan];
+
 % Run iterations in parallel with multiple cores:
 STL1_4state_ABC.ssaOptions.useParallel = true;
 
-% Associate STL1 data:
+%% Associate STL1 data:
 STL1_4state_ABC = ...
     STL1_4state_ABC.loadData('data/filtered_data_2M_NaCl_Step.csv',...
                             {'mRNA','RNA_STL1_total_TS3Full'},...
@@ -44,40 +51,31 @@ STL1_4state_ABC.fittingOptions.modelVarsToFit = ...
 % corresponding to a log-normal prior.
 
 % Get current parameter values as a reasonable prior mean:
-theta0 = cell2mat(STL1_4state_ABC.parameters(...
-                  STL1_4state_ABC.fittingOptions.modelVarsToFit, 2));
+theta0 = cell2mat(STL1_4state_ABC.parameters(:,2));
 log10_mu = log10(theta0(:));
-log10_sigma = 0.5 * ones(size(log10_mu));  % std dev in log10-space
+log10_sigma = 2 * ones(size(log10_mu));  % std dev in log10-space  
 
-% Define prior "loss":
-logPriorLoss = @(theta)0.5*sum(((log10(theta(:))-log10_mu)./log10_sigma).^2);
-
-% For testing (use default: @(x)allFitOptions.obj(exp(x))):
-%logPriorLoss = [];
-
-% Flat prior:
-% logPriorLoss = @(theta) 0;
+% Define prior "loss" (default, @(x)allFitOptions.obj(exp(x))):
+logPriorLoss = [];
 
 %% Set ABC / MCMC options
 % runABCsearch passes 'fitOptions' to maximizeLikelihood with the
 % 'MetropolisHastings' algorithm. Tune these depending on your problem size.
 
 fitOptions = struct();
-fitOptions.maxIter       = 2000;     % total MH iterations 
-fitOptions.burnIn        = 200;       % discard first samples
-fitOptions.thin          = 2;        % keep every 1th sample
-fitOptions.display       = 'iter';   % or 'none'
-proposalWidthScale       = 1e-6;     % proposal scale 
+fitOptions.numberOfSamples       = 100;         % Total MH iterations 
+fitOptions.burnIn                = 0;           % Discard burn-in samples
+fitOptions.thin                  = 1;           % Keep every nth sample
+proposalWidthScale               = 0.1;         % Proposal scale
+% Proposal distribution:
 fitOptions.proposalDistribution  = @(x)x+proposalWidthScale*randn(size(x));
-% You can also add a proposal covariance, e.g.,
-% fitOptions.proposalCov = diag((0.1*theta0).^2);
+% Log prior:
+fitOptions.logPrior = @(x)-sum((log10(x)-log10_mu).^2./(2*log10_sigma.^2));
 
-% Initial parameter guess (optional). If empty, uses current
-% Model.parameters:
+% Initial parameter guess (optional, default: current Model.parameters):
 parGuess = [];
 
-% Choose loss function for ABC. 'cdf_one_norm' is the default and is
-% implemented in computeLossFunctionSSA:
+% Choose loss function for ABC (default: 'cdf_one_norm'):
 lossFunction = 'cdf_one_norm';
 
 % Enforce independence by downsampling SSA trajectories:
@@ -91,12 +89,12 @@ enforceIndependence = true;
 %   * perform MH sampling to approximate the posterior.
 %
 % Outputs:
-%   pars              - “best” (minimum-loss) parameter set found
-%   minimumLossFunction - value of the loss at that point
-%   Results           - MH/ABC diagnostics and chains
-%   ModelABC          - model updated with 'pars'
+%   pars                    - “best” (minimum-loss) parameter set found
+%   minimumLossFunction     - value of the loss at that point
+%   Results                 - MH/ABC diagnostics and chains
+%   ModelABC                - model updated with 'pars'
 
-[parsABC, minimumLoss, ResultsABC, ModelABC] = ...
+[parsABC, minimumLoss, ResultsABC, STL1_4state_ABC] = ...
     STL1_4state_ABC.runABCsearch(parGuess, lossFunction, logPriorLoss,...
                                  fitOptions, enforceIndependence);
 
@@ -105,16 +103,16 @@ fprintf('Minimum loss value: %g\n', minimumLoss);
 disp('Best-fit parameters (ABC):');
 disp(parsABC(:).');
 
-%% Inspect ABC results 
+%% Inspect ABC results: 
 % The 'ResultsABC' struct is returned by maximizeLikelihood with the
 % 'MetropolisHastings' algorithm. 
-%       ResultsABC.mhSamples   - MCMC chain of parameter samples
-%       ResultsABC.mhValue  - corresponding loss values
-%       ResultsABC.mhAcceptance - MH acceptance fraction
+%       ResultsABC.mhSamples        - MCMC chain of parameter samples
+%       ResultsABC.mhValue          - corresponding loss values
+%       ResultsABC.mhAcceptance     - MH acceptance fraction
 % Below we show a simple marginal histogram for each fitted parameter.
 
 if isfield(ResultsABC, 'mhSamples')
-    parChain = ResultsABC.mhSamples;   % size: [nIter x nPars] 
+    parChain = ResultsABC.mhSamples;   % size: [numberOfSamples x nPars] 
     nPars    = size(parChain, 2);
 
     figure;
@@ -123,6 +121,7 @@ if isfield(ResultsABC, 'mhSamples')
         histogram(parChain(:,k), 40, 'Normalization', 'pdf');
         hold on;
         xline(parsABC(k), 'r', 'LineWidth', 1.5);
+        xline(STL1_4state_MH_pars(k), 'b', 'LineWidth', 1.5);
         title(sprintf('Parameter %d', k));
         xlabel('\theta_k');
         ylabel('Posterior density (approx.)');

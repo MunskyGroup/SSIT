@@ -3683,10 +3683,10 @@ classdef SSIT
                                     bar([0:length(solution.Marginals{i}{movieSpecies(j)})-1],...
                                         solution.Marginals{i}{movieSpecies(j)},lineProps{:});
                                     set(gca,'fontsize',15,'ylim',[0,maxY(movieSpecies(j))])
-                                    if isempty(opt.Title)
+                                    if isempty(plotTitle)
                                         title([obj.species{movieSpecies(j)},'; t = ',num2str(solution.T_array(i),'%.0f')])
                                     else
-                                        title(sprintf('%s; t = %.0f', opt.Title, solution.T_array(i)))
+                                        title(sprintf('%s; t = %.0f', plotTitle, solution.T_array(i)))
                                     end
 
                                 end
@@ -3867,8 +3867,6 @@ classdef SSIT
                             end
                             close(mov)
                             disp(['Movie saved as ', movieName]);
-
-
                     end
             end
         end
