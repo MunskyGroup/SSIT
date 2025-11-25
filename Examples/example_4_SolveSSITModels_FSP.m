@@ -50,6 +50,12 @@ STL1_4state.tSpan = linspace(0,50,200);
     % by finding the eigenvector corresponding to the smallest magnitude 
     % eigenvalue (i.e., zero, for generator matrix A, d/dtP(t)=AP(t)):
     Model_FSP.fspOptions.initApproxSS = true; 
+
+    % This function compiles and stores the given reaction propensities  
+    % into symbolic expression functions that use sparse matrices to  
+    % operate on the system based on the current state. The functions are 
+    % stored with the given prefix, in this case, 'Model_FSP':
+    Model_FSP = Model_FSP.formPropensitiesGeneral('Model_FSP');
     
     % Solve with FSP:
     [Model_FSPsoln,Model_FSP.fspOptions.bounds] = Model_FSP.solve; 
@@ -81,6 +87,12 @@ STL1_4state.tSpan = linspace(0,50,200);
     % by finding the eigenvector corresponding to the smallest magnitude 
     % eigenvalue (i.e., zero, for generator matrix A, d/dtP(t)=AP(t)):
     STL1_FSP.fspOptions.initApproxSS = true; 
+
+    % This function compiles and stores the given reaction propensities  
+    % into symbolic expression functions that use sparse matrices to  
+    % operate on the system based on the current state. The functions are 
+    % stored with the given prefix, in this case, 'STL1_FSP':
+    STL1_FSP = STL1_FSP.formPropensitiesGeneral('STL1_FSP');
     
     % Solve Model:
     [STL1_FSPsoln,STL1_FSP.fspOptions.bounds] = STL1_FSP.solve; 
