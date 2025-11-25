@@ -54,8 +54,8 @@ ellipsePairs = [1 2;
 
 theta0 = [Model_FIM.parameters{:,2}];
 
-Model_FIM.plotFIMResults(Model_fimTotal, Model_FIM.parameters, theta0, ...
-                         PlotEllipses=true, EllipseLevel=0.9, ...
+Model_FIM.plotFIMResults(Model_fimTotal, Model_FIM.parameters, theta0,...
+                         PlotEllipses=true, EllipseLevel=0.9,...
                          EllipsePairs=ellipsePairs);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -79,8 +79,12 @@ STL1_cellCounts = 10*ones(size(STL1_FIM.tSpan));
 [STL1_fimTotal,STL1_mleCovEstimate,STL1_fimMetrics] = ...
     STL1_FIM.evaluateExperiment(STL1_fimResults,STL1_cellCounts)
 
+STL1_theta0 = [STL1_FIM.parameters{:,2}];
+
 % Plot the FIMs:
-STL1_FIM.plotFIMResults(STL1_fimTotal,STL1_FIM.parameters)
+STL1_FIM.plotFIMResults(STL1_fimTotal, STL1_FIM.parameters, STL1_theta0,...
+                        PlotEllipses=true, EllipseLevel=0.9,...
+                        EllipsePairs=ellipsePairs);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(3): Compute the FIM for the 4-state STL1 yeast model
