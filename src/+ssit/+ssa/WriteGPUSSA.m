@@ -141,12 +141,22 @@ fprintf(fileID,'\r\n');
 fprintf(fileID,['%%Initialize the time.\r\n']);
 fprintf(fileID,['t=',num2str(tprint(1)),';\r\n']);
 
+fprintf(fileID,['%%Initialize the state.\r\n']);
+for j=1:Nspec
+    fprintf(fileID,['x',num2str(j),'new=x',num2str(j),';\r\n']);
+end
+
 fprintf(fileID,['%%Start the SSA.\r\n']);
 
 for it = 1:Nt
     fprintf(fileID,['tstop = ',num2str(tprint(it)),';   %%Next time to print results.\r\n']);
     fprintf(fileID,['while t<tstop   %%Next time to print results.\r\n']);
-    
+
+    fprintf(fileID,['  %%Update the state to reflect the last reaction.\r\n']);
+    for j=1:Nspec
+        fprintf(fileID,['  x',num2str(j),'=x',num2str(j),'new;\r\n']);
+    end
+
     txt2 = '  w0=0';
     for i=1:Nrxn
         txt = strcat({'  w'},{num2str(i)},{'='},w{i},{';\r\n'});
@@ -156,14 +166,14 @@ for it = 1:Nt
     txt2 = [txt2,';\r\n'];
     fprintf(fileID,txt2);
     fprintf(fileID,'  t = t-1/w0*log(rand);\r\n');
-    fprintf(fileID,'  if t<=tstop\r\n');
-    fprintf(fileID,'    r2w0=rand*w0;\r\n');
+    % fprintf(fileID,'  if t<=tstop\r\n');
+    fprintf(fileID,'  r2w0=rand*w0;\r\n');
     
     for i=1:Nrxn
         if i==1
-            txt = '    if r2w0<w1';
+            txt = '  if r2w0<w1';
         else
-            txt = '    elseif r2w0<w1';
+            txt = '  elseif r2w0<w1';
         end
         for j=2:i
             txt=[txt,'+w',num2str(j)];
@@ -173,13 +183,13 @@ for it = 1:Nt
         
         for j=1:Nspec
             if S(j,i)~=0
-                txt = ['      x',num2str(j),'=x',num2str(j),'+(',num2str(S(j,i)),');\r\n'];
+                txt = ['    x',num2str(j),'new=x',num2str(j),'+(',num2str(S(j,i)),');\r\n'];
                 fprintf(fileID,txt);
             end
         end
     end
-    fprintf(fileID,'    end\r\n');
     fprintf(fileID,'  end\r\n');
+    % fprintf(fileID,'  end\r\n');
     fprintf(fileID,'end\r\n');
     
     for i=1:Nspec
