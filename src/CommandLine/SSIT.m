@@ -849,6 +849,11 @@ classdef SSIT
 
             end
             obj.propensitiesGeneral = [];
+            obj.propensitiesGeneralODE = [];
+            obj.propensitiesGeneralMean = [];
+            obj.propensitiesGeneralMeanJac = [];
+            obj.propensitiesGeneralMoments = [];
+            obj.propensitiesGeneralMomentsJac = [];      
         end
 
         function [obj] = createModelFromSBML(obj,sbmlFile,scaleVolume)
@@ -867,6 +872,11 @@ classdef SSIT
             sbmlobj = sbmlimport(sbmlFile);
             [obj] = createModelFromSimBiol(obj,sbmlobj,scaleVolume);
             obj.propensitiesGeneral = [];
+            obj.propensitiesGeneralODE = [];
+            obj.propensitiesGeneralMean = [];
+            obj.propensitiesGeneralMeanJac = [];
+            obj.propensitiesGeneralMoments = [];
+            obj.propensitiesGeneralMomentsJac = [];      
 
         end
 
@@ -951,6 +961,11 @@ classdef SSIT
             obj.initialCondition = IC;
             obj.summarizeModel;
             obj.propensitiesGeneral = [];
+            obj.propensitiesGeneralODE = [];
+            obj.propensitiesGeneralMean = [];
+            obj.propensitiesGeneralMeanJac = [];
+            obj.propensitiesGeneralMoments = [];
+            obj.propensitiesGeneralMomentsJac = [];      
 
         end
 
@@ -1046,6 +1061,11 @@ classdef SSIT
             end
             obj.initialCondition = [obj.initialCondition;initialCond];
             obj.propensitiesGeneral = [];
+            obj.propensitiesGeneralODE = [];
+            obj.propensitiesGeneralMean = [];
+            obj.propensitiesGeneralMeanJac = [];
+            obj.propensitiesGeneralMoments = [];
+            obj.propensitiesGeneralMomentsJac = [];      
 
         end
 
@@ -1106,6 +1126,11 @@ classdef SSIT
                 end
             end
             obj.propensitiesGeneral = [];
+            obj.propensitiesGeneralODE = [];
+            obj.propensitiesGeneralMean = [];
+            obj.propensitiesGeneralMeanJac = [];
+            obj.propensitiesGeneralMoments = [];
+            obj.propensitiesGeneralMomentsJac = [];      
         end
 
         function [obj] = removeReaction(obj,numRxn,confirm)
