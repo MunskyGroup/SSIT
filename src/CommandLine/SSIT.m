@@ -5359,7 +5359,7 @@ classdef SSIT
                     end
         
                     % Legend name from fitted species
-                    LG{end+1} = sprintf('%s Data mean \x00B1 %s', spName, varianceType); 
+                    LG{end+1} = sprintf('%s Data Mean \x00B1 %s', spName, varianceType); 
                 end
         
                 % ----- axes labels, title, legend & styling using opts -----
@@ -5415,7 +5415,7 @@ classdef SSIT
                     subplot(3,1,1);
                     plot(tData, V_LogLk, lineProps{:}); hold on
                     plot(tData, perfectMod, lineProps{:});
-                    ylabel('Log(L(D(t)|M))', 'FontSize', o.AxisLabelSize);
+                    ylabel('log-likelihood', 'FontSize', o.AxisLabelSize);
                     legend({'log(L) - best fit for model', 'log(L) - theoretical limit'}, ...
                            'Location','best', 'FontSize', o.LegendFontSize);
                     set(gca,'FontSize', o.TickLabelSize);
@@ -5429,7 +5429,7 @@ classdef SSIT
                     % 3) Per-cell delta log-likelihood
                     subplot(3,1,3);
                     plot(tData, (V_LogLk - perfectMod)./max(numCells,eps), lineProps{:});
-                    ylabel('\Delta Log(L) / Cell', 'FontSize', o.AxisLabelSize);
+                    ylabel('\Delta log(L) / Cell', 'FontSize', o.AxisLabelSize);
                     xlabel('Time', 'FontSize', o.AxisLabelSize);
                     set(gca,'FontSize', o.TickLabelSize);
             

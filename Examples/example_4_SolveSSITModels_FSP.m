@@ -61,7 +61,7 @@ STL1_4state.tSpan = linspace(0,50,200);
     [Model_FSPsoln,Model_FSP.fspOptions.bounds] = Model_FSP.solve; 
     
     % Plot marginal distributions at t=20:  
-    Model_FSP.plotFSP(Model_FSPsoln,Model_FSP.species(3),'marginals',200)
+    Model_FSP.plotFSP(Model_FSPsoln,Model_FSP.species,'meansAndDevs')
                        
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(2): Use the stochastic Finite State Projection (FSP) 
@@ -98,7 +98,7 @@ STL1_4state.tSpan = linspace(0,50,200);
     [STL1_FSPsoln,STL1_FSP.fspOptions.bounds] = STL1_FSP.solve; 
     
     % Plot marginal distributions at t=20:  
-    STL1_FSP.plotFSP(STL1_FSPsoln, STL1_FSP.species(3), 'marginals', 200)
+    STL1_FSP.plotFSP(STL1_FSPsoln, STL1_FSP.species, 'meansAndDevs')
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(3): Use the stochastic Finite State Projection (FSP) 
