@@ -5359,7 +5359,7 @@ classdef SSIT
                     end
         
                     % Legend name from fitted species
-                    LG{end+1} = sprintf('%s Data mean \x00B1 %s', spName, varianceType); 
+                    LG{end+1} = sprintf('%s Data Mean \x00B1 %s', spName, varianceType); 
                 end
         
                 % ----- axes labels, title, legend & styling using opts -----
