@@ -240,11 +240,15 @@ classdef poissonTest < matlab.unittest.TestCase
             catch
             end
 
-            tic
-            testCase.Poiss.ssaOptions.useParalel = false;
-            testCase.Poiss.ssaOptions.useGPU = true;
-            SSAGPU = testCase.Poiss.solve(testCase.PoissSolution);
-            timeGPU = toc;
+            if gpuDeviceCount>0
+                tic
+                testCase.Poiss.ssaOptions.useParalel = false;
+                testCase.Poiss.ssaOptions.useGPU = true;
+                SSAGPU = testCase.Poiss.solve(testCase.PoissSolution);
+                timeGPU = toc;
+            else
+                disp('Skipping GPU test - no deice available')
+            end
            
             tic
             testCase.Poiss.ssaOptions.useParallel = true;

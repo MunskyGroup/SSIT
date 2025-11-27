@@ -3419,8 +3419,12 @@ classdef SSIT
                 -obj.computeLossFunctionSSA(lossFunction, pars, enforceIndependence) ...
                 - logPriorLoss(pars);
         
-            % debugging:
+            % Set parGuess if not provided.
             if isempty(parGuess)
+                % If 'all', then change to list of indices.
+                if ischar(obj.fittingOptions.modelVarsToFit)&&strcmp(obj.fittingOptions.modelVarsToFit,'all')
+                    obj.fittingOptions.modelVarsToFit = [1:size(obj.parameters,1)];
+                end
                 parGuess = cell2mat(obj.parameters(obj.fittingOptions.modelVarsToFit,2));
             end
             % This line will throw the error location if something is wrong:
