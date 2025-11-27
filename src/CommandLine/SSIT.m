@@ -103,10 +103,10 @@ classdef SSIT
             'constantJacobian',false,'constantJacobianTime',1.1,'stateSpace',[]);
         % Options for FSP-Sensitivity solver
         %   defaults:
-        %       'solutionMethod','forward'
+        %       'solutionMethod','finiteDifference'
         %       'useParallel',true
         %   example: Model.sensOptions.solutionMethod = 'finiteDifference';
-        sensOptions = struct('solutionMethod','forward',...
+        sensOptions = struct('solutionMethod','finiteDifference',...
             'useParallel',true);
         % Options for SSA solver
         %   defaults:
@@ -2048,12 +2048,15 @@ classdef SSIT
                     end
                 end
             else
-
                 if isempty(sensSoln)
-                    % disp({'Running Sensitivity Calculation';'You can skip this step by providing sensSoln.'})
-                    obj.solutionScheme = 'fspSens';
-                    [sensSoln] = obj.solve;
-                    sensSoln = sensSoln.sens;
+                    if isfield(obj.Solutions,'sens')
+                        sensSoln = obj.Solutions.sens;
+                    else
+                        % disp({'Running Sensitivity Calculation';'You can skip this step by providing sensSoln.'})
+                        obj.solutionScheme = 'fspSens';
+                        [sensSoln] = obj.solve;
+                        sensSoln = sensSoln.sens;
+                    end
                 end
 
                 % Separate into observed and unobserved species.
