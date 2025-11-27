@@ -458,6 +458,8 @@ classdef SSIT
             addpath([pwd,'/tmpPropensityFunctions'])
 
             if strcmpi(obj.solutionScheme,'ode')
+                delete([pwd,'/tmpPropensityFunctions/',prefixName,'_mean'],...
+                    [pwd,'/tmpPropensityFunctions/',prefixName,'_mean_jac'])
                 clear([prefixName,'_mean'],[prefixName,'_mean_jac']);
                 momentOdeFileName = [pwd,'/tmpPropensityFunctions/',prefixName,'_mean'];
                 try
@@ -480,6 +482,8 @@ classdef SSIT
                 end
                 return
             elseif strcmpi(obj.solutionScheme,'moments')||strcmpi(obj.solutionScheme,'gaussian')
+                delete([pwd,'/tmpPropensityFunctions/',prefixName,'_momentsgaussian'],...
+                    [pwd,'/tmpPropensityFunctions/',prefixName,'_momentsgaussian_jac'])
                 clear([prefixName,'_momentsgaussian'],[prefixName,'_momentsgaussian_jac']);
                 try
                     momentOdeFileName = [pwd,'/tmpPropensityFunctions/',prefixName,'_momentsgaussian'];
@@ -502,6 +506,9 @@ classdef SSIT
                 end
                 return
             end
+
+            delete([pwd,'/tmpPropensityFunctions/',prefixName,'_fsp*'])
+            clear([prefixName,'_fsp*'])
 
             n_reactions = length(obj.propensityFunctions);
             % Propensity for hybrid models will include
@@ -532,17 +539,18 @@ classdef SSIT
                 PropensitiesGeneral = ...
                     ssit.Propensity.createAsHybridVec(sm, obj.stoichiometry,...
                     obj.parameters, obj.species, obj.hybridOptions.upstreamODEs,...
-                    logicTerms, prefixName, computeSens);
+                    logicTerms, [prefixName,'_fsp'], computeSens);
             else
                 PropensitiesGeneral = ...
                     ssit.Propensity.createAsHybridVec(sm, obj.stoichiometry,...
-                    obj.parameters, obj.species, [], logicTerms, prefixName, computeSens);
+                    obj.parameters, obj.species, [], logicTerms, [prefixName,'_fsp'], computeSens);
             end
             % else
             %     PropensitiesGeneral = [];
             % end
 
             try
+                delete([pwd,'/tmpPropensityFunctions/',prefixName,'_ODE*'])
                 objODE = obj;
                 objODE.solutionScheme='ode';
                 objODE.solutionSchemes = {};
@@ -6157,11 +6165,10 @@ classdef SSIT
                 return
             end
 
-            [~,order] = sort(Len,'descend');
-            for i = 1:length(order)
-                % str = strrep(str,species{order(i)},['x',num2str(i)]);
-                str = regexprep(str,['\<',species{order(i)},'\>'],['x',num2str(i)]);
+            for i = 1:length(species)
+                str = regexprep(str,['\<',species{i},'\>'],['x',num2str(i)]);
             end
+            
 
         end
         function cmd = generateCommandLinePipeline(saveFileIn,modelName,dummy, ...
