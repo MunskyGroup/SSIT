@@ -240,6 +240,12 @@ classdef poissonTest < matlab.unittest.TestCase
             catch
             end
 
+            tic
+            testCase.Poiss.ssaOptions.useParallel = true;
+            testCase.Poiss.ssaOptions.useGPU = false;
+            SSACPUp = testCase.Poiss.solve(testCase.PoissSolution);
+            timeCPUp = toc;
+
             if gpuDeviceCount>0
                 tic
                 testCase.Poiss.ssaOptions.useParalel = false;
@@ -247,15 +253,11 @@ classdef poissonTest < matlab.unittest.TestCase
                 SSAGPU = testCase.Poiss.solve(testCase.PoissSolution);
                 timeGPU = toc;
             else
-                disp('Skipping GPU test - no deice available')
+                disp('Skipping GPU test - no device available')
+                timeGPU = 0;
+                SSAGPU = SSACPUp;
             end
            
-            tic
-            testCase.Poiss.ssaOptions.useParallel = true;
-            testCase.Poiss.ssaOptions.useGPU = false;
-            SSACPUp = testCase.Poiss.solve(testCase.PoissSolution);
-            timeCPUp = toc;
-
             tic
             testCase.Poiss.ssaOptions.useParallel = false;
             testCase.Poiss.ssaOptions.useGPU = false;
@@ -271,18 +273,24 @@ classdef poissonTest < matlab.unittest.TestCase
             disp('GPU/CPU Performance for SSA - 1.1Mk sims')
             table(Methods,Times,Means,Vars)
 
-            testCase.Poiss.ssaOptions.nSimsPerExpt = 1000000;
-            tic
-            testCase.Poiss.ssaOptions.useParalel = false;
-            testCase.Poiss.ssaOptions.useGPU = true;
-            SSAGPU = testCase.Poiss.solve(testCase.PoissSolution);
-            timeGPU = toc;
-           
             tic
             testCase.Poiss.ssaOptions.useParallel = true;
             testCase.Poiss.ssaOptions.useGPU = false;
             SSACPUp = testCase.Poiss.solve(testCase.PoissSolution);
             timeCPUp = toc;
+            
+            if gpuDeviceCount>0
+                testCase.Poiss.ssaOptions.nSimsPerExpt = 1000000;
+                tic
+                testCase.Poiss.ssaOptions.useParalel = false;
+                testCase.Poiss.ssaOptions.useGPU = true;
+                SSAGPU = testCase.Poiss.solve(testCase.PoissSolution);
+                timeGPU = toc;
+            else
+                disp('Skipping GPU test - no device available')
+                timeGPU = 0;
+                SSAGPU = SSACPUp;
+            end
 
             Methods = {'1CPU+1GPU';append(num2str(p.NumWorkers),' CPUs')};
             Times = [timeGPU;timeCPUp];

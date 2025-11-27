@@ -110,13 +110,15 @@ classdef SSIT
             'useParallel',true);
         % Options for SSA solver
         %   defaults:
+        %       'Nsims',1000
         %       'Nexp',1
-        %       'nSimsPerExpt',100
+        %       'nSimsPerExpt',NaN
         %       'useTimeVar',false
         %       'signalUpdateRate',[]
-        %       'llel',false
+        %       'useParallel',false
+        %       'useGPU',false
         %       'verbose',false
-        ssaOptions = struct('Nexp',1,'nSimsPerExpt',100,...
+        ssaOptions = struct('Nsims',1000,'Nexp',1,'nSimsPerExpt',NaN,...
             'useTimeVar',false,'signalUpdateRate',[],...
             'useParallel',false,'verbose',false,...
             'useGPU',false);
@@ -1705,7 +1707,12 @@ classdef SSIT
                 case 'ssa'
                     Solution.T_array = obj.tSpan;
                     Nt = length(Solution.T_array);
-                    nSims = round(obj.ssaOptions.Nexp*obj.ssaOptions.nSimsPerExpt*Nt);
+
+                    if ~isnan(obj.ssaOptions.nSimsPerExpt)
+                        nSims = round(obj.ssaOptions.Nexp*obj.ssaOptions.nSimsPerExpt*Nt);
+                    else
+                        nSims = obj.ssaOptions.Nsims;
+                    end
 
                     % Write callable SSA code for better efficiency.
                     % W = obj.propensitiesGeneral;
@@ -1779,17 +1786,38 @@ classdef SSIT
                     % Save results if requested.
                     if ~isempty(saveFile)
                         A = table;
-                        for j=1:Nt
-                            A.time((j-1)*obj.ssaOptions.nSimsPerExpt+1:j*obj.ssaOptions.nSimsPerExpt) = obj.tSpan(j);
-                            for i = 1:obj.ssaOptions.Nexp
-                                for k=1:obj.ssaOptions.nSimsPerExpt
-                                    for s = 1:size(Solution.trajs,1)
-                                        warning('off')
-                                        A.(['exp',num2str(i),'_s',num2str(s)])((j-1)*obj.ssaOptions.nSimsPerExpt+k) = ...
-                                            Solution.trajs(s,j,(i-1)*Nt*obj.ssaOptions.nSimsPerExpt+(j-1)*obj.ssaOptions.nSimsPerExpt+k);
-                                        if ~isempty(obj.pdoOptions.PDO)
-                                            A.(['exp',num2str(i),'_s',num2str(s),'_Distorted'])((j-1)*obj.ssaOptions.nSimsPerExpt+k) = ...
-                                                Solution.trajsDistorted(s,j,(i-1)*Nt*obj.ssaOptions.nSimsPerExpt+(j-1)*obj.ssaOptions.nSimsPerExpt+k);
+                        if ~isnan(obj.ssaOptions.nSimsPerExpt)
+                            % Write table for independent experiments.
+                            for j=1:Nt
+                                A.time((j-1)*obj.ssaOptions.nSimsPerExpt+1:j*obj.ssaOptions.nSimsPerExpt) = obj.tSpan(j);
+                                for i = 1:obj.ssaOptions.Nexp
+                                    for k=1:obj.ssaOptions.nSimsPerExpt
+                                        for s = 1:size(Solution.trajs,1)
+                                            warning('off')
+                                            A.(['exp',num2str(i),'_s',num2str(s)])((j-1)*obj.ssaOptions.nSimsPerExpt+k) = ...
+                                                Solution.trajs(s,j,(i-1)*Nt*obj.ssaOptions.nSimsPerExpt+(j-1)*obj.ssaOptions.nSimsPerExpt+k);
+                                            if ~isempty(obj.pdoOptions.PDO)
+                                                A.(['exp',num2str(i),'_s',num2str(s),'_Distorted'])((j-1)*obj.ssaOptions.nSimsPerExpt+k) = ...
+                                                    Solution.trajsDistorted(s,j,(i-1)*Nt*obj.ssaOptions.nSimsPerExpt+(j-1)*obj.ssaOptions.nSimsPerExpt+k);
+                                            end
+                                        end
+                                    end
+                                end
+                            end
+                        else
+                            % Write table for dependent experiments.
+                            for j=1:Nt
+                                A.time((j-1)*obj.ssaOptions.Nsims+1:j*obj.ssaOptions.Nsims) = obj.tSpan(j);
+                                for i = 1:obj.ssaOptions.Nexp
+                                    for k=1:obj.ssaOptions.Nsims
+                                        for s = 1:size(Solution.trajs,1)
+                                            warning('off')
+                                            A.(['exp',num2str(i),'_s',num2str(s)])((j-1)*obj.ssaOptions.Nsims+(1:obj.ssaOptions.Nsims)) = ...
+                                                Solution.trajs(s,j,:);
+                                            if ~isempty(obj.pdoOptions.PDO)
+                                                A.(['exp',num2str(i),'_s',num2str(s),'_Distorted'])((j-1)*obj.ssaOptions.Nsims+k) = ...
+                                                    Solution.trajsDistorted(s,j,:);
+                                            end
                                         end
                                     end
                                 end
@@ -1914,7 +1942,11 @@ classdef SSIT
             %       saveFile -- filename (.csv) to save data.
             Solution.T_array = obj.tSpan;
             Nt = length(Solution.T_array);
-            nSims = obj.ssaOptions.nSimsPerExpt*obj.ssaOptions.Nexp;
+            if ~isnan(obj.ssaOptions.nSimsPerExpt)
+                nSims = obj.ssaOptions.nSimsPerExpt*obj.ssaOptions.Nexp;
+            else
+                nSims = obj.ssaOptions.Nsims;
+            end
             Solution.trajs = zeros(length(obj.species),...
                 length(obj.tSpan),nSims);% Creates an empty Trajectories matrix
             % from the size of the time array and number of simulations
@@ -1946,15 +1978,15 @@ classdef SSIT
             if ~isempty(saveFile)
                 A = table;
                 for it=1:Nt
-                    A.time((it-1)*obj.ssaOptions.nSimsPerExpt+1:it*obj.ssaOptions.nSimsPerExpt) = obj.tSpan(it);
+                    A.time((it-1)*nSims+1:it*nSims) = obj.tSpan(it);
                     for ie = 1:obj.ssaOptions.Nexp
                         for s = 1:size(Solution.trajs,1)
                             warning('off')
-                            A.(['exp',num2str(ie),'_s',num2str(s)])((it-1)*obj.ssaOptions.nSimsPerExpt+(1:obj.ssaOptions.nSimsPerExpt)) = ...
-                                Solution.trajs(s,it,(ie-1)*obj.ssaOptions.nSimsPerExpt+(1:obj.ssaOptions.nSimsPerExpt));
+                            A.(['exp',num2str(ie),'_s',num2str(s)])((it-1)*nSims+(1:nSims)) = ...
+                                Solution.trajs(s,it,(ie-1)*nSims+(1:nSims));
                             if ~isempty(obj.pdoOptions.PDO)
-                                A.(['exp',num2str(ie),'_s',num2str(s),'_Distorted'])((it-1)*obj.ssaOptions.nSimsPerExpt+(1:obj.ssaOptions.nSimsPerExpt)) = ...
-                                    Solution.trajsDistorted(s,it,(ie-1)*obj.ssaOptions.nSimsPerExpt+(1:obj.ssaOptions.nSimsPerExpt));
+                                A.(['exp',num2str(ie),'_s',num2str(s),'_Distorted'])((it-1)*nSims+(1:nSims)) = ...
+                                    Solution.trajsDistorted(s,it,(ie-1)*nSims+(1:nSims));
                             end
                         end
                     end
