@@ -3367,6 +3367,7 @@ classdef SSIT
                             'thin',allFitOptions.thin,'nchain',1,'burnin',allFitOptions.burnIn,...
                             'progress',allFitOptions.progress,...
                             'saveFileName',allFitOptions.saveFile);
+                        obj.Solutions.mhResults = otherResults;
                     else
                         try
                             parpool
@@ -3392,6 +3393,8 @@ classdef SSIT
                         otherResults.mhSamples = tmpMHSamp;
                         otherResults.mhAcceptance = tmpMHAcceptance;
                         otherResults.mhValue = tmpMHValue;
+                        obj.Solutions.mhResults = otherResults;
+                        
                         clear tmpMH*
                     end
                     % If fit was in linear space, need to convert to log
@@ -3453,6 +3456,12 @@ classdef SSIT
             if isempty(fitOptions)
                 fitOptions = struct();
             end
+
+            % Switch solution scheme to 'ssa'
+            if ~strcmpi(obj.solutionScheme,'ssa')
+                disp('Changing solution scheme to SSA for ABC.')
+                obj.solutionScheme = 'ssa';
+            end
         
             % Define the objective in *parameter* space (theta, not log-theta)
             %   - computeLossFunctionSSA returns a positive loss; we negate it
@@ -3477,6 +3486,10 @@ classdef SSIT
             % @(x) allFitOptions.obj(exp(x)), working in log-parameter space).
             [pars, minimumLossFunction, Results] = ...
                 obj.maximizeLikelihood(parGuess, fitOptions, 'MetropolisHastings');
+
+            % Update model with results
+            obj.parameters(obj.fittingOptions.modelVarsToFit,2) = num2cell(pars);
+            obj.Solutions.ABC = Results;
         end
 
 
@@ -5930,6 +5943,11 @@ classdef SSIT
                 showConvergence = true
             end
 
+            % Use saved MH results if not provided directly
+            if nargin==1
+                mhResults = obj.Solutions.mhResults;
+            end
+
             obj.plotMHResultsStatic(obj,mhResults,FIM,fimScale,mhPlotScale,scatterFig)
         end
     end
@@ -6053,8 +6071,8 @@ classdef SSIT
 
                 % Select second half of MH chain.
                 mhResultsSecondHalf = mhResults;
-                mhResultsSecondHalf.mhValue = mhResultsSecondHalf.mhValue(floor(end/2):end);
-                mhResultsSecondHalf.mhSamples = mhResultsSecondHalf.mhSamples(floor(end/2):end,:);
+                % mhResultsSecondHalf.mhValue = mhResultsSecondHalf.mhValue(floor(end/2):end);
+                % mhResultsSecondHalf.mhSamples = mhResultsSecondHalf.mhSamples(floor(end/2):end,:);
                 [valDoneSorted,J] = sort(mhResultsSecondHalf.mhValue);
                 smplDone = mhResultsSecondHalf.mhSamples(J,:);
 
