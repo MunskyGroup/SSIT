@@ -121,7 +121,7 @@ classdef SSIT
         ssaOptions = struct('Nsims',1000,'Nexp',1,'nSimsPerExpt',NaN,...
             'useTimeVar',false,'signalUpdateRate',[],...
             'useParallel',false,'verbose',false,...
-            'useGPU',false);
+            'useGPU',false,'computeFile',[]);
         % Options for PDO
         %   defaults:
         %       'unobservedSpecies',[]
@@ -178,7 +178,7 @@ classdef SSIT
         propensitiesGeneralMean = [];
         propensitiesGeneralMeanJac = [];
         propensitiesGeneralMoments = [];
-        propensitiesGeneralMomentsJac
+        propensitiesGeneralMomentsJac = [];
 
         % Solutions
         Solutions = []; % Field holding solutions for current model and
@@ -863,7 +863,8 @@ classdef SSIT
             obj.propensitiesGeneralMean = [];
             obj.propensitiesGeneralMeanJac = [];
             obj.propensitiesGeneralMoments = [];
-            obj.propensitiesGeneralMomentsJac = [];      
+            obj.propensitiesGeneralMomentsJac = [];   
+            obj.ssaOptions.computeFile = [];
         end
 
         function [obj] = createModelFromSBML(obj,sbmlFile,scaleVolume)
@@ -886,7 +887,9 @@ classdef SSIT
             obj.propensitiesGeneralMean = [];
             obj.propensitiesGeneralMeanJac = [];
             obj.propensitiesGeneralMoments = [];
-            obj.propensitiesGeneralMomentsJac = [];      
+            obj.propensitiesGeneralMomentsJac = [];   
+            obj.ssaOptions.computeFile = [];
+
 
         end
 
@@ -976,6 +979,7 @@ classdef SSIT
             obj.propensitiesGeneralMeanJac = [];
             obj.propensitiesGeneralMoments = [];
             obj.propensitiesGeneralMomentsJac = [];      
+            obj.ssaOptions.computeFile = [];
 
         end
 
@@ -1076,6 +1080,7 @@ classdef SSIT
             obj.propensitiesGeneralMeanJac = [];
             obj.propensitiesGeneralMoments = [];
             obj.propensitiesGeneralMomentsJac = [];      
+            obj.ssaOptions.computeFile = [];
 
         end
 
@@ -1141,6 +1146,7 @@ classdef SSIT
             obj.propensitiesGeneralMeanJac = [];
             obj.propensitiesGeneralMoments = [];
             obj.propensitiesGeneralMomentsJac = [];      
+            obj.ssaOptions.computeFile = [];
         end
 
         function [obj] = removeReaction(obj,numRxn,confirm)
@@ -1743,17 +1749,16 @@ classdef SSIT
                     % initial condition.
 
                     % Call code to write a GPU friendly SSA code.
-                    fun_name = 'TmpGPUSSACode';
-                    clear TmpGPUSSACode % Clear function from cache just in case.
-                    ssit.ssa.WriteGPUSSA(k,w,S,obj.tSpan,fun_name);
-                    % TODO -- this part where the SSA codes are written
-                    % could be moved out of the solve routine.  Right now,
-                    % the code is being re-written for every new parameter
-                    % set.  Because the code writing time is short compared
-                    % to the solution time (~2%), this is not a big concern.
+                    if ~isfield(obj.ssaOptions,'computeFile')||isempty(obj.ssaOptions.computeFile)
+                        obj.ssaOptions.computeFile = 'TmpGPUSSACode';
+                        clear TmpGPUSSACode % Clear function from cache just in case.
+                        ssit.ssa.WriteGPUSSA(k,w,S,obj.tSpan,obj.ssaOptions.computeFile);                        
+                    end
+                    % TODO -- Need to check that this does not lead to file
+                    % confusion in the future since there could be multiple
+                    % copies of this file on the search path.
 
-
-                    fun = str2func(fun_name);
+                    fun = str2func(obj.ssaOptions.computeFile);
                     % Convert the function name string to a function handle.
 
                     % Run SSA on GPU, in parallel, or in series as
@@ -3461,6 +3466,8 @@ classdef SSIT
             if ~strcmpi(obj.solutionScheme,'ssa')
                 disp('Changing solution scheme to SSA for ABC.')
                 obj.solutionScheme = 'ssa';
+                % Run once to make sure SSA files are defined.
+                [~,~,obj] = obj.solve;
             end
         
             % Define the objective in *parameter* space (theta, not log-theta)
@@ -6071,8 +6078,8 @@ classdef SSIT
 
                 % Select second half of MH chain.
                 mhResultsSecondHalf = mhResults;
-                % mhResultsSecondHalf.mhValue = mhResultsSecondHalf.mhValue(floor(end/2):end);
-                % mhResultsSecondHalf.mhSamples = mhResultsSecondHalf.mhSamples(floor(end/2):end,:);
+                mhResultsSecondHalf.mhValue = mhResultsSecondHalf.mhValue(floor(end/2):end);
+                mhResultsSecondHalf.mhSamples = mhResultsSecondHalf.mhSamples(floor(end/2):end,:);
                 [valDoneSorted,J] = sort(mhResultsSecondHalf.mhValue);
                 smplDone = mhResultsSecondHalf.mhSamples(J,:);
 
