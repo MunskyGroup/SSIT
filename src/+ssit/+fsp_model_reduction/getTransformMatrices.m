@@ -5,7 +5,7 @@ arguments
     phi =[];
 end
 redType = redOptions.reductionType;
-n = redOptions.reductionOrder;
+redOrder = redOptions.reductionOrder;
 
 redOutputs=[];
 phiScale = [];
@@ -56,9 +56,9 @@ switch redType
 
         % define bins
         for i = nSpecies:-1:1
-            m=n;
+            m=redOrder;
             bins{i} = [0,unique(ceil(logspace(0,log10(spmax(i)+1),m)))];
-            while length(bins{i})<min(n+1,spmax(i)+1)
+            while length(bins{i})<min(redOrder+1,spmax(i)+1)
                 m=ceil(m*1.1);
                 bins{i} = [0,unique(ceil(logspace(0,log10(spmax(i)+1),m)))];
             end
@@ -91,13 +91,18 @@ switch redType
             phiVals(phi_inds==iLump) = qssa;
         end
         phi = sparse((1:length(phi_inds)),phi_inds,phiVals,length(phi_inds),max(phi_inds));
+        
+        % Remove un-needed lumped states that are not represented in the FSP state
+        % space.
+        nonEmptyColumns = sum(phi,1)~=0;
+        phi = phi(:,nonEmptyColumns);
         phi_inv = 1.0*(phi'>=1e-12);
 
         % plotting shape (constant within bin)
         phiPlot = phi>=1e-12;
 
         % find bin centers
-        centers = cell(nSpecies);
+        centers = cell(nSpecies,1);
         for iSpec = 1:nSpecies
             centers{iSpec} = bins{iSpec}(1:end) + ([bins{iSpec}(2:end),bins{iSpec}(end)+1]-[bins{iSpec}(1:end)])/2 - 0.5;
         end
@@ -106,7 +111,10 @@ switch redType
         uniqueBins = unique(phi_map,'rows');
         [~,J] = sort((uniqueBins-1)*cprod+1,'ascend');
         uniqueBins = uniqueBins(J,:);
-        centersGrid = zeros(nLump,nSpecies);
+        % centersGrid = zeros(nLump,nSpecies);
+        % TODO - Check this change.
+        centersGrid = zeros(size(uniqueBins,1),nSpecies);
+
         for iSpec = 1:nSpecies
             centersGrid(:,iSpec) = centers{iSpec}(uniqueBins(:,iSpec));
         end
@@ -114,12 +122,12 @@ switch redType
         phiScale(isinf(phiScale))=0;
 
     case 'Eigen Decomposition'
-        [phi,~] = eigs(fspSoln.A_total,n,0);
+        [phi,~] = eigs(fspSoln.A_total,redOrder,0);
         phi_inv = phi';
     case 'Eigen Decomposition Initial'
-        [phi,D] = eigs(fspSoln.A_total,n,0);
+        [phi,D] = eigs(fspSoln.A_total,redOrder,0);
         [~,I] = sort(real(diag(D)),'descend');
-        phi = phi(:,I(1:n));
+        phi = phi(:,I(1:redOrder));
         phi = orth([Solns(:,1),phi]);
         phi_inv = phi';
     case 'Linear State Lumping'
@@ -127,7 +135,7 @@ switch redType
         spmax=max(fspSoln.stateSpace.states,[],2);
         nSpecies = size(fspSoln.stateSpace.states,1);
         for i = nSpecies:-1:1
-            bins{i} = unique(floor(linspace(1,spmax(i)+1,n+1)))-1;
+            bins{i} = unique(floor(linspace(1,spmax(i)+1,redOrder+1)))-1;
         end
 
         phi_map = zeros(nStates,nSpecies);
@@ -151,9 +159,9 @@ switch redType
 
         % define bins
         for i = nSpecies:-1:1
-            m=n;
+            m=redOrder;
             bins{i} = [0,unique(ceil(logspace(0,log10(spmax(i)),m)))];
-            while length(bins{i})<min(n+1,spmax(i)+1)
+            while length(bins{i})<min(redOrder+1,spmax(i)+1)
                 m=ceil(m*1.1);
                 bins{i} = [0,unique(ceil(logspace(0,log10(spmax(i)),m)))];
             end
@@ -172,6 +180,12 @@ switch redType
 
         phi = sparse(nStates,binns(end)*cprod(end));
         phi(sub2ind(size(phi),(1:nStates)',phi_inds))=1;
+
+        % Remove un-needed lumped states that are not represented in the FSP state
+        % space.
+        nonEmptyColumns = sum(phi,1)~=0;
+        phi = phi(:,nonEmptyColumns);
+
         %         phi = sparse(orth(full(phi)));
         %         phi_inv = phi';
         phi_inv = phi';
@@ -185,7 +199,7 @@ switch redType
 
     case 'Proper Orthogonal Decomposition'
 
-        [phi,D,~] = svds(Solns,n,"largest","Tolerance",1e-18);
+        [phi,D,~] = svds(Solns,redOrder,"largest","Tolerance",1e-18);
         %         [phi,D,~] = svds(Solns,n,0);
         %         [~,I] = sort(real(diag(D)),'descend');
         %         phi = phi(:,I(1:n));
@@ -194,7 +208,7 @@ switch redType
         phi_inv = phi';
 
     case 'POD Update'
-        [phi,~,~] = svds([phi,Solns],n,"largest","Tolerance",1e-18);
+        [phi,~,~] = svds([phi,Solns],redOrder,"largest","Tolerance",1e-18);
         %         [phi,D,~] = svds(Solns,n,0);
         %         [~,I] = sort(real(diag(D)),'descend');
         %         phi = phi(:,I(1:n));
@@ -254,7 +268,7 @@ switch redType
 
         Ds = Solns(:,2:end)-Solns(:,1:end-1);
         Ds = Ds./sum(abs(Ds));
-        [phi,D,~] = svds([Solns,Ds],n,"largest","Tolerance",1e-18);
+        [phi,D,~] = svds([Solns,Ds],redOrder,"largest","Tolerance",1e-18);
         %         [phi,D,~] = svds(Solns,n,0);
         %         [~,I] = sort(real(diag(D)),'descend');
         %         phi = phi(:,I(1:n));
@@ -267,13 +281,13 @@ switch redType
 
         V1 = Solns(:,1:end-1);
         V2 = Solns(:,2:end);
-        [Ured,Sigred,Wred] = svds(V1,n);
+        [Ured,Sigred,Wred] = svds(V1,redOrder);
         S = Ured'*V2*Wred*(Sigred^-1);
         [y,~] = eig(S);
         phi = Ured*real(y);
         phi_inv = phi';
     case 'Radial Basis Functions'
-        [phi,phi_inv] = ssit.fsp_model_reduction.radiaBasisPhi(fspSoln.states,n,0,1);
+        [phi,phi_inv] = ssit.fsp_model_reduction.radiaBasisPhi(fspSoln.states,redOrder,0,1);
 end
 end
 function keys =  state2key( states )

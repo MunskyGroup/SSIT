@@ -192,6 +192,11 @@ STL1_4state.plotFSP(STL1_4state.Solutions,...
     XLim=[0,10], Title="4-state STL1 (mRNA)", TitleFontSize=18)
 
 %% FIM Analysis
+
+% Set unobservable species.
+
+% Add lognormal prior (so FIM is invertible).
+
 % Compute FIMs using FSP sensitivity results.
 fimResults = STL1_4state.computeFIM;
 
@@ -214,7 +219,18 @@ STL1_4state.plotFIMResults(STL1_4stateTotalFIM,...
 % from the figutre you had before -- this reflects the order in which the
 % parameters were originally defined in Box 2.5.
 
+
+%% Experiment Design
+
+% Choose three design criteria (D, E, Ds) -- find the three designs for
+% totla of 1000 cells -- make plots of expt designs in bar charts (like
+% that already in paper).
+
 %% Load and Plot Data
+STL1_4state.solutionScheme = 'fsp';
+
+% TODO - Make sure to add a comment saying that the user needs to change the path
+% to match where the data is.
 STL1_4state = ...
     STL1_4state.loadData('data/filtered_data_2M_NaCl_Step.csv',...
     {'mRNA','RNA_STL1_total_TS3Full'},...
@@ -241,13 +257,17 @@ STL1_4state.plotFits([], "all", [], {'linewidth',2},...
     Title='4-state STL1', YLabel='Molecule Count',...
     LegendLocation='northeast', LegendFontSize=12);
 
+% TODO - Add comment recording the lowest found MLE.
+
 %%
 %% Specify Bayesian Prior and fit
 % Specify Prior as log-normal distribution with wide uncertainty
 % Prior log-mean:
 mu_log10 = [0.8,3,-0.1,2,2.75,0.6,3,2.5,0,3.5,1.5,-0.15,0.5,1.5,-1];
+
 % Prior log-standard deviation:
 sig_log10 = 2*ones(1,15);
+
 % Prior:
 STL1_4state.fittingOptions.logPrior = ...
 @(x)-sum((log10(x)-mu_log10).^2./(2*sig_log10.^2));
@@ -293,7 +313,7 @@ logPriorLoss = @(x)sum((log10(x)-mu_log10).^2./(2*sig_log10.^2));
 lossFunction = 'cdf_one_norm';
 
 % Set ABC / MCMC options
-ABCoptions = struct('numberOfSamples',200,'burnIn',0,'thin',1,...
+ABCoptions = struct('numberOfSamples',2000,'burnIn',0,'thin',1,...
     'proposalDistribution',@(x)x+0.05*randn(size(x)));
 
 % Run ABC search
@@ -305,13 +325,87 @@ STL1_4state_ABC.plotMHResults(STL1_4state_ABC.Solutions.ABC);
 
 
 %% Cross Validation
+% Specify datafile name and species linking rules:
+DataFileName = 'data/filtered_data_2M_NaCl_Step.csv';
+LinkedSpecies = {'mRNA','RNA_STL1_total_TS3Full'};
+
+% Set the global conditions (e.g., fit data at times before 50 min.):
+ConditionsGlobal = {[],[],'TAB.time<=50'};
+
+% Split up the replicas to be separate:
+ConditionsReplicas = {'TAB.Replica==1';'TAB.Replica==2'};
+
+% Specify constraints on rep-to-rep parameter variations. Here, we specify
+% that there is an expected 0.1 log10 deviation expected in some parameters
+% and smaller in others. No deviation at all is indicated by 0.
+Log10Constraints = ...
+    [0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.02,0.02,0.02,0.02,0.02,0.1,0.1];
+
+% Create full model:
+CrossValidationModel = SSITMultiModel.createCrossValMultiModel(...
+    STL1_4state, DataFileName, LinkedSpecies, ConditionsGlobal,...
+    ConditionsReplicas, Log10Constraints);
+
+% Run the model fitting routines:
+[~,~,~,CrossValidationModel] = CrossValidationModel.maximizeLikelihood([],...
+    fitOptions);
+
+% Make a figure to explore how much the parameters changed between replicas:
+fignum = 12; useRelative = true;
+CrossValidationModel.compareParameters(fignum,useRelative);
+
 
 %% Multi-Model
+% This looks very similar to the previous cross-validation model. I recommend
+% combining it with the above.
 
-%% POD
+%% Model Reduction
+% None of the current model reductions are meant for use in time varying
+% problems, so I doubt that they would work for the Hog Model.  I recommend
+% demonstrating this on a different model.
+
+% Make a copy of the STL1 model to set up for model reduction:
+STL1_ModRed = STL1_4state;
+STL1_ModRed.fspOptions.initApproxSS = true;
+STL1_ModRed.modelReductionOptions.useModReduction = true;
+STL1_ModRed.fspOptions.fspTol = inf;
+STL1_ModRed.modelReductionOptions.reductionType = 'Logarithmic State Lumping';
+% STL1_ModRed.modelReductionOptions.reductionType = 'No Transform';
+STL1_ModRed.modelReductionOptions.reductionOrder = 40;
+[STL1_ModRed,fspSets] = STL1_ModRed.computeModelReductionTransformMatrices;
+
+tic
+redSoln = STL1_ModRed.solve(fspSets.stateSpace);
+redModelSolveTime = toc
+
+tic
+fullSoln = STL1_4state.solve(fspSets.stateSpace);
+fullModelSolveTime = toc
+
+% Plot the full and reduced FSP solutions:
+STL1_ModRed.plotFSP(redSoln,...
+    STL1_ModRed.species(5), 'meansAndDevs', [], [], {'linewidth',4},...
+    Title='4-state STL1 (FSP Reduced)', TitleFontSize=24,...
+    XLabel='Time', Colors=[0.23,0.67,0.2], YLabel='Molecule Count',...
+    LegendFontSize=15, LegendLocation='northeast',YLim=[0,40]);
+
+% Plot the full and reduced FSP solutions:
+STL1_4state.plotFSP(fullSoln,...
+    STL1_ModRed.species(5), 'meansAndDevs', [], [], {'linewidth',4},...
+    Title='4-state STL1 (FSP Full)', TitleFontSize=24,...
+    XLabel='Time', Colors=[0.23,0.67,0.2], YLabel='Molecule Count',...
+    LegendFontSize=15, LegendLocation='northeast',YLim=[0,40]);
 
 %% Hybrid Models
+% This is not going to work well for the Hog model. I recommend
+% demonstrating it on another model.
+
+% Brian will look into an extended model.
 
 %% PDO
+% Change to binomial PDO. Plot PDO, make FSP solutions plots with and
+% without PDO. Make FIM plots w/ w/o PDO.  Check if optimal expt design
+% changes, and if so make that plot also.
 
 %% Pipeline
+% Brian will do after deciding about scSEQ data.
