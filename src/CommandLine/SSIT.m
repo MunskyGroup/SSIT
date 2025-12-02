@@ -278,7 +278,11 @@ classdef SSIT
             end
 
             % SSIT Construct an instance of the SSIT class
-            addpath(genpath('../src'));
+            addpath(genpath(['..',filesep,'src']));
+
+            % Turn off warnings for deleting file that are not found.
+            warning('off', 'MATLAB:DELETE:FileNotFound');
+
             if ~isempty(modelFile)
                 if length(modelFile)>4 && (strcmp(modelFile(end-3:end),'.mat')||exist([modelFile,'.mat'],"file"))
                     % Load existing model from .mat file.
@@ -454,16 +458,16 @@ classdef SSIT
             % This function starts the process to write m-file for each
             % propensity function.
 
-            if ~exist([pwd,'/tmpPropensityFunctions'],'dir')
-                mkdir([pwd,'/tmpPropensityFunctions'])
+            if ~exist([pwd,filesep,'tmpPropensityFunctions'],'dir')
+                mkdir([pwd,filesep,'tmpPropensityFunctions'])
             end
-            addpath([pwd,'/tmpPropensityFunctions'])
+            addpath([pwd,filesep,'tmpPropensityFunctions'])
 
             if strcmpi(obj.solutionScheme,'ode')
-                delete([pwd,'/tmpPropensityFunctions/',prefixName,'_mean'],...
-                    [pwd,'/tmpPropensityFunctions/',prefixName,'_mean_jac'])
+                delete([pwd,filesep,'tmpPropensityFunctions',filesep,prefixName,'_mean'],...
+                    [pwd,filesep,'tmpPropensityFunctions',filesep,prefixName,'_mean_jac'])
                 clear([prefixName,'_mean'],[prefixName,'_mean_jac']);
-                momentOdeFileName = [pwd,'/tmpPropensityFunctions/',prefixName,'_mean'];
+                momentOdeFileName = [pwd,filesep,'tmpPropensityFunctions',filesep,prefixName,'_mean'];
                 try
                     jacCreated = ssit.moments.writeFunForMomentsODESymb(obj.stoichiometry,...
                         obj.propensityFunctions,...
@@ -484,11 +488,11 @@ classdef SSIT
                 end
                 return
             elseif strcmpi(obj.solutionScheme,'moments')||strcmpi(obj.solutionScheme,'gaussian')
-                delete([pwd,'/tmpPropensityFunctions/',prefixName,'_momentsgaussian'],...
-                    [pwd,'/tmpPropensityFunctions/',prefixName,'_momentsgaussian_jac'])
+                delete([pwd,filesep,'tmpPropensityFunctions',filesep,prefixName,'_momentsgaussian'],...
+                    [pwd,filesep,'tmpPropensityFunctions',filesep,prefixName,'_momentsgaussian_jac'])
                 clear([prefixName,'_momentsgaussian'],[prefixName,'_momentsgaussian_jac']);
                 try
-                    momentOdeFileName = [pwd,'/tmpPropensityFunctions/',prefixName,'_momentsgaussian'];
+                    momentOdeFileName = [pwd,filesep,'tmpPropensityFunctions',filesep,prefixName,'_momentsgaussian'];
                     jacCreated = ssit.moments.writeFunForMomentsODESymb(obj.stoichiometry,...
                         obj.propensityFunctions,...
                         obj.species,...
@@ -509,7 +513,7 @@ classdef SSIT
                 return
             end
 
-            delete([pwd,'/tmpPropensityFunctions/',prefixName,'_fsp*'])
+            delete([pwd,filesep,'tmpPropensityFunctions',filesep,prefixName,'_fsp*'])
             clear([prefixName,'_fsp*'])
 
             n_reactions = length(obj.propensityFunctions);
@@ -551,20 +555,20 @@ classdef SSIT
             %     PropensitiesGeneral = [];
             % end
 
-            try
-                delete([pwd,'/tmpPropensityFunctions/',prefixName,'_ODE*'])
-                objODE = obj;
-                objODE.solutionScheme='ode';
-                objODE.solutionSchemes = {};
-                objODE.useHybrid = true;
-                objODE.hybridOptions.upstreamODEs = obj.species;
-                obj.propensitiesGeneralODE = ...
-                    ssit.Propensity.createAsHybridVec(sm, objODE.stoichiometry,...
-                    objODE.parameters, objODE.species, objODE.hybridOptions.upstreamODEs,...
-                    logicTerms, [prefixName,'_ODE'], computeSens);
-            catch
-                disp('ODE propensities could not be formed, potentially due to logical values')
-            end
+            % try
+            %     delete([pwd,filesep,'tmpPropensityFunctions',filesep,prefixName,'_ODE*'])
+            %     objODE = obj;
+            %     objODE.solutionScheme='ode';
+            %     objODE.solutionSchemes = {};
+            %     objODE.useHybrid = true;
+            %     objODE.hybridOptions.upstreamODEs = obj.species;
+            %     obj.propensitiesGeneralODE = ...
+            %         ssit.Propensity.createAsHybridVec(sm, objODE.stoichiometry,...
+            %         objODE.parameters, objODE.species, objODE.hybridOptions.upstreamODEs,...
+            %         logicTerms, [prefixName,'_ODE'], computeSens);
+            % catch
+            %     disp('ODE propensities could not be formed, potentially due to logical values')
+            % end
 
             obj.propensitiesGeneral = PropensitiesGeneral;
         end
