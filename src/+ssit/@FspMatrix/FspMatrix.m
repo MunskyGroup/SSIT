@@ -161,7 +161,7 @@ classdef FspMatrix
             %   w: column vector.
             %       the output vector.
 
-            wt = obj.terms{1}.propensity.hybridFactorVector(t,parameters,v(end-length(upstreamODEs)+1:end)');
+            wt = obj.terms{1}.propensity.hybridFactorVector(t,parameters,v(end-length(upstreamODEs)+1:end));
             vJ1 = v(1:length(v)-length(upstreamODEs));
             w = wt(1)*[obj.terms{1}.matrix*vJ1;...
                 obj.terms{1}.propensity.ODEstoichVector];
@@ -314,7 +314,7 @@ classdef FspMatrix
             % Form the infinitesimal generator matrix A
             
             if obj.terms{1}.isFactorizable
-                wt = obj.terms{1}.propensity.hybridFactorVector(t,parameters,v2');
+                wt = obj.terms{1}.propensity.hybridFactorVector(t,parameters,v2);
                 % A = obj.terms{1}.propensity.hybridFactor(t,v2)*obj.terms{1}.matrix;
                 A = wt(1)*obj.terms{1}.matrix;
             else

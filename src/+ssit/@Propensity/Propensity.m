@@ -213,7 +213,7 @@ classdef Propensity
             n_pars = size(nonXTpars,1);
             speciesStoch = setdiff(species,upstreamODEs,'stable');
 
-            varODEs = sym('varODEs',[1,length(upstreamODEs)]);
+            varODEs = sym('varODEs',[length(upstreamODEs),1],'real');
 
             % Delete previous propensity function m-files
             if ~exist([pwd,'/tmpPropensityFunctions'],'dir')
