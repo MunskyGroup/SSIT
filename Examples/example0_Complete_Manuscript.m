@@ -1,6 +1,8 @@
 clear
 
 %% 2.1
+% Add SSIT source codes to Matlab search path.
+addpath(genpath('../src'));
 STL1_4state = SSIT('Empty');
 STL1_4state.species = {'g1'; 'g2'; 'g3'; 'g4'; 'mRNA'};
 STL1_4state.initialCondition = [1;0;0;0;0];
