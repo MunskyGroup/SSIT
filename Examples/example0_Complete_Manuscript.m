@@ -397,10 +397,111 @@ STL1_4state.plotFSP(fullSoln,...
     LegendFontSize=15, LegendLocation='northeast',YLim=[0,40]);
 
 %% Hybrid Models
-% This is not going to work well for the Hog model. I recommend
-% demonstrating it on another model.
+% This extended model is based on that published here: 
+% https://www.cell.com/fulltext/S0092-8674(09)00508-X?large_figure=true
+% The parameters are taken from the paper, except for k_h, which is set to
+% match the approximate magnitude of Hog1 in the above model.
 
-% Brian will look into an extended model.
+% Make copy of previous model
+STL1_4state_Extended = STL1_4state;
+
+% Remove the input Hog1(t) to be replaced upstream reactions
+STL1_4state_Extended.inputExpressions = {};
+
+% Add reaction species, stoichiometries, propensities, and parameters. When
+% new species are detected, their initial conditions are automatically set
+% to zero.
+STL1_4state_Extended = STL1_4state_Extended.addReaction(struct(...
+    'propensity','k_h*NaCl*(t>t0)/(1+(G/NaCl))','stoichiometry',{{'Hog1',1}},...
+    'parameters',{{'k_h',10;'NaCl',0.2}}));
+STL1_4state_Extended = STL1_4state_Extended.addReaction(struct(...
+    'propensity','gamma_h*Hog1','stoichiometry',{{'Hog1',-1}},...
+    'parameters',{{'gamma_h',0.369}}));
+STL1_4state_Extended = STL1_4state_Extended.addReaction(struct(...
+    'propensity','alpha_d*Hog1','stoichiometry',{{'D',1}},...
+    'parameters',{{'alpha_d',0.0106}}));
+STL1_4state_Extended = STL1_4state_Extended.addReaction(struct(...
+    'propensity','D+alpha_i*NaCl*(t>t0)/(1+(G/NaCl))','stoichiometry',{{'G',1}},...
+    'parameters',{{'alpha_i',0.0806}}));
+STL1_4state_Extended = STL1_4state_Extended.addReaction(struct(...
+    'propensity','gamma_g*G','stoichiometry',{{'G',-1}},...
+    'parameters',{{'gamma_g',0.119}}));
+
+% Set model to emply hybrid solving approach:
+STL1_4state_Extended.useHybrid = true;
+
+% Define which species will be replaced with upstream ODEs:
+STL1_4state_Extended.hybridOptions.upstreamODEs = {'Hog1','D','G'};
+
+% Solve hybrid ODE-FSP model
+[~,~,STL1_4state_Extended] = STL1_4state_Extended.solve;
+
+% Plot the results
+STL1_4state_Extended.plotFits([], "all", [], {'linewidth',2},...
+    Title='4-state STL1', YLabel='Molecule Count',...
+    LegendLocation='northeast', LegendFontSize=12);
+
+% TODO - need to update the plotting function to also allow for plots of
+% the upstream ODEs.  
+
+%%
+% close all
+% % Plot ODE solutions for mRNA:
+% STL1_4state_Extended.plotODE(STL1_4state_Extended.species(6),...
+%     STL1_4state_Extended.tSpan, {'linewidth',4},...
+%     Title='4-state STL1 (mRNA)', TitleFontSize=24,...
+%     AxisLabelSize=18, TickLabelSize=18, LegendFontSize=15,...
+%     LegendLocation='east', Colors=[0.23,0.67,0.20],...
+%     XLabel='Time', YLabel='Molecule Count')
+
+
+% The following can be used to generate the plot of the hog signal
+% from the previous model
+% Compare to the other function for the hog model.
+% hold on
+% t = linspace(0,60,100);
+% % Need to adjust these parameters to match the actual data.
+% r1=STL1_4state.parameters{11,2};
+% r2=STL1_4state.parameters{12,2};
+% A=STL1_4state.parameters{13,2}; 
+% M=STL1_4state.parameters{14,2};
+% n=STL1_4state.parameters{15,2};
+% t0=STL1_4state.parameters{1,2};
+% 
+% Hog1 = A*(((1-(exp(1).^(-r1*(t-t0)))).*...
+%     exp(1).^(-r2*(t-t0)))./(1+((1-(exp(1).^(-r1*(t-t0)))).*...
+%     exp(1).^(-r2*(t-t0)))/M)).^n.*(t>t0);
+% 
+% plot(t,Hog1)
+
+% % Plot ODE solutions for mRNA:
+% STL1_4state_Extended.plotODE(STL1_4state_Extended.species(5),...
+%     STL1_4state_Extended.tSpan, {'linewidth',4},...
+%     Title='4-state STL1 (mRNA)', TitleFontSize=24,...
+%     AxisLabelSize=18, TickLabelSize=18, LegendFontSize=15,...
+%     LegendLocation='east', Colors=[0.23,0.67,0.20],...
+%     XLabel='Time', YLabel='Molecule Count')
+% 
+% STL1_4state.plotODE(STL1_4state.species(5),...
+%     STL1_4state.tSpan, {'linewidth',4},...
+%     Title='4-state STL1 (mRNA)', TitleFontSize=24,...
+%     AxisLabelSize=18, TickLabelSize=18, LegendFontSize=15,...
+%     LegendLocation='east', Colors=[0.23,0.67,0.20],...
+%     XLabel='Time', YLabel='Molecule Count')
+% %
+% % Set 'useHybrid' to true:
+% STL1_4state_Extended.useHybrid = true;
+% % Define which species will be solved by ODEs:
+% STL1_4state_Extended.hybridOptions.upstreamODEs = {'Hog1','D','G'};
+% 
+% STL1_4state_Extended.solutionScheme = 'fsp';
+% STL1_4state_Extended = STL1_4state_Extended.formPropensitiesGeneral('HybridHogModel');
+% [~,~,STL1_4state_Extended] = STL1_4state_Extended.solve;
+% 
+% % Plot the results
+% STL1_4state_Extended.plotFits([], "all", [], {'linewidth',2},...
+%     Title='4-state STL1', YLabel='Molecule Count',...
+%     LegendLocation='northeast', LegendFontSize=12);
 
 %% PDO
 % Change to binomial PDO. Plot PDO, make FSP solutions plots with and
