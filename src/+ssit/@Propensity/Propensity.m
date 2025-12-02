@@ -216,11 +216,11 @@ classdef Propensity
             varODEs = sym('varODEs',[length(upstreamODEs),1],'real');
 
             % Delete previous propensity function m-files
-            if ~exist([pwd,'/tmpPropensityFunctions'],'dir')
-                mkdir([pwd,'/tmpPropensityFunctions'])
+            if ~exist([pwd,filesep,'tmpPropensityFunctions'],'dir')
+                mkdir([pwd,filesep,'tmpPropensityFunctions'])
             end
-            delete(append(pwd,'/tmpPropensityFunctions/',prefixName,'*'));
-            addpath([pwd,'/tmpPropensityFunctions/'],'-begin')
+            delete(append(pwd,filesep,'tmpPropensityFunctions',filesep,prefixName,'*'));
+            addpath([pwd,filesep,'tmpPropensityFunctions',filesep],'-begin')
 
             obj = cell(1,n_reactions);
             expr_t_vec = sym('w',[n_reactions,1]);
@@ -928,7 +928,7 @@ else
     exprHandle=[];
 end
 % if jacobian
-%     fn = [pwd,'/tmpPropensityFunctions/',prefix,'_fun_',num2str(ifn+1),'.m'];
+%     fn = [pwd,filesep,'tmpPropensityFunctions',filesep,prefix,'_fun_',num2str(ifn+1),'.m'];
 %     if isempty(varODEs)
 %         % if (time_dep && state_dep)
 %         %     exprHandleJac = matlabFunction(exprJac,'Vars',{t,states,parameters},'File',fn);
