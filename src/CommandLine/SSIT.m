@@ -427,6 +427,54 @@ classdef SSIT
             end
         end
 
+        function obj = clearPropensityFiles(obj,prefixName,type)
+            arguments
+                obj
+                prefixName
+                type
+            end
+
+            switch type
+                case 'fsp'
+                    delete([pwd,filesep,'tmpPropensityFunctions',filesep,prefixName,'_fsp*'])
+                    clear([prefixName,'_fsp*'])
+                    % TODO - it would be good if we could search here and
+                    % find if there are conflict files in pther folders
+                    % that need to be deleted.  This is easier for the
+                    % ode and moments models below.
+
+                case 'ssa'
+                case 'ode'
+                    delete([pwd,filesep,'tmpPropensityFunctions',filesep,prefixName,'_mean*'],...
+                        [pwd,filesep,'tmpPropensityFunctions',filesep,prefixName,'_mean*'])
+                    clear([prefixName,'_mean'],[prefixName,'_mean_jac']);
+
+                    conflictFile = which([prefixName,'_mean']);
+                    while ~isempty(conflictFile)
+                        delete(conflictFile)
+                        conflictFile = which([prefixName,'_mean']);
+                    end
+
+                case {'moments','gaussian'}
+                    delete([pwd,filesep,'tmpPropensityFunctions',filesep,prefixName,'_momentsgaussian*'],...
+                        [pwd,filesep,'tmpPropensityFunctions',filesep,prefixName,'_momentsgaussian_jac*'])
+                    clear([prefixName,'_momentsgaussian'],[prefixName,'_momentsgaussian_jac']);
+
+                    conflictFile = which([prefixName,'_momentsgaussian']);
+                    while ~isempty(conflictFile)
+                        delete(conflictFile)
+                        conflictFile = which([prefixName,'_momentsgaussian']);
+                    end
+
+                    conflictFile = which([prefixName,'_momentsgaussian_jac']);
+                    while ~isempty(conflictFile)
+                        delete(conflictFile)
+                        conflictFile = which([prefixName,'_momentsgaussian_jac']);
+                    end
+            end
+
+        end
+
         function obj = formPropensitiesGeneral(obj,prefixName,computeSens)
             %% SSIT.formPropensitiesGeneral - Create callable functions
             %% for all propensity functions.
@@ -464,9 +512,7 @@ classdef SSIT
             addpath([pwd,filesep,'tmpPropensityFunctions'])
 
             if strcmpi(obj.solutionScheme,'ode')
-                delete([pwd,filesep,'tmpPropensityFunctions',filesep,prefixName,'_mean'],...
-                    [pwd,filesep,'tmpPropensityFunctions',filesep,prefixName,'_mean_jac'])
-                clear([prefixName,'_mean'],[prefixName,'_mean_jac']);
+                obj = clearPropensityFiles(obj,prefixName,'ode');
                 momentOdeFileName = [pwd,filesep,'tmpPropensityFunctions',filesep,prefixName,'_mean'];
                 try
                     jacCreated = ssit.moments.writeFunForMomentsODESymb(obj.stoichiometry,...
@@ -488,9 +534,7 @@ classdef SSIT
                 end
                 return
             elseif strcmpi(obj.solutionScheme,'moments')||strcmpi(obj.solutionScheme,'gaussian')
-                delete([pwd,filesep,'tmpPropensityFunctions',filesep,prefixName,'_momentsgaussian'],...
-                    [pwd,filesep,'tmpPropensityFunctions',filesep,prefixName,'_momentsgaussian_jac'])
-                clear([prefixName,'_momentsgaussian'],[prefixName,'_momentsgaussian_jac']);
+                obj = clearPropensityFiles(obj,prefixName,'moments');
                 try
                     momentOdeFileName = [pwd,filesep,'tmpPropensityFunctions',filesep,prefixName,'_momentsgaussian'];
                     jacCreated = ssit.moments.writeFunForMomentsODESymb(obj.stoichiometry,...
@@ -513,8 +557,7 @@ classdef SSIT
                 return
             end
 
-            delete([pwd,filesep,'tmpPropensityFunctions',filesep,prefixName,'_fsp*'])
-            clear([prefixName,'_fsp*'])
+            obj = clearPropensityFiles(obj,prefixName,'fsp');
 
             n_reactions = length(obj.propensityFunctions);
             % Propensity for hybrid models will include
@@ -893,8 +936,6 @@ classdef SSIT
             obj.propensitiesGeneralMoments = [];
             obj.propensitiesGeneralMomentsJac = [];   
             obj.ssaOptions.computeFile = [];
-
-
         end
 
         function [obj] = createModelFromSimBiol(obj,sbmlobj,scaleVolume)
