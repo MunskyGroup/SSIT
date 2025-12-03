@@ -9,9 +9,9 @@ STL1_4state.initialCondition = [1;0;0;0;0];
 
 %% 2.2
 STL1_4state.inputExpressions = ...
-{'Hog1',['A*(((1-(exp(1)^(-r1*(t-t0))))*',...
-'exp(1)^(-r2*(t-t0)))/(1+((1-(exp(1)^(-r1*(t-t0))))*',...
-'exp(1)^(-r2*(t-t0)))/M))^n*(t>t0)']};
+    {'Hog1',['A*(((1-(exp(-r1*(t-t0))))*',...
+    'exp(-r2*(t-t0)))/(1+((1-(exp(-r1*(t-t0))))*',...
+    'exp(-r2*(t-t0)))/M))^n*(t>t0)']};
 
 %% 2.3
 STL1_4state.stoichiometry = [-1, 1, 0, 0, 0, 0, 0;... % gene state 1
@@ -27,20 +27,20 @@ STL1_4state = STL1_4state.addReaction(newReaction);
 
 %% 2.4
 STL1_4state.propensityFunctions = {...
-'k12*g1'; '(max(0,k21o*(1-k21i*Hog1)))*g2';...
-'k23*g2'; 'k32*g3';...
-'k34*g3'; 'k43*g4';...
-'kr*g4' ; 'dr*mRNA'};
+    'k12*g1'; '(max(0,k21o*(1-k21i*Hog1)))*g2';...
+    'k23*g2'; 'k32*g3';...
+    'k34*g3'; 'k43*g4';...
+    'kr*g4' ; 'dr*mRNA'};
 
 %% 2.5
 STL1_4state.parameters = ({'t0',5.8; 'k12',90;
-'k21o',1e+03; 'k21i',1;
-'k23',5e+02; 'k34',5;
-'k32',1000; 'k43',200;
-'dr',1; 'kr',2500;
-'r1',35; 'r2',0.5;
-'A',3; 'M',25;
-'n',0.1});
+    'k21o',1e+03; 'k21i',1;
+    'k23',5e+02; 'k34',5;
+    'k32',1000; 'k43',200;
+    'dr',1; 'kr',2500;
+    'r1',35; 'r2',0.5;
+    'A',3; 'M',25;
+    'n',0.1});
 
 %% 2.6
 STL1_4state.tSpan = linspace(0,50,101);
@@ -118,7 +118,7 @@ STL1_4state.initialTime = STL1_4state.tSpan(1);
 STL1_4state.ssaOptions.useParallel = true;
 
 % Run SSA:
-[~,~,STL1_4state] = STL1_4state.solve([],'TMPSAVE.csv')
+[~,~,STL1_4state] = STL1_4state.solve;
 
 % Plot SSA trajectories and means (mRNA):
 STL1_4state.plotSSA('all',100,STL1_4state.species(5),{'linewidth',4}, HistTime=20,...
@@ -372,7 +372,6 @@ STL1_ModRed.fspOptions.initApproxSS = true;
 STL1_ModRed.modelReductionOptions.useModReduction = true;
 STL1_ModRed.fspOptions.fspTol = inf;
 STL1_ModRed.modelReductionOptions.reductionType = 'Logarithmic State Lumping';
-% STL1_ModRed.modelReductionOptions.reductionType = 'No Transform';
 STL1_ModRed.modelReductionOptions.reductionOrder = 40;
 [STL1_ModRed,fspSets] = STL1_ModRed.computeModelReductionTransformMatrices;
 
@@ -444,7 +443,7 @@ STL1_4state_Extended.plotFits([], "all", [], {'linewidth',2},...
     LegendLocation='northeast', LegendFontSize=12);
 
 % TODO - need to update the plotting function to also allow for plots of
-% the upstream ODEs.  
+% the upstream ODEs. This might be in the codes already.
 
 %%
 % close all
@@ -511,4 +510,6 @@ STL1_4state_Extended.plotFits([], "all", [], {'linewidth',2},...
 % changes, and if so make that plot also.
 
 %% Pipeline
-% Brian will do after deciding about scSEQ data.
+% Brian will write a pipeline to fit 500 genes in the scSEQ data.  Jack is
+% working on compiling these now to create a simplified version of existing
+% data set.
