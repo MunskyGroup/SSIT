@@ -202,7 +202,7 @@ else
         if min(sC-np)<0 % if there are less coeff. than max order of polynomial
             C(npcell{:})=0; % then coeff. of max order terms are zero
         end
-        J = find(C); % gives vector of coefficients
+        J = find(C~=0); % gives vector of coefficients
         A(i,J) = C(J'); % place coefficients in A matrix
         for j = i:nS % loop through each species
             k = k+1;
@@ -211,7 +211,7 @@ else
             if nS>1&&min(sC-np)<0 % if its not species one and there are less coeff. than max order of polynomial
                 C(npcell{:})=0; % then coeff. of max order terms are zero
             end
-            J = find(C); % gives vector of coefficients
+            J = find(C~=0); % gives vector of coefficients
             A(k+nS,J) = C(J'); % add in coefficients in A matrix
         end
     end
