@@ -4361,25 +4361,60 @@ function plotMoments(obj, solution, speciesNames, plotType, indTimes, figureNums
     end
 
     function [Means, Var] = parseMeansAndVars(m, nSp, Nt)
-        % Accept shapes:
-        %   (2*nSp × Nt): rows 1:nSp = means(s), rows nSp+1:2*nSp = second raw moments(s)
-        %   (4*nSp × Nt): rows 1:nSp = means(s), rows end-nSp+1:end = second raw moments(s)
+        % Returns Means, Var as (Nt × nSp)
         [R, C] = size(m);
         if C ~= Nt
             error('Moments width (%d) does not match Nt (%d).', C, Nt);
         end
+    
+        % Case A: simple stack [means; second raw]
         if R == 2*nSp
             M  = m(1:nSp, :);
             M2 = m(nSp+1:2*nSp, :);
-        elseif R >= 2*nSp && mod(R, nSp) == 0
-            % Take first block as means, last block as second raw moments
+            Means = M.';                 % Nt × nSp
+            Var   = (M2.' - M.'.^2);     % Nt × nSp
+            return
+        end
+    
+        % Case B: means + all unique second-order moments (symmetric)
+        % rows = nSp + nSp*(nSp+1)/2
+        if R == nSp + nSp*(nSp+1)/2
+            meanRows = 1:nSp;
+            secondBlock = m(nSp+1:end, :);   % size: (nSp*(nSp+1)/2) × Nt
+    
+            % Build mapping for (a,b) with a<=b -> row index in secondBlock
+            % Row order is assumed lexicographic: (1,1),(1,2),...,(1,nSp),(2,2),(2,3),...,(nSp,nSp)
+            sqIdx = zeros(1,nSp);  % which rows correspond to x_i^2
+            row = 0;
+            for a = 1:nSp
+                for b = a:nSp
+                    row = row + 1;
+                    if a == b
+                        sqIdx(a) = row;
+                    end
+                end
+            end
+    
+            M  = m(meanRows, :);               % nSp × Nt
+            M2 = secondBlock(sqIdx, :);        % nSp × Nt (pick the squares)
+    
+            Means = M.';                       % Nt × nSp
+            Var   = (M2.' - M.'.^2);           % Nt × nSp
+            return
+        end
+    
+        % Case C: some k blocks of nSp (first = means, last = per-species second raw)
+        if mod(R, nSp) == 0 && R > nSp
+            k = R / nSp;
             M  = m(1:nSp, :);
             M2 = m(R-nSp+1:R, :);
-        else
-            error('Unexpected moments shape [%d×%d]. Expect (2*nSpecies×Nt) or (k*nSpecies×Nt) with first/last nSpecies rows = mean/2nd moments.', R, C);
+            Means = M.';                 % Nt × nSp
+            Var   = (M2.' - M.'.^2);     % Nt × nSp
+            return
         end
-        Means = M.';                    % Nt × nSp
-        Var   = (M2.' - M.'.^2);        % Nt × nSp (raw 2nd moment − mean^2)
+    
+        error(['Unexpected moments shape [%d×%d]. Expect either (2*nSp×Nt), ' ...
+               '(nSp + nSp*(nSp+1)/2 × Nt), or multiples of nSp rows.'], R, C);
     end
 
     function C = resolveColors(userC, n)
