@@ -4152,6 +4152,322 @@ classdef SSIT
             end
             hold off;
         end
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function plotMoments(obj, solution, speciesNames, plotType, timeVec, figureNums, lineProps, opts)
+    % plotMoments — Plot moments solutions
+    %
+    % Inputs
+    %   solution: struct with numeric .moments or the numeric moments matrix
+    %   speciesNames: [] | indices | names (like plotFSP)
+    %   plotType: "means" | "meansAndDevs"
+    %   timeVec: [] | numeric time vector (column or row)
+    %   figureNums: [] | figure number(s)
+    %   lineProps: e.g., {'linewidth',2}
+    %   opts: struct with optional fields
+    %       .SpeciesIdx = []                  % numeric indices alternative to speciesNames
+    %       .Colors = []                      % [], colormap name, n×3 RGB, or cell of specs
+    %       .Title (string) = ""
+    %       .TitleFontSize (double) = 18
+    %       .AxisLabelSize (double) = 18
+    %       .TickLabelSize (double) = 18
+    %       .LegendFontSize (double) = 18
+    %       .LegendLocation (string) = "best"
+    %       .XLabel (string) = "Time"
+    %       .YLabel (string) = "Molecule Count / Concentration"
+    %       .XLim = []
+    %       .YLim = []
+    %       .MomentLayout (string) = "auto"   % 'auto'|'stacked'|'means'|'singleExtra'
+    %       .SecondRows = []                  % optional explicit row map for second moments
+    
+        arguments
+            obj
+            solution
+            speciesNames = []
+            plotType (1,1) string = "means"      % "means"|"meansAndDevs"
+            timeVec = []                          % [] or numeric time vector
+            figureNums = []
+            lineProps = {'linewidth',2}
+            opts.SpeciesIdx = []
+            opts.Colors = []
+            opts.Title (1,1) string = ""
+            opts.TitleFontSize (1,1) double {mustBePositive} = 18
+            opts.AxisLabelSize (1,1) double {mustBePositive} = 18
+            opts.TickLabelSize (1,1) double {mustBePositive} = 18
+            opts.LegendFontSize (1,1) double {mustBePositive} = 18
+            opts.LegendLocation (1,1) string = "best"
+            opts.XLabel (1,1) string = "Time"
+            opts.YLabel (1,1) string = "Molecule Count / Concentration"
+            opts.XLim double = []
+            opts.YLim double = []
+            opts.MomentLayout (1,1) string = "auto"   % 'auto'|'stacked'|'means'|'singleExtra'
+            opts.SecondRows = []
+        end
+    
+        % ----- Species selection -----
+        nSpecies = numel(obj.species);
+        allNames = obj.species;
+        if isstring(allNames), allNames = cellstr(allNames); end
+    
+        if isempty(speciesNames) && isempty(opts.SpeciesIdx)
+            selIdx = 1:nSpecies;
+            selNames = allNames;
+        elseif ~isempty(opts.SpeciesIdx)
+            selIdx = unique(opts.SpeciesIdx(:).');
+            if any(selIdx < 1 | selIdx > nSpecies)
+                error('opts.SpeciesIdx must be within 1..%d.', nSpecies);
+            end
+            selNames = allNames(selIdx);
+        elseif isnumeric(speciesNames)
+            selIdx = unique(speciesNames(:).');
+            if any(selIdx < 1 | selIdx > nSpecies)
+                error('speciesNames (indices) must be within 1..%d.', nSpecies);
+            end
+            selNames = allNames(selIdx);
+        else
+            if isstring(speciesNames), speciesNames = cellstr(speciesNames); end
+            [tf, loc] = ismember(speciesNames, allNames);
+            if any(~tf)
+                bad = speciesNames(~tf);
+                error('Unknown species name(s): %s. Available: %s', ...
+                      strjoin(bad, ', '), strjoin(allNames, ', '));
+            end
+            selIdx = loc(:).';
+            selNames = allNames(selIdx);
+        end
+        nSel = numel(selIdx);
+    
+        % ----- Normalize moments source (struct or numeric) -----
+        if isstruct(solution)
+            if ~isfield(solution,'moments') || ~isnumeric(solution.moments)
+                error('When solution is a struct, solution.moments must be numeric.');
+            end
+            momRaw = solution.moments;
+            if isempty(timeVec)
+                if isfield(solution,'tSpan'), timeVec = solution.tSpan;
+                elseif isfield(solution,'T_array'), timeVec = solution.T_array;
+                end
+            end
+        else
+            if ~isnumeric(solution)
+                error('solution must be a struct with .moments (numeric) or a numeric moments matrix.');
+            end
+            momRaw = solution;
+        end
+    
+        % ----- Resolve time vector -----
+        if isempty(timeVec)
+            if isprop(obj,'tSpan') || isfield(obj,'tSpan')
+                timeVec = obj.tSpan;
+            else
+                error('Could not find time vector (solution.tSpan / solution.T_array / obj.tSpan). Provide timeVec input.');
+            end
+        end
+        tt = timeVec(:);                % Nt×1
+        Nt = numel(tt);
+    
+        % Make moments match orientation: rows = moments, cols = time
+        [R,C] = size(momRaw);
+        if C ~= Nt && R == Nt
+            momRaw = momRaw.';  % transpose so columns are time
+            [R,C] = size(momRaw);
+        end
+        if C ~= Nt
+            error('Moments time dimension mismatch. Found %d columns, expected Nt=%d.', C, Nt);
+        end
+    
+        % ----- Parse moments into Means, Var (auto-detect layouts) -----
+        [Means, Var, layoutUsed] = parseMoments(momRaw, nSpecies, Nt, selIdx, opts);
+    
+        % ----- Figure allocation -----
+        if isempty(figureNums)
+            h = findobj('type','figure');
+            if ~isempty(h)
+                figureNums = max([h.Number]) + (1:2);
+            else
+                figureNums = (1:2);
+            end
+        end
+        kfig = 1;
+    
+        % ----- Colors for selected series -----
+        Cmap = resolveColors(opts.Colors, nSel);  % nSel×3 or cell
+    
+        % ----- Plotting -----
+        switch lower(char(plotType))
+            case 'means'
+                figure(figureNums(kfig)); clf; kfig=kfig+1; hold on
+                hLines = gobjects(1,nSel);
+                for j = 1:nSel
+                    col = getC(Cmap,j);
+                    hLines(j) = plot(tt, Means(selIdx(j),:), lineProps{:}, 'Color', col, ...
+                                      'DisplayName', selNames{j});
+                end
+                styleAxesAndLegend(selNames, opts);
+                applyLimits(opts);
+                applyTitle(opts, sprintf('Moments Means (%s)', layoutUsed));
+                grid on; box on; hold off;
+    
+            case 'meansanddevs'
+                if isempty(Var)
+                    error('No second moments/variances available under layout "%s". Use plotType="means" or provide second moments.', layoutUsed);
+                end
+                figure(figureNums(kfig)); clf; kfig=kfig+1; hold on
+                hMean = gobjects(1,nSel);
+                for j = 1:nSel
+                    s = selIdx(j);
+                    mu = Means(s,:).';
+                    sd = sqrt(max(0, Var(s,:).'));
+                    col = getC(Cmap,j);
+                    hMean(j) = plot(tt, mu, lineProps{:}, 'Color', col, 'DisplayName', selNames{j});
+                    eb = errorbar(tt, mu, sd, 'LineStyle','none');
+                    eb.Color = col;
+                    eb.HandleVisibility = 'off';
+                end
+                styleAxesAndLegend(selNames, opts);
+                applyLimits(opts);
+                applyTitle(opts, sprintf('Moments Means ± SD (%s)', layoutUsed));
+                grid on; box on; hold off;
+    
+            otherwise
+                error('Unknown plotType "%s". Use "means" or "meansAndDevs".', plotType);
+        end
+    
+        % ---------- helpers ----------
+        function [MeansOut, VarOut, layoutTxt] = parseMoments(M, nSp, Nt_local, sel, o)
+            % Try explicit SecondRows first if provided
+            if ~isempty(o.SecondRows)
+                if numel(o.SecondRows) ~= nSp
+                    error('opts.SecondRows must have length nSpecies.');
+                end
+                if size(M,1) < nSp || any(o.SecondRows < 1) || any(o.SecondRows > size(M,1))
+                    error('opts.SecondRows indices are out of bounds for the moments matrix.');
+                end
+                MeansOut = M(1:nSp, :);
+                Sec = M(o.SecondRows, :);
+                VarOut = max(0, Sec - MeansOut.^2);
+                layoutTxt = 'explicit-secondrows';
+                return
+            end
+    
+            Rloc = size(M,1);
+            switch lower(char(o.MomentLayout))
+                case 'stacked'
+                    if Rloc < 2*nSp
+                        error('MomentLayout="stacked" requires at least 2*nSpecies rows. Found %d, expected >= %d.', Rloc, 2*nSp);
+                    end
+                    MeansOut = M(1:nSp, :);
+                    Sec = M(nSp+(1:nSp), :);
+                    VarOut = max(0, Sec - MeansOut.^2);
+                    layoutTxt = 'stacked';
+                    return
+    
+                case 'means'
+                    if Rloc < nSp
+                        error('MomentLayout="means" requires at least nSpecies rows. Found %d, expected >= %d.', Rloc, nSp);
+                    end
+                    MeansOut = M(1:nSp, :);
+                    VarOut = [];
+                    layoutTxt = 'means-only';
+                    return
+    
+                case 'singleextra'
+                    % Rows should be nSp+1 where the last row is the second moment
+                    % for the (single) selected species
+                    if ~(Rloc == nSp+1)
+                        error('MomentLayout="singleExtra" expects rows == nSpecies+1. Found %d.', Rloc);
+                    end
+                    MeansOut = M(1:nSp, :);
+                    VarOut = nan(nSp, Nt_local);
+                    if numel(sel) ~= 1
+                        error('MomentLayout="singleExtra" is only valid when exactly one species is selected.');
+                    end
+                    s = sel(1);
+                    SecSel = M(end, :);
+                    VarOut(s,:) = max(0, SecSel - MeansOut(s,:).^2);
+                    layoutTxt = 'single-extra';
+                    return
+    
+                case 'auto'
+                    % Try stacked first
+                    if Rloc >= 2*nSp
+                        MeansOut = M(1:nSp,:);
+                        Sec = M(nSp+(1:nSp),:);
+                        VarOut = max(0, Sec - MeansOut.^2);
+                        layoutTxt = 'auto(stacked)';
+                        return
+                    end
+                    % Means-only case
+                    if Rloc == nSp
+                        MeansOut = M(1:nSp,:);
+                        VarOut = [];
+                        layoutTxt = 'auto(means-only)';
+                        return
+                    end
+                    % Single-extra row (common when solving 1 species with mean & second moment)
+                    if Rloc == nSp+1 && numel(sel) == 1
+                        MeansOut = M(1:nSp,:);
+                        VarOut = nan(nSp, Nt_local);
+                        s = sel(1);
+                        SecSel = M(end,:);
+                        VarOut(s,:) = max(0, SecSel - MeansOut(s,:).^2);
+                        layoutTxt = 'auto(single-extra)';
+                        return
+                    end
+                    error('Unexpected moments shape (%d×%d). Could not parse means/second moments. Try opts.MomentLayout="stacked" or provide opts.SecondRows.', Rloc, size(M,2));
+    
+                otherwise
+                    error('Unknown opts.MomentLayout "%s".', o.MomentLayout);
+            end
+        end
+    
+        function C = resolveColors(userC, n)
+            if isempty(userC), C = lines(n); return; end
+            if ischar(userC) || (isstring(userC) && isscalar(userC))
+                cm = feval(char(userC), max(n,64));
+                C = cm(round(linspace(1,size(cm,1),n)),:); return
+            end
+            if isnumeric(userC)
+                if size(userC,1) == 1 && size(userC,2) == 3
+                    C = repmat(userC, n, 1);
+                else
+                    C = userC(1:n,:); 
+                end
+                return
+            end
+            if iscell(userC),    C = userC(1:n);   return; end
+            error('opts.Colors must be: [], colormap name, n×3 RGB, or cell array.');
+        end
+    
+        function c = getC(Cin, j)
+            if iscell(Cin), c = Cin{j}; else, c = Cin(j,:); end
+            if isstring(c), c = char(c); end
+        end
+    
+        function styleAxesAndLegend(names, o)
+            ax = gca; ax.FontSize = o.TickLabelSize;
+            xlabel(o.XLabel, 'FontSize', o.AxisLabelSize);
+            ylabel(o.YLabel, 'FontSize', o.AxisLabelSize);
+            if ~strcmpi(o.LegendLocation, "none")
+                lgd = legend(names, 'Location', char(o.LegendLocation));
+                if ~isempty(lgd), lgd.FontSize = o.LegendFontSize; end
+            end
+        end
+    
+        function applyLimits(o)
+            if ~isempty(o.XLim), xlim(o.XLim); end
+            if ~isempty(o.YLim), ylim(o.YLim); end
+        end
+    
+        function applyTitle(o, defaultTitle)
+            if strlength(o.Title) > 0
+                title(['\bf', char(o.Title)], 'FontSize', o.TitleFontSize);
+            else
+                title(['\bf', defaultTitle], 'FontSize', o.TitleFontSize);
+            end
+        end
+    end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
         % plotSSA - Plots SSA trajectories and histograms from ssaSoln struct
         function plotSSA(obj,speciesIdx,numTraj,speciesNames,lineProps,opts)
