@@ -276,7 +276,7 @@ classdef FspMatrix
                 gB = sparse(zeros(length(v1),length(v2)));
                 for i = 1:length(obj.terms)
                     Sode(:,i) = obj.terms{i}.propensity.ODEstoichVector;
-                    if ~max(abs(obj.terms{i}.propensity.stoichVector)>0)
+                    if ~any(abs(obj.terms{i}.propensity.stoichVector)>0)
                         gB = gB + sparse(obj.terms{i}.matrix*v1*dwdv(i,:));
                     end
                 end
