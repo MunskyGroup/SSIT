@@ -74,33 +74,11 @@ STL1_4state.plotODE(STL1_4state.species(1:4), STL1_4state.tSpan,...
 STL1_4state.solutionScheme = 'moments';
 [~,~,STL1_4state] = STL1_4state.solve;
 
-% TODO - Alex, please make a new plotMoments function with the following,
-% but cleaned up like the other plots you have generated:
-
 STL1_4state.plotMoments(STL1_4state.Solutions, STL1_4state.species(5),...
-    "meansAndDevs", STL1_4state.tSpan, [], {'linewidth',4},...
+    "meansanddevs", STL1_4state.tSpan, [], {'linewidth',4},...
     Title='4-state STL1 (mRNA)', TitleFontSize=24,...
-    LegendLocation='east',Colors=[0.23,0.67,0.20], YLabel='Molecule Count')
-
-STL1_4state.plotMoments(STL1_4state.Solutions, STL1_4state.species(1:4),...
-    "meansAndDevs", STL1_4state.tSpan, [], {'linewidth',4},...
-    Title='4-state STL1 (gene states)', TitleFontSize=24,...
-    LegendLocation='east', YLabel='Molecule Count')
-
-% Number of species
-nSp = numel(STL1_4state.species);
-
-% Extract mean and second moment for STL1
-STL1_means = STL1_4state.Solutions.moments(nSp, :);
-STL1_second = STL1_4state.Solutions.moments(end, :);
-
-% Compute variance of STL1
-STL1_var =STL1_second - STL1_means.^2;
-
-figure
-errorbar(STL1_4state.tSpan,STL1_means,sqrt(STL1_var))
-
-% TODO - Make plots of means +/- STD vs time using results.
+    LegendLocation='northeast', Colors=[0.23,0.67,0.20],...
+    YLabel='Molecule Count')
 
 %% 2.11
 % Set solution scheme to SSA:
