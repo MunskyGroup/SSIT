@@ -271,7 +271,7 @@ classdef FspMatrix
             else
                 v1 = v(1:end-nUpstream);
                 v2 = v(end-nUpstream+1:end);
-                
+
                 gA = hybridMatrix(obj, t, parameters, v2);
                 gC = zeros(length(v2), length(v1));
 
