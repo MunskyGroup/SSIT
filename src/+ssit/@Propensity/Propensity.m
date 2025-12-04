@@ -891,21 +891,21 @@ if ~isempty(logicTerms)
             for j=1:size(logicTerms{i}.logT,1)
                 syms(logicTerms{i}.logT{j,2},'positive')
                 logVars = [logVars;eval(logicTerms{i}.logT{j,2})];
-                logVarsReps = [logVarsReps;logicTerms{i}.logT(1:2)];
+                logVarsReps = [logVarsReps;logicTerms{i}.logT(j,1:2)];
             end
         end
         if isfield(logicTerms{i},'logX')
             for j=1:size(logicTerms{i}.logX,1)
                 syms(logicTerms{i}.logX{j,2},'positive')
                 logVars = [logVars;eval(logicTerms{i}.logX{j,2})];
-                logVarsReps = [logVarsReps;logicTerms{i}.logX(1:2)];
+                logVarsReps = [logVarsReps;logicTerms{i}.logX(j,1:2)];
             end
         end
         if isfield(logicTerms{i},'logJ')
             for j=1:size(logicTerms{i}.logX,1)
                 syms(logicTerms{i}.logJ{j,2},'positive')
                 logVars = [logVars;eval(logicTerms{i}.logJ{j,2})];
-                logVarsReps = [logVarsReps;logicTerms{i}.logJ(1:2)];
+                logVarsReps = [logVarsReps;logicTerms{i}.logJ(j,1:2)];
             end
         end
     end
