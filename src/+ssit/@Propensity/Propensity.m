@@ -880,7 +880,7 @@ end
 varNames = string(symvar(symbolicExpression));
 states = sym("states",[length(species),1],'positive');
 parameters = sym("parameters",[length(nonXTpars),1],'positive');
-syms t real
+t = sym("t",'real');
 
 % Replace logic terms with the correct values.
 if ~isempty(logicTerms)
@@ -889,21 +889,22 @@ if ~isempty(logicTerms)
     for i=1:length(logicTerms)
         if isfield(logicTerms{i},'logT')
             for j=1:size(logicTerms{i}.logT,1)
-                syms(logicTerms{i}.logT{j,2},'positive')
+                eval([logicTerms{i}.logT{j,2},' = sym("',logicTerms{i}.logT{j,2},'","positive");'])
+                % syms(logicTerms{i}.logT{j,2},'positive')
                 logVars = [logVars;eval(logicTerms{i}.logT{j,2})];
                 logVarsReps = [logVarsReps;logicTerms{i}.logT(j,1:2)];
             end
         end
         if isfield(logicTerms{i},'logX')
             for j=1:size(logicTerms{i}.logX,1)
-                syms(logicTerms{i}.logX{j,2},'positive')
+                eval([logicTerms{i}.logX{j,2},' = sym("',logicTerms{i}.logX{j,2},'","positive");'])
                 logVars = [logVars;eval(logicTerms{i}.logX{j,2})];
                 logVarsReps = [logVarsReps;logicTerms{i}.logX(j,1:2)];
             end
         end
         if isfield(logicTerms{i},'logJ')
-            for j=1:size(logicTerms{i}.logX,1)
-                syms(logicTerms{i}.logJ{j,2},'positive')
+            for j=1:size(logicTerms{i}.logJ,1)
+                eval([logicTerms{i}.logJ{j,2},' = sym("',logicTerms{i}.logJ{j,2},'","positive");'])
                 logVars = [logVars;eval(logicTerms{i}.logJ{j,2})];
                 logVarsReps = [logVarsReps;logicTerms{i}.logJ(j,1:2)];
             end

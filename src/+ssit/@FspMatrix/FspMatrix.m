@@ -171,7 +171,7 @@ classdef FspMatrix
                         obj.terms{i}.propensity.ODEstoichVector];
                 else
                     tmp = ssit.FspMatrixTerm.generateHybridMatrixTerm(t, obj.terms{i}.propensity, obj.terms{i}.matrix, parameters, ...
-                        obj.terms{i}.numConstraints, v(end-length(upstreamODEs)+1:end)');
+                        obj.terms{i}.numConstraints, v(end-length(upstreamODEs)+1:end));
                     w = w + [tmp*vJ1;...
                         obj.terms{i}.propensity.ODEstoichVector];
                 end
