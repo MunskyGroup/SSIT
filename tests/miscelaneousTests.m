@@ -111,7 +111,7 @@ classdef miscelaneousTests < matlab.unittest.TestCase
             FourDNonLinearTV.solutionScheme = 'ode';
             FourDNonLinearTV = FourDNonLinearTV.formPropensitiesGeneral('TwoDTV',false);
             
-            FourDNonLinearTV.odeIntegrator = 'ode23s';
+            FourDNonLinearTV.odeIntegrator = 'ode45';
 
             [odeSoln1] = FourDNonLinearTV.solve;
             parVector = [FourDNonLinearTV.parameters{:,2}];

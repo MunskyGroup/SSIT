@@ -8,6 +8,10 @@ arguments
     logVarsReps = {};
 end
 
+if ~strcmp(fn(end-1:end),'.m')
+    fn(end+1:end+2) = '.m';
+end
+
 jFilName = max([strfind(fn,'/'),strfind(fn,'\')]);
 
 fid = fopen(fn, 'w');
@@ -29,12 +33,27 @@ fprintf(fid,'\r\n');
 
 for j = 1:length(VarNames)
     for i = 1:length(VarNames{j})
-        fprintf(fid,[char(VarNames{j}(i)),'=in',num2str(j),'(',num2str(i),',:);\r\n']);
+        vName = char(VarNames{j}(i));
+        if contains(char(symbolicExpression),vName)||...
+                (~isempty(logVarsReps)&&max(contains(logVarsReps,vName)))
+            if isSparse
+                fprintf(fid,[vName,'=sparse(in',num2str(j),'(',num2str(i),',:));\r\n']);
+            else
+                fprintf(fid,[vName,'=in',num2str(j),'(',num2str(i),',:);\r\n']);
+            end
+        end
     end
     fprintf(fid,'\r\n');
 end
 
-txt = ['result = ',char(symbolicExpression),';\r\n'];
+% TODO - Need to figure better way to create sparse matrix outputs.
+% if isSparse
+%     [I,J] = find(symbolicExpression~=0);
+%     % txt = ['result = sparse(',num2str(I),'],[',num2str(J),']',char((symbolicExpression(symbolicExpression~=0))),';\r\n'];  
+%     txt = ['result = sparse([',num2str(I'),'],[',num2str(J'),'],',char(symbolicExpression(sub2ind(size(symbolicExpression),I,J))'),');\r\n'];  
+% else
+    txt = ['result = ',char(symbolicExpression),';\r\n'];
+% end
 
 if ~isempty(logVarsReps)
     % Replace first string in function name
