@@ -42,10 +42,17 @@ if ~isempty(logVarsReps)
         txt = strrep(txt,[logVarsReps{i,2}],['(',logVarsReps{i,1},')']);
     end
 
-    txt = strrep(txt,', ''omitnan'', false','');
-    txt = strrep(txt,', \"''omitnan''\", false','');
-
 end
+
+txt = strrep(txt,', ''omitnan'', false','');
+txt = strrep(txt,', \"''omitnan''\", false','');
+
+multDivideSym = {'*','/','^'};
+for j = 1:3
+    txt = strrep(txt,multDivideSym{j},['.',multDivideSym{j}]);
+end
+txt = strrep(txt,'..','.');
+
 
 fprintf(fid,txt);
 fclose(fid);
