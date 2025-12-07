@@ -187,9 +187,8 @@ constraintBoundsFinal = max([constraintBoundsFinal,constraintFunctions(initState
 % have changed.
 if isempty(stateSpace)||stateSpace.numConstraints~=constraintCount||size(stateSpace.states,1)~=length(speciesNames)
     stateSpace = ssit.FiniteStateSet(initStates, stoichMatrix);
+    stateSpace = stateSpace.expand(constraintFunctions, constraintBoundsFinal);
 end
-stateSpace = stateSpace.expand(constraintFunctions, constraintBoundsFinal);
-
 
 % Generate the FSP matrix
 stateCount = stateSpace.getNumStates();
