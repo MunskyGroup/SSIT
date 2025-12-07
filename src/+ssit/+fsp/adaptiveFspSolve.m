@@ -185,7 +185,7 @@ constraintBoundsFinal = max([constraintBoundsFinal,constraintFunctions(initState
 
 % Set up the initial state subset, or recompute it if constaint functions
 % have changed.
-if isempty(stateSpace)||stateSpace.numConstraints~=constraintCount||size(stateSpace,1)~=length(speciesNames)
+if isempty(stateSpace)||stateSpace.numConstraints~=constraintCount||size(stateSpace.states,1)~=length(speciesNames)
     stateSpace = ssit.FiniteStateSet(initStates, stoichMatrix);
 end
 stateSpace = stateSpace.expand(constraintFunctions, constraintBoundsFinal);
