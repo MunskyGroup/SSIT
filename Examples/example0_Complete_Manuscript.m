@@ -274,11 +274,11 @@ STL1_4state.plotFits([], "all", [], {'linewidth',2},...
 for i=1:3
     % Maximize likelihood:
     [~,~,~,STL1_4state] = STL1_4state.maximizeLikelihood;
-    
+
     % Set MH runtime options (number of samples, burnin, thin, etc.):
     MHOptions = struct('numberOfSamples',2000,...
     'burnin',200,'thin',2,'useFIMforMetHast',true);
-   
+
     % Run Metropolis-Hastings:    
     [~,~,~,STL1_4state] = ...
         STL1_4state.maximizeLikelihood([], MHOptions,...
@@ -348,8 +348,10 @@ CrossValidationModel.compareParameters(fignum,useRelative);
 
 %% Model Reduction
 % None of the current model reductions are meant for use in time varying
-% problems, so I doubt that they would work for the Hog Model.  I recommend
-% demonstrating this on a different model.
+% problems, so I doubt that they would work for the Hog Model.  Also, with
+% my recent changes, the Hog1 model is a lot faster than before.
+% I recommend removing this section and demonstrate on a different model in
+% the SI.
 
 % Make a copy of the STL1 model to set up for model reduction:
 STL1_ModRed = STL1_4state;
@@ -357,7 +359,7 @@ STL1_ModRed.fspOptions.initApproxSS = true;
 STL1_ModRed.modelReductionOptions.useModReduction = true;
 STL1_ModRed.fspOptions.fspTol = inf;
 STL1_ModRed.modelReductionOptions.reductionType = 'Logarithmic State Lumping';
-STL1_ModRed.modelReductionOptions.reductionOrder = 40;
+STL1_ModRed.modelReductionOptions.reductionOrder = 30;
 [STL1_ModRed,fspSets] = STL1_ModRed.computeModelReductionTransformMatrices;
 
 tic
