@@ -135,13 +135,22 @@ if ~includeSecondMom
     %% Define RHS of mean and 2nd moment ODEs in terms of monomials.
     RHS = S*w; % rhs of ode that describes the means
     %% Finalize RHS and saves as a matlab function.
-    matlabFunction(RHS,'Vars',{t,x,ParameterX},'File',momentOdeFileName,'Sparse',true); % save moment equation as a matlab function
+    try
+        matlabFunction(RHS,'Vars',{t,x,ParameterX},'File',momentOdeFileName,'Sparse',true); % save moment equation as a matlab function
+    catch
+        matlabFunction(RHS,'Vars',{t,x,ParameterX},'File',momentOdeFileName,'Sparse',false); % save moment equation as a matlab function
+    end
+
     % matlabFunctionSSIT(RHS,{t,x,ParameterX},momentOdeFileName); % save moment equation as a matlab function
 
     try 
         if ~containsSpecialFuns
             jac = jacobian(RHS,x);
-            matlabFunction(jac,'Vars',{t,x,ParameterX},'File',jacobianFileName,'Sparse',true); % save moment equation as a matlab function
+            try
+                matlabFunction(jac,'Vars',{t,x,ParameterX},'File',jacobianFileName,'Sparse',true); % save moment equation as a matlab function
+            catch
+                matlabFunction(jac,'Vars',{t,x,ParameterX},'File',jacobianFileName,'Sparse',false); % save moment equation as a matlab function
+            end
             % matlabFunctionSSIT(jac,{t,x,ParameterX},jacobianFileName); % save moment equation as a matlab function
             jacCreated = true;
         else
@@ -254,13 +263,21 @@ else
         RHS = A0 + A1*v; % write ode with lower order terms only
     end
     %% Finalize RHS and saves as a matlab function.
-    matlabFunction(RHS,'Vars',{t,v,ParameterX},'File',momentOdeFileName,'Sparse',true); % save moment equation as a matlab function
+    try
+        matlabFunction(RHS,'Vars',{t,v,ParameterX},'File',momentOdeFileName,'Sparse',true); % save moment equation as a matlab function
+    catch
+        matlabFunction(RHS,'Vars',{t,v,ParameterX},'File',momentOdeFileName,'Sparse',true); % save moment equation as a matlab function
+    end
     % matlabFunctionSSIT(RHS,{t,v,ParameterX},momentOdeFileName); % save moment equation as a matlab function
     
     try
         if ~containsSpecialFuns
             jac = jacobian(RHS,v);
-            matlabFunction(jac,'Vars',{t,v,ParameterX},'File',jacobianFileName,'Sparse',true); % save moment equation as a matlab function
+            try
+                matlabFunction(jac,'Vars',{t,v,ParameterX},'File',jacobianFileName,'Sparse',true); % save moment equation as a matlab function
+            catch
+                matlabFunction(jac,'Vars',{t,v,ParameterX},'File',jacobianFileName,'Sparse',true); % save moment equation as a matlab function
+            end
             % matlabFunctionSSIT(jac,{t,v,ParameterX},jacobianFileName); % save moment equation as a matlab function
             jacCreated = true;
         else
