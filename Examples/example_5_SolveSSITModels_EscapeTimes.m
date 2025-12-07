@@ -79,24 +79,27 @@ STL1.tSpan = linspace(0,20,200);
     % Create a copy of the time-varying STL1 yeast model:
     STL1_4state_escape = STL1_4state;
 
+
+    % This should not be required, since propensities are already
+    % generated.
+    STL1_4state_escape = ...
+      STL1_4state_escape.formPropensitiesGeneral('STL1_4state_escape');
+
     % Set the initial populations:
-    STL1_4state_escape.initialCondition = [0;0;0;1;0];
+    STL1_4state_escape.initialCondition = [1;0;0;0;0];
 
     % Set the times at which distributions will be computed:
-    STL1_4state_escape.tSpan = linspace(0,1,200);
+    STL1_4state_escape.tSpan = linspace(0,100,200);
 
-    % Solve for time to mRNA=0:
+    % Solve for time for mRNA to reach 100:
     STL1_4state_escape.fspOptions.escapeSinks.f = {'mRNA'};
-    STL1_4state_escape.fspOptions.escapeSinks.b = 0;    
-
-    STL1_4state_escape = ...
-        STL1_4state_escape.formPropensitiesGeneral('STL1_4state_escape');
+    STL1_4state_escape.fspOptions.escapeSinks.b = 100;    
 
     [STL1_4state_fspSoln_escape,STL1_4state_escape.fspOptions.bounds] = ...
         STL1_4state_escape.solve;
 
     % Plot the CDF and PDF
     STL1_4state_escape.plotFSP(STL1_4state_fspSoln_escape, [],...
-        "escapeTimes", [], [], {'linewidth',3}, XLim=[0,0.25],...
+        "escapeTimes", [], [], {'linewidth',3}, XLim=[0,100],...
         TitleFontSize=24, Title="4-state STL1 (mRNA)",...
         Colors=[0.23,0.67,0.2], LegendLocation="southeast");
