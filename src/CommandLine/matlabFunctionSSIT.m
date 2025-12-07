@@ -37,7 +37,7 @@ for j = 1:length(VarNames)
     for i = 1:length(vName)
         cVn = char(vName(i));
         if contains(charSymb,cVn)||...
-                (~isempty(logVarsReps)&&max(contains(logVarsReps,cVn)))
+                (~isempty(logVarsReps)&&max(contains(logVarsReps(:,1),cVn)))
             if isSparse
                 fprintf(fid,[cVn,'=sparse(in',num2str(j),'(',num2str(i),',:));\r\n']);
             else
