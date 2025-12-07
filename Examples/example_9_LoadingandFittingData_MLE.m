@@ -96,3 +96,18 @@ saveNames = unique({'Model_MLE'
     });
     
 save('example_9_LoadingandFittingData_MLE',saveNames{:})
+
+%%
+% Maximum allowable number of iterations to fit, etc.:
+% fitOptions = optimset('Display','iter','MaxIter',2000);
+% 
+% % Define which parameters to fit (in this case, all of them):
+% STL1_4state_data.fittingOptions.modelVarsToFit = [1:15];
+% 
+% % Search to Find the MLE:
+% [~,~,~,STL1_4state_data] = STL1_4state_data.maximizeLikelihood([],fitOptions);
+% 
+% % Make plots of the parameter fits from the MLE:
+% STL1_4state_data.plotFits([], "all", [], {'linewidth',2},...
+% Title='4-state STL1', YLabel='Molecule Count',...
+% LegendLocation='northeast', LegendFontSize=12);

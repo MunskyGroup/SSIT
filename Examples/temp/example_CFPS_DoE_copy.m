@@ -13,32 +13,30 @@ addpath(genpath('../src'));
 CFPS_DoE = SSIT;    
 
 %% Simple CFPS mechanistic model with DoE-relevant parameters
+%  DNA templates assumed fixed
 
 % Set species names for CFPS_DoE:
 %   mRNA      : transcripts
-%   Protein   : immature (non-fluorescent) reporter protein
-%   FEU       : mature fluorescent protein (what the plate reader sees)
+%   FEU       : mature fluorescent reporter protein
 %   E         : lumped "energy" tokens (ATP/GTP equivalents)
-CFPS_DoE.species = {'mRNA'; 'Protein'; 'FEU'; 'E'};
+CFPS_DoE.species = {'mRNA'; 'FEU'; 'E'};
 
 % Set initial condition:
 %   * Start with no transcripts or protein, finite energy pool E0
-CFPS_DoE.initialCondition = [0; 0; 0; 1e6];   % [mRNA; Pimm; FEU; E]
+CFPS_DoE.initialCondition = [0; 0; 1e6];   % [mRNA; FEU; E]
 
 % Set stoichiometry of reactions:
 % Reactions:
 %   1: ∅ + E    → mRNA + (E - 1)          (transcription, energy-consuming)
 %   2: mRNA     → ∅                         (mRNA degradation)
-%   3: mRNA + E → mRNA + Protein + (E - 1)  (translation, energy-consuming)
-%   4: Protein  → FEU                       (protein maturation)
+%   3: mRNA + E → mRNA + FEU + (E - 1)      (translation, energy-consuming)
 %   5: FEU      → ∅                         (protein degradation / loss)
 %   6: ∅        → E             (energy regeneration from 3-PGA, CFE, etc.)
     CFPS_DoE.stoichiometry = [ ...
-             1, -1,  0,  0,  0,  0;  ... % mRNA
-             0,  0,  1, -1,  0,  0;  ... % Protein
-             0,  0,  0,  1, -1,  0;  ... % FEU
-            -1,  0, -1,  0,  0,  1];     % E
-% Reactions: 1,  2,  3,  4,  5,  6
+             1, -1,  0,  0,  0;  ... % mRNA
+             0,  0,  1, -1,  0;  ... % FEU
+            -1,  0, -1,  0,  1];     % E
+% Reactions: 1,  2,  3,  4,  5
 
 % Optional: define "effective" transcription and translation rates as
 % inputExpressions so you can encode DoE-identified interactions
@@ -57,23 +55,20 @@ CFPS_DoE.inputExpressions = { ...
 %   a1 = k_tx_eff * E
 %   a2 = d_r * mRNA
 %   a3 = k_tl_eff * mRNA * E
-%   a4 = k_mat * Protein
-%   a5 = d_p * FEU
-%   a6 = k_reg * ThreePGA * CFE  (energy regeneration driven by 3-PGA & lysate)
+%   a4 = d_p * FEU
+%   a5 = k_reg * ThreePGA * CFE  (energy regeneration driven by 3-PGA & lysate)
 
 CFPS_DoE.propensityFunctions = { ...
     'k_tx_eff * E';...         % 1) transcription (energy-consuming)
     'd_r * mRNA';...           % 2) mRNA degradation
     'k_tl_eff * mRNA * E';...  % 3) translation (energy-consuming)
-    'k_mat * Protein';...      % 4) protein maturation
-    'd_p * FEU';...            % 5) protein degradation / loss
-    'k_reg * ThreePGA * CFE'}; % 6) energy regeneration from 3-PGA + lysate
+    'd_p * FEU';...            % 4) protein degradation / loss
+    'k_reg * ThreePGA * CFE'}; % 5) energy regeneration from 3-PGA + lysate
 
 % Add parameters:
 %   Core kinetic parameters:
 %     k_tx0, k_tl0           : baseline transcription / translation rates
 %     d_r                    : mRNA degradation rate
-%     k_mat                  : protein maturation / fluorescence rate
 %     d_p                    : protein loss rate
 %     k_reg                  : baseline energy regeneration rate
 %
@@ -90,7 +85,6 @@ CFPS_DoE.parameters = ({ ...
     'k_tx0',          1e-4;  ... % baseline transcription rate per energy token
     'k_tl0',          1e-6;  ... % baseline translation rate per mRNA·energy
     'd_r',            1e-3;  ... % mRNA degradation rate
-    'k_mat',          5e-3;  ... % immature → mature protein rate
     'd_p',            1e-4;  ... % mature protein loss rate
     'k_reg',          1e-3;  ... % baseline energy regeneration rate
 
@@ -126,8 +120,14 @@ CFPS_DoE.summarizeModel
 % to average the time evolution of state space probabilities 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+% Experiment duration from paper (minutes):
+t_exp = 720;
+
+% Fluorescence reading intervals (minutes):
+t_int = 5;
+
 % Set the times at which distributions will be computed:
-CFPS_DoE.tSpan = linspace(0,720,144);
+CFPS_DoE.tSpan = linspace(0,t_exp,t_exp/t_int);
 
 % Create a copy of the bursting gene model for ODEs:
 CFPS_DoE_ODE = CFPS_DoE;
@@ -146,4 +146,4 @@ CFPS_DoE_ODE.Solutions = CFPS_DoE_ODE.solve;
 % Plot ODE solutions:
 CFPS_DoE_ODE.plotODE(CFPS_DoE_ODE.species, CFPS_DoE_ODE.tSpan,...
     {'linewidth',4}, Title='CFPS DoE', TitleFontSize=24,...
-    LegendFontSize=15, LegendLocation='east', XLim=[0,720]);
+    LegendFontSize=15, LegendLocation='east', Xlim=[0,t_exp])
