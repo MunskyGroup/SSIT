@@ -56,7 +56,7 @@ STL1_4state.tSpan = linspace(0,50,200);
     % Model_SSA.initialTime = Model_SSA.tSpan(1); 
     
     % Run iterations in parallel with multiple cores, or execute serially:
-    Model_SSA.ssaOptions.useParallel = false;
+    Model_SSA.ssaOptions.useParallel = true;
     
     % Run SSA:
     Model_SSA.Solutions = Model_SSA.solve;
@@ -144,7 +144,7 @@ STL1_4state.tSpan = linspace(0,50,200);
     STL1_4state_SSA.initialTime = STL1_4state_SSA.tSpan(1); 
     
     % Run iterations in parallel with multiple cores, or execute serially:
-    STL1_4state_SSA.ssaOptions.useParallel = false;
+    STL1_4state_SSA.ssaOptions.useParallel = true;
     
     % Run SSA:
     STL1_4state_SSA.Solutions = STL1_4state_SSA.solve;
