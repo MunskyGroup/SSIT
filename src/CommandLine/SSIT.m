@@ -576,7 +576,8 @@ classdef SSIT
                 vars = symvar(st);    
                 % Create symbolic variables and assume they are real
                 for k = 1:numel(vars)
-                    syms(vars{k},'real')
+                    % syms(vars{k},'real')
+                    eval([vars{k},'=sym("',vars{k},'","real");'])
                 end
 
                 % Convert the string into a symbolic expression

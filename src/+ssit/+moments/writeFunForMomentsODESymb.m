@@ -63,15 +63,12 @@ nR = size(S,2);   % number of reactions
 nP = length(parString); % number of parameters
 nI = size(inputExpressions,1);
 
-syms('t','real');
+t = sym('t','real');
 %% Create symbolic variables for species
-for in = 1:nS
-    syms(['x',num2str(in)],'real');
-    x(in,1) = str2sym(['x',num2str(in)]);
-end
+x = sym('x',[nS,1],'real');
 
 %% Create symbolic variables for parameters
-syms('ParameterX',[1,nP],'real');
+ParameterX = sym('ParameterX',[1,nP],'real');
 
 %% Change species names to x1, x2, ... in propensity functions.
 specialFuns = {'max','min'}; nSF = 2;

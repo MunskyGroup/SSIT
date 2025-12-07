@@ -31,20 +31,23 @@ fprintf(fid,'  in4 = [];\r\n');
 fprintf(fid,'end\r\n');
 fprintf(fid,'\r\n');
 
+charSymb = char(symbolicExpression);
 for j = 1:length(VarNames)
-    for i = 1:length(VarNames{j})
-        vName = char(VarNames{j}(i));
-        if contains(char(symbolicExpression),vName)||...
-                (~isempty(logVarsReps)&&max(contains(logVarsReps,vName)))
+    vName = VarNames{j};
+    for i = 1:length(vName)
+        cVn = char(vName(i));
+        if contains(charSymb,cVn)||...
+                (~isempty(logVarsReps)&&max(contains(logVarsReps,cVn)))
             if isSparse
-                fprintf(fid,[vName,'=sparse(in',num2str(j),'(',num2str(i),',:));\r\n']);
+                fprintf(fid,[cVn,'=sparse(in',num2str(j),'(',num2str(i),',:));\r\n']);
             else
-                fprintf(fid,[vName,'=in',num2str(j),'(',num2str(i),',:);\r\n']);
+                fprintf(fid,[cVn,'=in',num2str(j),'(',num2str(i),',:);\r\n']);
             end
         end
     end
     fprintf(fid,'\r\n');
 end
+
 
 % TODO - Need to figure better way to create sparse matrix outputs.
 % if isSparse

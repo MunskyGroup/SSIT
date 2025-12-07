@@ -235,10 +235,10 @@ classdef Propensity
             anyLogical = zeros(1,n_reactions,'logical');
            
             t = sym('t','real');
-            for iRxn = 1:n_reactions
-                prop_vars = symvar(symbolicExpression{iRxn});
-                syms(prop_vars,'real');
-            end
+
+            allvars = unique([symvar([symbolicExpression{:}])]);
+            syms(allvars, 'real');
+
             if ~isempty(upstreamODEs)
                 syms(upstreamODEs,'positive')
             end
@@ -911,7 +911,7 @@ if ~isempty(logicTerms)
         end
     end
 else
-    syms('logDummy')
+    logDummy=sym('logDummy');
     logVars=logDummy;
     logVarsReps={' ','logDummy'};
 end
@@ -928,15 +928,21 @@ for i = 1:length(varNames)
     end
 end
 
+% for i = 1:size(logVarsReps,1)
+%     old_name = logVarsReps{i,1};
+%     for j = 1:length(species)
+%         old_name = regexprep(old_name,['\<',species{j},'\>'],string(states(j)));
+%     end
+%     for j = 1:length(nonXTpars)
+%         old_name = regexprep(old_name,['\<',nonXTpars{j},'\>'],string(parameters(j)));
+%     end
+%     logVarsReps{i,1} = old_name;
+% end
+from = [species(:); nonXTpars(:)];
+to   = [string(states(:)); string(parameters(:))];
+pat  = cellfun(@(x) ['\<' x '\>'], from, 'UniformOutput', false);
 for i = 1:size(logVarsReps,1)
-    old_name = logVarsReps{i,1};
-    for j = 1:length(species)
-        old_name = regexprep(old_name,['\<',species{j},'\>'],string(states(j)));
-    end
-    for j = 1:length(nonXTpars)
-        old_name = regexprep(old_name,['\<',nonXTpars{j},'\>'],string(parameters(j)));
-    end
-    logVarsReps{i,1} = old_name;
+    logVarsReps{i,1} = regexprep(logVarsReps{i,1}, pat, to);
 end
 
 
@@ -946,7 +952,9 @@ if isempty(prefixName)
     prefixName = prefixName(j+1:end);
 end
 
-ifn = sum(contains({dir('tmpPropensityFunctions').name},[prefixName,'_fun']))+1;
+% ifn = sum(contains({dir('tmpPropensityFunctions').name},[prefixName,'_fun']))+1;
+files = dir(fullfile('tmpPropensityFunctions', [prefixName '_fun*']));
+ifn = numel(files) + 1;
 fn = [pwd, filesep,'tmpPropensityFunctions',filesep,prefixName,'_fun_',num2str(ifn),'.m'];
 
 if jacobian&&~isempty(varODEs)
@@ -1003,14 +1011,18 @@ if writeFiles
     % 
     % end
     
-    oldFile = which(func2str(exprHandle));
-    while ~isempty(oldFile)&&~strcmp(oldFile,fn)
-        disp('WARNING -- it appears that a new propensity functions is redundant to one already on the search path. Moving old version to backup')
-        oldFile = which(func2str(exprHandle));
-        if ~isempty(oldFile)
-            movefile(oldFile,[oldFile(1:end-2),'_bak.m']);
-        end
-    end
+    % TODO - This is meant to remove redundant functions, but it is slow,
+    % and I removed it.  Should continue testing to see if the path
+    % problems persist.
+    % J = find(fn=='/',1,'last');
+    % oldFile = which(fn(J+1:end));
+    % while ~isempty(oldFile)&&~strcmp(oldFile,fn)
+    %     disp('WARNING -- it appears that a new propensity functions is redundant to one already on the search path. Moving old version to backup')
+    %     oldFile = which(func2str(exprHandle));
+    %     if ~isempty(oldFile)
+    %         movefile(oldFile,[oldFile(1:end-2),'_bak.m']);
+    %     end
+    % end
 else
     exprHandle=[];
 end
