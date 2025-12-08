@@ -38,9 +38,9 @@ CFPS_DoE.initialCondition = [0; 0; 1e6];   % [mRNA; FEU; E]
             -1,  0, -1,  0,  1];     % E
 % Reactions: 1,  2,  3,  4,  5
 
-% Optional: define "effective" transcription and translation rates as
-% inputExpressions so you can encode DoE-identified interactions
-% (e.g., Mg–PEG, 3-PGA–folinic, 3-PGA–spermidine) at the level of rate
+% Define "effective" transcription and translation rates as
+% inputExpressions so DoE-identified interactions (e.g., Mg–PEG, 
+% 3-PGA–folinic, 3-PGA–spermidine) may be encoded at the level of rate
 % constants. These are time-independent here, but can depend on parameters.
 CFPS_DoE.inputExpressions = { ...
     'k_tx_eff', ...
@@ -75,7 +75,7 @@ CFPS_DoE.propensityFunctions = { ...
 %   DoE factors (buffer components, lysate concentration):
 %     Mg, PEG, ThreePGA, Folinic, Spermidine, CFE, NAD, cAMP
 %
-%   Reference levels and interaction strengths (so you can encode linear
+%   Reference levels and interaction strengths (to encode linear
 %   or weakly nonlinear effects consistent with DSD/RSM fits):
 %     Mg_ref, PEG_ref, ThreePGA_ref, Folinic_ref, Spermidine_ref
 %     alpha_Mg_tx, alpha_PEG_tx, alpha_3P_fol, alpha_3P_Sp
@@ -89,7 +89,7 @@ CFPS_DoE.parameters = ({ ...
     'k_reg',          1e-3;  ... % baseline energy regeneration rate
 
     % DoE factor levels (set these from actual experimental conditions)
-    'Mg',             12;    ... % mM Mg-glutamate (example)
+    'Mg',             12;    ... % mM Mg-glutamate 
     'PEG',            3;     ... % (w/v) PEG-8000 (example)
     'ThreePGA',       30;    ... % mM 3-PGA (example)
     'Folinic',        0.1;   ... % mM folinic acid (example)
@@ -98,7 +98,7 @@ CFPS_DoE.parameters = ({ ...
     'NAD',            0.5;   ... % mM NAD (example; not explicitly used yet)
     'cAMP',           0.5;   ... % mM cAMP (example; not explicitly used yet)
 
-    % Reference levels for interaction terms (e.g., center points of your RSM)
+    % Reference levels for interaction terms (e.g., center points of RSM)
     'Mg_ref',         12;    ... % reference Mg (e.g., central DoE level)
     'PEG_ref',        3;     ... % reference PEG
     'ThreePGA_ref',   30;    ... % reference 3-PGA
