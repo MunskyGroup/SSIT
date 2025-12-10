@@ -43,6 +43,9 @@ STL1_4state.tSpan = linspace(0,50,200);
     % Set FSP 1-norm error tolerance:
     Model_FSP.fspOptions.fspTol = 1e-4; 
     
+    % Guess initial bounds on FSP StateSpace:
+    Model_FSP.fspOptions.bounds = [0,0,0,1,1,2];
+    
     % Have FSP approximate the steady state for the initial distribution 
     % by finding the eigenvector corresponding to the smallest magnitude 
     % eigenvalue (i.e., zero, for generator matrix A, d/dtP(t)=AP(t)):
@@ -76,6 +79,9 @@ STL1_4state.tSpan = linspace(0,50,200);
 
     % Set FSP 1-norm error tolerance:
     STL1_FSP.fspOptions.fspTol = 1e-4; 
+    
+    % Guess initial bounds on FSP StateSpace:
+    STL1_FSP.fspOptions.bounds = [0,0,0,1,1,1];
     
     % Have FSP approximate the steady state for the initial distribution 
     % by finding the eigenvector corresponding to the smallest magnitude 

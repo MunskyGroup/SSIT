@@ -5340,6 +5340,8 @@ end
             %       .LegendLocation     (string, default="best")
             %       .XLabel             (string, default="Time")
             %       .YLabel             (string, default="Response")
+            %       .TimeIdx            (double, default=[])
+            %       .TimePoints         (double, default=[])
             %
             % Output:
             %   figHandles   : cell array of figure handles (in order of creation)
@@ -5369,6 +5371,8 @@ end
                     opts.YLim double = []
                     opts.ProbXLim double = []    
                     opts.ProbYLim double = []    % only used for DistType == 1 (PDF)
+                    opts.TimeIdx double = []     % subset of time indices for CDF/PDF
+                    opts.TimePoints double = []  % subset of time values for CDF/PDF (exact match)
                 end
             
                 % ---- Compute fitSolution if needed ----
@@ -5417,22 +5421,72 @@ end
                 end
             
                 % ---------------- nested helpers ----------------
+                function timeIdx = resolveTimeSelection(app, o)
+                    % Return indices into ParEstFitTimesList.Value according to opts.
+                    allVals = app.ParEstFitTimesList.Value;   % can be cellstr or numeric
+                    if iscell(allVals)
+                        % Try numeric conversion; if it fails, we'll keep string matching only
+                        tAll = nan(size(allVals));
+                        for k = 1:numel(allVals)
+                            v = str2double(string(allVals{k}));
+                            if ~isnan(v), tAll(k) = v; end
+                        end
+                    else
+                        tAll = allVals;
+                    end
+                    nTimes = numel(allVals);
+                
+                    if ~isempty(o.TimeIdx)
+                        ti = unique(o.TimeIdx(:).');
+                        if any(ti < 1 | ti > nTimes)
+                            error('opts.TimeIdx must be in 1..%d.', nTimes);
+                        end
+                        timeIdx = ti;
+                        return;
+                    end
+                
+                    if ~isempty(o.TimePoints)
+                        if ~isnumeric(o.TimePoints)
+                            error('opts.TimePoints must be numeric time values matching ParEstFitTimesList.Value.');
+                        end
+                        tp = unique(o.TimePoints(:).');
+                        timeIdx = [];
+                        for v = tp
+                            % Prefer numeric match if we have numeric times
+                            if ~all(isnan(tAll))
+                                hit = find(tAll == v, 1);
+                            else
+                                hit = find(strcmp(string(allVals), string(v)), 1);
+                            end
+                            if isempty(hit)
+                                error('TimePoints value %.12g not found in ParEstFitTimesList.Value.', v);
+                            end
+                            timeIdx(end+1) = hit; 
+                        end
+                        timeIdx = unique(timeIdx);
+                        return;
+                    end               
+                    timeIdx = 1:nTimes;  % default: all
+                end
             
                 function figs = plotHistograms(app, fnums, lineProps, o, visible)
                     figs = {};
-                    numTimes = length(app.ParEstFitTimesList.Value);
-            
+                
+                    % Only plot selected time points
+                    timeIdx  = resolveTimeSelection(app, o);    
+                    numTimes = numel(timeIdx);                  
+                
                     % Full model/data dimensions
                     NdModFit = max(1, length(size(app.DataLoadingAndFittingTabOutputs.fitResults.current))-1);
                     NdDatAll = length(app.SpeciesForFitPlot.Value);
                     if NdModFit ~= NdDatAll
                         error('Model and Data size do not match in fitting routine');
                     end
-            
+                
                     % Species selection (subset of fitted species)
                     [selIdx, selNames] = getSelectedFitSpecies(app, o);
                     NdDat = numel(selIdx);
-            
+                
                     % Loop over DistType: 0 = CDF, 1 = PDF
                     for DistType = 0:1
                         % Choose figure
@@ -5444,141 +5498,109 @@ end
                         else
                             figHandle = figure(fnums(DistType+1));
                         end
-            
+                
                         if DistType==0
                             set(figHandle,'Name','Cumulative Distributions versus Time');
                         else
                             set(figHandle,'Name','Probability Distributions versus Time');
                         end
-            
-                        % Subplot layout
+                
+                        % Subplot layout for *selected* times
                         if numTimes <= 4
                             subPlotSize = [1, numTimes];
                         else
                             subPlotSize(2) = ceil(sqrt(numTimes));
                             subPlotSize(1) = ceil(numTimes/subPlotSize(2));
                         end
-            
-                        % Hold legend names across all subplots
+                
                         allLegNames = {};
-            
-                        % Loop over times
-                        for iTime = 1:numTimes
-                            if o.UsePanels
-                                subplot(subPlotSize(1), subPlotSize(2), iTime);
-                            end
-                            ax = gca;
-                            hold(ax,'on');
-                            ax.FontSize = o.TickLabelSize;
-            
+                
+                        % Loop over *selected* times only
+                        for ii = 1:numTimes
+                            iTime = timeIdx(ii);                     
+                
+                            if o.UsePanels, subplot(subPlotSize(1), subPlotSize(2), ii); end
+                            ax = gca; hold(ax,'on'); ax.FontSize = o.TickLabelSize;
+                
                             LegNames = {};
-                            dataTensor = double(app.DataLoadingAndFittingTabOutputs.dataTensor);
-                            modelTensorAll = app.DataLoadingAndFittingTabOutputs.fitResults.current;
-                            xm = 0; ym = 0;
-            
-                        for k = 1:NdDat
-                            j = selIdx(k);              % index into fitted species
-                            speciesName = selNames{k};  % correct plotted species name
+                            dataTensor      = double(app.DataLoadingAndFittingTabOutputs.dataTensor);
+                            modelTensorAll  = app.DataLoadingAndFittingTabOutputs.fitResults.current;
                 
-                            % indices to sum over in model tensor (other species)
-                            indsToSumOver = setdiff(1:NdModFit, j);
+                            for k = 1:NdDat
+                                j = selIdx(k);
+                                speciesName = selNames{k};
+                                indsToSumOver = setdiff(1:NdModFit, j);
                 
-                            %% --- Data histogram for species j ---
-                            dataTensor = double(app.DataLoadingAndFittingTabOutputs.dataTensor);
-                            if ndims(app.DataLoadingAndFittingTabOutputs.dataTensor) == 1
-                                Hdat = dataTensor;
-                            else
-                                Hdat = squeeze(dataTensor(iTime,:,:,:,:,:,:,:,:,:));
+                                % --- DATA histogram at this time ---
+                                if ndims(app.DataLoadingAndFittingTabOutputs.dataTensor) == 1
+                                    Hdat = dataTensor;
+                                else
+                                    Hdat = squeeze(dataTensor(iTime,:,:,:,:,:,:,:,:,:));
+                                end
+                                if ~isempty(indsToSumOver), Hdat = sum(Hdat, indsToSumOver); end
+                                Hdat = Hdat(:); Hdat = Hdat / max(sum(Hdat), eps);
+                                xDat = 0:length(Hdat)-1;
+                                yDat = (DistType==1) * smoothBins(Hdat, o.SmoothWindow) + ...
+                                       (DistType==0) * cumsum(Hdat);
+                                stairs(ax, xDat, yDat, lineProps{:});
+                                LegNames{end+1} = [speciesName,'-data'];
+                
+                                % --- MODEL histogram at this time ---
+                                inds = modelTensorAll.subs;
+                                inds = inds(inds(:,1) == iTime,:);         
+                                vals = modelTensorAll(inds);
+                                modelTensor = double(sptensor(inds(:,2:end), vals));
+                                if ~isempty(indsToSumOver), Hmod = squeeze(sum(modelTensor, indsToSumOver));
+                                else,                        Hmod = squeeze(modelTensor);
+                                end
+                                Hmod = Hmod(:);
+                                xMod = 0:length(Hmod)-1;
+                                yMod = (DistType==1) * smoothBins(Hmod, o.SmoothWindow) + ...
+                                       (DistType==0) * cumsum(Hmod);
+                                stairs(ax, xMod, yMod, lineProps{:});
+                                LegNames{end+1} = [speciesName,'-mod'];
                             end
-                            if ~isempty(indsToSumOver)
-                                Hdat = sum(Hdat, indsToSumOver);
-                            end
-                            Hdat = Hdat(:);
-                            Hdat = Hdat / max(sum(Hdat), eps);
-                            xDat = 0:length(Hdat)-1;
                 
-                            if DistType == 1   % PDF
-                                yDat = smoothBins(Hdat, o.SmoothWindow);
-                            else               % CDF
-                                yDat = cumsum(Hdat);
+                            % Title + limits for this subplot
+                            title(ax, sprintf('t = %s', app.ParEstFitTimesList.Value{iTime}), ...
+                                  'FontSize', max(o.TitleFontSize-2, 8), 'FontWeight','bold');
+                            if mod(ii, subPlotSize(2)) == 1
+                                ylabel(ax, 'Probability', 'FontSize', o.AxisLabelSize);
+                            end
+                            if ii > numTimes - subPlotSize(2)
+                                xlabel(ax, 'Molecule Count', 'FontSize', o.AxisLabelSize);
                             end
                 
-                            stairs(ax, xDat, yDat, lineProps{:});
-                            LegNames{end+1} = [speciesName,'-data']; 
-                            xm = max(xm, length(Hdat));
-                            ym = max(ym, max(yDat));
-
-                            % ----- style for this subplot -----
-                            title(ax, ['t = ', app.ParEstFitTimesList.Value{iTime}], 'FontSize', o.TitleFontSize-2);
-                            ylabel(ax, 'Probability', 'FontSize', o.AxisLabelSize-2);
-                            set(ax,'FontSize',o.TickLabelSize);
-                    
-                            % NEW: apply per-plot limits only to Probability Distributions
+                            % Apply per-plot limits only to PDF
                             if DistType == 1
                                 if ~isempty(o.ProbXLim), xlim(ax, o.ProbXLim); end
                                 if ~isempty(o.ProbYLim), ylim(ax, o.ProbYLim); end
                             end
                 
-                            %% --- Model histogram for species j ---
-                            modelTensorAll = app.DataLoadingAndFittingTabOutputs.fitResults.current;
-                            inds = modelTensorAll.subs;
-                            inds = inds(inds(:,1) == iTime,:);
-                            vals = modelTensorAll(inds);
-                            modelTensor = double(sptensor(inds(:,2:end), vals));
-                            if ~isempty(indsToSumOver)
-                                Hmod = squeeze(sum(modelTensor, indsToSumOver));
-                            else
-                                Hmod = squeeze(modelTensor);
-                            end
-                            Hmod = Hmod(:);
-                            xMod = 0:length(Hmod)-1;
-                
-                            if DistType == 1
-                                yMod = smoothBins(Hmod, o.SmoothWindow);
-                            else
-                                yMod = cumsum(Hmod);
-                            end
-                
-                            stairs(ax, xMod, yMod, lineProps{:});
-                            LegNames{end+1} = [speciesName,'-mod']; 
-                
-                            xm = max(xm, length(Hmod));
-                            ym = max(ym, max(yMod));
-                                    end
-            
-                            title(ax, sprintf('t = %s', app.ParEstFitTimesList.Value{iTime}), ...
-                                  'FontSize', max(o.TitleFontSize-2, 8), 'FontWeight','bold');
-                            if mod(iTime, subPlotSize(2)) == 1
-                                ylabel(ax, 'Probability', 'FontSize', o.AxisLabelSize);
-                            end
-                            if iTime > numTimes - subPlotSize(2)
-                                xlabel(ax, 'Molecule Count', 'FontSize', o.AxisLabelSize);
-                            end
                             grid(ax,'on'); box(ax,'on');
-            
                             allLegNames = [allLegNames, LegNames];
                         end
-            
+                
+                        % Legend + super-title
                         if ~isempty(allLegNames)
                             lgd = legend(allLegNames, 'Location', char(o.LegendLocation));
                             if ~isempty(lgd), lgd.FontSize = o.LegendFontSize; end
                         end
-            
+                
                         if strlength(o.Title) > 0
                             sgtitle(string(o.Title), 'FontSize', o.TitleFontSize, 'FontWeight','bold');
                         else
-                            if DistType==0
-                                sgtitle('Cumulative Distributions versus Time', ...
-                                        'FontSize', o.TitleFontSize, 'FontWeight','bold');
+                            if DistType == 0
+                                titleStr = 'Cumulative Distributions versus Time';
                             else
-                                sgtitle('Probability Distributions versus Time', ...
-                                        'FontSize', o.TitleFontSize, 'FontWeight','bold');
+                                titleStr = 'Probability Distributions versus Time';
                             end
+                            sgtitle(titleStr, 'FontSize', o.TitleFontSize, 'FontWeight','bold');
                         end
-            
-                        figs{end+1} = figHandle; 
+                
+                        figs{end+1} = figHandle;
                     end
-                end
+             end
             
              function figs = plotTrajectories(app, fnums, lineProps, o, visible)
                 figs = {};
