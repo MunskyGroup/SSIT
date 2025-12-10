@@ -50,10 +50,10 @@ STL1_4state.tSpan = linspace(0,50,200);
     
     % A negative initial time is used to allow model to equilibrate 
     % before starting (burn-in). Large burn-in times cause long run times.
-    % Model_SSA.tSpan = [-100,Model_SSA.tSpan];
+    Model_SSA.tSpan = [0,Model_SSA.tSpan];
     
     % Set the initial time:
-    % Model_SSA.initialTime = Model_SSA.tSpan(1); 
+    Model_SSA.initialTime = Model_SSA.tSpan(1); 
     
     % Run iterations in parallel with multiple cores, or execute serially:
     Model_SSA.ssaOptions.useParallel = true;
@@ -65,7 +65,7 @@ STL1_4state.tSpan = linspace(0,50,200);
     Model_SSA.plotSSA('all', 10, Model_SSA.species, {'linewidth',4}, ...
         Title="Bursting Gene", MeanOnly=true, TitleFontSize=32,...
         AxisLabelSize=24, TickLabelSize=24,...
-        LegendFontSize=24, LegendLocation='east',...
+        LegendFontSize=15, LegendLocation='southeast',...
         XLabel='Time', YLabel='Molecule Count');
 
     %% Make a video of the SSA trajectories being plotted:
@@ -94,10 +94,10 @@ STL1_4state.tSpan = linspace(0,50,200);
     
     % A negative initial time is used to allow model to equilibrate 
     % before starting (burn-in). Large burn-in times cause long run times.
-    % STL1_SSA.tSpan = [-100,STL1_SSA.tSpan];
+    STL1_SSA.tSpan = [0,STL1_SSA.tSpan];
 
     % Set the initial time:
-    % STL1_SSA.initialTime = STL1_SSA.tSpan(1); 
+    STL1_SSA.initialTime = STL1_SSA.tSpan(1); 
     
     % Run iterations in parallel with multiple cores, or execute serially:
     STL1_SSA.ssaOptions.useParallel = true;
@@ -109,7 +109,7 @@ STL1_4state.tSpan = linspace(0,50,200);
     STL1_SSA.plotSSA('all', 100, STL1_SSA.species, {'linewidth',4}, ...
         Title="STL1", MeanOnly=true, TitleFontSize=32,...
         AxisLabelSize=24, TickLabelSize=24,...
-        LegendFontSize=24, LegendLocation='northeast',...
+        LegendFontSize=15, LegendLocation='east',...
         XLabel='Time', YLabel='Molecule Count');
 
     %% Make a video of the SSA trajectories being plotted:
@@ -138,7 +138,7 @@ STL1_4state.tSpan = linspace(0,50,200);
        
     % A negative initial time is used to allow model to equilibrate 
     % before starting (burn-in). Large burn-in times cause long run times.
-    STL1_4state_SSA.tSpan = [-1,STL1_4state_SSA.tSpan];
+    STL1_4state_SSA.tSpan = [0,STL1_4state_SSA.tSpan];
 
     % Set the initial time:
     STL1_4state_SSA.initialTime = STL1_4state_SSA.tSpan(1); 

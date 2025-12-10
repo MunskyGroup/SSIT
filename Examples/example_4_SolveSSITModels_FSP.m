@@ -22,8 +22,8 @@ STL1.summarizeModel
 STL1_4state.summarizeModel
 
 % Set the times at which distributions will be computed:
-Model.tSpan = linspace(0,20,200);
-STL1.tSpan = linspace(0,20,200);
+Model.tSpan = linspace(0,50,200);
+STL1.tSpan = linspace(0,50,200);
 STL1_4state.tSpan = linspace(0,50,200);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -55,13 +55,13 @@ STL1_4state.tSpan = linspace(0,50,200);
     % into symbolic expression functions that use sparse matrices to  
     % operate on the system based on the current state. The functions are 
     % stored with the given prefix, in this case, 'Model_FSP':
-    Model_FSP = Model_FSP.formPropensitiesGeneral('Model_FSP');
+    Model_FSP = Model_FSP.formPropensitiesGeneral('Model_FSP_1');
     
     % Solve with FSP:
-    [Model_FSPsoln,Model_FSP.fspOptions.bounds] = Model_FSP.solve; 
+    [~,~,Model_FSP] = Model_FSP.solve; 
     
     % Plot marginal distributions at t=20:  
-    Model_FSP.plotFSP(Model_FSPsoln,Model_FSP.species,'meansAndDevs')
+    Model_FSP.plotFSP(Model_FSP.Solutions,Model_FSP.species,'meansAndDevs')
                        
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(2): Use the stochastic Finite State Projection (FSP) 

@@ -221,12 +221,12 @@ STL1_4state.plotFIMResults(STL1_4stateTotalFIM, STL1_4state.parameters,...
 %% Load and Plot Data
 STL1_4state.solutionScheme = 'fsp';
 
-% TODO - Make sure to add a comment saying that the user needs to change the path
-% to match where the data is.
+% Note: Ensure the search path is correct on the local machine: 
 STL1_4state = ...
     STL1_4state.loadData('data/filtered_data_2M_NaCl_Step.csv',...
     {'mRNA','RNA_STL1_total_TS3Full'},...
-    {'Replica',2;'Condition','0.2M_NaCl_Step'});
+    {'Replica',1;'Condition','0.2M_NaCl_Step'});
+
 % This plot is unnecessary, as the model parameters have not been fit to
 % the data yet. However, it illustrates the improvement to come later:
 STL1_4state.plotFits([], "all", [], {'linewidth',2},...
@@ -249,48 +249,65 @@ STL1_4state.plotFits([], "all", [], {'linewidth',2},...
     Title='4-state STL1', YLabel='Molecule Count',...
     LegendLocation='northeast', LegendFontSize=12);
 
-% TODO - Add comment recording the lowest found MLE.
+% Note: Should see an MLE of -26015 at the end:
+% Exiting: Maximum number of iterations has been exceeded
+%          - increase MaxIter option.
+%          Current function value: 26014.985315
 
-%%
 %% Specify Bayesian Prior and fit
+
+% Make a copy of our 4-state STL1 model:
+STL1_4state_MH = STL1_4state;
+
 % Specify Prior as log-normal distribution with wide uncertainty
 % Prior log-mean:
 mu_log10 = [0.8,3,-0.1,2,2.75,0.6,3,2.5,0,3.5,1.5,-0.15,0.5,1.5,-1];
 
 % Prior log-standard deviation:
-sig_log10 = 2*ones(1,15);
+sig_log10 = 2*ones(1,15);  
 
 % Prior:
-STL1_4state.fittingOptions.logPrior = ...
-@(x)-sum((log10(x)-mu_log10).^2./(2*sig_log10.^2));
-STL1_4state.fittingOptions.logPriorCovariance = diag(sig_log10);
+STL1_4state_MH.fittingOptions.logPrior = ...
+    @(x)-sum((log10(x)-mu_log10).^2./(2*sig_log10.^2));
 
-% Fit to maximize likelihood:
-[~,~,~,STL1_4state] = STL1_4state.maximizeLikelihood;
+% Choose parameters to search:
+STL1_4state_MH.fittingOptions.modelVarsToFit = [1:15]; 
 
-% Plot fitting results:
-STL1_4state.plotFits([], "all", [], {'linewidth',2},...
-    Title='4-state STL1', YLabel='Molecule Count',...
-    LegendLocation='northeast', LegendFontSize=12);
+% Create first parameter guess:
+STL1_4state_MH_pars = [STL1_4state_MH.parameters{:,2}];      
 
 % Iterating between MLE and MH
-% Running a few rounds of MLE and MH together may improve convergence.
+%  Running a few rounds of MLE and MH together may improve convergence:
 
+STL1_4state_MH.parameters(:,2) = num2cell(STL1_4state_MH_pars);
 for i=1:3
     % Maximize likelihood:
-    [~,~,~,STL1_4state] = STL1_4state.maximizeLikelihood;
+    STL1_4state_MH_pars = STL1_4state_MH.maximizeLikelihood([]);    
+    % Update parameters in the model:
+    STL1_4state_MH.parameters(:,2) = num2cell(STL1_4state_MH_pars);
+
+    % Run Metropolis-Hastings    
+    proposalWidthScale = 0.01;
+    MHOptions.proposalDistribution  = ...
+       @(x)x+proposalWidthScale*randn(size(x));
 
     % Set MH runtime options (number of samples, burnin, thin, etc.):
-    MHOptions = struct('numberOfSamples',2000,...
-    'burnin',200,'thin',2,'useFIMforMetHast',true);
+    MHOptions.numberOfSamples = 2000;
+    MHOptions.burnin = 200;
+    MHOptions.thin = 2;
 
-    % Run Metropolis-Hastings:    
-    [~,~,~,STL1_4state] = ...
-        STL1_4state.maximizeLikelihood([], MHOptions,...
+    % Run Metropolis-Hastings: 
+    [STL1_4state_MH_pars,~,STL1_4state_MH_MHResults] = ...
+        STL1_4state_MH.maximizeLikelihood([], MHOptions,...
         'MetropolisHastings');
+    
+    % Store MH parameters in model:
+    STL1_4state_MH.parameters([1:15],2) = ...
+        num2cell(STL1_4state_MH_pars);
 end
-STL1_4state.plotMHResults;
-STL1_4state.plotFits([], "all", [], {'linewidth',2},...
+STL1_4state_MH.plotMHResults(STL1_4state_MH_MHResults);
+
+STL1_4state_MH.plotFits([], "all", [], {'linewidth',2},...
     Title='4-state STL1', YLabel='Molecule Count',...
     LegendLocation='northeast', LegendFontSize=12, ProbXLim = [0 80]);
 

@@ -56,6 +56,7 @@ STL1_4state_pars = cell2mat(STL1_4state_MLE.parameters(1:15,2));
 
 [STL1_4state_pars,STL1_4state_likelihood] = ...
  STL1_4state_MLE.maximizeLikelihood(STL1_4state_pars,fitOptions);
+% Note: Should see an MLE of -21961.2 at the end
 
 % Update parameters:
 for j=1:length(Model_pars)
@@ -96,18 +97,3 @@ saveNames = unique({'Model_MLE'
     });
     
 save('example_9_LoadingandFittingData_MLE',saveNames{:})
-
-%%
-% Maximum allowable number of iterations to fit, etc.:
-% fitOptions = optimset('Display','iter','MaxIter',2000);
-% 
-% % Define which parameters to fit (in this case, all of them):
-% STL1_4state_data.fittingOptions.modelVarsToFit = [1:15];
-% 
-% % Search to Find the MLE:
-% [~,~,~,STL1_4state_data] = STL1_4state_data.maximizeLikelihood([],fitOptions);
-% 
-% % Make plots of the parameter fits from the MLE:
-% STL1_4state_data.plotFits([], "all", [], {'linewidth',2},...
-% Title='4-state STL1', YLabel='Molecule Count',...
-% LegendLocation='northeast', LegendFontSize=12);

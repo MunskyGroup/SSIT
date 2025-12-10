@@ -30,7 +30,7 @@ CFPS_DoE.initialCondition = [0; 0; 1e6];   % [mRNA; eGFP; E]
 %   1: ∅ + E    → mRNA + (E - 1)          (transcription, energy-consuming)
 %   2: mRNA     → ∅                         (mRNA degradation)
 %   3: mRNA + E → mRNA + eGFP + (E - 1)      (translation, energy-consuming)
-%   5: eGFP      → ∅                         (protein degradation / loss)
+%   5: eGFP     → ∅                          (protein degradation / loss)
 %   6: ∅        → E             (energy regeneration from 3-PGA, CFE, etc.)
     CFPS_DoE.stoichiometry = [ ...
              1, -1,  0,  0,  0;  ... % mRNA
