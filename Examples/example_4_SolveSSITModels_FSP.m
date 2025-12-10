@@ -44,7 +44,7 @@ STL1_4state.tSpan = linspace(0,50,200);
     Model_FSP.fspOptions.fspTol = 1e-4; 
     
     % Guess initial bounds on FSP StateSpace:
-    Model_FSP.fspOptions.bounds = [0,0,0,1,1,400];
+    Model_FSP.fspOptions.bounds = [1,1,400];
     
     % Have FSP approximate the steady state for the initial distribution 
     % by finding the eigenvector corresponding to the smallest magnitude 
@@ -55,7 +55,7 @@ STL1_4state.tSpan = linspace(0,50,200);
     % into symbolic expression functions that use sparse matrices to  
     % operate on the system based on the current state. The functions are 
     % stored with the given prefix, in this case, 'Model_FSP':
-    Model_FSP = Model_FSP.formPropensitiesGeneral('Model_FSP_1');
+    Model_FSP = Model_FSP.formPropensitiesGeneral('Model_FSP');
     
     % Solve with FSP:
     [~,~,Model_FSP] = Model_FSP.solve; 
@@ -81,7 +81,7 @@ STL1_4state.tSpan = linspace(0,50,200);
     STL1_FSP.fspOptions.fspTol = 1e-4; 
     
     % Guess initial bounds on FSP StateSpace:
-    STL1_FSP.fspOptions.bounds = [0,0,0,1,1,400];
+    STL1_FSP.fspOptions.bounds = [1,1,400];
     
     % Have FSP approximate the steady state for the initial distribution 
     % by finding the eigenvector corresponding to the smallest magnitude 
@@ -118,7 +118,7 @@ STL1_4state.tSpan = linspace(0,50,200);
     STL1_4state_FSP.fspOptions.fspTol = 1e-4; 
     
     % Guess initial bounds on FSP StateSpace:
-    STL1_4state_FSP.fspOptions.bounds = [0,0,0,0,0,1,1,1,1,400];
+    STL1_4state_FSP.fspOptions.bounds = [1,1,1,1,400];
     
     % Have FSP approximate the steady state for the initial distribution 
     % by finding the eigenvector corresponding to the smallest magnitude 
