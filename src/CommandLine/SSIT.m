@@ -557,6 +557,10 @@ classdef SSIT
                 return
             end
 
+            % Clear Statespace
+            obj.fspOptions.stateSpace = [];
+
+            % Clear propensity functions
             obj = clearPropensityFiles(obj,prefixName,'fsp');
 
             n_reactions = length(obj.propensityFunctions);
@@ -1127,6 +1131,8 @@ classdef SSIT
             obj.propensitiesGeneralMoments = [];
             obj.propensitiesGeneralMomentsJac = [];      
             obj.ssaOptions.computeFile = [];
+            obj.fspOptions.stateSpace = [];
+
 
         end
 
@@ -1193,6 +1199,7 @@ classdef SSIT
             obj.propensitiesGeneralMoments = [];
             obj.propensitiesGeneralMomentsJac = [];      
             obj.ssaOptions.computeFile = [];
+            obj.fspOptions.stateSpace = [];
         end
 
         function [obj] = removeReaction(obj,numRxn,confirm)
