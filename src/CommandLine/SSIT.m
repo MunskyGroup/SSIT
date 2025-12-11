@@ -6404,346 +6404,340 @@ end
     end
     methods (Static)
         function plotMHResultsStatic(obj, mhResults, FIM, fimScale, mhPlotScale, scatterFig, showConvergence, plotColors, paramSelect)
-        % plotMHResultsStatic
-        %   Robust MH scatter + FIM ellipse plotting with optional parameter subset selection.
-        %
-        % Signature:
-        %   plotMHResultsStatic(obj, mhResults, FIM, fimScale, mhPlotScale, scatterFig, showConvergence, plotColors, paramSelect)
-        %
-        % Inputs (all optional except obj):
-        %   mhResults      : struct with fields mhValue (Nx1) and mhSamples (NxP) (samples in NATURAL LOG units)
-        %   FIM            : numeric PxP or cell array of such; optional
-        %   fimScale       : 'lin' (default) or anything else (no diag(pars) scaling)
-        %   mhPlotScale    : 'log10' (default) | 'log' | 'lin'  (controls axis units and FIM→cov scaling)
-        %   scatterFig     : figure handle/id to plot scatter/ellipses in (optional)
-        %   showConvergence: logical (default true) to show MH diagnostics
-        %   plotColors     : struct with optional fields:
-        %                       .scatter   -> color for scatter points (overrides colormap)
-        %                       .ellipseFIM-> string or cellstr of line specs per FIM (e.g., {'c-','b-','g-'})
-        %                       .ellipseMH -> line spec for MH mean ellipse (default 'm--')
-        %                       .marker    -> center-square edge color (default 'k')
-        %   paramSelect    : [] (default = all) OR
-        %                    numeric indices (1..#fitted) OR
-        %                    cellstr / string names (from parameter names)
-        %
-        % Notes:
-        %   - If obj.parameters missing, names default to {'\theta_1',...}
-        %   - If obj.parameters values missing, FIM 'lin' scaling uses ones (no-op)
-        %   - Works entirely in the "fitted" parameter space inferred from available info.
+        % MH + FIM plotting with parameter subsetting and correct parameter names.
+        % Works for MATLAB class objects (isprop) and structs (isfield).
         
-            % ---- defaults / input normalization ----
-            if nargin < 3,  FIM = [];          end
-            if nargin < 4 || isempty(fimScale),     fimScale   = 'lin';   end
-            if nargin < 5 || isempty(mhPlotScale),  mhPlotScale= 'log10'; end
-            if nargin < 6,  scatterFig = [];   end
+            % ---------- defaults ----------
+            if nargin < 9,  paramSelect = []; end
+            if nargin < 8 || isempty(plotColors), plotColors = struct(); end
             if nargin < 7 || isempty(showConvergence), showConvergence = true; end
-            if nargin < 8 || isempty(plotColors),     plotColors = struct();   end
-            if nargin < 9,  paramSelect = [];  end
+            if nargin < 6,  scatterFig = []; end
+            if nargin < 5 || isempty(mhPlotScale), mhPlotScale = 'log10'; end
+            if nargin < 4 || isempty(fimScale),    fimScale    = 'lin';   end
+            if nargin < 3,  FIM = []; end
+            if nargin < 2,  mhResults = []; end
         
-            % ---- tiny local accessor (avoid getfielddef) ----
-            function v = getOr(S, f, d)
-                if isstruct(S) && isfield(S,f) && ~isempty(S.(f)), v = S.(f); else, v = d; end
-            end
+            scatterColor   = getFieldOr(plotColors, 'scatter',    []);
+            ellipseFIMSpec = getFieldOr(plotColors, 'ellipseFIM', []);
+            ellipseMHSpec  = getFieldOr(plotColors, 'ellipseMH',  'm--');
+            markerColor    = getFieldOr(plotColors, 'marker',     'k');
         
-            scatterColor   = getOr(plotColors, 'scatter',    []);
-            ellipseFIMSpec = getOr(plotColors, 'ellipseFIM', []);
-            ellipseMHSpec  = getOr(plotColors, 'ellipseMH',  'm--');
-            markerColor    = getOr(plotColors, 'marker',     'k');
+            % ---------- infer parameter names & fitted mask ----------
+            [allParNames, nAll] = inferAllParamNamesPreferObj(obj, mhResults, FIM);
+            mvMaskFit = inferFittedMask(obj, nAll);
+            parNamesFit = allParNames(mvMaskFit);
         
-            % ================== Parameter names & values (base) ==================
-            % Try to get names/values from obj.parameters; otherwise infer from mhResults / FIM.
-            haveObjPars = ~isempty(obj) && isfield(obj,'parameters') && ~isempty(obj.parameters);
-            if haveObjPars
-                % obj.parameters is expected as {name, value} per row
-                parNamesAll = obj.parameters(:,1);
-                % Values may be missing; handle later
-                haveValues  = size(obj.parameters,2) >= 2 && all(cellfun(@(c) isnumeric(c)||islogical(c), obj.parameters(:,2)));
-            else
-                parNamesAll = {};
-                haveValues  = false;
-            end
+            % selection inside fitted subset
+            selIdx = resolveSelection(parNamesFit, paramSelect);
+            parNamesSel = parNamesFit(selIdx);
+            Np = numel(parNamesSel);
         
-            % Determine total parameter count P
-            if ~isempty(parNamesAll)
-                P = numel(parNamesAll);
-            else
-                P = [];
-            end
-            if isempty(P)
-                if ~isempty(mhResults) && isfield(mhResults,'mhSamples') && ~isempty(mhResults.mhSamples)
-                    P = size(mhResults.mhSamples,2);
-                elseif ~isempty(FIM)
-                    if iscell(FIM), P = size(FIM{1},1); else, P = size(FIM,1); end
-                else
-                    error('Unable to determine parameter dimension P (no names, no MH samples, no FIM).');
-                end
-                % Build default names
-                parNamesAll = arrayfun(@(i) sprintf('\\theta_{%d}', i), 1:P, 'UniformOutput', false);
-            end
+            % ---------- infer/compute centers for FIM ellipses ----------
+            parsFit_lin   = inferCentersLinear(obj, mhResults, mvMaskFit);   % 1 x Nfit (linear scale)
+            parsScaledFit = scaleVector(parsFit_lin, mhPlotScale);           % plotting scale
+            parsScaledSel = parsScaledFit(selIdx);
         
-            % "Fitted" mask: if obj.fittingOptions.modelVarsToFit exists, honor it; else all true.
-            fittedMask = true(1,P);
-            if ~isempty(obj) && isfield(obj,'fittingOptions') && ~isempty(obj.fittingOptions) ...
-               && isfield(obj.fittingOptions,'modelVarsToFit') && ~isempty(obj.fittingOptions.modelVarsToFit)
-                mv = obj.fittingOptions.modelVarsToFit;
-                if ischar(mv) && strcmpi(mv,'all')
-                    fittedMask = true(1,P);
-                elseif islogical(mv) && numel(mv)==P
-                    fittedMask = mv(:).';
-                elseif isnumeric(mv)
-                    fittedMask = false(1,P);
-                    mv = mv(:).'; mv(mv<1 | mv>P) = [];  % sanitize
-                    fittedMask(mv) = true;
-                end
-            end
-        
-            % Fitted names
-            parNamesFit = parNamesAll(fittedMask);
-            Np = numel(parNamesFit);
-            if Np < 2
-                error('At least two fitted parameters are required to draw pairwise plots.');
-            end
-        
-            % Base parameter values (linear) for possible FIM 'lin' scaling and center plotting
-            if haveObjPars && size(obj.parameters,2) >= 2
-                parsAll = cellfun(@(x) double(x), obj.parameters(:,2));
-                if numel(parsAll) ~= P, parsAll = ones(1,P); end
-            else
-                % If MH available, approximate with exp(mean(samples)) as linear center; else ones.
-                if ~isempty(mhResults) && isfield(mhResults,'mhSamples') && ~isempty(mhResults.mhSamples)
-                    parsAll = exp(mean(mhResults.mhSamples,1));  % samples are in natural-log space
-                else
-                    parsAll = ones(1,P);
-                end
-            end
-            parsFit = parsAll(fittedMask);
-        
-            % ================== FIM -> covariance (in chosen display scale) ==================
+            % ---------- FIM to covariance on selected subset ----------
             covFIM = {};
-            parsScaled = [];   % center in display scale (for square marker placement)
             if ~isempty(FIM)
-                % Normalize to cell
                 if ~iscell(FIM), FIM = {FIM}; end
         
-                % Work in fitted subspace always
-                for iF = 1:numel(FIM)
-                    Fi = FIM{iF};
-                    if ~ismatrix(Fi) || size(Fi,1) ~= size(Fi,2) || size(Fi,1) ~= P
-                        error('Each FIM must be a %dx%d square matrix (full parameter space).', P, P);
+                % sanity on full size (use first non-empty)
+                Fi0 = [];
+                for iF=1:numel(FIM)
+                    if ~isempty(FIM{iF}), Fi0 = FIM{iF}; break; end
+                end
+                if ~isempty(Fi0)
+                    if ~ismatrix(Fi0) || size(Fi0,1) ~= size(Fi0,2)
+                        error('Each FIM must be square; got %dx%d.', size(Fi0,1), size(Fi0,2));
                     end
-                    Fi = Fi(fittedMask, fittedMask);
-        
-                    % Optional linear scaling by parameter values (Fi_lin = diag(pars)*Fi*diag(pars))
-                    if isempty(fimScale) || strcmpi(fimScale,'lin')
-                        Dp = diag(parsFit);
-                        Fi = Dp * Fi * Dp;
-                    end
-        
-                    % Symmetrize and guard eigenvalues
-                    Fi = 0.5*(Fi+Fi.');
-                    lam = eig(Fi);
-                    if any(~isfinite(lam))
-                        error('FIM contains non-finite values.');
-                    end
-        
-                    % Convert FIM -> covariance in the display scale:
-                    % If plotting in log10, cov_log10 = inv(FIM) / (log(10))^2
-                    % If plotting in log (natural), cov_log = inv(FIM)
-                    % If 'lin', also inv(FIM) (axes in linear values), but we'll still label log axes per mhPlotScale.
-                    switch lower(mhPlotScale)
-                        case 'log10'
-                            covFIM{end+1} = inv(Fi) / (log(10)^2);
-                        case 'log'
-                            covFIM{end+1} = inv(Fi);
-                        otherwise % 'lin' or anything else
-                            covFIM{end+1} = inv(Fi);
+                    if size(Fi0,1) ~= nAll
+                        error('Each FIM must be a %dx%d square matrix (full parameter space).', nAll, nAll);
                     end
                 end
         
-                % Build display-scale centers from parsFit
-                switch lower(mhPlotScale)
-                    case 'log10', parsScaled = log10(max(parsFit, realmin));
-                    case 'log',   parsScaled = log(max(parsFit, realmin));
-                    otherwise,    parsScaled = parsFit;
+                covFIM = cell(size(FIM));
+                for iF = 1:numel(FIM)
+                    Fi = FIM{iF};
+                    if isempty(Fi), covFIM{iF} = []; continue; end
+        
+                    % restrict to fitted subset
+                    Fi = Fi(mvMaskFit, mvMaskFit);
+                    Fi = 0.5*(Fi+Fi.');                    % symmetrize
+        
+                    % invert safely
+                    lamMin = 1e-12;
+                    [V,D]  = eig(Fi);
+                    lam    = diag(D);
+                    lam    = max(lam, lamMin);
+                    Ci     = V*diag(1./lam)*V.';           % covariance (fitted subspace)
+                    Ci     = 0.5*(Ci+Ci.');
+        
+                    % now to selected subset (inside fitted)
+                    covFIM{iF} = Ci(selIdx, selIdx);
                 end
             end
         
-            % ================== MH subselection and preparation ==================
-            haveMH = ~isempty(mhResults) && isfield(mhResults,'mhSamples') && ~isempty(mhResults.mhSamples);
-            if haveMH
-                % Convergence plots
-                if showConvergence
-                    fg = figure; set(0,'CurrentFigure',fg);
-                    plot(mhResults.mhValue);
+            % ---------- MH results & convergence ----------
+            smplSelScaled = [];
+            valSorted = [];
+            if ~isempty(mhResults) && hasFieldOrProp(mhResults,'mhSamples') && ~isempty(mhResults.mhSamples)
+                if showConvergence && hasFieldOrProp(mhResults,'mhValue') && ~isempty(mhResults.mhValue)
+                    figure; plot(mhResults.mhValue);
                     xlabel('Iteration number'); ylabel('log-likelihood'); title('MH Convergence');
         
-                    fg = figure; set(0,'CurrentFigure',fg);
+                    figure;
                     ac = xcorr(mhResults.mhValue - mean(mhResults.mhValue), 'normalized');
                     ac = ac(numel(mhResults.mhValue):end);
-                    N  = numel(mhResults.mhValue);
-                    plot(ac,'LineWidth',2); hold on;
-                    tau  = 1 + 2*sum(ac(2:floor(N/100))); %#ok<*NASGU>
-                    Neff = N / max(tau,eps);
+                    plot(ac, 'LineWidth', 3); hold on
+                    N = numel(mhResults.mhValue);
+                    tau = 1 + 2*sum(ac(2:max(2,floor(N/100))));
+                    Neff = N / max(tau, eps); %#ok<NASGU>
                     xlabel('Lag'); ylabel('Auto-correlation'); title('MH Convergence');
                 end
         
-                % Second half of chain, sorted by likelihood (for nicer color order)
+                % second half of chain, sorted by value if available
                 mh2 = mhResults;
-                mh2.mhValue   = mh2.mhValue(  floor(end/2):end );
-                mh2.mhSamples = mh2.mhSamples(floor(end/2):end, :);
-                [valDoneSorted, J] = sort(mh2.mhValue);
-                smplDone = mh2.mhSamples(J, :);           % natural log samples, full P
+                halfIdx = floor(size(mh2.mhSamples,1)/2);
+                mh2.mhSamples = mh2.mhSamples(halfIdx:end, :);
+                if hasFieldOrProp(mh2,'mhValue') && ~isempty(mh2.mhValue)
+                    mh2.mhValue   = mh2.mhValue(halfIdx:end);
+                    [valSorted, J] = sort(mh2.mhValue);
+                    smplDone = mh2.mhSamples(J, :);
+                else
+                    smplDone = mh2.mhSamples;
+                    valSorted = []; % no coloring by value
+                end
         
-                % Restrict to fitted columns
-                smplDoneFit = smplDone(:, fittedMask);    % N x Np
+                % map to fitted, then selected subset
+                smplFit = smplDone(:, mvMaskFit);     % (Ns x Nfit), samples typically natural log
+                smplSel = smplFit(:, selIdx);         % (Ns x Np)
+                smplSelScaled = scaleSamplesMatrix(smplSel, mhPlotScale);
         
-                % Simple diagnostics
-                mhMeans = mean(smplDoneFit) ./ log(10);   % report in log10 for convenience
-                mhStds  = std(smplDoneFit)  ./ log(10);
-                fprintf('\nMH sample means and stds (log10) for fitted parameters:\n');
+                % print summary with REAL NAMES
+                mhMeans = mean(smplSelScaled, 1);
+                mhStds  =  std(smplSelScaled, 0, 1);
+                switch lower(mhPlotScale)
+                    case 'log10', tag = 'log10';
+                    case 'log',   tag = 'natural log';
+                    otherwise,    tag = 'linear';
+                end
+                fprintf('\nMH sample means and stds (%s scale):\n', tag);
                 for p = 1:Np
-                    fprintf('%15s: mean = % .4f, std = %.4f\n', parNamesFit{p}, mhMeans(p), mhStds(p));
-                end
-            else
-                smplDoneFit = [];
-                valDoneSorted = [];
-            end
-        
-            % ================== Normalize paramSelect to indices in fitted space ==================
-            if isempty(paramSelect)
-                selIdx = 1:Np;
-            elseif iscell(paramSelect) || isstring(paramSelect) || ischar(paramSelect)
-                namesWanted = cellstr(paramSelect);
-                [tf, loc] = ismember(namesWanted, parNamesFit);
-                if any(~tf)
-                    error('Unknown parameter name(s): %s. Available: %s', ...
-                          strjoin(namesWanted(~tf), ', '), strjoin(parNamesFit, ', '));
-                end
-                selIdx = loc(:).';
-            else
-                selIdx = unique(paramSelect(:).');
-                if any(selIdx < 1 | selIdx > Np)
-                    error('paramSelect must be indices in 1..%d (fitted parameters).', Np);
+                    fprintf('%15s: mean = % .4f, std = %.4f\n', parNamesSel{p}, mhMeans(p), mhStds(p));
                 end
             end
         
-            % Build display-space arrays
-            parNamesDisp   = parNamesFit(selIdx);
-            Ns             = numel(selIdx);
-            parsScaledDisp = [];
-            if ~isempty(parsScaled), parsScaledDisp = parsScaled(selIdx); end
+            % ---------- scatter subplots + ellipses ----------
+            if isempty(scatterFig), fg = figure; else, fg = figure(scatterFig); end
+            set(0,'CurrentFigure',fg);
         
-            covFIMdisp = {};
-            for iF = 1:numel(covFIM)
-                C = covFIM{iF};
-                covFIMdisp{iF} = C(selIdx, selIdx);
-            end
+            chi2val = icdf('chi2', 0.90, 2);  % 90% contour
         
-            haveMHdisp = haveMH && ~isempty(smplDoneFit);
-            if haveMHdisp
-                smplDoneDisp = smplDoneFit(:, selIdx);  % still NATURAL LOG; convert per-axis when plotting
-            end
+            for i = 1:Np-1
+                for j = i+1:Np
+                    subplot(Np-1, Np-1, (i-1)*(Np-1) + j-1); hold on; grid on; axis equal
         
-            % ================== Scatter / ellipse figure ==================
-            if isempty(scatterFig)
-                fg = figure; set(0,'CurrentFigure', fg); clf;
-            else
-                fg = figure(scatterFig); set(0,'CurrentFigure', fg); clf(fg);
-            end
-        
-            % Axis label helpers
-            switch lower(mhPlotScale)
-                case 'log10', axFmt = @(s) sprintf('log_{10}(%s)', s);
-                case 'log',   axFmt = @(s) sprintf('log(%s)',     s);
-                otherwise,    axFmt = @(s) sprintf('%s',          s);
-            end
-        
-            % Fallback ellipse color cycling
-            fallbackCols = {'k-','c-','b-','g-','r-'};
-        
-            % Grid of (Ns-1) x (Ns-1) subplots for i<j
-            if Ns < 2
-                warning('Only one parameter selected — nothing to plot pairwise.'); 
-                return;
-            end
-            chi2v = icdf('chi2', 0.9, 2);  % 90% contour by default
-        
-            for i = 1:Ns-1
-                for j = i+1:Ns
-                    subplot(Ns-1, Ns-1, (i-1)*(Ns-1) + (j-1));
-        
-                    % ----- MH scatter (convert each column to display scale on the fly) -----
-                    if haveMHdisp
-                        switch lower(mhPlotScale)
-                            case 'log10'
-                                xdat = smplDoneDisp(:,j) / log(10);
-                                ydat = smplDoneDisp(:,i) / log(10);
-                            case 'log'
-                                xdat = smplDoneDisp(:,j);
-                                ydat = smplDoneDisp(:,i);
-                            otherwise % 'lin'
-                                xdat = exp(smplDoneDisp(:,j));
-                                ydat = exp(smplDoneDisp(:,i));
-                        end
-        
+                    % MH scatter (colored by value if available)
+                    if ~isempty(smplSelScaled)
+                        x = smplSelScaled(:, j);
+                        y = smplSelScaled(:, i);
                         if isempty(scatterColor)
-                            scatter(xdat, ydat, 20, valDoneSorted, 'filled'); hold on;
+                            if ~isempty(valSorted)
+                                scatter(x, y, 20, valSorted, 'filled');
+                            else
+                                scatter(x, y, 20, 'filled');
+                            end
                         else
-                            scatter(xdat, ydat, 20, 'filled', ...
-                                    'MarkerEdgeColor', scatterColor, ...
-                                    'MarkerFaceColor', scatterColor); hold on;
+                            scatter(x, y, 20, scatterColor, 'filled');
                         end
         
-                        % MH mean / covariance (in display scale)
-                        xcol = xdat; ycol = ydat;
-                        par0  = [mean(xcol), mean(ycol)];
-                        cov12 = cov(xcol, ycol);
+                        % MH empirical ellipse
+                        mu = [mean(x), mean(y)];
+                        C  = cov(x, y);
+                        ssit.parest.ellipse(mu, chi2val * C, ellipseSpecOr(ellipseMHSpec,'m--'), 'LineWidth', 2);
                     end
         
-                    % ----- FIM ellipses (already in display scale via covFIMdisp) -----
-                    if ~isempty(covFIMdisp)
-                        for iF = 1:numel(covFIMdisp)
-                            Cij = covFIMdisp{iF}([j i],[j i]);     % order [x=j, y=i]
-                            if ~isempty(parsScaledDisp)
-                                switch lower(mhPlotScale)
-                                    case {'log10','log'}
-                                        mu = parsScaledDisp([j i]);          % already in display scale
-                                    otherwise % 'lin'
-                                        mu = parsScaledDisp([j i]);          % already linear
-                                end
-                            else
-                                mu = [0 0];
-                            end
+                    % FIM ellipses (selected subset)
+                    if ~isempty(covFIM)
+                        for iF = 1:numel(covFIM)
+                            if isempty(covFIM{iF}), continue; end
+                            muF = [parsScaledSel(j), parsScaledSel(i)];
+                            Ci  = covFIM{iF}([j i],[j i]);
         
-                            % Choose spec
-                            if iscell(ellipseFIMSpec) && numel(ellipseFIMSpec) >= iF
-                                spec = ellipseFIMSpec{iF};
-                            elseif ~iscell(ellipseFIMSpec) && ~isempty(ellipseFIMSpec)
-                                spec = ellipseFIMSpec;
-                            else
-                                spec = fallbackCols{mod(iF-1, numel(fallbackCols)) + 1};
+                            spec = ellipseSpecOr(ellipseFIMSpec, 'k-'); % default cycle below if empty
+                            if isempty(ellipseFIMSpec)
+                                cyc = {'k-','c-','b-','g-','r-'};
+                                spec = cyc{ mod(iF-1, numel(cyc)) + 1 };
                             end
-        
-                            ssit.parest.ellipse(mu, chi2v*Cij, spec, 'LineWidth', 2); hold on;
-        
-                            % Center square (fixed LineWidth=2)
-                            if ~isempty(parsScaledDisp)
-                                plot(mu(1), mu(2), 's', 'MarkerSize', 12, ...
-                                     'MarkerEdgeColor', markerColor, ...
-                                     'MarkerFaceColor', 'w', 'LineWidth', 2);
-                            end
+                            ssit.parest.ellipse(muF, chi2val * Ci, spec, 'LineWidth', 2);
                         end
                     end
         
-                    % ----- MH mean ellipse (magenta dashed by default) -----
-                    if haveMHdisp && all(isfinite(cov12(:))) && all(diag(cov12)>0)
-                        ssit.parest.ellipse(par0, chi2v*cov12, ellipseMHSpec, 'LineWidth', 2); hold on;
-                    end
+                    % center marker (theta0) with fixed linewidth = 2
+                    plot(parsScaledSel(j), parsScaledSel(i), 's', 'MarkerSize', 10, ...
+                         'MarkerFaceColor', 'w', 'MarkerEdgeColor', markerColor, 'LineWidth', 2);
         
-                    xlabel(axFmt(parNamesDisp{j}));
-                    ylabel(axFmt(parNamesDisp{i}));
-                    axis equal; grid on;
+                    % axis labels reflect plotting scale 
+                    switch lower(mhPlotScale)
+                        case 'log10'
+                            xlabel(sprintf('log_{10}(%s)', parNamesSel{j}));
+                            ylabel(sprintf('log_{10}(%s)', parNamesSel{i}));
+                        case 'log'
+                            xlabel(sprintf('log(%s)', parNamesSel{j}));
+                            ylabel(sprintf('log(%s)', parNamesSel{i}));
+                        otherwise
+                            xlabel(parNamesSel{j}); ylabel(parNamesSel{i});
+                    end
                 end
+            end
+        
+            % ================= helpers =================
+            function v = getFieldOr(S, fld, defaultVal)
+                if isstruct(S) && isfield(S, fld), v = S.(fld);
+                elseif ~isstruct(S) && isprop(S, fld), v = S.(fld);
+                else, v = defaultVal; end
+            end
+        
+            function tf = hasFieldOrProp(S, fld)
+                tf = (isstruct(S) && isfield(S, fld)) || (~isstruct(S) && isprop(S, fld));
+            end
+        
+            function [names, n] = inferAllParamNamesPreferObj(o, mh, fim)
+                names = {};
+                if ~isempty(o) && hasFieldOrProp(o,'parameters') && ~isempty(o.parameters)
+                    cand = o.parameters(:,1);
+                    if isstring(cand), cand = cellstr(cand); end
+                    if ischar(cand),   cand = {cand};       end
+                    if iscell(cand) && ~isempty(cand)
+                        names = cand(:).';
+                    end
+                end
+                % 2) mhResults.paramNames
+                if isempty(names) && ~isempty(mh) && hasFieldOrProp(mh,'paramNames') && ~isempty(mh.paramNames)
+                    cand = mh.paramNames;
+                    if isstring(cand), cand = cellstr(cand); end
+                    if ischar(cand),   cand = {cand};       end
+                    if iscell(cand), names = cand(:).'; end
+                end
+                % 3) derive n from FIM or samples, build \theta_i
+                if isempty(names)
+                    if ~isempty(fim)
+                        if iscell(fim) && ~isempty(fim{1}), n = size(fim{1},1);
+                        elseif isnumeric(fim), n = size(fim,1);
+                        else, n = [];
+                        end
+                    elseif ~isempty(mh) && hasFieldOrProp(mh,'mhSamples') && ~isempty(mh.mhSamples)
+                        n = size(mh.mhSamples,2);
+                    else
+                        error('Cannot infer number of parameters: no obj.parameters, no FIM, no mhSamples.');
+                    end
+                    names = arrayfun(@(k) sprintf('\\theta_{%d}',k), 1:n, 'UniformOutput', false);
+                end
+                n = numel(names);
+            end
+        
+            function mask = inferFittedMask(o, n)
+                % default: all fitted
+                mask = true(n,1);
+                if ~isempty(o) && hasFieldOrProp(o,'fittingOptions') ...
+                        && ~isempty(o.fittingOptions) ...
+                        && (isstruct(o.fittingOptions) || isobject(o.fittingOptions)) ...
+                        && isfieldOrProp(o.fittingOptions,'modelVarsToFit')
+                    mv = o.fittingOptions.modelVarsToFit;
+                    if ischar(mv) || (isstring(mv) && strlength(mv)==1)
+                        if strcmpi(string(mv), 'all'); mask = true(n,1); return; end
+                    end
+                    if islogical(mv)
+                        mask = mv(:);
+                        mask = padOrTrimMask(mask, n);
+                    elseif isnumeric(mv)
+                        mask = false(n,1);
+                        mv = mv(:);
+                        mv(mv<1 | mv>n) = []; % clamp to safe range
+                        mask(mv) = true;
+                    end
+                end
+            end
+        
+            function tf = isfieldOrProp(S, fld)
+                tf = (isstruct(S) && isfield(S, fld)) || (~isstruct(S) && isprop(S, fld));
+            end
+        
+            function m = padOrTrimMask(m, n)
+                if numel(m) < n, m(end+1:n) = false; end
+                if numel(m) > n, m = m(1:n);        end
+            end
+        
+            function idx = resolveSelection(fitNames, sel)
+                if isempty(sel)
+                    idx = 1:numel(fitNames);
+                elseif isnumeric(sel)
+                    if any(sel < 1 | sel > numel(fitNames))
+                        error('paramSelect indices must be in 1..%d within the fitted subset.', numel(fitNames));
+                    end
+                    idx = sel(:).';
+                else
+                    if isstring(sel), sel = cellstr(sel); end
+                    if ischar(sel),   sel = {sel};       end
+                    [tf, loc] = ismember(sel, fitNames);
+                    if any(~tf)
+                        error('Unknown parameter name(s) in paramSelect: %s. Available: %s', ...
+                              strjoin(sel(~tf), ', '), strjoin(fitNames, ', '));
+                    end
+                    idx = loc(:).';
+                end
+            end
+        
+            function pars_lin = inferCentersLinear(o, mh, maskFit)
+                % Try obj.parameters(:,2) first; else MH means on linear scale.
+                pars_lin = [];
+                if ~isempty(o) && hasFieldOrProp(o,'parameters') && ~isempty(o.parameters) ...
+                        && size(o.parameters,2) >= 2
+                    vals = o.parameters(:,2);
+                    try
+                        vals = [vals{:}];
+                        pars_lin = vals(maskFit); % numeric
+                    catch
+                        pars_lin = [];
+                    end
+                end
+                if isempty(pars_lin)
+                    if ~isempty(mh) && hasFieldOrProp(mh,'mhSamples') && ~isempty(mh.mhSamples)
+                        smpl = mh.mhSamples;
+                        halfIdx = floor(size(smpl,1)/2);
+                        smpl = smpl(halfIdx:end, :);      % second half
+                        smplFit = smpl(:, find(maskFit)); % map to fitted
+                        % Samples are typically in natural log. Convert to linear via exp(mean).
+                        pars_lin = exp(mean(smplFit, 1));
+                    else
+                        pars_lin = ones(1, sum(maskFit)); % fallback
+                    end
+                end
+            end
+        
+            function y = scaleVector(x, mode)
+                switch lower(mode)
+                    case 'log10', y = log10(x);
+                    case 'log',   y = log(x);
+                    otherwise,    y = x;
+                end
+            end
+        
+            function Mscaled = scaleSamplesMatrix(M, mode)
+                % Assume MH samples are in natural log of parameters (common).
+                switch lower(mode)
+                    case 'log10' % natural log -> log10
+                        Mscaled = M / log(10);
+                    case 'log'   % already natural log
+                        Mscaled = M;
+                    otherwise    % linear
+                        Mscaled = exp(M);
+                end
+            end
+        
+            function spec = ellipseSpecOr(s, def)
+                if isempty(s), spec = def; else, spec = s; end
             end
         end
         
