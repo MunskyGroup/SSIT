@@ -161,12 +161,10 @@ STL1_4state.tSpan = linspace(0,50,200);
 
 
 %% Save FSP models & solutions
-saveNames = unique({'Model_FSP'
-    'Model_FSPsoln'
+saveNames = unique({
+    'Model_FSP'
     'STL1_FSP'
-    'STL1_FSPsoln'
     'STL1_4state_FSP'
-    'STL1_4state_FSPsoln'
     });
     
 save('example_4_SolveSSITModels_FSP',saveNames{:})

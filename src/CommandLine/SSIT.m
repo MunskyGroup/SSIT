@@ -6317,194 +6317,436 @@ end
             end
 
 
-        function plotMHResults(obj,mhResults,FIM,fimScale,mhPlotScale,scatterFig,showConvergence)
-            arguments
-                obj
-                mhResults = [];
-                FIM =[];
-                fimScale = 'lin';
-                mhPlotScale = 'log10';
-                scatterFig = [];
-                showConvergence = true
-            end
-
-            % Use saved MH results if not provided directly
-            if nargin==1
-                mhResults = obj.Solutions.mhResults;
-            end
-
-            obj.plotMHResultsStatic(obj,mhResults,FIM,fimScale,mhPlotScale,scatterFig)
+        function plotMHResults(obj, mhResults, varargin)
+            % plotMHResults  Flexible wrapper for plotMHResultsStatic.
+            % Usage examples:
+            %   obj.plotMHResults(mhResults);                          % defaults
+            %   obj.plotMHResults(mhResults, 'paramSelect',[1 2 3]);   % pick params by index
+            %   obj.plotMHResults(mhResults, 'paramSelect',{'k12','k34','kr4'});
+            %   obj.plotMHResults(mhResults, [], 'fimScale','lin', 'mhPlotScale','log10');
+            %   obj.plotMHResults(mhResults, [], [], [], [], [], false, ...
+            %                     'plotColors', struct('ellipseFIM',{'c-','b-','g-'}));
+            
+                % Defaults that match plotMHResultsStatic
+                FIM           = [];
+                fimScale      = "lin";
+                mhPlotScale   = "log10";
+                scatterFig    = [];
+                showConv      = true;
+                plotColors    = struct();
+                paramSelect   = [];
+            
+                % Use saved MH results if not provided
+                if nargin==1 || isempty(mhResults)
+                    if isfield(obj, 'Solutions') && isfield(obj.Solutions,'mhResults')
+                        mhResults = obj.Solutions.mhResults;
+                    else
+                        error('No mhResults provided and obj.Solutions.mhResults not found.');
+                    end
+                end
+            
+                % --- Parse varargin: first consume up to 5 optional POSITIONAL args
+                %     (FIM, fimScale, mhPlotScale, scatterFig, showConv),
+                %     then handle NAME-VALUE pairs.
+                posNames  = {'FIM','fimScale','mhPlotScale','scatterFig','showConv'};
+                posCount  = 0;
+                k = 1;
+                while k <= numel(varargin)
+                    v = varargin{k};
+                    if ischar(v) || (isstring(v) && isscalar(v))
+                        break; % name-value section starts
+                    end
+                    posCount = posCount + 1;
+                    switch posCount
+                        case 1, FIM         = v;
+                        case 2, fimScale    = string(v);
+                        case 3, mhPlotScale = string(v);
+                        case 4, scatterFig  = v;
+                        case 5, showConv    = logical(v);
+                        otherwise
+                            error('Too many positional arguments. Expected at most: %s', strjoin(posNames,', '));
+                    end
+                    k = k + 1;
+                end
+            
+                % --- Remaining: name-value pairs
+                if mod(numel(varargin)-k+1,2) ~= 0
+                    error('Name-value arguments must come in pairs.');
+                end
+                while k <= numel(varargin)
+                    name = varargin{k};   val = varargin{k+1};
+                    name = string(name);
+                    switch lower(name)
+                        case "fim"
+                            FIM = val;
+                        case "fimscale"
+                            fimScale = string(val);
+                        case "mhplotscale"
+                            mhPlotScale = string(val);
+                        case "scatterfig"
+                            scatterFig = val;
+                        case "showconvergence"
+                            showConv = logical(val);
+                        case "plotcolors"
+                            plotColors = val;
+                        case "paramselect"
+                            paramSelect = val;   % indices or names
+                        otherwise
+                            error('Unknown name-value argument: %s', name);
+                    end
+                    k = k + 2;
+                end
+            
+                % --- Delegate
+                SSIT.plotMHResultsStatic(obj, mhResults, FIM, fimScale, mhPlotScale, ...
+                                         scatterFig, showConv, plotColors, paramSelect);
         end
     end
     methods (Static)
-        function plotMHResultsStatic(obj,mhResults,FIM,fimScale,mhPlotScale,scatterFig,showConvergence,plotColors)
-            arguments
-                obj
-                mhResults = [];
-                FIM =[];
-                fimScale = 'lin';
-                mhPlotScale = 'log10';
-                scatterFig = [];
-                showConvergence = true;
-                plotColors = struct() % Optional: fields like scatter, ellipseFIM, ellipseMH, etc.
+        function plotMHResultsStatic(obj, mhResults, FIM, fimScale, mhPlotScale, scatterFig, showConvergence, plotColors, paramSelect)
+        % plotMHResultsStatic
+        %   Robust MH scatter + FIM ellipse plotting with optional parameter subset selection.
+        %
+        % Signature:
+        %   plotMHResultsStatic(obj, mhResults, FIM, fimScale, mhPlotScale, scatterFig, showConvergence, plotColors, paramSelect)
+        %
+        % Inputs (all optional except obj):
+        %   mhResults      : struct with fields mhValue (Nx1) and mhSamples (NxP) (samples in NATURAL LOG units)
+        %   FIM            : numeric PxP or cell array of such; optional
+        %   fimScale       : 'lin' (default) or anything else (no diag(pars) scaling)
+        %   mhPlotScale    : 'log10' (default) | 'log' | 'lin'  (controls axis units and FIM→cov scaling)
+        %   scatterFig     : figure handle/id to plot scatter/ellipses in (optional)
+        %   showConvergence: logical (default true) to show MH diagnostics
+        %   plotColors     : struct with optional fields:
+        %                       .scatter   -> color for scatter points (overrides colormap)
+        %                       .ellipseFIM-> string or cellstr of line specs per FIM (e.g., {'c-','b-','g-'})
+        %                       .ellipseMH -> line spec for MH mean ellipse (default 'm--')
+        %                       .marker    -> center-square edge color (default 'k')
+        %   paramSelect    : [] (default = all) OR
+        %                    numeric indices (1..#fitted) OR
+        %                    cellstr / string names (from parameter names)
+        %
+        % Notes:
+        %   - If obj.parameters missing, names default to {'\theta_1',...}
+        %   - If obj.parameters values missing, FIM 'lin' scaling uses ones (no-op)
+        %   - Works entirely in the "fitted" parameter space inferred from available info.
+        
+            % ---- defaults / input normalization ----
+            if nargin < 3,  FIM = [];          end
+            if nargin < 4 || isempty(fimScale),     fimScale   = 'lin';   end
+            if nargin < 5 || isempty(mhPlotScale),  mhPlotScale= 'log10'; end
+            if nargin < 6,  scatterFig = [];   end
+            if nargin < 7 || isempty(showConvergence), showConvergence = true; end
+            if nargin < 8 || isempty(plotColors),     plotColors = struct();   end
+            if nargin < 9,  paramSelect = [];  end
+        
+            % ---- tiny local accessor (avoid getfielddef) ----
+            function v = getOr(S, f, d)
+                if isstruct(S) && isfield(S,f) && ~isempty(S.(f)), v = S.(f); else, v = d; end
             end
-
-            if isfield(plotColors, 'scatter')
-                scatterColor = plotColors.scatter;
+        
+            scatterColor   = getOr(plotColors, 'scatter',    []);
+            ellipseFIMSpec = getOr(plotColors, 'ellipseFIM', []);
+            ellipseMHSpec  = getOr(plotColors, 'ellipseMH',  'm--');
+            markerColor    = getOr(plotColors, 'marker',     'k');
+        
+            % ================== Parameter names & values (base) ==================
+            % Try to get names/values from obj.parameters; otherwise infer from mhResults / FIM.
+            haveObjPars = ~isempty(obj) && isfield(obj,'parameters') && ~isempty(obj.parameters);
+            if haveObjPars
+                % obj.parameters is expected as {name, value} per row
+                parNamesAll = obj.parameters(:,1);
+                % Values may be missing; handle later
+                haveValues  = size(obj.parameters,2) >= 2 && all(cellfun(@(c) isnumeric(c)||islogical(c), obj.parameters(:,2)));
             else
-                scatterColor = [];
+                parNamesAll = {};
+                haveValues  = false;
             end
-
-            if isfield(plotColors, 'ellipseFIM')
-                ellipseFIMColor = plotColors.ellipseFIM;
+        
+            % Determine total parameter count P
+            if ~isempty(parNamesAll)
+                P = numel(parNamesAll);
             else
-                ellipseFIMColor = [];
+                P = [];
             end
-
-            if isfield(plotColors, 'ellipseMH')
-                ellipseMHColor = plotColors.ellipseMH;
-            else
-                ellipseMHColor = 'm--';
-            end
-
-            if isfield(plotColors, 'marker')
-                markerColor = plotColors.marker;
-            else
-                markerColor = 'k';
-            end
-
-            if isempty(obj)
-                obj.fittingOptions.modelVarsToFit = 'all';
-                obj.parameters(:,2) = num2cell(mean(exp(mhResults.mhSamples)));
-            end
-
-            if strcmp(obj.fittingOptions.modelVarsToFit,'all')
-                obj.fittingOptions.modelVarsToFit = ones(1,size(obj.parameters,1),'logical');
-            end
-            parNames = obj.parameters(obj.fittingOptions.modelVarsToFit,1);
-            Np = length(parNames);
-
-            if ~isempty(FIM)
-                pars = [obj.parameters{obj.fittingOptions.modelVarsToFit,2}];
-
-                if isempty(mhPlotScale)||strcmp(mhPlotScale,'log10')
-                    parsScaled = log10(pars);
-                elseif strcmp(mhPlotScale,'log')
-                    parsScaled = log(pars);
-                elseif strcmp(mhPlotScale,'lin')
-                    parsScaled = pars;
-                end
-
-                if ~iscell(FIM)
-                    FIM = {FIM};
-                end
-                %     FIM = diag(pars)*...
-                %         FIM(obj.fittingOptions.modelVarsToFit,obj.fittingOptions.modelVarsToFit)*...
-                %         diag(pars);
-                %     covFIM{1} = FIM^(-1)/log(10)^2;
-                % else
-                for i=1:length(FIM)
-                    if isempty(fimScale)||strcmp(fimScale,'lin')
-                        FIMi = diag(pars)*...
-                            FIM{i}(obj.fittingOptions.modelVarsToFit,obj.fittingOptions.modelVarsToFit)*...
-                            diag(pars);
-                    else
-                        FIMi = FIM{i};
-                    end
-                    FIMi = FIMi(obj.fittingOptions.modelVarsToFit,obj.fittingOptions.modelVarsToFit);
-                    if isempty(mhPlotScale)||strcmp(mhPlotScale,'log10')
-                        covFIM{i} = FIMi^(-1)/log(10)^2;
-                    elseif min(eig(FIMi))<1
-                        disp('Warning -- FIM has one or more small eigenvalues.  Sanitize negative eigenvalues (numerical instability) for ellipse:')
-                        FIMi = (1/2)*(FIMi + FIMi');
-                        %covFree{i} = FIMi^(-1);
-                        covFIM{i} = FIMi;
-                    else
-                        covFIM{i} = FIMi^(-1);
-                    end
-                end
-                % end
-            end
-
-            if ~isempty(mhResults)
-                % Make figures for MH convergence
-                if showConvergence
-                    fg = figure; set(0,'CurrentFigure',fg)
-                    plot(mhResults.mhValue);
-                    xlabel('Iteration number');
-                    ylabel('log-likelihood')
-                    title('MH Convergence')
-
-                    fg = figure; set(0,'CurrentFigure',fg)
-                    ac = xcorr(mhResults.mhValue-mean(mhResults.mhValue),'normalized');
-                    ac = ac(size(mhResults.mhValue,1):end);
-                    plot(ac,'LineWidth',3); hold on
-                    N = size(mhResults.mhValue,1);
-                    tau = 1+2*sum((ac(2:N/100)));
-                    Neff = N/tau;
-                    xlabel('Lag');
-                    ylabel('Auto-correlation')
-                    title('MH Convergence')
-                end
-
-                if isempty(scatterFig)
-                    fg = figure; set(0,'CurrentFigure',fg);
+            if isempty(P)
+                if ~isempty(mhResults) && isfield(mhResults,'mhSamples') && ~isempty(mhResults.mhSamples)
+                    P = size(mhResults.mhSamples,2);
+                elseif ~isempty(FIM)
+                    if iscell(FIM), P = size(FIM{1},1); else, P = size(FIM,1); end
                 else
-                    fg = figure(scatterFig); set(0,'CurrentFigure',fg)
+                    error('Unable to determine parameter dimension P (no names, no MH samples, no FIM).');
                 end
-
-
-                % Select second half of MH chain.
-                mhResultsSecondHalf = mhResults;
-                mhResultsSecondHalf.mhValue = mhResultsSecondHalf.mhValue(floor(end/2):end);
-                mhResultsSecondHalf.mhSamples = mhResultsSecondHalf.mhSamples(floor(end/2):end,:);
-                [valDoneSorted,J] = sort(mhResultsSecondHalf.mhValue);
-                smplDone = mhResultsSecondHalf.mhSamples(J,:);
-
-                % Compute and display parameter means and standard deviations
-                mhMeans = mean(smplDone) / log(10);   % log10 scale
-                mhStds  = std(smplDone) / log(10);
-
-                fprintf('\nMH sample means and standard deviations (log10 scale):\n');
-                for p = 1:Np
-                    fprintf('%15s: mean = % .4f, std = %.4f\n', parNames{p}, mhMeans(p), mhStds(p));
-                end
-
+                % Build default names
+                parNamesAll = arrayfun(@(i) sprintf('\\theta_{%d}', i), 1:P, 'UniformOutput', false);
             end
-
-            fimCols = {'k','c','b','g','r'};
-
-            for i=1:Np-1
-                for j = i+1:Np
-                    subplot(Np-1,Np-1,(i-1)*(Np-1)+j-1);
-
-                    if exist('mhResultsSecondHalf','var')&&~isempty(mhResultsSecondHalf)
-                        scatter(smplDone(:,j)/log(10),smplDone(:,i)/log(10),20,valDoneSorted,'filled'); hold on;
-                        par0 = mean(smplDone(:,[j,i])/log(10));
-                        cov12 = cov(smplDone(:,j)/log(10),smplDone(:,i)/log(10));
+        
+            % "Fitted" mask: if obj.fittingOptions.modelVarsToFit exists, honor it; else all true.
+            fittedMask = true(1,P);
+            if ~isempty(obj) && isfield(obj,'fittingOptions') && ~isempty(obj.fittingOptions) ...
+               && isfield(obj.fittingOptions,'modelVarsToFit') && ~isempty(obj.fittingOptions.modelVarsToFit)
+                mv = obj.fittingOptions.modelVarsToFit;
+                if ischar(mv) && strcmpi(mv,'all')
+                    fittedMask = true(1,P);
+                elseif islogical(mv) && numel(mv)==P
+                    fittedMask = mv(:).';
+                elseif isnumeric(mv)
+                    fittedMask = false(1,P);
+                    mv = mv(:).'; mv(mv<1 | mv>P) = [];  % sanitize
+                    fittedMask(mv) = true;
+                end
+            end
+        
+            % Fitted names
+            parNamesFit = parNamesAll(fittedMask);
+            Np = numel(parNamesFit);
+            if Np < 2
+                error('At least two fitted parameters are required to draw pairwise plots.');
+            end
+        
+            % Base parameter values (linear) for possible FIM 'lin' scaling and center plotting
+            if haveObjPars && size(obj.parameters,2) >= 2
+                parsAll = cellfun(@(x) double(x), obj.parameters(:,2));
+                if numel(parsAll) ~= P, parsAll = ones(1,P); end
+            else
+                % If MH available, approximate with exp(mean(samples)) as linear center; else ones.
+                if ~isempty(mhResults) && isfield(mhResults,'mhSamples') && ~isempty(mhResults.mhSamples)
+                    parsAll = exp(mean(mhResults.mhSamples,1));  % samples are in natural-log space
+                else
+                    parsAll = ones(1,P);
+                end
+            end
+            parsFit = parsAll(fittedMask);
+        
+            % ================== FIM -> covariance (in chosen display scale) ==================
+            covFIM = {};
+            parsScaled = [];   % center in display scale (for square marker placement)
+            if ~isempty(FIM)
+                % Normalize to cell
+                if ~iscell(FIM), FIM = {FIM}; end
+        
+                % Work in fitted subspace always
+                for iF = 1:numel(FIM)
+                    Fi = FIM{iF};
+                    if ~ismatrix(Fi) || size(Fi,1) ~= size(Fi,2) || size(Fi,1) ~= P
+                        error('Each FIM must be a %dx%d square matrix (full parameter space).', P, P);
                     end
-                    if ~isempty(FIM)
-                        for iFIM = 1:length(covFIM)
-                            ssit.parest.ellipse(parsScaled([j,i]),icdf('chi2',0.9,2)*covFIM{iFIM}([j,i],[j,i]),fimCols{mod(iFIM,5)+1},'linewidth',2); hold on;
-                            plot(parsScaled(j),parsScaled(i),'ks','MarkerSize',15)
-                            % plot(smplDone(end,j)/log(10),smplDone(end,i)/log(10),'cs','MarkerSize',15)
+                    Fi = Fi(fittedMask, fittedMask);
+        
+                    % Optional linear scaling by parameter values (Fi_lin = diag(pars)*Fi*diag(pars))
+                    if isempty(fimScale) || strcmpi(fimScale,'lin')
+                        Dp = diag(parsFit);
+                        Fi = Dp * Fi * Dp;
+                    end
+        
+                    % Symmetrize and guard eigenvalues
+                    Fi = 0.5*(Fi+Fi.');
+                    lam = eig(Fi);
+                    if any(~isfinite(lam))
+                        error('FIM contains non-finite values.');
+                    end
+        
+                    % Convert FIM -> covariance in the display scale:
+                    % If plotting in log10, cov_log10 = inv(FIM) / (log(10))^2
+                    % If plotting in log (natural), cov_log = inv(FIM)
+                    % If 'lin', also inv(FIM) (axes in linear values), but we'll still label log axes per mhPlotScale.
+                    switch lower(mhPlotScale)
+                        case 'log10'
+                            covFIM{end+1} = inv(Fi) / (log(10)^2);
+                        case 'log'
+                            covFIM{end+1} = inv(Fi);
+                        otherwise % 'lin' or anything else
+                            covFIM{end+1} = inv(Fi);
+                    end
+                end
+        
+                % Build display-scale centers from parsFit
+                switch lower(mhPlotScale)
+                    case 'log10', parsScaled = log10(max(parsFit, realmin));
+                    case 'log',   parsScaled = log(max(parsFit, realmin));
+                    otherwise,    parsScaled = parsFit;
+                end
+            end
+        
+            % ================== MH subselection and preparation ==================
+            haveMH = ~isempty(mhResults) && isfield(mhResults,'mhSamples') && ~isempty(mhResults.mhSamples);
+            if haveMH
+                % Convergence plots
+                if showConvergence
+                    fg = figure; set(0,'CurrentFigure',fg);
+                    plot(mhResults.mhValue);
+                    xlabel('Iteration number'); ylabel('log-likelihood'); title('MH Convergence');
+        
+                    fg = figure; set(0,'CurrentFigure',fg);
+                    ac = xcorr(mhResults.mhValue - mean(mhResults.mhValue), 'normalized');
+                    ac = ac(numel(mhResults.mhValue):end);
+                    N  = numel(mhResults.mhValue);
+                    plot(ac,'LineWidth',2); hold on;
+                    tau  = 1 + 2*sum(ac(2:floor(N/100))); %#ok<*NASGU>
+                    Neff = N / max(tau,eps);
+                    xlabel('Lag'); ylabel('Auto-correlation'); title('MH Convergence');
+                end
+        
+                % Second half of chain, sorted by likelihood (for nicer color order)
+                mh2 = mhResults;
+                mh2.mhValue   = mh2.mhValue(  floor(end/2):end );
+                mh2.mhSamples = mh2.mhSamples(floor(end/2):end, :);
+                [valDoneSorted, J] = sort(mh2.mhValue);
+                smplDone = mh2.mhSamples(J, :);           % natural log samples, full P
+        
+                % Restrict to fitted columns
+                smplDoneFit = smplDone(:, fittedMask);    % N x Np
+        
+                % Simple diagnostics
+                mhMeans = mean(smplDoneFit) ./ log(10);   % report in log10 for convenience
+                mhStds  = std(smplDoneFit)  ./ log(10);
+                fprintf('\nMH sample means and stds (log10) for fitted parameters:\n');
+                for p = 1:Np
+                    fprintf('%15s: mean = % .4f, std = %.4f\n', parNamesFit{p}, mhMeans(p), mhStds(p));
+                end
+            else
+                smplDoneFit = [];
+                valDoneSorted = [];
+            end
+        
+            % ================== Normalize paramSelect to indices in fitted space ==================
+            if isempty(paramSelect)
+                selIdx = 1:Np;
+            elseif iscell(paramSelect) || isstring(paramSelect) || ischar(paramSelect)
+                namesWanted = cellstr(paramSelect);
+                [tf, loc] = ismember(namesWanted, parNamesFit);
+                if any(~tf)
+                    error('Unknown parameter name(s): %s. Available: %s', ...
+                          strjoin(namesWanted(~tf), ', '), strjoin(parNamesFit, ', '));
+                end
+                selIdx = loc(:).';
+            else
+                selIdx = unique(paramSelect(:).');
+                if any(selIdx < 1 | selIdx > Np)
+                    error('paramSelect must be indices in 1..%d (fitted parameters).', Np);
+                end
+            end
+        
+            % Build display-space arrays
+            parNamesDisp   = parNamesFit(selIdx);
+            Ns             = numel(selIdx);
+            parsScaledDisp = [];
+            if ~isempty(parsScaled), parsScaledDisp = parsScaled(selIdx); end
+        
+            covFIMdisp = {};
+            for iF = 1:numel(covFIM)
+                C = covFIM{iF};
+                covFIMdisp{iF} = C(selIdx, selIdx);
+            end
+        
+            haveMHdisp = haveMH && ~isempty(smplDoneFit);
+            if haveMHdisp
+                smplDoneDisp = smplDoneFit(:, selIdx);  % still NATURAL LOG; convert per-axis when plotting
+            end
+        
+            % ================== Scatter / ellipse figure ==================
+            if isempty(scatterFig)
+                fg = figure; set(0,'CurrentFigure', fg); clf;
+            else
+                fg = figure(scatterFig); set(0,'CurrentFigure', fg); clf(fg);
+            end
+        
+            % Axis label helpers
+            switch lower(mhPlotScale)
+                case 'log10', axFmt = @(s) sprintf('log_{10}(%s)', s);
+                case 'log',   axFmt = @(s) sprintf('log(%s)',     s);
+                otherwise,    axFmt = @(s) sprintf('%s',          s);
+            end
+        
+            % Fallback ellipse color cycling
+            fallbackCols = {'k-','c-','b-','g-','r-'};
+        
+            % Grid of (Ns-1) x (Ns-1) subplots for i<j
+            if Ns < 2
+                warning('Only one parameter selected — nothing to plot pairwise.'); 
+                return;
+            end
+            chi2v = icdf('chi2', 0.9, 2);  % 90% contour by default
+        
+            for i = 1:Ns-1
+                for j = i+1:Ns
+                    subplot(Ns-1, Ns-1, (i-1)*(Ns-1) + (j-1));
+        
+                    % ----- MH scatter (convert each column to display scale on the fly) -----
+                    if haveMHdisp
+                        switch lower(mhPlotScale)
+                            case 'log10'
+                                xdat = smplDoneDisp(:,j) / log(10);
+                                ydat = smplDoneDisp(:,i) / log(10);
+                            case 'log'
+                                xdat = smplDoneDisp(:,j);
+                                ydat = smplDoneDisp(:,i);
+                            otherwise % 'lin'
+                                xdat = exp(smplDoneDisp(:,j));
+                                ydat = exp(smplDoneDisp(:,i));
+                        end
+        
+                        if isempty(scatterColor)
+                            scatter(xdat, ydat, 20, valDoneSorted, 'filled'); hold on;
+                        else
+                            scatter(xdat, ydat, 20, 'filled', ...
+                                    'MarkerEdgeColor', scatterColor, ...
+                                    'MarkerFaceColor', scatterColor); hold on;
+                        end
+        
+                        % MH mean / covariance (in display scale)
+                        xcol = xdat; ycol = ydat;
+                        par0  = [mean(xcol), mean(ycol)];
+                        cov12 = cov(xcol, ycol);
+                    end
+        
+                    % ----- FIM ellipses (already in display scale via covFIMdisp) -----
+                    if ~isempty(covFIMdisp)
+                        for iF = 1:numel(covFIMdisp)
+                            Cij = covFIMdisp{iF}([j i],[j i]);     % order [x=j, y=i]
+                            if ~isempty(parsScaledDisp)
+                                switch lower(mhPlotScale)
+                                    case {'log10','log'}
+                                        mu = parsScaledDisp([j i]);          % already in display scale
+                                    otherwise % 'lin'
+                                        mu = parsScaledDisp([j i]);          % already linear
+                                end
+                            else
+                                mu = [0 0];
+                            end
+        
+                            % Choose spec
+                            if iscell(ellipseFIMSpec) && numel(ellipseFIMSpec) >= iF
+                                spec = ellipseFIMSpec{iF};
+                            elseif ~iscell(ellipseFIMSpec) && ~isempty(ellipseFIMSpec)
+                                spec = ellipseFIMSpec;
+                            else
+                                spec = fallbackCols{mod(iF-1, numel(fallbackCols)) + 1};
+                            end
+        
+                            ssit.parest.ellipse(mu, chi2v*Cij, spec, 'LineWidth', 2); hold on;
+        
+                            % Center square (fixed LineWidth=2)
+                            if ~isempty(parsScaledDisp)
+                                plot(mu(1), mu(2), 's', 'MarkerSize', 12, ...
+                                     'MarkerEdgeColor', markerColor, ...
+                                     'MarkerFaceColor', 'w', 'LineWidth', 2);
+                            end
                         end
                     end
-                    if exist('mhResultsSecondHalf','var')&&~isempty(mhResultsSecondHalf)
-                        ssit.parest.ellipse(par0,icdf('chi2',0.9,2)*cov12,'m--','linewidth',2);  hold on;
-                        % Draw crosshairs at MH mean ± std
-                        % plot([mhMeans(j)-mhStds(j), mhMeans(j)+mhStds(j)], [mhMeans(i), mhMeans(i)], 'm-', 'LineWidth', 1.5);
-                        % plot([mhMeans(j), mhMeans(j)], [mhMeans(i)-mhStds(i), mhMeans(i)+mhStds(i)], 'm-', 'LineWidth', 1.5);
-                        %
-                        % % Annotate mean location
-                        % text(mhMeans(j), mhMeans(i), sprintf('\\leftarrow Mean'), 'Color', 'm', 'FontSize', 8, 'HorizontalAlignment', 'left');
-
+        
+                    % ----- MH mean ellipse (magenta dashed by default) -----
+                    if haveMHdisp && all(isfinite(cov12(:))) && all(diag(cov12)>0)
+                        ssit.parest.ellipse(par0, chi2v*cov12, ellipseMHSpec, 'LineWidth', 2); hold on;
                     end
-                    xlabel(['log_{10}(',parNames{j},')']);
-                    ylabel(['log_{10}(',parNames{i},')']);
+        
+                    xlabel(axFmt(parNamesDisp{j}));
+                    ylabel(axFmt(parNamesDisp{i}));
+                    axis equal; grid on;
                 end
             end
         end
+        
         function FIM = totalFim(fims,Nc,covPrior)
             arguments
                 fims

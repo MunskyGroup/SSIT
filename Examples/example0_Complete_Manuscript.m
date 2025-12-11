@@ -261,7 +261,7 @@ STL1_4state_MH = STL1_4state;
 
 % Specify Prior as log-normal distribution with wide uncertainty
 % Prior log-mean:
-mu_log10 = [0.8,3,-0.1,2,2.75,0.6,3,2.5,0,3.5,1.5,-0.15,0.5,1.5,-1];
+mu_log10 = [0.8,0,0.3,1.2,-1,1,3.5,0,2,3,0.5,3.5,3,-1,4];
 
 % Prior log-standard deviation:
 sig_log10 = 2*ones(1,15);  
