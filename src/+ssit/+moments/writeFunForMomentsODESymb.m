@@ -93,17 +93,24 @@ for im = 1:nR
         j = strfind(wString{im},logs{il});
         while ~isempty(j)
             j1 = strfind(wString{im}(1:j(1)-1),'(');
-            j2 = strfind(wString{im}(j(1)+1:end),')');
+            j1 = j1(end);
+            nV = -1;j2=j1+1;
+            while nV<0
+                j2=j2+1;
+                nV = -1 - sum(wString{im}(j1+1:j2)=='(') + sum(wString{im}(j1+1:j2)==')');
+            end
+
+            % j2 = strfind(wString{im}(j(1)+1:end),')');
             k=k+1;
-            subStrings(k,1:2) = {['$',num2str(k)],['piecewise(',wString{im}(j1(end):j+j2(1)),',1,0)']};
-            wString{im} = strrep(wString{im},wString{im}(j1(end):j+j2(1)),['$',num2str(k)]);                
+            subStrings(k,1:2) = {['$',num2str(k)],['piecewise(',wString{im}(j1:j2),',1,0)']};
+            wString{im} = strrep(wString{im},wString{im}(j1:j2),['$',num2str(k)]);                
             
             j = strfind(wString{im},logs{il});
         end
 
     end
     for ik = 1:k
-        wString{im} = strrep(wString{im},['$',num2str(k)],subStrings{k,2});
+        wString{im} = strrep(wString{im},['$',num2str(ik)],subStrings{ik,2});
     end
 
     % Change if function contains special functions that would make
