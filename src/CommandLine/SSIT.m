@@ -1470,7 +1470,7 @@ classdef SSIT
 
         end
 
-        function [pdo] = generatePDO(obj,pdoOptions,paramsPDO,fspSoln,variablePDO,maxSize)
+        function [pdo,obj] = generatePDO(obj,pdoOptions,paramsPDO,fspSoln,variablePDO,maxSize)
             %% SSIT.generatePDO - This function generates the Probabilistic
             %% Distortion Operator (PDO) according to user choice.
             %
@@ -1487,12 +1487,24 @@ classdef SSIT
             % Example:
             arguments
                 obj
-                pdoOptions
+                pdoOptions = []
                 paramsPDO = []
                 fspSoln = []
                 variablePDO =[]
                 maxSize=[];
             end
+
+            if isempty(pdoOptions)
+                pdoOptions = obj.pdoOptions;
+            end
+            if isempty(fspSoln)
+                if isfield(obj.Solutions,'fsp')
+                    fspSoln = obj.Solutions.fsp;
+                else
+                    fspSoln = obj.solve;
+                end
+            end
+
             app.DistortionTypeDropDown.Value = pdoOptions.type;
             app.FIMTabOutputs.PDOProperties.props = pdoOptions.props;
 
@@ -1514,6 +1526,10 @@ classdef SSIT
                 end
             end
             [~,pdo] = ssit.pdo.generatePDO(app,paramsPDO,fspSoln,indsObserved,variablePDO,maxSize);
+
+            if nargout>=2
+                obj.pdoOptions.PDO = pdo;
+            end
         end
 
         function [logL,P] = findPdoError(obj,pdoType,lambda,True,Distorted)

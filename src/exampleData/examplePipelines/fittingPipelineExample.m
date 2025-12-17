@@ -8,7 +8,7 @@ arguments
 end
 
 % Replace missing arguments with defaults.
-defaultArgs = struct('maxIter',1000,'display','iter','makePlot',false);
+defaultArgs = struct('maxIter',1000,'display','iter','makePlot',false,'nRounds',1);
 for ifield = fields(defaultArgs)
     if ~isfield(Args, ifield)
         Args.(ifield) = defaultArgs.(ifield);
@@ -24,7 +24,9 @@ results = [];
 fitOptions = optimset('Display',Args.display,'MaxIter',Args.maxIter);
 
 % Fit model to data
-[~,~,~,Model] = Model.maximizeLikelihood([],fitOptions);
+for iRound = 1:nRounds
+    [~,~,~,Model] = Model.maximizeLikelihood([],fitOptions);
+end
 
 % Find final FSP bounds
 [~,~,Model] = Model.solve;  

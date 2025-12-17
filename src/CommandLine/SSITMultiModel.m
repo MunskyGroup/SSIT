@@ -273,7 +273,7 @@ classdef SSITMultiModel
             arguments
                 SMM
                 parGuess = [];
-                fitOptions = optimset('Display','iter','MaxIter',10)
+                fitOptions = optimset('Display','iter','MaxIter',1000)
                 fitAlgorithm = 'fminsearch'
             end
 
