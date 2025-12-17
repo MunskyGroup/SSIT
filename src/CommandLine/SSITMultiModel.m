@@ -169,7 +169,7 @@ classdef SSITMultiModel
             arguments
                 SMM
                 parameters
-                makeplot = true
+                makeplot = false
                 fignums = [];
             end
             Nmods = length(SMM.SSITModels);

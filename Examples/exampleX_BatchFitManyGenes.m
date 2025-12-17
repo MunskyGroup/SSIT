@@ -28,7 +28,7 @@ Model_Template.pdoOptions.props.CaptureProbabilityS2 = 0.05; % 95% drop out from
 DataFileName = 'data/Raw_DEX_UpRegulatedGenes_ForSSIT.csv';
 Model_Template = Model_Template.loadData(DataFileName,{'rna','DUSP1'});
 for i=1:5; [~,~,~,Model_Template] = Model_Template.maximizeLikelihood; end
-Model_Template.makeFitPlot;
+% Model_Template.makeFitPlot;  % Cluster may crash if no display is set.
 
 %% Generate library of individual gene models
 % Specify datafile name and species linking rules
