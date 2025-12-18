@@ -24,7 +24,7 @@ results = [];
 fitOptions = optimset('Display',Args.display,'MaxIter',Args.maxIter);
 
 % Fit model to data
-for iRound = 1:nRounds
+for iRound = 1:Args.nRounds
     [~,~,~,Model] = Model.maximizeLikelihood([],fitOptions);
 end
 
