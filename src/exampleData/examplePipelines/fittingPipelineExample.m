@@ -4,7 +4,7 @@ function [results, Model] = fittingPipelineExample(Model,Args)
 % updated model.
 arguments
     Model
-    Args = struct('maxIter',1000,'display','iter','makePlot',false)
+    Args = struct('maxIter',1000,'display','iter','makePlot',false,'nRounds',1)
 end
 
 % Replace missing arguments with defaults.

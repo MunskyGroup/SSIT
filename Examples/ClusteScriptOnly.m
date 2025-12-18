@@ -14,7 +14,7 @@ DataFileName = 'data/Raw_DEX_UpRegulatedGenes_ForSSIT.csv';
 TAB = readtable(DataFileName);
 geneNames = fields(TAB);
 
-for iGene = 1:length(geneNames)
+for iGene = 1:length(geneNames)-4
     modelName = ['Model_',geneNames{iGene}];
     saveName = ['seqModels/',modelName];    
     logfile = ['logFiles/log',modelName];
