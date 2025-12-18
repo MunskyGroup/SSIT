@@ -10,6 +10,10 @@ pipelineArgs.makePlot = false;
 pipelineArgs.nRounds = 5;
 
 %% Launch cluster jobs for all genes.
+DataFileName = 'data/Raw_DEX_UpRegulatedGenes_ForSSIT.csv';
+TAB = readtable(DataFileName);
+geneNames = fields(TAB);
+
 for iGene = 1:length(geneNames)
     modelName = ['Model_',geneNames{iGene}];
     saveName = ['seqModels/',modelName];    
