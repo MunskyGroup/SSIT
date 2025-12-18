@@ -20,4 +20,5 @@ for iGene = 1:length(geneNames)-4
     logfile = ['logFiles/log',modelName];
     cmd = SSIT.generateCommandLinePipeline(saveName,modelName,[],Pipeline,...
         pipelineArgs,saveName,logfile,1,1);
+    pause(0.2);
 end
