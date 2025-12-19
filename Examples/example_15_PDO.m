@@ -91,6 +91,14 @@ set(gca,'xtick',[1:16]+0.25,'xticklabel',STL1_4state_PDO.dataSet.times,...
 legend('Intuitive Design','Optimal Design')
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%
+STL1_4state_PDO = ...
+    STL1_4state_PDO.calibratePDO('data/filtered_data_2M_NaCl_Step.csv',...
+        {'mRNA'}, {'RNA_STL1_total_TS3Full'}, {'RNA_STL1_cyto_TS3Full'},...
+        'Binomial', true);
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% PDO Calculations
 %% Ex(1): Calibrate PDO from cytoplasmic mRNA count data
 % Calibrate the PDO from empirical data. Here, the number of spots has

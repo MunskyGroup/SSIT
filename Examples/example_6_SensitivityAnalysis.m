@@ -38,7 +38,8 @@ Model_sens = Model_FSP;
 Model_sens.solutionScheme = 'fspSens'; 
 
 % Solve the sensitivity problem:
-[Model_sensSoln,Model_bounds] = Model_sens.solve(Model_FSPsoln.stateSpace);
+[Model_sensSoln,Model_bounds] = ...
+    Model_sens.solve(Model_FSP.Solutions.stateSpace);
 
 % Plot the results from the sensitivity analysis:
 Model_sens.plotFSP(Model_sensSoln, Model_FSP.species(3), 'sens', 20, [],...

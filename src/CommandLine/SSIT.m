@@ -1386,7 +1386,7 @@ classdef SSIT
                               'Columns for species "%s" are empty after filtering.', speciesStochastic{i});
                     end
 
-                    maxSize(i) = max(xTrue);
+                    maxSize(i) = max(xTrue) + 1; % conditionalPmfs{ispec}(1:j, j) = pdf('bino', 0:j-1, j-1, lamb);
 
                     objPDO = @(x) -obj.findPdoError(pdoType, x, xTrue, xObsv);
                     lambdaNew = fminsearch(objPDO, lambdaTemplate, options);
@@ -1551,6 +1551,8 @@ classdef SSIT
                         logL = [1 5 0.5];
                     case 'QuadPoiss'
                         logL = [1 5 0.5];
+                    case {'Binomial','MissingSpots'}   
+                        logL = 0.8; % lambda(1)=p_miss initial guess
                 end
                 return
             end
@@ -1567,6 +1569,8 @@ classdef SSIT
                     Np = ceil(max(NmaxObs,lambda(2)+lambda(3)*NmaxTrue));
                 case 'QuadPoiss'
                     Np = ceil(max(NmaxObs,lambda(2)+lambda(3)*NmaxTrue+lambda(4)*NmaxTrue^2));
+                case {'Binomial','MissingSpots'}
+                    Np = max(NmaxObs, NmaxTrue);
             end
             P = zeros(Np+1,NmaxTrue+1);
 
@@ -1578,6 +1582,15 @@ classdef SSIT
                         P(1:Np+1,xi+1) = pdf('poiss',[0:Np]',max(lambda(1),lambda(2)+lambda(3)*xi));
                     case 'QuadPoiss'
                         P(1:Np+1,xi+1) = pdf('poiss',[0:Np]',max(lambda(1),lambda(2)+lambda(3)*xi+lambda(4)*xi^2));
+                    case {'Binomial','MissingSpots'} 
+                        % p_miss   = lambda(1);
+                        % p_detect = 1 - p_miss;
+                        % % only i=0..xi are possible; i>xi stays 0
+                        % ii = (0:xi)';
+                        % P(ii+1, xi+1) = binopdf(ii, xi, p_detect);
+                        pcap = lambda(1);
+                        ii = (0:xi)';
+                        P(ii+1, xi+1) = binopdf(ii, xi, pcap);
                 end
             end
 
@@ -1594,6 +1607,8 @@ classdef SSIT
                     logL = logL-1e4*(lambda(1)<0);
                 case 'AffinePoiss'
                     logL = logL-1e4*(lambda(1)<0);
+                case {'Binomial','MissingSpots'}
+                    logL = logL - 1e6*((lambda(1)<0) + (lambda(1)>1));
             end
         end
 

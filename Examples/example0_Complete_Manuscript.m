@@ -305,8 +305,9 @@ for i=1:3
     STL1_4state_MH.parameters([1:15],2) = ...
         num2cell(STL1_4state_MH_pars);
 end
-STL1_4state_MH.plotMHResults(STL1_4state_MH_MHResults,...
-    paramSelect={'t0','k12','k21o','k21i','kr','dr'});
+% STL1_4state_MH.plotMHResults(STL1_4state_MH_MHResults,...
+%     paramSelect={'t0','k12','k21o','k21i','kr','dr'});
+STL1_4state_MH.plotMHResults(STL1_4state_MH_MHResults);
 
 STL1_4state_MH.plotFits([], "all", [], {'linewidth',2},...
     Title='4-state STL1', YLabel='Molecule Count', ProbXLim = [0 80],...
@@ -324,13 +325,15 @@ logPriorLoss = @(x)sum((log10(x)-mu_log10).^2./(2*sig_log10.^2));
 lossFunction = 'cdf_one_norm';
 
 % Set ABC / MCMC options
-ABCoptions = struct('numberOfSamples',2000,'burnIn',0,'thin',1,...
+ABCoptions = struct('numberOfSamples',20,'burnIn',0,'thin',1,...
     'proposalDistribution',@(x)x+0.05*randn(size(x)));
 
+% Compile and store reaction propensities:
+STL1_4state_ABC = STL1_4state_ABC.formPropensitiesGeneral('STL1_4state_ABC');
+
 % Run ABC search
-[~, ~, ~, STL1_4state_ABC] = ...
-    STL1_4state_ABC.runABCsearch([], lossFunction, logPriorLoss,...
-    ABCoptions);
+[~, ~, ~, STL1_4state_ABC] = STL1_4state_ABC.runABCsearch([],...
+    lossFunction, logPriorLoss, ABCoptions);
 
 STL1_4state_ABC.plotMHResults(STL1_4state_ABC.Solutions.ABC);
 
@@ -351,6 +354,9 @@ ConditionsReplicas = {'TAB.Replica==1';'TAB.Replica==2'};
 % and smaller in others. No deviation at all is indicated by 0.
 Log10Constraints = ...
     [0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.02,0.02,0.02,0.02,0.02,0.1,0.1];
+
+% Compile and store reaction propensities:
+STL1_4state = STL1_4state.formPropensitiesGeneral('STL1_4state');
 
 % Create full model:
 CrossValidationModel = SSITMultiModel.createCrossValMultiModel(...
@@ -444,6 +450,10 @@ STL1_4state_Extended.useHybrid = true;
 
 % Define which species will be replaced with upstream ODEs:
 STL1_4state_Extended.hybridOptions.upstreamODEs = {'Hog1','D','G'};
+
+% Compile and store reaction propensities:
+STL1_4state_Extended = ...
+    STL1_4state_Extended.formPropensitiesGeneral('STL1_4state_Extended');
 
 % Solve hybrid ODE-FSP model
 [~,~,STL1_4state_Extended] = STL1_4state_Extended.solve;

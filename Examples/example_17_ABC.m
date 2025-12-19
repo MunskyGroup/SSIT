@@ -30,7 +30,7 @@ STL1_4state_ABC.solutionScheme = 'SSA';
 STL1_4state_ABC.ssaOptions.nSimsPerExpt=10;
     
 % Equilibrate before starting (burn-in):
-STL1_4state_ABC.tSpan = [-100,STL1_4state_ABC.tSpan];
+STL1_4state_ABC.tSpan = [0,STL1_4state_ABC.tSpan];
 
 % Run iterations in parallel with multiple cores:
 STL1_4state_ABC.ssaOptions.useParallel = true;
@@ -94,9 +94,12 @@ enforceIndependence = true;
 %   Results                 - MH/ABC diagnostics and chains
 %   ModelABC                - model updated with 'pars'
 
+% Compile and store the given reaction propensities:
+STL1_4state_ABC = STL1_4state_ABC.formPropensitiesGeneral('STL1_4state_ABC');
+
 [parsABC, minimumLoss, ResultsABC, STL1_4state_ABC] = ...
-    STL1_4state_ABC.runABCsearch(parGuess, lossFunction, logPriorLoss,...
-                                 fitOptions, enforceIndependence);
+     STL1_4state_ABC.runABCsearch(parGuess, lossFunction, logPriorLoss,...
+                                  fitOptions, enforceIndependence);
 
 fprintf('ABC completed.\n');
 fprintf('Minimum loss value: %g\n', minimumLoss);
