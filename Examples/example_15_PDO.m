@@ -34,6 +34,13 @@ STL1_4state_MH.summarizeModel
 % Create a copy of the STL1 model for PDO:
 STL1_4state_PDO = STL1_4state_MH;
 
+%%
+
+fimResults = STL1_4state_PDO.computeFIM(); 
+
+% Get the number of cells using 'nCells':
+cellCounts = STL1_4state_PDO.dataSet.nCells*ones(size(STL1_4state_PDO.tSpan));
+
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Section 2.5: Complex models
 %   * Apply an Affine Poisson conditional probability distribution 
@@ -59,19 +66,19 @@ STL1_4state_PDO.plotMHResults(STL1_4state_MH_MHResults,[fimTotal],...
 
 
 % Find and store the total number of cells in your data set (already
-% computed by SSIT when data was loaded in example_7_FIM:
+% computed by SSIT when data was loaded in 
+% example_8_LoadingandFittingData_DataLoading:
 nTotal = sum(STL1_4state_PDO.dataSet.nCells);
 
-% Compute the optimal number of cells from the FIM results computed in 
-% example_7_FIM using the min. inv determinant <x^{-1}> 
-% (all other parameters are known and fixed)
-nCellsOpt = ...
-    STL1_4state_PDO.optimizeCellCounts(fimResults,...
-                                       nTotal,'tr[1:15]');
-
+%% Compute the optimal number of cells from the FIM results using the min. 
+% inv determinant <x^{-1}> (all other parameters are known and fixed)
+nCellsOpt = STL1_4state_PDO.optimizeCellCounts(fimResults,nTotal,'tr[1:15]');
+ 
 nCellsOptAvail = min(nCellsOpt,STL1_4state_PDO.dataSet.nCells)
+
 fimOpt = STL1_4state_PDO.evaluateExperiment(fimResults,nCellsOpt,...
-                                            diag(sig_log10.^2));
+                                             diag(sig_log10.^2));
+
 fimOptAvail = STL1_4state_PDO.evaluateExperiment(fimResults,...
                                         nCellsOptAvail,diag(sig_log10.^2));
 figOpt = figure;
@@ -80,23 +87,15 @@ STL1_4state_PDO.plotMHResults(STL1_4state_MH_MHResults,...
 figOptAvail = figure;
 STL1_4state_PDO.plotMHResults(STL1_4state_MH_MHResults,...
                    [fimOptAvail,fimTotal],'log',[],figOptAvail,plotColors);
-
+ 
 f = figure;
 set(f,'Position',[616   748   412   170])
 bar([1:16],nTotal,0.45)
 hold on
 bar([1:16]+0.5,nCellsOpt,0.45)
 set(gca,'xtick',[1:16]+0.25,'xticklabel',STL1_4state_PDO.dataSet.times,...
-                                         'fontsize',16,'ylim',[0,7000])
+    'fontsize',16,'ylim',[0,7000])
 legend('Intuitive Design','Optimal Design')
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%%
-STL1_4state_PDO = ...
-    STL1_4state_PDO.calibratePDO('data/filtered_data_2M_NaCl_Step.csv',...
-        {'mRNA'}, {'RNA_STL1_total_TS3Full'}, {'RNA_STL1_cyto_TS3Full'},...
-        'Binomial', true);
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% PDO Calculations
@@ -110,19 +109,29 @@ STL1_4state_PDO = ...
 % mean value is affine linearly related to the true value: 
 % P(y|x) = Poiss(a0 + a1*x)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-STL1_4state_PDO = ...
-  STL1_4state_PDO.calibratePDO('data/filtered_data_2M_NaCl_Step.csv',...
-  {'mRNA'},{'RNA_STL1_total_TS3Full'},{'RNA_STL1_cyto_TS3Full'},...
-   'AffinePoiss', true, [], {'Replica',1}, LegendLocation="northwest",...
-   Title="4-state STL1 (PDO: Cytoplasmic mRNA)", FontSize=24,...
-   XLabel="Total mRNA counts", YLabel="Cytoplasmic mRNA counts");
+STL1_4state_PDO_cyt = STL1_4state_PDO;
+STL1_4state_PDO_nuc = STL1_4state_PDO;
+
+STL1_4state_PDO_cyt = ...
+ STL1_4state_PDO_cyt.calibratePDO('data/filtered_data_2M_NaCl_Step.csv',...
+        {'mRNA'}, {'RNA_STL1_total_TS3Full'}, {'RNA_STL1_cyto_TS3Full'},...
+        'Binomial', true, [], {'Replica',1}, LegendLocation="northwest",...
+        Title="4-state STL1 (PDO: Cytoplasmic mRNA)", FontSize=24,...
+        XLabel="Total mRNA counts", YLabel="Cytoplasmic mRNA counts");
+
+STL1_4state_PDO_nuc = ...
+ STL1_4state_PDO_nuc.calibratePDO('data/filtered_data_2M_NaCl_Step.csv',...
+        {'mRNA'}, {'RNA_STL1_total_TS3Full'}, {'RNA_STL1_nuc_TS3Full'},...
+        'Binomial', true, [], {'Replica',1}, LegendLocation="northwest",...
+        Title="4-state STL1 (PDO: Nuclear mRNA)", FontSize=24,...
+        XLabel="Total mRNA counts", YLabel="Nuclear mRNA counts");
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(2): Calibrate PDO from average intensity data
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Make guesses for the PDO hyperparameters λ, in this case: λ₁, λ₂, λ₃
 % Model: μ(x) = max(λ₁, λ₂ + λ₃·x)
-% Note: Neural networks and hierarchical Bayes may be used to estimate λ
+% Soon: Neural networks and hierarchical Bayes may be used to estimate λ
 parGuess = [0, 1500, 5];
 
 STL1_4state_PDO_intens = STL1_4state_PDO;
@@ -135,18 +144,30 @@ STL1_4state_PDO_intens = STL1_4state_PDO_intens.calibratePDO( ...
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% FIM + PDO analyses
-%   * Ex(1): Analyze FIM with PDO for cytoplasmic mRNA count
+%   * Ex(1): Analyze FIM with PDO for cytoplasmic & nuclear mRNA counts
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-fimsPDO = STL1_4state_PDO.computeFIM([],'log');
-fimPDO = STL1_4state_PDO.evaluateExperiment(fimsPDO,nCellsOpt,...
-                                            diag(sig_log10.^2));
 
-nCellsOptPDO = STL1_4state_PDO.optimizeCellCounts(fimsPDO,nTotal,...
-                                                  'tr[1:15]');
+% Cytoplasm:
+fimsPDO_cyt = STL1_4state_PDO_cyt.computeFIM([],'log');
+fimPDO_cyt = STL1_4state_PDO_cyt.evaluateExperiment(fimsPDO_cyt,...
+                                            nCellsOpt, diag(sig_log10.^2));
 
-figPDO = figure;
-STL1_4state_PDO.plotMHResults(STL1_4state_MH_MHResults,...
-                             [fimPDO,fimTotal,fimOpt],'log',[],figPDO);
+nCellsOptPDO_cyt = STL1_4state_PDO_cyt.optimizeCellCounts(fimsPDO_cyt,...
+                                                       nTotal, 'tr[1:15]');
+figPDO_cyt = figure;
+STL1_4state_PDO_cyt.plotMHResults(STL1_4state_MH_MHResults,...
+                         [fimPDO_cyt,fimTotal,fimOpt],'log',[],figPDO_cyt);
+
+% Nucleus:
+fimsPDO_nuc = STL1_4state_PDO_nuc.computeFIM([],'log');
+fimPDO_nuc = STL1_4state_PDO_nuc.evaluateExperiment(fimsPDO_nuc,...
+                                            nCellsOpt, diag(sig_log10.^2));
+
+nCellsOptPDO_nuc = STL1_4state_PDO_nuc.optimizeCellCounts(fimsPDO_nuc,...
+                                                       nTotal, 'tr[1:15]');
+figPDO_nuc = figure;
+STL1_4state_PDO_nuc.plotMHResults(STL1_4state_MH_MHResults,...
+                         [fimPDO_nuc,fimTotal,fimOpt],'log',[],figPDO_nuc);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %   * Ex(2): Analyze FIM with PDO for average intensity data
@@ -162,7 +183,7 @@ figintens = figure;
 STL1_4state_PDO_intens.plotMHResults(STL1_4state_MH_MHResults,...
                         [fimPDOintens,fimTotal,fimOpt],'log',[],figintens);
 
-% Plot legend
+%% Plot legend
 axs = findall(figintens, 'Type', 'axes');
 ax  = axs(1);        
 hold(ax,'on');

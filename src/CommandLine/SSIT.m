@@ -2235,7 +2235,7 @@ classdef SSIT
                 fimResults,cellCounts,priorCoVariance)
             % This function evaluates the provided experiment design (in
             % "cellCounts" and produces an array of FIMs (one for each
-            % parameter set.
+            % parameter set.    
             arguments
                 obj
                 fimResults
@@ -4054,7 +4054,7 @@ classdef SSIT
                 timeVec = []
                 lineProps = {'linewidth',2};
                 opts.Title (1,1) string = ""
-                opts.TitleFontSize (1,1) double {mustBePositive} = 18
+                opts.TitleFontSize (1,1) double {mustBePositive} = 24
                 opts.AxisLabelSize (1,1) double {mustBePositive} = 18
                 opts.TickLabelSize (1,1) double {mustBePositive} = 18
                 opts.LegendFontSize (1,1) double {mustBePositive} = 18
@@ -4209,7 +4209,7 @@ function plotMoments(obj, solution, speciesNames, plotType, indTimes, figureNums
         opts.TitleFontSize (1,1) double {mustBePositive} = 18
         opts.AxisLabelSize (1,1) double {mustBePositive} = 18
         opts.TickLabelSize (1,1) double {mustBePositive} = 18
-        opts.LegendFontSize (1,1) double {mustBePositive} = 18
+        opts.LegendFontSize (1,1) double {mustBePositive} = 24
         opts.LegendLocation (1,1) string = "best"
         opts.XLabel (1,1) string = "Time"
         opts.YLabel (1,1) string = "Molecule Count / Concentration"
@@ -4513,7 +4513,7 @@ end
                 opts.TitleFontSize (1,1) double {mustBePositive} = 18
                 opts.AxisLabelSize (1,1) double {mustBePositive} = 18
                 opts.TickLabelSize (1,1) double {mustBePositive} = 18
-                opts.LegendFontSize (1,1) double {mustBePositive} = 18
+                opts.LegendFontSize (1,1) double {mustBePositive} = 24
                 opts.LegendLocation (1,1) string = "best"
                 opts.XLabel (1,1) string = "Time"
                 opts.YLabel (1,1) string = "Molecule Count / Concentration"
