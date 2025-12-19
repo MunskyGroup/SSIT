@@ -94,11 +94,11 @@ STL1_4state.tSpan = linspace(0,50,200);
     % stored with the given prefix, in this case, 'STL1_FSP':
     STL1_FSP = STL1_FSP.formPropensitiesGeneral('STL1_FSP');
     
-    % Solve Model:
-    [STL1_FSPsoln,STL1_FSP.fspOptions.bounds] = STL1_FSP.solve; 
+    % Solve with FSP:
+    [~,~,STL1_FSP] = STL1_FSP.solve; 
     
     % Plot marginal distributions at t=20:  
-    STL1_FSP.plotFSP(STL1_FSPsoln, STL1_FSP.species, 'meansAndDevs')
+    STL1_FSP.plotFSP(STL1_FSP.Solutions, STL1_FSP.species,'meansAndDevs')
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(3): Use the stochastic Finite State Projection (FSP) 
@@ -133,8 +133,7 @@ STL1_4state.tSpan = linspace(0,50,200);
         STL1_4state_FSP.formPropensitiesGeneral('STL1_4state_FSP');
     
     % Solve Model:
-    [STL1_4state_FSPsoln,STL1_4state_FSP.fspOptions.bounds] = ...
-        STL1_4state_FSP.solve; 
+    [~,~,STL1_4state_FSP] = STL1_4state_FSP.solve; 
     
     %% Plots for FSP solutions:
     % Means only:
@@ -142,7 +141,7 @@ STL1_4state.tSpan = linspace(0,50,200);
     %     STL1_4state_FSP.species, 'means')
 
     % Means and standard deviations:
-    STL1_4state_FSP.plotFSP(STL1_4state_FSPsoln,...
+    STL1_4state_FSP.plotFSP(STL1_4state_FSP.Solutions,...
         STL1_4state_FSP.species(5), 'meansAndDevs', [], [],...
         {'linewidth',4}, Title='4-state STL1 (mRNA)', TitleFontSize=24,...
         Colors=[0.23,0.67,0.2], AxisLabelSize=18, TickLabelSize=18,...

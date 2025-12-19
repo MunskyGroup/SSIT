@@ -38,7 +38,7 @@ Model_FIM = Model_sens;
 %% Compute FIMs using FSP sensitivity results
 % Compute the FIM:
 Model_FIM = Model_sens;
-Model_fimResults = Model_FIM.computeFIM(Model_sensSoln.sens); 
+Model_fimResults = Model_FIM.computeFIM(Model_sens.Solutions.sens); 
 
 % Generate a count of measured cells (in place of real data):
 Model_cellCounts = 10*ones(size(Model_FIM.tSpan));
@@ -69,7 +69,7 @@ STL1_FIM = STL1_sens;
 
 %% Compute FIMs using FSP sensitivity results
 % Compute the FIM:
-STL1_fimResults = STL1_FIM.computeFIM(STL1_sensSoln.sens); 
+STL1_fimResults = STL1_FIM.computeFIM(STL1_sens.Solutions.sens); 
 
 % Generate a count of measured cells (in place of real data):
 STL1_cellCounts = 10*ones(size(STL1_FIM.tSpan));
@@ -97,8 +97,7 @@ STL1_4state_FIM = STL1_4state_sens;
 
 %% Compute FIMs using FSP sensitivity results
 % Compute the FIM:
-STL1_4state_fimResults = ...
-    STL1_4state_FIM.computeFIM(); 
+STL1_4state_fimResults = STL1_4state_FIM.computeFIM(); 
 
 % Generate a count of measured cells - or get the number of cells using 
 % 'nCells' - e.g., "STL1_4state_data.dataSet.nCells", which becomes:

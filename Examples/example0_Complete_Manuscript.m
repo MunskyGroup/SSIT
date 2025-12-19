@@ -526,9 +526,15 @@ STL1_4state_Extended.plotFits([], "all", [], {'linewidth',2},...
 %     LegendLocation='northeast', LegendFontSize=12);
 
 %% PDO
-% Change to binomial PDO. Plot PDO, make FSP solutions plots with and
-% without PDO. Make FIM plots w/ w/o PDO.  Check if optimal expt design
-% changes, and if so make that plot also.
+% Plot PDO, make FSP solutions plots with and without PDO. Make FIM plots 
+% w/ w/o PDO.  Check if optimal expt design changes, and if so make that 
+% plot also.
+
+% Change to binomial PDO. 
+STL1_4state_PDO = ...
+    STL1_4state_PDO.calibratePDO('data/filtered_data_2M_NaCl_Step.csv',...
+        {'mRNA'}, {'RNA_STL1_total_TS3Full'}, {'RNA_STL1_cyto_TS3Full'},...
+        'Binomial', true);
 
 %% Pipeline
 % Brian will write a pipeline to fit 500 genes in the scSEQ data.  Jack is
