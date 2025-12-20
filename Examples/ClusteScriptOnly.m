@@ -18,6 +18,10 @@ for iGene = 1:length(geneNames)-4
     modelName = ['Model_',geneNames{iGene}];
     saveName = ['seqModels/',modelName];    
     logfile = ['logFiles/log',modelName];
+    if iGene==1
+        load(saveName,'Model_DUSP1')
+        Model_DUSP1.formPropensitiesGeneral;
+    end
     cmd = SSIT.generateCommandLinePipeline(saveName,modelName,[],Pipeline,...
         pipelineArgs,saveName,logfile,1,1);
     pause(0.2);
