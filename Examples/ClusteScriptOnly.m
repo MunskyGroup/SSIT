@@ -7,22 +7,24 @@ Pipeline = 'fittingPipelineExample';
 pipelineArgs.maxIter = 1000;
 pipelineArgs.display = 'iter';
 pipelineArgs.makePlot = false;
-pipelineArgs.nRounds = 5;
+pipelineArgs.nRounds = 1;
 
 %% Launch cluster jobs for all genes.
 DataFileName = 'data/Raw_DEX_UpRegulatedGenes_ForSSIT.csv';
 TAB = readtable(DataFileName);
 geneNames = fields(TAB);
 
-for iGene = 2:length(geneNames)-4
-    modelName = ['Model_',geneNames{iGene}];
-    saveName = ['seqModels/',modelName];    
-    logfile = ['logFiles/log',modelName];
-    if iGene==2
-        load(saveName)
-        eval([modelName,'.formPropensitiesGeneral;']);
+for iRound = 1:5
+    for iGene = 2:length(geneNames)-4
+        modelName = ['Model_',geneNames{iGene}];
+        saveName = ['seqModels/',modelName];
+        logfile = ['logFiles/log',modelName];
+        if iGene==2
+            load(saveName)
+            eval([modelName,'.formPropensitiesGeneral;']);
+        end
+        cmd = SSIT.generateCommandLinePipeline(saveName,modelName,[],Pipeline,...
+            pipelineArgs,saveName,logfile,1,1);
+        pause(60); % Pause to allow for matlab licenses to reset.
     end
-    cmd = SSIT.generateCommandLinePipeline(saveName,modelName,[],Pipeline,...
-        pipelineArgs,saveName,logfile,1,1);
-    pause(10);
 end
