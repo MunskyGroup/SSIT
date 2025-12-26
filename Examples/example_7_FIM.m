@@ -103,7 +103,7 @@ STL1_4state_fimResults = STL1_4state_FIM.computeFIM();
 % 'nCells' - e.g., "STL1_4state_data.dataSet.nCells", which becomes:
 % STL1_4state_cellCounts = ...
 % STL1_4state_data.dataSet.nCells*ones(size(STL1_4state_FIM.tSpan));
-STL1_4state_cellCounts = 10*ones(size(STL1_4state_FIM.tSpan));
+STL1_4state_cellCounts = 1000*ones(size(STL1_4state_FIM.tSpan));
 
 % Evaluate the provided experiment design (in "cellCounts") 
 % and produce an array of FIMs (one for each parameter set):
@@ -112,10 +112,21 @@ STL1_4state_cellCounts = 10*ones(size(STL1_4state_FIM.tSpan));
     STL1_4state_FIM.evaluateExperiment(STL1_4state_fimResults,...
                                        STL1_4state_cellCounts)
 
-% Plot the FIMs:
+% Plot the FIMs (4 parameter combinations):
 STL1_4state_FIM.plotFIMResults(STL1_4state_fimTotal,...
     STL1_4state_FIM.parameters, [STL1_4state_FIM.parameters{:,2}],...
-    PlotEllipses=true, EllipsePairs=[6 14; 7 12; 13 15; 11 14]);
+    PlotEllipses=true, EllipsePairs=[1 9; 3 7; 5 10; 2 5]);
+
+% Plot the FIMs (6 parameter combinations):
+STL1_4state_FIM.plotFIMResults(STL1_4state_fimTotal,...
+    STL1_4state_FIM.parameters, [STL1_4state_FIM.parameters{:,2}],...
+    PlotEllipses=true, EllipsePairs=[1 6; 1 9; 3 7; 4 14; 2 10; 5 10]);
+
+% Plot the FIMs (9 parameter combinations):
+STL1_4state_FIM.plotFIMResults(STL1_4state_fimTotal,...
+    STL1_4state_FIM.parameters, [STL1_4state_FIM.parameters{:,2}],...
+    PlotEllipses=true,...
+    EllipsePairs=[1 6; 1 9; 3 5; 3 7; 2 5; 4 14; 2 10; 5 10; 2 7]);
 
 %%
 % Note:  If detI(θ)=0, then at least one eigenvalue 𝜆𝑘=0. That means the 
@@ -175,3 +186,5 @@ saveNames = unique({'Model_FIM'
     });
     
 save('example_7_FIM',saveNames{:})
+
+ 

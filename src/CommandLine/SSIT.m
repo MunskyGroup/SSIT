@@ -2234,7 +2234,7 @@ classdef SSIT
         function [fimTotal,mleCovEstimate,fimMetrics] = evaluateExperiment(obj,...
                 fimResults,cellCounts,priorCoVariance)
             % This function evaluates the provided experiment design (in
-            % "cellCounts" and produces an array of FIMs (one for each
+            % "cellCounts") and produces an array of FIMs - one for each
             % parameter set.    
             arguments
                 obj

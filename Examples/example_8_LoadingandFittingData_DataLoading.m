@@ -71,6 +71,4 @@ saveNames = unique({
     'STL1_4state_data'
     });
     
-save('example_8_LoadingandFittingData',saveNames{:})
-
-
+save('example_8_LoadingandFittingData',saveNames{:}) 

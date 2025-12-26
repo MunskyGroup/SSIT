@@ -88,7 +88,7 @@ for i=1:3
     MHOptions.thin = 2;
 
     % Run Metropolis-Hastings: 
-    [STL1_4state_MH_pars,~,STL1_4state_MH_MHResults] = ...
+    [STL1_4state_MH_pars,~,STL1_4state_MHResults] = ...
         STL1_4state_MH.maximizeLikelihood([], MHOptions,...
         'MetropolisHastings');
     
@@ -96,7 +96,7 @@ for i=1:3
     STL1_4state_MH.parameters([1:15],2) = ...
         num2cell(STL1_4state_MH_pars);
 end
-STL1_4state_MH.plotMHResults(STL1_4state_MH_MHResults);
+STL1_4state_MH.plotMHResults(STL1_4state_MHResults);
 
 STL1_4state_MH.plotFits([], "all", [], {'linewidth',2},...
     Title='4-state STL1', YLabel='Molecule Count',...
@@ -107,7 +107,7 @@ STL1_4state_MH.plotFits([], "all", [], {'linewidth',2},...
 saveNames = unique({ ...
     'STL1_4state_MH'
     'STL1_4state_MH_pars'
-    'STL1_4state_MH_MHResults'
+    'STL1_4state_MHResults'
     });
     
 save('example_10_LoadingandFittingData_MH',saveNames{:})

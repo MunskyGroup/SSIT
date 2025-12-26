@@ -41,7 +41,7 @@ Model_sens.solutionScheme = 'fspSens';
 [~,~,Model_sens] = Model_sens.solve(Model_FSP.Solutions.stateSpace);
 
 % Plot the results from the sensitivity analysis:
-Model_sens.plotFSP(Model_sens.Solutions,Model_FSP.species(3),'sens',20,...
+Model_sens.plotFSP(Model_sens.Solutions,Model_FSP.species(3),'sens',40,...
    [], {'linewidth',3}, AxisLabelSize=12, TickLabelSize=12, XLim=[0,10],...
    TitleFontSize=22, Title="Bursting Gene (mRNA)", Colors=[0.93,0.69,0.13])
 
@@ -62,7 +62,7 @@ STL1_sens.solutionScheme = 'fspSens';
 [~,~,STL1_sens] = STL1_sens.solve(STL1_FSP.Solutions.stateSpace); 
 
 % Plot the results from the sensitivity analysis:
-STL1_sens.plotFSP(STL1_sens.Solutions,STL1_FSP.species(3),'sens',20,[],...
+STL1_sens.plotFSP(STL1_sens.Solutions,STL1_FSP.species(3),'sens',40,[],...
     {'linewidth',3}, AxisLabelSize=12, TickLabelSize=12, XLim=[0,10],...
     Title="STL1 (mRNA)", TitleFontSize=22, Colors=[0.93,0.69,0.13])
 
@@ -78,27 +78,22 @@ STL1_4state_sens = STL1_4state_FSP;
 % Set solution schemes to FSP sensitivity:
 STL1_4state_sens.solutionScheme = 'fspSens'; 
 
-% Solve the sensitivity problem: 
-[~,~,STL1_4state_sens] = ...
-    STL1_4state_sens.solve(STL1_4state_FSP.Solutions.stateSpace); 
+% Solve the sensitivity problem:
+[~,~,STL1_4state_sens] = STL1_4state_sens.solve;
 
-% Plot the results from the sensitivity analysis:
+% Plot the results from the sensitivity analysis
 STL1_4state_sens.plotFSP(STL1_4state_sens.Solutions,...
-    STL1_4state_FSP.species(5), 'sens', 20, [], {'linewidth',3}, ...
-    Colors=[0.23,0.67,0.2], AxisLabelSize=14, TickLabelSize=10, ...
-    XLim=[0,10], Title="4-state STL1 (mRNA)", TitleFontSize=18)
+    STL1_4state_sens.species(5), 'sens', 40, [],...
+    {'linewidth',3}, Colors=[0.23,0.67,0.2], AxisLabelSize=15,...
+    TickLabelSize=12, XLim=[0,10],...
+    Title="4-state STL1 (t=25)", TitleFontSize=24)
 
 
 %% Save models & sensitivities
-saveNames = unique({'Model_sens'
-    'Model_sensSoln'
-    'Model_bounds'
+saveNames = unique({ ...
+    'Model_sens'
     'STL1_sens'
-    'STL1_sensSoln'
-    'STL1_bounds'
     'STL1_4state_sens'
-    'STL1_4state_sensSoln'
-    'STL1_4state_bounds'
     });
     
 save('example_6_SensitivityAnalysis',saveNames{:})

@@ -35,7 +35,6 @@ STL1_4state_MH.summarizeModel
 STL1_4state_PDO = STL1_4state_MH;
 
 %%
-
 fimResults = STL1_4state_PDO.computeFIM(); 
 
 % Get the number of cells using 'nCells':
@@ -61,7 +60,7 @@ fimTotal = ...
     STL1_4state_PDO.evaluateExperiment(fimResults,...
     STL1_4state_PDO.dataSet.nCells,diag(sig_log10.^2));
 
-STL1_4state_PDO.plotMHResults(STL1_4state_MH_MHResults,[fimTotal],...
+STL1_4state_PDO.plotMHResults(STL1_4state_MHResults,[fimTotal],...
                               'log',[],figNew,plotColors)
 
 
@@ -72,7 +71,8 @@ nTotal = sum(STL1_4state_PDO.dataSet.nCells);
 
 %% Compute the optimal number of cells from the FIM results using the min. 
 % inv determinant <x^{-1}> (all other parameters are known and fixed)
-nCellsOpt = STL1_4state_PDO.optimizeCellCounts(fimResults,nTotal,'tr[1:15]');
+nCellsOpt = STL1_4state_PDO.optimizeCellCounts(fimResults,nTotal,...
+                                                'Smallest Eigenvalue');
  
 nCellsOptAvail = min(nCellsOpt,STL1_4state_PDO.dataSet.nCells)
 
@@ -82,10 +82,10 @@ fimOpt = STL1_4state_PDO.evaluateExperiment(fimResults,nCellsOpt,...
 fimOptAvail = STL1_4state_PDO.evaluateExperiment(fimResults,...
                                         nCellsOptAvail,diag(sig_log10.^2));
 figOpt = figure;
-STL1_4state_PDO.plotMHResults(STL1_4state_MH_MHResults,...
-                             [fimOpt,fimTotal],'log',[],figOpt,plotColors);
+STL1_4state_PDO.plotMHResults(STL1_4state_MHResults, [fimOpt,fimTotal],...
+                              'log',[],figOpt,plotColors);
 figOptAvail = figure;
-STL1_4state_PDO.plotMHResults(STL1_4state_MH_MHResults,...
+STL1_4state_PDO.plotMHResults(STL1_4state_MHResults,...
                    [fimOptAvail,fimTotal],'log',[],figOptAvail,plotColors);
  
 f = figure;
@@ -152,10 +152,10 @@ fimsPDO_cyt = STL1_4state_PDO_cyt.computeFIM([],'log');
 fimPDO_cyt = STL1_4state_PDO_cyt.evaluateExperiment(fimsPDO_cyt,...
                                             nCellsOpt, diag(sig_log10.^2));
 
-nCellsOptPDO_cyt = STL1_4state_PDO_cyt.optimizeCellCounts(fimsPDO_cyt,...
-                                                       nTotal, 'tr[1:15]');
+nCellsOptPDO_cyt = STL1_4state_PDO_cyt.optimizeCellCounts(...
+                               fimsPDO_cyt, nTotal, 'Smallest Eigenvalue');
 figPDO_cyt = figure;
-STL1_4state_PDO_cyt.plotMHResults(STL1_4state_MH_MHResults,...
+STL1_4state_PDO_cyt.plotMHResults(STL1_4state_MHResults,...
                          [fimPDO_cyt,fimTotal,fimOpt],'log',[],figPDO_cyt);
 
 % Nucleus:
@@ -163,8 +163,8 @@ fimsPDO_nuc = STL1_4state_PDO_nuc.computeFIM([],'log');
 fimPDO_nuc = STL1_4state_PDO_nuc.evaluateExperiment(fimsPDO_nuc,...
                                             nCellsOpt, diag(sig_log10.^2));
 
-nCellsOptPDO_nuc = STL1_4state_PDO_nuc.optimizeCellCounts(fimsPDO_nuc,...
-                                                       nTotal, 'tr[1:15]');
+nCellsOptPDO_nuc = STL1_4state_PDO_nuc.optimizeCellCounts(...
+                               fimsPDO_nuc, nTotal, 'Smallest Eigenvalue');
 figPDO_nuc = figure;
 STL1_4state_PDO_nuc.plotMHResults(STL1_4state_MH_MHResults,...
                          [fimPDO_nuc,fimTotal,fimOpt],'log',[],figPDO_nuc);
@@ -177,14 +177,14 @@ fimPDOintens = STL1_4state_PDO_intens.evaluateExperiment(fimsPDOintens,...
                                             nCellsOpt,diag(sig_log10.^2));
 
 nCellsOptPDOintens = STL1_4state_PDO_intens.optimizeCellCounts(...
-                            fimsPDOintens,nTotal,'tr[1:15]');
+                               fimsPDOintens,nTotal,'Smallest Eigenvalue');
 
 figintens = figure;
 STL1_4state_PDO_intens.plotMHResults(STL1_4state_MH_MHResults,...
                         [fimPDOintens,fimTotal,fimOpt],'log',[],figintens);
 
 %% Plot legend
-axs = findall(figintens, 'Type', 'axes');
+axs = findall(figPDO_cyt, 'Type', 'axes');
 ax  = axs(1);        
 hold(ax,'on');
 
@@ -220,7 +220,7 @@ L = []; names = {};
 if ~isempty(hSamples),L(end+1)=hSamples(1);names{end+1}='MCMC samples';end
 if ~isempty(hMLE),L(end+1)=hMLE(1); names{end+1}='MLE';end
 if ~isempty(hMHell),L(end+1)=hMHell(1);names{end+1}='MCMC 90% CI';end
-if ~isempty(hFIM_cyan),L(end+1)=hFIM_cyan(1);names{end+1}='FIM PDO intens.';end
+if ~isempty(hFIM_cyan),L(end+1)=hFIM_cyan(1);names{end+1}='FIM PDO';end
 if ~isempty(hFIM_blue),L(end+1)=hFIM_blue(1);names{end+1}='FIM total';end
 if ~isempty(hFIM_green),L(end+1)=hFIM_green(1);names{end+1}='FIM optimal';end
 
@@ -245,12 +245,17 @@ saveNames = unique({'STL1_4state_PDO'
     'nCellsOptAvail'
     'fimOpt'
     'fimOptAvail'
-    'fimsPDO'
-    'fimPDO'
-    'nCellsOptPDO'
+    'STL1_4state_PDO_cyt'
+    'STL1_4state_PDO_nuc'
     'STL1_4state_PDO_intens'
+    'fimsPDO_cyt'
+    'fimsPDO_nuc'
     'fimsPDOintens'
+    'fimPDO_cyt'
+    'fimPDO_nuc'
     'fimPDOintens'
+    'nCellsOptPDO_cyt'
+    'nCellsOptPDO_nuc'
     'nCellsOptPDOintens'
     });
     

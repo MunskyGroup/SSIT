@@ -22,9 +22,9 @@ STL1.summarizeModel
 STL1_4state.summarizeModel
 
 % Set the times at which distributions will be computed:
-Model.tSpan = linspace(0,50,200);
-STL1.tSpan = linspace(0,50,200);
-STL1_4state.tSpan = linspace(0,50,200);
+Model.tSpan = linspace(0,50,101);
+STL1.tSpan = linspace(0,50,101);
+STL1_4state.tSpan = linspace(0,50,101);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(1): Use the stochastic Finite State Projection (FSP) 
@@ -149,8 +149,8 @@ STL1_4state.tSpan = linspace(0,50,200);
         LegendFontSize=15, LegendLocation='northeast');
 
     % Marginal distributions:
-    STL1_4state_FSP.plotFSP(STL1_4state_FSPsoln,...
-        STL1_4state_FSP.species(5), 'marginals', [1,12,24,50,101,200],...
+    STL1_4state_FSP.plotFSP(STL1_4state_FSP.Solutions,...
+        STL1_4state_FSP.species(5), 'marginals', [1,12,24,50,101],...
         [], {'linewidth',3}, Colors=[0.23,0.67,0.2], AxisLabelSize=18,...
         TickLabelSize=18, XLim=[0,100])
 

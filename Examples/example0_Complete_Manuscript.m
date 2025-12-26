@@ -43,7 +43,7 @@ STL1_4state.parameters = ({'t0',5.8; 'k12',90;
     'n',0.1});
 
 %% 2.6
-STL1_4state.tSpan = linspace(0,50,101);
+cc
 
 %% 2.7
 STL1_4state.summarizeModel
@@ -207,16 +207,50 @@ STL1_4state.plotFIMResults(STL1_4stateTotalFIM, STL1_4state.parameters,...
     [STL1_4state.parameters{:,2}], EllipsePairs=[1 9; 2 10; 9 10; 2 11],...
     PlotEllipses=true);
 
-% TODO - Alex, please note that the order of the parameters has changed
-% from the figutre you had before -- this reflects the order in which the
-% parameters were originally defined in Box 2.5.
-
 
 %% Experiment Design
 
 % Choose three design criteria (D, E, Ds) -- find the three designs for
-% totla of 1000 cells -- make plots of expt designs in bar charts (like
+% total of 1000 cells -- make plots of expt designs in bar charts (like
 % that already in paper).
+
+STL1_4state_design = STL1_4state;
+
+% Specify the allowable time points as 0:5:60.  Compute the FIMs.
+STL1_4state_design.tSpan = 0:5:60;
+fimResults_design = STL1_4state_design.computeFIM;
+
+% Specify how many cells are to be measured at each time:
+cellCounts = 100*ones(size(STL1_4state_design.tSpan));
+
+% Choose a few different design criteria (e.g., E, D, D_s, T) 
+%% Compute the optimal number of cells from the FIM results using the min. 
+% inv determinant <x^{-1}> (all other parameters are known and fixed)
+nTotal = sum(cellCounts);
+nCellsOpt = ...
+    STL1_4state_design.optimizeCellCounts(fimResults_design,nTotal,'Smallest Eigenvalue');
+ 
+nCellsOptAvail = min(nCellsOpt,cellCounts)
+
+fimOpt = STL1_4state_design.evaluateExperiment(fimResults_design,nCellsOpt,...
+                                             diag(sig_log10.^2));
+
+fimOptAvail = STL1_4state_design.evaluateExperiment(fimResults_design,...
+                                        nCellsOptAvail,diag(sig_log10.^2));
+ 
+f = figure;
+set(f,'Position',[616   748   412   170])
+bar([1:16],nTotal,0.45)
+hold on
+bar([1:16]+0.5,nCellsOpt,0.45)
+set(gca,'xtick',[1:16]+0.25,'xticklabel',STL1_4state_design.tSpan,...
+    'fontsize',16,'ylim',[0,7000])
+legend('Intuitive Design','Optimal Design')
+
+% Find the optimal designs for each.
+
+% Make a bar chart to compare the different designs.
+
 
 %% Load and Plot Data
 STL1_4state.solutionScheme = 'fsp';
@@ -321,6 +355,7 @@ STL1_4state_MH.plotFits([], "all", [], {'linewidth',2},...
 STL1_4state_ABC = STL1_4state;
 % Set up a prior over parameters (logPriorLoss)
 logPriorLoss = @(x)sum((log10(x)-mu_log10).^2./(2*sig_log10.^2));
+
 % Choose loss function for ABC (default: 'cdf_one_norm'):
 lossFunction = 'cdf_one_norm';
 
@@ -530,26 +565,27 @@ STL1_4state_Extended.plotFits([], "all", [], {'linewidth',2},...
 % Check if optimal expt design changes, and if so make that plot also.
 
 % Change to binomial PDO: 
-STL1_4state_PDO = ...
-    STL1_4state_PDO.calibratePDO('data/filtered_data_2M_NaCl_Step.csv',...
-        {'mRNA'}, {'RNA_STL1_total_TS3Full'}, {'RNA_STL1_cyto_TS3Full'},...
-        'Binomial', true, [], {'Replica',1}, LegendLocation="northwest",...
-        Title="4-state STL1 (PDO: Cytoplasmic mRNA)", FontSize=24,...
-        XLabel="Total mRNA counts", YLabel="Cytoplasmic mRNA counts");
-
-STL1_4state_PDO = ...
-    STL1_4state_PDO.calibratePDO('data/filtered_data_2M_NaCl_Step.csv',...
-        {'mRNA'}, {'RNA_STL1_total_TS3Full'}, {'RNA_STL1_nuc_TS3Full'},...
-        'Binomial', true, [], {'Replica',1}, LegendLocation="northwest",...
-        Title="4-state STL1 (PDO: Nuclear mRNA)", FontSize=24,...
-        XLabel="Total mRNA counts", YLabel="Nuclear mRNA counts");
+% STL1_4state_PDO = ...
+%     STL1_4state_PDO.calibratePDO('data/filtered_data_2M_NaCl_Step.csv',...
+%         {'mRNA'}, {'RNA_STL1_total_TS3Full'}, {'RNA_STL1_cyto_TS3Full'},...
+%         'Binomial', true, [], {'Replica',1}, LegendLocation="northwest",...
+%         Title="4-state STL1 (PDO: Cytoplasmic mRNA)", FontSize=24,...
+%         XLabel="Total mRNA counts", YLabel="Cytoplasmic mRNA counts");
+% 
+% STL1_4state_PDO = ...
+%     STL1_4state_PDO.calibratePDO('data/filtered_data_2M_NaCl_Step.csv',...
+%         {'mRNA'}, {'RNA_STL1_total_TS3Full'}, {'RNA_STL1_nuc_TS3Full'},...
+%         'Binomial', true, [], {'Replica',1}, LegendLocation="northwest",...
+%         Title="4-state STL1 (PDO: Nuclear mRNA)", FontSize=24,...
+%         XLabel="Total mRNA counts", YLabel="Nuclear mRNA counts");
 
 %% Change to affine Poisson PDO:
 % Make guesses for the PDO hyperparameters λ, in this case: λ₁, λ₂, λ₃
 % Model: μ(x) = max(λ₁, λ₂ + λ₃·x)
+% Soon: Neural networks and hierarchical Bayes may be used to estimate λ
 parGuess = [0, 1500, 5];
 
-STL1_4state_PDO = STL1_4state_PDO;
+STL1_4state_PDO = STL1_4state_MH;
 STL1_4state_PDO = STL1_4state_PDO.calibratePDO( ...
     'data/filtered_data_2M_NaCl_Step.csv', {'mRNA'},...
     {'RNA_STL1_total_TS3Full'}, {'STL1_avg_int_TS3Full'}, 'AffinePoiss',...
