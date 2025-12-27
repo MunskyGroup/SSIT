@@ -219,8 +219,7 @@ STL1_4state.evaluateExperiment(fimResults, cellCounts, diag(sig_log10.^2));
 
 % Plot the FIMs:
 STL1_4state.plotFIMResults(STL1_4stateTotalFIM, STL1_4state.parameters,...
-    [STL1_4state.parameters{:,2}], PlotEllipses=true,...
-    EllipsePairs=[1 6; 1 9; 3 5; 3 7; 2 5; 4 14; 2 10; 5 10; 2 7]);
+    [STL1_4state.parameters{:,2}], EllipsePairs=[1 6; 9 10; 8 10; 8 9]);
 
 %% Experiment Design
 
@@ -234,6 +233,8 @@ STL1_4state = STL1_4state.formPropensitiesGeneral('STL1_4state_design');
 % Compute the optimal number of cells from the FIM results using the min. 
 % inv determinant <x^{-1}> (all other parameters are known and fixed)
 nTotal = sum(cellCounts);
+nCellsOpt_detCov = ...
+    STL1_4state.optimizeCellCounts(fimResults,nTotal,'DetCovariance');
 nCellsOpt_trace = ...
     STL1_4state.optimizeCellCounts(fimResults,nTotal,'Trace');
 nCellsOpt_tr = ...
@@ -245,8 +246,6 @@ nCellsOpt_trR = ...
 
 
 fimOpt_tr = STL1_4state.evaluateExperiment(fimResults,nCellsOpt_tr,...
-                                           diag(sig_log10.^2));
-fimOpt_se = STL1_4state.evaluateExperiment(fimResults,nCellsOpt_se,...
                                            diag(sig_log10.^2));
 
 % Find the optimal designs for each.
@@ -276,27 +275,7 @@ ylabel('Number of cells','FontSize',18)
 
 legend('Trace,Tr[1] Designs','Tr[9:10] Design','Tr[11:15] Design', ...
        'DetCov,\lambda Designs','Tr[1:10] Design','Location','best')
- 
-% f = figure;
-% set(f,'Position')
-% bar([1:13],nCellsOpt_trace,0.5)
-% set(gca,'xtick',[1:13],'xticklabel',STL1_4state.tSpan,'fontsize',16)
-% hold on
-% bar([1:13]-0.2,nCellsOpt_trR,0.5)
-% set(gca,'xtick',[1:13],'xticklabel',STL1_4state.tSpan,'fontsize',16)
-% hold on
-% bar([1:13]+0.2,nCellsOpt_tr1,0.5)
-% set(gca,'xtick',[1:13],'xticklabel',STL1_4state.tSpan,'fontsize',16)
-% hold on
-% bar([1:13],nCellsOpt_detCov,0.5)
-% set(gca,'xtick',[1:13],'xticklabel',STL1_4state.tSpan,'fontsize',16)
-% hold on
-% bar([1:13]-0.2,nCellsOpt_tr,0.5)
-% set(gca,'xtick',[1:13],'xticklabel',STL1_4state.tSpan,'fontsize',16)
-% xlabel('Time (min)','FontSize',18)
-% ylabel('Number of cells','FontSize',18)
-% legend('Trace,Tr[1] Designs','Tr[9:10] Design','Tr[11:15] Design',...
-%        'DetCov,\lambda Designs','Tr[1:10] Design')
+
 
 %% Load and Plot Data
 % Note: Ensure the search path is correct on the local machine: 
@@ -313,7 +292,6 @@ STL1_4state.plotFits([], "all", [], {'linewidth',2},...
 
 
 %% Find MLE
-
 % Maximum allowable number of iterations to fit, etc.:
 fitOptions = optimset('Display','iter','MaxIter',2000);
 
