@@ -43,7 +43,7 @@ STL1_4state.parameters = ({'t0',5.8; 'k12',90;
     'n',0.1});
 
 %% 2.6
-cc
+STL1_4state.tSpan = linspace(0,50,101);
 
 %% 2.7
 STL1_4state.summarizeModel
@@ -55,6 +55,9 @@ load('example_1_CreateSSITModels.mat')
 %% 2.9
 % Set solution scheme to 'ODE':
 STL1_4state.solutionScheme = 'ODE';
+
+% Compile and store the given reaction propensities:
+STL1_4state = STL1_4state.formPropensitiesGeneral('STL1_4state_ODE');
 
 % Solve ODEs:
 [~,~,STL1_4state] = STL1_4state.solve;
@@ -70,6 +73,9 @@ STL1_4state.plotODE(STL1_4state.species(1:4), STL1_4state.tSpan,...
     TitleFontSize=24, LegendLocation='east', YLabel='Molecule Count')
 
 %% 2.10
+% Compile and store the given reaction propensities:
+STL1_4state = STL1_4state.formPropensitiesGeneral('STL1_4state_moments');
+
 % Set solution scheme and solve.
 STL1_4state.solutionScheme = 'moments';
 [~,~,STL1_4state] = STL1_4state.solve;
@@ -102,6 +108,9 @@ STL1_4state.initialTime = STL1_4state.tSpan(1);
 % Run iterations in parallel with multiple cores, or execute serially:
 STL1_4state.ssaOptions.useParallel = true;
 
+% Compile and store the given reaction propensities:
+STL1_4state = STL1_4state.formPropensitiesGeneral('STL1_4state_SSA');
+
 % Run SSA:
 [~,~,STL1_4state] = STL1_4state.solve;
 
@@ -127,7 +136,7 @@ STL1_4state.tSpan = [0:5:60];
 STL1_4state.initialTime = 0;
 
 % Compile and store the given reaction propensities: 
-STL1_4state = STL1_4state.formPropensitiesGeneral('STL1_4state');
+STL1_4state = STL1_4state.formPropensitiesGeneral('STL1_4state_FSP');
 
 % Solve Model:
 [~,~,STL1_4state] = STL1_4state.solve;
@@ -171,6 +180,9 @@ STL1_4state_escape.plotFSP(STL1_4state_escape.Solutions, [], "escapeTimes",...
 % Set solution scheme to FSP sensitivity:
 STL1_4state.solutionScheme = 'fspSens';
 
+% Compile and store the given reaction propensities:
+STL1_4state = STL1_4state.formPropensitiesGeneral('STL1_4state_sens');
+
 % Solve the sensitivity problem:
 [~,~,STL1_4state] = STL1_4state.solve;
 
@@ -185,76 +197,108 @@ STL1_4state.plotFSP(STL1_4state.Solutions,...
 
 %% FIM Analysis
 
-% Set unobservable species.
+% Set unobservable species:
+STL1_4state.pdoOptions.unobservedSpecies = '1:4';
 
-% Add lognormal prior (so FIM is invertible).
+% Add lognormal prior (so FIM is invertible). Prior log-standard deviation:
+sig_log10 = 2*ones(1,15);
+
+% Compile and store the given reaction propensities:
+STL1_4state = STL1_4state.formPropensitiesGeneral('STL1_4state_FIM');
 
 % Compute FIMs using FSP sensitivity results.
 fimResults = STL1_4state.computeFIM;
 
 % Specify how many cells are to be measured at each time:
-STL1_4state_cellCounts = 1000*ones(size(STL1_4state.tSpan));
+cellCounts = 1000*ones(size(STL1_4state.tSpan));
 
 % Evaluate the provided experiment design (in "cellCounts")
 % and produce an array of FIMs (one for each parameter set):
-[STL1_4stateTotalFIM,...
-    STL1_4state_mleCovEstimate,STL1_4stateMetrics] = ...
-    STL1_4state.evaluateExperiment(fimResults,...
-    STL1_4state_cellCounts);
+[STL1_4stateTotalFIM, STL1_4state_mleCovEstimate, STL1_4stateMetrics] = ...
+STL1_4state.evaluateExperiment(fimResults, cellCounts, diag(sig_log10.^2));
 
 % Plot the FIMs:
 STL1_4state.plotFIMResults(STL1_4stateTotalFIM, STL1_4state.parameters,...
-    [STL1_4state.parameters{:,2}], EllipsePairs=[1 9; 2 10; 9 10; 2 11],...
-    PlotEllipses=true);
-
+    [STL1_4state.parameters{:,2}], PlotEllipses=true,...
+    EllipsePairs=[1 6; 1 9; 3 5; 3 7; 2 5; 4 14; 2 10; 5 10; 2 7]);
 
 %% Experiment Design
 
 % Choose three design criteria (D, E, Ds) -- find the three designs for
 % total of 1000 cells -- make plots of expt designs in bar charts (like
 % that already in paper).
-
-STL1_4state_design = STL1_4state;
-
-% Specify the allowable time points as 0:5:60.  Compute the FIMs.
-STL1_4state_design.tSpan = 0:5:60;
-fimResults_design = STL1_4state_design.computeFIM;
-
-% Specify how many cells are to be measured at each time:
-cellCounts = 100*ones(size(STL1_4state_design.tSpan));
+STL1_4state = STL1_4state.formPropensitiesGeneral('STL1_4state_design');
 
 % Choose a few different design criteria (e.g., E, D, D_s, T) 
-%% Compute the optimal number of cells from the FIM results using the min. 
+
+% Compute the optimal number of cells from the FIM results using the min. 
 % inv determinant <x^{-1}> (all other parameters are known and fixed)
 nTotal = sum(cellCounts);
-nCellsOpt = ...
-    STL1_4state_design.optimizeCellCounts(fimResults_design,nTotal,'Smallest Eigenvalue');
- 
-nCellsOptAvail = min(nCellsOpt,cellCounts)
+nCellsOpt_trace = ...
+    STL1_4state.optimizeCellCounts(fimResults,nTotal,'Trace');
+nCellsOpt_tr = ...
+    STL1_4state.optimizeCellCounts(fimResults,nTotal,'tr[1:10]');
+nCellsOpt_tr1 = ...
+    STL1_4state.optimizeCellCounts(fimResults,nTotal,'tr[11:15]');
+nCellsOpt_trR = ...
+    STL1_4state.optimizeCellCounts(fimResults,nTotal,'tr[9:10]');
 
-fimOpt = STL1_4state_design.evaluateExperiment(fimResults_design,nCellsOpt,...
-                                             diag(sig_log10.^2));
 
-fimOptAvail = STL1_4state_design.evaluateExperiment(fimResults_design,...
-                                        nCellsOptAvail,diag(sig_log10.^2));
- 
-f = figure;
-set(f,'Position',[616   748   412   170])
-bar([1:16],nTotal,0.45)
-hold on
-bar([1:16]+0.5,nCellsOpt,0.45)
-set(gca,'xtick',[1:16]+0.25,'xticklabel',STL1_4state_design.tSpan,...
-    'fontsize',16,'ylim',[0,7000])
-legend('Intuitive Design','Optimal Design')
+fimOpt_tr = STL1_4state.evaluateExperiment(fimResults,nCellsOpt_tr,...
+                                           diag(sig_log10.^2));
+fimOpt_se = STL1_4state.evaluateExperiment(fimResults,nCellsOpt_se,...
+                                           diag(sig_log10.^2));
 
 % Find the optimal designs for each.
 
-% Make a bar chart to compare the different designs.
+% Make a bar chart to compare the different designs
+x = 1:13;
 
+% Find which x positions correspond to time=30 and time=60 for off-setting:
+t = STL1_4state.tSpan;               
+idx = ismember(t, [30 60]);        
+
+% Build custom x-locations for series that need separation
+x_m02 = x;  x_m02(idx) = x_m02(idx) - 0.1;
+x_p02 = x;  x_p02(idx) = x_p02(idx) + 0.1;
+
+f = figure;
+bar(x,      nCellsOpt_trace,  0.5); hold on
+bar(x_m02,  nCellsOpt_trR,    0.5);
+bar(x_p02,  nCellsOpt_tr1,    0.5);
+bar(x,      nCellsOpt_detCov, 0.5);
+bar(x_m02,  nCellsOpt_tr,     0.5);
+
+set(gca,'XTick',x,'XTickLabel',t,'FontSize',16)
+title('4-state STL1 (FIM Optimal Designs)','FontSize',24)
+xlabel('Time (min)','FontSize',18)
+ylabel('Number of cells','FontSize',18)
+
+legend('Trace,Tr[1] Designs','Tr[9:10] Design','Tr[11:15] Design', ...
+       'DetCov,\lambda Designs','Tr[1:10] Design','Location','best')
+ 
+% f = figure;
+% set(f,'Position')
+% bar([1:13],nCellsOpt_trace,0.5)
+% set(gca,'xtick',[1:13],'xticklabel',STL1_4state.tSpan,'fontsize',16)
+% hold on
+% bar([1:13]-0.2,nCellsOpt_trR,0.5)
+% set(gca,'xtick',[1:13],'xticklabel',STL1_4state.tSpan,'fontsize',16)
+% hold on
+% bar([1:13]+0.2,nCellsOpt_tr1,0.5)
+% set(gca,'xtick',[1:13],'xticklabel',STL1_4state.tSpan,'fontsize',16)
+% hold on
+% bar([1:13],nCellsOpt_detCov,0.5)
+% set(gca,'xtick',[1:13],'xticklabel',STL1_4state.tSpan,'fontsize',16)
+% hold on
+% bar([1:13]-0.2,nCellsOpt_tr,0.5)
+% set(gca,'xtick',[1:13],'xticklabel',STL1_4state.tSpan,'fontsize',16)
+% xlabel('Time (min)','FontSize',18)
+% ylabel('Number of cells','FontSize',18)
+% legend('Trace,Tr[1] Designs','Tr[9:10] Design','Tr[11:15] Design',...
+%        'DetCov,\lambda Designs','Tr[1:10] Design')
 
 %% Load and Plot Data
-STL1_4state.solutionScheme = 'fsp';
-
 % Note: Ensure the search path is correct on the local machine: 
 STL1_4state = ...
     STL1_4state.loadData('data/filtered_data_2M_NaCl_Step.csv',...
@@ -266,6 +310,7 @@ STL1_4state = ...
 STL1_4state.plotFits([], "all", [], {'linewidth',2},...
     Title='4-state STL1', YLabel='Molecule Count',...
     LegendLocation='northeast', LegendFontSize=12);
+
 
 %% Find MLE
 
@@ -578,20 +623,6 @@ STL1_4state_Extended.plotFits([], "all", [], {'linewidth',2},...
 %         'Binomial', true, [], {'Replica',1}, LegendLocation="northwest",...
 %         Title="4-state STL1 (PDO: Nuclear mRNA)", FontSize=24,...
 %         XLabel="Total mRNA counts", YLabel="Nuclear mRNA counts");
-
-%% Change to affine Poisson PDO:
-% Make guesses for the PDO hyperparameters λ, in this case: λ₁, λ₂, λ₃
-% Model: μ(x) = max(λ₁, λ₂ + λ₃·x)
-% Soon: Neural networks and hierarchical Bayes may be used to estimate λ
-parGuess = [0, 1500, 5];
-
-STL1_4state_PDO = STL1_4state_MH;
-STL1_4state_PDO = STL1_4state_PDO.calibratePDO( ...
-    'data/filtered_data_2M_NaCl_Step.csv', {'mRNA'},...
-    {'RNA_STL1_total_TS3Full'}, {'STL1_avg_int_TS3Full'}, 'AffinePoiss',...
-    true, parGuess, {'Replica',2}, LegendLocation="southeast", ...
-    Title="4-state STL1 (PDO: Average intensity)", FontSize=24,...
-    XLabel="True mRNA counts",YLabel="Average intensities (binned)");
 
 %%
 fimResults_MH = STL1_4state_MH.computeFIM(); 

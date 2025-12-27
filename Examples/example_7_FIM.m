@@ -41,7 +41,7 @@ Model_FIM = Model_sens;
 Model_fimResults = Model_FIM.computeFIM(Model_sens.Solutions.sens); 
 
 % Generate a count of measured cells (in place of real data):
-Model_cellCounts = 10*ones(size(Model_FIM.tSpan));
+Model_cellCounts = 100*ones(size(Model_FIM.tSpan));
 
 % Evaluate the provided experiment design (in "cellCounts") 
 % and produce an array of FIMs (one for each parameter set):
@@ -72,7 +72,7 @@ STL1_FIM = STL1_sens;
 STL1_fimResults = STL1_FIM.computeFIM(STL1_sens.Solutions.sens); 
 
 % Generate a count of measured cells (in place of real data):
-STL1_cellCounts = 10*ones(size(STL1_FIM.tSpan));
+STL1_cellCounts = 100*ones(size(STL1_FIM.tSpan));
 
 % Evaluate the provided experiment design (in "cellCounts") 
 % and produce an array of FIMs (one for each parameter set):
