@@ -223,15 +223,20 @@ STL1_4state.plotFIMResults(STL1_4stateTotalFIM, STL1_4state.parameters,...
 
 %% Experiment Design
 
-% Choose three design criteria (D, E, Ds) -- find the three designs for
-% total of 1000 cells -- make plots of expt designs in bar charts (like
-% that already in paper).
+% Find the FIM-based designs for a total of 1000 cells 
+
+% Compile and store propensities:
 STL1_4state = STL1_4state.formPropensitiesGeneral('STL1_4state_design');
 
-% Choose a few different design criteria (e.g., E, D, D_s, T) 
-
-% Compute the optimal number of cells from the FIM results using the min. 
-% inv determinant <x^{-1}> (all other parameters are known and fixed)
+% Compute the optimal number of cells from the FIM results using different 
+% design criteria:  `Trace' maximizes the trace of the FIM; 
+% `DetCovariance' minimizes the expected determinant of MLE covariance; 
+% `Smallest Eigenvalue' maximizes the smallest e.val of the FIM; and 
+% `TR[$<i_1>,<i_2>$,...]' maximizes the determinant of the FIM for the 
+% specified indices.  The latter is shown for different parameter 
+% combinations, where `Tr[9:10]' are the mRNA-specific parameters `dr' and 
+% `kr' (degradation and transcription, respectively).  All other parameters 
+% are assumed to be known and fixed.
 nTotal = sum(cellCounts);
 nCellsOpt_detCov = ...
     STL1_4state.optimizeCellCounts(fimResults,nTotal,'DetCovariance');
@@ -244,22 +249,15 @@ nCellsOpt_tr1 = ...
 nCellsOpt_trR = ...
     STL1_4state.optimizeCellCounts(fimResults,nTotal,'tr[9:10]');
 
-
-fimOpt_tr = STL1_4state.evaluateExperiment(fimResults,nCellsOpt_tr,...
-                                           diag(sig_log10.^2));
-
-% Find the optimal designs for each.
-
 % Make a bar chart to compare the different designs
-x = 1:13;
-
 % Find which x positions correspond to time=30 and time=60 for off-setting:
+x = 1:13;
 t = STL1_4state.tSpan;               
 idx = ismember(t, [30 60]);        
 
 % Build custom x-locations for series that need separation
-x_m02 = x;  x_m02(idx) = x_m02(idx) - 0.1;
-x_p02 = x;  x_p02(idx) = x_p02(idx) + 0.1;
+x_m02 = x;  x_m02(idx) = x_m02(idx) - 0.2;
+x_p02 = x;  x_p02(idx) = x_p02(idx) + 0.2;
 
 f = figure;
 bar(x,      nCellsOpt_trace,  0.5); hold on
@@ -270,9 +268,8 @@ bar(x_m02,  nCellsOpt_tr,     0.5);
 
 set(gca,'XTick',x,'XTickLabel',t,'FontSize',16)
 title('4-state STL1 (FIM Optimal Designs)','FontSize',24)
-xlabel('Time (min)','FontSize',18)
-ylabel('Number of cells','FontSize',18)
-
+xlabel('Time (min)','FontSize',20)
+ylabel('Number of cells','FontSize',20)
 legend('Trace,Tr[1] Designs','Tr[9:10] Design','Tr[11:15] Design', ...
        'DetCov,\lambda Designs','Tr[1:10] Design','Location','best')
 
