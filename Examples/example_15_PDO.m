@@ -60,7 +60,7 @@ fimTotal = ...
     STL1_4state_PDO.evaluateExperiment(fimResults,...
     STL1_4state_PDO.dataSet.nCells,diag(sig_log10.^2));
 
-STL1_4state_PDO.plotMHResults(STL1_4state_MHResults,[fimTotal],...
+STL1_4state_PDO.plotMHResults(STL1_4state_MH_MHResults,[fimTotal],...
                               'log',[],figNew,plotColors)
 
 
@@ -82,32 +82,29 @@ fimOpt = STL1_4state_PDO.evaluateExperiment(fimResults,nCellsOpt,...
 fimOptAvail = STL1_4state_PDO.evaluateExperiment(fimResults,...
                                         nCellsOptAvail,diag(sig_log10.^2));
 figOpt = figure;
-STL1_4state_PDO.plotMHResults(STL1_4state_MHResults, [fimOpt,fimTotal],...
+STL1_4state_PDO.plotMHResults(STL1_4state_MH_MHResults, [fimOpt,fimTotal],...
                               'log',[],figOpt,plotColors);
 figOptAvail = figure;
-STL1_4state_PDO.plotMHResults(STL1_4state_MHResults,...
+STL1_4state_PDO.plotMHResults(STL1_4state_MH_MHResults,...
                    [fimOptAvail,fimTotal],'log',[],figOptAvail,plotColors);
  
 f = figure;
 set(f,'Position',[616   748   412   170])
-bar([1:16],nTotal,0.45)
+bar([1:size(nCellsOpt,2)],nTotal,0.45)
 hold on
-bar([1:16]+0.5,nCellsOpt,0.45)
-set(gca,'xtick',[1:16]+0.25,'xticklabel',STL1_4state_PDO.dataSet.times,...
-    'fontsize',16,'ylim',[0,7000])
+bar([1:size(nCellsOpt,2)]+0.5,nCellsOpt,0.45)
+set(gca,'xtick',[1:size(nCellsOpt,2)]+0.25,'xticklabel',...
+    STL1_4state_PDO.dataSet.times,'fontsize',16,'ylim',[0,7000])
 legend('Intuitive Design','Optimal Design')
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% PDO Calculations
 %% Ex(1): Calibrate PDO from cytoplasmic mRNA count data
-% Calibrate the PDO from empirical data. Here, the number of spots has
-% been measured using different assays in data columns 'nTotal' for the
-% 'true' data set and in the columns 'nSpots0' for a different label or
-% 'intens1' for the integrated intensity.  We calibrate two different 
-% PDOs for this case. In both cases, we assume an 'AffinePoiss' PDO  
-% where the obervation probability is a Poisson distribution where the   
-% mean value is affine linearly related to the true value: 
-% P(y|x) = Poiss(a0 + a1*x)
+% Calibrate Binomial PDOs from empirical data under the `missing spot'
+% assumption from Vo et al. (2013).  'RNA_STL1_total_TS3Full' is the full 
+% mRNA count and represents the `true' data; `RNA_STL1_cyto_TS3Full' is the
+% mRNA count from only cytoplasm and `RNA_STL1_nuc_TS3Full' is the mRNA 
+% count from only the nucleus.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 STL1_4state_PDO_cyt = STL1_4state_PDO;
 STL1_4state_PDO_nuc = STL1_4state_PDO;
@@ -128,6 +125,13 @@ STL1_4state_PDO_nuc = ...
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(2): Calibrate PDO from average intensity data
+% Calibrate the PDO from empirical data. Here, the number of spots has
+% been measured using different assays in data column 
+% 'RNA_STL1_total_TS3Full' for the 'true' data set (mRNA spot counts) and 
+% in the columns 'STL1_avg_int_TS3Full' for integrated intensity.  
+% We calibrate an 'AffinePoiss' PDO where the obervation probability is a 
+% Poisson distribution where the mean value is affine linearly related to 
+% the true value: P(y|x) = Poiss(a0 + a1*x)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Make guesses for the PDO hyperparameters λ, in this case: λ₁, λ₂, λ₃
 % Model: μ(x) = max(λ₁, λ₂ + λ₃·x)
@@ -155,7 +159,7 @@ fimPDO_cyt = STL1_4state_PDO_cyt.evaluateExperiment(fimsPDO_cyt,...
 nCellsOptPDO_cyt = STL1_4state_PDO_cyt.optimizeCellCounts(...
                                fimsPDO_cyt, nTotal, 'Smallest Eigenvalue');
 figPDO_cyt = figure;
-STL1_4state_PDO_cyt.plotMHResults(STL1_4state_MHResults,...
+STL1_4state_PDO_cyt.plotMHResults(STL1_4state_MH_MHResults,...
                          [fimPDO_cyt,fimTotal,fimOpt],'log',[],figPDO_cyt);
 
 % Nucleus:
