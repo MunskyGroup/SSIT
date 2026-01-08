@@ -9,9 +9,10 @@ end
 
 % Replace missing arguments with defaults.
 defaultArgs = struct('maxIter',1000,'display','iter','makePlot',false,'nRounds',1);
-for ifield = fields(defaultArgs)
-    if ~isfield(Args, ifield)
-        Args.(ifield) = defaultArgs.(ifield);
+argFields = fields(defaultArgs);
+for ifield = 1:length(argFields)
+    if ~isfield(Args, argFields{ifield})
+        Args.(argFields{ifield}) = defaultArgs.(argFields{ifield});
     end
 end
 
@@ -26,10 +27,10 @@ fitOptions = optimset('Display',Args.display,'MaxIter',Args.maxIter);
 % Fit model to data
 for iRound = 1:Args.nRounds
     [~,~,~,Model] = Model.maximizeLikelihood([],fitOptions);
-end
 
-% Find final FSP bounds
-[~,~,Model] = Model.solve;  
+    % Find final FSP bounds
+    [~,~,Model] = Model.solve;
+end
 
 if Args.makePlot
     Model.makeFitPlot;
