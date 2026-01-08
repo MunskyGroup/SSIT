@@ -3283,7 +3283,7 @@ classdef SSIT
                 allFitOptions.(fNames{i}) = fitOptions.(fNames{i});
             end
 
-            if isempty(obj.propensitiesGeneral)
+            if isempty(obj.propensitiesGeneral)&&strcmpi(obj.solutionScheme(1:3),'fsp') 
                 obj = formPropensitiesGeneral(obj);
             end
 
