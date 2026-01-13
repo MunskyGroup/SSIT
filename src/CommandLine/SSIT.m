@@ -1854,7 +1854,9 @@ classdef SSIT
                     else
                         Solution.trajs=fun(x0,nSims,k,'Series');
                     end
-                    disp([num2str(nSims),' SSA Runs Completed'])
+                    if obj.ssaOptions.verbose
+                        disp([num2str(nSims),' SSA Runs Completed'])
+                    end
 
                     % Apply PDO, if applicable
                     if ~isempty(obj.pdoOptions.PDO)
