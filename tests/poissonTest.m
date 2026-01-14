@@ -353,6 +353,29 @@ classdef poissonTest < matlab.unittest.TestCase
                 'Likelihood Calculation is not within 0.01% Tolerance');            
         end
 
+        function likelihoodSpread(testCase)
+            % In this test we compare the computed log-likelihood to the
+            % exact solution for the Poisson Model:
+            % lam(t) = k/g*(1-exp(-g*t));
+            % logL = prod_n [Poisson(n|lam(t))]
+            
+            % Add additional times to FSP solution to test that it
+            % correctly can filter thee out when computing the likelihood
+            % values.
+            % testCase.Poiss.tSpan = [0:0.05:max(testCase.Poiss.tSpan)];
+            
+            % Update solution.
+            [~,~,testCase.Poiss] = testCase.Poiss.solve;
+
+            % Change numbers of cells
+            testCase.Poiss.dataSet.nCells(:) = 30;
+            testCase.Poiss.dataSet.nCells(end) = 60;           
+
+            % Call to compute likelihood
+            testCase.Poiss.estimateLikelihoodSpread;
+               
+        end
+
         function LikelihoodGradient(testCase)
             % This tests to make sure that the calculation for the gradient
             % of the loglikelihood function completes and is within 0.1% of

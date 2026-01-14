@@ -2025,36 +2025,52 @@ classdef SSIT
 
         end
 
-        function A = sampleDataFromFSP(obj,fspSoln,saveFile)
+        function A = sampleDataFromFSP(obj,fspSoln,saveFile,nCells)
             % Function to create simulated single-cell snapshot data by
             % sampling from the FSP solution.
             % Arguments:
             %       fspSoln -- solution of current model using FSP.
             %       saveFile -- filename (.csv) to save data.
+            arguments
+                obj
+                fspSoln =[];
+                saveFile = [];
+                nCells = [];
+            end
             Solution.T_array = obj.tSpan;
             Nt = length(Solution.T_array);
-            if ~isnan(obj.ssaOptions.nSimsPerExpt)
-                nSims = obj.ssaOptions.nSimsPerExpt*obj.ssaOptions.Nexp;
-            else
-                nSims = obj.ssaOptions.Nsims;
+            
+            if isempty(nCells)
+                if ~isnan(obj.ssaOptions.nSimsPerExpt)
+                    nSims = obj.ssaOptions.nSimsPerExpt*obj.ssaOptions.Nexp;
+                else
+                    nSims = obj.ssaOptions.Nsims;
+                end
+                nCells = nSims*ones(1,Nt);
             end
-            Solution.trajs = zeros(length(obj.species),...
-                length(obj.tSpan),nSims);% Creates an empty Trajectories matrix
-            % from the size of the time array and number of simulations
-            for it = 1:length(obj.tSpan)
+            if isempty(fspSoln)
+                fspSoln = obj.Solutions;
+            end
+
+            Solution.trajs = NaN*ones(length(obj.species),...
+                length(obj.tSpan),max(nCells));% Creates an empty Trajectories matrix
+            % from the size of the time array and number of simulations.
+            % NaNs are put in empty elements for the case where there are
+            % different numbers of cells at different time points.
+            for iT = 1:length(obj.tSpan)
                 clear PP
-                PP = double(fspSoln.fsp{it}.p.data);
+                PP = double(fspSoln.fsp{iT}.p.data);
                 clear w
                 w(:) = PP(:); w(w<0)=0;
                 % TODO - there has to be another way of doing this.
-                [I1,I2,I3,I4,I5,I6,I7,I8,I9,I10,I11] =  ind2sub(size(PP),randsample(length(w), nSims, true, w ));
+                [I1,I2,I3,I4,I5,I6,I7,I8,I9,I10,I11] =  ind2sub(size(PP),randsample(length(w), nCells(iT), true, w ));
                 for iSp = 1:length(obj.species)
-                    eval(['Solution.trajs(iSp,it,:) = I',num2str(iSp),'-1;']);
+                    eval(['Solution.trajs(iSp,iT,1:nCells(iT)) = I',num2str(iSp),'-1;']);
                 end
             end
             if ~isempty(obj.pdoOptions.PDO)
-                Solution.trajsDistorted = zeros(length(obj.species),...
-                    length(obj.tSpan),nSims);% Creates an empty Trajectories matrix from the size of the time array and number of simulations
+                Solution.trajsDistorted = NaN*ones(length(obj.species),...
+                length(obj.tSpan),max(nCells)); % Creates an empty Trajectories matrix from the size of the time array and number of simulations
                 for iS = 1:length(obj.species)
                     PDO = obj.pdoOptions.PDO.conditionalPmfs{iS};
                     nDpossible = size(PDO,1);
@@ -2066,24 +2082,31 @@ classdef SSIT
                 end
                 disp('PDO applied to FSP Samples')
             end
-            if ~isempty(saveFile)
+
+            if nargout>=1||~isempty(saveFile)
                 A = table;
-                for it=1:Nt
-                    A.time((it-1)*nSims+1:it*nSims) = obj.tSpan(it);
+                k = 0;
+                for iT=1:Nt
+                    A.time(k+1:k+nCells(iT)) = obj.tSpan(iT);
                     for ie = 1:obj.ssaOptions.Nexp
                         for s = 1:size(Solution.trajs,1)
                             warning('off')
-                            A.(['exp',num2str(ie),'_s',num2str(s)])((it-1)*nSims+(1:nSims)) = ...
-                                Solution.trajs(s,it,(ie-1)*nSims+(1:nSims));
+
+                            A.(['exp',num2str(ie),'_s',num2str(s)])(k+1:k+nCells(iT)) = ...
+                                Solution.trajs(s,iT,1:nCells(iT));
                             if ~isempty(obj.pdoOptions.PDO)
-                                A.(['exp',num2str(ie),'_s',num2str(s),'_Distorted'])((it-1)*nSims+(1:nSims)) = ...
-                                    Solution.trajsDistorted(s,it,(ie-1)*nSims+(1:nSims));
+                                A.(['exp',num2str(ie),'_s',num2str(s),'_Distorted'])(k+1:k+nCells(iT)) = ...
+                                    Solution.trajsDistorted(s,iT,1:nCells(iT));
                             end
                         end
                     end
+                    k = k + nCells(iT);
                 end
-                writetable(A,saveFile)
-                disp(['FSP Samples saved to ',saveFile])
+
+                if ~isempty(saveFile)
+                    writetable(A,saveFile)
+                    disp(['FSP Samples saved to ',saveFile])
+                end
             end
         end
 
@@ -2900,7 +2923,11 @@ classdef SSIT
                 Pvals = Pvals/max(1,sum(Pvals,'all'));
                 logP = sptensor(log(Pvals));
 
-                LogLk(it) = vals'*logP(inds);
+                try
+                    LogLk(it) = vals'*logP(inds);
+                catch
+                    1+1
+                end
 
                 if nargout>=3
                     perfectMod(it) = vals'*log(vals/sum(vals));
@@ -3023,6 +3050,49 @@ classdef SSIT
             else
                 gradient = [];
             end
+        end
+
+
+        function [logLSpread,logLSpreadVector] = estimateLikelihoodSpread(obj,nSims)
+            % This function computes the expected spead of the
+            % log-likelihood function if the model were exact and correct.
+            % To do this, it samples data from the exact solution and then
+            % calculates the loglikelihood for each sample.  Then, it
+            % computes the standard deviation of this log likelihood
+            % vector. 
+            arguments
+                obj % -- (SSIT class)
+                nSims = 100; % Number of simulations at which to calculate log(L)
+            end
+
+            logLSpreadVector = zeros(nSims,1);
+            objTMP = obj;
+            for iSim = 1:nSims
+
+                % Generate and reformat data using FSP solution.
+                A = obj.sampleDataFromFSP([],[],obj.dataSet.nCells);                
+                objTMP.dataSet.DATA = table2cell(A);
+                
+                if iSim==1
+                    times = unique(A.time);
+                    numTimes = length(times);
+                    timeAr = A.time;
+                    for i = 1:numTimes
+                        timeAr(A.time==times(i)) = i-1;
+                    end
+                end
+                A.time = timeAr;
+
+                % Convert to data tensor
+                X = table2array(A);
+
+                objTMP.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor = ...
+                    sptensor(X+1,ones(size(X,1),1));
+                
+                % Calculate log likelihood for new data set.
+                logLSpreadVector(iSim) = objTMP.computeLikelihood([],[],false,true);
+            end
+            logLSpread = std(logLSpreadVector);
         end
 
 

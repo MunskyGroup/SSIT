@@ -184,5 +184,35 @@ classdef poisson2Dtest < matlab.unittest.TestCase
             modelA.makeFitPlot
             
         end
+
+        function likelihoodSpread(testCase)
+            % In this test we compare the computed log-likelihood to the
+            % exact solution for the Poisson Model:
+            % lam(t) = k/g*(1-exp(-g*t));
+            % logL = prod_n [Poisson(n|lam(t))]
+            
+            % Add additional times to FSP solution to test that it
+            % correctly can filter thee out when computing the likelihood
+            % values.
+            % testCase.Poiss.tSpan = [0:0.05:max(testCase.Poiss.tSpan)];
+            
+            % Update solution.
+            [~,~,testCase.TwoDPoiss] = testCase.TwoDPoiss.solve;
+
+            delete 'testData.csv'
+            testCase.TwoDPoiss.ssaOptions.nSimsPerExpt = 1000;
+            testCase.TwoDPoiss.ssaOptions.Nexp = 1;
+            testCase.TwoDPoiss.sampleDataFromFSP(testCase.TwoDPoissSolution,'testData.csv');
+
+            modelBoth = testCase.TwoDPoiss.loadData('testData.csv',{'rna1','exp1_s1';'rna2','exp1_s2'});
+
+            % Change numbers of cells
+            modelBoth.dataSet.nCells(:) = 30;
+            modelBoth.dataSet.nCells(end) = 60;           
+
+            % Call to compute likelihood
+            modelBoth.estimateLikelihoodSpread;
+               
+        end
     end
 end
