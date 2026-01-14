@@ -5,6 +5,8 @@ classdef testGui < matlab.uitest.TestCase
    methods (TestClassSetup)
        function launchapp(testCase1)
 
+           addpath(genpath('../src'));
+           
            stubDir = tempname;
            mkdir(stubDir);
 
@@ -21,7 +23,6 @@ classdef testGui < matlab.uitest.TestCase
 
            close all force
            cd ../  % Change to the main SSIT directory.
-           addpath(genpath('src'));
            testCase1.GUI = SSITGUI;
            testCase1.addTeardown(@delete,testCase1.GUI);
        end
