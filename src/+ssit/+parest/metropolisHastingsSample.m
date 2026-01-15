@@ -232,6 +232,9 @@ for i = iStart:nsamples*thin
     if progress&&mod(i,20)==0
         waitbar((i+burnin)/(burnin+nsamples*thin),D,...
             ['Running MetHast, Acceptance = ',num2str(accept/(i+burnin))]);
+        figure(123);clf;plot(value(value~=0));
+    else
+        disp(['Completed ',num2str(i),' out of ',num2str(nsamples*thin),' samples. Acceptance = ',num2str(accept/(i+burnin))])
     end
 
     if mod(i,100)==0
