@@ -21,7 +21,7 @@ addpath(genpath('../src'));
 
 %% Set SSA options:
 % Make copy of our 4-state STL1 model:
-STL1_4state_ABC = STL1_4state;
+STL1_4state_ABC = STL1_4state_MLE;
 
 %Set solution scheme to SSA:
 STL1_4state_ABC.solutionScheme = 'SSA';

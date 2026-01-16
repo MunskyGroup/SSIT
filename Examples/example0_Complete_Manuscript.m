@@ -237,7 +237,8 @@ STL1_4state = STL1_4state.formPropensitiesGeneral('STL1_4state_design');
 % combinations, where `Tr[9:10]' are the mRNA-specific parameters `dr' and 
 % `kr' (degradation and transcription, respectively).  All other parameters 
 % are assumed to be known and fixed.
-nTotal = sum(cellCounts);
+nCol = sum(cellCounts);
+nTotal = nCol(1);
 nCellsOpt_detCov = ...
     STL1_4state.optimizeCellCounts(fimResults,nTotal,'DetCovariance');
 nCellsOpt_trace = ...
@@ -249,15 +250,15 @@ nCellsOpt_tr1 = ...
 nCellsOpt_trR = ...
     STL1_4state.optimizeCellCounts(fimResults,nTotal,'tr[9:10]');
 
-% Make a bar chart to compare the different designs
+%% Make a bar chart to compare the different designs
 % Find which x positions correspond to time=30 and time=60 for off-setting:
 x = 1:13;
 t = STL1_4state.tSpan;               
 idx = ismember(t, [30 60]);        
 
 % Build custom x-locations for series that need separation
-x_m02 = x;  x_m02(idx) = x_m02(idx) - 0.2;
-x_p02 = x;  x_p02(idx) = x_p02(idx) + 0.2;
+x_m02 = x;  x_m03(idx) = x_m02(idx) - 0.5;
+x_p02 = x;  x_p02(idx) = x_p02(idx) + 0.5;
 
 f = figure;
 bar(x,      nCellsOpt_trace,  0.5); hold on
@@ -271,35 +272,13 @@ title('4-state STL1 (FIM Optimal Designs)','FontSize',24)
 xlabel('Time (min)','FontSize',20)
 ylabel('Number of cells','FontSize',20)
 legend('Trace,Tr[1] Designs','Tr[9:10] Design','Tr[11:15] Design', ...
-       'DetCov,\lambda Designs','Tr[1:10] Design','Location','best')
+       'DetCov,\lambda Designs','Tr[1:10] Design','Location','northeast')
 
-%%
-fimOpt_trace = ...
-    STL1_4state.evaluateExperiment(fimResults,nCellsOpt_trace,...
-                                   diag(sig_log10.^2));
-fimOpt_trR = STL1_4state.evaluateExperiment(fimResults,nCellsOpt_trR,...
-                                           diag(sig_log10.^2));
-fimOpt_tr1 = STL1_4state.evaluateExperiment(fimResults,nCellsOpt_tr1,...
-                                           diag(sig_log10.^2));
-fimOpt_detCov = ...
-    STL1_4state.evaluateExperiment(fimResults,nCellsOpt_detCov,...
-                                   diag(sig_log10.^2));
+
 fimOpt_tr = STL1_4state.evaluateExperiment(fimResults,nCellsOpt_tr,...
                                            diag(sig_log10.^2));
 
-% Plot the FIMs:
-STL1_4state.plotFIMResults(fimOpt_trace, STL1_4state.parameters,...
-    [STL1_4state.parameters{:,2}], EllipsePairs=[1 6; 9 10; 8 10; 8 9]);
-
-STL1_4state.plotFIMResults(fimOpt_trR, STL1_4state.parameters,...
-    [STL1_4state.parameters{:,2}], EllipsePairs=[1 6; 9 10; 8 10; 8 9]);
-
-STL1_4state.plotFIMResults(fimOpt_tr1, STL1_4state.parameters,...
-    [STL1_4state.parameters{:,2}], EllipsePairs=[1 6; 9 10; 8 10; 8 9]);
-
-STL1_4state.plotFIMResults(fimOpt_detCov, STL1_4state.parameters,...
-    [STL1_4state.parameters{:,2}], EllipsePairs=[1 6; 9 10; 8 10; 8 9]);
-
+% Plot the FIMs for 'tr[1:10]':
 STL1_4state.plotFIMResults(fimOpt_tr, STL1_4state.parameters,...
     [STL1_4state.parameters{:,2}], EllipsePairs=[1 6; 9 10; 8 10; 8 9]);
 
@@ -410,8 +389,8 @@ logPriorLoss = @(x)sum((log10(x)-mu_log10).^2./(2*sig_log10.^2));
 lossFunction = 'cdf_one_norm';
 
 % Set ABC / MCMC options
-ABCoptions = struct('numberOfSamples',20,'burnIn',0,'thin',1,...
-    'proposalDistribution',@(x)x+0.05*randn(size(x)));
+ABCoptions = struct('numberOfSamples',5,'burnIn',0,'thin',1,...
+    'proposalDistribution',@(x)x+0.01*randn(size(x)));
 
 % Compile and store reaction propensities:
 STL1_4state_ABC = STL1_4state_ABC.formPropensitiesGeneral('STL1_4state_ABC');
@@ -420,7 +399,27 @@ STL1_4state_ABC = STL1_4state_ABC.formPropensitiesGeneral('STL1_4state_ABC');
 [~, ~, ~, STL1_4state_ABC] = STL1_4state_ABC.runABCsearch([],...
     lossFunction, logPriorLoss, ABCoptions);
 
-STL1_4state_ABC.plotMHResults(STL1_4state_ABC.Solutions.ABC);
+STL1_4state_ABC.plotABC(STL1_4state_ABC.Solutions.ABC);
+%%
+if isfield(ResultsABC, 'mhSamples')
+    parChain = ResultsABC.mhSamples;   % size: [numberOfSamples x nPars] 
+    nPars    = size(parChain, 2);
+
+    figure;
+    for k = 1:nPars
+        subplot(ceil(nPars/2), 2, k);
+        histogram(parChain(:,k), 40, 'Normalization', 'pdf');
+        hold on;
+        xline(parsABC(k), 'r', 'LineWidth', 1.5);
+        xline(STL1_4state_MH_pars(k), 'b', 'LineWidth', 1.5);
+        title(sprintf('Parameter %d', k));
+        xlabel('\theta_k');
+        ylabel('Posterior density (approx.)');
+    end
+    sgtitle('ABC posterior marginals (approximate)');
+else
+    warning('ResultsABC.mhSamples not found.');
+end
 
 
 %% Cross Validation
@@ -615,47 +614,104 @@ STL1_4state_Extended.plotFits([], "all", [], {'linewidth',2},...
 % Check if optimal expt design changes, and if so make that plot also.
 
 % Make a copy of our model:
-STL1_4state_PDO = STL1_4state;
+STL1_4state_PDO = STL1_4state_MH;
 
 % Change to binomial PDO: 
 STL1_4state_PDO_cyt = ...
-     STL1_4state_PDO.calibratePDO('data/filtered_data_2M_NaCl_Step.csv',...
-        {'mRNA'}, {'RNA_STL1_total_TS3Full'}, {'RNA_STL1_cyto_TS3Full'},...
-        'Binomial', true, [], {'Replica',1}, LegendLocation="northwest",...
-         Title="4-state STL1 (PDO: Cytoplasmic mRNA)", FontSize=24,...
-         XLabel="Total mRNA counts", YLabel="Cytoplasmic mRNA counts");
+    STL1_4state_PDO.calibratePDO('data/filtered_data_2M_NaCl_Step.csv',...
+    {'mRNA'}, {'RNA_STL1_total_TS3Full'}, {'RNA_STL1_cyto_TS3Full'},...
+     'Binomial', true, [], {'Replica',1}, LegendLocation="northwest",...
+     Title="4-state STL1 (Binomial PDO: Cytoplasmic mRNA)", FontSize=24,...
+     XLabel="Total mRNA counts", YLabel="Cytoplasmic mRNA counts");
  
 STL1_4state_PDO_nuc = ...
-     STL1_4state_PDO.calibratePDO('data/filtered_data_2M_NaCl_Step.csv',...
-        {'mRNA'}, {'RNA_STL1_total_TS3Full'}, {'RNA_STL1_nuc_TS3Full'},...
-        'Binomial', true, [], {'Replica',1}, LegendLocation="northwest",...
-         Title="4-state STL1 (PDO: Nuclear mRNA)", FontSize=24,...
-         XLabel="Total mRNA counts", YLabel="Nuclear mRNA counts");
+    STL1_4state_PDO.calibratePDO('data/filtered_data_2M_NaCl_Step.csv',...
+    {'mRNA'}, {'RNA_STL1_total_TS3Full'}, {'RNA_STL1_nuc_TS3Full'},...
+     'Binomial', true, [], {'Replica',1}, LegendLocation="northwest",...
+     Title="4-state STL1 (Binomial PDO: Nuclear mRNA)", FontSize=24,...
+     XLabel="Total mRNA counts", YLabel="Nuclear mRNA counts");
 
-%% 
-fimResults_PDO_cyt = STL1_4state_PDO_cyt.computeFIM(); 
-fimResults_PDO_nuc = STL1_4state_PDO_nuc.computeFIM(); 
+%%%%%%%%%%%%%%%%%%%%%%%%% Nucleus:%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% FIM + PDO analyses
+%   * Analyze FIM with PDO for nuclear mRNA counts
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% Get the number of cells using 'nCells':
-cellCounts = STL1_4state.dataSet.nCells*ones(size(STL1_4state.tSpan));
+%% Intensity
+sig_log10 = 0.05*ones(1,15);
+parGuess = [0, 1500, 5];
 
-% Evaluate the provided experiment design (in "cellCounts") 
-% and produce an array of FIMs (one for each parameter set):
-[fimTotal_MH, mleCovEstimate_MH, fimMetrics_MH] = ...
-    STL1_4state_MH.evaluateExperiment(fimResults_MH, cellCounts)
+STL1_4state_PDO_intens = STL1_4state_PDO;
+STL1_4state_PDO_intens = STL1_4state_PDO_intens.calibratePDO( ...
+    'data/filtered_data_2M_NaCl_Step.csv', {'mRNA'},...
+    {'RNA_STL1_total_TS3Full'}, {'STL1_avg_int_TS3Full'}, 'AffinePoiss',...
+    true, parGuess, {'Replica',2}, LegendLocation="southeast", ...
+    Title="4-state STL1 (Affine PDO: Average intensity)", FontSize=24,...
+    XLabel="True mRNA counts",YLabel="Average intensities (binned)");
 
-[fimTotal_PDO, mleCovEstimate_PDO, fimMetrics_PDO] = ...
-    STL1_4state_PDO.evaluateExperiment(fimResults_PDO, cellCounts)
 
-% Plot the FIMs:
-STL1_4state_MH.plotFIMResults(fimTotal_MH, STL1_4state_MH.parameters,...
-    [STL1_4state_MH.parameters{:,2}], PlotEllipses=true,...
-    EllipsePairs=[6 14; 7 12; 13 15; 11 14]);
+fimsPDOintens = STL1_4state_PDO_intens.computeFIM([],'log');
+fimPDOintens = STL1_4state_PDO_intens.evaluateExperiment(fimsPDOintens,...
+                                          nCellsOpt_tr,diag(sig_log10.^2));
 
-STL1_4state_PDO.plotFIMResults(fimTotal_PDO, STL1_4state_PDO.parameters,...
-    [STL1_4state_PDO.parameters{:,2}], PlotEllipses=true,...
-    EllipsePairs=[6 14; 7 12; 13 15; 11 14]);
+nCellsOptPDOintens = STL1_4state_PDO_intens.optimizeCellCounts(...
+                               fimsPDOintens,nTotal,'Smallest Eigenvalue');
 
+figintens = figure;
+STL1_4state_PDO_intens.plotMHResults(STL1_4state_MH_MHResults,...
+                     [fimPDOintens,fimTotal,fimOpt_tr],'log',[],figintens);
+
+%% Plot legend
+axs = findall(figintens, 'Type', 'axes');
+ax  = axs(1);        
+hold(ax,'on');
+
+% Helpers:
+near = @(c,tol,tgt) (numel(c)==3) && all(abs(c(:)'-tgt)<=tol);
+isMagenta = @(c) near(c,0.15,[1 0 1]);
+isCyan    = @(c) near(c,0.15,[0 1 1]);
+isBlue    = @(c) near(c,0.15,[0 0 1]);
+isGreen   = @(c) near(c,0.15,[0 1 0]);
+
+% MCMC 90% credible interval (magenta dashed):
+hMHell = findobj(ax,'Type','line','LineStyle','--');
+hMHell = hMHell(arrayfun(@(h) isMagenta(h.Color), hMHell));
+
+% FIM ellipses (solid lines):
+hFIM = findobj(ax,'Type','line','LineStyle','-');
+
+% Classify FIM ellipses by color:
+hFIM_cyan  = hFIM(arrayfun(@(h) isCyan(h.Color),  hFIM));
+hFIM_blue  = hFIM(arrayfun(@(h) isBlue(h.Color),  hFIM));
+hFIM_green = hFIM(arrayfun(@(h) isGreen(h.Color), hFIM));
+
+% Find MCMC samples (scatter) and MLE (square marker):
+hSamples = findobj(ax,'Type','scatter');
+if isempty(hSamples)
+    cand = findobj(ax,'Type','line','Marker','o');
+    hSamples = cand(~arrayfun(@(h) strcmp(get(h,'MarkerFaceColor'),'none'), cand));
+end
+hMLE = findobj(ax,'Type','line','Marker','s');
+
+% Build legend in a sensible order:
+L = []; names = {};
+if ~isempty(hSamples),L(end+1)=hSamples(1);names{end+1}='MH samples';end
+if ~isempty(hMLE),L(end+1)=hMLE(1); names{end+1}='MLE';end
+if ~isempty(hMHell),L(end+1)=hMHell(1);names{end+1}='MH 90% CI';end
+if ~isempty(hFIM_cyan),L(end+1)=hFIM_cyan(1);names{end+1}='FIM PDO';end
+if ~isempty(hFIM_blue),L(end+1)=hFIM_blue(1);names{end+1}='FIM total';end
+if ~isempty(hFIM_green),L(end+1)=hFIM_green(1);names{end+1}='FIM optimal';end
+
+% Fallback: if color classification failed, just take first three FIM lines
+if numel(L)<5
+    remainingFIM = setdiff(hFIM, [hFIM_cyan; hFIM_blue; hFIM_green]);
+    for k = 1:min(3, numel(remainingFIM))
+        L(end+1) = remainingFIM(k);
+        names{end+1} = sprintf('FIM #%d', k);
+    end
+end
+
+lgd = legend(ax, L, names, 'Location','best');
+lgd.FontSize = 12;
 
 %% Pipeline
 % Brian will write a pipeline to fit 500 genes in the scSEQ data.  Jack is
