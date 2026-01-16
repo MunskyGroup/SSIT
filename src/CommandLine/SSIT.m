@@ -2431,7 +2431,7 @@ classdef SSIT
             end
 
             if isempty(NcGuess)
-                % Distributed avaliable cells among experiments.
+                % Distributed available cells among experiments.
                 NcGuess = NcFixed;
                 iExpt = 1;
                 while nCellsTotalNew>0&&iExpt<=length(NcGuess)
@@ -4589,7 +4589,6 @@ function plotMoments(obj, solution, speciesNames, plotType, indTimes, figureNums
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
         % plotSSA - Plots SSA trajectories and histograms from ssaSoln struct
         function plotSSA(obj,speciesIdx,numTraj,speciesNames,lineProps,opts)
             arguments
@@ -5443,6 +5442,199 @@ end
                 end
             end            
         end
+
+        function hFig = plotABC(obj, ResultsABC, varargin)
+        %SSIT.plotABC Plot approximate posterior marginals from ABC MH samples.
+        %
+        % Usage:
+        %   obj.plotABC(obj.Solutions.ABC)
+        %   obj.plotABC(obj.Solutions.ABC, 'comparePars', pars2)
+        %
+        % Name-value options:
+        %   'comparePars'   : vector length nPars (blue line)
+        %   'compareLabel'  : label used in legend (default 'Compare')
+        %   'bestPars'      : vector length nPars (red line). If omitted, inferred:
+        %                     - argmin(mhValue) if present
+        %                     - otherwise posterior mean
+        %   'bestLabel'     : label for best line (default 'Best (min loss)')
+        %   'nBins'         : histogram bins (default 40)
+        %   'Normalization' : 'pdf' (default) or any valid histogram normalization
+        %   'nCols'         : columns in tiled layout (default 2)
+        %   'parNames'      : cellstr of parameter names (default from obj.parameters)
+        %   'showCurrent'   : overlay current obj.parameters (black dashed) (default true)
+        %
+        % Returns:
+        %   hFig : figure handle
+        
+            p = inputParser;
+            p.addRequired('ResultsABC', @(s)isstruct(s));
+            p.addParameter('comparePars', [], @(x)isnumeric(x) || isempty(x));
+            p.addParameter('compareLabel', 'Compare', @(s)ischar(s) || isstring(s));
+            p.addParameter('bestPars', [], @(x)isnumeric(x) || isempty(x));
+            p.addParameter('bestLabel', 'Best (min loss)', @(s)ischar(s) || isstring(s));
+            p.addParameter('nBins', 40, @(x)isnumeric(x) && isscalar(x) && x>0);
+            p.addParameter('Normalization', 'pdf', @(s)ischar(s) || isstring(s));
+            p.addParameter('nCols', 2, @(x)isnumeric(x) && isscalar(x) && x>=1);
+            p.addParameter('parNames', {}, @(c)iscell(c) || isstring(c));
+            p.addParameter('showCurrent', true, @(x)islogical(x) && isscalar(x));
+            p.parse(ResultsABC, varargin{:});
+            opt = p.Results;
+        
+            if ~isfield(ResultsABC, 'mhSamples') || isempty(ResultsABC.mhSamples)
+                warning('plotABC:NoSamples', 'ResultsABC.mhSamples not found or empty.');
+                hFig = [];
+                return
+            end
+        
+            parChain = ResultsABC.mhSamples;
+            nPars    = size(parChain, 2);
+        
+            % ---- infer bestPars if not provided ----
+            bestPars = opt.bestPars;
+            bestLabel = string(opt.bestLabel);
+        
+            if isempty(bestPars)
+                if isfield(ResultsABC,'mhValue') && numel(ResultsABC.mhValue)==size(parChain,1)
+                    [~, iBest] = min(ResultsABC.mhValue(:));
+                    bestPars = parChain(iBest, :);
+                    bestLabel = "Best (min mhValue)";
+                else
+                    bestPars = mean(parChain, 1, 'omitnan');
+                    bestLabel = "Posterior mean";
+                end
+            end
+        
+            % ---- optional: current parameters in the object ----
+            currentPars = [];
+            if opt.showCurrent && isprop(obj,'parameters') && ~isempty(obj.parameters)
+                % Try to use fitted indices if available, else first nPars
+                inds = [];
+                if isprop(obj,'fittingOptions') && isfield(obj.fittingOptions,'modelVarsToFit') ...
+                        && ~isempty(obj.fittingOptions.modelVarsToFit)
+                    inds = obj.fittingOptions.modelVarsToFit(:);
+                end
+        
+                try
+                    if ~isempty(inds) && numel(inds)==nPars
+                        currentPars = cell2mat(obj.parameters(inds,2)).';
+                    elseif size(obj.parameters,1) >= nPars
+                        currentPars = cell2mat(obj.parameters(1:nPars,2)).';
+                    end
+                catch
+                    currentPars = [];
+                end
+            end
+        
+            % ---- parameter names ----
+            parNames = opt.parNames;
+            if isempty(parNames)
+                try
+                    if isprop(obj,'fittingOptions') && isfield(obj.fittingOptions,'modelVarsToFit') ...
+                            && ~isempty(obj.fittingOptions.modelVarsToFit) ...
+                            && numel(obj.fittingOptions.modelVarsToFit)==nPars
+                        inds = obj.fittingOptions.modelVarsToFit(:);
+                        parNames = string(obj.parameters(inds,1));
+                    elseif isprop(obj,'parameters') && size(obj.parameters,1) >= nPars
+                        parNames = string(obj.parameters(1:nPars,1));
+                    else
+                        parNames = "Parameter " + (1:nPars);
+                    end
+                catch
+                    parNames = "Parameter " + (1:nPars);
+                end
+            else
+                parNames = string(parNames);
+            end
+        
+            % ---- layout ----
+            nCols = opt.nCols;
+            nRows = ceil(nPars / nCols);
+        
+            hFig = figure;
+            tl = tiledlayout(nRows, nCols, 'Padding','compact', 'TileSpacing','compact');
+        
+            for k = 1:nPars
+                nexttile;
+                histogram(parChain(:,k), opt.nBins, 'Normalization', opt.Normalization);
+                hold on;
+        
+                % Best/inferred line
+                xline(bestPars(k), 'r', 'LineWidth', 1.5);
+        
+                % Compare line
+                if ~isempty(opt.comparePars)
+                    if numel(opt.comparePars) ~= nPars
+                        warning('plotABC:CompareSize', ...
+                            'comparePars must have length %d (got %d). Ignoring.', ...
+                            nPars, numel(opt.comparePars));
+                    else
+                        xline(opt.comparePars(k), 'b', 'LineWidth', 1.5);
+                    end
+                end
+        
+                % Current parameter line
+                if ~isempty(currentPars) && numel(currentPars)==nPars
+                    xline(currentPars(k), 'k--', 'LineWidth', 1.2);
+                end
+        
+                title(parNames(k), 'Interpreter','none');
+                xlabel('\theta_k');
+                %ylabel("Posterior density (approx.)");
+                if k == 1
+                    ylabel("Posterior density (approx.)");
+                else
+                    ylabel('');  % no y-axis label on other tiles
+                end
+        
+                % light legend only when something beyond histogram exists
+                % legItems = string(bestLabel);
+                % if ~isempty(opt.comparePars) && numel(opt.comparePars)==nPars
+                %     legItems(end+1) = string(opt.compareLabel);
+                % end
+                % if ~isempty(currentPars) && numel(currentPars)==nPars
+                %     legItems(end+1) = "Current obj.parameters";
+                % end
+                % legend(legItems, 'Location','best', 'Box','off');
+            end
+
+            % ---- one shared legend outside the tiles ----
+            hLeg = gobjects(0);
+            legItems = strings(0);
+            
+            % Dummy handles for legend (so we don't need per-tile legend)
+            hLeg(end+1) = plot(nan,nan,'r-','LineWidth',1.5);
+            legItems(end+1) = bestLabel;
+            
+            if ~isempty(opt.comparePars) && numel(opt.comparePars)==nPars
+                hLeg(end+1) = plot(nan,nan,'b-','LineWidth',1.5);
+                legItems(end+1) = string(opt.compareLabel);
+            end
+            
+            if ~isempty(currentPars) && numel(currentPars)==nPars
+                hLeg(end+1) = plot(nan,nan,'k--','LineWidth',1.2);
+                legItems(end+1) = "Current obj.parameters";
+            end
+            
+            % Put legend outside the tiled layout
+            try
+                lgd = legend(tl, hLeg, legItems, 'Location','southoutside', ...
+                    'Orientation','horizontal', 'Box','off');
+            catch
+                % Fallback: invisible axes legend (rarely needed, but safe)
+                axL = axes('Parent', hFig, 'Position',[0 0 1 1], 'Visible','off');
+                lgd = legend(axL, hLeg, legItems, 'Location','southoutside', ...
+                    'Orientation','horizontal', 'Box','off');
+            end
+
+        
+            % ---- Title with acceptance if available ----
+            if isfield(ResultsABC,'mhAcceptance') && ~isempty(ResultsABC.mhAcceptance)
+                sgtitle(tl, sprintf('ABC posterior marginals (approx.) — acc=%.3f', ResultsABC.mhAcceptance));
+            else
+                sgtitle(tl, 'ABC posterior marginals (approx.)');
+            end
+        end
+
 
         function figHandles = plotFits(obj, fitSolution, plotType, figureNums, lineProps, opts)
             % plotFits — Compare model FSP fits to experimental data.
