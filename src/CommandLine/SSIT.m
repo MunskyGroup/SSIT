@@ -1144,6 +1144,25 @@ classdef SSIT
             obj.parameters =  [obj.parameters;newParameters];
         end
 
+        function [obj] = changeParameter(obj,parChanges)
+            % changeParameter - change one or more parameter values by
+            % name. 
+            % Example:
+            %     F = SSIT;
+            %     F.parameters % Show original parameters.
+            %     F = F.changeParameter({'k',12.3;'g',0.234'});
+            %     F.parameters % Show new parameters.
+            arguments
+                obj
+                parChanges = {};
+            end
+            for i = 1:size(parChanges,1)
+                j = find(strcmp(obj.parameters(:,1),parChanges{i,1}));
+                obj.parameters{j,2} = parChanges{i,2};
+            end
+        end
+            
+        
         function [obj] = addReaction(obj,newRxn,confirm)
             arguments
                 obj
