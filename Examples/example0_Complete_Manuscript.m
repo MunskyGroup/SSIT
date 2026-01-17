@@ -389,8 +389,8 @@ logPriorLoss = @(x)sum((log10(x)-mu_log10).^2./(2*sig_log10.^2));
 lossFunction = 'cdf_one_norm';
 
 % Set ABC / MCMC options
-ABCoptions = struct('numberOfSamples',5,'burnIn',0,'thin',1,...
-    'proposalDistribution',@(x)x+0.01*randn(size(x)));
+ABCoptions = struct('numberOfSamples',100,'burnIn',0,'thin',1,...
+    'proposalDistribution',@(x)x+0.03*randn(size(x)));
 
 % Compile and store reaction propensities:
 STL1_4state_ABC = STL1_4state_ABC.formPropensitiesGeneral('STL1_4state_ABC');
@@ -400,27 +400,6 @@ STL1_4state_ABC = STL1_4state_ABC.formPropensitiesGeneral('STL1_4state_ABC');
     lossFunction, logPriorLoss, ABCoptions);
 
 STL1_4state_ABC.plotABC(STL1_4state_ABC.Solutions.ABC);
-%%
-if isfield(ResultsABC, 'mhSamples')
-    parChain = ResultsABC.mhSamples;   % size: [numberOfSamples x nPars] 
-    nPars    = size(parChain, 2);
-
-    figure;
-    for k = 1:nPars
-        subplot(ceil(nPars/2), 2, k);
-        histogram(parChain(:,k), 40, 'Normalization', 'pdf');
-        hold on;
-        xline(parsABC(k), 'r', 'LineWidth', 1.5);
-        xline(STL1_4state_MH_pars(k), 'b', 'LineWidth', 1.5);
-        title(sprintf('Parameter %d', k));
-        xlabel('\theta_k');
-        ylabel('Posterior density (approx.)');
-    end
-    sgtitle('ABC posterior marginals (approximate)');
-else
-    warning('ResultsABC.mhSamples not found.');
-end
-
 
 %% Cross Validation
 % Specify datafile name and species linking rules:
