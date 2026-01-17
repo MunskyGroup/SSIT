@@ -2044,7 +2044,7 @@ classdef SSIT
 
         end
 
-        function A = sampleDataFromFSP(obj,fspSoln,saveFile,nCells)
+        function A = sampleDataFromFSP(obj,fspSoln,saveFile,nCells,species2save)
             % Function to create simulated single-cell snapshot data by
             % sampling from the FSP solution.
             % Arguments:
@@ -2055,6 +2055,7 @@ classdef SSIT
                 fspSoln =[];
                 saveFile = [];
                 nCells = [];
+                species2save = {};
             end
             Solution.T_array = obj.tSpan;
             Nt = length(Solution.T_array);
@@ -2071,7 +2072,23 @@ classdef SSIT
                 fspSoln = obj.Solutions;
             end
 
-            Solution.trajs = NaN*ones(length(obj.species),...
+            % determine which species should be included in the output.
+            if isempty(species2save)
+                if obj.useHybrid
+                    species2save = setdiff(obj.species,obj.hybridOptions.upstreamODEs);
+                else
+                    species2save = obj.species;
+                end
+            end            
+            if obj.useHybrid
+                stochSpecies = setdiff(obj.species,obj.hybridOptions.upstreamODEs);
+                indsSpecies2save = find(contains(stochSpecies,species2save));
+            else
+                indsSpecies2save = find(contains(obj.species,species2save));
+            end
+
+            nSpSave = length(species2save);
+            Solution.trajs = NaN*ones(nSpSave,...
                 length(obj.tSpan),max(nCells));% Creates an empty Trajectories matrix
             % from the size of the time array and number of simulations.
             % NaNs are put in empty elements for the case where there are
@@ -2083,14 +2100,14 @@ classdef SSIT
                 w(:) = PP(:); w(w<0)=0;
                 % TODO - there has to be another way of doing this.
                 [I1,I2,I3,I4,I5,I6,I7,I8,I9,I10,I11] =  ind2sub(size(PP),randsample(length(w), nCells(iT), true, w ));
-                for iSp = 1:length(obj.species)
-                    eval(['Solution.trajs(iSp,iT,1:nCells(iT)) = I',num2str(iSp),'-1;']);
+                for iSp = 1:nSpSave
+                    eval(['Solution.trajs(iSp,iT,1:nCells(iT)) = I',num2str(indsSpecies2save(iSp)),'-1;']);
                 end
             end
             if ~isempty(obj.pdoOptions.PDO)
-                Solution.trajsDistorted = NaN*ones(length(obj.species),...
+                Solution.trajsDistorted = NaN*ones(nSpSave,...
                 length(obj.tSpan),max(nCells)); % Creates an empty Trajectories matrix from the size of the time array and number of simulations
-                for iS = 1:length(obj.species)
+                for iS = 1:nSpSave
                     PDO = obj.pdoOptions.PDO.conditionalPmfs{iS};
                     nDpossible = size(PDO,1);
                     Q = Solution.trajs(iS,:,:);
@@ -2128,6 +2145,7 @@ classdef SSIT
                 end
             end
         end
+
 
         function [fimResults,sensSoln] = computeFIM(obj,sensSoln,scale,MHSamples)
             %% computeFIM - Computes the Fisher Information Matrix (FIM)
@@ -3071,7 +3089,6 @@ classdef SSIT
             end
         end
 
-
         function [logLSpread,logLSpreadVector] = estimateLikelihoodSpread(obj,nSims)
             % This function computes the expected spead of the
             % log-likelihood function if the model were exact and correct.
@@ -3089,7 +3106,7 @@ classdef SSIT
             for iSim = 1:nSims
 
                 % Generate and reformat data using FSP solution.
-                A = obj.sampleDataFromFSP([],[],obj.dataSet.nCells);                
+                A = obj.sampleDataFromFSP([],[],obj.dataSet.nCells,{'rna'});                
                 objTMP.dataSet.DATA = table2cell(A);
                 
                 if iSim==1
@@ -3113,7 +3130,6 @@ classdef SSIT
             end
             logLSpread = std(logLSpreadVector);
         end
-
 
         function [lossFunction] = computeLossFunctionSSA(obj,lossFun,pars, ...
                 enforceIndependence, reuseExistingSolution)
