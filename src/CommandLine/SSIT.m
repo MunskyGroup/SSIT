@@ -3107,6 +3107,7 @@ classdef SSIT
 
                 % Generate and reformat data using FSP solution.
                 A = obj.sampleDataFromFSP([],[],obj.dataSet.nCells,{'rna'});                
+                A = obj.sampleDataFromFSP([],[],obj.dataSet.nCells);                
                 objTMP.dataSet.DATA = table2cell(A);
                 
                 if iSim==1
