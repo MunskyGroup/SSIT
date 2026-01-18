@@ -25,7 +25,7 @@ jobs:
         uses: matlab-actions/run-tests@v1.5.2    
         with:
           select-by-folder: tests
-          select-by-name: '^(?!(testGui)$).*'
+          select-by-name: '^(?!testGui$).*'
           test-results-junit: test-results/results.xml
           code-coverage-cobertura: code-coverage/coverage.xml
           source-folder: src
