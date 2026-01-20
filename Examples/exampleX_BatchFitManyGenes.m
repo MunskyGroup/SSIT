@@ -41,14 +41,14 @@ TAB = readtable(DataFileName);
 geneNames = fields(TAB);
 geneNames = geneNames(2:end-4); % The Genes are in Columns 2 -> N-4
 
-if ~exist('seqModels','dir'); mkdir('seqModels'); end
-for iGene = 1:length(geneNames)
-    linkedSpecies = {'rna',geneNames{iGene}};
-    Model = Model_Template.loadData(DataFileName,linkedSpecies);
-    modelName = ['Model_',geneNames{iGene}];
-    assignin('base',modelName,Model);
-    save(['seqModels/',modelName],modelName);
-end
+% if ~exist('seqModels','dir'); mkdir('seqModels'); end
+% for iGene = 1:length(geneNames)
+%     linkedSpecies = {'rna',geneNames{iGene}};
+%     Model = Model_Template.loadData(DataFileName,linkedSpecies);
+%     modelName = ['Model_',geneNames{iGene}];
+%     assignin('base',modelName,Model);
+%     save(['seqModels/',modelName],modelName);
+% end
 
 %% Fit a multi-model for the 4 genes
 % Here we use the multi-model approach on a few genes to constrain the
@@ -90,26 +90,7 @@ for iGene = 1:length(geneNames)
 end
 
 %% Call Pipeline to Fit Model
-% Specify pipeline to apply to model and arguments
-% ("../../SSIT/src/exampleData/examplePipelines/fittingPipelineExample.m")
-Pipeline = 'fittingPipelineExample';
-pipelineArgs.maxIter = 1000;
-pipelineArgs.display = 'iter';
-pipelineArgs.makePlot = false;
-pipelineArgs.nRounds = 5;
-
-%% Launch cluster jobs for all genes.
-for iGene = 1:length(geneNames)
-    modelName = ['Model_',geneNames{iGene}];
-    saveName = ['seqModels/',modelName];
-    logfile = ['logFiles/log',modelName];
-    runNow = true;
-    runCluster = true;
-    cmd = SSIT.generateCommandLinePipeline(saveName,modelName,[],Pipeline,...
-        pipelineArgs,saveName,logfile,runNow,runCluster);
-    pause(0.2);
-end
-
+% See ClusteScroptOnly.m
 %% Collect and Plot results.
 % (Do this after the rest has completed)
 clear
@@ -179,8 +160,8 @@ for iGene = 1:length(geneNames)
 end
 
 %% Make figures
-Xvals = (Pars(:,3) + Pars(:,4)*0.956)./Pars(:,3);
-Yvals = (1 + Pars(:,6)*0.956);
+Xvals = (Pars(:,3) + Pars(:,4)*0.956)./Pars(:,3);  % activation ratio KON;
+Yvals = (1 + Pars(:,6)*0.956); % activation ratio KOFF
 
 Xvals1 = Pars(:,3);
 Xvals2 = (Pars(:,3) + Pars(:,4)*0.956);
