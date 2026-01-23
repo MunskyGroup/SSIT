@@ -5464,35 +5464,68 @@ end
         %
         % Usage:
         %   obj.plotABC(obj.Solutions.ABC)
-        %   obj.plotABC(obj.Solutions.ABC, 'comparePars', pars2)
+        %   obj.plotABC(obj.Solutions.ABC, 'fitPars', pars2)
         %
         % Name-value options:
-        %   'comparePars'   : vector length nPars (blue line)
-        %   'compareLabel'  : label used in legend (default 'Compare')
-        %   'bestPars'      : vector length nPars (red line). If omitted, inferred:
-        %                     - argmin(mhValue) if present
-        %                     - otherwise posterior mean
-        %   'bestLabel'     : label for best line (default 'Best (min loss)')
-        %   'nBins'         : histogram bins (default 40)
-        %   'Normalization' : 'pdf' (default) or any valid histogram normalization
-        %   'nCols'         : columns in tiled layout (default 2)
-        %   'parNames'      : cellstr of parameter names (default from obj.parameters)
-        %   'showCurrent'   : overlay current obj.parameters (black dashed) (default true)
+        %   'fitPars'      : vector length nPars (solid blue line) e.g., full MCMC or MLE
+        %   'fitLabel'     : label used in legend (default 'Fit (MCMC/MLE)')
+        %   'comparePars'  : (back-compat) same as fitPars
+        %   'compareLabel' : (back-compat) label for comparePars
+        %
+        %   'bestPars'     : vector length nPars (solid red line). If omitted, inferred:
+        %                    - argmin(mhValue) if present
+        %                    - otherwise posterior mean
+        %   'bestLabel'    : label for best line (default 'Best (min loss)')
+        %
+        %   'initialPars'  : vector length nPars (black dashed line), pre-ABC start values.
+        %                    If omitted, inferred (in order):
+        %                       ResultsABC.initialPars / ResultsABC.initPars / ResultsABC.pars0 / ResultsABC.startPars
+        %                       otherwise first row of mhSamples
+        %   'initialLabel' : label for initial line (default 'Initial (pre-ABC)')
+        %   'showInitial'  : overlay initialPars (default true)
+        %   'showCurrent'  : (back-compat) treated as showInitial (default true)
+        %
+        %   'nBins'        : histogram bins (default 40)
+        %   'Normalization': 'pdf' (default) or any valid histogram normalization
+        %   'nCols'        : columns in tiled layout (default 2)
+        %   'parNames'     : cellstr of parameter names (default from obj.parameters)
+        %   'plotInds'     : optional subset of indices to plot (not implemented here)
+        %   'plotNames'    : optional subset of names to plot (not implemented here)
         %
         % Returns:
         %   hFig : figure handle
         
             p = inputParser;
             p.addRequired('ResultsABC', @(s)isstruct(s));
+        
+            % --- new preferred "fit" overlay (blue) ---
+            p.addParameter('fitPars', [], @(x)isnumeric(x) || isempty(x));
+            p.addParameter('fitLabel', 'Fit (MCMC/MLE)', @(s)ischar(s) || isstring(s));
+        
+            % --- backwards compatible name ---
             p.addParameter('comparePars', [], @(x)isnumeric(x) || isempty(x));
             p.addParameter('compareLabel', 'Compare', @(s)ischar(s) || isstring(s));
+        
+            % --- best (red) ---
             p.addParameter('bestPars', [], @(x)isnumeric(x) || isempty(x));
             p.addParameter('bestLabel', 'Best (min loss)', @(s)ischar(s) || isstring(s));
+        
+            % --- initial (black dashed) ---
+            p.addParameter('initialPars', [], @(x)isnumeric(x) || isempty(x));
+            p.addParameter('initialLabel', 'Initial (pre-ABC)', @(s)ischar(s) || isstring(s));
+            p.addParameter('showInitial', true, @(x)islogical(x) && isscalar(x));
+        
+            % --- legacy option: was "showCurrent", now treated as showInitial ---
+            p.addParameter('showCurrent', true, @(x)islogical(x) && isscalar(x));
+        
+            % --- misc ---
             p.addParameter('nBins', 40, @(x)isnumeric(x) && isscalar(x) && x>0);
             p.addParameter('Normalization', 'pdf', @(s)ischar(s) || isstring(s));
             p.addParameter('nCols', 2, @(x)isnumeric(x) && isscalar(x) && x>=1);
             p.addParameter('parNames', {}, @(c)iscell(c) || isstring(c));
-            p.addParameter('showCurrent', true, @(x)islogical(x) && isscalar(x));
+            p.addParameter('plotInds', [], @(x) isempty(x) || isnumeric(x) || islogical(x));
+            p.addParameter('plotNames', [], @(x) isempty(x) || isstring(x) || iscellstr(x));
+        
             p.parse(ResultsABC, varargin{:});
             opt = p.Results;
         
@@ -5505,8 +5538,21 @@ end
             parChain = ResultsABC.mhSamples;
             nPars    = size(parChain, 2);
         
-            % ---- infer bestPars if not provided ----
-            bestPars = opt.bestPars;
+            % -------------------------
+            % Choose which "blue" params to use
+            % -------------------------
+            fitPars   = opt.fitPars;
+            fitLabel  = string(opt.fitLabel);
+        
+            if isempty(fitPars) && ~isempty(opt.comparePars)
+                fitPars  = opt.comparePars;          % back-compat
+                fitLabel = string(opt.compareLabel);
+            end
+        
+            % -------------------------
+            % Infer bestPars (red)
+            % -------------------------
+            bestPars  = opt.bestPars;
             bestLabel = string(opt.bestLabel);
         
             if isempty(bestPars)
@@ -5520,28 +5566,47 @@ end
                 end
             end
         
-            % ---- optional: current parameters in the object ----
-            currentPars = [];
-            if opt.showCurrent && isprop(obj,'parameters') && ~isempty(obj.parameters)
-                % Try to use fitted indices if available, else first nPars
-                inds = [];
-                if isprop(obj,'fittingOptions') && isfield(obj.fittingOptions,'modelVarsToFit') ...
-                        && ~isempty(obj.fittingOptions.modelVarsToFit)
-                    inds = obj.fittingOptions.modelVarsToFit(:);
+            % -------------------------
+            % Infer initialPars (black dashed)
+            % -------------------------
+            showInitial = opt.showInitial && opt.showCurrent;  % showCurrent kept for legacy behavior
+            initialPars = opt.initialPars;
+            initialLabel = string(opt.initialLabel);
+        
+            if showInitial
+                if isempty(initialPars)
+                    % Try common field names first
+                    candFields = {'initialPars','initPars','pars0','startPars','theta0','x0'};
+                    for f = 1:numel(candFields)
+                        if isfield(ResultsABC, candFields{f}) && ~isempty(ResultsABC.(candFields{f}))
+                            initialPars = ResultsABC.(candFields{f});
+                            break
+                        end
+                    end
                 end
         
-                try
-                    if ~isempty(inds) && numel(inds)==nPars
-                        currentPars = cell2mat(obj.parameters(inds,2)).';
-                    elseif size(obj.parameters,1) >= nPars
-                        currentPars = cell2mat(obj.parameters(1:nPars,2)).';
-                    end
-                catch
-                    currentPars = [];
+                if isempty(initialPars)
+                    % Fallback: first chain sample is usually the pre-ABC start
+                    initialPars = parChain(1,:);
+                    % keep label as default; you can rename if you want:
+                    % initialLabel = "Initial (chain start)";
                 end
+        
+                if numel(initialPars) ~= nPars
+                    warning('plotABC:InitialSize', ...
+                        'initialPars must have length %d (got %d). Disabling initial overlay.', ...
+                        nPars, numel(initialPars));
+                    initialPars = [];
+                else
+                    initialPars = initialPars(:).'; % row
+                end
+            else
+                initialPars = [];
             end
         
-            % ---- parameter names ----
+            % -------------------------
+            % Parameter names
+            % -------------------------
             parNames = opt.parNames;
             if isempty(parNames)
                 try
@@ -5562,7 +5627,9 @@ end
                 parNames = string(parNames);
             end
         
-            % ---- layout ----
+            % -------------------------
+            % Layout
+            % -------------------------
             nCols = opt.nCols;
             nRows = ceil(nPars / nCols);
         
@@ -5574,76 +5641,67 @@ end
                 histogram(parChain(:,k), opt.nBins, 'Normalization', opt.Normalization);
                 hold on;
         
-                % Best/inferred line
+                % Best (red)
                 xline(bestPars(k), 'r', 'LineWidth', 1.5);
         
-                % Compare line
-                if ~isempty(opt.comparePars)
-                    if numel(opt.comparePars) ~= nPars
-                        warning('plotABC:CompareSize', ...
-                            'comparePars must have length %d (got %d). Ignoring.', ...
-                            nPars, numel(opt.comparePars));
+                % Fit (blue)
+                if ~isempty(fitPars)
+                    if numel(fitPars) ~= nPars
+                        warning('plotABC:FitSize', ...
+                            'fitPars must have length %d (got %d). Ignoring.', ...
+                            nPars, numel(fitPars));
+                        fitPars = [];
                     else
-                        xline(opt.comparePars(k), 'b', 'LineWidth', 1.5);
+                        xline(fitPars(k), 'b', 'LineWidth', 1.5);
                     end
                 end
         
-                % Current parameter line
-                if ~isempty(currentPars) && numel(currentPars)==nPars
-                    xline(currentPars(k), 'k--', 'LineWidth', 1.2);
+                % Initial (black dashed) — replaces old "Current obj.parameters"
+                if ~isempty(initialPars)
+                    xline(initialPars(k), 'k--', 'LineWidth', 1.2);
                 end
         
                 title(parNames(k), 'Interpreter','none');
                 xlabel('\theta_k');
-                %ylabel("Posterior density (approx.)");
+        
                 if k == 1
                     ylabel("Posterior density (approx.)");
                 else
-                    ylabel('');  % no y-axis label on other tiles
+                    ylabel('');
                 end
-        
-                % light legend only when something beyond histogram exists
-                % legItems = string(bestLabel);
-                % if ~isempty(opt.comparePars) && numel(opt.comparePars)==nPars
-                %     legItems(end+1) = string(opt.compareLabel);
-                % end
-                % if ~isempty(currentPars) && numel(currentPars)==nPars
-                %     legItems(end+1) = "Current obj.parameters";
-                % end
-                % legend(legItems, 'Location','best', 'Box','off');
             end
-
-            % ---- one shared legend outside the tiles ----
+        
+            % -------------------------
+            % One shared legend outside
+            % -------------------------
             hLeg = gobjects(0);
             legItems = strings(0);
-            
-            % Dummy handles for legend (so we don't need per-tile legend)
+        
             hLeg(end+1) = plot(nan,nan,'r-','LineWidth',1.5);
             legItems(end+1) = bestLabel;
-            
-            if ~isempty(opt.comparePars) && numel(opt.comparePars)==nPars
+        
+            if ~isempty(fitPars)
                 hLeg(end+1) = plot(nan,nan,'b-','LineWidth',1.5);
-                legItems(end+1) = string(opt.compareLabel);
+                legItems(end+1) = fitLabel;
             end
-            
-            if ~isempty(currentPars) && numel(currentPars)==nPars
+        
+            if ~isempty(initialPars)
                 hLeg(end+1) = plot(nan,nan,'k--','LineWidth',1.2);
-                legItems(end+1) = "Current obj.parameters";
+                legItems(end+1) = initialLabel;
             end
-            
-            % Put legend outside the tiled layout
+        
             try
-                lgd = legend(tl, hLeg, legItems, 'Location','southoutside', ...
+                legend(tl, hLeg, legItems, 'Location','southoutside', ...
                     'Orientation','horizontal', 'Box','off');
             catch
-                % Fallback: invisible axes legend (rarely needed, but safe)
                 axL = axes('Parent', hFig, 'Position',[0 0 1 1], 'Visible','off');
-                lgd = legend(axL, hLeg, legItems, 'Location','southoutside', ...
+                legend(axL, hLeg, legItems, 'Location','southoutside', ...
                     'Orientation','horizontal', 'Box','off');
             end
-
         
-            % ---- Title with acceptance if available ----
+            % -------------------------
+            % Title with acceptance if available
+            % -------------------------
             if isfield(ResultsABC,'mhAcceptance') && ~isempty(ResultsABC.mhAcceptance)
                 sgtitle(tl, sprintf('ABC posterior marginals (approx.) — acc=%.3f', ResultsABC.mhAcceptance));
             else
