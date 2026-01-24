@@ -1881,12 +1881,40 @@ classdef SSIT
                     if ~isempty(obj.pdoOptions.PDO)
                         Solution.trajsDistorted = zeros(length(obj.species),...
                             length(obj.tSpan),nSims);% Creates an empty Trajectories matrix from the size of the time array and number of simulations
+                        
+                        maxNum = zeros(1,size(obj.species,1));
+                        curNum = zeros(1,size(obj.species,1));
+                        iSObs = 0;
                         for iS = 1:length(obj.species)
-                            PDO = obj.pdoOptions.PDO.conditionalPmfs{iS};
-                            nDpossible = size(PDO,1);
-                            Q = Solution.trajs(iS,:,:);
-                            for iD = 1:length(Q(:))
-                                Q(iD) = randsample([0:nDpossible-1],1,true,PDO(:,Q(iD)+1));
+                            if max(strcmpi(obj.pdoOptions.unobservedSpecies,obj.species(iS)))
+                                maxNum(iS) = 0;
+                                curNum(iS) = 0;
+                            else
+                                iSObs = iSObs+1;
+                                maxNum(iS) = max(Solution.trajs(iS,:,:),[],'all')+1;
+                                curNum(iS) = size(obj.pdoOptions.PDO.conditionalPmfs{iSObs},2);
+                            end
+                        end
+                        if max(maxNum-curNum)>0
+                            [~,obj] = obj.generatePDO([],[],[],[],maxNum);
+                        end
+                           
+                        
+                        iSObs = 0;
+                        for iS = 1:length(obj.species)
+                            if max(strcmpi(obj.pdoOptions.unobservedSpecies,obj.species(iS)))
+                                Q = NaN*Solution.trajs(iS,:,:);
+                            else
+                                iSObs = iSObs+1;
+                                Q = Solution.trajs(iS,:,:);
+                                % if max(Q,[],'all')>size(obj.pdoOptions.PDO.conditionalPmfs{iSObs},2)
+                                %     [~,obj] = obj.generatePDO([],[],[],[],max(Q,[],'all'));
+                                % end
+                                PDO = obj.pdoOptions.PDO.conditionalPmfs{iSObs};
+                                nDpossible = size(PDO,1);
+                                for iD = 1:length(Q(:))
+                                    Q(iD) = randsample([0:nDpossible-1],1,true,PDO(:,Q(iD)+1));
+                                end
                             end
                             Solution.trajsDistorted(iS,:,:) = Q;
                         end

@@ -11,6 +11,13 @@ app.FIMTabOutputs.paramsPDO = [];
 app.DistortionParameterGuessesandFitsLabel.Visible = 0;
 app.pdo_parameters_table.Visible = 0;
 app.UpdatePDOParametersButton.Visible = 0;
+app.SpeciesDropDown.Enable = 1;
+app.SpeciesDropDown.Items = app.SSITModel.species;
+app.SolutionTimeDropDown.Enable = 1;
+app.SolutionTimeDropDown.Items = arrayfun(@num2str, app.SSITModel.tSpan, 'UniformOutput', 0);
+app.SolutionTimeDropDown.Value = app.SolutionTimeDropDown.Items(end);
+app.PDO_Axis.Visible = 1;
+app.PDO_Axis2.Visible = 1;
 
 switch app.DistortionTypeDropDown.Value
     case 'None'
@@ -19,58 +26,59 @@ switch app.DistortionTypeDropDown.Value
         app.ShowDistortionPlotButton.Enable = 0;
         app.SetDistortionParametersButton_2.Enable = 0;
         app.ShowDistortionPlotButton_2.Enable = 0;
+        app.SpeciesDropDown.Enable = 0;
+        app.SolutionTimeDropDown.Enable = 0;
+        app.PDO_Axis.Visible = 0;
+        app.PDO_Axis2.Visible = 0;
+
     case 'Binomial'
         app.FIMTabOutputs.PDOProperties = ssit.parest.propsStorage;
-        app.FIMTabOutputs.PDOProperties.props.CaptureProbabilityS1 = 0.5;
-        app.FIMTabOutputs.PDOProperties.props.CaptureProbabilityS2 = 1;
-        app.FIMTabOutputs.PDOProperties.props.CaptureProbabilityS3 = 1;
+        for iSp = 1:length(app.SSITModel.species)
+            app.FIMTabOutputs.PDOProperties.props.(['CaptureProbabilityS',num2str(iSp)]) = 0.5;
+        end
     case 'Binomial - State Dependent'
         app.FIMTabOutputs.PDOProperties = ssit.parest.propsStorage;
-        app.FIMTabOutputs.PDOProperties.props.CaptureProbabilityS1 = '@(x)1 - x/(20+x)';
-        app.FIMTabOutputs.PDOProperties.props.CaptureProbabilityS2 = '@(x)1 - x/(20+x)';
-        app.FIMTabOutputs.PDOProperties.props.CaptureProbabilityS3 = '@(x)1 - x/(20+x)';
+        for iSp = 1:length(app.SSITModel.species)
+            app.FIMTabOutputs.PDOProperties.props.(['CaptureProbabilityS',num2str(iSp)]) = '@(x)1 - x/(20+x)';
+        end
     case 'Binomial - Parametrized'
         app.FIMTabOutputs.PDOProperties = ssit.parest.propsStorage;
-        app.FIMTabOutputs.PDOProperties.props.CaptureProbabilityS1 = '@(x,C)1 - C(1)*x/(20+x)';
-        app.FIMTabOutputs.PDOProperties.props.CaptureProbabilityS2 = '@(x,C)1 - C(1)*x/(20+x)';
-        app.FIMTabOutputs.PDOProperties.props.CaptureProbabilityS3 = '@(x,C)1 - C(1)*x/(20+x)';
+        for iSp = 1:length(app.SSITModel.species)
+            app.FIMTabOutputs.PDOProperties.props.(['CaptureProbabilityS',num2str(iSp)]) = '@(x,C)1 - C(1)*x/(20+x)';
+        end
         app.FIMTabOutputs.PDOProperties.props.ParameterGuess = '1';
         app.DistortionParameterGuessesandFitsLabel.Visible = 1;
         app.pdo_parameters_table.Visible = 1;
         app.UpdatePDOParametersButton.Visible = 1;
     case 'Poisson'
         app.FIMTabOutputs.PDOProperties = ssit.parest.propsStorage;
-        app.FIMTabOutputs.PDOProperties.props.NoiseMeanS1 = 5;
-        app.FIMTabOutputs.PDOProperties.props.NoiseMeanS2 = 5;
-        app.FIMTabOutputs.PDOProperties.props.NoiseMeanS3 = 5;
+        for iSp = 1:length(app.SSITModel.species)
+            app.FIMTabOutputs.PDOProperties.props.(['NoiseMeanS',num2str(iSp)]) = 5;
+        end
     case 'Poisson - State Dependent'
         app.FIMTabOutputs.PDOProperties = ssit.parest.propsStorage;
-        app.FIMTabOutputs.PDOProperties.props.NoiseMeanS1 = '@(x)0.1*x';
-        app.FIMTabOutputs.PDOProperties.props.NoiseMeanS2 = '@(x)0.1*x';
-        app.FIMTabOutputs.PDOProperties.props.NoiseMeanS3 = '@(x)0.1*x';
+        for iSp = 1:length(app.SSITModel.species)
+            app.FIMTabOutputs.PDOProperties.props.(['NoiseMeanS',num2str(iSp)]) = '@(x)0.1*x';
+        end
     case 'Poisson - Parametrized'
         app.FIMTabOutputs.PDOProperties = ssit.parest.propsStorage;
-        app.FIMTabOutputs.PDOProperties.props.NoiseMeanS1 = '@(x,C)C(1)*x';
-        app.FIMTabOutputs.PDOProperties.props.NoiseMeanS2 = '@(x,C)C(1)*x';
-        app.FIMTabOutputs.PDOProperties.props.NoiseMeanS3 = '@(x,C)C(1)*x';
+        for iSp = 1:length(app.SSITModel.species)
+            app.FIMTabOutputs.PDOProperties.props.(['NoiseMeanS',num2str(iSp)]) = '@(x,C)C(1)*x';
+        end
         app.FIMTabOutputs.PDOProperties.props.ParameterGuess = '5';
         app.DistortionParameterGuessesandFitsLabel.Visible = 1;
         app.pdo_parameters_table.Visible = 1;
         app.UpdatePDOParametersButton.Visible = 1;
     case 'Binning'
         app.FIMTabOutputs.PDOProperties = ssit.parest.propsStorage;
-        app.FIMTabOutputs.PDOProperties.props.NumberBinsS1 = 10;
-        app.FIMTabOutputs.PDOProperties.props.NumberBinsS2 = 10;
-        app.FIMTabOutputs.PDOProperties.props.NumberBinsS3 = 10;
-        app.FIMTabOutputs.PDOProperties.props.binTypeS1 = 'lin';
-        app.FIMTabOutputs.PDOProperties.props.binTypeS2 = 'lin';
-        app.FIMTabOutputs.PDOProperties.props.binTypeS3 = 'lin';
+        for iSp = 1:length(app.SSITModel.species)
+            app.FIMTabOutputs.PDOProperties.props.(['NumberBinsS',num2str(iSp)]) = 10;
+            app.FIMTabOutputs.PDOProperties.props.(['binTypeS',num2str(iSp)]) = 'lin';
+        end
     case 'Custom Function'
-        app.FIMTabOutputs.PDOProperties = ssit.parest.propsStorage;
-        app.FIMTabOutputs.PDOProperties.props.PDO_S1 = '@(y,x) (y>=x)*5^(y-x)*exp(-5)/factorial(y-x)';
-        app.FIMTabOutputs.PDOProperties.props.PDO_S2 = '@(y,x) (y>=x)*5^(y-x)*exp(-5)/factorial(y-x)';
-        app.FIMTabOutputs.PDOProperties.props.PDO_S3 = '@(y,x) (y>=x)*5^(y-x)*exp(-5)/factorial(y-x)';
-        app.FIMTabOutputs.PDOProperties.props.MaxObservationS1 = 100;
-        app.FIMTabOutputs.PDOProperties.props.MaxObservationS2 = 100;
-        app.FIMTabOutputs.PDOProperties.props.MaxObservationS3 = 100;
+        app.FIMTabOutputs.PDOProperties = ssit.parest.propsStorage;        
+        for iSp = 1:length(app.SSITModel.species)
+            app.FIMTabOutputs.PDOProperties.props.(['PDO_S',num2str(iSp)]) = '@(y,x) (y>=x)*5^(y-x)*exp(-5)/factorial(y-x)';
+            app.FIMTabOutputs.PDOProperties.props.(['MaxObservationS',num2str(iSp)]) = 100;
+        end
 end

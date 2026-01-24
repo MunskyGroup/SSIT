@@ -48,6 +48,11 @@ if useOldXspeciesVersion
     species(:,2) = num2cell(zeros(length(species),1));
 else
     species = app.SSITModel.species;
+    if ~isempty(app.SSITModel.initialCondition)
+        species(:,2) = num2cell(app.SSITModel.initialCondition);
+    else
+        species(:,2) = num2cell(zeros(size(species(:,1))));
+    end
     % app.SSITModel.initialCondition = [app.SpeciesTable.Data{:,2}]
     % species(:,2) = app.SpeciesTable.Data{:,2};%num2cell(app.SSITModel.initialCondition);    
 end

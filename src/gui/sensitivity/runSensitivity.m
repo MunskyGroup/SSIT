@@ -37,11 +37,11 @@ app.SSITModel.fspOptions.fspTol = app.FspErrorTolField.Value;            % Pulls
 app.SSITModel.solutionScheme = 'fspsens';
 app.FspRunningStatus.Text = 'FSP-Sens is running...';
 tic
-[solutions,constraintBounds] = app.SSITModel.solve;
+[~,constraintBounds,app.SSITModel] = app.SSITModel.solve;
 app.FspRunningStatus.Text = ['FSP-Sens completed in ',num2str(toc,3),'s'];
 
 app.FspTabOutputs.bounds = constraintBounds';
-app.SensFspTabOutputs.solutions = solutions.sens;
+% app.SensFspTabOutputs.solutions = solutions.sens;
 app.FspConstraintTable.Data(:,3) = num2cell(app.FspTabOutputs.bounds');   % Sets the bounds from constraints to the ones found in the FSP analysis
 
 close(d_prog_bar)
