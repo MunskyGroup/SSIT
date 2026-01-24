@@ -309,6 +309,21 @@
         DecreaseFontSizeData            matlab.ui.control.Button
         fit_parameters_table            matlab.ui.control.Table
         LoadandConstrainDataButton      matlab.ui.control.Button
+        DistortionTab                   matlab.ui.container.Tab
+        SolutionTimeDropDown            matlab.ui.control.DropDown
+        SolutionTimeDropDownLabel       matlab.ui.control.Label
+        SpeciesDropDown                 matlab.ui.control.DropDown
+        SpeciesDropDownLabel            matlab.ui.control.Label
+        DistortionTypeDropDown_2        matlab.ui.control.DropDown
+        DistortionTypeDropDown_2Label   matlab.ui.control.Label
+        UpdatePDOParametersButton       matlab.ui.control.Button
+        DistortionParameterGuessesandFitsLabel  matlab.ui.control.Label
+        pdo_parameters_table            matlab.ui.control.Table
+        ShowDistortionPlotButton_2      matlab.ui.control.Button
+        SetDistortionParametersButton_2  matlab.ui.control.Button
+        IncludeDataDistortionsinModelLabel  matlab.ui.control.Label
+        PDO_Axis2                       matlab.ui.control.UIAxes
+        PDO_Axis                        matlab.ui.control.UIAxes
         LaunchFSPModelReductionToolButton  matlab.ui.control.Button
         CreateNewNStateModelButton      matlab.ui.control.Button
         ChooseSSITModelLabel_2          matlab.ui.control.Label
@@ -317,8 +332,6 @@
         ofmodelanddataLabel             matlab.ui.control.Label
         loadapreviouscombinationLabel   matlab.ui.control.Label
         LoadPreviousProjectButton       matlab.ui.control.Button
-        DistortionTypeDropDown_2        matlab.ui.control.DropDown
-        DistortionTypeDropDown_2Label   matlab.ui.control.Label
         FitResultsNameText              matlab.ui.control.Label
         FitResultsNameLabel             matlab.ui.control.Label
         RefreshResultsButton            matlab.ui.control.StateButton
@@ -326,12 +339,6 @@
         LoadPreviousResultsDropDownLabel  matlab.ui.control.Label
         RunFitsinBackgroundLabel        matlab.ui.control.Label
         FitinBackgroundmaclinuxonlyButton  matlab.ui.control.StateButton
-        UpdatePDOParametersButton       matlab.ui.control.Button
-        DistortionParameterGuessesandFitsLabel  matlab.ui.control.Label
-        pdo_parameters_table            matlab.ui.control.Table
-        ShowDistortionPlotButton_2      matlab.ui.control.Button
-        SetDistortionParametersButton_2  matlab.ui.control.Button
-        IncludeDataDistortionsinModelLabel  matlab.ui.control.Label
     end
 
     % Properties that correspond to apps with auto-reflow
@@ -1488,7 +1495,7 @@
                 UpdatePDOParametersButtonPushed(app)
             catch
             end
-            ssit.pdo.generatePDO(app);
+            [~,app.SSITModel.pdoOptions.PDO] = ssit.pdo.generatePDO(app);
             
             % Reset prior to none.
             app.PriorTypeDropDown.Value = 'None';
@@ -1498,12 +1505,13 @@
         % Button pushed function: SetDistortionParametersButton, 
         % ...and 1 other component
         function SetDistortionParametersButtonPushed(app, event)
+            app.SSITModel.pdoOptions.PDO = [];
             disp('Please use the GUI to enter the distortion operator parameters.')
             ssit.parest.PropEditor(app.FIMTabOutputs.PDOProperties,'props',{'Parameter','Value'},0);
         end
 
-        % Button pushed function: ShowDistortionPlotButton, 
-        % ...and 1 other component
+        % Callback function: ShowDistortionPlotButton, 
+        % ...and 3 other components
         function ShowDistortionPlotButtonPushed(app, event)
             ssit.pdo.showPdoPlot(app)
         end
@@ -3844,6 +3852,107 @@
             app.DataFileNoneSelectedLabel.Position = [143 580 515 22];
             app.DataFileNoneSelectedLabel.Text = 'Data File: <None Selected>';
 
+            % Create DistortionTab
+            app.DistortionTab = uitab(app.TabGroup);
+            app.DistortionTab.Title = 'Distortion';
+
+            % Create PDO_Axis
+            app.PDO_Axis = uiaxes(app.DistortionTab);
+            title(app.PDO_Axis, 'Probabilistic Distortion Operator')
+            xlabel(app.PDO_Axis, '"True" Expression Level')
+            ylabel(app.PDO_Axis, '"Observed" Expression Level')
+            zlabel(app.PDO_Axis, 'Z')
+            app.PDO_Axis.Position = [468 107 399 279];
+
+            % Create PDO_Axis2
+            app.PDO_Axis2 = uiaxes(app.DistortionTab);
+            title(app.PDO_Axis2, 'Comparison of "True" and "Observed" Distributions')
+            xlabel(app.PDO_Axis2, '"True" Expression Level')
+            ylabel(app.PDO_Axis2, '"Observed" Expression Level')
+            zlabel(app.PDO_Axis2, 'Z')
+            app.PDO_Axis2.Position = [895 107 399 279];
+
+            % Create IncludeDataDistortionsinModelLabel
+            app.IncludeDataDistortionsinModelLabel = uilabel(app.DistortionTab);
+            app.IncludeDataDistortionsinModelLabel.FontWeight = 'bold';
+            app.IncludeDataDistortionsinModelLabel.Position = [33 534 197 22];
+            app.IncludeDataDistortionsinModelLabel.Text = 'Include Data Distortions in Model';
+
+            % Create SetDistortionParametersButton_2
+            app.SetDistortionParametersButton_2 = uibutton(app.DistortionTab, 'push');
+            app.SetDistortionParametersButton_2.ButtonPushedFcn = createCallbackFcn(app, @SetDistortionParametersButtonPushed, true);
+            app.SetDistortionParametersButton_2.BackgroundColor = [1 1 0];
+            app.SetDistortionParametersButton_2.Enable = 'off';
+            app.SetDistortionParametersButton_2.Position = [112 479 154 22];
+            app.SetDistortionParametersButton_2.Text = 'Set Distortion Parameters';
+
+            % Create ShowDistortionPlotButton_2
+            app.ShowDistortionPlotButton_2 = uibutton(app.DistortionTab, 'push');
+            app.ShowDistortionPlotButton_2.ButtonPushedFcn = createCallbackFcn(app, @ShowDistortionPlotButtonPushed, true);
+            app.ShowDistortionPlotButton_2.BackgroundColor = [1 1 0];
+            app.ShowDistortionPlotButton_2.Enable = 'off';
+            app.ShowDistortionPlotButton_2.Position = [275 479 125 22];
+            app.ShowDistortionPlotButton_2.Text = 'Show Distortion Plot';
+
+            % Create pdo_parameters_table
+            app.pdo_parameters_table = uitable(app.DistortionTab);
+            app.pdo_parameters_table.ColumnName = {'Name'; 'Value'; 'Fit? (y/n)'};
+            app.pdo_parameters_table.ColumnWidth = {75, 'auto'};
+            app.pdo_parameters_table.RowName = {};
+            app.pdo_parameters_table.ColumnEditable = [false true true];
+            app.pdo_parameters_table.Visible = 'off';
+            app.pdo_parameters_table.Position = [152 304 298 147];
+
+            % Create DistortionParameterGuessesandFitsLabel
+            app.DistortionParameterGuessesandFitsLabel = uilabel(app.DistortionTab);
+            app.DistortionParameterGuessesandFitsLabel.FontWeight = 'bold';
+            app.DistortionParameterGuessesandFitsLabel.Visible = 'off';
+            app.DistortionParameterGuessesandFitsLabel.Position = [152 451 229 22];
+            app.DistortionParameterGuessesandFitsLabel.Text = 'Distortion Parameter Guesses and Fits';
+
+            % Create UpdatePDOParametersButton
+            app.UpdatePDOParametersButton = uibutton(app.DistortionTab, 'push');
+            app.UpdatePDOParametersButton.ButtonPushedFcn = createCallbackFcn(app, @UpdatePDOParametersButtonPushed, true);
+            app.UpdatePDOParametersButton.BackgroundColor = [1 1 0];
+            app.UpdatePDOParametersButton.Visible = 'off';
+            app.UpdatePDOParametersButton.Position = [87 375 53 22];
+            app.UpdatePDOParametersButton.Text = 'Update';
+
+            % Create DistortionTypeDropDown_2Label
+            app.DistortionTypeDropDown_2Label = uilabel(app.DistortionTab);
+            app.DistortionTypeDropDown_2Label.HorizontalAlignment = 'right';
+            app.DistortionTypeDropDown_2Label.Position = [56 508 86 22];
+            app.DistortionTypeDropDown_2Label.Text = 'Distortion Type';
+
+            % Create DistortionTypeDropDown_2
+            app.DistortionTypeDropDown_2 = uidropdown(app.DistortionTab);
+            app.DistortionTypeDropDown_2.Items = {'None', 'Binomial', 'Binomial - State Dependent', 'Binomial - Parametrized', 'Poisson', 'Poisson - State Dependent', 'Poisson - Parametrized', 'Binning', 'Custom Function'};
+            app.DistortionTypeDropDown_2.ValueChangedFcn = createCallbackFcn(app, @DistortionTypeDropDownValueChanged, true);
+            app.DistortionTypeDropDown_2.Position = [157 508 241 22];
+            app.DistortionTypeDropDown_2.Value = 'None';
+
+            % Create SpeciesDropDownLabel
+            app.SpeciesDropDownLabel = uilabel(app.DistortionTab);
+            app.SpeciesDropDownLabel.HorizontalAlignment = 'right';
+            app.SpeciesDropDownLabel.Position = [486 428 48 22];
+            app.SpeciesDropDownLabel.Text = 'Species';
+
+            % Create SpeciesDropDown
+            app.SpeciesDropDown = uidropdown(app.DistortionTab);
+            app.SpeciesDropDown.ValueChangedFcn = createCallbackFcn(app, @ShowDistortionPlotButtonPushed, true);
+            app.SpeciesDropDown.Position = [549 428 100 22];
+
+            % Create SolutionTimeDropDownLabel
+            app.SolutionTimeDropDownLabel = uilabel(app.DistortionTab);
+            app.SolutionTimeDropDownLabel.HorizontalAlignment = 'right';
+            app.SolutionTimeDropDownLabel.Position = [896 430 79 22];
+            app.SolutionTimeDropDownLabel.Text = 'Solution Time';
+
+            % Create SolutionTimeDropDown
+            app.SolutionTimeDropDown = uidropdown(app.DistortionTab);
+            app.SolutionTimeDropDown.ValueChangedFcn = createCallbackFcn(app, @ShowDistortionPlotButtonPushed, true);
+            app.SolutionTimeDropDown.Position = [990 430 100 22];
+
             % Create ModelSaveButton
             app.ModelSaveButton = uibutton(app.RightPanel, 'push');
             app.ModelSaveButton.ButtonPushedFcn = createCallbackFcn(app, @ModelSaveButtonPushed, true);
@@ -3878,55 +3987,6 @@
             app.IncludeGUIDatainSaveSwitch.Tooltip = {'Including GUI data in save takes longer and more space to save, but will lead to faster and easier launch times.'};
             app.IncludeGUIDatainSaveSwitch.Position = [192 18 45 20];
             app.IncludeGUIDatainSaveSwitch.Value = 'On';
-
-            % Create IncludeDataDistortionsinModelLabel
-            app.IncludeDataDistortionsinModelLabel = uilabel(app.UIFigure);
-            app.IncludeDataDistortionsinModelLabel.FontWeight = 'bold';
-            app.IncludeDataDistortionsinModelLabel.Visible = 'off';
-            app.IncludeDataDistortionsinModelLabel.Position = [1448 574 197 22];
-            app.IncludeDataDistortionsinModelLabel.Text = 'Include Data Distortions in Model';
-
-            % Create SetDistortionParametersButton_2
-            app.SetDistortionParametersButton_2 = uibutton(app.UIFigure, 'push');
-            app.SetDistortionParametersButton_2.ButtonPushedFcn = createCallbackFcn(app, @SetDistortionParametersButtonPushed, true);
-            app.SetDistortionParametersButton_2.BackgroundColor = [1 1 0];
-            app.SetDistortionParametersButton_2.Enable = 'off';
-            app.SetDistortionParametersButton_2.Visible = 'off';
-            app.SetDistortionParametersButton_2.Position = [1527 519 154 22];
-            app.SetDistortionParametersButton_2.Text = 'Set Distortion Parameters';
-
-            % Create ShowDistortionPlotButton_2
-            app.ShowDistortionPlotButton_2 = uibutton(app.UIFigure, 'push');
-            app.ShowDistortionPlotButton_2.ButtonPushedFcn = createCallbackFcn(app, @ShowDistortionPlotButtonPushed, true);
-            app.ShowDistortionPlotButton_2.BackgroundColor = [1 1 0];
-            app.ShowDistortionPlotButton_2.Enable = 'off';
-            app.ShowDistortionPlotButton_2.Visible = 'off';
-            app.ShowDistortionPlotButton_2.Position = [1690 519 125 22];
-            app.ShowDistortionPlotButton_2.Text = 'Show Distortion Plot';
-
-            % Create pdo_parameters_table
-            app.pdo_parameters_table = uitable(app.UIFigure);
-            app.pdo_parameters_table.ColumnName = {'Name'; 'Value'; 'Fit? (y/n)'};
-            app.pdo_parameters_table.ColumnWidth = {75, 'auto'};
-            app.pdo_parameters_table.RowName = {};
-            app.pdo_parameters_table.ColumnEditable = [false true true];
-            app.pdo_parameters_table.Visible = 'off';
-            app.pdo_parameters_table.Position = [1567 344 298 147];
-
-            % Create DistortionParameterGuessesandFitsLabel
-            app.DistortionParameterGuessesandFitsLabel = uilabel(app.UIFigure);
-            app.DistortionParameterGuessesandFitsLabel.FontWeight = 'bold';
-            app.DistortionParameterGuessesandFitsLabel.Visible = 'off';
-            app.DistortionParameterGuessesandFitsLabel.Position = [1567 491 229 22];
-            app.DistortionParameterGuessesandFitsLabel.Text = 'Distortion Parameter Guesses and Fits';
-
-            % Create UpdatePDOParametersButton
-            app.UpdatePDOParametersButton = uibutton(app.UIFigure, 'push');
-            app.UpdatePDOParametersButton.ButtonPushedFcn = createCallbackFcn(app, @UpdatePDOParametersButtonPushed, true);
-            app.UpdatePDOParametersButton.BackgroundColor = [1 1 0];
-            app.UpdatePDOParametersButton.Visible = 'off';
-            app.UpdatePDOParametersButton.Position = [1502 415 53 22];
-            app.UpdatePDOParametersButton.Text = 'Update';
 
             % Create FitinBackgroundmaclinuxonlyButton
             app.FitinBackgroundmaclinuxonlyButton = uibutton(app.UIFigure, 'state');
@@ -3979,21 +4039,6 @@
             app.FitResultsNameText.Visible = 'off';
             app.FitResultsNameText.Position = [1577 145 449 22];
             app.FitResultsNameText.Text = 'Untitled';
-
-            % Create DistortionTypeDropDown_2Label
-            app.DistortionTypeDropDown_2Label = uilabel(app.UIFigure);
-            app.DistortionTypeDropDown_2Label.HorizontalAlignment = 'right';
-            app.DistortionTypeDropDown_2Label.Visible = 'off';
-            app.DistortionTypeDropDown_2Label.Position = [1471 548 86 22];
-            app.DistortionTypeDropDown_2Label.Text = 'Distortion Type';
-
-            % Create DistortionTypeDropDown_2
-            app.DistortionTypeDropDown_2 = uidropdown(app.UIFigure);
-            app.DistortionTypeDropDown_2.Items = {'None', 'Binomial', 'Binomial - State Dependent', 'Binomial - Parametrized', 'Poisson', 'Poisson - State Dependent', 'Poisson - Parametrized', 'Binning', 'Custom Function'};
-            app.DistortionTypeDropDown_2.ValueChangedFcn = createCallbackFcn(app, @DistortionTypeDropDownValueChanged, true);
-            app.DistortionTypeDropDown_2.Visible = 'off';
-            app.DistortionTypeDropDown_2.Position = [1572 548 241 22];
-            app.DistortionTypeDropDown_2.Value = 'None';
 
             % Create LoadPreviousProjectButton
             app.LoadPreviousProjectButton = uibutton(app.UIFigure, 'push');
