@@ -8,13 +8,17 @@ T_array = eval(app.FspPrintTimesField.Value);
 [~,j] = min(abs(T_array-app.FspTimeSlider.Value));
 
 % Compute the marginal distributions
-Nd = app.FspTabOutputs.solutions{j}.p.dim;
+Nd = app.SSITModel.Solutions.fsp{j}.p.dim;
 if Nd==1
-    mdist{1} = double(app.FspTabOutputs.solutions{j}.p.data);
+    mdist{1} = double(app.SSITModel.Solutions.fsp{j}.p.data);
 else
     for i=1:Nd
         INDS = setdiff([1:Nd],i);
-        mdist{i} = double(app.FspTabOutputs.solutions{j}.p.sumOver(INDS).data);
+        if ~isempty(INDS)
+            mdist{i} = double(app.SSITModel.Solutions.fsp{j}.p.sumOver(INDS).data);
+        else
+            mdist{i} = double(app.SSITModel.Solutions.fsp{j}.p.data);
+        end
     end
 end
 

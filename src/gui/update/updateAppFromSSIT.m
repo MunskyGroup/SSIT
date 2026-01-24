@@ -143,17 +143,7 @@ for iSp = iSp+1:7
 end
 
 %% PDO Options
-if ~isempty(app.SSITModel.pdoOptions)
-    observedSpecies = setdiff(app.SSITModel.species,app.SSITModel.pdoOptions.unobservedSpecies);
-    speciesBoxes = {'SpeciestoShowListBoxMargFSP','SpeciestoShowListBox',...
-        'SpeciestoShowListBox_2','SpeciestoShowListBoxMargFSPvT',...
-        'SpeciestoShowListBoxMeans','JointSp1','JointSp2',...
-        'SpeciesForSensPlot',};
-    for i = 1:length(speciesBoxes)
-        app.(speciesBoxes{i}).Items = ...
-        [app.SSITModel.species',cellfun(@(s)[s ' (distorted)'], observedSpecies, 'UniformOutput', false)];
-    end
-end
+updateSpeciesDropBoxes
 
 %% FSP Options
 makeDefaultConstraints(app);

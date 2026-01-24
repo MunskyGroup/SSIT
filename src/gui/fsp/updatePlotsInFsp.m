@@ -48,9 +48,9 @@ if isfield(app.SSITModel.pdoOptions,'PDO')&&max(species2Plot)>length(app.SSITMod
         if ~max(strcmpi(app.SSITModel.pdoOptions.unobservedSpecies,app.SSITModel.species{iSp}))
             INDS = setdiff([1:Nd],iSp);
             if ~isempty(INDS)
-                px = double(app.FspTabOutputs.solutions{j}.p.sumOver(INDS).data);
+                px = double(app.SSITModel.Solutions.fsp{j}.p.sumOver(INDS).data);
             else
-                px = double(app.FspTabOutputs.solutions{j}.p.data);
+                px = double(app.SSITModel.Solutions.fsp{j}.p.data);
             end
             kSp = kSp+1;
             mdist{end+1} = app.SSITModel.pdoOptions.PDO.conditionalPmfs{kSp}*px;

@@ -30,6 +30,7 @@ switch app.DistortionTypeDropDown.Value
         app.SolutionTimeDropDown.Enable = 0;
         app.PDO_Axis.Visible = 0;
         app.PDO_Axis2.Visible = 0;
+        app.SSITModel.pdoOptions = [];
 
     case 'Binomial'
         app.FIMTabOutputs.PDOProperties = ssit.parest.propsStorage;
@@ -82,3 +83,4 @@ switch app.DistortionTypeDropDown.Value
             app.FIMTabOutputs.PDOProperties.props.(['MaxObservationS',num2str(iSp)]) = 100;
         end
 end
+updateSpeciesDropBoxes

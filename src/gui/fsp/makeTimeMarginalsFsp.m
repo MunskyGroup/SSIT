@@ -5,7 +5,7 @@ function makeTimeMarginalsFsp(app)
 
 T_array = eval(app.FspPrintTimesField.Value);
 T_array2 = eval(app.FspMarginalVecField.Value);
-Nd = app.FspTabOutputs.solutions{1}.p.dim;
+Nd = app.SSITModel.Solutions.fsp{1}.p.dim;
 for iSpecies = 1:Nd
     Plts_to_make(iSpecies) = max(contains(app.SpeciestoShowListBoxMargFSPvT.Value,app.SSITModel.species{iSpecies}));
 end
@@ -18,9 +18,9 @@ if ~app.FspMarginalTimeCreateMovieCheckBox.Value
                 [~,j] =  min(abs(T_array-T_array2(i)));
                 % Compute the marginal distributions
                 if Nd==1
-                    mdist = double(app.FspTabOutputs.solutions{j}.p.data);
+                    mdist = double(app.SSITModel.Solutions.fsp{j}.p.data);
                 else
-                    mdist = double(app.FspTabOutputs.solutions{j}.p.sumOver(INDS).data);
+                    mdist = double(app.SSITModel.Solutions.fsp{j}.p.sumOver(INDS).data);
                 end
                 stairs([0:length(mdist)], [mdist;0],'linewidth',2);
                 hold('on');
@@ -38,18 +38,18 @@ else
     str = ['TimeMarginal'];
     v = VideoWriter(str,'MPEG-4');
     open(v)
-    Nd = app.FspTabOutputs.solutions{1}.p.dim;
+    Nd = app.SSITModel.Solutions.fsp{1}.p.dim;
     for i = 1:length(T_array2)
         hold off
         [~,j] =  min(abs(T_array-T_array2(i)));
         for iplt = 1:Nd
             if Plts_to_make(iplt)
                 if Nd==1
-                    mdist{1} = double(app.FspTabOutputs.solutions{j}.p.data);
+                    mdist{1} = double(app.SSITModel.Solutions.fsp{j}.p.data);
                 else
                     for ii=1:Nd
                         INDS = setdiff([1:Nd],ii);
-                        mdist{ii} = double(app.FspTabOutputs.solutions{j}.p.sumOver(INDS).data);
+                        mdist{ii} = double(app.SSITModel.Solutions.fsp{j}.p.sumOver(INDS).data);
                     end
                 end
                 stairs([0:length(mdist{iplt})], [mdist{iplt};0],'linewidth',2);

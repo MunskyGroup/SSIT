@@ -6,13 +6,13 @@ function makeMeanAndVarianceFsp(app)
 
 T_array = eval(app.FspPrintTimesField.Value);
 for it = 1:length(T_array)
-    Nd = app.FspTabOutputs.solutions{it}.p.dim;
+    Nd = app.SSITModel.Solutions.fsp{it}.p.dim;
     for i=1:Nd
         if Nd==1
-            mdist{1} = double(app.FspTabOutputs.solutions{it}.p.data);
+            mdist{1} = double(app.SSITModel.Solutions.fsp{it}.p.data);
         else
             INDS = setdiff([1:Nd],i);
-            mdist{i} = double(app.FspTabOutputs.solutions{it}.p.sumOver(INDS).data);
+            mdist{i} = double(app.SSITModel.Solutions.fsp{it}.p.sumOver(INDS).data);
         end
     end
     for j=1:Nd
@@ -23,7 +23,7 @@ end
 vars = mns2-mns.^2;
 
 figure();
-Nd = app.FspTabOutputs.solutions{1}.p.dim;
+Nd = app.SSITModel.Solutions.fsp{1}.p.dim;
 for iSpecies = 1:Nd
     Plts_to_make(iSpecies) = max(contains(app.SpeciestoShowListBoxMeans.Value,app.SSITModel.species{iSpecies}));
 end
@@ -40,10 +40,14 @@ for iplt=1:Nd
             LG{end+1} = [char(app.NameTable.Data(iplt,2))];
         end
         if app.FspMeanVarShowOdeCheckBox.Value == 1
-            if isempty(app.FspTabOutputs.odeSolutions)
-                runOde(app);
+            % if isempty(app.FspTabOutputs.odeSolutions)
+            if isempty(app.SSITModel.Solutions)||~isfield(app.SSITModel.Solutions,'ode')
+                currentSolnScheme = app.SSITModel.solutionScheme;
+                app.SSITModel.solutionScheme = 'ode';
+                [~,~,app.SSITModel] = app.SSITModel.solve;
+                app.SSITModel.solutionScheme = currentSolnScheme;
             end
-            plot(app.FspTabOutputs.tOde,app.FspTabOutputs.odeSolutions(:,iplt),cols2{iplt},'linewidth',2); hold on;
+            plot(app.SSITModel.tSpan,app.SSITModel.Solutions.ode(:,iplt),cols2{iplt},'linewidth',2); hold on;
             plot(T_array,mns(:,iplt),cols{iplt});
             LG{end+1} = [append(app.SSITModel.species{iplt},' ode')];
             LG{end+1} = app.SSITModel.species{iplt};

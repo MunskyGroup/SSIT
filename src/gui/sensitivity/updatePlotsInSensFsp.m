@@ -2,6 +2,11 @@ function [] = updatePlotsInSensFsp(app)
 % This function Updates the plots when any change occurs in selection of
 % the species shown and changes in the timeslider.
 
+if isempty(app.SSITModel.Solutions)||~isfield(app.SSITModel.Solutions,'sens')
+    app.SSITModel.solutionScheme = 'fspsens';
+    [~,~,app.SSITModel] = app.SSITModel.solve;
+end
+
 % Find the time index to plot
 T_array = unique(eval(app.SensPrintTimesEditField.Value));
 [~,j] = min(abs(T_array-app.SensPlotTimeSlider.Value));

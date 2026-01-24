@@ -38,7 +38,12 @@ contourf(app.PDO_Axis,log10(Z))
 % Make plot of distributions before and after distortion.
 % if ~isempty(app.FspTabOutputs.solutions)
 iTime = find(app.SSITModel.tSpan==eval(app.SolutionTimeDropDown.Value));
-px = app.FspTabOutputs.solutions{iTime}.p;
+if ~isempty(app.SSITModel.Solutions)||~isfield(app.SSITModel.Solutions,'fsp')
+    app.SSITModel.solutionScheme='fsp';
+    [~,~,app.SSITModel] = app.SSITModel.solve;
+end
+
+px = app.SSITModel.Solutions.fsp{iTime}.p;
 py = app.SSITModel.pdoOptions.PDO.computeObservationDist(px);
 Nd = px.dim;
 % for i=1:kPlots
