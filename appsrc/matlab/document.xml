@@ -1001,13 +1001,15 @@
             catch
                 fitOptions =[];
             end
-
-            fields = fieldnames(fitOptions);
-            for ifield = 1:length(fields)
-                field = fields{ifield};
-                if isstring(fitOptions.(field))||ischar(fitOptions.(field))
-                    if strcmp(fitOptions.(field)(1),'@')
-                        fitOptions.(field) = eval(fitOptions.(field));
+            
+            if ~isempty(fitOptions)
+                fields = fieldnames(fitOptions);
+                for ifield = 1:length(fields)
+                    field = fields{ifield};
+                    if isstring(fitOptions.(field))||ischar(fitOptions.(field))
+                        if strcmp(fitOptions.(field)(1),'@')
+                            fitOptions.(field) = eval(fitOptions.(field));
+                        end
                     end
                 end
             end
@@ -1487,7 +1489,7 @@
 
         % Value changed function: DistortionTypeDropDown
         function DistortionTypeDropDownValueChanged(app, event)
-            app.DistortionTypeDropDown.Value = event.Source.Value;
+            % app.DistortionTypeDropDown.Value = event.Source.Value;
             ssit.pdo.changePdoType(app)
             try 
                 UpdatePDOParametersButtonPushed(app)
