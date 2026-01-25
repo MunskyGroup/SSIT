@@ -144,6 +144,11 @@ end
 
 %% PDO Options
 updateSpeciesDropBoxes
+if ~isempty(app.SSITModel.pdoOptions)&&isfield(app.SSITModel.pdoOptions,'type')
+    app.DistortionTypeDropDown.Value = app.SSITModel.pdoOptions.type;
+else
+    app.DistortionTypeDropDown.Value = 'None';
+end
 
 %% FSP Options
 makeDefaultConstraints(app);
@@ -221,5 +226,8 @@ if saveCopy
     eval(append(app.ModelFile.modelName,' = app.SSITModel;'));
     save(fileName,app.ModelFile.modelName)
 end
+
+%% Clear Axes
+clearSSITGUIaxes
 
 end

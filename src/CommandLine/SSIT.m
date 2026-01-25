@@ -1879,34 +1879,36 @@ classdef SSIT
 
                     % Apply PDO, if applicable
                     if ~isempty(obj.pdoOptions.PDO)
-                        Solution.trajsDistorted = zeros(length(obj.species),...
+
+                        [speciesStochastic,iA] = setdiff(obj.species,obj.hybridOptions.upstreamODEs);
+
+                        Solution.trajsDistorted = zeros(length(speciesStochastic),...
                             length(obj.tSpan),nSims);% Creates an empty Trajectories matrix from the size of the time array and number of simulations
                         
-                        maxNum = zeros(1,size(obj.species,1));
-                        curNum = zeros(1,size(obj.species,1));
+                        maxNum = zeros(1,size(speciesStochastic,1));
+                        curNum = zeros(1,size(speciesStochastic,1));
                         iSObs = 0;
-                        for iS = 1:length(obj.species)
-                            if max(strcmpi(obj.pdoOptions.unobservedSpecies,obj.species(iS)))
+                        for iS = 1:length(speciesStochastic)
+                            if max(strcmpi(obj.pdoOptions.unobservedSpecies,speciesStochastic(iS)))
                                 maxNum(iS) = 0;
                                 curNum(iS) = 0;
                             else
                                 iSObs = iSObs+1;
-                                maxNum(iS) = max(Solution.trajs(iS,:,:),[],'all')+1;
+                                maxNum(iS) = max(Solution.trajs(iA(iS),:,:),[],'all')+1;
                                 curNum(iS) = size(obj.pdoOptions.PDO.conditionalPmfs{iSObs},2);
                             end
                         end
                         if max(maxNum-curNum)>0
                             [~,obj] = obj.generatePDO([],[],[],[],maxNum);
                         end
-                           
-                        
+                                                 
                         iSObs = 0;
-                        for iS = 1:length(obj.species)
-                            if max(strcmpi(obj.pdoOptions.unobservedSpecies,obj.species(iS)))
-                                Q = NaN*Solution.trajs(iS,:,:);
+                        for iS = 1:length(speciesStochastic)
+                            if max(strcmpi(obj.pdoOptions.unobservedSpecies,speciesStochastic(iS)))
+                                Q = NaN*Solution.trajs(iA(iS),:,:);
                             else
                                 iSObs = iSObs+1;
-                                Q = Solution.trajs(iS,:,:);
+                                Q = Solution.trajs(iA(iS),:,:);
                                 % if max(Q,[],'all')>size(obj.pdoOptions.PDO.conditionalPmfs{iSObs},2)
                                 %     [~,obj] = obj.generatePDO([],[],[],[],max(Q,[],'all'));
                                 % end

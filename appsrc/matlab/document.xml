@@ -12,7 +12,7 @@
         ModelSaveButton_2               matlab.ui.control.Button
         ModelSaveButton                 matlab.ui.control.Button
         TabGroup                        matlab.ui.container.TabGroup
-        ModelTab                        matlab.ui.container.Tab
+        ModelLoadingandBuildingTab      matlab.ui.container.Tab
         RefreshFoldersButton            matlab.ui.control.Button
         NewModelButton                  matlab.ui.control.Button
         RenameSpeciesDropDown           matlab.ui.control.DropDown
@@ -50,6 +50,26 @@
         ModelAddReactionButton          matlab.ui.control.StateButton
         ModelReactionTable              matlab.ui.control.Table
         ReactionTextAxes                matlab.ui.control.UIAxes
+        DistortionandHybridModelingTab  matlab.ui.container.Tab
+        UpstreamSpeciesListBox          matlab.ui.control.ListBox
+        UpstreamSpeciesListBoxLabel     matlab.ui.control.Label
+        UseHybridModelSwitch            matlab.ui.control.Switch
+        UseHybridModelLabel             matlab.ui.control.Label
+        HybridModelOptionsLabel         matlab.ui.control.Label
+        SolutionTimeDropDown            matlab.ui.control.DropDown
+        SolutionTimeDropDownLabel       matlab.ui.control.Label
+        SpeciesDropDown                 matlab.ui.control.DropDown
+        SpeciesDropDownLabel            matlab.ui.control.Label
+        DistortionTypeDropDown          matlab.ui.control.DropDown
+        DistortionTypeDropDown_2Label   matlab.ui.control.Label
+        UpdatePDOParametersButton       matlab.ui.control.Button
+        DistortionParameterGuessesandFitsLabel  matlab.ui.control.Label
+        pdo_parameters_table            matlab.ui.control.Table
+        ShowDistortionPlotButton        matlab.ui.control.Button
+        SetDistortionParametersButton   matlab.ui.control.Button
+        IncludeDataDistortionsinModelLabel  matlab.ui.control.Label
+        PDO_Axis2                       matlab.ui.control.UIAxes
+        PDO_Axis                        matlab.ui.control.UIAxes
         StochasticSimulationTab         matlab.ui.container.Tab
         SsaGPUCheckBox                  matlab.ui.control.CheckBox
         SpeciestoShowListBox            matlab.ui.control.ListBox
@@ -99,7 +119,7 @@
         NumberofSimulationsEditFieldLabel  matlab.ui.control.Label
         SsaHistAxes                     matlab.ui.control.UIAxes
         SsaTrajAxes                     matlab.ui.control.UIAxes
-        FSPTab                          matlab.ui.container.Tab
+        FiniteStateProjectionTab        matlab.ui.container.Tab
         initApproxSS                    matlab.ui.control.CheckBox
         SpeciestoShowListBox_2          matlab.ui.control.ListBox
         SpeciestoShowListBox_2Label     matlab.ui.control.Label
@@ -166,7 +186,7 @@
         FspInitCondField                matlab.ui.control.EditField
         FspRunButtom                    matlab.ui.control.Button
         FspAxes                         matlab.ui.control.UIAxes
-        SensitivityTab                  matlab.ui.container.Tab
+        SensitivityAnalysisTab          matlab.ui.container.Tab
         ExportSensitivityDatatoWorkspaceForManualPlotsButton  matlab.ui.control.Button
         FontSizeLabel_4                 matlab.ui.control.Label
         IncreaseFontSizeSens            matlab.ui.control.Button
@@ -194,11 +214,6 @@
         SensProbAxes                    matlab.ui.control.UIAxes
         FisherInformationTab            matlab.ui.container.Tab
         HoldOnCheckBox                  matlab.ui.control.CheckBox
-        ShowDistortionPlotButton        matlab.ui.control.Button
-        SetDistortionParametersButton   matlab.ui.control.Button
-        DistortionTypeDropDown          matlab.ui.control.DropDown
-        DistortionTypeDropDownLabel     matlab.ui.control.Label
-        DistortionsLabel                matlab.ui.control.Label
         ModelUncertaintyDropDown        matlab.ui.control.DropDown
         ModelUncertaintyDropDownLabel   matlab.ui.control.Label
         FIMNumMC                        matlab.ui.control.NumericEditField
@@ -309,21 +324,6 @@
         DecreaseFontSizeData            matlab.ui.control.Button
         fit_parameters_table            matlab.ui.control.Table
         LoadandConstrainDataButton      matlab.ui.control.Button
-        DistortionTab                   matlab.ui.container.Tab
-        SolutionTimeDropDown            matlab.ui.control.DropDown
-        SolutionTimeDropDownLabel       matlab.ui.control.Label
-        SpeciesDropDown                 matlab.ui.control.DropDown
-        SpeciesDropDownLabel            matlab.ui.control.Label
-        DistortionTypeDropDown_2        matlab.ui.control.DropDown
-        DistortionTypeDropDown_2Label   matlab.ui.control.Label
-        UpdatePDOParametersButton       matlab.ui.control.Button
-        DistortionParameterGuessesandFitsLabel  matlab.ui.control.Label
-        pdo_parameters_table            matlab.ui.control.Table
-        ShowDistortionPlotButton_2      matlab.ui.control.Button
-        SetDistortionParametersButton_2  matlab.ui.control.Button
-        IncludeDataDistortionsinModelLabel  matlab.ui.control.Label
-        PDO_Axis2                       matlab.ui.control.UIAxes
-        PDO_Axis                        matlab.ui.control.UIAxes
         LaunchFSPModelReductionToolButton  matlab.ui.control.Button
         CreateNewNStateModelButton      matlab.ui.control.Button
         ChooseSSITModelLabel_2          matlab.ui.control.Label
@@ -1485,11 +1485,9 @@
             SSITMergeModels(app)
         end
 
-        % Value changed function: DistortionTypeDropDown, 
-        % ...and 1 other component
+        % Value changed function: DistortionTypeDropDown
         function DistortionTypeDropDownValueChanged(app, event)
             app.DistortionTypeDropDown.Value = event.Source.Value;
-            app.DistortionTypeDropDown_2.Value = event.Source.Value;
             ssit.pdo.changePdoType(app)
             try 
                 UpdatePDOParametersButtonPushed(app)
@@ -1502,16 +1500,16 @@
             ssit.parest.SetPriors(app);
         end
 
-        % Button pushed function: SetDistortionParametersButton, 
-        % ...and 1 other component
+        % Button pushed function: SetDistortionParametersButton
         function SetDistortionParametersButtonPushed(app, event)
             app.SSITModel.pdoOptions.PDO = [];
             disp('Please use the GUI to enter the distortion operator parameters.')
             ssit.parest.PropEditor(app.FIMTabOutputs.PDOProperties,'props',{'Parameter','Value'},0);
         end
 
-        % Callback function: ShowDistortionPlotButton, 
-        % ...and 3 other components
+        % Callback function: ShowDistortionPlotButton,
+        % SolutionTimeDropDown, 
+        % ...and 1 other component
         function ShowDistortionPlotButtonPushed(app, event)
             ssit.pdo.showPdoPlot(app)
         end
@@ -1780,6 +1778,24 @@
         function ModelLoadButton_2Pushed(app, event)
             
         end
+
+        % Value changed function: UseHybridModelSwitch
+        function UseHybridModelSwitchValueChanged(app, event)
+            switch app.UseHybridModelSwitch.Value
+                case 'On'
+                    app.SSITModel.useHybrid = true;
+                    app.UpstreamSpeciesListBox.Visible = true;
+                    if app.SSITModel.useHybrid&&~isempty(app.SSITModel.hybridOptions.upstreamODEs)
+                        app.UpstreamSpeciesListBox.Value = app.SSITModel.hybridOptions.upstreamODEs;
+                    else
+                        app.UpstreamSpeciesListBox.Value = {};
+                    end                        
+                case 'Off'
+                    app.SSITModel.useHybrid = false;
+                    app.UpstreamSpeciesListBox.Visible = false;
+                    app.UpstreamSpeciesListBox.Value = {};
+            end            
+        end
     end
 
     % Component initialization
@@ -1818,13 +1834,13 @@
             app.TabGroup = uitabgroup(app.RightPanel);
             app.TabGroup.Position = [1 62 1378 642];
 
-            % Create ModelTab
-            app.ModelTab = uitab(app.TabGroup);
-            app.ModelTab.Tooltip = {'Use this tab to enter or change model.'};
-            app.ModelTab.Title = 'Model';
+            % Create ModelLoadingandBuildingTab
+            app.ModelLoadingandBuildingTab = uitab(app.TabGroup);
+            app.ModelLoadingandBuildingTab.Tooltip = {'Use this tab to enter or change model.'};
+            app.ModelLoadingandBuildingTab.Title = 'Model Loading and Building';
 
             % Create ReactionTextAxes
-            app.ReactionTextAxes = uiaxes(app.ModelTab);
+            app.ReactionTextAxes = uiaxes(app.ModelLoadingandBuildingTab);
             app.ReactionTextAxes.AmbientLightColor = 'none';
             app.ReactionTextAxes.XColor = 'none';
             app.ReactionTextAxes.XTick = [];
@@ -1836,7 +1852,7 @@
             app.ReactionTextAxes.Position = [664 12 421 375];
 
             % Create ModelReactionTable
-            app.ModelReactionTable = uitable(app.ModelTab);
+            app.ModelReactionTable = uitable(app.ModelLoadingandBuildingTab);
             app.ModelReactionTable.ColumnName = {'Rxn Num.'; 'Reactants'; 'Products'; 'Propensity'};
             app.ModelReactionTable.ColumnWidth = {115, 'auto', 'auto', 400};
             app.ModelReactionTable.RowName = {};
@@ -1846,7 +1862,7 @@
             app.ModelReactionTable.Position = [13 129 638 184];
 
             % Create ModelAddReactionButton
-            app.ModelAddReactionButton = uibutton(app.ModelTab, 'state');
+            app.ModelAddReactionButton = uibutton(app.ModelLoadingandBuildingTab, 'state');
             app.ModelAddReactionButton.ValueChangedFcn = createCallbackFcn(app, @ModelAddReactionButtonValueChanged, true);
             app.ModelAddReactionButton.Tooltip = {'Use this button to add another reaction to the model.'};
             app.ModelAddReactionButton.Text = 'Add Reaction';
@@ -1854,13 +1870,13 @@
             app.ModelAddReactionButton.Position = [39 460 139 28];
 
             % Create ModelhasnotbeenupdatedLabel
-            app.ModelhasnotbeenupdatedLabel = uilabel(app.ModelTab);
+            app.ModelhasnotbeenupdatedLabel = uilabel(app.ModelLoadingandBuildingTab);
             app.ModelhasnotbeenupdatedLabel.VerticalAlignment = 'top';
             app.ModelhasnotbeenupdatedLabel.Position = [167 322 304 26];
             app.ModelhasnotbeenupdatedLabel.Text = 'Model has not been updated.';
 
             % Create ModelUpdateButton
-            app.ModelUpdateButton = uibutton(app.ModelTab, 'push');
+            app.ModelUpdateButton = uibutton(app.ModelLoadingandBuildingTab, 'push');
             app.ModelUpdateButton.ButtonPushedFcn = createCallbackFcn(app, @ModelUpdateButtonPushed, true);
             app.ModelUpdateButton.BackgroundColor = [0 1 0];
             app.ModelUpdateButton.Tooltip = {'Press this button to update model with new parameters or inputs.'};
@@ -1868,7 +1884,7 @@
             app.ModelUpdateButton.Text = 'Update Model';
 
             % Create ModelParameterTable
-            app.ModelParameterTable = uitable(app.ModelTab);
+            app.ModelParameterTable = uitable(app.ModelLoadingandBuildingTab);
             app.ModelParameterTable.ColumnName = {'Name'; 'Value'};
             app.ModelParameterTable.ColumnWidth = {75, 'auto'};
             app.ModelParameterTable.RowName = {};
@@ -1878,14 +1894,14 @@
             app.ModelParameterTable.Position = [1112 79 244 285];
 
             % Create ParametersLabel
-            app.ParametersLabel = uilabel(app.ModelTab);
+            app.ParametersLabel = uilabel(app.ModelLoadingandBuildingTab);
             app.ParametersLabel.VerticalAlignment = 'top';
             app.ParametersLabel.FontWeight = 'bold';
             app.ParametersLabel.Position = [1112 358 216 25];
             app.ParametersLabel.Text = 'Parameters';
 
             % Create ModelInputTable
-            app.ModelInputTable = uitable(app.ModelTab);
+            app.ModelInputTable = uitable(app.ModelLoadingandBuildingTab);
             app.ModelInputTable.ColumnName = {'Name'; 'Value'};
             app.ModelInputTable.ColumnWidth = {75, 'auto'};
             app.ModelInputTable.RowName = {};
@@ -1895,21 +1911,21 @@
             app.ModelInputTable.Position = [14 4 637 86];
 
             % Create DefineTimeVaryingInputSignalsLabel
-            app.DefineTimeVaryingInputSignalsLabel = uilabel(app.ModelTab);
+            app.DefineTimeVaryingInputSignalsLabel = uilabel(app.ModelLoadingandBuildingTab);
             app.DefineTimeVaryingInputSignalsLabel.VerticalAlignment = 'top';
             app.DefineTimeVaryingInputSignalsLabel.FontWeight = 'bold';
             app.DefineTimeVaryingInputSignalsLabel.Position = [15 89 224 24];
             app.DefineTimeVaryingInputSignalsLabel.Text = 'Define Time-Varying Input Signals';
 
             % Create ModelFolderLabel
-            app.ModelFolderLabel = uilabel(app.ModelTab);
+            app.ModelFolderLabel = uilabel(app.ModelLoadingandBuildingTab);
             app.ModelFolderLabel.HorizontalAlignment = 'right';
             app.ModelFolderLabel.FontWeight = 'bold';
             app.ModelFolderLabel.Position = [15 574 86 38];
             app.ModelFolderLabel.Text = 'Model Folder';
 
             % Create ModelUsePresetExampleTypeDropDown
-            app.ModelUsePresetExampleTypeDropDown = uidropdown(app.ModelTab);
+            app.ModelUsePresetExampleTypeDropDown = uidropdown(app.ModelLoadingandBuildingTab);
             app.ModelUsePresetExampleTypeDropDown.Items = {'Other'};
             app.ModelUsePresetExampleTypeDropDown.ValueChangedFcn = createCallbackFcn(app, @ModelUsePresetExampleTypeDropDownValueChanged, true);
             app.ModelUsePresetExampleTypeDropDown.Tooltip = {'Use this to select a directory with pre-made models.'};
@@ -1917,7 +1933,7 @@
             app.ModelUsePresetExampleTypeDropDown.Value = 'Other';
 
             % Create ModelLoadButton
-            app.ModelLoadButton = uibutton(app.ModelTab, 'push');
+            app.ModelLoadButton = uibutton(app.ModelLoadingandBuildingTab, 'push');
             app.ModelLoadButton.ButtonPushedFcn = createCallbackFcn(app, @ModelLoadButtonPushed, true);
             app.ModelLoadButton.BackgroundColor = [0 1 0];
             app.ModelLoadButton.FontWeight = 'bold';
@@ -1926,7 +1942,7 @@
             app.ModelLoadButton.Text = 'Load Model';
 
             % Create ModelAbout
-            app.ModelAbout = uitextarea(app.ModelTab);
+            app.ModelAbout = uitextarea(app.ModelLoadingandBuildingTab);
             app.ModelAbout.ValueChangedFcn = createCallbackFcn(app, @ModelAboutValueChanged, true);
             app.ModelAbout.BackgroundColor = [0.8 0.8 0.8];
             app.ModelAbout.Tooltip = {'Use this textbox to write information about model. (e.g., descriptions of species/reactions/inputs and citation information).'};
@@ -1934,13 +1950,13 @@
             app.ModelAbout.Value = {'Add model description here.'};
 
             % Create ModelDropDownLabel
-            app.ModelDropDownLabel = uilabel(app.ModelTab);
+            app.ModelDropDownLabel = uilabel(app.ModelLoadingandBuildingTab);
             app.ModelDropDownLabel.HorizontalAlignment = 'right';
             app.ModelDropDownLabel.Position = [701 583 42 22];
             app.ModelDropDownLabel.Text = 'Model ';
 
             % Create ModelDropDown
-            app.ModelDropDown = uidropdown(app.ModelTab);
+            app.ModelDropDown = uidropdown(app.ModelLoadingandBuildingTab);
             app.ModelDropDown.Items = {};
             app.ModelDropDown.ValueChangedFcn = createCallbackFcn(app, @ModelDropDownValueChanged, true);
             app.ModelDropDown.Tooltip = {'Use this to select a pre-made model.'};
@@ -1948,7 +1964,7 @@
             app.ModelDropDown.Value = {};
 
             % Create IncreaseFontSizeRxn
-            app.IncreaseFontSizeRxn = uibutton(app.ModelTab, 'push');
+            app.IncreaseFontSizeRxn = uibutton(app.ModelLoadingandBuildingTab, 'push');
             app.IncreaseFontSizeRxn.ButtonPushedFcn = createCallbackFcn(app, @IncreaseFontRxnPushed, true);
             app.IncreaseFontSizeRxn.Visible = 'off';
             app.IncreaseFontSizeRxn.Tooltip = {'Increase global font size'};
@@ -1956,7 +1972,7 @@
             app.IncreaseFontSizeRxn.Text = '+';
 
             % Create DecreaseFontSizeRxn
-            app.DecreaseFontSizeRxn = uibutton(app.ModelTab, 'push');
+            app.DecreaseFontSizeRxn = uibutton(app.ModelLoadingandBuildingTab, 'push');
             app.DecreaseFontSizeRxn.ButtonPushedFcn = createCallbackFcn(app, @DecreaseFontRxnPushed, true);
             app.DecreaseFontSizeRxn.Visible = 'off';
             app.DecreaseFontSizeRxn.Tooltip = {'Decrease global font size'};
@@ -1964,7 +1980,7 @@
             app.DecreaseFontSizeRxn.Text = '-';
 
             % Create FontSizeLabelRxn
-            app.FontSizeLabelRxn = uilabel(app.ModelTab);
+            app.FontSizeLabelRxn = uilabel(app.ModelLoadingandBuildingTab);
             app.FontSizeLabelRxn.HorizontalAlignment = 'right';
             app.FontSizeLabelRxn.VerticalAlignment = 'bottom';
             app.FontSizeLabelRxn.Visible = 'off';
@@ -1972,14 +1988,14 @@
             app.FontSizeLabelRxn.Text = {'Font Size'; ''};
 
             % Create SubFolderLabel
-            app.SubFolderLabel = uilabel(app.ModelTab);
+            app.SubFolderLabel = uilabel(app.ModelLoadingandBuildingTab);
             app.SubFolderLabel.HorizontalAlignment = 'right';
             app.SubFolderLabel.FontWeight = 'bold';
             app.SubFolderLabel.Position = [450 577 68 36];
             app.SubFolderLabel.Text = 'Sub Folder';
 
             % Create LoadSBMLModelButton
-            app.LoadSBMLModelButton = uibutton(app.ModelTab, 'push');
+            app.LoadSBMLModelButton = uibutton(app.ModelLoadingandBuildingTab, 'push');
             app.LoadSBMLModelButton.ButtonPushedFcn = createCallbackFcn(app, @LoadSBMLModelButtonPushed, true);
             app.LoadSBMLModelButton.BackgroundColor = [1 1 0];
             app.LoadSBMLModelButton.FontWeight = 'bold';
@@ -1988,19 +2004,19 @@
             app.LoadSBMLModelButton.Text = 'Load SBML Model';
 
             % Create DeleteReactionDropDown_2Label
-            app.DeleteReactionDropDown_2Label = uilabel(app.ModelTab);
+            app.DeleteReactionDropDown_2Label = uilabel(app.ModelLoadingandBuildingTab);
             app.DeleteReactionDropDown_2Label.HorizontalAlignment = 'right';
             app.DeleteReactionDropDown_2Label.Position = [202 463 90 22];
             app.DeleteReactionDropDown_2Label.Text = 'Delete Reaction';
 
             % Create DeleteReactionDropDown
-            app.DeleteReactionDropDown = uidropdown(app.ModelTab);
+            app.DeleteReactionDropDown = uidropdown(app.ModelLoadingandBuildingTab);
             app.DeleteReactionDropDown.ValueChangedFcn = createCallbackFcn(app, @DeleteReactionDropDownValueChanged, true);
             app.DeleteReactionDropDown.Tooltip = {'Use this to delete a reaction from the model.'};
             app.DeleteReactionDropDown.Position = [300 463 100 22];
 
             % Create AddSpeciesButton
-            app.AddSpeciesButton = uibutton(app.ModelTab, 'state');
+            app.AddSpeciesButton = uibutton(app.ModelLoadingandBuildingTab, 'state');
             app.AddSpeciesButton.ValueChangedFcn = createCallbackFcn(app, @AddSpeciesButtonValueChanged, true);
             app.AddSpeciesButton.Tooltip = {'Use this button to add another species to the model.'};
             app.AddSpeciesButton.Text = 'Add Species';
@@ -2008,24 +2024,24 @@
             app.AddSpeciesButton.Position = [39 419 139 28];
 
             % Create DeleteSpeciesDropDownLabel
-            app.DeleteSpeciesDropDownLabel = uilabel(app.ModelTab);
+            app.DeleteSpeciesDropDownLabel = uilabel(app.ModelLoadingandBuildingTab);
             app.DeleteSpeciesDropDownLabel.HorizontalAlignment = 'right';
             app.DeleteSpeciesDropDownLabel.Position = [412 422 85 22];
             app.DeleteSpeciesDropDownLabel.Text = 'Delete Species';
 
             % Create DeleteSpeciesDropDown
-            app.DeleteSpeciesDropDown = uidropdown(app.ModelTab);
+            app.DeleteSpeciesDropDown = uidropdown(app.ModelLoadingandBuildingTab);
             app.DeleteSpeciesDropDown.ValueChangedFcn = createCallbackFcn(app, @DeleteSpeciesDropDownValueChanged, true);
             app.DeleteSpeciesDropDown.Tooltip = {'Use this to delete a species from the model. Deleted species will be replaced with constants if used in other reactions.'};
             app.DeleteSpeciesDropDown.Position = [505 422 100 22];
 
             % Create AbouttheModelLabel
-            app.AbouttheModelLabel = uilabel(app.ModelTab);
+            app.AbouttheModelLabel = uilabel(app.ModelLoadingandBuildingTab);
             app.AbouttheModelLabel.Position = [667 538 98 22];
             app.AbouttheModelLabel.Text = 'About the Model ';
 
             % Create AddInputButton
-            app.AddInputButton = uibutton(app.ModelTab, 'state');
+            app.AddInputButton = uibutton(app.ModelLoadingandBuildingTab, 'state');
             app.AddInputButton.ValueChangedFcn = createCallbackFcn(app, @AddInputButtonValueChanged, true);
             app.AddInputButton.Tooltip = {'Use this button to add another input signal to the model.'};
             app.AddInputButton.Text = 'Add Input';
@@ -2033,19 +2049,19 @@
             app.AddInputButton.Position = [39 379 139 28];
 
             % Create DeleteInputDropDownLabel
-            app.DeleteInputDropDownLabel = uilabel(app.ModelTab);
+            app.DeleteInputDropDownLabel = uilabel(app.ModelLoadingandBuildingTab);
             app.DeleteInputDropDownLabel.HorizontalAlignment = 'right';
             app.DeleteInputDropDownLabel.Position = [221 387 70 22];
             app.DeleteInputDropDownLabel.Text = 'Delete Input';
 
             % Create DeleteInputDropDown
-            app.DeleteInputDropDown = uidropdown(app.ModelTab);
+            app.DeleteInputDropDown = uidropdown(app.ModelLoadingandBuildingTab);
             app.DeleteInputDropDown.ValueChangedFcn = createCallbackFcn(app, @DeleteInputDropDownValueChanged, true);
             app.DeleteInputDropDown.Tooltip = {'Use this to delete an input from the model.'};
             app.DeleteInputDropDown.Position = [299 387 100 22];
 
             % Create ChooseSSITModel
-            app.ChooseSSITModel = uidropdown(app.ModelTab);
+            app.ChooseSSITModel = uidropdown(app.ModelLoadingandBuildingTab);
             app.ChooseSSITModel.Items = {'Other'};
             app.ChooseSSITModel.ValueChangedFcn = createCallbackFcn(app, @ChooseSSITModelValueChanged, true);
             app.ChooseSSITModel.Visible = 'off';
@@ -2054,20 +2070,20 @@
             app.ChooseSSITModel.Value = 'Other';
 
             % Create ChooseSSITModelLabel
-            app.ChooseSSITModelLabel = uilabel(app.ModelTab);
+            app.ChooseSSITModelLabel = uilabel(app.ModelLoadingandBuildingTab);
             app.ChooseSSITModelLabel.Visible = 'off';
             app.ChooseSSITModelLabel.Position = [142 538 112 22];
             app.ChooseSSITModelLabel.Text = 'Choose SSIT Model';
 
             % Create ParametersLabel_3
-            app.ParametersLabel_3 = uilabel(app.ModelTab);
+            app.ParametersLabel_3 = uilabel(app.ModelLoadingandBuildingTab);
             app.ParametersLabel_3.VerticalAlignment = 'top';
             app.ParametersLabel_3.FontWeight = 'bold';
             app.ParametersLabel_3.Position = [1112 554 216 25];
             app.ParametersLabel_3.Text = 'Species';
 
             % Create SpeciesTable
-            app.SpeciesTable = uitable(app.ModelTab);
+            app.SpeciesTable = uitable(app.ModelLoadingandBuildingTab);
             app.SpeciesTable.ColumnName = {'Name'; 'Initiial Value'};
             app.SpeciesTable.ColumnWidth = {75, 'auto'};
             app.SpeciesTable.RowName = {};
@@ -2077,19 +2093,19 @@
             app.SpeciesTable.Position = [1112 393 244 167];
 
             % Create RenameSpeciesDropDownLabel
-            app.RenameSpeciesDropDownLabel = uilabel(app.ModelTab);
+            app.RenameSpeciesDropDownLabel = uilabel(app.ModelLoadingandBuildingTab);
             app.RenameSpeciesDropDownLabel.HorizontalAlignment = 'right';
             app.RenameSpeciesDropDownLabel.Position = [196 422 96 22];
             app.RenameSpeciesDropDownLabel.Text = 'Rename Species';
 
             % Create RenameSpeciesDropDown
-            app.RenameSpeciesDropDown = uidropdown(app.ModelTab);
+            app.RenameSpeciesDropDown = uidropdown(app.ModelLoadingandBuildingTab);
             app.RenameSpeciesDropDown.ValueChangedFcn = createCallbackFcn(app, @RenameSpeciesDropDownValueChanged, true);
             app.RenameSpeciesDropDown.Tooltip = {'Use this to rename a species in the model.'};
             app.RenameSpeciesDropDown.Position = [300 422 100 22];
 
             % Create NewModelButton
-            app.NewModelButton = uibutton(app.ModelTab, 'push');
+            app.NewModelButton = uibutton(app.ModelLoadingandBuildingTab, 'push');
             app.NewModelButton.ButtonPushedFcn = createCallbackFcn(app, @NewModelButtonPushed, true);
             app.NewModelButton.BackgroundColor = [1 1 0];
             app.NewModelButton.FontWeight = 'bold';
@@ -2098,13 +2114,143 @@
             app.NewModelButton.Text = 'New Model';
 
             % Create RefreshFoldersButton
-            app.RefreshFoldersButton = uibutton(app.ModelTab, 'push');
+            app.RefreshFoldersButton = uibutton(app.ModelLoadingandBuildingTab, 'push');
             app.RefreshFoldersButton.ButtonPushedFcn = createCallbackFcn(app, @ModelUsePresetExampleTypeDropDownValueChanged, true);
             app.RefreshFoldersButton.BackgroundColor = [0 1 0];
             app.RefreshFoldersButton.FontWeight = 'bold';
             app.RefreshFoldersButton.Tooltip = {'Press this button to load a saved model.'};
             app.RefreshFoldersButton.Position = [900 580 106 28];
             app.RefreshFoldersButton.Text = 'Refresh Folders';
+
+            % Create DistortionandHybridModelingTab
+            app.DistortionandHybridModelingTab = uitab(app.TabGroup);
+            app.DistortionandHybridModelingTab.Title = 'Distortion and Hybrid Modeling';
+
+            % Create PDO_Axis
+            app.PDO_Axis = uiaxes(app.DistortionandHybridModelingTab);
+            title(app.PDO_Axis, 'Probabilistic Distortion Operator')
+            xlabel(app.PDO_Axis, '"True" Expression Level')
+            ylabel(app.PDO_Axis, '"Observed" Expression Level')
+            zlabel(app.PDO_Axis, 'Z')
+            app.PDO_Axis.Position = [486 257 399 279];
+
+            % Create PDO_Axis2
+            app.PDO_Axis2 = uiaxes(app.DistortionandHybridModelingTab);
+            title(app.PDO_Axis2, 'Comparison of "True" and "Observed" Distributions')
+            xlabel(app.PDO_Axis2, '"True" Expression Level')
+            ylabel(app.PDO_Axis2, '"Observed" Expression Level')
+            zlabel(app.PDO_Axis2, 'Z')
+            app.PDO_Axis2.Position = [913 257 399 279];
+
+            % Create IncludeDataDistortionsinModelLabel
+            app.IncludeDataDistortionsinModelLabel = uilabel(app.DistortionandHybridModelingTab);
+            app.IncludeDataDistortionsinModelLabel.FontWeight = 'bold';
+            app.IncludeDataDistortionsinModelLabel.Position = [34 510 197 22];
+            app.IncludeDataDistortionsinModelLabel.Text = 'Include Data Distortions in Model';
+
+            % Create SetDistortionParametersButton
+            app.SetDistortionParametersButton = uibutton(app.DistortionandHybridModelingTab, 'push');
+            app.SetDistortionParametersButton.ButtonPushedFcn = createCallbackFcn(app, @SetDistortionParametersButtonPushed, true);
+            app.SetDistortionParametersButton.BackgroundColor = [1 1 0];
+            app.SetDistortionParametersButton.Enable = 'off';
+            app.SetDistortionParametersButton.Position = [113 455 154 22];
+            app.SetDistortionParametersButton.Text = 'Set Distortion Parameters';
+
+            % Create ShowDistortionPlotButton
+            app.ShowDistortionPlotButton = uibutton(app.DistortionandHybridModelingTab, 'push');
+            app.ShowDistortionPlotButton.ButtonPushedFcn = createCallbackFcn(app, @ShowDistortionPlotButtonPushed, true);
+            app.ShowDistortionPlotButton.BackgroundColor = [1 1 0];
+            app.ShowDistortionPlotButton.Enable = 'off';
+            app.ShowDistortionPlotButton.Position = [276 455 125 22];
+            app.ShowDistortionPlotButton.Text = 'Show Distortion Plot';
+
+            % Create pdo_parameters_table
+            app.pdo_parameters_table = uitable(app.DistortionandHybridModelingTab);
+            app.pdo_parameters_table.ColumnName = {'Name'; 'Value'; 'Fit? (y/n)'};
+            app.pdo_parameters_table.ColumnWidth = {75, 'auto'};
+            app.pdo_parameters_table.RowName = {};
+            app.pdo_parameters_table.ColumnEditable = [false true true];
+            app.pdo_parameters_table.Visible = 'off';
+            app.pdo_parameters_table.Position = [153 280 298 147];
+
+            % Create DistortionParameterGuessesandFitsLabel
+            app.DistortionParameterGuessesandFitsLabel = uilabel(app.DistortionandHybridModelingTab);
+            app.DistortionParameterGuessesandFitsLabel.FontWeight = 'bold';
+            app.DistortionParameterGuessesandFitsLabel.Visible = 'off';
+            app.DistortionParameterGuessesandFitsLabel.Position = [153 427 229 22];
+            app.DistortionParameterGuessesandFitsLabel.Text = 'Distortion Parameter Guesses and Fits';
+
+            % Create UpdatePDOParametersButton
+            app.UpdatePDOParametersButton = uibutton(app.DistortionandHybridModelingTab, 'push');
+            app.UpdatePDOParametersButton.ButtonPushedFcn = createCallbackFcn(app, @UpdatePDOParametersButtonPushed, true);
+            app.UpdatePDOParametersButton.BackgroundColor = [1 1 0];
+            app.UpdatePDOParametersButton.Visible = 'off';
+            app.UpdatePDOParametersButton.Position = [88 351 53 22];
+            app.UpdatePDOParametersButton.Text = 'Update';
+
+            % Create DistortionTypeDropDown_2Label
+            app.DistortionTypeDropDown_2Label = uilabel(app.DistortionandHybridModelingTab);
+            app.DistortionTypeDropDown_2Label.HorizontalAlignment = 'right';
+            app.DistortionTypeDropDown_2Label.Position = [57 484 86 22];
+            app.DistortionTypeDropDown_2Label.Text = 'Distortion Type';
+
+            % Create DistortionTypeDropDown
+            app.DistortionTypeDropDown = uidropdown(app.DistortionandHybridModelingTab);
+            app.DistortionTypeDropDown.Items = {'None', 'Binomial', 'Binomial - State Dependent', 'Binomial - Parametrized', 'Poisson', 'Poisson - State Dependent', 'Poisson - Parametrized', 'Binning', 'Custom Function'};
+            app.DistortionTypeDropDown.ValueChangedFcn = createCallbackFcn(app, @DistortionTypeDropDownValueChanged, true);
+            app.DistortionTypeDropDown.Position = [158 484 241 22];
+            app.DistortionTypeDropDown.Value = 'None';
+
+            % Create SpeciesDropDownLabel
+            app.SpeciesDropDownLabel = uilabel(app.DistortionandHybridModelingTab);
+            app.SpeciesDropDownLabel.HorizontalAlignment = 'right';
+            app.SpeciesDropDownLabel.Position = [504 578 48 22];
+            app.SpeciesDropDownLabel.Text = 'Species';
+
+            % Create SpeciesDropDown
+            app.SpeciesDropDown = uidropdown(app.DistortionandHybridModelingTab);
+            app.SpeciesDropDown.ValueChangedFcn = createCallbackFcn(app, @ShowDistortionPlotButtonPushed, true);
+            app.SpeciesDropDown.Position = [567 578 100 22];
+
+            % Create SolutionTimeDropDownLabel
+            app.SolutionTimeDropDownLabel = uilabel(app.DistortionandHybridModelingTab);
+            app.SolutionTimeDropDownLabel.HorizontalAlignment = 'right';
+            app.SolutionTimeDropDownLabel.Position = [914 580 79 22];
+            app.SolutionTimeDropDownLabel.Text = 'Solution Time';
+
+            % Create SolutionTimeDropDown
+            app.SolutionTimeDropDown = uidropdown(app.DistortionandHybridModelingTab);
+            app.SolutionTimeDropDown.ValueChangedFcn = createCallbackFcn(app, @ShowDistortionPlotButtonPushed, true);
+            app.SolutionTimeDropDown.Position = [1008 580 100 22];
+
+            % Create HybridModelOptionsLabel
+            app.HybridModelOptionsLabel = uilabel(app.DistortionandHybridModelingTab);
+            app.HybridModelOptionsLabel.FontWeight = 'bold';
+            app.HybridModelOptionsLabel.Position = [23 182 133 22];
+            app.HybridModelOptionsLabel.Text = 'Hybrid Model Options:';
+
+            % Create UseHybridModelLabel
+            app.UseHybridModelLabel = uilabel(app.DistortionandHybridModelingTab);
+            app.UseHybridModelLabel.HorizontalAlignment = 'center';
+            app.UseHybridModelLabel.Position = [61 152 105 22];
+            app.UseHybridModelLabel.Text = 'Use Hybrid Model:';
+
+            % Create UseHybridModelSwitch
+            app.UseHybridModelSwitch = uiswitch(app.DistortionandHybridModelingTab, 'slider');
+            app.UseHybridModelSwitch.ValueChangedFcn = createCallbackFcn(app, @UseHybridModelSwitchValueChanged, true);
+            app.UseHybridModelSwitch.Position = [199 152 45 20];
+
+            % Create UpstreamSpeciesListBoxLabel
+            app.UpstreamSpeciesListBoxLabel = uilabel(app.DistortionandHybridModelingTab);
+            app.UpstreamSpeciesListBoxLabel.HorizontalAlignment = 'right';
+            app.UpstreamSpeciesListBoxLabel.Position = [50 113 107 22];
+            app.UpstreamSpeciesListBoxLabel.Text = 'Upstream Species:';
+
+            % Create UpstreamSpeciesListBox
+            app.UpstreamSpeciesListBox = uilistbox(app.DistortionandHybridModelingTab);
+            app.UpstreamSpeciesListBox.Multiselect = 'on';
+            app.UpstreamSpeciesListBox.Position = [172 63 100 74];
+            app.UpstreamSpeciesListBox.Value = {'Item 1'};
 
             % Create StochasticSimulationTab
             app.StochasticSimulationTab = uitab(app.TabGroup);
@@ -2455,13 +2601,13 @@
             app.SsaGPUCheckBox.Text = 'GPU';
             app.SsaGPUCheckBox.Position = [15 406 128 32];
 
-            % Create FSPTab
-            app.FSPTab = uitab(app.TabGroup);
-            app.FSPTab.Tooltip = {'Use this tab to solve for the time varying probabiity distributions for your model.'};
-            app.FSPTab.Title = 'FSP';
+            % Create FiniteStateProjectionTab
+            app.FiniteStateProjectionTab = uitab(app.TabGroup);
+            app.FiniteStateProjectionTab.Tooltip = {'Use this tab to solve for the time varying probabiity distributions for your model.'};
+            app.FiniteStateProjectionTab.Title = 'Finite State Projection';
 
             % Create FspAxes
-            app.FspAxes = uiaxes(app.FSPTab);
+            app.FspAxes = uiaxes(app.FiniteStateProjectionTab);
             title(app.FspAxes, 'Marginals')
             xlabel(app.FspAxes, 'Species Count')
             ylabel(app.FspAxes, 'Probability')
@@ -2469,7 +2615,7 @@
             app.FspAxes.Position = [552 278 383 241];
 
             % Create FspRunButtom
-            app.FspRunButtom = uibutton(app.FSPTab, 'push');
+            app.FspRunButtom = uibutton(app.FiniteStateProjectionTab, 'push');
             app.FspRunButtom.ButtonPushedFcn = createCallbackFcn(app, @FspRunButtomPushed, true);
             app.FspRunButtom.BackgroundColor = [0 1 0];
             app.FspRunButtom.Tooltip = {'Run FSP calculation with current constraints. If no constraints'; ' runs with default constraints.'};
@@ -2477,7 +2623,7 @@
             app.FspRunButtom.Text = 'Run FSP';
 
             % Create FspInitCondField
-            app.FspInitCondField = uieditfield(app.FSPTab, 'text');
+            app.FspInitCondField = uieditfield(app.FiniteStateProjectionTab, 'text');
             app.FspInitCondField.ValueChangedFcn = createCallbackFcn(app, @SsaInitCondFieldValueChanged, true);
             app.FspInitCondField.HorizontalAlignment = 'right';
             app.FspInitCondField.Tooltip = {'Initial conditions for FSP. See ''Model'' tab for species order.'};
@@ -2485,13 +2631,13 @@
             app.FspInitCondField.Value = '[1,0,0]';
 
             % Create FspRunningStatus
-            app.FspRunningStatus = uilabel(app.FSPTab);
+            app.FspRunningStatus = uilabel(app.FiniteStateProjectionTab);
             app.FspRunningStatus.VerticalAlignment = 'top';
             app.FspRunningStatus.Position = [223 545 183 28];
             app.FspRunningStatus.Text = 'Not yet run.';
 
             % Create FspUpdatePlotButton
-            app.FspUpdatePlotButton = uibutton(app.FSPTab, 'push');
+            app.FspUpdatePlotButton = uibutton(app.FiniteStateProjectionTab, 'push');
             app.FspUpdatePlotButton.ButtonPushedFcn = createCallbackFcn(app, @UpdatePlotsButton_2Pushed, true);
             app.FspUpdatePlotButton.BackgroundColor = [0 1 0];
             app.FspUpdatePlotButton.Tooltip = {'Update FSP Marginal plot'};
@@ -2499,7 +2645,7 @@
             app.FspUpdatePlotButton.Text = 'Update Plots';
 
             % Create ErrorToleranceEditFieldLabel
-            app.ErrorToleranceEditFieldLabel = uilabel(app.FSPTab);
+            app.ErrorToleranceEditFieldLabel = uilabel(app.FiniteStateProjectionTab);
             app.ErrorToleranceEditFieldLabel.HorizontalAlignment = 'right';
             app.ErrorToleranceEditFieldLabel.VerticalAlignment = 'bottom';
             app.ErrorToleranceEditFieldLabel.FontWeight = 'bold';
@@ -2507,14 +2653,14 @@
             app.ErrorToleranceEditFieldLabel.Text = 'Error Tolerance';
 
             % Create FspErrorTolField
-            app.FspErrorTolField = uieditfield(app.FSPTab, 'numeric');
+            app.FspErrorTolField = uieditfield(app.FiniteStateProjectionTab, 'numeric');
             app.FspErrorTolField.FontWeight = 'bold';
             app.FspErrorTolField.Tooltip = {'Error Tolerance for FSP (e.g., 0.001).'};
             app.FspErrorTolField.Position = [115 584 100 22];
             app.FspErrorTolField.Value = 0.001;
 
             % Create PrintTimesEditField_2Label
-            app.PrintTimesEditField_2Label = uilabel(app.FSPTab);
+            app.PrintTimesEditField_2Label = uilabel(app.FiniteStateProjectionTab);
             app.PrintTimesEditField_2Label.HorizontalAlignment = 'right';
             app.PrintTimesEditField_2Label.VerticalAlignment = 'bottom';
             app.PrintTimesEditField_2Label.FontWeight = 'bold';
@@ -2522,7 +2668,7 @@
             app.PrintTimesEditField_2Label.Text = 'Print Times';
 
             % Create FspPrintTimesField
-            app.FspPrintTimesField = uieditfield(app.FSPTab, 'text');
+            app.FspPrintTimesField = uieditfield(app.FiniteStateProjectionTab, 'text');
             app.FspPrintTimesField.ValueChangedFcn = createCallbackFcn(app, @SensPrintTimesEditFieldValueChanged, true);
             app.FspPrintTimesField.HorizontalAlignment = 'right';
             app.FspPrintTimesField.Tooltip = {'Time evaluation for FSP solution'; ''; 'input[start:step:stop]'};
@@ -2530,14 +2676,14 @@
             app.FspPrintTimesField.Value = '[0:0.1:10]';
 
             % Create timeSlider_2Label
-            app.timeSlider_2Label = uilabel(app.FSPTab);
+            app.timeSlider_2Label = uilabel(app.FiniteStateProjectionTab);
             app.timeSlider_2Label.HorizontalAlignment = 'right';
             app.timeSlider_2Label.VerticalAlignment = 'bottom';
             app.timeSlider_2Label.Position = [437 392 52 43];
             app.timeSlider_2Label.Text = 'time';
 
             % Create FspTimeSlider
-            app.FspTimeSlider = uislider(app.FSPTab);
+            app.FspTimeSlider = uislider(app.FiniteStateProjectionTab);
             app.FspTimeSlider.Limits = [0 10];
             app.FspTimeSlider.Orientation = 'vertical';
             app.FspTimeSlider.ValueChangedFcn = createCallbackFcn(app, @UpdatePlotsButton_2Pushed, true);
@@ -2546,7 +2692,7 @@
             app.FspTimeSlider.Position = [502 318 3 163];
 
             % Create InitialConditionLabel
-            app.InitialConditionLabel = uilabel(app.FSPTab);
+            app.InitialConditionLabel = uilabel(app.FiniteStateProjectionTab);
             app.InitialConditionLabel.HorizontalAlignment = 'right';
             app.InitialConditionLabel.VerticalAlignment = 'bottom';
             app.InitialConditionLabel.FontWeight = 'bold';
@@ -2554,7 +2700,7 @@
             app.InitialConditionLabel.Text = 'Initial Condition';
 
             % Create FspConstraintTable
-            app.FspConstraintTable = uitable(app.FSPTab);
+            app.FspConstraintTable = uitable(app.FiniteStateProjectionTab);
             app.FspConstraintTable.ColumnName = {'Constraint'; ' '; 'Bound'};
             app.FspConstraintTable.ColumnWidth = {'auto', 12, 100};
             app.FspConstraintTable.RowName = {};
@@ -2564,14 +2710,14 @@
             app.FspConstraintTable.Position = [15 154 407 300];
 
             % Create FspConstraintsLabel
-            app.FspConstraintsLabel = uilabel(app.FSPTab);
+            app.FspConstraintsLabel = uilabel(app.FiniteStateProjectionTab);
             app.FspConstraintsLabel.VerticalAlignment = 'top';
             app.FspConstraintsLabel.FontWeight = 'bold';
             app.FspConstraintsLabel.Position = [15 459 109 26];
             app.FspConstraintsLabel.Text = 'FSP Constraints';
 
             % Create FspDefaultButton
-            app.FspDefaultButton = uibutton(app.FSPTab, 'push');
+            app.FspDefaultButton = uibutton(app.FiniteStateProjectionTab, 'push');
             app.FspDefaultButton.ButtonPushedFcn = createCallbackFcn(app, @FspDefaultButtonPushed, true);
             app.FspDefaultButton.BackgroundColor = [0 1 0];
             app.FspDefaultButton.Tooltip = {'Return to default constraits.'};
@@ -2579,7 +2725,7 @@
             app.FspDefaultButton.Text = 'Default';
 
             % Create FspAddConstraintButton
-            app.FspAddConstraintButton = uibutton(app.FSPTab, 'push');
+            app.FspAddConstraintButton = uibutton(app.FiniteStateProjectionTab, 'push');
             app.FspAddConstraintButton.ButtonPushedFcn = createCallbackFcn(app, @FspAddConstraintButtonPushed, true);
             app.FspAddConstraintButton.BackgroundColor = [0 1 0];
             app.FspAddConstraintButton.Tooltip = {'Add new constraint to define FSP statespace.'};
@@ -2587,14 +2733,14 @@
             app.FspAddConstraintButton.Text = 'Add Constraint';
 
             % Create FspSolutionAtTimeLabel
-            app.FspSolutionAtTimeLabel = uilabel(app.FSPTab);
+            app.FspSolutionAtTimeLabel = uilabel(app.FiniteStateProjectionTab);
             app.FspSolutionAtTimeLabel.VerticalAlignment = 'top';
             app.FspSolutionAtTimeLabel.FontSize = 24;
             app.FspSolutionAtTimeLabel.Position = [608 524 449 48];
             app.FspSolutionAtTimeLabel.Text = 'Solutions at time: NA';
 
             % Create FspMarginalsPanel
-            app.FspMarginalsPanel = uipanel(app.FSPTab);
+            app.FspMarginalsPanel = uipanel(app.FiniteStateProjectionTab);
             app.FspMarginalsPanel.Title = 'Marginals';
             app.FspMarginalsPanel.Position = [1004 299 157 222];
 
@@ -2621,7 +2767,7 @@
             app.SpeciestoShowListBoxMargFSP.Value = {'x1'};
 
             % Create ChoosePlotsLabel
-            app.ChoosePlotsLabel = uilabel(app.FSPTab);
+            app.ChoosePlotsLabel = uilabel(app.FiniteStateProjectionTab);
             app.ChoosePlotsLabel.HorizontalAlignment = 'right';
             app.ChoosePlotsLabel.VerticalAlignment = 'bottom';
             app.ChoosePlotsLabel.FontSize = 24;
@@ -2629,7 +2775,7 @@
             app.ChoosePlotsLabel.Text = 'Choose Plots';
 
             % Create FspMarginalsOverTimePanel
-            app.FspMarginalsOverTimePanel = uipanel(app.FSPTab);
+            app.FspMarginalsOverTimePanel = uipanel(app.FiniteStateProjectionTab);
             app.FspMarginalsOverTimePanel.Title = 'Marginals Over Time';
             app.FspMarginalsOverTimePanel.Position = [1174 299 157 222];
 
@@ -2673,7 +2819,7 @@
             app.SpeciestoShowListBoxMargFSPvT.Value = {'x1'};
 
             % Create FspMeanandVariancePanel
-            app.FspMeanandVariancePanel = uipanel(app.FSPTab);
+            app.FspMeanandVariancePanel = uipanel(app.FiniteStateProjectionTab);
             app.FspMeanandVariancePanel.Title = 'Mean and Variance';
             app.FspMeanandVariancePanel.Position = [1005 40 157 250];
 
@@ -2717,7 +2863,7 @@
             app.SpeciestoShowListBoxMeans.Value = {'x1'};
 
             % Create FspJointDistributionPanel
-            app.FspJointDistributionPanel = uipanel(app.FSPTab);
+            app.FspJointDistributionPanel = uipanel(app.FiniteStateProjectionTab);
             app.FspJointDistributionPanel.Title = 'Joint Distribution';
             app.FspJointDistributionPanel.Position = [1175 42 175 248];
 
@@ -2779,66 +2925,66 @@
             app.vsLabel.Text = 'vs.';
 
             % Create XminEditFieldLabel
-            app.XminEditFieldLabel = uilabel(app.FSPTab);
+            app.XminEditFieldLabel = uilabel(app.FiniteStateProjectionTab);
             app.XminEditFieldLabel.HorizontalAlignment = 'right';
             app.XminEditFieldLabel.VerticalAlignment = 'bottom';
             app.XminEditFieldLabel.Position = [667 198 72 39];
             app.XminEditFieldLabel.Text = 'Xmin';
 
             % Create FSPXminEditField
-            app.FSPXminEditField = uieditfield(app.FSPTab, 'numeric');
+            app.FSPXminEditField = uieditfield(app.FiniteStateProjectionTab, 'numeric');
             app.FSPXminEditField.ValueChangedFcn = createCallbackFcn(app, @FSPXminEditFieldValueChanged, true);
             app.FSPXminEditField.Tooltip = {'Xmin for FSP marginal plot'};
             app.FSPXminEditField.Position = [746 197 48 22];
 
             % Create XmaxEditFieldLabel
-            app.XmaxEditFieldLabel = uilabel(app.FSPTab);
+            app.XmaxEditFieldLabel = uilabel(app.FiniteStateProjectionTab);
             app.XmaxEditFieldLabel.HorizontalAlignment = 'right';
             app.XmaxEditFieldLabel.VerticalAlignment = 'bottom';
             app.XmaxEditFieldLabel.Position = [797 202 70 42];
             app.XmaxEditFieldLabel.Text = 'Xmax';
 
             % Create FSPXmaxEditField
-            app.FSPXmaxEditField = uieditfield(app.FSPTab, 'numeric');
+            app.FSPXmaxEditField = uieditfield(app.FiniteStateProjectionTab, 'numeric');
             app.FSPXmaxEditField.ValueChangedFcn = createCallbackFcn(app, @FSPXmaxEditFieldValueChanged, true);
             app.FSPXmaxEditField.Tooltip = {'Xmax for FSP marginal plot'};
             app.FSPXmaxEditField.Position = [888 200 48 22];
 
             % Create YminEditFieldLabel
-            app.YminEditFieldLabel = uilabel(app.FSPTab);
+            app.YminEditFieldLabel = uilabel(app.FiniteStateProjectionTab);
             app.YminEditFieldLabel.HorizontalAlignment = 'right';
             app.YminEditFieldLabel.VerticalAlignment = 'bottom';
             app.YminEditFieldLabel.Position = [671 166 72 38];
             app.YminEditFieldLabel.Text = 'Ymin';
 
             % Create FSPYminEditField
-            app.FSPYminEditField = uieditfield(app.FSPTab, 'numeric');
+            app.FSPYminEditField = uieditfield(app.FiniteStateProjectionTab, 'numeric');
             app.FSPYminEditField.ValueChangedFcn = createCallbackFcn(app, @FSPYminEditFieldValueChanged, true);
             app.FSPYminEditField.Tooltip = {'Ymin for FSP marginal plot'};
             app.FSPYminEditField.Position = [750 163 48 22];
 
             % Create YmaxEditFieldLabel
-            app.YmaxEditFieldLabel = uilabel(app.FSPTab);
+            app.YmaxEditFieldLabel = uilabel(app.FiniteStateProjectionTab);
             app.YmaxEditFieldLabel.HorizontalAlignment = 'right';
             app.YmaxEditFieldLabel.VerticalAlignment = 'bottom';
             app.YmaxEditFieldLabel.Position = [797 163 70 36];
             app.YmaxEditFieldLabel.Text = 'Ymax';
 
             % Create FSPYmaxEditField
-            app.FSPYmaxEditField = uieditfield(app.FSPTab, 'numeric');
+            app.FSPYmaxEditField = uieditfield(app.FiniteStateProjectionTab, 'numeric');
             app.FSPYmaxEditField.ValueChangedFcn = createCallbackFcn(app, @FSPYmaxEditFieldValueChanged, true);
             app.FSPYmaxEditField.Tooltip = {'Ymax for FSP marginal plot'};
             app.FSPYmaxEditField.Position = [888 163 48 22];
 
             % Create FspAutoExpandCheckBox
-            app.FspAutoExpandCheckBox = uicheckbox(app.FSPTab);
+            app.FspAutoExpandCheckBox = uicheckbox(app.FiniteStateProjectionTab);
             app.FspAutoExpandCheckBox.Tooltip = {'When checked, the FSP solution will expand to achieve the specified tolerence.'};
             app.FspAutoExpandCheckBox.Text = 'Automatically Expand FSP';
             app.FspAutoExpandCheckBox.Position = [18 80 249 36];
             app.FspAutoExpandCheckBox.Value = true;
 
             % Create FspApproximateSteadyStateButton
-            app.FspApproximateSteadyStateButton = uibutton(app.FSPTab, 'push');
+            app.FspApproximateSteadyStateButton = uibutton(app.FiniteStateProjectionTab, 'push');
             app.FspApproximateSteadyStateButton.ButtonPushedFcn = createCallbackFcn(app, @FspApproximateSteadyStateButtonPushed, true);
             app.FspApproximateSteadyStateButton.BackgroundColor = [0 1 0];
             app.FspApproximateSteadyStateButton.Enable = 'off';
@@ -2848,13 +2994,13 @@
             app.FspApproximateSteadyStateButton.Text = 'Approximate Steady State';
 
             % Create FspPiecewiseCheckBox
-            app.FspPiecewiseCheckBox = uicheckbox(app.FSPTab);
+            app.FspPiecewiseCheckBox = uicheckbox(app.FiniteStateProjectionTab);
             app.FspPiecewiseCheckBox.Tooltip = {'The piecewise constant FSP approximation assumes that the input signals are constant between solution times.  This allows to use a much faster and more accurate expokit version for solving when signals are slow to vary.'};
             app.FspPiecewiseCheckBox.Text = 'Use Piecewise Constant FSP Approximation';
             app.FspPiecewiseCheckBox.Position = [18 116 445 32];
 
             % Create DecreaseFontSizeFsp
-            app.DecreaseFontSizeFsp = uibutton(app.FSPTab, 'push');
+            app.DecreaseFontSizeFsp = uibutton(app.FiniteStateProjectionTab, 'push');
             app.DecreaseFontSizeFsp.ButtonPushedFcn = createCallbackFcn(app, @DecreaseFontRxnPushed, true);
             app.DecreaseFontSizeFsp.Visible = 'off';
             app.DecreaseFontSizeFsp.Tooltip = {'Decrease global font size'};
@@ -2862,7 +3008,7 @@
             app.DecreaseFontSizeFsp.Text = '-';
 
             % Create IncreaseFontSizeFsp
-            app.IncreaseFontSizeFsp = uibutton(app.FSPTab, 'push');
+            app.IncreaseFontSizeFsp = uibutton(app.FiniteStateProjectionTab, 'push');
             app.IncreaseFontSizeFsp.ButtonPushedFcn = createCallbackFcn(app, @IncreaseFontRxnPushed, true);
             app.IncreaseFontSizeFsp.Visible = 'off';
             app.IncreaseFontSizeFsp.Tooltip = {'Increase global font size'};
@@ -2870,7 +3016,7 @@
             app.IncreaseFontSizeFsp.Text = '+';
 
             % Create FontSizeLabel_3
-            app.FontSizeLabel_3 = uilabel(app.FSPTab);
+            app.FontSizeLabel_3 = uilabel(app.FiniteStateProjectionTab);
             app.FontSizeLabel_3.HorizontalAlignment = 'right';
             app.FontSizeLabel_3.VerticalAlignment = 'bottom';
             app.FontSizeLabel_3.Visible = 'off';
@@ -2878,20 +3024,20 @@
             app.FontSizeLabel_3.Text = {'Font Size'; ''};
 
             % Create ODEToleranceDropDownLabel
-            app.ODEToleranceDropDownLabel = uilabel(app.FSPTab);
+            app.ODEToleranceDropDownLabel = uilabel(app.FiniteStateProjectionTab);
             app.ODEToleranceDropDownLabel.HorizontalAlignment = 'right';
             app.ODEToleranceDropDownLabel.Position = [294 122 85 22];
             app.ODEToleranceDropDownLabel.Text = 'ODE Tolerance';
 
             % Create FspIntegratorTolerance
-            app.FspIntegratorTolerance = uidropdown(app.FSPTab);
+            app.FspIntegratorTolerance = uidropdown(app.FiniteStateProjectionTab);
             app.FspIntegratorTolerance.Items = {'Relaxed', 'Moderate', 'Strict'};
             app.FspIntegratorTolerance.Tooltip = {'ODE tolerance to use for time varying CME integration.'};
             app.FspIntegratorTolerance.Position = [394 122 100 22];
             app.FspIntegratorTolerance.Value = 'Relaxed';
 
             % Create ExportFSPDatatoWorkspaceForManualPlotsButton
-            app.ExportFSPDatatoWorkspaceForManualPlotsButton = uibutton(app.FSPTab, 'push');
+            app.ExportFSPDatatoWorkspaceForManualPlotsButton = uibutton(app.FiniteStateProjectionTab, 'push');
             app.ExportFSPDatatoWorkspaceForManualPlotsButton.ButtonPushedFcn = createCallbackFcn(app, @ExportFSPDatatoWorkspaceForManualPlotsButtonPushed, true);
             app.ExportFSPDatatoWorkspaceForManualPlotsButton.BackgroundColor = [0 1 0];
             app.ExportFSPDatatoWorkspaceForManualPlotsButton.FontWeight = 'bold';
@@ -2899,13 +3045,13 @@
             app.ExportFSPDatatoWorkspaceForManualPlotsButton.Text = 'Export FSP Data to Workspace For Manual Plots';
 
             % Create SpeciestoShowListBox_2Label
-            app.SpeciestoShowListBox_2Label = uilabel(app.FSPTab);
+            app.SpeciestoShowListBox_2Label = uilabel(app.FiniteStateProjectionTab);
             app.SpeciestoShowListBox_2Label.HorizontalAlignment = 'right';
             app.SpeciestoShowListBox_2Label.Position = [504 205 96 22];
             app.SpeciestoShowListBox_2Label.Text = 'Species to Show';
 
             % Create SpeciestoShowListBox_2
-            app.SpeciestoShowListBox_2 = uilistbox(app.FSPTab);
+            app.SpeciestoShowListBox_2 = uilistbox(app.FiniteStateProjectionTab);
             app.SpeciestoShowListBox_2.Items = {'x1', 'x2', 'x3'};
             app.SpeciestoShowListBox_2.Multiselect = 'on';
             app.SpeciestoShowListBox_2.ValueChangedFcn = createCallbackFcn(app, @UpdatePlotsButton_2Pushed, true);
@@ -2913,17 +3059,17 @@
             app.SpeciestoShowListBox_2.Value = {'x1'};
 
             % Create initApproxSS
-            app.initApproxSS = uicheckbox(app.FSPTab);
+            app.initApproxSS = uicheckbox(app.FiniteStateProjectionTab);
             app.initApproxSS.Text = 'Use Steady State as Initial Condition';
             app.initApproxSS.Position = [48 529 219 22];
 
-            % Create SensitivityTab
-            app.SensitivityTab = uitab(app.TabGroup);
-            app.SensitivityTab.Tooltip = {'Use this tab to perform sensitivity analysis with respect to model parameters.'};
-            app.SensitivityTab.Title = 'Sensitivity';
+            % Create SensitivityAnalysisTab
+            app.SensitivityAnalysisTab = uitab(app.TabGroup);
+            app.SensitivityAnalysisTab.Tooltip = {'Use this tab to perform sensitivity analysis with respect to model parameters.'};
+            app.SensitivityAnalysisTab.Title = 'Sensitivity Analysis';
 
             % Create SensProbAxes
-            app.SensProbAxes = uiaxes(app.SensitivityTab);
+            app.SensProbAxes = uiaxes(app.SensitivityAnalysisTab);
             title(app.SensProbAxes, 'Marginals')
             xlabel(app.SensProbAxes, 'Species Count')
             ylabel(app.SensProbAxes, 'Probability')
@@ -2931,7 +3077,7 @@
             app.SensProbAxes.Position = [581 362 383 241];
 
             % Create SensDerivativeAxes
-            app.SensDerivativeAxes = uiaxes(app.SensitivityTab);
+            app.SensDerivativeAxes = uiaxes(app.SensitivityAnalysisTab);
             title(app.SensDerivativeAxes, 'Sensitivity')
             xlabel(app.SensDerivativeAxes, 'Species Count')
             ylabel(app.SensDerivativeAxes, 'Sensitivity')
@@ -2939,7 +3085,7 @@
             app.SensDerivativeAxes.Position = [581 92 383 241];
 
             % Create SelectAnalysisTypeforSensitivityButtonGroup
-            app.SelectAnalysisTypeforSensitivityButtonGroup = uibuttongroup(app.SensitivityTab);
+            app.SelectAnalysisTypeforSensitivityButtonGroup = uibuttongroup(app.SensitivityAnalysisTab);
             app.SelectAnalysisTypeforSensitivityButtonGroup.TitlePosition = 'centertop';
             app.SelectAnalysisTypeforSensitivityButtonGroup.Title = 'Select Analysis Type for Sensitivity';
             app.SelectAnalysisTypeforSensitivityButtonGroup.Position = [29 542 321 68];
@@ -2956,7 +3102,7 @@
             app.FiniteDifferenceButton.Position = [167 15 143 22];
 
             % Create SensParameterSelectionTable
-            app.SensParameterSelectionTable = uitable(app.SensitivityTab);
+            app.SensParameterSelectionTable = uitable(app.SensitivityAnalysisTab);
             app.SensParameterSelectionTable.ColumnName = {'Parameter'; 'Value'; 'Include? (y/n)'};
             app.SensParameterSelectionTable.RowName = {};
             app.SensParameterSelectionTable.ColumnEditable = [false true true];
@@ -2964,80 +3110,80 @@
             app.SensParameterSelectionTable.Position = [29 174 321 335];
 
             % Create SelectParameterstobeIncludedinSensitivityAnalysisLabel
-            app.SelectParameterstobeIncludedinSensitivityAnalysisLabel = uilabel(app.SensitivityTab);
+            app.SelectParameterstobeIncludedinSensitivityAnalysisLabel = uilabel(app.SensitivityAnalysisTab);
             app.SelectParameterstobeIncludedinSensitivityAnalysisLabel.VerticalAlignment = 'top';
             app.SelectParameterstobeIncludedinSensitivityAnalysisLabel.Position = [29 508 336 29];
             app.SelectParameterstobeIncludedinSensitivityAnalysisLabel.Text = 'Select Parameters to be Included in Sensitivity Analysis';
 
             % Create NoteforValuesTextArea
-            app.NoteforValuesTextArea = uitextarea(app.SensitivityTab);
+            app.NoteforValuesTextArea = uitextarea(app.SensitivityAnalysisTab);
             app.NoteforValuesTextArea.Editable = 'off';
             app.NoteforValuesTextArea.Position = [30 130 321 39];
             app.NoteforValuesTextArea.Value = {'Changes in values here only effect the Sensitivity Analysis.'};
 
             % Create SensInitCondField
-            app.SensInitCondField = uieditfield(app.SensitivityTab, 'text');
+            app.SensInitCondField = uieditfield(app.SensitivityAnalysisTab, 'text');
             app.SensInitCondField.ValueChangedFcn = createCallbackFcn(app, @SsaInitCondFieldValueChanged, true);
             app.SensInitCondField.HorizontalAlignment = 'right';
             app.SensInitCondField.Position = [465 545 100 22];
             app.SensInitCondField.Value = '[1,0,0]';
 
             % Create InitialConditionLabel_2
-            app.InitialConditionLabel_2 = uilabel(app.SensitivityTab);
+            app.InitialConditionLabel_2 = uilabel(app.SensitivityAnalysisTab);
             app.InitialConditionLabel_2.HorizontalAlignment = 'right';
             app.InitialConditionLabel_2.VerticalAlignment = 'bottom';
             app.InitialConditionLabel_2.Position = [336 549 117 28];
             app.InitialConditionLabel_2.Text = 'Initial Condition';
 
             % Create ErrorToleranceEditField_2Label
-            app.ErrorToleranceEditField_2Label = uilabel(app.SensitivityTab);
+            app.ErrorToleranceEditField_2Label = uilabel(app.SensitivityAnalysisTab);
             app.ErrorToleranceEditField_2Label.HorizontalAlignment = 'right';
             app.ErrorToleranceEditField_2Label.VerticalAlignment = 'bottom';
             app.ErrorToleranceEditField_2Label.Position = [336 585 114 27];
             app.ErrorToleranceEditField_2Label.Text = 'Error Tolerance';
 
             % Create SensErrorTolEditField
-            app.SensErrorTolEditField = uieditfield(app.SensitivityTab, 'numeric');
+            app.SensErrorTolEditField = uieditfield(app.SensitivityAnalysisTab, 'numeric');
             app.SensErrorTolEditField.Position = [465 581 100 22];
             app.SensErrorTolEditField.Value = 0.001;
 
             % Create PrintTimesEditField_3Label
-            app.PrintTimesEditField_3Label = uilabel(app.SensitivityTab);
+            app.PrintTimesEditField_3Label = uilabel(app.SensitivityAnalysisTab);
             app.PrintTimesEditField_3Label.HorizontalAlignment = 'right';
             app.PrintTimesEditField_3Label.VerticalAlignment = 'bottom';
             app.PrintTimesEditField_3Label.Position = [349 509 102 30];
             app.PrintTimesEditField_3Label.Text = 'Print Times';
 
             % Create SensPrintTimesEditField
-            app.SensPrintTimesEditField = uieditfield(app.SensitivityTab, 'text');
+            app.SensPrintTimesEditField = uieditfield(app.SensitivityAnalysisTab, 'text');
             app.SensPrintTimesEditField.ValueChangedFcn = createCallbackFcn(app, @SensPrintTimesEditFieldValueChanged, true);
             app.SensPrintTimesEditField.HorizontalAlignment = 'right';
             app.SensPrintTimesEditField.Position = [465 505 101 22];
             app.SensPrintTimesEditField.Value = '[0:0.1:10]';
 
             % Create TimeSelectorSliderLabel
-            app.TimeSelectorSliderLabel = uilabel(app.SensitivityTab);
+            app.TimeSelectorSliderLabel = uilabel(app.SensitivityAnalysisTab);
             app.TimeSelectorSliderLabel.HorizontalAlignment = 'right';
             app.TimeSelectorSliderLabel.VerticalAlignment = 'bottom';
             app.TimeSelectorSliderLabel.Position = [385 339 120 49];
             app.TimeSelectorSliderLabel.Text = 'Time Selector';
 
             % Create SensPlotTimeSlider
-            app.SensPlotTimeSlider = uislider(app.SensitivityTab);
+            app.SensPlotTimeSlider = uislider(app.SensitivityAnalysisTab);
             app.SensPlotTimeSlider.Limits = [0 10];
             app.SensPlotTimeSlider.Orientation = 'vertical';
             app.SensPlotTimeSlider.ValueChangedFcn = createCallbackFcn(app, @SensPlotTimeSliderValueChanged, true);
             app.SensPlotTimeSlider.Position = [518 272 3 163];
 
             % Create SensRunButton
-            app.SensRunButton = uibutton(app.SensitivityTab, 'push');
+            app.SensRunButton = uibutton(app.SensitivityAnalysisTab, 'push');
             app.SensRunButton.ButtonPushedFcn = createCallbackFcn(app, @SensRunButtonPushed, true);
             app.SensRunButton.BackgroundColor = [0 1 0];
             app.SensRunButton.Position = [450 446 110 28];
             app.SensRunButton.Text = 'Run Sensitivity';
 
             % Create DisplaySpeciesPanel
-            app.DisplaySpeciesPanel = uipanel(app.SensitivityTab);
+            app.DisplaySpeciesPanel = uipanel(app.SensitivityAnalysisTab);
             app.DisplaySpeciesPanel.Title = 'Display Species';
             app.DisplaySpeciesPanel.Position = [437 146 133 101];
 
@@ -3050,21 +3196,21 @@
             app.SpeciesForSensPlot.Value = {'x1'};
 
             % Create withrespecttoparameterDropDownLabel
-            app.withrespecttoparameterDropDownLabel = uilabel(app.SensitivityTab);
+            app.withrespecttoparameterDropDownLabel = uilabel(app.SensitivityAnalysisTab);
             app.withrespecttoparameterDropDownLabel.HorizontalAlignment = 'right';
             app.withrespecttoparameterDropDownLabel.VerticalAlignment = 'bottom';
             app.withrespecttoparameterDropDownLabel.Position = [377 125 188 26];
             app.withrespecttoparameterDropDownLabel.Text = 'with respect to parameter';
 
             % Create SensParDropDown
-            app.SensParDropDown = uidropdown(app.SensitivityTab);
+            app.SensParDropDown = uidropdown(app.SensitivityAnalysisTab);
             app.SensParDropDown.ItemsData = {'1, 2, 3, 4'};
             app.SensParDropDown.ValueChangedFcn = createCallbackFcn(app, @SensParDropDownValueChanged, true);
             app.SensParDropDown.Position = [470 98 100 22];
             app.SensParDropDown.Value = '1, 2, 3, 4';
 
             % Create DecreaseFontSizeSens
-            app.DecreaseFontSizeSens = uibutton(app.SensitivityTab, 'push');
+            app.DecreaseFontSizeSens = uibutton(app.SensitivityAnalysisTab, 'push');
             app.DecreaseFontSizeSens.ButtonPushedFcn = createCallbackFcn(app, @DecreaseFontRxnPushed, true);
             app.DecreaseFontSizeSens.Visible = 'off';
             app.DecreaseFontSizeSens.Tooltip = {'Decrease global font size'};
@@ -3072,7 +3218,7 @@
             app.DecreaseFontSizeSens.Text = '-';
 
             % Create IncreaseFontSizeSens
-            app.IncreaseFontSizeSens = uibutton(app.SensitivityTab, 'push');
+            app.IncreaseFontSizeSens = uibutton(app.SensitivityAnalysisTab, 'push');
             app.IncreaseFontSizeSens.ButtonPushedFcn = createCallbackFcn(app, @IncreaseFontRxnPushed, true);
             app.IncreaseFontSizeSens.Visible = 'off';
             app.IncreaseFontSizeSens.Tooltip = {'Increase global font size'};
@@ -3080,7 +3226,7 @@
             app.IncreaseFontSizeSens.Text = '+';
 
             % Create FontSizeLabel_4
-            app.FontSizeLabel_4 = uilabel(app.SensitivityTab);
+            app.FontSizeLabel_4 = uilabel(app.SensitivityAnalysisTab);
             app.FontSizeLabel_4.HorizontalAlignment = 'right';
             app.FontSizeLabel_4.VerticalAlignment = 'bottom';
             app.FontSizeLabel_4.Visible = 'off';
@@ -3088,7 +3234,7 @@
             app.FontSizeLabel_4.Text = {'Font Size'; ''};
 
             % Create ExportSensitivityDatatoWorkspaceForManualPlotsButton
-            app.ExportSensitivityDatatoWorkspaceForManualPlotsButton = uibutton(app.SensitivityTab, 'push');
+            app.ExportSensitivityDatatoWorkspaceForManualPlotsButton = uibutton(app.SensitivityAnalysisTab, 'push');
             app.ExportSensitivityDatatoWorkspaceForManualPlotsButton.ButtonPushedFcn = createCallbackFcn(app, @ExportSensitivityDatatoWorkspaceForManualPlotsButtonPushed, true);
             app.ExportSensitivityDatatoWorkspaceForManualPlotsButton.BackgroundColor = [0 1 0];
             app.ExportSensitivityDatatoWorkspaceForManualPlotsButton.FontWeight = 'bold';
@@ -3339,47 +3485,6 @@
             app.ModelUncertaintyDropDown.ValueChangedFcn = createCallbackFcn(app, @ModelUncertaintyDropDownValueChanged, true);
             app.ModelUncertaintyDropDown.Position = [460 547 193 22];
             app.ModelUncertaintyDropDown.Value = 'Use Fixed Model';
-
-            % Create DistortionsLabel
-            app.DistortionsLabel = uilabel(app.FisherInformationTab);
-            app.DistortionsLabel.FontSize = 16;
-            app.DistortionsLabel.FontWeight = 'bold';
-            app.DistortionsLabel.Visible = 'off';
-            app.DistortionsLabel.Position = [702 576 89 22];
-            app.DistortionsLabel.Text = 'Distortions';
-
-            % Create DistortionTypeDropDownLabel
-            app.DistortionTypeDropDownLabel = uilabel(app.FisherInformationTab);
-            app.DistortionTypeDropDownLabel.HorizontalAlignment = 'right';
-            app.DistortionTypeDropDownLabel.Visible = 'off';
-            app.DistortionTypeDropDownLabel.Position = [707 545 86 22];
-            app.DistortionTypeDropDownLabel.Text = 'Distortion Type';
-
-            % Create DistortionTypeDropDown
-            app.DistortionTypeDropDown = uidropdown(app.FisherInformationTab);
-            app.DistortionTypeDropDown.Items = {'None', 'Binomial', 'Binomial - State Dependent', 'Binomial - Parametrized', 'Poisson', 'Poisson - State Dependent', 'Poisson - Parametrized', 'Binning', 'Custom Function'};
-            app.DistortionTypeDropDown.ValueChangedFcn = createCallbackFcn(app, @DistortionTypeDropDownValueChanged, true);
-            app.DistortionTypeDropDown.Visible = 'off';
-            app.DistortionTypeDropDown.Position = [808 545 241 22];
-            app.DistortionTypeDropDown.Value = 'None';
-
-            % Create SetDistortionParametersButton
-            app.SetDistortionParametersButton = uibutton(app.FisherInformationTab, 'push');
-            app.SetDistortionParametersButton.ButtonPushedFcn = createCallbackFcn(app, @SetDistortionParametersButtonPushed, true);
-            app.SetDistortionParametersButton.BackgroundColor = [1 1 0];
-            app.SetDistortionParametersButton.Enable = 'off';
-            app.SetDistortionParametersButton.Visible = 'off';
-            app.SetDistortionParametersButton.Position = [763 516 154 22];
-            app.SetDistortionParametersButton.Text = 'Set Distortion Parameters';
-
-            % Create ShowDistortionPlotButton
-            app.ShowDistortionPlotButton = uibutton(app.FisherInformationTab, 'push');
-            app.ShowDistortionPlotButton.ButtonPushedFcn = createCallbackFcn(app, @ShowDistortionPlotButtonPushed, true);
-            app.ShowDistortionPlotButton.BackgroundColor = [1 1 0];
-            app.ShowDistortionPlotButton.Enable = 'off';
-            app.ShowDistortionPlotButton.Visible = 'off';
-            app.ShowDistortionPlotButton.Position = [926 516 125 22];
-            app.ShowDistortionPlotButton.Text = 'Show Distortion Plot';
 
             % Create HoldOnCheckBox
             app.HoldOnCheckBox = uicheckbox(app.FisherInformationTab);
@@ -3851,107 +3956,6 @@
             app.DataFileNoneSelectedLabel = uilabel(app.DataLoadingandFittingTab);
             app.DataFileNoneSelectedLabel.Position = [143 580 515 22];
             app.DataFileNoneSelectedLabel.Text = 'Data File: <None Selected>';
-
-            % Create DistortionTab
-            app.DistortionTab = uitab(app.TabGroup);
-            app.DistortionTab.Title = 'Distortion';
-
-            % Create PDO_Axis
-            app.PDO_Axis = uiaxes(app.DistortionTab);
-            title(app.PDO_Axis, 'Probabilistic Distortion Operator')
-            xlabel(app.PDO_Axis, '"True" Expression Level')
-            ylabel(app.PDO_Axis, '"Observed" Expression Level')
-            zlabel(app.PDO_Axis, 'Z')
-            app.PDO_Axis.Position = [468 107 399 279];
-
-            % Create PDO_Axis2
-            app.PDO_Axis2 = uiaxes(app.DistortionTab);
-            title(app.PDO_Axis2, 'Comparison of "True" and "Observed" Distributions')
-            xlabel(app.PDO_Axis2, '"True" Expression Level')
-            ylabel(app.PDO_Axis2, '"Observed" Expression Level')
-            zlabel(app.PDO_Axis2, 'Z')
-            app.PDO_Axis2.Position = [895 107 399 279];
-
-            % Create IncludeDataDistortionsinModelLabel
-            app.IncludeDataDistortionsinModelLabel = uilabel(app.DistortionTab);
-            app.IncludeDataDistortionsinModelLabel.FontWeight = 'bold';
-            app.IncludeDataDistortionsinModelLabel.Position = [33 534 197 22];
-            app.IncludeDataDistortionsinModelLabel.Text = 'Include Data Distortions in Model';
-
-            % Create SetDistortionParametersButton_2
-            app.SetDistortionParametersButton_2 = uibutton(app.DistortionTab, 'push');
-            app.SetDistortionParametersButton_2.ButtonPushedFcn = createCallbackFcn(app, @SetDistortionParametersButtonPushed, true);
-            app.SetDistortionParametersButton_2.BackgroundColor = [1 1 0];
-            app.SetDistortionParametersButton_2.Enable = 'off';
-            app.SetDistortionParametersButton_2.Position = [112 479 154 22];
-            app.SetDistortionParametersButton_2.Text = 'Set Distortion Parameters';
-
-            % Create ShowDistortionPlotButton_2
-            app.ShowDistortionPlotButton_2 = uibutton(app.DistortionTab, 'push');
-            app.ShowDistortionPlotButton_2.ButtonPushedFcn = createCallbackFcn(app, @ShowDistortionPlotButtonPushed, true);
-            app.ShowDistortionPlotButton_2.BackgroundColor = [1 1 0];
-            app.ShowDistortionPlotButton_2.Enable = 'off';
-            app.ShowDistortionPlotButton_2.Position = [275 479 125 22];
-            app.ShowDistortionPlotButton_2.Text = 'Show Distortion Plot';
-
-            % Create pdo_parameters_table
-            app.pdo_parameters_table = uitable(app.DistortionTab);
-            app.pdo_parameters_table.ColumnName = {'Name'; 'Value'; 'Fit? (y/n)'};
-            app.pdo_parameters_table.ColumnWidth = {75, 'auto'};
-            app.pdo_parameters_table.RowName = {};
-            app.pdo_parameters_table.ColumnEditable = [false true true];
-            app.pdo_parameters_table.Visible = 'off';
-            app.pdo_parameters_table.Position = [152 304 298 147];
-
-            % Create DistortionParameterGuessesandFitsLabel
-            app.DistortionParameterGuessesandFitsLabel = uilabel(app.DistortionTab);
-            app.DistortionParameterGuessesandFitsLabel.FontWeight = 'bold';
-            app.DistortionParameterGuessesandFitsLabel.Visible = 'off';
-            app.DistortionParameterGuessesandFitsLabel.Position = [152 451 229 22];
-            app.DistortionParameterGuessesandFitsLabel.Text = 'Distortion Parameter Guesses and Fits';
-
-            % Create UpdatePDOParametersButton
-            app.UpdatePDOParametersButton = uibutton(app.DistortionTab, 'push');
-            app.UpdatePDOParametersButton.ButtonPushedFcn = createCallbackFcn(app, @UpdatePDOParametersButtonPushed, true);
-            app.UpdatePDOParametersButton.BackgroundColor = [1 1 0];
-            app.UpdatePDOParametersButton.Visible = 'off';
-            app.UpdatePDOParametersButton.Position = [87 375 53 22];
-            app.UpdatePDOParametersButton.Text = 'Update';
-
-            % Create DistortionTypeDropDown_2Label
-            app.DistortionTypeDropDown_2Label = uilabel(app.DistortionTab);
-            app.DistortionTypeDropDown_2Label.HorizontalAlignment = 'right';
-            app.DistortionTypeDropDown_2Label.Position = [56 508 86 22];
-            app.DistortionTypeDropDown_2Label.Text = 'Distortion Type';
-
-            % Create DistortionTypeDropDown_2
-            app.DistortionTypeDropDown_2 = uidropdown(app.DistortionTab);
-            app.DistortionTypeDropDown_2.Items = {'None', 'Binomial', 'Binomial - State Dependent', 'Binomial - Parametrized', 'Poisson', 'Poisson - State Dependent', 'Poisson - Parametrized', 'Binning', 'Custom Function'};
-            app.DistortionTypeDropDown_2.ValueChangedFcn = createCallbackFcn(app, @DistortionTypeDropDownValueChanged, true);
-            app.DistortionTypeDropDown_2.Position = [157 508 241 22];
-            app.DistortionTypeDropDown_2.Value = 'None';
-
-            % Create SpeciesDropDownLabel
-            app.SpeciesDropDownLabel = uilabel(app.DistortionTab);
-            app.SpeciesDropDownLabel.HorizontalAlignment = 'right';
-            app.SpeciesDropDownLabel.Position = [486 428 48 22];
-            app.SpeciesDropDownLabel.Text = 'Species';
-
-            % Create SpeciesDropDown
-            app.SpeciesDropDown = uidropdown(app.DistortionTab);
-            app.SpeciesDropDown.ValueChangedFcn = createCallbackFcn(app, @ShowDistortionPlotButtonPushed, true);
-            app.SpeciesDropDown.Position = [549 428 100 22];
-
-            % Create SolutionTimeDropDownLabel
-            app.SolutionTimeDropDownLabel = uilabel(app.DistortionTab);
-            app.SolutionTimeDropDownLabel.HorizontalAlignment = 'right';
-            app.SolutionTimeDropDownLabel.Position = [896 430 79 22];
-            app.SolutionTimeDropDownLabel.Text = 'Solution Time';
-
-            % Create SolutionTimeDropDown
-            app.SolutionTimeDropDown = uidropdown(app.DistortionTab);
-            app.SolutionTimeDropDown.ValueChangedFcn = createCallbackFcn(app, @ShowDistortionPlotButtonPushed, true);
-            app.SolutionTimeDropDown.Position = [990 430 100 22];
 
             % Create ModelSaveButton
             app.ModelSaveButton = uibutton(app.RightPanel, 'push');

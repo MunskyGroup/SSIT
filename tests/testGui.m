@@ -45,7 +45,7 @@ classdef testGui < matlab.uitest.TestCase
 
         function test_change_to_fsp_tab(tc)
             % Change to FSP Tab
-            tc.choose(tc.GUI.TabGroup,'FSP');
+            tc.choose(tc.GUI.TabGroup,'Finite State Projection');
             tc.GUI.FspMarginalTimeCreateMovieCheckBox.Value = true;
             tc.GUI.FspMeanVarShowVarianceCheckBox.Value = true;
             tc.GUI.FspMeanVarShowOdeCheckBox.Value = true;
@@ -63,7 +63,7 @@ classdef testGui < matlab.uitest.TestCase
         
         function test_change_to_sens_tab(tc)
             % Change to Sensitivity Tab
-            tc.choose(tc.GUI.TabGroup,'Sensitivity');
+            tc.choose(tc.GUI.TabGroup,'Sensitivity Analysis');
 
             % Run FSP with various buttons
             Buttons = {'SensRunButton'};

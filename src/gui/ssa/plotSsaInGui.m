@@ -10,8 +10,9 @@ end
 
 samples = app.SSITModel.Solutions.trajs;
 if isfield(app.SSITModel.Solutions,'trajsDistorted')
-    for iSp = 1:length(app.SSITModel.species)
-        if ~max(strcmpi(app.SSITModel.pdoOptions.unobservedSpecies,app.SSITModel.species{iSp}))
+    speciesStochastic = setdiff(app.SSITModel.species,app.SSITModel.hybridOptions.upstreamODEs);
+    for iSp = 1:length(speciesStochastic)
+        if ~max(strcmpi(app.SSITModel.pdoOptions.unobservedSpecies,speciesStochastic{iSp}))
             samples(end+1,:,:) = app.SSITModel.Solutions.trajsDistorted(iSp,:,:);
         end
     end

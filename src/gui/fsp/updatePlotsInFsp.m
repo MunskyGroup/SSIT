@@ -27,11 +27,13 @@ for iSpecies = 1:nSpecies
     end
 end
 
-if isfield(app.SSITModel.pdoOptions,'PDO')&&max(species2Plot)>length(app.SSITModel.species)
+speciesStochastic = setdiff(app.SSITModel.species,app.SSITModel.hybridOptions.upstreamODEs);
+
+if isfield(app.SSITModel.pdoOptions,'PDO')&&max(species2Plot)>length(speciesStochastic)
     maxNum = app.SSITModel.Solutions.fsp{j}.p.data.size;
     kSp = 0;
-    for iS = 1:length(app.SSITModel.species)
-        if max(strcmpi(app.SSITModel.pdoOptions.unobservedSpecies,app.SSITModel.species(iS)))
+    for iS = 1:length(speciesStochastic)
+        if max(strcmpi(app.SSITModel.pdoOptions.unobservedSpecies,speciesStochastic(iS)))
             maxNum(iS) = 0;
             curNum(iS) = 0;
         else
@@ -43,9 +45,9 @@ if isfield(app.SSITModel.pdoOptions,'PDO')&&max(species2Plot)>length(app.SSITMod
         [~,app.SSITModel] = app.SSITModel.generatePDO([],[],[],[],maxNum);
     end
 
-    for iSp = 1:length(app.SSITModel.species)
+    for iSp = 1:length(speciesStochastic)
         kSp = 0;
-        if ~max(strcmpi(app.SSITModel.pdoOptions.unobservedSpecies,app.SSITModel.species{iSp}))
+        if ~max(strcmpi(app.SSITModel.pdoOptions.unobservedSpecies,speciesStochastic{iSp}))
             INDS = setdiff([1:Nd],iSp);
             if ~isempty(INDS)
                 px = double(app.SSITModel.Solutions.fsp{j}.p.sumOver(INDS).data);

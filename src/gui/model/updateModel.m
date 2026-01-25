@@ -138,7 +138,7 @@ if size(Mod,1)>=1                                   % If-statement to ensure tha
     
     J = zeros(length(pars),1,'logical');
     if size(app.ModelInputTable.Data,1)
-        [~,Jn] = intersect(pars,app.ModelInputTable.Data{:,1});
+        [~,Jn] = intersect(pars,app.ModelInputTable.Data(:,1));
         J(Jn) = 1;
         if sum(J)<size(app.ModelInputTable.Data,1)
             disp('WARNING - Removing one or more unused signals.')
