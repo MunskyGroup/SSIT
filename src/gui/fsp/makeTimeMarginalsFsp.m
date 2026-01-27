@@ -5,33 +5,85 @@ function makeTimeMarginalsFsp(app)
 
 T_array = eval(app.FspPrintTimesField.Value);
 T_array2 = eval(app.FspMarginalVecField.Value);
-Nd = app.SSITModel.Solutions.fsp{1}.p.dim;
-for iSpecies = 1:Nd
-    Plts_to_make(iSpecies) = max(contains(app.SpeciestoShowListBoxMargFSPvT.Value,app.SSITModel.species{iSpecies}));
+
+%% Check What species to plot
+species2Plot=[];
+legends={};
+nSpecies = length(app.SpeciestoShowListBoxMargFSPvT.Items);
+for iSpecies = 1:nSpecies
+    if max(strcmpi(app.SpeciestoShowListBoxMargFSPvT.Value,app.SpeciestoShowListBoxMargFSPvT.Items{iSpecies}))
+        species2Plot = [species2Plot iSpecies];
+        legends=[legends char(app.SpeciestoShowListBoxMargFSPvT.Items{iSpecies})];
+    end
 end
-if ~app.FspMarginalTimeCreateMovieCheckBox.Value
-    for iplt = 1:Nd
-        if Plts_to_make(iplt)
-            INDS = setdiff([1:Nd],iplt);
-            figure()
-            for i = 1:length(T_array2)
-                [~,j] =  min(abs(T_array-T_array2(i)));
-                % Compute the marginal distributions
-                if Nd==1
-                    mdist = double(app.SSITModel.Solutions.fsp{j}.p.data);
-                else
-                    mdist = double(app.SSITModel.Solutions.fsp{j}.p.sumOver(INDS).data);
-                end
-                stairs([0:length(mdist)], [mdist;0],'linewidth',2);
-                hold('on');
+
+speciesStochastic = setdiff(app.SSITModel.species,app.SSITModel.hybridOptions.upstreamODEs);
+
+% Compute the marginal distributions at all times and for all species.
+Nd = app.SSITModel.Solutions.fsp{1}.p.dim;
+mdist = cell(length(T_array2),nSpecies);
+for it = 1:length(T_array2)
+    if Nd==1
+        mdist{it,1} = double(app.SSITModel.Solutions.fsp{it}.p.data);
+    else 
+        for iSpecies=1:Nd
+            INDS = setdiff([1:Nd],iSpecies);
+            if ~isempty(INDS)
+                mdist{it,iSpecies} = double(app.SSITModel.Solutions.fsp{it}.p.sumOver(INDS).data);
+            else
+                mdist{it,iSpecies} = double(app.SSITModel.Solutions.fsp{it}.p.data);
             end
-            title(['Marginals of ',char(app.SSITModel.species(iplt))])
-            xlabel('Species Count')
-            ylabel('Probability')
-            legendCell = cellstr(num2str(T_array2', 'Time=%1.2f'));
-            legend(legendCell)
-            set(gca,'fontsize',20)
         end
+    end
+
+    % If needed compute distorted distributions.
+    if isfield(app.SSITModel.pdoOptions,'PDO')&&max(species2Plot)>length(speciesStochastic)
+        maxNum = app.SSITModel.Solutions.fsp{end}.p.data.size;
+        kSp = 0;
+        for iS = 1:length(speciesStochastic)
+            if max(strcmpi(app.SSITModel.pdoOptions.unobservedSpecies,speciesStochastic(iS)))
+                maxNum(iS) = 0;
+                curNum(iS) = 0;
+            else
+                kSp = kSp+1;
+                curNum(iS) = size(app.SSITModel.pdoOptions.PDO.conditionalPmfs{kSp},2);
+            end
+        end
+        if max(maxNum-curNum)>0
+            [~,app.SSITModel] = app.SSITModel.generatePDO([],[],[],[],maxNum);
+        end
+
+        kSp = 0;
+        for iSp = 1:length(speciesStochastic)
+            if ~max(strcmpi(app.SSITModel.pdoOptions.unobservedSpecies,speciesStochastic{iSp}))
+                INDS = setdiff([1:Nd],iSp);
+                if ~isempty(INDS)
+                    px = double(app.SSITModel.Solutions.fsp{it}.p.sumOver(INDS).data);
+                else
+                    px = double(app.SSITModel.Solutions.fsp{it}.p.data);
+                end
+                kSp = kSp+1;
+                mdist{it,Nd+kSp} = app.SSITModel.pdoOptions.PDO.conditionalPmfs{kSp}*px;
+            end
+        end
+    end
+
+end
+
+
+if ~app.FspMarginalTimeCreateMovieCheckBox.Value
+    for iplt = species2Plot
+        figure()
+        for it = 1:length(T_array2)
+            stairs([0:length(mdist{it,iplt})], [mdist{it,iplt};0],'linewidth',2);
+            hold('on');
+        end
+        title(['Marginals of ',char(app.SSITModel.species(iplt))])
+        xlabel('Species Count')
+        ylabel('Probability')
+        legendCell = cellstr(num2str(T_array2', 'Time=%1.2f'));
+        legend(legendCell)
+        set(gca,'fontsize',20)
     end
 else
     fig_save = figure();
@@ -39,22 +91,12 @@ else
     v = VideoWriter(str,'MPEG-4');
     open(v)
     Nd = app.SSITModel.Solutions.fsp{1}.p.dim;
-    for i = 1:length(T_array2)
+    for it = 1:length(T_array2)
         hold off
-        [~,j] =  min(abs(T_array-T_array2(i)));
-        for iplt = 1:Nd
-            if Plts_to_make(iplt)
-                if Nd==1
-                    mdist{1} = double(app.SSITModel.Solutions.fsp{j}.p.data);
-                else
-                    for ii=1:Nd
-                        INDS = setdiff([1:Nd],ii);
-                        mdist{ii} = double(app.SSITModel.Solutions.fsp{j}.p.sumOver(INDS).data);
-                    end
-                end
-                stairs([0:length(mdist{iplt})], [mdist{iplt};0],'linewidth',2);
-                hold on
-            end
+        for iplt = species2Plot
+            stairs([0:length(mdist{it,iplt})], [mdist{it,iplt};0],'linewidth',2);
+            hold on
+
         end
         title(['Marginals Distributions'])
         xlabel('Species Count')
@@ -62,7 +104,7 @@ else
         set(gca,'fontsize',20)
         YLIM = get(gca,'ylim');YLIM(1)=0;
         set(gca,'ylim',YLIM);
-        
+
         F1 = getframe(gcf);
         writeVideo(v,F1)
     end
@@ -70,8 +112,6 @@ else
     save_button = uicontrol;
     save_button.String = 'Save Movie';
     save_button.Callback = eval(['@SaveMovie']);
-
-    
 end
 
     function SaveMovie(~,~)

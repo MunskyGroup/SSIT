@@ -12,7 +12,11 @@ if Nd==1
 else
     for i=1:Nd
         INDS = setdiff([1:Nd],i);
-        mdist{i} = double(app.SSITModel.Solutions.fsp{j}.p.sumOver(INDS).data);
+        if ~isempty(INDS)
+            mdist{i} = double(app.SSITModel.Solutions.fsp{j}.p.sumOver(INDS).data);
+        else
+            mdist{i} = double(app.SSITModel.Solutions.fsp{j}.p.data);
+        end
     end
 end
 
@@ -29,6 +33,7 @@ end
 
 speciesStochastic = setdiff(app.SSITModel.species,app.SSITModel.hybridOptions.upstreamODEs);
 
+% If needed compute distorted distributions.
 if isfield(app.SSITModel.pdoOptions,'PDO')&&max(species2Plot)>length(speciesStochastic)
     maxNum = app.SSITModel.Solutions.fsp{j}.p.data.size;
     kSp = 0;
@@ -45,8 +50,8 @@ if isfield(app.SSITModel.pdoOptions,'PDO')&&max(species2Plot)>length(speciesStoc
         [~,app.SSITModel] = app.SSITModel.generatePDO([],[],[],[],maxNum);
     end
 
+    kSp = 0;
     for iSp = 1:length(speciesStochastic)
-        kSp = 0;
         if ~max(strcmpi(app.SSITModel.pdoOptions.unobservedSpecies,speciesStochastic{iSp}))
             INDS = setdiff([1:Nd],iSp);
             if ~isempty(INDS)
