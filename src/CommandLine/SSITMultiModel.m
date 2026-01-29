@@ -168,10 +168,15 @@ classdef SSITMultiModel
             % plots of the results.
             arguments
                 SMM
-                parameters
-                makeplot = true
+                parameters = []
+                makeplot = false
                 fignums = [];
             end
+
+            if isempty(parameters)
+                parameters = SMM.parameters;
+            end
+            
             Nmods = length(SMM.SSITModels);
             for i = 1:Nmods
                 SMM.SSITModels{i}.parameters(SMM.SSITModels{i}.fittingOptions.modelVarsToFit,2) = ...
@@ -209,10 +214,18 @@ classdef SSITMultiModel
         end
 
         function totalLogLikelihood = computeTotalLogLikelihood(SMM,parameterGuess)
+            arguments
+                SMM
+                parameterGuess = [];
+            end
             % Method that computes the total log likeihood of all data and
             % all models for the provided parameter combination.
             Nmods = length(SMM.logLikelihoodFunctions);
             logLs = zeros(1,Nmods);
+
+            if isempty(parameterGuess)
+                parameterGuess = SMM.parameters;
+            end
 
             G = cell(1,Nmods);
             for i = 1:Nmods
@@ -267,17 +280,29 @@ classdef SSITMultiModel
             SMM.FIM = FIMlocal;
         end
 
-        function [pars,likelihood,otherResults] = maximizeLikelihood(SMM,parGuess,fitOptions,fitAlgorithm)
+        function [pars,likelihood,otherResults,SMM] = maximizeLikelihood(SMM,parGuess,fitOptions,fitAlgorithm)
             % Search parameter space to determine which sets maximize the
             % likelihood function.  
             arguments
                 SMM
-                parGuess
-                fitOptions = optimset('Display','iter','MaxIter',10)
+                parGuess = [];
+                fitOptions = optimset('Display','iter','MaxIter',1000)
                 fitAlgorithm = 'fminsearch'
             end
 
+            otherResults = [];
+            if isempty(parGuess)
+                parGuess = SMM.parameters;
+            end
+
             x0 = log(parGuess);
+
+            if isfield(fitOptions,'suppressExpansion')&&fitOptions.suppressExpansion==true
+                for iModel = 1:length(SMM.SSITModels)
+                    oldFspTols(iModel) = SMM.SSITModels{iModel}.fspOptions.fspTol;
+                    SMM.SSITModels{iModel}.fspOptions.fspTol = inf;
+                end
+            end
 
             objFun = @(x)-SMM.computeTotalLogLikelihood(exp(x));  % We want to MAXIMIZE the likelihood.
 
@@ -397,6 +422,15 @@ classdef SSITMultiModel
 
             end
             pars = exp(x0);
+            SMM.parameters = pars;
+            SMM = SMM.updateModels(pars);
+
+            if isfield(fitOptions,'suppressExpansion')&&fitOptions.suppressExpansion==true
+                for iModel = 1:length(SMM.SSITModels)
+                    SMM.SSITModels{iModel}.fspOptions.fspTol = oldFspTols(iModel);
+                end
+            end
+
         end
         function compareParameters(SMM,fignum,relative)
             % This function makes a heatmap plot to compare parameters in a
@@ -499,6 +533,9 @@ classdef SSITMultiModel
             end
 
             SMM = SSITMultiModel(SSITMods,parIndices,parConstraints,stateSpace);
+
+            % Initialize statespaces.
+            SMM = SMM.initializeStateSpaces;
 
 
         end

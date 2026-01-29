@@ -241,17 +241,23 @@ classdef poissonTest < matlab.unittest.TestCase
             end
 
             tic
-            testCase.Poiss.ssaOptions.useParalel = false;
-            testCase.Poiss.ssaOptions.useGPU = true;
-            SSAGPU = testCase.Poiss.solve(testCase.PoissSolution);
-            timeGPU = toc;
-           
-            tic
             testCase.Poiss.ssaOptions.useParallel = true;
             testCase.Poiss.ssaOptions.useGPU = false;
             SSACPUp = testCase.Poiss.solve(testCase.PoissSolution);
             timeCPUp = toc;
 
+            if gpuDeviceCount>0
+                tic
+                testCase.Poiss.ssaOptions.useParalel = false;
+                testCase.Poiss.ssaOptions.useGPU = true;
+                SSAGPU = testCase.Poiss.solve(testCase.PoissSolution);
+                timeGPU = toc;
+            else
+                disp('Skipping GPU test - no device available')
+                timeGPU = 0;
+                SSAGPU = SSACPUp;
+            end
+           
             tic
             testCase.Poiss.ssaOptions.useParallel = false;
             testCase.Poiss.ssaOptions.useGPU = false;
@@ -267,18 +273,24 @@ classdef poissonTest < matlab.unittest.TestCase
             disp('GPU/CPU Performance for SSA - 1.1Mk sims')
             table(Methods,Times,Means,Vars)
 
-            testCase.Poiss.ssaOptions.nSimsPerExpt = 1000000;
-            tic
-            testCase.Poiss.ssaOptions.useParalel = false;
-            testCase.Poiss.ssaOptions.useGPU = true;
-            SSAGPU = testCase.Poiss.solve(testCase.PoissSolution);
-            timeGPU = toc;
-           
             tic
             testCase.Poiss.ssaOptions.useParallel = true;
             testCase.Poiss.ssaOptions.useGPU = false;
             SSACPUp = testCase.Poiss.solve(testCase.PoissSolution);
             timeCPUp = toc;
+            
+            if gpuDeviceCount>0
+                testCase.Poiss.ssaOptions.nSimsPerExpt = 1000000;
+                tic
+                testCase.Poiss.ssaOptions.useParalel = false;
+                testCase.Poiss.ssaOptions.useGPU = true;
+                SSAGPU = testCase.Poiss.solve(testCase.PoissSolution);
+                timeGPU = toc;
+            else
+                disp('Skipping GPU test - no device available')
+                timeGPU = 0;
+                SSAGPU = SSACPUp;
+            end
 
             Methods = {'1CPU+1GPU';append(num2str(p.NumWorkers),' CPUs')};
             Times = [timeGPU;timeCPUp];
@@ -339,6 +351,29 @@ classdef poissonTest < matlab.unittest.TestCase
 
             testCase.verifyEqual(relDiff<0.0001, true, ...
                 'Likelihood Calculation is not within 0.01% Tolerance');            
+        end
+
+        function likelihoodSpread(testCase)
+            % In this test we compare the computed log-likelihood to the
+            % exact solution for the Poisson Model:
+            % lam(t) = k/g*(1-exp(-g*t));
+            % logL = prod_n [Poisson(n|lam(t))]
+            
+            % Add additional times to FSP solution to test that it
+            % correctly can filter thee out when computing the likelihood
+            % values.
+            % testCase.Poiss.tSpan = [0:0.05:max(testCase.Poiss.tSpan)];
+            
+            % Update solution.
+            [~,~,testCase.Poiss] = testCase.Poiss.solve;
+
+            % Change numbers of cells
+            testCase.Poiss.dataSet.nCells(:) = 30;
+            testCase.Poiss.dataSet.nCells(end) = 60;           
+
+            % Call to compute likelihood
+            testCase.Poiss.estimateLikelihoodSpread;
+               
         end
 
         function LikelihoodGradient(testCase)

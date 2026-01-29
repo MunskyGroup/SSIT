@@ -22,9 +22,9 @@ STL1.summarizeModel
 STL1_4state.summarizeModel
 
 % Set the times at which distributions will be computed:
-Model.tSpan = linspace(0,50,200);
-STL1.tSpan = linspace(0,50,200);
-STL1_4state.tSpan = linspace(0,50,200);
+Model.tSpan = linspace(0,50,101);
+STL1.tSpan = linspace(0,50,101);
+STL1_4state.tSpan = linspace(0,50,101);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(1): Use Gillepsie's Stochastic Simulation Algorithm (SSA) 
@@ -50,29 +50,22 @@ STL1_4state.tSpan = linspace(0,50,200);
     
     % A negative initial time is used to allow model to equilibrate 
     % before starting (burn-in). Large burn-in times cause long run times.
-    Model_SSA.tSpan = [-1,Model_SSA.tSpan];
+    Model_SSA.tSpan = [0,Model_SSA.tSpan];
     
     % Set the initial time:
     Model_SSA.initialTime = Model_SSA.tSpan(1); 
     
     % Run iterations in parallel with multiple cores, or execute serially:
-    Model_SSA.ssaOptions.useParallel = false;
-    Model_SSA.ssaOptions.useGPU = false;
-
-    % This function compiles and stores the given reaction propensities  
-    % into symbolic expression functions that use sparse matrices to  
-    % operate on the system based on the current state. The functions are 
-    % stored with the given prefix, in this case, 'Model_SSA':
-    Model_SSA = Model_SSA.formPropensitiesGeneral('Model_SSA');
+    Model_SSA.ssaOptions.useParallel = true;
     
     % Run SSA:
     Model_SSA.Solutions = Model_SSA.solve;
     
     % Plot SSA trajectories and means:
-    Model_SSA.plotSSA('all', 100, Model_SSA.species, {'linewidth',4}, ...
-        Title="Bursting Gene", MeanOnly=true, TitleFontSize=24,...
-        AxisLabelSize=18, TickLabelSize=18,...
-        LegendFontSize=15, LegendLocation='northeast',...
+    Model_SSA.plotSSA('all', 10, Model_SSA.species, {'linewidth',4}, ...
+        Title="Bursting Gene", MeanOnly=true, TitleFontSize=32,...
+        AxisLabelSize=24, TickLabelSize=24,...
+        LegendFontSize=15, LegendLocation='southeast',...
         XLabel='Time', YLabel='Molecule Count');
 
     %% Make a video of the SSA trajectories being plotted:
@@ -107,16 +100,16 @@ STL1_4state.tSpan = linspace(0,50,200);
     STL1_SSA.initialTime = STL1_SSA.tSpan(1); 
     
     % Run iterations in parallel with multiple cores, or execute serially:
-    STL1_SSA.ssaOptions.useParallel = false;
+    STL1_SSA.ssaOptions.useParallel = true;
     
     % Run SSA:
     STL1_SSA.Solutions = STL1_SSA.solve;
             
     % Plot SSA trajectories and means:
     STL1_SSA.plotSSA('all', 100, STL1_SSA.species, {'linewidth',4}, ...
-        Title="STL1", MeanOnly=true, TitleFontSize=24,...
-        AxisLabelSize=18, TickLabelSize=18,...
-        LegendFontSize=15, LegendLocation='northeast',...
+        Title="STL1", MeanOnly=true, TitleFontSize=32,...
+        AxisLabelSize=24, TickLabelSize=24,...
+        LegendFontSize=15, LegendLocation='east',...
         XLabel='Time', YLabel='Molecule Count');
 
     %% Make a video of the SSA trajectories being plotted:
@@ -142,17 +135,16 @@ STL1_4state.tSpan = linspace(0,50,200);
 
     % 'verbose' defaults to false, prints completed sim number to screen
     STL1_4state_SSA.ssaOptions.verbose=true;
-    
-    
+       
     % A negative initial time is used to allow model to equilibrate 
     % before starting (burn-in). Large burn-in times cause long run times.
-    STL1_4state_SSA.tSpan = [-1,STL1_4state_SSA.tSpan];
+    STL1_4state_SSA.tSpan = [0,STL1_4state_SSA.tSpan];
 
     % Set the initial time:
     STL1_4state_SSA.initialTime = STL1_4state_SSA.tSpan(1); 
     
     % Run iterations in parallel with multiple cores, or execute serially:
-    STL1_4state_SSA.ssaOptions.useParallel = false;
+    STL1_4state_SSA.ssaOptions.useParallel = true;
     
     % Run SSA:
     STL1_4state_SSA.Solutions = STL1_4state_SSA.solve;

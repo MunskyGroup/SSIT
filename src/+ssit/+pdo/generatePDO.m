@@ -24,10 +24,10 @@ end
 
 if isempty(maxSize)
     if isempty(FSPoutputs)
-        if isempty(app.FspTabOutputs.solutions)
+        if isempty(app.SSITModel.Solutions)
             app = runFsp(app);
         end
-        FSPoutputs = app.FspTabOutputs.solutions;
+        FSPoutputs = app.SSITModel.Solutions.fsp;
     end
     nSpecies = ndims(FSPoutputs{1}.p.data);
     maxSize = zeros(1,nSpecies);
@@ -60,7 +60,17 @@ switch app.DistortionTypeDropDown.Value
     case 'Binomial'
         for ispec = 1:nSpecies
             if maxSize(ispec)>1
-                lamb = app.FIMTabOutputs.PDOProperties.props.(['CaptureProbabilityS',num2str(ispec)]);
+                % --- Prefer calibrated parameters if provided ---
+                if ~isempty(paramsPDO)
+                    lamb = paramsPDO(ispec);   % lamb = capture probability p_cap for species ispec
+                elseif isfield(app.FIMTabOutputs.PDOProperties.props,'PDOpars') && ...
+                       numel(app.FIMTabOutputs.PDOProperties.props.PDOpars) >= ispec
+                    lamb = app.FIMTabOutputs.PDOProperties.props.PDOpars(ispec);
+                else
+                    lamb = app.FIMTabOutputs.PDOProperties.props.(['CaptureProbabilityS',num2str(ispec)]);
+                end
+                lamb = min(max(lamb,0),1); % clamp just in case
+                % ------------------------------------------------------                
                 for j = 1:maxSize(ispec)
                     conditionalPmfs{ispec}(1:j,j) = pdf('bino',0:j-1,j-1,lamb);
                 end
@@ -75,8 +85,18 @@ switch app.DistortionTypeDropDown.Value
                 for jspec = 1:nSpecies
                     dCdLam{jspec,ispec} = [];
                 end
-                if maxSize(ispec)>1
-                    lamb = app.FIMTabOutputs.PDOProperties.props.(['CaptureProbabilityS',num2str(ispec)]);
+                if maxSize(ispec)>1                    
+                    % --- Prefer calibrated parameters if provided ---
+                    if ~isempty(paramsPDO)
+                        lamb = paramsPDO(ispec);   % lamb = capture probability p_cap for species ispec
+                    elseif isfield(app.FIMTabOutputs.PDOProperties.props,'PDOpars') && ...
+                        numel(app.FIMTabOutputs.PDOProperties.props.PDOpars) >= ispec
+                        lamb = app.FIMTabOutputs.PDOProperties.props.PDOpars(ispec);
+                    else
+                        lamb = app.FIMTabOutputs.PDOProperties.props.(['CaptureProbabilityS',num2str(ispec)]);
+                    end
+                lamb = min(max(lamb,0),1); % clamp just in case
+                % ------------------------------------------------------ 
                     for j = 0:maxSize(ispec)-1
                         pdf('bino',0:j-1,j-1,lamb);
                         k=0:j;

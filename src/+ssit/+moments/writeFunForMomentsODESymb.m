@@ -63,15 +63,12 @@ nR = size(S,2);   % number of reactions
 nP = length(parString); % number of parameters
 nI = size(inputExpressions,1);
 
-syms('t','real');
+t = sym('t','real');
 %% Create symbolic variables for species
-for in = 1:nS
-    syms(['x',num2str(in)],'real');
-    x(in,1) = str2sym(['x',num2str(in)]);
-end
+x = sym('x',[nS,1],'real');
 
 %% Create symbolic variables for parameters
-syms('ParameterX',[1,nP],'real');
+ParameterX = sym('ParameterX',[1,nP],'real');
 
 %% Change species names to x1, x2, ... in propensity functions.
 specialFuns = {'max','min'}; nSF = 2;
@@ -96,17 +93,24 @@ for im = 1:nR
         j = strfind(wString{im},logs{il});
         while ~isempty(j)
             j1 = strfind(wString{im}(1:j(1)-1),'(');
-            j2 = strfind(wString{im}(j(1)+1:end),')');
+            j1 = j1(end);
+            nV = -1;j2=j1+1;
+            while nV<0
+                j2=j2+1;
+                nV = -1 - sum(wString{im}(j1+1:j2)=='(') + sum(wString{im}(j1+1:j2)==')');
+            end
+
+            % j2 = strfind(wString{im}(j(1)+1:end),')');
             k=k+1;
-            subStrings(k,1:2) = {['$',num2str(k)],['piecewise(',wString{im}(j1(end):j+j2(1)),',1,0)']};
-            wString{im} = strrep(wString{im},wString{im}(j1(end):j+j2(1)),['$',num2str(k)]);                
+            subStrings(k,1:2) = {['$',num2str(k)],['piecewise(',wString{im}(j1:j2),',1,0)']};
+            wString{im} = strrep(wString{im},wString{im}(j1:j2),['$',num2str(k)]);                
             
             j = strfind(wString{im},logs{il});
         end
 
     end
     for ik = 1:k
-        wString{im} = strrep(wString{im},['$',num2str(k)],subStrings{k,2});
+        wString{im} = strrep(wString{im},['$',num2str(ik)],subStrings{ik,2});
     end
 
     % Change if function contains special functions that would make
@@ -135,12 +139,23 @@ if ~includeSecondMom
     %% Define RHS of mean and 2nd moment ODEs in terms of monomials.
     RHS = S*w; % rhs of ode that describes the means
     %% Finalize RHS and saves as a matlab function.
-    matlabFunction(RHS,'Vars',{t,[x],[ParameterX]},'File',momentOdeFileName); % save moment equation as a matlab function
+    try
+        matlabFunction(RHS,'Vars',{t,x,ParameterX},'File',momentOdeFileName,'Sparse',true); % save moment equation as a matlab function
+    catch
+        matlabFunction(RHS,'Vars',{t,x,ParameterX},'File',momentOdeFileName,'Sparse',false); % save moment equation as a matlab function
+    end
+
+    % matlabFunctionSSIT(RHS,{t,x,ParameterX},momentOdeFileName); % save moment equation as a matlab function
 
     try 
         if ~containsSpecialFuns
             jac = jacobian(RHS,x);
-            matlabFunction(jac,'Vars',{t,[x],[ParameterX]},'File',jacobianFileName); % save moment equation as a matlab function
+            try
+                matlabFunction(jac,'Vars',{t,x,ParameterX},'File',jacobianFileName,'Sparse',true); % save moment equation as a matlab function
+            catch
+                matlabFunction(jac,'Vars',{t,x,ParameterX},'File',jacobianFileName,'Sparse',false); % save moment equation as a matlab function
+            end
+            % matlabFunctionSSIT(jac,{t,x,ParameterX},jacobianFileName); % save moment equation as a matlab function
             jacCreated = true;
         else
             if exist([jacobianFileName,'.m'],'file')
@@ -202,7 +217,7 @@ else
         if min(sC-np)<0 % if there are less coeff. than max order of polynomial
             C(npcell{:})=0; % then coeff. of max order terms are zero
         end
-        J = find(C); % gives vector of coefficients
+        J = find(C~=0); % gives vector of coefficients
         A(i,J) = C(J'); % place coefficients in A matrix
         for j = i:nS % loop through each species
             k = k+1;
@@ -211,7 +226,7 @@ else
             if nS>1&&min(sC-np)<0 % if its not species one and there are less coeff. than max order of polynomial
                 C(npcell{:})=0; % then coeff. of max order terms are zero
             end
-            J = find(C); % gives vector of coefficients
+            J = find(C~=0); % gives vector of coefficients
             A(k+nS,J) = C(J'); % add in coefficients in A matrix
         end
     end
@@ -252,12 +267,22 @@ else
         RHS = A0 + A1*v; % write ode with lower order terms only
     end
     %% Finalize RHS and saves as a matlab function.
-    matlabFunction(RHS,'Vars',{t,[v],[ParameterX]},'File',momentOdeFileName); % save moment equation as a matlab function
+    try
+        matlabFunction(RHS,'Vars',{t,v,ParameterX},'File',momentOdeFileName,'Sparse',true); % save moment equation as a matlab function
+    catch
+        matlabFunction(RHS,'Vars',{t,v,ParameterX},'File',momentOdeFileName,'Sparse',true); % save moment equation as a matlab function
+    end
+    % matlabFunctionSSIT(RHS,{t,v,ParameterX},momentOdeFileName); % save moment equation as a matlab function
     
     try
         if ~containsSpecialFuns
             jac = jacobian(RHS,v);
-            matlabFunction(jac,'Vars',{t,[v],[ParameterX]},'File',jacobianFileName); % save moment equation as a matlab function
+            try
+                matlabFunction(jac,'Vars',{t,v,ParameterX},'File',jacobianFileName,'Sparse',true); % save moment equation as a matlab function
+            catch
+                matlabFunction(jac,'Vars',{t,v,ParameterX},'File',jacobianFileName,'Sparse',true); % save moment equation as a matlab function
+            end
+            % matlabFunctionSSIT(jac,{t,v,ParameterX},jacobianFileName); % save moment equation as a matlab function
             jacCreated = true;
         else
             delete([jacobianFileName,'.m'])

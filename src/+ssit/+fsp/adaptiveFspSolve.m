@@ -185,11 +185,10 @@ constraintBoundsFinal = max([constraintBoundsFinal,constraintFunctions(initState
 
 % Set up the initial state subset, or recompute it if constaint functions
 % have changed.
-if isempty(stateSpace)||stateSpace.numConstraints~=constraintCount||size(stateSpace,1)~=length(speciesNames)
+if isempty(stateSpace)||stateSpace.numConstraints~=constraintCount||size(stateSpace.states,1)~=length(speciesNames)
     stateSpace = ssit.FiniteStateSet(initStates, stoichMatrix);
+    stateSpace = stateSpace.expand(constraintFunctions, constraintBoundsFinal);
 end
-stateSpace = stateSpace.expand(constraintFunctions, constraintBoundsFinal);
-
 
 % Generate the FSP matrix
 stateCount = stateSpace.getNumStates();
@@ -392,8 +391,7 @@ while (tNow < maxOutputTime)
 
             elseif useHybrid
                 matvec = @(t, p) full(AfspFull.hybridRHS(t, p, parameters, hybridOptions.upstreamODEs));
-                jac = [];  % Jacobian calculation is not currently available for hybrid models.
-                %jac = @(t, p)AfspFull.createJacHybridMatrix(t, p, parameters, length(hybridOptions.upstreamODEs));
+                jac = @(t, p)AfspFull.createJacHybridMatrix(t, p, parameters, length(hybridOptions.upstreamODEs));
             else
                 if constantJacobian
                     jac = sparse(AfspFull.createSingleMatrix(constantJacobianTime, parameters));

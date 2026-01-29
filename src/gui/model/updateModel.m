@@ -48,6 +48,11 @@ if useOldXspeciesVersion
     species(:,2) = num2cell(zeros(length(species),1));
 else
     species = app.SSITModel.species;
+    if ~isempty(app.SSITModel.initialCondition)
+        species(:,2) = num2cell(app.SSITModel.initialCondition);
+    else
+        species(:,2) = num2cell(zeros(size(species(:,1))));
+    end
     % app.SSITModel.initialCondition = [app.SpeciesTable.Data{:,2}]
     % species(:,2) = app.SpeciesTable.Data{:,2};%num2cell(app.SSITModel.initialCondition);    
 end
@@ -133,7 +138,7 @@ if size(Mod,1)>=1                                   % If-statement to ensure tha
     
     J = zeros(length(pars),1,'logical');
     if size(app.ModelInputTable.Data,1)
-        [~,Jn] = intersect(pars,app.ModelInputTable.Data{:,1});
+        [~,Jn] = intersect(pars,app.ModelInputTable.Data(:,1));
         J(Jn) = 1;
         if sum(J)<size(app.ModelInputTable.Data,1)
             disp('WARNING - Removing one or more unused signals.')

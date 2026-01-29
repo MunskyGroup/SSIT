@@ -103,23 +103,25 @@ classdef SSIT
             'constantJacobian',false,'constantJacobianTime',1.1,'stateSpace',[]);
         % Options for FSP-Sensitivity solver
         %   defaults:
-        %       'solutionMethod','forward'
+        %       'solutionMethod','finiteDifference'
         %       'useParallel',true
         %   example: Model.sensOptions.solutionMethod = 'finiteDifference';
-        sensOptions = struct('solutionMethod','forward',...
+        sensOptions = struct('solutionMethod','finiteDifference',...
             'useParallel',true);
         % Options for SSA solver
         %   defaults:
+        %       'Nsims',1000
         %       'Nexp',1
-        %       'nSimsPerExpt',100
+        %       'nSimsPerExpt',NaN
         %       'useTimeVar',false
         %       'signalUpdateRate',[]
-        %       'llel',false
+        %       'useParallel',false
+        %       'useGPU',false
         %       'verbose',false
-        ssaOptions = struct('Nexp',1,'nSimsPerExpt',100,...
+        ssaOptions = struct('Nsims',1000,'Nexp',1,'nSimsPerExpt',NaN,...
             'useTimeVar',false,'signalUpdateRate',[],...
             'useParallel',false,'verbose',false,...
-            'useGPU',false);
+            'useGPU',false,'computeFile',[]);
         % Options for PDO
         %   defaults:
         %       'unobservedSpecies',[]
@@ -176,7 +178,7 @@ classdef SSIT
         propensitiesGeneralMean = [];
         propensitiesGeneralMeanJac = [];
         propensitiesGeneralMoments = [];
-        propensitiesGeneralMomentsJac
+        propensitiesGeneralMomentsJac = [];
 
         % Solutions
         Solutions = []; % Field holding solutions for current model and
@@ -276,7 +278,11 @@ classdef SSIT
             end
 
             % SSIT Construct an instance of the SSIT class
-            addpath(genpath('../src'));
+            addpath(genpath(['..',filesep,'src']));
+
+            % Turn off warnings for deleting file that are not found.
+            warning('off', 'MATLAB:DELETE:FileNotFound');
+
             if ~isempty(modelFile)
                 if length(modelFile)>4 && (strcmp(modelFile(end-3:end),'.mat')||exist([modelFile,'.mat'],"file"))
                     % Load existing model from .mat file.
@@ -421,6 +427,54 @@ classdef SSIT
             end
         end
 
+        function obj = clearPropensityFiles(obj,prefixName,type)
+            arguments
+                obj
+                prefixName
+                type
+            end
+
+            switch type
+                case 'fsp'
+                    delete([pwd,filesep,'tmpPropensityFunctions',filesep,prefixName,'_fsp*'])
+                    clear([prefixName,'_fsp*'])
+                    % TODO - it would be good if we could search here and
+                    % find if there are conflict files in pther folders
+                    % that need to be deleted.  This is easier for the
+                    % ode and moments models below.
+
+                case 'ssa'
+                case 'ode'
+                    delete([pwd,filesep,'tmpPropensityFunctions',filesep,prefixName,'_mean*'],...
+                        [pwd,filesep,'tmpPropensityFunctions',filesep,prefixName,'_mean*'])
+                    clear([prefixName,'_mean'],[prefixName,'_mean_jac']);
+
+                    conflictFile = which([prefixName,'_mean']);
+                    while ~isempty(conflictFile)
+                        delete(conflictFile)
+                        conflictFile = which([prefixName,'_mean']);
+                    end
+
+                case {'moments','gaussian'}
+                    delete([pwd,filesep,'tmpPropensityFunctions',filesep,prefixName,'_momentsgaussian*'],...
+                        [pwd,filesep,'tmpPropensityFunctions',filesep,prefixName,'_momentsgaussian_jac*'])
+                    clear([prefixName,'_momentsgaussian'],[prefixName,'_momentsgaussian_jac']);
+
+                    conflictFile = which([prefixName,'_momentsgaussian']);
+                    while ~isempty(conflictFile)
+                        delete(conflictFile)
+                        conflictFile = which([prefixName,'_momentsgaussian']);
+                    end
+
+                    conflictFile = which([prefixName,'_momentsgaussian_jac']);
+                    while ~isempty(conflictFile)
+                        delete(conflictFile)
+                        conflictFile = which([prefixName,'_momentsgaussian_jac']);
+                    end
+            end
+
+        end
+
         function obj = formPropensitiesGeneral(obj,prefixName,computeSens)
             %% SSIT.formPropensitiesGeneral - Create callable functions
             %% for all propensity functions.
@@ -452,14 +506,14 @@ classdef SSIT
             % This function starts the process to write m-file for each
             % propensity function.
 
-            if ~exist([pwd,'/tmpPropensityFunctions'],'dir')
-                mkdir([pwd,'/tmpPropensityFunctions'])
+            if ~exist([pwd,filesep,'tmpPropensityFunctions'],'dir')
+                mkdir([pwd,filesep,'tmpPropensityFunctions'])
             end
-            addpath([pwd,'/tmpPropensityFunctions'])
+            addpath([pwd,filesep,'tmpPropensityFunctions'])
 
             if strcmpi(obj.solutionScheme,'ode')
-                clear([prefixName,'_mean'],[prefixName,'_mean_jac']);
-                momentOdeFileName = [pwd,'/tmpPropensityFunctions/',prefixName,'_mean'];
+                obj = clearPropensityFiles(obj,prefixName,'ode');
+                momentOdeFileName = [pwd,filesep,'tmpPropensityFunctions',filesep,prefixName,'_mean'];
                 try
                     jacCreated = ssit.moments.writeFunForMomentsODESymb(obj.stoichiometry,...
                         obj.propensityFunctions,...
@@ -480,9 +534,9 @@ classdef SSIT
                 end
                 return
             elseif strcmpi(obj.solutionScheme,'moments')||strcmpi(obj.solutionScheme,'gaussian')
-                clear([prefixName,'_momentsgaussian'],[prefixName,'_momentsgaussian_jac']);
+                obj = clearPropensityFiles(obj,prefixName,'moments');
                 try
-                    momentOdeFileName = [pwd,'/tmpPropensityFunctions/',prefixName,'_momentsgaussian'];
+                    momentOdeFileName = [pwd,filesep,'tmpPropensityFunctions',filesep,prefixName,'_momentsgaussian'];
                     jacCreated = ssit.moments.writeFunForMomentsODESymb(obj.stoichiometry,...
                         obj.propensityFunctions,...
                         obj.species,...
@@ -503,6 +557,12 @@ classdef SSIT
                 return
             end
 
+            % Clear Statespace
+            obj.fspOptions.stateSpace = [];
+
+            % Clear propensity functions
+            obj = clearPropensityFiles(obj,prefixName,'fsp');
+
             n_reactions = length(obj.propensityFunctions);
             % Propensity for hybrid models will include
             % solutions from the upstream ODEs.
@@ -520,7 +580,8 @@ classdef SSIT
                 vars = symvar(st);    
                 % Create symbolic variables and assume they are real
                 for k = 1:numel(vars)
-                    syms(vars{k},'real')
+                    % syms(vars{k},'real')
+                    eval([vars{k},'=sym("',vars{k},'","real");'])
                 end
 
                 % Convert the string into a symbolic expression
@@ -532,29 +593,30 @@ classdef SSIT
                 PropensitiesGeneral = ...
                     ssit.Propensity.createAsHybridVec(sm, obj.stoichiometry,...
                     obj.parameters, obj.species, obj.hybridOptions.upstreamODEs,...
-                    logicTerms, prefixName, computeSens);
+                    logicTerms, [prefixName,'_fsp'], computeSens);
             else
                 PropensitiesGeneral = ...
                     ssit.Propensity.createAsHybridVec(sm, obj.stoichiometry,...
-                    obj.parameters, obj.species, [], logicTerms, prefixName, computeSens);
+                    obj.parameters, obj.species, [], logicTerms, [prefixName,'_fsp'], computeSens);
             end
             % else
             %     PropensitiesGeneral = [];
             % end
 
-            try
-                objODE = obj;
-                objODE.solutionScheme='ode';
-                objODE.solutionSchemes = {};
-                objODE.useHybrid = true;
-                objODE.hybridOptions.upstreamODEs = obj.species;
-                obj.propensitiesGeneralODE = ...
-                    ssit.Propensity.createAsHybridVec(sm, objODE.stoichiometry,...
-                    objODE.parameters, objODE.species, objODE.hybridOptions.upstreamODEs,...
-                    logicTerms, [prefixName,'_ODE'], computeSens);
-            catch
-                disp('ODE propensities could not be formed, potentially due to logical values')
-            end
+            % try
+            %     delete([pwd,filesep,'tmpPropensityFunctions',filesep,prefixName,'_ODE*'])
+            %     objODE = obj;
+            %     objODE.solutionScheme='ode';
+            %     objODE.solutionSchemes = {};
+            %     objODE.useHybrid = true;
+            %     objODE.hybridOptions.upstreamODEs = obj.species;
+            %     obj.propensitiesGeneralODE = ...
+            %         ssit.Propensity.createAsHybridVec(sm, objODE.stoichiometry,...
+            %         objODE.parameters, objODE.species, objODE.hybridOptions.upstreamODEs,...
+            %         logicTerms, [prefixName,'_ODE'], computeSens);
+            % catch
+            %     disp('ODE propensities could not be formed, potentially due to logical values')
+            % end
 
             obj.propensitiesGeneral = PropensitiesGeneral;
         end
@@ -849,6 +911,12 @@ classdef SSIT
 
             end
             obj.propensitiesGeneral = [];
+            obj.propensitiesGeneralODE = [];
+            obj.propensitiesGeneralMean = [];
+            obj.propensitiesGeneralMeanJac = [];
+            obj.propensitiesGeneralMoments = [];
+            obj.propensitiesGeneralMomentsJac = [];   
+            obj.ssaOptions.computeFile = [];
         end
 
         function [obj] = createModelFromSBML(obj,sbmlFile,scaleVolume)
@@ -867,7 +935,12 @@ classdef SSIT
             sbmlobj = sbmlimport(sbmlFile);
             [obj] = createModelFromSimBiol(obj,sbmlobj,scaleVolume);
             obj.propensitiesGeneral = [];
-
+            obj.propensitiesGeneralODE = [];
+            obj.propensitiesGeneralMean = [];
+            obj.propensitiesGeneralMeanJac = [];
+            obj.propensitiesGeneralMoments = [];
+            obj.propensitiesGeneralMomentsJac = [];   
+            obj.ssaOptions.computeFile = [];
         end
 
         function [obj] = createModelFromSimBiol(obj,sbmlobj,scaleVolume)
@@ -951,6 +1024,12 @@ classdef SSIT
             obj.initialCondition = IC;
             obj.summarizeModel;
             obj.propensitiesGeneral = [];
+            obj.propensitiesGeneralODE = [];
+            obj.propensitiesGeneralMean = [];
+            obj.propensitiesGeneralMeanJac = [];
+            obj.propensitiesGeneralMoments = [];
+            obj.propensitiesGeneralMomentsJac = [];      
+            obj.ssaOptions.computeFile = [];
 
         end
 
@@ -1046,6 +1125,14 @@ classdef SSIT
             end
             obj.initialCondition = [obj.initialCondition;initialCond];
             obj.propensitiesGeneral = [];
+            obj.propensitiesGeneralODE = [];
+            obj.propensitiesGeneralMean = [];
+            obj.propensitiesGeneralMeanJac = [];
+            obj.propensitiesGeneralMoments = [];
+            obj.propensitiesGeneralMomentsJac = [];      
+            obj.ssaOptions.computeFile = [];
+            obj.fspOptions.stateSpace = [];
+
 
         end
 
@@ -1057,6 +1144,25 @@ classdef SSIT
             obj.parameters =  [obj.parameters;newParameters];
         end
 
+        function [obj] = changeParameter(obj,parChanges)
+            % changeParameter - change one or more parameter values by
+            % name. 
+            % Example:
+            %     F = SSIT;
+            %     F.parameters % Show original parameters.
+            %     F = F.changeParameter({'k',12.3;'g',0.234'});
+            %     F.parameters % Show new parameters.
+            arguments
+                obj
+                parChanges = {};
+            end
+            for i = 1:size(parChanges,1)
+                j = find(strcmp(obj.parameters(:,1),parChanges{i,1}));
+                obj.parameters{j,2} = parChanges{i,2};
+            end
+        end
+            
+        
         function [obj] = addReaction(obj,newRxn,confirm)
             arguments
                 obj
@@ -1106,6 +1212,13 @@ classdef SSIT
                 end
             end
             obj.propensitiesGeneral = [];
+            obj.propensitiesGeneralODE = [];
+            obj.propensitiesGeneralMean = [];
+            obj.propensitiesGeneralMeanJac = [];
+            obj.propensitiesGeneralMoments = [];
+            obj.propensitiesGeneralMomentsJac = [];      
+            obj.ssaOptions.computeFile = [];
+            obj.fspOptions.stateSpace = [];
         end
 
         function [obj] = removeReaction(obj,numRxn,confirm)
@@ -1292,7 +1405,7 @@ classdef SSIT
                               'Columns for species "%s" are empty after filtering.', speciesStochastic{i});
                     end
 
-                    maxSize(i) = max(xTrue);
+                    maxSize(i) = max(xTrue) + 1; % conditionalPmfs{ispec}(1:j, j) = pdf('bino', 0:j-1, j-1, lamb);
 
                     objPDO = @(x) -obj.findPdoError(pdoType, x, xTrue, xObsv);
                     lambdaNew = fminsearch(objPDO, lambdaTemplate, options);
@@ -1376,7 +1489,7 @@ classdef SSIT
 
         end
 
-        function [pdo] = generatePDO(obj,pdoOptions,paramsPDO,fspSoln,variablePDO,maxSize)
+        function [pdo,obj] = generatePDO(obj,pdoOptions,paramsPDO,fspSoln,variablePDO,maxSize)
             %% SSIT.generatePDO - This function generates the Probabilistic
             %% Distortion Operator (PDO) according to user choice.
             %
@@ -1393,12 +1506,24 @@ classdef SSIT
             % Example:
             arguments
                 obj
-                pdoOptions
+                pdoOptions = []
                 paramsPDO = []
                 fspSoln = []
                 variablePDO =[]
                 maxSize=[];
             end
+
+            if isempty(pdoOptions)
+                pdoOptions = obj.pdoOptions;
+            end
+            if isempty(fspSoln)
+                if isfield(obj.Solutions,'fsp')
+                    fspSoln = obj.Solutions.fsp;
+                else
+                    fspSoln = obj.solve;
+                end
+            end
+
             app.DistortionTypeDropDown.Value = pdoOptions.type;
             app.FIMTabOutputs.PDOProperties.props = pdoOptions.props;
 
@@ -1420,6 +1545,10 @@ classdef SSIT
                 end
             end
             [~,pdo] = ssit.pdo.generatePDO(app,paramsPDO,fspSoln,indsObserved,variablePDO,maxSize);
+
+            if nargout>=2
+                obj.pdoOptions.PDO = pdo;
+            end
         end
 
         function [logL,P] = findPdoError(obj,pdoType,lambda,True,Distorted)
@@ -1441,6 +1570,8 @@ classdef SSIT
                         logL = [1 5 0.5];
                     case 'QuadPoiss'
                         logL = [1 5 0.5];
+                    case {'Binomial','MissingSpots'}   
+                        logL = 0.8; % lambda(1)=p_miss initial guess
                 end
                 return
             end
@@ -1457,6 +1588,8 @@ classdef SSIT
                     Np = ceil(max(NmaxObs,lambda(2)+lambda(3)*NmaxTrue));
                 case 'QuadPoiss'
                     Np = ceil(max(NmaxObs,lambda(2)+lambda(3)*NmaxTrue+lambda(4)*NmaxTrue^2));
+                case {'Binomial','MissingSpots'}
+                    Np = max(NmaxObs, NmaxTrue);
             end
             P = zeros(Np+1,NmaxTrue+1);
 
@@ -1468,6 +1601,15 @@ classdef SSIT
                         P(1:Np+1,xi+1) = pdf('poiss',[0:Np]',max(lambda(1),lambda(2)+lambda(3)*xi));
                     case 'QuadPoiss'
                         P(1:Np+1,xi+1) = pdf('poiss',[0:Np]',max(lambda(1),lambda(2)+lambda(3)*xi+lambda(4)*xi^2));
+                    case {'Binomial','MissingSpots'} 
+                        % p_miss   = lambda(1);
+                        % p_detect = 1 - p_miss;
+                        % % only i=0..xi are possible; i>xi stays 0
+                        % ii = (0:xi)';
+                        % P(ii+1, xi+1) = binopdf(ii, xi, p_detect);
+                        pcap = lambda(1);
+                        ii = (0:xi)';
+                        P(ii+1, xi+1) = binopdf(ii, xi, pcap);
                 end
             end
 
@@ -1484,6 +1626,8 @@ classdef SSIT
                     logL = logL-1e4*(lambda(1)<0);
                 case 'AffinePoiss'
                     logL = logL-1e4*(lambda(1)<0);
+                case {'Binomial','MissingSpots'}
+                    logL = logL - 1e6*((lambda(1)<0) + (lambda(1)>1));
             end
         end
 
@@ -1672,7 +1816,12 @@ classdef SSIT
                 case 'ssa'
                     Solution.T_array = obj.tSpan;
                     Nt = length(Solution.T_array);
-                    nSims = round(obj.ssaOptions.Nexp*obj.ssaOptions.nSimsPerExpt*Nt);
+
+                    if ~isnan(obj.ssaOptions.nSimsPerExpt)
+                        nSims = round(obj.ssaOptions.Nexp*obj.ssaOptions.nSimsPerExpt*Nt);
+                    else
+                        nSims = obj.ssaOptions.Nsims;
+                    end
 
                     % Write callable SSA code for better efficiency.
                     % W = obj.propensitiesGeneral;
@@ -1703,17 +1852,16 @@ classdef SSIT
                     % initial condition.
 
                     % Call code to write a GPU friendly SSA code.
-                    fun_name = 'TmpGPUSSACode';
-                    clear TmpGPUSSACode % Clear function from cache just in case.
-                    ssit.ssa.WriteGPUSSA(k,w,S,obj.tSpan,fun_name);
-                    % TODO -- this part where the SSA codes are written
-                    % could be moved out of the solve routine.  Right now,
-                    % the code is being re-written for every new parameter
-                    % set.  Because the code writing time is short compared
-                    % to the solution time (~2%), this is not a big concern.
+                    if ~isfield(obj.ssaOptions,'computeFile')||isempty(obj.ssaOptions.computeFile)
+                        obj.ssaOptions.computeFile = 'TmpGPUSSACode';
+                        clear TmpGPUSSACode % Clear function from cache just in case.
+                        ssit.ssa.WriteGPUSSA(k,w,S,obj.tSpan,obj.ssaOptions.computeFile);                        
+                    end
+                    % TODO -- Need to check that this does not lead to file
+                    % confusion in the future since there could be multiple
+                    % copies of this file on the search path.
 
-
-                    fun = str2func(fun_name);
+                    fun = str2func(obj.ssaOptions.computeFile);
                     % Convert the function name string to a function handle.
 
                     % Run SSA on GPU, in parallel, or in series as
@@ -1725,18 +1873,50 @@ classdef SSIT
                     else
                         Solution.trajs=fun(x0,nSims,k,'Series');
                     end
-                    disp([num2str(nSims),' SSA Runs Completed'])
+                    if obj.ssaOptions.verbose
+                        disp([num2str(nSims),' SSA Runs Completed'])
+                    end
 
                     % Apply PDO, if applicable
                     if ~isempty(obj.pdoOptions.PDO)
-                        Solution.trajsDistorted = zeros(length(obj.species),...
+
+                        [speciesStochastic,iA] = setdiff(obj.species,obj.hybridOptions.upstreamODEs);
+
+                        Solution.trajsDistorted = zeros(length(speciesStochastic),...
                             length(obj.tSpan),nSims);% Creates an empty Trajectories matrix from the size of the time array and number of simulations
-                        for iS = 1:length(obj.species)
-                            PDO = obj.pdoOptions.PDO.conditionalPmfs{iS};
-                            nDpossible = size(PDO,1);
-                            Q = Solution.trajs(iS,:,:);
-                            for iD = 1:length(Q(:))
-                                Q(iD) = randsample([0:nDpossible-1],1,true,PDO(:,Q(iD)+1));
+                        
+                        maxNum = zeros(1,size(speciesStochastic,1));
+                        curNum = zeros(1,size(speciesStochastic,1));
+                        iSObs = 0;
+                        for iS = 1:length(speciesStochastic)
+                            if max(strcmpi(obj.pdoOptions.unobservedSpecies,speciesStochastic(iS)))
+                                maxNum(iS) = 0;
+                                curNum(iS) = 0;
+                            else
+                                iSObs = iSObs+1;
+                                maxNum(iS) = max(Solution.trajs(iA(iS),:,:),[],'all')+1;
+                                curNum(iS) = size(obj.pdoOptions.PDO.conditionalPmfs{iSObs},2);
+                            end
+                        end
+                        if max(maxNum-curNum)>0
+                            [~,obj] = obj.generatePDO([],[],[],[],maxNum);
+                        end
+                                                 
+                        iSObs = 0;
+                        for iS = 1:length(speciesStochastic)
+                            if max(strcmpi(obj.pdoOptions.unobservedSpecies,speciesStochastic(iS)))
+                                Q = NaN*Solution.trajs(iA(iS),:,:);
+                            else
+                                iSObs = iSObs+1;
+                                Q = Solution.trajs(iA(iS),:,:);
+                                % if max(Q,[],'all')>size(obj.pdoOptions.PDO.conditionalPmfs{iSObs},2)
+                                %     [~,obj] = obj.generatePDO([],[],[],[],max(Q,[],'all'));
+                                % end
+                                PDO = obj.pdoOptions.PDO.conditionalPmfs{iSObs};
+                                nDpossible = size(PDO,1);
+                                for iD = 1:length(Q(:))
+                                    Q(iD) = randsample([0:nDpossible-1],1,true,PDO(:,Q(iD)+1));
+                                end
                             end
                             Solution.trajsDistorted(iS,:,:) = Q;
                         end
@@ -1746,17 +1926,38 @@ classdef SSIT
                     % Save results if requested.
                     if ~isempty(saveFile)
                         A = table;
-                        for j=1:Nt
-                            A.time((j-1)*obj.ssaOptions.nSimsPerExpt+1:j*obj.ssaOptions.nSimsPerExpt) = obj.tSpan(j);
-                            for i = 1:obj.ssaOptions.Nexp
-                                for k=1:obj.ssaOptions.nSimsPerExpt
-                                    for s = 1:size(Solution.trajs,1)
-                                        warning('off')
-                                        A.(['exp',num2str(i),'_s',num2str(s)])((j-1)*obj.ssaOptions.nSimsPerExpt+k) = ...
-                                            Solution.trajs(s,j,(i-1)*Nt*obj.ssaOptions.nSimsPerExpt+(j-1)*obj.ssaOptions.nSimsPerExpt+k);
-                                        if ~isempty(obj.pdoOptions.PDO)
-                                            A.(['exp',num2str(i),'_s',num2str(s),'_Distorted'])((j-1)*obj.ssaOptions.nSimsPerExpt+k) = ...
-                                                Solution.trajsDistorted(s,j,(i-1)*Nt*obj.ssaOptions.nSimsPerExpt+(j-1)*obj.ssaOptions.nSimsPerExpt+k);
+                        if ~isnan(obj.ssaOptions.nSimsPerExpt)
+                            % Write table for independent experiments.
+                            for j=1:Nt
+                                A.time((j-1)*obj.ssaOptions.nSimsPerExpt+1:j*obj.ssaOptions.nSimsPerExpt) = obj.tSpan(j);
+                                for i = 1:obj.ssaOptions.Nexp
+                                    for k=1:obj.ssaOptions.nSimsPerExpt
+                                        for s = 1:size(Solution.trajs,1)
+                                            warning('off')
+                                            A.(['exp',num2str(i),'_s',num2str(s)])((j-1)*obj.ssaOptions.nSimsPerExpt+k) = ...
+                                                Solution.trajs(s,j,(i-1)*Nt*obj.ssaOptions.nSimsPerExpt+(j-1)*obj.ssaOptions.nSimsPerExpt+k);
+                                            if ~isempty(obj.pdoOptions.PDO)
+                                                A.(['exp',num2str(i),'_s',num2str(s),'_Distorted'])((j-1)*obj.ssaOptions.nSimsPerExpt+k) = ...
+                                                    Solution.trajsDistorted(s,j,(i-1)*Nt*obj.ssaOptions.nSimsPerExpt+(j-1)*obj.ssaOptions.nSimsPerExpt+k);
+                                            end
+                                        end
+                                    end
+                                end
+                            end
+                        else
+                            % Write table for dependent experiments.
+                            for j=1:Nt
+                                A.time((j-1)*obj.ssaOptions.Nsims+1:j*obj.ssaOptions.Nsims) = obj.tSpan(j);
+                                for i = 1:obj.ssaOptions.Nexp
+                                    for k=1:obj.ssaOptions.Nsims
+                                        for s = 1:size(Solution.trajs,1)
+                                            warning('off')
+                                            A.(['exp',num2str(i),'_s',num2str(s)])((j-1)*obj.ssaOptions.Nsims+(1:obj.ssaOptions.Nsims)) = ...
+                                                Solution.trajs(s,j,:);
+                                            if ~isempty(obj.pdoOptions.PDO)
+                                                A.(['exp',num2str(i),'_s',num2str(s),'_Distorted'])((j-1)*obj.ssaOptions.Nsims+k) = ...
+                                                    Solution.trajsDistorted(s,j,:);
+                                            end
                                         end
                                     end
                                 end
@@ -1873,33 +2074,70 @@ classdef SSIT
 
         end
 
-        function A = sampleDataFromFSP(obj,fspSoln,saveFile)
+        function A = sampleDataFromFSP(obj,fspSoln,saveFile,nCells,species2save)
             % Function to create simulated single-cell snapshot data by
             % sampling from the FSP solution.
             % Arguments:
             %       fspSoln -- solution of current model using FSP.
             %       saveFile -- filename (.csv) to save data.
+            arguments
+                obj
+                fspSoln =[];
+                saveFile = [];
+                nCells = [];
+                species2save = {};
+            end
             Solution.T_array = obj.tSpan;
             Nt = length(Solution.T_array);
-            nSims = obj.ssaOptions.nSimsPerExpt*obj.ssaOptions.Nexp;
-            Solution.trajs = zeros(length(obj.species),...
-                length(obj.tSpan),nSims);% Creates an empty Trajectories matrix
-            % from the size of the time array and number of simulations
-            for it = 1:length(obj.tSpan)
+            
+            if isempty(nCells)
+                if ~isnan(obj.ssaOptions.nSimsPerExpt)
+                    nSims = obj.ssaOptions.nSimsPerExpt*obj.ssaOptions.Nexp;
+                else
+                    nSims = obj.ssaOptions.Nsims;
+                end
+                nCells = nSims*ones(1,Nt);
+            end
+            if isempty(fspSoln)
+                fspSoln = obj.Solutions;
+            end
+
+            % determine which species should be included in the output.
+            if isempty(species2save)
+                if obj.useHybrid
+                    species2save = setdiff(obj.species,obj.hybridOptions.upstreamODEs);
+                else
+                    species2save = obj.species;
+                end
+            end            
+            if obj.useHybrid
+                stochSpecies = setdiff(obj.species,obj.hybridOptions.upstreamODEs);
+                indsSpecies2save = find(contains(stochSpecies,species2save));
+            else
+                indsSpecies2save = find(contains(obj.species,species2save));
+            end
+
+            nSpSave = length(species2save);
+            Solution.trajs = NaN*ones(nSpSave,...
+                length(obj.tSpan),max(nCells));% Creates an empty Trajectories matrix
+            % from the size of the time array and number of simulations.
+            % NaNs are put in empty elements for the case where there are
+            % different numbers of cells at different time points.
+            for iT = 1:length(obj.tSpan)
                 clear PP
-                PP = double(fspSoln.fsp{it}.p.data);
+                PP = double(fspSoln.fsp{iT}.p.data);
                 clear w
                 w(:) = PP(:); w(w<0)=0;
                 % TODO - there has to be another way of doing this.
-                [I1,I2,I3,I4,I5,I6,I7,I8,I9,I10,I11] =  ind2sub(size(PP),randsample(length(w), nSims, true, w ));
-                for iSp = 1:length(obj.species)
-                    eval(['Solution.trajs(iSp,it,:) = I',num2str(iSp),'-1;']);
+                [I1,I2,I3,I4,I5,I6,I7,I8,I9,I10,I11] =  ind2sub(size(PP),randsample(length(w), nCells(iT), true, w ));
+                for iSp = 1:nSpSave
+                    eval(['Solution.trajs(iSp,iT,1:nCells(iT)) = I',num2str(indsSpecies2save(iSp)),'-1;']);
                 end
             end
             if ~isempty(obj.pdoOptions.PDO)
-                Solution.trajsDistorted = zeros(length(obj.species),...
-                    length(obj.tSpan),nSims);% Creates an empty Trajectories matrix from the size of the time array and number of simulations
-                for iS = 1:length(obj.species)
+                Solution.trajsDistorted = NaN*ones(nSpSave,...
+                length(obj.tSpan),max(nCells)); % Creates an empty Trajectories matrix from the size of the time array and number of simulations
+                for iS = 1:nSpSave
                     PDO = obj.pdoOptions.PDO.conditionalPmfs{iS};
                     nDpossible = size(PDO,1);
                     Q = Solution.trajs(iS,:,:);
@@ -1910,26 +2148,34 @@ classdef SSIT
                 end
                 disp('PDO applied to FSP Samples')
             end
-            if ~isempty(saveFile)
+
+            if nargout>=1||~isempty(saveFile)
                 A = table;
-                for it=1:Nt
-                    A.time((it-1)*obj.ssaOptions.nSimsPerExpt+1:it*obj.ssaOptions.nSimsPerExpt) = obj.tSpan(it);
+                k = 0;
+                for iT=1:Nt
+                    A.time(k+1:k+nCells(iT)) = obj.tSpan(iT);
                     for ie = 1:obj.ssaOptions.Nexp
                         for s = 1:size(Solution.trajs,1)
                             warning('off')
-                            A.(['exp',num2str(ie),'_s',num2str(s)])((it-1)*obj.ssaOptions.nSimsPerExpt+(1:obj.ssaOptions.nSimsPerExpt)) = ...
-                                Solution.trajs(s,it,(ie-1)*obj.ssaOptions.nSimsPerExpt+(1:obj.ssaOptions.nSimsPerExpt));
+
+                            A.(['exp',num2str(ie),'_s',num2str(s)])(k+1:k+nCells(iT)) = ...
+                                Solution.trajs(s,iT,1:nCells(iT));
                             if ~isempty(obj.pdoOptions.PDO)
-                                A.(['exp',num2str(ie),'_s',num2str(s),'_Distorted'])((it-1)*obj.ssaOptions.nSimsPerExpt+(1:obj.ssaOptions.nSimsPerExpt)) = ...
-                                    Solution.trajsDistorted(s,it,(ie-1)*obj.ssaOptions.nSimsPerExpt+(1:obj.ssaOptions.nSimsPerExpt));
+                                A.(['exp',num2str(ie),'_s',num2str(s),'_Distorted'])(k+1:k+nCells(iT)) = ...
+                                    Solution.trajsDistorted(s,iT,1:nCells(iT));
                             end
                         end
                     end
+                    k = k + nCells(iT);
                 end
-                writetable(A,saveFile)
-                disp(['FSP Samples saved to ',saveFile])
+
+                if ~isempty(saveFile)
+                    writetable(A,saveFile)
+                    disp(['FSP Samples saved to ',saveFile])
+                end
             end
         end
+
 
         function [fimResults,sensSoln] = computeFIM(obj,sensSoln,scale,MHSamples)
             %% computeFIM - Computes the Fisher Information Matrix (FIM)
@@ -1983,12 +2229,15 @@ classdef SSIT
                     end
                 end
             else
-
                 if isempty(sensSoln)
-                    % disp({'Running Sensitivity Calculation';'You can skip this step by providing sensSoln.'})
-                    obj.solutionScheme = 'fspSens';
-                    [sensSoln] = obj.solve;
-                    sensSoln = sensSoln.sens;
+                    if isfield(obj.Solutions,'sens')
+                        sensSoln = obj.Solutions.sens;
+                    else
+                        % disp({'Running Sensitivity Calculation';'You can skip this step by providing sensSoln.'})
+                        obj.solutionScheme = 'fspSens';
+                        [sensSoln] = obj.solve;
+                        sensSoln = sensSoln.sens;
+                    end
                 end
 
                 % Separate into observed and unobserved species.
@@ -2077,8 +2326,8 @@ classdef SSIT
         function [fimTotal,mleCovEstimate,fimMetrics] = evaluateExperiment(obj,...
                 fimResults,cellCounts,priorCoVariance)
             % This function evaluates the provided experiment design (in
-            % "cellCounts" and produces an array of FIMs (one for each
-            % parameter set.
+            % "cellCounts") and produces an array of FIMs - one for each
+            % parameter set.    
             arguments
                 obj
                 fimResults
@@ -2230,7 +2479,7 @@ classdef SSIT
             end
 
             if isempty(NcGuess)
-                % Distributed avaliable cells among experiments.
+                % Distributed available cells among experiments.
                 NcGuess = NcFixed;
                 iExpt = 1;
                 while nCellsTotalNew>0&&iExpt<=length(NcGuess)
@@ -2741,7 +2990,11 @@ classdef SSIT
                 Pvals = Pvals/max(1,sum(Pvals,'all'));
                 logP = sptensor(log(Pvals));
 
-                LogLk(it) = vals'*logP(inds);
+                try
+                    LogLk(it) = vals'*logP(inds);
+                catch
+                    1+1
+                end
 
                 if nargout>=3
                     perfectMod(it) = vals'*log(vals/sum(vals));
@@ -2866,6 +3119,47 @@ classdef SSIT
             end
         end
 
+        function [logLSpread,logLSpreadVector] = estimateLikelihoodSpread(obj,nSims)
+            % This function computes the expected spead of the
+            % log-likelihood function if the model were exact and correct.
+            % To do this, it samples data from the exact solution and then
+            % calculates the loglikelihood for each sample.  Then, it
+            % computes the standard deviation of this log likelihood
+            % vector. 
+            arguments
+                obj % -- (SSIT class)
+                nSims = 100; % Number of simulations at which to calculate log(L)
+            end
+
+            logLSpreadVector = zeros(nSims,1);
+            objTMP = obj;
+            for iSim = 1:nSims
+
+                % Generate and reformat data using FSP solution.
+                A = obj.sampleDataFromFSP([],[],obj.dataSet.nCells);                
+                objTMP.dataSet.DATA = table2cell(A);
+                
+                if iSim==1
+                    times = unique(A.time);
+                    numTimes = length(times);
+                    timeAr = A.time;
+                    for i = 1:numTimes
+                        timeAr(A.time==times(i)) = i-1;
+                    end
+                end
+                A.time = timeAr;
+
+                % Convert to data tensor
+                X = table2array(A);
+
+                objTMP.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor = ...
+                    sptensor(X+1,ones(size(X,1),1));
+                
+                % Calculate log likelihood for new data set.
+                logLSpreadVector(iSim) = objTMP.computeLikelihood([],[],false,true);
+            end
+            logLSpread = std(logLSpreadVector);
+        end
 
         function [lossFunction] = computeLossFunctionSSA(obj,lossFun,pars, ...
                 enforceIndependence, reuseExistingSolution)
@@ -3126,7 +3420,7 @@ classdef SSIT
                 allFitOptions.(fNames{i}) = fitOptions.(fNames{i});
             end
 
-            if isempty(obj.propensitiesGeneral)
+            if isempty(obj.propensitiesGeneral)&&strcmpi(obj.solutionScheme(1:3),'fsp') 
                 obj = formPropensitiesGeneral(obj);
             end
 
@@ -3299,6 +3593,7 @@ classdef SSIT
                             'thin',allFitOptions.thin,'nchain',1,'burnin',allFitOptions.burnIn,...
                             'progress',allFitOptions.progress,...
                             'saveFileName',allFitOptions.saveFile);
+                        obj.Solutions.mhResults = otherResults;
                     else
                         try
                             parpool
@@ -3324,6 +3619,8 @@ classdef SSIT
                         otherResults.mhSamples = tmpMHSamp;
                         otherResults.mhAcceptance = tmpMHAcceptance;
                         otherResults.mhValue = tmpMHValue;
+                        obj.Solutions.mhResults = otherResults;
+                        
                         clear tmpMH*
                     end
                     % If fit was in linear space, need to convert to log
@@ -3385,6 +3682,14 @@ classdef SSIT
             if isempty(fitOptions)
                 fitOptions = struct();
             end
+
+            % Switch solution scheme to 'ssa'
+            if ~strcmpi(obj.solutionScheme,'ssa')
+                disp('Changing solution scheme to SSA for ABC.')
+                obj.solutionScheme = 'ssa';
+                % Run once to make sure SSA files are defined.
+                [~,~,obj] = obj.solve;
+            end
         
             % Define the objective in *parameter* space (theta, not log-theta)
             %   - computeLossFunctionSSA returns a positive loss; we negate it
@@ -3394,8 +3699,12 @@ classdef SSIT
                 -obj.computeLossFunctionSSA(lossFunction, pars, enforceIndependence) ...
                 - logPriorLoss(pars);
         
-            % debugging:
+            % Set parGuess if not provided.
             if isempty(parGuess)
+                % If 'all', then change to list of indices.
+                if ischar(obj.fittingOptions.modelVarsToFit)&&strcmp(obj.fittingOptions.modelVarsToFit,'all')
+                    obj.fittingOptions.modelVarsToFit = [1:size(obj.parameters,1)];
+                end
                 parGuess = cell2mat(obj.parameters(obj.fittingOptions.modelVarsToFit,2));
             end
             % This line will throw the error location if something is wrong:
@@ -3405,6 +3714,10 @@ classdef SSIT
             % @(x) allFitOptions.obj(exp(x)), working in log-parameter space).
             [pars, minimumLossFunction, Results] = ...
                 obj.maximizeLikelihood(parGuess, fitOptions, 'MetropolisHastings');
+
+            % Update model with results
+            obj.parameters(obj.fittingOptions.modelVarsToFit,2) = num2cell(pars);
+            obj.Solutions.ABC = Results;
         end
 
 
@@ -3683,10 +3996,10 @@ classdef SSIT
                                     bar([0:length(solution.Marginals{i}{movieSpecies(j)})-1],...
                                         solution.Marginals{i}{movieSpecies(j)},lineProps{:});
                                     set(gca,'fontsize',15,'ylim',[0,maxY(movieSpecies(j))])
-                                    if isempty(opt.Title)
+                                    if isempty(plotTitle)
                                         title([obj.species{movieSpecies(j)},'; t = ',num2str(solution.T_array(i),'%.0f')])
                                     else
-                                        title(sprintf('%s; t = %.0f', opt.Title, solution.T_array(i)))
+                                        title(sprintf('%s; t = %.0f', plotTitle, solution.T_array(i)))
                                     end
 
                                 end
@@ -3867,8 +4180,6 @@ classdef SSIT
                             end
                             close(mov)
                             disp(['Movie saved as ', movieName]);
-
-
                     end
             end
         end
@@ -3880,7 +4191,7 @@ classdef SSIT
                 timeVec = []
                 lineProps = {'linewidth',2};
                 opts.Title (1,1) string = ""
-                opts.TitleFontSize (1,1) double {mustBePositive} = 18
+                opts.TitleFontSize (1,1) double {mustBePositive} = 24
                 opts.AxisLabelSize (1,1) double {mustBePositive} = 18
                 opts.TickLabelSize (1,1) double {mustBePositive} = 18
                 opts.LegendFontSize (1,1) double {mustBePositive} = 18
@@ -4017,7 +4328,313 @@ classdef SSIT
             end
             hold off;
         end
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+function plotMoments(obj, solution, speciesNames, plotType, indTimes, figureNums, lineProps, opts)
+  % plotMoments — Plot moment-based solutions like plotODE/plotSSA/plotFSP
 
+    arguments
+        obj
+        solution
+        speciesNames = []
+        plotType (1,1) string = "means"           % "means" | "meansAndDevs"
+        indTimes = []                              % [] | indices | time-vector (same length as Nt)
+        figureNums = []                            % [] | numeric array of candidate figure numbers
+        lineProps = {'linewidth',2}
+        opts.SpeciesIdx = []                       % numeric indices (alternative to names)
+        opts.Colors = []                           % [] | colormap name | n×3 RGB | cell array
+        opts.Title (1,1) string = ""
+        opts.TitleFontSize (1,1) double {mustBePositive} = 18
+        opts.AxisLabelSize (1,1) double {mustBePositive} = 18
+        opts.TickLabelSize (1,1) double {mustBePositive} = 18
+        opts.LegendFontSize (1,1) double {mustBePositive} = 24
+        opts.LegendLocation (1,1) string = "best"
+        opts.XLabel (1,1) string = "Time"
+        opts.YLabel (1,1) string = "Molecule Count / Concentration"
+        opts.XLim double = []                      % e.g., [0 50]
+        opts.YLim double = []                      % e.g., [0 200]
+    end
+
+    % ---------- Resolve raw moments matrix ----------
+    momRaw = extractMomentsMatrix(solution);
+    if ~isnumeric(momRaw)
+        error('solution.moments must be numeric (double).');
+    end
+
+    % ---------- Determine time vector (tt) and selection (tt_sel) ----------
+    tt = getTimeVector(obj, solution, size(momRaw, 2));     % Nt×1
+    [tt_sel, indSel] = resolveTimeSelection(tt, indTimes); % both column vectors
+
+    % ---------- Species selection ----------
+    allNames = obj.species; if isstring(allNames), allNames = cellstr(allNames); end
+    nAll = numel(allNames);
+    [selIdx, selNames] = resolveSpeciesSelection(allNames, speciesNames, opts.SpeciesIdx);
+    nSel = numel(selIdx);
+
+    % ---------- Parse means/vars from "momRaw" ----------
+    [Means_all, Var_all] = parseMeansAndVars(momRaw, nAll, numel(tt));  % both Nt × nAll
+    Means = Means_all(indSel, selIdx);                                  % Nt_sel × nSel
+    Var   = Var_all(indSel, selIdx);                                    % Nt_sel × nSel
+    Var   = max(0, Var);                                                % numeric safety
+
+    % ---------- Prepare figures & colors ----------
+    if isempty(figureNums)
+        h = findobj('type','figure');
+        if ~isempty(h), baseFig = max([h.Number]); else, baseFig = 0; end
+        figureNums = baseFig + (1:10);
+    end
+    kfig = 1;
+    C = resolveColors(opts.Colors, nSel);
+
+    % ---------- Plotting ----------
+    switch lower(plotType)
+        case "means"
+            figure(figureNums(kfig)); clf; kfig = kfig+1; hold on
+            hMean = gobjects(1, nSel);
+            for j = 1:nSel
+                col = getC(C, j);
+                hMean(j) = plot(tt_sel, Means(:,j), lineProps{:}, 'Color', col, ...
+                                'DisplayName', selNames{j});
+            end
+            styleAxes(opts);
+            if ~strcmpi(opts.LegendLocation,"none")
+                lgd = legend(hMean, selNames, 'Location', char(opts.LegendLocation));
+                if ~isempty(lgd), lgd.FontSize = opts.LegendFontSize; end
+            end
+            applyLimits(opts);
+            applyTitle(opts, 'Moment Means');
+            grid on; box on; hold off;
+
+        case "meansanddevs"
+            figure(figureNums(kfig)); clf; kfig = kfig+1; hold on
+            hMean = gobjects(1, nSel);
+            for j = 1:nSel
+                mu = Means(:,j);
+                sd = sqrt(Var(:,j));
+                col = getC(C, j);
+
+                % mean line (legend handle)
+                hMean(j) = plot(tt_sel, mu, lineProps{:}, 'Color', col, ...
+                                'DisplayName', selNames{j});
+                % std bars (hide from legend)
+                eb = errorbar(tt_sel, mu, sd, 'LineStyle','none');
+                eb.Color = col;
+                eb.HandleVisibility = 'off';
+            end
+            styleAxes(opts);
+            if ~strcmpi(opts.LegendLocation,"none")
+                lgd = legend(hMean, selNames, 'Location', char(opts.LegendLocation));
+                if ~isempty(lgd), lgd.FontSize = opts.LegendFontSize; end
+            end
+            applyLimits(opts);
+            applyTitle(opts, 'Moment Means ± SD');
+            grid on; box on; hold off;
+
+        otherwise
+            error('Unknown plotType "%s". Use "means" or "meansAndDevs".', plotType);
+    end
+
+    % ===================== helpers =====================
+
+    function mom = extractMomentsMatrix(sol)
+        % Accepts:
+        %   - numeric matrix (moments)
+        %   - struct with field "moments"
+        %   - struct with field "Solutions.moments"
+        if isnumeric(sol)
+            mom = sol;
+            return
+        end
+        if isstruct(sol)
+            if isfield(sol, 'moments') && isnumeric(sol.moments)
+                mom = sol.moments;
+                return
+            end
+            if isfield(sol, 'Solutions') && isstruct(sol.Solutions) && ...
+                    isfield(sol.Solutions,'moments') && isnumeric(sol.Solutions.moments)
+                mom = sol.Solutions.moments;
+                return
+            end
+        end
+        error('Could not find numeric "moments" in the provided solution.');
+    end
+
+    function tt = getTimeVector(objRef, solRef, Nt)
+        % Try (in order): solRef.tSpan, solRef.T_array, objRef.tSpan
+        tt = [];
+        if isstruct(solRef)
+            if isfield(solRef, 'tSpan'),   tt = solRef.tSpan(:);   end
+            if isempty(tt) && isfield(solRef,'T_array'), tt = solRef.T_array(:); end
+        end
+        if isempty(tt) && isprop(objRef,'tSpan') && ~isempty(objRef.tSpan)
+            tt = objRef.tSpan(:);
+        end
+        if isempty(tt)
+            % fallback: 1..Nt
+            tt = (1:Nt).';
+        end
+        if numel(tt) ~= Nt
+            % If mismatch, but solRef is purely moments (no times), let tt be 1..Nt
+            tt = (1:Nt).';
+        end
+    end
+
+    function [ttSubset, idx] = resolveTimeSelection(ttFull, sel)
+        % Accept [] (all times), index vector, or a full time vector (same length as ttFull)
+        Nt = numel(ttFull);
+        if isempty(sel)
+            idx = (1:Nt).';
+            ttSubset = ttFull;
+            return
+        end
+        sel = sel(:);
+        if numel(sel) == Nt && ~all(sel >= 1 & sel <= Nt & sel == round(sel))
+            % Treat as a supplied time vector of same length
+            idx = (1:Nt).';
+            ttSubset = sel;
+        else
+            % Treat as indices
+            if any(sel < 1 | sel > Nt | sel ~= round(sel))
+                error('indTimes must be indices in 1..%d or a time vector of length %d.', Nt, Nt);
+            end
+            idx = sel;
+            ttSubset = ttFull(idx);
+        end
+    end
+
+    function [selIdx, selNames] = resolveSpeciesSelection(allNamesIn, namesArg, idxArg)
+        nTot = numel(allNamesIn);
+        if isempty(namesArg) && isempty(idxArg)
+            selIdx = 1:nTot;
+            selNames = allNamesIn;
+            return
+        end
+        if ~isempty(idxArg)
+            selIdx = unique(idxArg(:).');
+            if any(selIdx < 1 | selIdx > nTot)
+                error('opts.SpeciesIdx must be in 1..%d', nTot);
+            end
+            selNames = allNamesIn(selIdx);
+            return
+        end
+        % namesArg provided
+        if isstring(namesArg), namesArg = cellstr(namesArg); end
+        if isnumeric(namesArg)
+            selIdx = unique(namesArg(:).');
+            if any(selIdx < 1 | selIdx > nTot)
+                error('speciesNames (indices) must be in 1..%d', nTot);
+            end
+            selNames = allNamesIn(selIdx);
+        else
+            [tf, loc] = ismember(namesArg, allNamesIn);
+            if any(~tf)
+                bad = namesArg(~tf);
+                error('Unknown species name(s): %s. Available: %s', ...
+                      strjoin(bad, ', '), strjoin(allNamesIn, ', '));
+            end
+            selIdx = loc(:).';
+            selNames = allNamesIn(selIdx);
+        end
+    end
+
+    function [Means, Var] = parseMeansAndVars(m, nSp, Nt)
+        % Returns Means, Var as (Nt × nSp)
+        [R, C] = size(m);
+        if C ~= Nt
+            error('Moments width (%d) does not match Nt (%d).', C, Nt);
+        end
+    
+        % Case A: simple stack [means; second raw]
+        if R == 2*nSp
+            M  = m(1:nSp, :);
+            M2 = m(nSp+1:2*nSp, :);
+            Means = M.';                 % Nt × nSp
+            Var   = (M2.' - M.'.^2);     % Nt × nSp
+            return
+        end
+    
+        % Case B: means + all unique second-order moments (symmetric)
+        % rows = nSp + nSp*(nSp+1)/2
+        if R == nSp + nSp*(nSp+1)/2
+            meanRows = 1:nSp;
+            secondBlock = m(nSp+1:end, :);   % size: (nSp*(nSp+1)/2) × Nt
+    
+            % Build mapping for (a,b) with a<=b -> row index in secondBlock
+            % Row order is assumed lexicographic: (1,1),(1,2),...,(1,nSp),(2,2),(2,3),...,(nSp,nSp)
+            sqIdx = zeros(1,nSp);  % which rows correspond to x_i^2
+            row = 0;
+            for a = 1:nSp
+                for b = a:nSp
+                    row = row + 1;
+                    if a == b
+                        sqIdx(a) = row;
+                    end
+                end
+            end
+    
+            M  = m(meanRows, :);               % nSp × Nt
+            M2 = secondBlock(sqIdx, :);        % nSp × Nt (pick the squares)
+    
+            Means = M.';                       % Nt × nSp
+            Var   = (M2.' - M.'.^2);           % Nt × nSp
+            return
+        end
+    
+        % Case C: some k blocks of nSp (first = means, last = per-species second raw)
+        if mod(R, nSp) == 0 && R > nSp
+            k = R / nSp;
+            M  = m(1:nSp, :);
+            M2 = m(R-nSp+1:R, :);
+            Means = M.';                 % Nt × nSp
+            Var   = (M2.' - M.'.^2);     % Nt × nSp
+            return
+        end
+    
+        error(['Unexpected moments shape [%d×%d]. Expect either (2*nSp×Nt), ' ...
+               '(nSp + nSp*(nSp+1)/2 × Nt), or multiples of nSp rows.'], R, C);
+    end
+
+    function C = resolveColors(userC, n)
+        if isempty(userC), C = lines(n); return; end
+        if ischar(userC) || (isstring(userC) && isscalar(userC))
+            cm = feval(char(userC), max(n,64));
+            C = cm(round(linspace(1,size(cm,1),n)),:); return
+        end
+        if isnumeric(userC)
+            if size(userC,1) == 1 && n == 1
+                C = userC; return
+            end
+            C = userC(1:n, :); return
+        end
+        if iscell(userC), C = userC(1:n); return, end
+        error('opts.Colors must be: [], colormap name, n×3 RGB, or cell array.');
+    end
+
+    function c = getC(Cin, j)
+        if iscell(Cin), c = Cin{j}; else, c = Cin(j,:); end
+        if isstring(c), c = char(c); end
+    end
+
+    function styleAxes(o)
+        ax = gca; ax.FontSize = o.TickLabelSize;
+        xlabel(o.XLabel, 'FontSize', o.AxisLabelSize);
+        ylabel(o.YLabel, 'FontSize', o.AxisLabelSize);
+    end
+
+    function applyLimits(o)
+        if ~isempty(o.XLim), xlim(o.XLim); end
+        if ~isempty(o.YLim), ylim(o.YLim); end
+    end
+
+    function applyTitle(o, defaultTitle)
+        if strlength(o.Title) > 0
+            title(['\bf', char(o.Title)], 'FontSize', o.TitleFontSize);
+        else
+            title(['\bf', defaultTitle], 'FontSize', o.TitleFontSize);
+        end
+    end
+end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         % plotSSA - Plots SSA trajectories and histograms from ssaSoln struct
         function plotSSA(obj,speciesIdx,numTraj,speciesNames,lineProps,opts)
             arguments
@@ -4032,7 +4649,7 @@ classdef SSIT
                 opts.TitleFontSize (1,1) double {mustBePositive} = 18
                 opts.AxisLabelSize (1,1) double {mustBePositive} = 18
                 opts.TickLabelSize (1,1) double {mustBePositive} = 18
-                opts.LegendFontSize (1,1) double {mustBePositive} = 18
+                opts.LegendFontSize (1,1) double {mustBePositive} = 24
                 opts.LegendLocation (1,1) string = "best"
                 opts.XLabel (1,1) string = "Time"
                 opts.YLabel (1,1) string = "Molecule Count / Concentration"
@@ -4872,6 +5489,257 @@ classdef SSIT
             end            
         end
 
+        function hFig = plotABC(obj, ResultsABC, varargin)
+        %SSIT.plotABC Plot approximate posterior marginals from ABC MH samples.
+        %
+        % Usage:
+        %   obj.plotABC(obj.Solutions.ABC)
+        %   obj.plotABC(obj.Solutions.ABC, 'fitPars', pars2)
+        %
+        % Name-value options:
+        %   'fitPars'      : vector length nPars (solid blue line) e.g., full MCMC or MLE
+        %   'fitLabel'     : label used in legend (default 'Fit (MCMC/MLE)')
+        %   'comparePars'  : (back-compat) same as fitPars
+        %   'compareLabel' : (back-compat) label for comparePars
+        %
+        %   'bestPars'     : vector length nPars (solid red line). If omitted, inferred:
+        %                    - argmin(mhValue) if present
+        %                    - otherwise posterior mean
+        %   'bestLabel'    : label for best line (default 'Best (min loss)')
+        %
+        %   'initialPars'  : vector length nPars (black dashed line), pre-ABC start values.
+        %                    If omitted, inferred (in order):
+        %                       ResultsABC.initialPars / ResultsABC.initPars / ResultsABC.pars0 / ResultsABC.startPars
+        %                       otherwise first row of mhSamples
+        %   'initialLabel' : label for initial line (default 'Initial (pre-ABC)')
+        %   'showInitial'  : overlay initialPars (default true)
+        %   'showCurrent'  : (back-compat) treated as showInitial (default true)
+        %
+        %   'nBins'        : histogram bins (default 40)
+        %   'Normalization': 'pdf' (default) or any valid histogram normalization
+        %   'nCols'        : columns in tiled layout (default 2)
+        %   'parNames'     : cellstr of parameter names (default from obj.parameters)
+        %   'plotInds'     : optional subset of indices to plot (not implemented here)
+        %   'plotNames'    : optional subset of names to plot (not implemented here)
+        %
+        % Returns:
+        %   hFig : figure handle
+        
+            p = inputParser;
+            p.addRequired('ResultsABC', @(s)isstruct(s));
+        
+            % --- new preferred "fit" overlay (blue) ---
+            p.addParameter('fitPars', [], @(x)isnumeric(x) || isempty(x));
+            p.addParameter('fitLabel', 'Fit (MCMC/MLE)', @(s)ischar(s) || isstring(s));
+        
+            % --- backwards compatible name ---
+            p.addParameter('comparePars', [], @(x)isnumeric(x) || isempty(x));
+            p.addParameter('compareLabel', 'Compare', @(s)ischar(s) || isstring(s));
+        
+            % --- best (red) ---
+            p.addParameter('bestPars', [], @(x)isnumeric(x) || isempty(x));
+            p.addParameter('bestLabel', 'Best (min loss)', @(s)ischar(s) || isstring(s));
+        
+            % --- initial (black dashed) ---
+            p.addParameter('initialPars', [], @(x)isnumeric(x) || isempty(x));
+            p.addParameter('initialLabel', 'Initial (pre-ABC)', @(s)ischar(s) || isstring(s));
+            p.addParameter('showInitial', true, @(x)islogical(x) && isscalar(x));
+        
+            % --- legacy option: was "showCurrent", now treated as showInitial ---
+            p.addParameter('showCurrent', true, @(x)islogical(x) && isscalar(x));
+        
+            % --- misc ---
+            p.addParameter('nBins', 40, @(x)isnumeric(x) && isscalar(x) && x>0);
+            p.addParameter('Normalization', 'pdf', @(s)ischar(s) || isstring(s));
+            p.addParameter('nCols', 2, @(x)isnumeric(x) && isscalar(x) && x>=1);
+            p.addParameter('parNames', {}, @(c)iscell(c) || isstring(c));
+            p.addParameter('plotInds', [], @(x) isempty(x) || isnumeric(x) || islogical(x));
+            p.addParameter('plotNames', [], @(x) isempty(x) || isstring(x) || iscellstr(x));
+        
+            p.parse(ResultsABC, varargin{:});
+            opt = p.Results;
+        
+            if ~isfield(ResultsABC, 'mhSamples') || isempty(ResultsABC.mhSamples)
+                warning('plotABC:NoSamples', 'ResultsABC.mhSamples not found or empty.');
+                hFig = [];
+                return
+            end
+        
+            parChain = ResultsABC.mhSamples;
+            nPars    = size(parChain, 2);
+        
+            % -------------------------
+            % Choose which "blue" params to use
+            % -------------------------
+            fitPars   = opt.fitPars;
+            fitLabel  = string(opt.fitLabel);
+        
+            if isempty(fitPars) && ~isempty(opt.comparePars)
+                fitPars  = opt.comparePars;          % back-compat
+                fitLabel = string(opt.compareLabel);
+            end
+        
+            % -------------------------
+            % Infer bestPars (red)
+            % -------------------------
+            bestPars  = opt.bestPars;
+            bestLabel = string(opt.bestLabel);
+        
+            if isempty(bestPars)
+                if isfield(ResultsABC,'mhValue') && numel(ResultsABC.mhValue)==size(parChain,1)
+                    [~, iBest] = min(ResultsABC.mhValue(:));
+                    bestPars = parChain(iBest, :);
+                    bestLabel = "Best (min mhValue)";
+                else
+                    bestPars = mean(parChain, 1, 'omitnan');
+                    bestLabel = "Posterior mean";
+                end
+            end
+        
+            % -------------------------
+            % Infer initialPars (black dashed)
+            % -------------------------
+            showInitial = opt.showInitial && opt.showCurrent;  % showCurrent kept for legacy behavior
+            initialPars = opt.initialPars;
+            initialLabel = string(opt.initialLabel);
+        
+            if showInitial
+                if isempty(initialPars)
+                    % Try common field names first
+                    candFields = {'initialPars','initPars','pars0','startPars','theta0','x0'};
+                    for f = 1:numel(candFields)
+                        if isfield(ResultsABC, candFields{f}) && ~isempty(ResultsABC.(candFields{f}))
+                            initialPars = ResultsABC.(candFields{f});
+                            break
+                        end
+                    end
+                end
+        
+                if isempty(initialPars)
+                    % Fallback: first chain sample is usually the pre-ABC start
+                    initialPars = parChain(1,:);
+                    % keep label as default; you can rename if you want:
+                    % initialLabel = "Initial (chain start)";
+                end
+        
+                if numel(initialPars) ~= nPars
+                    warning('plotABC:InitialSize', ...
+                        'initialPars must have length %d (got %d). Disabling initial overlay.', ...
+                        nPars, numel(initialPars));
+                    initialPars = [];
+                else
+                    initialPars = initialPars(:).'; % row
+                end
+            else
+                initialPars = [];
+            end
+        
+            % -------------------------
+            % Parameter names
+            % -------------------------
+            parNames = opt.parNames;
+            if isempty(parNames)
+                try
+                    if isprop(obj,'fittingOptions') && isfield(obj.fittingOptions,'modelVarsToFit') ...
+                            && ~isempty(obj.fittingOptions.modelVarsToFit) ...
+                            && numel(obj.fittingOptions.modelVarsToFit)==nPars
+                        inds = obj.fittingOptions.modelVarsToFit(:);
+                        parNames = string(obj.parameters(inds,1));
+                    elseif isprop(obj,'parameters') && size(obj.parameters,1) >= nPars
+                        parNames = string(obj.parameters(1:nPars,1));
+                    else
+                        parNames = "Parameter " + (1:nPars);
+                    end
+                catch
+                    parNames = "Parameter " + (1:nPars);
+                end
+            else
+                parNames = string(parNames);
+            end
+        
+            % -------------------------
+            % Layout
+            % -------------------------
+            nCols = opt.nCols;
+            nRows = ceil(nPars / nCols);
+        
+            hFig = figure;
+            tl = tiledlayout(nRows, nCols, 'Padding','compact', 'TileSpacing','compact');
+        
+            for k = 1:nPars
+                nexttile;
+                histogram(parChain(:,k), opt.nBins, 'Normalization', opt.Normalization);
+                hold on;
+        
+                % Best (red)
+                xline(bestPars(k), 'r', 'LineWidth', 1.5);
+        
+                % Fit (blue)
+                if ~isempty(fitPars)
+                    if numel(fitPars) ~= nPars
+                        warning('plotABC:FitSize', ...
+                            'fitPars must have length %d (got %d). Ignoring.', ...
+                            nPars, numel(fitPars));
+                        fitPars = [];
+                    else
+                        xline(fitPars(k), 'b', 'LineWidth', 1.5);
+                    end
+                end
+        
+                % Initial (black dashed) — replaces old "Current obj.parameters"
+                if ~isempty(initialPars)
+                    xline(initialPars(k), 'k--', 'LineWidth', 1.2);
+                end
+        
+                title(parNames(k), 'Interpreter','none');
+                xlabel('\theta_k');
+        
+                if k == 1
+                    ylabel("Posterior density (approx.)");
+                else
+                    ylabel('');
+                end
+            end
+        
+            % -------------------------
+            % One shared legend outside
+            % -------------------------
+            hLeg = gobjects(0);
+            legItems = strings(0);
+        
+            hLeg(end+1) = plot(nan,nan,'r-','LineWidth',1.5);
+            legItems(end+1) = bestLabel;
+        
+            if ~isempty(fitPars)
+                hLeg(end+1) = plot(nan,nan,'b-','LineWidth',1.5);
+                legItems(end+1) = fitLabel;
+            end
+        
+            if ~isempty(initialPars)
+                hLeg(end+1) = plot(nan,nan,'k--','LineWidth',1.2);
+                legItems(end+1) = initialLabel;
+            end
+        
+            try
+                legend(tl, hLeg, legItems, 'Location','southoutside', ...
+                    'Orientation','horizontal', 'Box','off');
+            catch
+                axL = axes('Parent', hFig, 'Position',[0 0 1 1], 'Visible','off');
+                legend(axL, hLeg, legItems, 'Location','southoutside', ...
+                    'Orientation','horizontal', 'Box','off');
+            end
+        
+            % -------------------------
+            % Title with acceptance if available
+            % -------------------------
+            if isfield(ResultsABC,'mhAcceptance') && ~isempty(ResultsABC.mhAcceptance)
+                sgtitle(tl, sprintf('ABC posterior marginals (approx.) — acc=%.3f', ResultsABC.mhAcceptance));
+            else
+                sgtitle(tl, 'ABC posterior marginals (approx.)');
+            end
+        end
+
+
         function figHandles = plotFits(obj, fitSolution, plotType, figureNums, lineProps, opts)
             % plotFits — Compare model FSP fits to experimental data.
             %
@@ -4897,6 +5765,8 @@ classdef SSIT
             %       .LegendLocation     (string, default="best")
             %       .XLabel             (string, default="Time")
             %       .YLabel             (string, default="Response")
+            %       .TimeIdx            (double, default=[])
+            %       .TimePoints         (double, default=[])
             %
             % Output:
             %   figHandles   : cell array of figure handles (in order of creation)
@@ -4926,6 +5796,8 @@ classdef SSIT
                     opts.YLim double = []
                     opts.ProbXLim double = []    
                     opts.ProbYLim double = []    % only used for DistType == 1 (PDF)
+                    opts.TimeIdx double = []     % subset of time indices for CDF/PDF
+                    opts.TimePoints double = []  % subset of time values for CDF/PDF (exact match)
                 end
             
                 % ---- Compute fitSolution if needed ----
@@ -4974,22 +5846,72 @@ classdef SSIT
                 end
             
                 % ---------------- nested helpers ----------------
+                function timeIdx = resolveTimeSelection(app, o)
+                    % Return indices into ParEstFitTimesList.Value according to opts.
+                    allVals = app.ParEstFitTimesList.Value;   % can be cellstr or numeric
+                    if iscell(allVals)
+                        % Try numeric conversion; if it fails, we'll keep string matching only
+                        tAll = nan(size(allVals));
+                        for k = 1:numel(allVals)
+                            v = str2double(string(allVals{k}));
+                            if ~isnan(v), tAll(k) = v; end
+                        end
+                    else
+                        tAll = allVals;
+                    end
+                    nTimes = numel(allVals);
+                
+                    if ~isempty(o.TimeIdx)
+                        ti = unique(o.TimeIdx(:).');
+                        if any(ti < 1 | ti > nTimes)
+                            error('opts.TimeIdx must be in 1..%d.', nTimes);
+                        end
+                        timeIdx = ti;
+                        return;
+                    end
+                
+                    if ~isempty(o.TimePoints)
+                        if ~isnumeric(o.TimePoints)
+                            error('opts.TimePoints must be numeric time values matching ParEstFitTimesList.Value.');
+                        end
+                        tp = unique(o.TimePoints(:).');
+                        timeIdx = [];
+                        for v = tp
+                            % Prefer numeric match if we have numeric times
+                            if ~all(isnan(tAll))
+                                hit = find(tAll == v, 1);
+                            else
+                                hit = find(strcmp(string(allVals), string(v)), 1);
+                            end
+                            if isempty(hit)
+                                error('TimePoints value %.12g not found in ParEstFitTimesList.Value.', v);
+                            end
+                            timeIdx(end+1) = hit; 
+                        end
+                        timeIdx = unique(timeIdx);
+                        return;
+                    end               
+                    timeIdx = 1:nTimes;  % default: all
+                end
             
                 function figs = plotHistograms(app, fnums, lineProps, o, visible)
                     figs = {};
-                    numTimes = length(app.ParEstFitTimesList.Value);
-            
+                
+                    % Only plot selected time points
+                    timeIdx  = resolveTimeSelection(app, o);    
+                    numTimes = numel(timeIdx);                  
+                
                     % Full model/data dimensions
                     NdModFit = max(1, length(size(app.DataLoadingAndFittingTabOutputs.fitResults.current))-1);
                     NdDatAll = length(app.SpeciesForFitPlot.Value);
                     if NdModFit ~= NdDatAll
                         error('Model and Data size do not match in fitting routine');
                     end
-            
+                
                     % Species selection (subset of fitted species)
                     [selIdx, selNames] = getSelectedFitSpecies(app, o);
                     NdDat = numel(selIdx);
-            
+                
                     % Loop over DistType: 0 = CDF, 1 = PDF
                     for DistType = 0:1
                         % Choose figure
@@ -5001,141 +5923,109 @@ classdef SSIT
                         else
                             figHandle = figure(fnums(DistType+1));
                         end
-            
+                
                         if DistType==0
                             set(figHandle,'Name','Cumulative Distributions versus Time');
                         else
                             set(figHandle,'Name','Probability Distributions versus Time');
                         end
-            
-                        % Subplot layout
+                
+                        % Subplot layout for *selected* times
                         if numTimes <= 4
                             subPlotSize = [1, numTimes];
                         else
                             subPlotSize(2) = ceil(sqrt(numTimes));
                             subPlotSize(1) = ceil(numTimes/subPlotSize(2));
                         end
-            
-                        % Hold legend names across all subplots
+                
                         allLegNames = {};
-            
-                        % Loop over times
-                        for iTime = 1:numTimes
-                            if o.UsePanels
-                                subplot(subPlotSize(1), subPlotSize(2), iTime);
-                            end
-                            ax = gca;
-                            hold(ax,'on');
-                            ax.FontSize = o.TickLabelSize;
-            
+                
+                        % Loop over *selected* times only
+                        for ii = 1:numTimes
+                            iTime = timeIdx(ii);                     
+                
+                            if o.UsePanels, subplot(subPlotSize(1), subPlotSize(2), ii); end
+                            ax = gca; hold(ax,'on'); ax.FontSize = o.TickLabelSize;
+                
                             LegNames = {};
-                            dataTensor = double(app.DataLoadingAndFittingTabOutputs.dataTensor);
-                            modelTensorAll = app.DataLoadingAndFittingTabOutputs.fitResults.current;
-                            xm = 0; ym = 0;
-            
-                        for k = 1:NdDat
-                            j = selIdx(k);              % index into fitted species
-                            speciesName = selNames{k};  % correct plotted species name
+                            dataTensor      = double(app.DataLoadingAndFittingTabOutputs.dataTensor);
+                            modelTensorAll  = app.DataLoadingAndFittingTabOutputs.fitResults.current;
                 
-                            % indices to sum over in model tensor (other species)
-                            indsToSumOver = setdiff(1:NdModFit, j);
+                            for k = 1:NdDat
+                                j = selIdx(k);
+                                speciesName = selNames{k};
+                                indsToSumOver = setdiff(1:NdModFit, j);
                 
-                            %% --- Data histogram for species j ---
-                            dataTensor = double(app.DataLoadingAndFittingTabOutputs.dataTensor);
-                            if ndims(app.DataLoadingAndFittingTabOutputs.dataTensor) == 1
-                                Hdat = dataTensor;
-                            else
-                                Hdat = squeeze(dataTensor(iTime,:,:,:,:,:,:,:,:,:));
+                                % --- DATA histogram at this time ---
+                                if ndims(app.DataLoadingAndFittingTabOutputs.dataTensor) == 1
+                                    Hdat = dataTensor;
+                                else
+                                    Hdat = squeeze(dataTensor(iTime,:,:,:,:,:,:,:,:,:));
+                                end
+                                if ~isempty(indsToSumOver), Hdat = sum(Hdat, indsToSumOver); end
+                                Hdat = Hdat(:); Hdat = Hdat / max(sum(Hdat), eps);
+                                xDat = 0:length(Hdat)-1;
+                                yDat = (DistType==1) * smoothBins(Hdat, o.SmoothWindow) + ...
+                                       (DistType==0) * cumsum(Hdat);
+                                stairs(ax, xDat, yDat, lineProps{:});
+                                LegNames{end+1} = [speciesName,'-data'];
+                
+                                % --- MODEL histogram at this time ---
+                                inds = modelTensorAll.subs;
+                                inds = inds(inds(:,1) == iTime,:);         
+                                vals = modelTensorAll(inds);
+                                modelTensor = double(sptensor(inds(:,2:end), vals));
+                                if ~isempty(indsToSumOver), Hmod = squeeze(sum(modelTensor, indsToSumOver));
+                                else,                        Hmod = squeeze(modelTensor);
+                                end
+                                Hmod = Hmod(:);
+                                xMod = 0:length(Hmod)-1;
+                                yMod = (DistType==1) * smoothBins(Hmod, o.SmoothWindow) + ...
+                                       (DistType==0) * cumsum(Hmod);
+                                stairs(ax, xMod, yMod, lineProps{:});
+                                LegNames{end+1} = [speciesName,'-mod'];
                             end
-                            if ~isempty(indsToSumOver)
-                                Hdat = sum(Hdat, indsToSumOver);
-                            end
-                            Hdat = Hdat(:);
-                            Hdat = Hdat / max(sum(Hdat), eps);
-                            xDat = 0:length(Hdat)-1;
                 
-                            if DistType == 1   % PDF
-                                yDat = smoothBins(Hdat, o.SmoothWindow);
-                            else               % CDF
-                                yDat = cumsum(Hdat);
+                            % Title + limits for this subplot
+                            title(ax, sprintf('t = %s', app.ParEstFitTimesList.Value{iTime}), ...
+                                  'FontSize', max(o.TitleFontSize-2, 8), 'FontWeight','bold');
+                            if mod(ii, subPlotSize(2)) == 1
+                                ylabel(ax, 'Probability', 'FontSize', o.AxisLabelSize);
+                            end
+                            if ii > numTimes - subPlotSize(2)
+                                xlabel(ax, 'Molecule Count', 'FontSize', o.AxisLabelSize);
                             end
                 
-                            stairs(ax, xDat, yDat, lineProps{:});
-                            LegNames{end+1} = [speciesName,'-data']; 
-                            xm = max(xm, length(Hdat));
-                            ym = max(ym, max(yDat));
-
-                            % ----- style for this subplot -----
-                            title(ax, ['t = ', app.ParEstFitTimesList.Value{iTime}], 'FontSize', o.TitleFontSize-2);
-                            ylabel(ax, 'Probability', 'FontSize', o.AxisLabelSize-2);
-                            set(ax,'FontSize',o.TickLabelSize);
-                    
-                            % NEW: apply per-plot limits only to Probability Distributions
+                            % Apply per-plot limits only to PDF
                             if DistType == 1
                                 if ~isempty(o.ProbXLim), xlim(ax, o.ProbXLim); end
                                 if ~isempty(o.ProbYLim), ylim(ax, o.ProbYLim); end
                             end
                 
-                            %% --- Model histogram for species j ---
-                            modelTensorAll = app.DataLoadingAndFittingTabOutputs.fitResults.current;
-                            inds = modelTensorAll.subs;
-                            inds = inds(inds(:,1) == iTime,:);
-                            vals = modelTensorAll(inds);
-                            modelTensor = double(sptensor(inds(:,2:end), vals));
-                            if ~isempty(indsToSumOver)
-                                Hmod = squeeze(sum(modelTensor, indsToSumOver));
-                            else
-                                Hmod = squeeze(modelTensor);
-                            end
-                            Hmod = Hmod(:);
-                            xMod = 0:length(Hmod)-1;
-                
-                            if DistType == 1
-                                yMod = smoothBins(Hmod, o.SmoothWindow);
-                            else
-                                yMod = cumsum(Hmod);
-                            end
-                
-                            stairs(ax, xMod, yMod, lineProps{:});
-                            LegNames{end+1} = [speciesName,'-mod']; 
-                
-                            xm = max(xm, length(Hmod));
-                            ym = max(ym, max(yMod));
-                                    end
-            
-                            title(ax, sprintf('t = %s', app.ParEstFitTimesList.Value{iTime}), ...
-                                  'FontSize', max(o.TitleFontSize-2, 8), 'FontWeight','bold');
-                            if mod(iTime, subPlotSize(2)) == 1
-                                ylabel(ax, 'Probability', 'FontSize', o.AxisLabelSize);
-                            end
-                            if iTime > numTimes - subPlotSize(2)
-                                xlabel(ax, 'Molecule Count', 'FontSize', o.AxisLabelSize);
-                            end
                             grid(ax,'on'); box(ax,'on');
-            
                             allLegNames = [allLegNames, LegNames];
                         end
-            
+                
+                        % Legend + super-title
                         if ~isempty(allLegNames)
                             lgd = legend(allLegNames, 'Location', char(o.LegendLocation));
                             if ~isempty(lgd), lgd.FontSize = o.LegendFontSize; end
                         end
-            
+                
                         if strlength(o.Title) > 0
                             sgtitle(string(o.Title), 'FontSize', o.TitleFontSize, 'FontWeight','bold');
                         else
-                            if DistType==0
-                                sgtitle('Cumulative Distributions versus Time', ...
-                                        'FontSize', o.TitleFontSize, 'FontWeight','bold');
+                            if DistType == 0
+                                titleStr = 'Cumulative Distributions versus Time';
                             else
-                                sgtitle('Probability Distributions versus Time', ...
-                                        'FontSize', o.TitleFontSize, 'FontWeight','bold');
+                                titleStr = 'Probability Distributions versus Time';
                             end
+                            sgtitle(titleStr, 'FontSize', o.TitleFontSize, 'FontWeight','bold');
                         end
-            
-                        figs{end+1} = figHandle; 
+                
+                        figs{end+1} = figHandle;
                     end
-                end
+             end
             
              function figs = plotTrajectories(app, fnums, lineProps, o, visible)
                 figs = {};
@@ -5336,7 +6226,7 @@ classdef SSIT
                     end
         
                     % Legend name from fitted species
-                    LG{end+1} = sprintf('%s Data mean \x00B1 %s', spName, varianceType); 
+                    LG{end+1} = sprintf('%s Data Mean \x00B1 %s', spName, varianceType); 
                 end
         
                 % ----- axes labels, title, legend & styling using opts -----
@@ -5392,7 +6282,7 @@ classdef SSIT
                     subplot(3,1,1);
                     plot(tData, V_LogLk, lineProps{:}); hold on
                     plot(tData, perfectMod, lineProps{:});
-                    ylabel('Log(L(D(t)|M))', 'FontSize', o.AxisLabelSize);
+                    ylabel('log-likelihood', 'FontSize', o.AxisLabelSize);
                     legend({'log(L) - best fit for model', 'log(L) - theoretical limit'}, ...
                            'Location','best', 'FontSize', o.LegendFontSize);
                     set(gca,'FontSize', o.TickLabelSize);
@@ -5406,7 +6296,7 @@ classdef SSIT
                     % 3) Per-cell delta log-likelihood
                     subplot(3,1,3);
                     plot(tData, (V_LogLk - perfectMod)./max(numCells,eps), lineProps{:});
-                    ylabel('\Delta Log(L) / Cell', 'FontSize', o.AxisLabelSize);
+                    ylabel('\Delta log(L) / Cell', 'FontSize', o.AxisLabelSize);
                     xlabel('Time', 'FontSize', o.AxisLabelSize);
                     set(gca,'FontSize', o.TickLabelSize);
             
@@ -5534,289 +6424,292 @@ classdef SSIT
 
 
        function plotFIMResults(obj, fimInput, paramNames, theta0, opts)
-            % plotFIMResults  Visualize a Fisher Information Matrix (FIM) and
-            %                 FIM-based parameter uncertainty ellipses.
-            %
-            %   obj.plotFIMResults(fimInput)
-            %   obj.plotFIMResults(fimInput, paramNames)
-            %   obj.plotFIMResults(fimInput, paramNames, theta0)
-            %   obj.plotFIMResults(fimInput, paramNames, theta0, opts)
-            %
-            %   fimInput   : either an n x n numeric FIM, or a 1x1 cell containing it
-            %                e.g., Model_fimTotal = {4x4 double}
-            %
-            %   paramNames : cell array of parameter names, e.g.,
-            %                  {'k_{on}','k_{off}','k_r','k_d'}
-            %                If empty or omitted, defaults to {'\theta_1', ..., '\theta_n'}.
-            %
-            %   theta0     : 1 x n vector of nominal parameter values
-            %                (center of ellipses; e.g., log10-parameters).
-            %                If empty or omitted, defaults to zeros(1,n).
-            %
-            %   opts (name-value via arguments block):
-            %       .UseLog10        (logical, default true)
-            %       .FigureHandle    (default: new figure)
-            %       .PlotEllipses    (logical, default true)
-            %       .EllipseLevel    (double, default 0.9) – confidence level
-            %       .EllipseFigure   (default: new figure)
-            %       .EllipsePairs    (default: []) – subset of parameter index pairs
-            %                        to plot as ellipses; numeric Kx2 matrix:
-            %                        [i1 j1; i2 j2; ...], 1 <= i < j <= nParams
-            %
-            %       .Colors          (struct or [], default [])
-            %           Optional fields:
-            %               .HeatmapColormap – colormap handle or name (e.g. parula, 'hot')
-            %               .DiagBars        – color for diag(FIM) bars
-            %               .EigBars         – color for eigenvalue bars
-            %               .Ellipse         – line spec for ellipses (e.g. 'r--')
-            %
-            %       .Title           (string, default "")
-            %       .TitleFontSize   (double, default 14)
-            %       .AxisLabelSize   (double, default 14)
-            %       .TickLabelSize   (double, default 12)
-            %       .LegendFontSize  (double, default 14)   
-            %       .LegendLocation  (string, default "best")
-            
-                arguments
-                    obj
-                    fimInput
-                    paramNames = []
-                    theta0 = []
-                    opts.UseLog10 (1,1) logical = true
-                    opts.FigureHandle = []
-                    opts.PlotEllipses (1,1) logical = true
-                    opts.EllipseLevel (1,1) double {mustBePositive} = 0.9
-                    opts.EllipseFigure = []
-                    opts.EllipsePairs = []
-            
-                    opts.Colors = []   
-                    opts.Title (1,1) string = ""
-                    opts.TitleFontSize (1,1) double {mustBePositive} = 14
-                    opts.AxisLabelSize (1,1) double {mustBePositive} = 14
-                    opts.TickLabelSize (1,1) double {mustBePositive} = 12
-                    opts.LegendFontSize (1,1) double {mustBePositive} = 14
-                    opts.LegendLocation (1,1) string = "best"
-                end
-            
-                % -------- Extract numeric FIM --------
-                if iscell(fimInput)
-                    fim = fimInput{1};
-                else
-                    fim = fimInput;
-                end
-            
-                if ~ismatrix(fim) || size(fim,1) ~= size(fim,2)
-                    error('FIM must be a square matrix or a 1x1 cell containing a square matrix.');
-                end
-            
-                nParams = size(fim,1);
-            
-                % Default parameter names if not provided
-                if isempty(paramNames)
-                    paramNames = arrayfun(@(i) sprintf('\\theta_{%d}', i), ...
-                                          1:nParams, 'UniformOutput', false);
-                end
-            
-                % Default theta0 (ellipse centers)
-                if isempty(theta0)
-                    theta0 = zeros(1, nParams);
-                end
-                if numel(theta0) ~= nParams
-                    error('theta0 must be a vector of length %d (number of parameters).', nParams);
-                end
-            
-                % Convenience alias
-                C = opts.Colors;
-            
-                % -------- Basic spectral info --------
-                % Make sure FIM is symmetric (numerical noise)
-                fimSym = 0.5 * (fim + fim.');
-            
-                [eigVec, eigValMat] = eig(fimSym);
-                eigVals = diag(eigValMat);
-            
-                % Condition number using positive eigenvalues only
-                posEig = eigVals(eigVals > 0);
-                if isempty(posEig)
-                    condInfo = NaN;
-                else
-                    condInfo = max(posEig) / min(posEig);
-                end
-            
-                % -------- Prepare plotting values --------
-                if opts.UseLog10
-                    % Avoid taking log10 of non-positive values
-                    epsVal   = 1e-16;
-                    fimDisp  = log10(max(fimSym, epsVal));
-                    eigDisp  = log10(max(eigVals, epsVal));
-                    fimLabel = 'log_{10} FIM';
-                    eigLabel = 'log_{10} eigenvalues';
-                else
-                    fimDisp  = fimSym;
-                    eigDisp  = eigVals;
-                    fimLabel = 'FIM';
-                    eigLabel = 'Eigenvalues';
-                end
-            
-                diagInfo = diag(fimSym);
-            
-                % -------- Figure for FIM matrix/diag/eigs --------
-                if ~isempty(opts.FigureHandle) && ishghandle(opts.FigureHandle)
-                    fig = opts.FigureHandle;
-                    figure(fig); clf;
-                else
-                    fig = figure;
-                end
-                set(fig, 'Name', 'FIM Results', 'NumberTitle', 'off');
-            
-                % Optional global title
-                if opts.Title ~= ""
-                    sgtitle(opts.Title, 'FontSize', opts.TitleFontSize, 'FontWeight', 'bold');
-                end
-            
-                % Layout: 2x2 grid
-                % (1) Heatmap of FIM
-                subplot(2,2,[1 3]); % big panel on left
-                imagesc(fimDisp);
-                axis square;
-                cb = colorbar;
-                if ~isempty(C) && isstruct(C) && isfield(C,'HeatmapColormap')
-                    colormap(C.HeatmapColormap);
-                else
-                    colormap(parula);
-                end
-                set(gca, 'XTick', 1:nParams, 'XTickLabel', paramNames, ...
-                         'YTick', 1:nParams, 'YTickLabel', paramNames, ...
-                         'TickLabelInterpreter', 'tex', ...
-                         'FontSize', opts.TickLabelSize);
-                xlabel('Parameter', 'FontSize', opts.AxisLabelSize);
-                ylabel('Parameter', 'FontSize', opts.AxisLabelSize);
-                title(fimLabel, 'FontSize', opts.AxisLabelSize, 'FontWeight', 'bold');
-                cb.Label.String = fimLabel;
-                cb.Label.FontSize = opts.AxisLabelSize;
-            
-                % (2) Bar plot of diagonal (per-parameter information)
-                subplot(2,2,2);
-                hBarDiag = bar(diagInfo);
-                if ~isempty(C) && isstruct(C) && isfield(C,'DiagBars')
-                    set(hBarDiag, 'FaceColor', C.DiagBars);
-                end
-                set(gca, 'XTick', 1:nParams, 'XTickLabel', paramNames, ...
-                         'TickLabelInterpreter', 'tex', ...
-                         'FontSize', opts.TickLabelSize);
-                xlabel('Parameter', 'FontSize', opts.AxisLabelSize);
-                ylabel('Diagonal entry of FIM', 'FontSize', opts.AxisLabelSize);
-                title('Per-parameter information (diag(FIM))', ...
-                      'FontSize', opts.AxisLabelSize, 'FontWeight', 'bold');
-            
-                % (3) Bar plot of eigenvalues
-                subplot(2,2,4);
-                hBarEig = bar(eigDisp);
-                if ~isempty(C) && isstruct(C) && isfield(C,'EigBars')
-                    set(hBarEig, 'FaceColor', C.EigBars);
-                end
-                set(gca, 'FontSize', opts.TickLabelSize);
-                xlabel('Eigenvalue index', 'FontSize', opts.AxisLabelSize);
-                ylabel(eigLabel, 'FontSize', opts.AxisLabelSize);
-                title(sprintf('FIM spectrum (cond. ~ %.2e)', condInfo), ...
-                      'FontSize', opts.AxisLabelSize, 'FontWeight', 'bold');
-            
-                % -------- Optional: ellipse plots --------
-                if opts.PlotEllipses
-                    % FIM-based covariance (sanitized inverse using eigen-decomposition)
-                    epsShift = 1e-12;
-                    [V,D] = eig(fimSym);
-                    lam   = diag(D);
-                    lamSafe = max(lam, epsShift);
-                    covFIM = V * diag(1 ./ lamSafe) * V.';
-                    covFIM = 0.5 * (covFIM + covFIM.');   % symmetrize inverse
-            
-                    % Make or reuse ellipse figure
-                    if ~isempty(opts.EllipseFigure) && ishghandle(opts.EllipseFigure)
-                        figEll = opts.EllipseFigure;
-                        figure(figEll); clf;
-                    else
-                        figEll = figure;
-                    end
-                    set(figEll, 'Name', 'FIM-based covariance ellipses', 'NumberTitle', 'off');
-            
-                    if opts.Title ~= ""
-                        sgtitle(opts.Title, 'FontSize', opts.TitleFontSize, 'FontWeight', 'bold');
-                    end
-            
-                    % chi^2 quantile for given confidence level, df=2
-                    chi2val = icdf('chi2', opts.EllipseLevel, 2);
-            
-                    ellipsePairs = opts.EllipsePairs;
-            
-                    % Choose line style for ellipses
-                    if ~isempty(C) && isstruct(C) && isfield(C,'Ellipse')
-                        ellipseSpec = C.Ellipse;
-                    else
-                        ellipseSpec = 'k-';
-                    end
-            
-                    if isempty(ellipsePairs)
-                        % --- Default: plot all upper-triangular pairs in an (n-1)x(n-1) grid ---
-                        for iParam = 1:nParams-1
-                            for jParam = iParam+1:nParams
-                                subplot(nParams-1, nParams-1, (iParam-1)*(nParams-1) + jParam-1);
-            
-                                % 2x2 sub-covariance and center (order [theta_j, theta_i])
-                                subCov = covFIM([jParam iParam],[jParam iParam]);
-                                mu     = theta0([jParam iParam]);
-            
-                                ssit.parest.ellipse(mu, chi2val * subCov, ellipseSpec, 'LineWidth', 2); hold on;
-                                plot(mu(1), mu(2), 'ks', 'MarkerSize', 8, 'MarkerFaceColor', 'w');
-            
-                                xlabel(sprintf('%s', paramNames{jParam}), 'Interpreter', 'tex', ...
-                                       'FontSize', opts.AxisLabelSize);
-                                ylabel(sprintf('%s', paramNames{iParam}), 'Interpreter', 'tex', ...
-                                       'FontSize', opts.AxisLabelSize);
-                                set(gca, 'FontSize', opts.TickLabelSize);
-                                axis equal; grid on;
-                            end
+        % plotFIMResults  Visualize a Fisher Information Matrix (FIM) and
+        %                 FIM-based parameter uncertainty ellipses.
+        %
+        %   obj.plotFIMResults(fimInput)
+        %   obj.plotFIMResults(fimInput, paramNames)
+        %   obj.plotFIMResults(fimInput, paramNames, theta0)
+        %   obj.plotFIMResults(fimInput, paramNames, theta0, opts)
+        %
+        %   fimInput   : n×n numeric FIM, or a 1×1 cell containing it
+        %   paramNames : cellstr of parameter names; default {'\theta_1',...}
+        %   theta0     : 1×n center of ellipses (e.g., log10-params); default zeros
+        %
+        %   opts (name-value):
+        %     .UseLog10        (logical, default true)
+        %     .FigureHandle    (default: new figure)
+        %     .PlotEllipses    (logical, default true)
+        %     .EllipseLevel    (double, default 0.9) – confidence level
+        %     .EllipseFigure   (default: new figure)
+        %     .EllipsePairs    (K×2) subset of index pairs [i j] to plot
+        %
+        %     .Colors (struct or []):
+        %         .HeatmapColormap  – colormap name/handle for heatmap
+        %         .DiagBars         – color for diag(FIM) bars
+        %         .EigBars          – color for eigenvalue bars
+        %         .Ellipse          – line spec (e.g. 'r--') used if no color given
+        %         .EllipseColor     – single color (char or 1×3) for all ellipses
+        %         .EllipseColors    – per-ellipse colors (cellstr or K×3 RGB), used
+        %                              only when EllipsePairs is provided
+        %         .CenterSquare     – color for the square marker edge (default 'k')
+        %
+        %     .Title, .TitleFontSize, .AxisLabelSize, .TickLabelSize,
+        %     .LegendFontSize, .LegendLocation
+        
+            arguments
+                obj
+                fimInput
+                paramNames = []
+                theta0 = []
+                opts.UseLog10 (1,1) logical = true
+                opts.FigureHandle = []
+                opts.PlotEllipses (1,1) logical = true
+                opts.EllipseLevel (1,1) double {mustBePositive} = 0.9
+                opts.EllipseFigure = []
+                opts.EllipsePairs = []
+                opts.Colors = struct('EllipseColors',[0.2 0.6 0.9],'CenterSquare',[0.96,0.47,0.16])
+                opts.Title (1,1) string = ""
+                opts.TitleFontSize (1,1) double {mustBePositive} = 14
+                opts.AxisLabelSize (1,1) double {mustBePositive} = 14
+                opts.TickLabelSize (1,1) double {mustBePositive} = 12
+                opts.LegendFontSize (1,1) double {mustBePositive} = 14
+                opts.LegendLocation (1,1) string = "best"
+            end
+        
+            % -------- Extract numeric FIM --------
+            if iscell(fimInput), fim = fimInput{1}; else, fim = fimInput; end
+            if ~ismatrix(fim) || size(fim,1) ~= size(fim,2)
+                error('FIM must be a square matrix or a 1x1 cell containing a square matrix.');
+            end
+            nParams = size(fim,1);
+        
+            % Names / centers
+            if isempty(paramNames)
+                paramNames = arrayfun(@(i) sprintf('\\theta_{%d}', i), 1:nParams, 'UniformOutput', false);
+            end
+            if isempty(theta0), theta0 = zeros(1,nParams); end
+            if numel(theta0) ~= nParams
+                error('theta0 must be a vector of length %d (number of parameters).', nParams);
+            end
+        
+            C = opts.Colors;  % color options
+        
+            % -------- Basic spectral info --------
+            fimSym = 0.5 * (fim + fim.');
+            [eigVec, eigValMat] = eig(fimSym);
+            eigVals = diag(eigValMat);
+            posEig = eigVals(eigVals > 0);
+            condInfo = (isempty(posEig)) * NaN + (~isempty(posEig)) * (max(posEig) / min(posEig));
+        
+            % -------- Prepare plotting values --------
+            if opts.UseLog10
+                epsVal   = 1e-16;
+                fimDisp  = log10(max(fimSym, epsVal));
+                eigDisp  = log10(max(eigVals, epsVal));
+                fimLabel = 'log_{10} FIM';
+                eigLabel = 'log_{10} eigenvalues';
+            else
+                fimDisp  = fimSym;
+                eigDisp  = eigVals;
+                fimLabel = 'FIM';
+                eigLabel = 'Eigenvalues';
+            end
+            diagInfo = diag(fimSym);
+        
+            % -------- Figure for FIM matrix/diag/eigs --------
+            if ~isempty(opts.FigureHandle) && ishghandle(opts.FigureHandle)
+                fig = opts.FigureHandle; figure(fig); clf;
+            else
+                fig = figure;
+            end
+            set(fig, 'Name', 'FIM Results', 'NumberTitle', 'off');
+        
+            if opts.Title ~= ""
+                sgtitle(opts.Title, 'FontSize', opts.TitleFontSize, 'FontWeight', 'bold');
+            end
+        
+            % (1) Heatmap
+            subplot(2,2,[1 3]);
+            imagesc(fimDisp); axis square;
+            cb = colorbar;
+            if ~isempty(C) && isstruct(C) && isfield(C,'HeatmapColormap')
+                colormap(C.HeatmapColormap);
+            else
+                colormap(parula);
+            end
+            set(gca, 'XTick', 1:nParams, 'XTickLabel', paramNames, ...
+                     'YTick', 1:nParams, 'YTickLabel', paramNames, ...
+                     'TickLabelInterpreter', 'tex', 'FontSize', opts.TickLabelSize);
+            xlabel('Parameter', 'FontSize', opts.AxisLabelSize);
+            ylabel('Parameter', 'FontSize', opts.AxisLabelSize);
+            title(fimLabel, 'FontSize', opts.AxisLabelSize, 'FontWeight', 'bold');
+            cb.Label.String = fimLabel; cb.Label.FontSize = opts.AxisLabelSize;
+        
+            % (2) diag(FIM)
+            subplot(2,2,2);
+            hBarDiag = bar(diagInfo);
+            if ~isempty(C) && isstruct(C) && isfield(C,'DiagBars')
+                set(hBarDiag, 'FaceColor', C.DiagBars);
+            end
+            set(gca, 'XTick', 1:nParams, 'XTickLabel', paramNames, ...
+                     'TickLabelInterpreter', 'tex', 'FontSize', opts.TickLabelSize);
+            xlabel('Parameter', 'FontSize', opts.AxisLabelSize);
+            ylabel('Diagonal entry of FIM', 'FontSize', opts.AxisLabelSize);
+            title('Per-parameter information', 'FontSize', opts.AxisLabelSize, 'FontWeight', 'bold');
+        
+            % (3) eigenvalues
+            subplot(2,2,4);
+            hBarEig = bar(eigDisp);
+            if ~isempty(C) && isstruct(C) && isfield(C,'EigBars')
+                set(hBarEig, 'FaceColor', C.EigBars);
+            end
+            set(gca, 'FontSize', opts.TickLabelSize);
+            xlabel('Eigenvalue index', 'FontSize', opts.AxisLabelSize);
+            ylabel(eigLabel, 'FontSize', opts.AxisLabelSize);
+            if isfinite(condInfo)
+                ttl = sprintf('FIM spectrum (cond. ≈ %.2e)', condInfo);
+            else
+                ttl = 'FIM spectrum';
+            end
+            title(ttl, 'FontSize', opts.AxisLabelSize, 'FontWeight', 'bold');
+        
+            % -------- Ellipse plots --------
+            if ~opts.PlotEllipses, return; end
+        
+            % Safe inverse via eig
+            epsShift = 1e-12;
+            [V,D] = eig(fimSym);
+            lam   = diag(D);
+            lamSafe = max(lam, epsShift);
+            covFIM = V * diag(1 ./ lamSafe) * V.';
+            covFIM = 0.5 * (covFIM + covFIM.');   % symmetrize
+        
+            % Figure
+            if ~isempty(opts.EllipseFigure) && ishghandle(opts.EllipseFigure)
+                figEll = opts.EllipseFigure; figure(figEll); clf;
+            else
+                figEll = figure;
+            end
+            set(figEll, 'Name', 'FIM-based covariance ellipses', 'NumberTitle', 'off');
+            if opts.Title ~= ""
+                sgtitle(opts.Title, 'FontSize', opts.TitleFontSize, 'FontWeight', 'bold');
+            end
+        
+            chi2val = icdf('chi2', opts.EllipseLevel, 2);
+        
+            ellipsePairs = opts.EllipsePairs;
+            % Resolve center square color and fix linewidth=2
+            centerSqColor = 'k';
+            if ~isempty(C) && isstruct(C) && isfield(C,'CenterSquare') && ~isempty(C.CenterSquare)
+                centerSqColor = C.CenterSquare;
+            end
+        
+            % Resolve a single ellipse color/spec (fallback)
+            [ellipseHasColor, ellipseColorOrSpec] = resolveEllipseColorFallback(C);
+        
+            if isempty(ellipsePairs)
+                % grid of all upper-triangular pairs
+                for iParam = 1:nParams-1
+                    for jParam = iParam+1:nParams
+                        subplot(nParams-1, nParams-1, (iParam-1)*(nParams-1) + jParam-1);
+                        subCov = covFIM([jParam iParam],[jParam iParam]);
+                        mu     = theta0([jParam iParam]);
+        
+                        if ellipseHasColor
+                            ssit.parest.ellipse(mu, chi2val * subCov, ellipseColorOrSpec, 'LineWidth', 2);
+                        else
+                            ssit.parest.ellipse(mu, chi2val * subCov, 'k-', 'LineWidth', 2);
                         end
-                    else
-                        % --- Subset mode: ellipsePairs is Kx2 matrix of [i j] index pairs ---
-                        if ~ismatrix(ellipsePairs) || size(ellipsePairs,2) ~= 2
-                            error('EllipsePairs must be a Kx2 numeric matrix of parameter index pairs [i j].');
-                        end
-                        K = size(ellipsePairs,1);
-                        % Layout: as square as possible
-                        nRows = ceil(sqrt(K));
-                        nCols = ceil(K / nRows);
-            
-                        for k = 1:K
-                            iParam = ellipsePairs(k,1);
-                            jParam = ellipsePairs(k,2);
-            
-                            if ~isscalar(iParam) || ~isscalar(jParam) || ...
-                                    iParam < 1 || jParam < 1 || ...
-                                    iParam > nParams || jParam > nParams || iParam == jParam
-                                error('Invalid EllipsePairs entry at row %d: [%d %d].', k, iParam, jParam);
-                            end
-            
-                            subplot(nRows, nCols, k);
-            
-                            % 2x2 sub-covariance and center (order [theta_j, theta_i])
-                            subCov = covFIM([jParam iParam],[jParam iParam]);
-                            mu     = theta0([jParam iParam]);
-            
-                            ssit.parest.ellipse(mu, chi2val * subCov, ellipseSpec, 'LineWidth', 2); hold on;
-                            plot(mu(1), mu(2), 'ks', 'MarkerSize', 8, 'MarkerFaceColor', 'w');
-            
-                            xlabel(sprintf('%s', paramNames{jParam}), 'Interpreter', 'tex', ...
-                                   'FontSize', opts.AxisLabelSize);
-                            ylabel(sprintf('%s', paramNames{iParam}), 'Interpreter', 'tex', ...
-                                   'FontSize', opts.AxisLabelSize);
-                            set(gca, 'FontSize', opts.TickLabelSize);
-                            axis equal; grid on;
-                        end
+                        hold on;
+                        plot(mu(1), mu(2), 's', 'MarkerSize', 8, ...
+                            'MarkerEdgeColor', centerSqColor, 'MarkerFaceColor', 'w', 'LineWidth', 2);
+        
+                        xlabel(paramNames{jParam}, 'Interpreter', 'tex', 'FontSize', opts.AxisLabelSize);
+                        ylabel(paramNames{iParam}, 'Interpreter', 'tex', 'FontSize', opts.AxisLabelSize);
+                        set(gca, 'FontSize', opts.TickLabelSize); axis equal; grid on;
                     end
+                end
+            else
+                % subset layout
+                if ~ismatrix(ellipsePairs) || size(ellipsePairs,2) ~= 2
+                    error('EllipsePairs must be a Kx2 numeric matrix of parameter index pairs [i j].');
+                end
+                K = size(ellipsePairs,1);
+                nRows = ceil(sqrt(K)); nCols = ceil(K / nRows);
+        
+                % Per-ellipse colors (optional)
+                perCols = resolvePerEllipseColors(C, K);
+        
+                for k = 1:K
+                    iParam = ellipsePairs(k,1); jParam = ellipsePairs(k,2);
+                    if any([iParam jParam] < 1) || any([iParam jParam] > nParams) || iParam == jParam
+                        error('Invalid EllipsePairs entry at row %d: [%d %d].', k, iParam, jParam);
+                    end
+        
+                    subplot(nRows, nCols, k);
+                    subCov = covFIM([jParam iParam],[jParam iParam]);
+                    mu     = theta0([jParam iParam]);
+        
+                    if ~isempty(perCols)
+                        thisCol = perCols{k};
+                        ssit.parest.ellipse(mu, chi2val * subCov, '-', 'Color', thisCol, 'LineWidth', 2);
+                    elseif ellipseHasColor
+                        ssit.parest.ellipse(mu, chi2val * subCov, ellipseColorOrSpec, 'LineWidth', 2);
+                    else
+                        ssit.parest.ellipse(mu, chi2val * subCov, 'k-', 'LineWidth', 2);
+                    end
+                    hold on;
+                    plot(mu(1), mu(2), 's', 'MarkerSize', 8, ...
+                        'MarkerEdgeColor', centerSqColor, 'MarkerFaceColor', 'w', 'LineWidth', 2);
+        
+                    xlabel(paramNames{jParam}, 'Interpreter', 'tex', 'FontSize', opts.AxisLabelSize);
+                    ylabel(paramNames{iParam}, 'Interpreter', 'tex', 'FontSize', opts.AxisLabelSize);
+                    set(gca, 'FontSize', opts.TickLabelSize); axis equal; grid on;
                 end
             end
-
+        
+            % ------- helpers -------
+            function [hasColor, colorOrSpec] = resolveEllipseColorFallback(Cin)
+                hasColor = false; colorOrSpec = [];
+                if isempty(Cin) || ~isstruct(Cin), return; end
+                if isfield(Cin,'EllipseColor') && ~isempty(Cin.EllipseColor)
+                    hasColor = true; colorOrSpec = Cin.EllipseColor; return;
+                end
+                if isfield(Cin,'Ellipse') && ~isempty(Cin.Ellipse)
+                    hasColor = true; colorOrSpec = Cin.Ellipse; return;
+                end
+            end
+        
+            function perCols = resolvePerEllipseColors(Cin, K)
+                perCols = [];
+                if isempty(Cin) || ~isstruct(Cin) || ~isfield(Cin,'EllipseColors') || isempty(Cin.EllipseColors)
+                    return;
+                end
+                EC = Cin.EllipseColors;
+                if iscell(EC)
+                    % cell array of color specs
+                    perCols = EC;
+                    if numel(perCols) < K
+                        % repeat if shorter
+                        perCols = perCols(:);
+                        perCols = repmat(perCols, ceil(K/numel(perCols)), 1);
+                        perCols = perCols(1:K);
+                    end
+                elseif isnumeric(EC) && size(EC,2) == 3
+                    % Kx3 RGB matrix
+                    if size(EC,1) < K
+                        perCols = num2cell(EC,2);
+                        perCols = repmat(perCols, ceil(K/numel(perCols)), 1);
+                        perCols = perCols(1:K);
+                    else
+                        perCols = num2cell(EC(1:K,:), 2);
+                    end
+                else
+                    error('Colors.EllipseColors must be a cell array of color specs or a K×3 RGB numeric array.');
+                end
+            end
+       end
             
             % --------- Helper: numerically safe inverse of symmetric matrix ----------
             function Ainv = safeInverseSym(A, epsShift)
@@ -5849,7 +6742,7 @@ classdef SSIT
             end
 
 
-        function plotMHResults(obj,mhResults,FIM,fimScale,mhPlotScale,scatterFig,showConvergence)
+            function plotMHResults(obj,mhResults,FIM,fimScale,mhPlotScale,scatterFig,showConvergence)
             arguments
                 obj
                 mhResults = [];
@@ -5941,11 +6834,6 @@ classdef SSIT
                     FIMi = FIMi(obj.fittingOptions.modelVarsToFit,obj.fittingOptions.modelVarsToFit);
                     if isempty(mhPlotScale)||strcmp(mhPlotScale,'log10')
                         covFIM{i} = FIMi^(-1)/log(10)^2;
-                    elseif min(eig(FIMi))<1
-                        disp('Warning -- FIM has one or more small eigenvalues.  Sanitize negative eigenvalues (numerical instability) for ellipse:')
-                        FIMi = (1/2)*(FIMi + FIMi');
-                        %covFree{i} = FIMi^(-1);
-                        covFIM{i} = FIMi;
                     else
                         covFIM{i} = FIMi^(-1);
                     end
@@ -6032,6 +6920,8 @@ classdef SSIT
                 end
             end
         end
+
+        
         function FIM = totalFim(fims,Nc,covPrior)
             arguments
                 fims
@@ -6130,11 +7020,10 @@ classdef SSIT
                 return
             end
 
-            [~,order] = sort(Len,'descend');
-            for i = 1:length(order)
-                % str = strrep(str,species{order(i)},['x',num2str(i)]);
-                str = regexprep(str,['\<',species{order(i)},'\>'],['x',num2str(i)]);
+            for i = 1:length(species)
+                str = regexprep(str,['\<',species{i},'\>'],['x',num2str(i)]);
             end
+            
 
         end
         function cmd = generateCommandLinePipeline(saveFileIn,modelName,dummy, ...

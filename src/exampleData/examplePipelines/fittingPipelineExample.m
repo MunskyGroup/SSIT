@@ -4,14 +4,15 @@ function [results, Model] = fittingPipelineExample(Model,Args)
 % updated model.
 arguments
     Model
-    Args = struct('maxIter',1000,'display','iter','makePlot',false)
+    Args = struct('maxIter',1000,'display','iter','makePlot',false,'nRounds',1)
 end
 
 % Replace missing arguments with defaults.
-defaultArgs = struct('maxIter',1000,'display','iter','makePlot',false);
-for ifield = fields(defaultArgs)
-    if ~isfield(Args, ifield)
-        Args.(ifield) = defaultArgs.(ifield);
+defaultArgs = struct('maxIter',1000,'display','iter','makePlot',false,'nRounds',1);
+argFields = fields(defaultArgs);
+for ifield = 1:length(argFields)
+    if ~isfield(Args, argFields{ifield})
+        Args.(argFields{ifield}) = defaultArgs.(argFields{ifield});
     end
 end
 
@@ -24,10 +25,12 @@ results = [];
 fitOptions = optimset('Display',Args.display,'MaxIter',Args.maxIter);
 
 % Fit model to data
-[~,~,~,Model] = Model.maximizeLikelihood([],fitOptions);
+for iRound = 1:Args.nRounds
+    [~,~,~,Model] = Model.maximizeLikelihood([],fitOptions);
 
-% Find final FSP bounds
-[~,~,Model] = Model.solve;  
+    % Find final FSP bounds
+    [~,~,Model] = Model.solve;
+end
 
 if Args.makePlot
     Model.makeFitPlot;

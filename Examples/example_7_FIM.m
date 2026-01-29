@@ -38,10 +38,10 @@ Model_FIM = Model_sens;
 %% Compute FIMs using FSP sensitivity results
 % Compute the FIM:
 Model_FIM = Model_sens;
-Model_fimResults = Model_FIM.computeFIM(Model_sensSoln.sens); 
+Model_fimResults = Model_FIM.computeFIM(Model_sens.Solutions.sens); 
 
 % Generate a count of measured cells (in place of real data):
-Model_cellCounts = 10*ones(size(Model_FIM.tSpan));
+Model_cellCounts = 100*ones(size(Model_FIM.tSpan));
 
 % Evaluate the provided experiment design (in "cellCounts") 
 % and produce an array of FIMs (one for each parameter set):
@@ -54,8 +54,8 @@ ellipsePairs = [1 2;
 
 theta0 = [Model_FIM.parameters{:,2}];
 
-Model_FIM.plotFIMResults(Model_fimTotal, Model_FIM.parameters, theta0, ...
-                         PlotEllipses=true, EllipseLevel=0.9, ...
+Model_FIM.plotFIMResults(Model_fimTotal, Model_FIM.parameters, theta0,...
+                         PlotEllipses=true, EllipseLevel=0.9,...
                          EllipsePairs=ellipsePairs);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -69,18 +69,22 @@ STL1_FIM = STL1_sens;
 
 %% Compute FIMs using FSP sensitivity results
 % Compute the FIM:
-STL1_fimResults = STL1_FIM.computeFIM(STL1_sensSoln.sens); 
+STL1_fimResults = STL1_FIM.computeFIM(STL1_sens.Solutions.sens); 
 
 % Generate a count of measured cells (in place of real data):
-STL1_cellCounts = 10*ones(size(STL1_FIM.tSpan));
+STL1_cellCounts = 100*ones(size(STL1_FIM.tSpan));
 
 % Evaluate the provided experiment design (in "cellCounts") 
 % and produce an array of FIMs (one for each parameter set):
 [STL1_fimTotal,STL1_mleCovEstimate,STL1_fimMetrics] = ...
     STL1_FIM.evaluateExperiment(STL1_fimResults,STL1_cellCounts)
 
+STL1_theta0 = [STL1_FIM.parameters{:,2}];
+
 % Plot the FIMs:
-STL1_FIM.plotFIMResults(STL1_fimTotal,STL1_FIM.parameters)
+STL1_FIM.plotFIMResults(STL1_fimTotal, STL1_FIM.parameters, STL1_theta0,...
+                        PlotEllipses=true, EllipseLevel=0.9,...
+                        EllipsePairs=ellipsePairs);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(3): Compute the FIM for the 4-state STL1 yeast model
@@ -93,14 +97,13 @@ STL1_4state_FIM = STL1_4state_sens;
 
 %% Compute FIMs using FSP sensitivity results
 % Compute the FIM:
-STL1_4state_fimResults = ...
-    STL1_4state_FIM.computeFIM(); 
+STL1_4state_fimResults = STL1_4state_FIM.computeFIM(); 
 
 % Generate a count of measured cells - or get the number of cells using 
 % 'nCells' - e.g., "STL1_4state_data.dataSet.nCells", which becomes:
 % STL1_4state_cellCounts = ...
 % STL1_4state_data.dataSet.nCells*ones(size(STL1_4state_FIM.tSpan));
-STL1_4state_cellCounts = 10*ones(size(STL1_4state_FIM.tSpan));
+STL1_4state_cellCounts = 1000*ones(size(STL1_4state_FIM.tSpan));
 
 % Evaluate the provided experiment design (in "cellCounts") 
 % and produce an array of FIMs (one for each parameter set):
@@ -109,10 +112,21 @@ STL1_4state_cellCounts = 10*ones(size(STL1_4state_FIM.tSpan));
     STL1_4state_FIM.evaluateExperiment(STL1_4state_fimResults,...
                                        STL1_4state_cellCounts)
 
-% Plot the FIMs:
+% Plot the FIMs (4 parameter combinations):
 STL1_4state_FIM.plotFIMResults(STL1_4state_fimTotal,...
     STL1_4state_FIM.parameters, [STL1_4state_FIM.parameters{:,2}],...
-    PlotEllipses=true, EllipsePairs=[6 14; 7 12; 13 15; 11 14]);
+    PlotEllipses=true, EllipsePairs=[1 6; 9 10; 8 10; 8 9]);
+
+% Plot the FIMs (6 parameter combinations):
+STL1_4state_FIM.plotFIMResults(STL1_4state_fimTotal,...
+    STL1_4state_FIM.parameters, [STL1_4state_FIM.parameters{:,2}],...
+    PlotEllipses=true, EllipsePairs=[1 6; 4 13; 6 7; 9 10; 8 10; 8 9]);
+
+% Plot the FIMs (9 parameter combinations):
+STL1_4state_FIM.plotFIMResults(STL1_4state_fimTotal,...
+    STL1_4state_FIM.parameters, [STL1_4state_FIM.parameters{:,2}],...
+    PlotEllipses=true,...
+    EllipsePairs=[1 6; 1 9; 3 5; 3 7; 2 5; 4 14; 2 10; 5 10; 2 7]);
 
 %%
 % Note:  If detI(θ)=0, then at least one eigenvalue 𝜆𝑘=0. That means the 
@@ -172,3 +186,5 @@ saveNames = unique({'Model_FIM'
     });
     
 save('example_7_FIM',saveNames{:})
+
+ 
