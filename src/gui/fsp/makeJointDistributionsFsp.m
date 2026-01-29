@@ -14,23 +14,26 @@ sp2 = find(strcmp(app.JointSp1.Items,app.JointSp2.Value));
 % Check if plot selection is distorted.
 if sp1>nD
     sp1p = find(strcmp(app.JointSp1.Items,app.JointSp1.Value(1:end-12)));
+    sp1pp = sp1 - nD;
     distort1 = true;
 else
     sp1p = sp1;
+    sp1pp = sp1;
     distort1 = false;
 end
 if sp2>nD
     sp2p = find(strcmp(app.JointSp2.Items,app.JointSp2.Value(1:end-12)));
+    sp2pp = sp2-nD;
     distort2 = true;
 else
     sp2p = sp2;
+    sp2pp = sp2;
     distort2 = false;
 end
 
-if sp1p==sp2p;
-    % error('Only one species chosen -- cannot make joint pdf')
-end
-
+% if sp1p==sp2p
+%     % error('Only one species chosen -- cannot make joint pdf')
+% end
 
 % if nD==2
 %     for it = length(T_array):-1:1
@@ -45,10 +48,10 @@ for it = length(T_array):-1:1
         Joints{it} = diag(Joints{it});
     end
     if distort2
-        Joints{it} = app.SSITModel.pdoOptions.PDO.conditionalPmfs{sp2p}*Joints{it};
+        Joints{it} = app.SSITModel.pdoOptions.PDO.conditionalPmfs{sp2pp}(:,1:length(Joints{it}))*Joints{it};
     end
     if distort1
-        Joints{it} = Joints{it}*app.SSITModel.pdoOptions.PDO.conditionalPmfs{sp1p};
+        Joints{it} = Joints{it}*(app.SSITModel.pdoOptions.PDO.conditionalPmfs{sp1pp}(:,1:length(Joints{it})))';
     end
 end
 % end

@@ -31,7 +31,6 @@ else
     app.PDO_Axis.Visible = 1;
     app.PDO_Axis2.Visible = 1;
 
-
     switch app.DistortionTypeDropDown.Value
         case 'Binomial'
             for iSp = 1:length(speciesStochastic)
@@ -76,5 +75,7 @@ else
                 app.FIMTabOutputs.PDOProperties.props.(['MaxObservationS',num2str(iSp)]) = 100;
             end
     end
+    app.SSITModel.pdoOptions.type = app.DistortionTypeDropDown.Value;
+    app.SSITModel.pdoOptions.props = app.FIMTabOutputs.PDOProperties.props;   
 end
 updateSpeciesDropBoxes
