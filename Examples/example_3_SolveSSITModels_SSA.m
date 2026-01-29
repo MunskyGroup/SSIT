@@ -22,8 +22,8 @@ STL1.summarizeModel
 STL1_4state.summarizeModel
 
 % Set the times at which distributions will be computed:
-Model.tSpan = linspace(0,20,200);
-STL1.tSpan = linspace(0,20,200);
+Model.tSpan = linspace(0,50,200);
+STL1.tSpan = linspace(0,50,200);
 STL1_4state.tSpan = linspace(0,50,200);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -57,6 +57,7 @@ STL1_4state.tSpan = linspace(0,50,200);
     
     % Run iterations in parallel with multiple cores, or execute serially:
     Model_SSA.ssaOptions.useParallel = false;
+    Model_SSA.ssaOptions.useGPU = false;
 
     % This function compiles and stores the given reaction propensities  
     % into symbolic expression functions that use sparse matrices to  
@@ -100,7 +101,7 @@ STL1_4state.tSpan = linspace(0,50,200);
     
     % A negative initial time is used to allow model to equilibrate 
     % before starting (burn-in). Large burn-in times cause long run times.
-    STL1_SSA.tSpan = [-1,STL1_SSA.tSpan];
+    STL1_SSA.tSpan = [-100,STL1_SSA.tSpan];
 
     % Set the initial time:
     STL1_SSA.initialTime = STL1_SSA.tSpan(1); 
