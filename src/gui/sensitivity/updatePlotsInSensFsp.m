@@ -42,12 +42,14 @@ for iSpecies = 1:nSpecies
     end
 end
 
+speciesStochastic = setdiff(app.SSITModel.species,app.SSITModel.hybridOptions.upstreamODEs);
+
 % Regenerate PDO if needed.
-if isfield(app.SSITModel.pdoOptions,'PDO')&&max(species2Plot)>length(app.SSITModel.species)
+if isfield(app.SSITModel.pdoOptions,'PDO')&&max(species2Plot)>length(speciesStochastic)
     maxNum = app.SSITModel.Solutions.sens.data{j}.p.data.size;
     kSp = 0;
-    for iS = 1:length(app.SSITModel.species)
-        if max(strcmpi(app.SSITModel.pdoOptions.unobservedSpecies,app.SSITModel.species(iS)))
+    for iS = 1:length(speciesStochastic)
+        if max(strcmpi(app.SSITModel.pdoOptions.unobservedSpecies,speciesStochastic(iS)))
             maxNum(iS) = 0;
             curNum(iS) = 0;
         else
@@ -59,9 +61,9 @@ if isfield(app.SSITModel.pdoOptions,'PDO')&&max(species2Plot)>length(app.SSITMod
         [~,app.SSITModel] = app.SSITModel.generatePDO([],[],[],[],maxNum);
     end
 
-    for iSp = 1:length(app.SSITModel.species)
-        kSp = 0;
-        if ~max(strcmpi(app.SSITModel.pdoOptions.unobservedSpecies,app.SSITModel.species{iSp}))
+    kSp = 0;
+    for iSp = 1:length(speciesStochastic)
+        if ~max(strcmpi(app.SSITModel.pdoOptions.unobservedSpecies,speciesStochastic{iSp}))
             INDS = setdiff([1:Nd],iSp);
             if ~isempty(INDS)
                 px = double(app.SSITModel.Solutions.sens.data{j}.p.sumOver(INDS).data);
@@ -71,8 +73,8 @@ if isfield(app.SSITModel.pdoOptions,'PDO')&&max(species2Plot)>length(app.SSITMod
                 Sx = double(app.SSITModel.Solutions.sens.data{j}.S(ipar).data);
             end
             kSp = kSp+1;
-            mdist{end+1} = app.SSITModel.pdoOptions.PDO.conditionalPmfs{kSp}*px;
-            sensmdist{end+1} = app.SSITModel.pdoOptions.PDO.conditionalPmfs{kSp}*Sx;
+            mdist{end+1} = app.SSITModel.pdoOptions.PDO.conditionalPmfs{kSp}(:,1:length(px))*px;
+            sensmdist{end+1} = app.SSITModel.pdoOptions.PDO.conditionalPmfs{kSp}(:,1:length(px))*Sx;
         end
     end
 end

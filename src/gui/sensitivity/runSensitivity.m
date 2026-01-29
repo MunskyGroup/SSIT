@@ -27,7 +27,10 @@ end
 
 %% Set Initial Conditions and other user settings
 app.SSITModel.initialCondition = eval(app.FspInitCondField.Value)';   % Pulls the inital conditions specified
-Nsp = length(app.SSITModel.species);
+
+speciesStochastic = setdiff(app.SSITModel.species,app.SSITModel.hybridOptions.upstreamODEs);
+Nsp = length(speciesStochastic);
+
 app.SSITModel.customConstraintFuns = app.FspConstraintTable.Data(Nsp*2+1:end,1);
 app.SSITModel.fspOptions.bounds = app.FspTabOutputs.bounds';
 app.SSITModel.tSpan = unique(eval(app.FspPrintTimesField.Value));        % Pulls the time array from the app
