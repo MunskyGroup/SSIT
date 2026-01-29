@@ -63,7 +63,7 @@ for it = 1:length(T_array2)
                     px = double(app.SSITModel.Solutions.fsp{it}.p.data);
                 end
                 kSp = kSp+1;
-                mdist{it,Nd+kSp} = app.SSITModel.pdoOptions.PDO.conditionalPmfs{kSp}*px;
+                mdist{it,Nd+kSp} = app.SSITModel.pdoOptions.PDO.conditionalPmfs{kSp}(:,1:length(px))*px;
             end
         end
     end
