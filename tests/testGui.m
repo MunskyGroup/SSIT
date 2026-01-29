@@ -36,14 +36,14 @@ classdef testGui < matlab.uitest.TestCase
             tc.choose(tc.GUI.ModelDropDown,'M00_Poisson_Process.mat');
         end
         
-        function test_change_to_ssa_tab(tc)
+        function test_ssa_tab_options(tc)
             % Change to SSA Tab
             tc.choose(tc.GUI.TabGroup,'Stochastic Simulation');
             % Run SSA
             tc.press(tc.GUI.SsaRunButton);
         end
 
-        function test_change_to_fsp_tab(tc)
+        function test_fsp_tab_options(tc)
             % Change to FSP Tab
             tc.choose(tc.GUI.TabGroup,'Finite State Projection');
             tc.GUI.FspMarginalTimeCreateMovieCheckBox.Value = true;
@@ -118,7 +118,9 @@ classdef testGui < matlab.uitest.TestCase
             for iB = 1:length(Buttons)
                 tc.press(tc.GUI.(Buttons{iB}));
             end
+        end
 
+        function test_hybrid_and_pdo_options(tc)
             % Switch to Distortion and Hybrid Modeling tab
             tc.choose(tc.GUI.TabGroup,'Distortion and Hybrid Modeling');
 
@@ -133,18 +135,38 @@ classdef testGui < matlab.uitest.TestCase
             % Select 'rna' to generate PDO and make plots.
             tc.choose(tc.GUI.SpeciesDropDown,'rna')
 
-            %% Change back to data loading and fitting.
-            tc.choose(tc.GUI.TabGroup,'Data Loading and Fitting');
+        end
+        % function test_hybrid_and_pdo_fitting(tc)
+        %     %% Change back to data loading and fitting.
+        %     tc.choose(tc.GUI.TabGroup,'Data Loading and Fitting');
+        % 
+        %     % Change fitting options to only 10 iterations.
+        %     tc.GUI.DataLoadingAndFittingTabOutputs.fitOptions.props.Display = 'iter';
+        %     tc.GUI.DataLoadingAndFittingTabOutputs.fitOptions.props.MaxIter = 10;
+        % 
+        %     % Run Data Loading and Fitting with various buttons
+        %     Buttons = {'SolveandPlotButton','FitModelButton','SolveandPlotButton'};
+        %     for iB = 1:length(Buttons)
+        %         tc.press(tc.GUI.(Buttons{iB}));
+        %     end
+        % end
 
-            % change fitting options to only 10 iterations.
-            tc.GUI.DataLoadingAndFittingTabOutputs.fitOptions.props.MaxIter = 10;
-            
-            % Run Data Loading and Fitting with various buttons
-            Buttons = {'SolveandPlotButton','FitModelButton','SolveandPlotButton'};
+        function test_fsp_tab_hybrid_an(tc)
+            % Change to FSP Tab
+            tc.choose(tc.GUI.TabGroup,'Finite State Projection');
+            tc.GUI.FspMarginalTimeCreateMovieCheckBox.Value = true;
+            tc.GUI.FspMeanVarShowVarianceCheckBox.Value = true;
+            tc.GUI.FspMeanVarShowOdeCheckBox.Value = true;
+            % tc.GUI.FspMeshCheckBox = true;
+
+            % Run FSP with various buttons
+            Buttons = {'FspRunButtom','FspAddConstraintButton','FspRunButtom',...
+                'FspUpdatePlotButton','FspPlotMarginalsButton','FspDefaultButton',...
+                'FspRunButtom','FspPlotMarginalsOverTimeButton','FspMeanVarPlotButton'...
+                };
             for iB = 1:length(Buttons)
                 tc.press(tc.GUI.(Buttons{iB}));
             end
-
         end
     end
 end
