@@ -74,7 +74,7 @@ if isfield(app.SSITModel.pdoOptions,'PDO')&&max(species2Plot)>length(speciesStoc
             end
             kSp = kSp+1;
             mdist{end+1} = app.SSITModel.pdoOptions.PDO.conditionalPmfs{kSp}(:,1:length(px))*px;
-            sensmdist{end+1} = app.SSITModel.pdoOptions.PDO.conditionalPmfs{kSp}(:,1:length(px))*Sx;
+            sensmdist{end+1} = app.SSITModel.pdoOptions.PDO.conditionalPmfs{kSp}(:,1:length(Sx))*Sx;
         end
     end
 end
