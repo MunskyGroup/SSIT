@@ -128,18 +128,19 @@ combinedModel = combinedModel.updateModels(allParsCombined);
 STL1_4state_multi_1_ind = STL1_4state_multi_1;
 STL1_4state_multi_2_ind = STL1_4state_multi_2;
 
-% Model 1 contributes 0 shared parameters plus its own [1-15]
+%% Specify how many model parameters will be fit
+% Model 1 has 0 shared parameters plus 15 of its own (15 total):
 STL1_4state_multi_1_ind.fittingOptions.modelVarsToFit = [1:15];
 
-% Model 2 contributes 0 shared parameters plus its own [1-15]
+% Model 2 has 0 shared parameters plus 15 of its own (15 total):
 STL1_4state_multi_2_ind.fittingOptions.modelVarsToFit = [1:15];
 
 % Select which models to include in SSITMultiModel:
-Models_ind = {STL1_4state_multi_1_ind,STL1_4state_multi_2_ind};
+Models_ind = {STL1_4state_multi_1_ind, STL1_4state_multi_2_ind};
 
 % Define how parameters are assigned to sub-models by their indices.  
 % In this example, the parameters are completely independent:
-ParsIndices_ind = {[1:15],[16:30]};
+ParsIndices_ind = {[1:15], [16:30]};
 
 % Combine models into one "MultiModel", specify parameters, and initialize:
 combinedModelIndependent = SSITMultiModel(Models_ind,ParsIndices_ind);
@@ -153,12 +154,10 @@ allParsIndependent = ([STL1_4state_multi_1_ind.parameters{:,2},...
 allParsIndependent = combinedModelIndependent.maximizeLikelihood(...
     allParsIndependent, fitOptions, fitAlgorithm);
 
-% Update model parameters:
+% Update model parameters and plot results:
 combinedModelIndependent = ...
-    combinedModelIndependent.updateModels(allParsIndependent);
-% warning: ^ this updates combinedModelIndependent.SSITModels{1}.parameters
-% and combinedModelIndependent.SSITModels{2}.parameters, but NOT
-% combinedModelIndependent.parameters!!
+    combinedModelIndependent.updateModels(allParsIndependent,true);
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(3): Completely dependent parameters
@@ -172,27 +171,34 @@ combinedModelIndependent = ...
 STL1_4state_multi_1_dep = STL1_4state_multi_1;
 STL1_4state_multi_2_dep = STL1_4state_multi_2;
 
-% Model 1 contributes 0 shared parameters plus its own [1-15]
-STL1_4state_multi_1_ind.fittingOptions.modelVarsToFit = [1:15];
+%% Specify how many model parameters will be fit
+% Model 1 has 15 shared parameters plus 0 of its own (15 total): 
+STL1_4state_multi_1_dep.fittingOptions.modelVarsToFit = [1:15];
 
-% Model 2 contributes 0 shared parameters plus its own [1-15]
-STL1_4state_multi_2_ind.fittingOptions.modelVarsToFit = [1:15];
+% Model 2 has 15 shared parameters plus 0 of its own (15 total):
+STL1_4state_multi_2_dep.fittingOptions.modelVarsToFit = [1:15];
 
 % Select which models to include in SSITMultiModel:
-Models_ind = {STL1_4state_multi_1_ind,STL1_4state_multi_2_ind};
+Models_dep = {STL1_4state_multi_1_dep, STL1_4state_multi_2_dep};
 
 % Define how parameters are assigned to sub-models by their indices.  
-% In this example, the parameters are completely independent:
-ParsIndices_ind = {[1:15],[16:30]};
+% In this example, the parameters are completely dependent:
+ParsIndices_dep = {[1:15], [1:15]};
 
-combinedModelDependent = SSITMultiModel({STL1_4state_multi_1_dep,...
-                                     STL1_4state_multi_2_dep},{1:15,1:15});
+% Combine models into one "MultiModel", specify parameters, and initialize:
+combinedModelDependent = SSITMultiModel(Models_dep, ParsIndices_dep);
 combinedModelDependent = combinedModelDependent.initializeStateSpaces;
+
+% Store parameters for later updating:
 allParsDependent = ([STL1_4state_multi_1_dep.parameters{:,2}]);
+
+% Fit parameters using maximum likelihood estimation:
 allParsDependent = combinedModelDependent.maximizeLikelihood(...
     allParsDependent, fitOptions, fitAlgorithm);
+
+% Update model parameters and plot results:
 combinedModelDependent = ...
-    combinedModelDependent.updateModels(allParsDependent);
+    combinedModelDependent.updateModels(allParsDependent,true);
 
 %% Note: This example is shown for illustration purposes only.  
 % Usually, if one is fitting two replicas of the exact same experiment, 
@@ -216,20 +222,34 @@ combinedModelDependent = ...
 STL1_4state_multi_1_mix = STL1_4state_multi_1;
 STL1_4state_multi_2_mix = STL1_4state_multi_2;
 
-% Model 1 contributes shared [1:13] plus its own [14-15]
+%% Specify how many model parameters will be fit
+% Model 1 has 13 shared parameters plus 2 of its own (15 total):
 STL1_4state_multi_1_mix.fittingOptions.modelVarsToFit = [1:13, 14:15];
 
-% Model 2 contributes shared [1:13] plus its own [14-15]
+% Model 2 has 13 shared parameters plus 2 of its own (15 total):
 STL1_4state_multi_2_mix.fittingOptions.modelVarsToFit = [1:13, 14:15];
 
-combinedModelMixed = SSITMultiModel( ...
-    {STL1_4state_multi_1_mix, STL1_4state_multi_2_mix}, ...
-    { [1:13, 14:15],       [1:13, 14:15] } );
+% Select which models to include in SSITMultiModel:
+Models_mix = {STL1_4state_multi_1_mix, STL1_4state_multi_2_mix};
+
+%% Define how parameters are assigned to sub-models by their indices  
+% In this example, the first 13 parameters are shared, and each model has 2
+% of its own parameters which must be stored in separate indices:
+ParsIndices_mix = {[1:13,14:15], [1:13,16:17]};
+
+% Combine models into one "MultiModel", specify parameters, and initialize:
+combinedModelMixed = SSITMultiModel(Models_mix, ParsIndices_mix);
 combinedModelMixed = combinedModelMixed.initializeStateSpaces;
+
+% Store parameters for later updating:
 allParsMixed = ([STL1_4state_multi_1_mix.parameters{:,2},...
                  STL1_4state_multi_2_mix.parameters{:,2}]);
+
+% Fit parameters using maximum likelihood estimation:
 allParsMixed = combinedModelMixed.maximizeLikelihood(...
-    allParsMixed, fitOptions, fitAlgorithm);
+                allParsMixed, fitOptions, fitAlgorithm);
+
+% Update model parameters and plot results:
 combinedModelMixed = combinedModelMixed.updateModels(allParsMixed);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
