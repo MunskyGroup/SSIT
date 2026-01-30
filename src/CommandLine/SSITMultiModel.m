@@ -172,6 +172,11 @@ classdef SSITMultiModel
                 makeplot = true
                 fignums = [];
             end
+            
+            if isempty(parameters)
+                parameters = SMM.parameters;
+            end
+            
             Nmods = length(SMM.SSITModels);
             for i = 1:Nmods
                 SMM.SSITModels{i}.parameters(SMM.SSITModels{i}.fittingOptions.modelVarsToFit,2) = ...
@@ -187,6 +192,8 @@ classdef SSITMultiModel
                     SMM.SSITModels{i}.solutionScheme = solnType;
                end
             end
+            % Update parameters
+            SMM.parameters = parameters;
         end
 
         function objFuns = get.logLikelihoodFunctions(SMM)
