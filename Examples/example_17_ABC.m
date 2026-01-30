@@ -21,13 +21,13 @@ addpath(genpath('../src'));
 
 %% Set SSA options:
 % Make copy of our 4-state STL1 model:
-STL1_4state_ABC = STL1_4state_MLE;
+STL1_4state_ABC = STL1_4state_MH;
 
 %Set solution scheme to SSA:
 STL1_4state_ABC.solutionScheme = 'SSA';
 
 % Set number of simulations performed per experiment (small # for demo):
-STL1_4state_ABC.ssaOptions.nSimsPerExpt=10;
+STL1_4state_ABC.ssaOptions.nSimsPerExpt=100;
     
 % Equilibrate before starting (burn-in):
 STL1_4state_ABC.tSpan = [0,STL1_4state_ABC.tSpan];
@@ -63,14 +63,14 @@ logPriorLoss = [];
 % 'MetropolisHastings' algorithm. Tune these depending on your problem size.
 
 fitOptions = struct();
-fitOptions.numberOfSamples       = 100;         % Total MH iterations 
-fitOptions.burnIn                = 0;           % Discard burn-in samples
-fitOptions.thin                  = 1;           % Keep every nth sample
-proposalWidthScale               = 0.1;         % Proposal scale
+fitOptions.numberOfSamples       = 1000;         % Total MH iterations 
+fitOptions.burnIn                = 100;          % Discard burn-in samples
+fitOptions.thin                  = 0;           % Keep every nth sample
+proposalWidthScale               = 0.2;        % Proposal scale
 % Proposal distribution:
 fitOptions.proposalDistribution  = @(x)x+proposalWidthScale*randn(size(x));
 % Log prior:
-fitOptions.logPrior = @(x)-sum((log10(x)-log10_mu).^2./(2*log10_sigma.^2));
+fitOptions.logPrior = @(x)sum((log10(x)-mu_log10).^2./(2*sig_log10.^2));
 
 % Initial parameter guess (optional, default: current Model.parameters):
 parGuess = [];

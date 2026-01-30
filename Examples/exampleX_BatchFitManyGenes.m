@@ -5,34 +5,39 @@ addpath(genpath('../src'));
 Model_Template = SSIT;
 Model_Template.species = {'onGene';'rna'};
 Model_Template.initialCondition = [0;0];
-Model_Template.propensityFunctions = {'(kon_0+kon_1*Iupstream)*(2-onGene)';...
-    'koff_0/(1+akoff*Iupstream)*onGene';'kr_0*(2-onGene)+kr_1*onGene';'gr*rna'};
+Model_Template.propensityFunctions = ...
+    {'(kon_0+kon_1*Iupstream)*(2-onGene)';...
+    'koff_0/(1+akoff*Iupstream)*onGene';...
+    'kr_0*(2-onGene)+kr_1*onGene';'gr*rna'};
 Model_Template.stoichiometry = [1,-1,0,0;0,0,1,-1];
-Model_Template.inputExpressions = {'Iupstream','exp(-r1*t*(t>=0))*(1-exp(-r2*t*(t>=0)))'};
-Model_Template.parameters = ({'r1',0.01;'r2',0.1;...
-    'kon_0',0.01;'kon_1',0.01;'koff_0',20;'akoff',0.2;'kr_0',1;'kr_1',100;'gr',1});
-Model_Template.fspOptions.initApproxSS = true;
+Model_Template.inputExpressions = {'Iupstream',...
+                                'exp(-r1*t*(t>=0))*(1-exp(-r2*t*(t>=0)))'};
+Model_Template.parameters = ({'r1',0.01; 'r2',0.1; 'kon_0',0.01;...
+                              'kon_1',0.01; 'koff_0',20; 'akoff',0.2;...
+                              'kr_0',1; 'kr_1',100; 'gr',1});
 
+Model_Template.fspOptions.initApproxSS = true;
 Model_Template.fittingOptions.modelVarsToFit = 1:9;
 Model_Template.fittingOptions.logPrior = @(x)-sum(log10(x).^2/2);
+
 % We generate functions for model propensities
+Model_Template = Model_Template.formPropensitiesGeneral('Model_Template');
 [~,~,Model_Template] = Model_Template.solve;
 
-% Set PDO to Binomial for RNA (assuming 95% drop-out rate).
-% TODO - Alex, please update to your newer version.
+%% Set PDO to Binomial for RNA (assuming 95% drop-out rate)
 Model_Template.pdoOptions.type = 'Binomial';
 Model_Template.pdoOptions.unobservedSpecies = 'onGene';
 Model_Template.pdoOptions.props.CaptureProbabilityS1 = 0;    % Gene State is not measured
 Model_Template.pdoOptions.props.CaptureProbabilityS2 = 0.05; % 95% drop out from RNA
 [~,Model_Template] = Model_Template.generatePDO;
 
-%% Load and fit representative data set to get better first parameter guess.
+%% Load and fit representative data set to get better first parameter guess
 DataFileName = 'data/Raw_DEX_UpRegulatedGenes_ForSSIT.csv';
 Model_Template = Model_Template.loadData(DataFileName,{'rna','DUSP1'});
 for i=1:5
     [~,~,~,Model_Template] = Model_Template.maximizeLikelihood;
 end
-% Model_Template.makeFitPlot;  % Cluster may crash if no display is set.
+Model_Template.makeFitPlot;  % Cluster may crash if no display is set.
 
 %% Generate library of individual gene models
 % Specify datafile name and species linking rules
@@ -41,14 +46,14 @@ TAB = readtable(DataFileName);
 geneNames = fields(TAB);
 geneNames = geneNames(2:end-4); % The Genes are in Columns 2 -> N-4
 
-% if ~exist('seqModels','dir'); mkdir('seqModels'); end
-% for iGene = 1:length(geneNames)
-%     linkedSpecies = {'rna',geneNames{iGene}};
-%     Model = Model_Template.loadData(DataFileName,linkedSpecies);
-%     modelName = ['Model_',geneNames{iGene}];
-%     assignin('base',modelName,Model);
-%     save(['seqModels/',modelName],modelName);
-% end
+if ~exist('seqModels','dir'); mkdir('seqModels'); end
+for iGene = 1:length(geneNames)
+    linkedSpecies = {'rna',geneNames{iGene}};
+    Model = Model_Template.loadData(DataFileName,linkedSpecies);
+    modelName = ['Model_',geneNames{iGene}];
+    assignin('base',modelName,Model);
+    save(['seqModels/',modelName],modelName);
+end
 
 %% Fit a multi-model for the 4 genes
 % Here we use the multi-model approach on a few genes to constrain the
@@ -81,7 +86,7 @@ for i = 1:10
     save('seqModels/CombinedModel4Genes','combinedModel');
 end
 
-%% Update upstream signal in all models, fix those parameters, and save.
+%% Update upstream signal in all models, fix those parameters, and save
 for iGene = 1:length(geneNames)
     modelName = ['Model_',geneNames{iGene}];
     eval([modelName,'.parameters(:,2) = num2cell(combinedModel.parameters(1:9));']);
@@ -90,11 +95,12 @@ for iGene = 1:length(geneNames)
 end
 
 %% Call Pipeline to Fit Model
-% See ClusteScroptOnly.m
-%% Collect and Plot results.
+% See ClusteScriptOnly.m
+
+%% Collect and Plot results
 % (Do this after the rest has completed)
-clear
-addpath(genpath('../src'));
+% clear
+% addpath(genpath('../src'));
 
 DataFileName = 'data/Raw_DEX_UpRegulatedGenes_ForSSIT.csv';
 TAB = readtable(DataFileName);

@@ -192,6 +192,7 @@ classdef SSITMultiModel
                     SMM.SSITModels{i}.solutionScheme = solnType;
                end
             end
+            SMM.parameters = parameters;
         end
 
         function objFuns = get.logLikelihoodFunctions(SMM)
