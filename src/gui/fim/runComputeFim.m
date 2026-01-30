@@ -19,7 +19,7 @@ if ~isempty(newTimes)
 end
 indsFIMTimes = ismember(app.FIMTabOutputs.FIMTimes,SensTimes);
 
-%% Find species that are not observed and will nweed to be summed over in FIM calculation
+%% Find species that are not observed and will need to be summed over in FIM calculation
 Nd = size(app.SSITModel.species,1);
 indsUnobserved=[];
 indsObserved=[];
@@ -113,10 +113,10 @@ if strcmp(app.ModelUncertaintyDropDown.Value,'MC Sample Over Prior')
     %     end
 else
 
-    if (isempty(app.SensFspTabOutputs.solutions))
+    if isempty(app.SSITModel.Solutions)||~isfield(app.SSITModel.Solutions,'sens')||(isempty(app.SSITModel.Solutions.sens))
         app = runSensitivity(app);
     end
-    sensoutputs = app.SensFspTabOutputs.solutions;
+    sensoutputs = app.SSITModel.Solutions.sens;
 
     % Call function to generate the distortion operator.
     % ssit.pdo.generatePDO(app,[],sensoutputs,indsObserved);

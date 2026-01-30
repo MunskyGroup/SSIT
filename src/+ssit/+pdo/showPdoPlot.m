@@ -4,54 +4,110 @@ arguments
     app
 end
 
-ssit.pdo.generatePDO(app);
-nSpecies = length(app.FIMTabOutputs.distortionOperator.conditionalPmfs);
-figure
+if isempty(app.SSITModel.pdoOptions.PDO)
+    [~,app.SSITModel.pdoOptions.PDO] = ssit.pdo.generatePDO(app);
+end
+% nSpecies = length(app.FIMTabOutputs.distortionOperator.conditionalPmfs);
+% figure
 
 % Determine how many plots to make
-kPlots = 0;
-for i = 1:nSpecies
-    Z = app.FIMTabOutputs.distortionOperator.conditionalPmfs{i};
-    if min(size(Z))>2
-        kPlots=i;
-    end
-end
+% kPlots = 0;
+% for i = 1:nSpecies
+indSp = find(strcmp(app.SpeciesDropDown.Items,app.SpeciesDropDown.Value));
+Z = app.SSITModel.pdoOptions.PDO.conditionalPmfs{indSp};
+% if min(size(Z))>2
+% kPlots=i;
+% end
+% end
 
 % Make plot of PDO
-for i = 1:kPlots
-    subplot(2,kPlots,i)
-    Z = app.FIMTabOutputs.distortionOperator.conditionalPmfs{i};
-    if min(size(Z))>2
-        contourf(log10(Z))
-        xlabel('True Number')
-        ylabel('Observed Number')
-        title(['Distortion for Species ',num2str(i)])
-        set(gca,'fontsize',15)
-    end
-end
-c = colorbar;
-set(c.Label,'String','log_{10} p(obs|true)','fontsize',14)
+% for i = 1:kPlots
+% subplot(2,kPlots,i)
+% Z = app.FIMTabOutputs.distortionOperator.conditionalPmfs{i};
+% if min(size(Z))>2
+contourf(app.PDO_Axis,log10(Z))
+% xlabel('True Number')
+% ylabel('Observed Number')
+% title(['Distortion for Species ',num2str(i)])
+% set(gca,'fontsize',15)
+% end
+% end
+% c = colorbar;
+% set(c.Label,'String','log_{10} p(obs|true)','fontsize',14)
 
 % Make plot of distributions before and after distortion.
-if ~isempty(app.FspTabOutputs.solutions)
-    px = app.FspTabOutputs.solutions{end}.p;
-    py = app.FIMTabOutputs.distortionOperator.computeObservationDist(px);
-    Nd = px.dim;
-    for i=1:kPlots
-        INDS = setdiff([1:Nd],i);
-        mdistx = double(px.sumOver(INDS).data);
-        mdisty = double(py.sumOver(INDS).data);
-        subplot(2,kPlots,kPlots+i) 
-        hold off
-        plot(mdistx,'linewidth',3)
-        hold on
-        plot(mdisty,'--','linewidth',3)
-        xlabel('Number')
-        ylabel('Probability')
-        legend({'Actual','Observed'})
-        set(gca,'fontsize',15)
+% if ~isempty(app.FspTabOutputs.solutions)
+iTime = find(app.SSITModel.tSpan==eval(app.SolutionTimeDropDown.Value));
+if ~isempty(app.SSITModel.Solutions)||~isfield(app.SSITModel.Solutions,'fsp')
+    app.SSITModel.solutionScheme='fsp';
+    [~,~,app.SSITModel] = app.SSITModel.solve;
+end
+%%
+maxNum = app.SSITModel.Solutions.fsp{iTime}.p.data.size;
+kSp = 0;
+
+speciesStochastic = setdiff(app.SSITModel.species,app.SSITModel.hybridOptions.upstreamODEs);
+
+
+for iS = 1:length(speciesStochastic)
+    if max(strcmpi(app.SSITModel.pdoOptions.unobservedSpecies,speciesStochastic(iS)))
+        maxNum(iS) = 0;
+        curNum(iS) = 0;
+    else
+        kSp = kSp+1;
+        curNum(iS) = size(app.SSITModel.pdoOptions.PDO.conditionalPmfs{kSp},2);
     end
 end
+if max(maxNum-curNum)>0
+    [~,app.SSITModel] = app.SSITModel.generatePDO([],[],[],[],maxNum);
+end
+
+Nd = app.SSITModel.Solutions.fsp{iTime}.p.dim;
+kSp = 0;
+for iSp = 1:length(speciesStochastic)
+    if ~max(strcmpi(app.SSITModel.pdoOptions.unobservedSpecies,speciesStochastic{iSp}))
+        kSp = kSp+1;
+        if kSp==indSp
+            INDS = setdiff([1:Nd],iSp);
+            if ~isempty(INDS)
+                px = double(app.SSITModel.Solutions.fsp{iTime}.p.sumOver(INDS).data);
+            else
+                px = double(app.SSITModel.Solutions.fsp{iTime}.p.data);
+            end
+            py = app.SSITModel.pdoOptions.PDO.conditionalPmfs{kSp}*px;
+            break
+        end
+    end
+end
+
+
+
+
+%%
+% px = app.SSITModel.Solutions.fsp{iTime}.p;
+% py = app.SSITModel.pdoOptions.PDO.computeObservationDist(px);
+% Nd = px.dim;
+% % for i=1:kPlots
+% INDS = setdiff([1:Nd],iSp);
+% if isempty(INDS)
+%     mdistx = double(px.data);
+%     mdisty = double(py.data);
+% else
+%     mdistx = double(px.sumOver(INDS).data);
+%     mdisty = double(py.sumOver(INDS).data);
+% end
+% subplot(2,kPlots,kPlots+i)
+% hold off
+hold(app.PDO_Axis2,"off")
+plot(app.PDO_Axis2,px,'linewidth',3)
+hold(app.PDO_Axis2,"on")
+plot(app.PDO_Axis2,py,'--','linewidth',3)
+% xlabel('Number')
+% ylabel('Probability')
+legend(app.PDO_Axis2,{'True','Observed'})
+% set(gca,'fontsize',15)
+% end
+% end
 
 
 

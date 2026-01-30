@@ -220,7 +220,12 @@ classdef Propensity
                 mkdir([pwd,filesep,'tmpPropensityFunctions'])
             end
             delete(append(pwd,filesep,'tmpPropensityFunctions',filesep,prefixName,'*'));
-            addpath([pwd,filesep,'tmpPropensityFunctions',filesep],'-begin')
+            if contains(prefixName,filesep)
+                J = find(prefixName==filesep,1,"last");
+                addpath([pwd,filesep,'tmpPropensityFunctions',filesep,prefixName(1:J-1)],'-begin')
+            else
+                addpath([pwd,filesep,'tmpPropensityFunctions',filesep],'-begin')
+            end
 
             obj = cell(1,n_reactions);
             expr_t_vec = sym('w',[n_reactions,1]);

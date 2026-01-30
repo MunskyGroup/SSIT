@@ -18,7 +18,9 @@ app.SSITModel.fspOptions.fspIntegratorRelTol = relTol;
 
 %% Set Initial Conditions and other user settings
 app.SSITModel.initialCondition = eval(app.FspInitCondField.Value)';   % Pulls the inital conditions specified
-Nsp = length(app.SSITModel.species);
+
+speciesStochastic = setdiff(app.SSITModel.species,app.SSITModel.hybridOptions.upstreamODEs);
+Nsp = length(speciesStochastic);
 app.SSITModel.customConstraintFuns = app.FspConstraintTable.Data(Nsp*2+1:end,1);
 app.SSITModel.fspOptions.bounds = app.FspTabOutputs.bounds';
 app.SSITModel.tSpan = unique(eval(app.FspPrintTimesField.Value));        % Pulls the time array from the app
@@ -30,12 +32,12 @@ app.SSITModel.fspOptions.usePiecewiseFSP = app.FspPiecewiseCheckBox.Value;
 app.FspRunningStatus.Text = 'FSP is running...';
 tic
 app.SSITModel.solutionScheme = 'FSP';
-[solutions,~,app.SSITModel]=app.SSITModel.solve;
+[~,~,app.SSITModel]=app.SSITModel.solve;
 app.FspRunningStatus.Text = ['FSP completed in ',num2str(toc,3),'s'];
 
 %% Update bounds
-app.FspTabOutputs.bounds = app.SSITModel.fspOptions.bounds';
-app.FspTabOutputs.solutions = solutions.fsp;
+% app.FspTabOutputs.bounds = app.SSITModel.fspOptions.bounds';
+% app.FspTabOutputs.solutions = solutions.fsp;
 delete(d_prog_bar); % Closes the Running Dialog Box
-app.FspConstraintTable.Data(:,3) = num2cell(app.FspTabOutputs.bounds');   % Sets the bounds from constraints to the ones found in the FSP analysis
+app.FspConstraintTable.Data(:,3) = num2cell(app.SSITModel.fspOptions.bounds');   % Sets the bounds from constraints to the ones found in the FSP analysis
 end

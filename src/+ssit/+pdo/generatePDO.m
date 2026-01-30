@@ -24,10 +24,10 @@ end
 
 if isempty(maxSize)
     if isempty(FSPoutputs)
-        if isempty(app.FspTabOutputs.solutions)
+        if isempty(app.SSITModel.Solutions)
             app = runFsp(app);
         end
-        FSPoutputs = app.FspTabOutputs.solutions;
+        FSPoutputs = app.SSITModel.Solutions.fsp;
     end
     nSpecies = ndims(FSPoutputs{1}.p.data);
     maxSize = zeros(1,nSpecies);

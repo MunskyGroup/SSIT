@@ -1879,14 +1879,44 @@ classdef SSIT
 
                     % Apply PDO, if applicable
                     if ~isempty(obj.pdoOptions.PDO)
-                        Solution.trajsDistorted = zeros(length(obj.species),...
+
+                        [speciesStochastic,iA] = setdiff(obj.species,obj.hybridOptions.upstreamODEs);
+
+                        Solution.trajsDistorted = zeros(length(speciesStochastic),...
                             length(obj.tSpan),nSims);% Creates an empty Trajectories matrix from the size of the time array and number of simulations
-                        for iS = 1:length(obj.species)
-                            PDO = obj.pdoOptions.PDO.conditionalPmfs{iS};
-                            nDpossible = size(PDO,1);
-                            Q = Solution.trajs(iS,:,:);
-                            for iD = 1:length(Q(:))
-                                Q(iD) = randsample([0:nDpossible-1],1,true,PDO(:,Q(iD)+1));
+                        
+                        maxNum = zeros(1,size(speciesStochastic,1));
+                        curNum = zeros(1,size(speciesStochastic,1));
+                        iSObs = 0;
+                        for iS = 1:length(speciesStochastic)
+                            if max(strcmpi(obj.pdoOptions.unobservedSpecies,speciesStochastic(iS)))
+                                maxNum(iS) = 0;
+                                curNum(iS) = 0;
+                            else
+                                iSObs = iSObs+1;
+                                maxNum(iS) = max(Solution.trajs(iA(iS),:,:),[],'all')+1;
+                                curNum(iS) = size(obj.pdoOptions.PDO.conditionalPmfs{iSObs},2);
+                            end
+                        end
+                        if max(maxNum-curNum)>0
+                            [~,obj] = obj.generatePDO([],[],[],[],maxNum);
+                        end
+                                                 
+                        iSObs = 0;
+                        for iS = 1:length(speciesStochastic)
+                            if max(strcmpi(obj.pdoOptions.unobservedSpecies,speciesStochastic(iS)))
+                                Q = NaN*Solution.trajs(iA(iS),:,:);
+                            else
+                                iSObs = iSObs+1;
+                                Q = Solution.trajs(iA(iS),:,:);
+                                % if max(Q,[],'all')>size(obj.pdoOptions.PDO.conditionalPmfs{iSObs},2)
+                                %     [~,obj] = obj.generatePDO([],[],[],[],max(Q,[],'all'));
+                                % end
+                                PDO = obj.pdoOptions.PDO.conditionalPmfs{iSObs};
+                                nDpossible = size(PDO,1);
+                                for iD = 1:length(Q(:))
+                                    Q(iD) = randsample([0:nDpossible-1],1,true,PDO(:,Q(iD)+1));
+                                end
                             end
                             Solution.trajsDistorted(iS,:,:) = Q;
                         end

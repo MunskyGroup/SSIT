@@ -24,8 +24,7 @@ app.SSITModel.solutionScheme = 'SSA';
 
 tic
 app.SsaRunStatus.Text = 'Running...';    
-solns = app.SSITModel.solve;
-Trajs = solns.trajs;
+[~,~,app.SSITModel] = app.SSITModel.solve;
 
 app.SsaRunStatus.Text = ['Complete in ',num2str(toc),' seconds'];
 % Re-sets the running indicator from the beginning of the function
@@ -35,5 +34,6 @@ if verLessThan('matlab','9.4') % This if statement allows for user to know it is
 else
     close(d_prog_bar); % Closes the Running Dialog Box
 end
-app.StochasticSimulationTabOutputs.samples = Trajs; % stores the calculated Trajectory in property
+% app.StochasticSimulationTabOutputs.samples = app.SSITModel.Solutions.trajs; % stores the calculated Trajectory in property
+% app.StochasticSimulationTabOutputs.PDOsamples = app.SSITModel.Solutions.trajsDistorted; % stores the calculated Trajectory in property
 end
