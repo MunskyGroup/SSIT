@@ -52,7 +52,9 @@
         ReactionTextAxes                matlab.ui.control.UIAxes
         DistortionandHybridModelingTab  matlab.ui.container.Tab
         UpstreamSpeciesListBox          matlab.ui.control.ListBox
-        UpstreamSpeciesListBoxLabel     matlab.ui.control.Label
+        UpstreamSpeciesListBox_2Label   matlab.ui.control.Label
+        ObservableSpeciesListBox_2      matlab.ui.control.ListBox
+        ObservableSpeciesListBox_2Label  matlab.ui.control.Label
         UseHybridModelSwitch            matlab.ui.control.Switch
         UseHybridModelLabel             matlab.ui.control.Label
         HybridModelOptionsLabel         matlab.ui.control.Label
@@ -1786,16 +1788,16 @@
             switch app.UseHybridModelSwitch.Value
                 case 'On'
                     app.SSITModel.useHybrid = true;
-                    app.UpstreamSpeciesListBox.Visible = true;
+                    app.ObservableSpeciesListBox_2.Visible = true;
                     if app.SSITModel.useHybrid&&~isempty(app.SSITModel.hybridOptions.upstreamODEs)
-                        app.UpstreamSpeciesListBox.Value = app.SSITModel.hybridOptions.upstreamODEs;
+                        app.ObservableSpeciesListBox_2.Value = app.SSITModel.hybridOptions.upstreamODEs;
                     else
-                        app.UpstreamSpeciesListBox.Value = {};
+                        app.ObservableSpeciesListBox_2.Value = {};
                     end                        
                 case 'Off'
                     app.SSITModel.useHybrid = false;
-                    app.UpstreamSpeciesListBox.Visible = false;
-                    app.UpstreamSpeciesListBox.Value = {};
+                    app.ObservableSpeciesListBox_2.Visible = false;
+                    app.ObservableSpeciesListBox_2.Value = {};
             end            
         end
     end
@@ -2147,7 +2149,7 @@
             % Create IncludeDataDistortionsinModelLabel
             app.IncludeDataDistortionsinModelLabel = uilabel(app.DistortionandHybridModelingTab);
             app.IncludeDataDistortionsinModelLabel.FontWeight = 'bold';
-            app.IncludeDataDistortionsinModelLabel.Position = [34 510 197 22];
+            app.IncludeDataDistortionsinModelLabel.Position = [33 479 197 22];
             app.IncludeDataDistortionsinModelLabel.Text = 'Include Data Distortions in Model';
 
             % Create SetDistortionParametersButton
@@ -2155,7 +2157,7 @@
             app.SetDistortionParametersButton.ButtonPushedFcn = createCallbackFcn(app, @SetDistortionParametersButtonPushed, true);
             app.SetDistortionParametersButton.BackgroundColor = [1 1 0];
             app.SetDistortionParametersButton.Enable = 'off';
-            app.SetDistortionParametersButton.Position = [113 455 154 22];
+            app.SetDistortionParametersButton.Position = [112 424 154 22];
             app.SetDistortionParametersButton.Text = 'Set Distortion Parameters';
 
             % Create ShowDistortionPlotButton
@@ -2163,7 +2165,7 @@
             app.ShowDistortionPlotButton.ButtonPushedFcn = createCallbackFcn(app, @ShowDistortionPlotButtonPushed, true);
             app.ShowDistortionPlotButton.BackgroundColor = [1 1 0];
             app.ShowDistortionPlotButton.Enable = 'off';
-            app.ShowDistortionPlotButton.Position = [276 455 125 22];
+            app.ShowDistortionPlotButton.Position = [275 424 125 22];
             app.ShowDistortionPlotButton.Text = 'Show Distortion Plot';
 
             % Create pdo_parameters_table
@@ -2173,13 +2175,13 @@
             app.pdo_parameters_table.RowName = {};
             app.pdo_parameters_table.ColumnEditable = [false true true];
             app.pdo_parameters_table.Visible = 'off';
-            app.pdo_parameters_table.Position = [153 280 298 147];
+            app.pdo_parameters_table.Position = [152 249 298 147];
 
             % Create DistortionParameterGuessesandFitsLabel
             app.DistortionParameterGuessesandFitsLabel = uilabel(app.DistortionandHybridModelingTab);
             app.DistortionParameterGuessesandFitsLabel.FontWeight = 'bold';
             app.DistortionParameterGuessesandFitsLabel.Visible = 'off';
-            app.DistortionParameterGuessesandFitsLabel.Position = [153 427 229 22];
+            app.DistortionParameterGuessesandFitsLabel.Position = [152 396 229 22];
             app.DistortionParameterGuessesandFitsLabel.Text = 'Distortion Parameter Guesses and Fits';
 
             % Create UpdatePDOParametersButton
@@ -2187,20 +2189,20 @@
             app.UpdatePDOParametersButton.ButtonPushedFcn = createCallbackFcn(app, @UpdatePDOParametersButtonPushed, true);
             app.UpdatePDOParametersButton.BackgroundColor = [1 1 0];
             app.UpdatePDOParametersButton.Visible = 'off';
-            app.UpdatePDOParametersButton.Position = [88 351 53 22];
+            app.UpdatePDOParametersButton.Position = [87 320 53 22];
             app.UpdatePDOParametersButton.Text = 'Update';
 
             % Create DistortionTypeDropDown_2Label
             app.DistortionTypeDropDown_2Label = uilabel(app.DistortionandHybridModelingTab);
             app.DistortionTypeDropDown_2Label.HorizontalAlignment = 'right';
-            app.DistortionTypeDropDown_2Label.Position = [57 484 86 22];
+            app.DistortionTypeDropDown_2Label.Position = [56 453 86 22];
             app.DistortionTypeDropDown_2Label.Text = 'Distortion Type';
 
             % Create DistortionTypeDropDown
             app.DistortionTypeDropDown = uidropdown(app.DistortionandHybridModelingTab);
             app.DistortionTypeDropDown.Items = {'None', 'Binomial', 'Binomial - State Dependent', 'Binomial - Parametrized', 'Poisson', 'Poisson - State Dependent', 'Poisson - Parametrized', 'Binning', 'Custom Function'};
             app.DistortionTypeDropDown.ValueChangedFcn = createCallbackFcn(app, @DistortionTypeDropDownValueChanged, true);
-            app.DistortionTypeDropDown.Position = [158 484 241 22];
+            app.DistortionTypeDropDown.Position = [157 453 241 22];
             app.DistortionTypeDropDown.Value = 'None';
 
             % Create SpeciesDropDownLabel
@@ -2242,16 +2244,28 @@
             app.UseHybridModelSwitch.ValueChangedFcn = createCallbackFcn(app, @UseHybridModelSwitchValueChanged, true);
             app.UseHybridModelSwitch.Position = [199 152 45 20];
 
-            % Create UpstreamSpeciesListBoxLabel
-            app.UpstreamSpeciesListBoxLabel = uilabel(app.DistortionandHybridModelingTab);
-            app.UpstreamSpeciesListBoxLabel.HorizontalAlignment = 'right';
-            app.UpstreamSpeciesListBoxLabel.Position = [50 113 107 22];
-            app.UpstreamSpeciesListBoxLabel.Text = 'Upstream Species:';
+            % Create ObservableSpeciesListBox_2Label
+            app.ObservableSpeciesListBox_2Label = uilabel(app.DistortionandHybridModelingTab);
+            app.ObservableSpeciesListBox_2Label.HorizontalAlignment = 'right';
+            app.ObservableSpeciesListBox_2Label.Position = [33 555 116 22];
+            app.ObservableSpeciesListBox_2Label.Text = 'Observable Species:';
+
+            % Create ObservableSpeciesListBox_2
+            app.ObservableSpeciesListBox_2 = uilistbox(app.DistortionandHybridModelingTab);
+            app.ObservableSpeciesListBox_2.Multiselect = 'on';
+            app.ObservableSpeciesListBox_2.Position = [164 505 100 74];
+            app.ObservableSpeciesListBox_2.Value = {'Item 1'};
+
+            % Create UpstreamSpeciesListBox_2Label
+            app.UpstreamSpeciesListBox_2Label = uilabel(app.DistortionandHybridModelingTab);
+            app.UpstreamSpeciesListBox_2Label.HorizontalAlignment = 'right';
+            app.UpstreamSpeciesListBox_2Label.Position = [58 120 107 22];
+            app.UpstreamSpeciesListBox_2Label.Text = 'Upstream Species:';
 
             % Create UpstreamSpeciesListBox
             app.UpstreamSpeciesListBox = uilistbox(app.DistortionandHybridModelingTab);
             app.UpstreamSpeciesListBox.Multiselect = 'on';
-            app.UpstreamSpeciesListBox.Position = [172 63 100 74];
+            app.UpstreamSpeciesListBox.Position = [180 70 100 74];
             app.UpstreamSpeciesListBox.Value = {'Item 1'};
 
             % Create StochasticSimulationTab

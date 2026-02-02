@@ -146,6 +146,13 @@ end
 updateSpeciesDropBoxes
 if ~isempty(app.SSITModel.pdoOptions)&&isfield(app.SSITModel.pdoOptions,'type')
     app.DistortionTypeDropDown.Value = app.SSITModel.pdoOptions.type;
+    app.ObservableSpeciesListBox.Value = ...
+        setdiff(app.ObservableSpeciesListBox.Items,app.SSITModel.pdoOptions.unobservedSpecies);
+    app.ObservableSpeciesListBox_2.Value = ...
+        setdiff(app.ObservableSpeciesListBox.Items,app.SSITModel.pdoOptions.unobservedSpecies);
+    if ~isempty(app.SSITModel.pdoOptions.PDO)
+        app.ShowDistortionPlotButton.Enable = true;
+    end
 else
     app.DistortionTypeDropDown.Value = 'None';
 end

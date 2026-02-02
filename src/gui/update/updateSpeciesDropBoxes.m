@@ -3,8 +3,7 @@
 speciesBoxes= {'SpeciestoShowListBoxMargFSP',...
     'SpeciestoShowListBox_2','SpeciestoShowListBoxMargFSPvT',...
     'SpeciestoShowListBoxMeans','JointSp1','JointSp2',...
-    'SpeciesForSensPlot',...
-    'ObservableSpeciesListBox'};
+    'SpeciesForSensPlot'};
 
 species = app.SSITModel.species;
 speciesStochastic = setdiff(species,app.SSITModel.hybridOptions.upstreamODEs);
@@ -40,8 +39,6 @@ else
 end
 
 %% Species boxes that do not remove the upstream ODE species when using hybrid models.
-% TODO Error here.  SSIT list should have all species, but distortions only
-% for non-upstream species.
 speciesBoxes = {'SpeciestoShowListBox'};
 species = app.SSITModel.species;
 
@@ -83,3 +80,30 @@ if app.SSITModel.useHybrid
         app.UpstreamSpeciesListBox.Value = {};
     end
 end
+
+%% Species boxes that will NOT include upstream reactions.
+speciesBoxes = {'ObservableSpeciesListBox',...
+    'ObservableSpeciesListBox_2'};
+for i = 1:length(speciesBoxes)
+    app.(speciesBoxes{i}).Items = speciesStochastic;
+    app.(speciesBoxes{i}).Value = setdiff(speciesStochastic,app.SSITModel.hybridOptions.upstreamODEs);
+end
+
+%% Species boxes that should have no selections
+if app.SSITModel.useHybrid
+    app.UseHybridModelSwitch.Value = 'On';
+    app.UpstreamSpeciesListBox.Visible = true;
+    if ~isempty(app.SSITModel.hybridOptions.upstreamODEs)
+        app.UpstreamSpeciesListBox.Value = app.SSITModel.hybridOptions.upstreamODEs;
+    else
+        app.UpstreamSpeciesListBox.Value = {};
+    end
+else
+    app.UseHybridModelSwitch.Value = 'Off';
+    app.UpstreamSpeciesListBox.Visible = false;
+    app.SSITModel.hybridOptions.upstreamODEs = {};
+    app.UpstreamSpeciesListBox.Items = app.SSITModel.species;
+    app.UpstreamSpeciesListBox.Value = {};
+end
+
+
