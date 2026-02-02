@@ -1161,8 +1161,7 @@ classdef SSIT
                 obj.parameters{j,2} = parChanges{i,2};
             end
         end
-            
-        
+                    
         function [obj] = addReaction(obj,newRxn,confirm)
             arguments
                 obj
@@ -1459,8 +1458,6 @@ classdef SSIT
             obj.pdoOptions.PDO = obj.generatePDO(obj.pdoOptions, lambda, [], [], maxSize);
         end
 
-
-
         function obj = setICfromFspVector(obj,stateSpace,fspVector)
             % This function converts an FSP vector to initial states
             % and initial probabilities.
@@ -1698,6 +1695,62 @@ classdef SSIT
             disp(' ')
             disp('Model Parameters:')
             disp(obj.parameters)
+
+        end
+
+        function generateModelLibrary(obj,DataFileName,ModelSpecies,DataSpecies,...
+                Folder,ModelNames,Individual,Constraints,ModelPrefix)
+            arguments
+                obj
+                DataFileName
+                ModelSpecies
+                DataSpecies
+                Folder
+                ModelNames = [];
+                Individual = true;
+                Constraints = {};
+                ModelPrefix = 'Model_';
+            end
+            % This function takes a list of species in the original model
+            % (ModelSpecies) and a list of corresponding data columns
+            % (DataSpecies) to be associated with these speceis. Then, for
+            % each new model it loads the data and associates it with teh
+            % identified species.
+
+            if ~exist(Folder,'dir'); mkdir(Folder); end   
+            if ischar(ModelSpecies); ModelSpecies={ModelSpecies}; end
+            if size(DataSpecies,2)~=length(ModelSpecies)
+                error('Number of linked species in ModelSpecies must match that in DataSpecies')
+            end
+            if isempty(ModelNames)
+                ModelNames = cell(1,size(DataSpecies,1));
+                for  iModel = 1:size(DataSpecies,1)
+                    ModelNames{iModel} = append(DataSpecies{iModel,:});
+                end
+            end
+            for iModel = 1:size(DataSpecies,1)
+                linkedSpecies = cell(size(DataSpecies,2),2);
+                for iSpecies = 1:size(DataSpecies,2)
+                    linkedSpecies(iSpecies,1) = ModelSpecies(iSpecies);
+                    linkedSpecies(iSpecies,2) = DataSpecies(iModel,iSpecies);
+                end
+                Model = obj.loadData(DataFileName,linkedSpecies,Constraints);
+
+                eval([ModelPrefix,ModelNames{iModel},'=Model;']);
+                if Individual
+                    save(append(Folder,filesep,ModelPrefix,ModelNames{iModel}),append(ModelPrefix,ModelNames{iModel}));
+                    clear(ModelNames{iModel});
+                end
+            end
+            if ~Individual
+                fName = append(Folder,filesep,Folder,'_Library.mat');
+                if exist(fName,"file")
+                    save(fName,append(ModelPrefix,'*'),'-append');
+                else
+                    save(fName,append(ModelPrefix,'*'));
+                end
+            end
+            
 
         end
 
@@ -2176,7 +2229,6 @@ classdef SSIT
             end
         end
 
-
         function [fimResults,sensSoln] = computeFIM(obj,sensSoln,scale,MHSamples)
             %% computeFIM - Computes the Fisher Information Matrix (FIM)
             %%              at all time points.
@@ -2597,7 +2649,7 @@ classdef SSIT
                     end
                 end
             end
-            obj.dataSet.DATA = table2cell(TAB);
+            % obj.dataSet.DATA = table2cell(TAB);
 
             % Link Species
             % First, make sure that all linked species are in the order of
@@ -2637,6 +2689,8 @@ classdef SSIT
                 timeAr(TAB2.time==times(i)) = i-1;
             end
             TAB2.time = timeAr;
+
+            obj.dataSet.DATA = table2cell(TAB2);
 
             % Construct sparse tensor to hold data.
             TAB2.Variables = max(0,TAB2.Variables);
