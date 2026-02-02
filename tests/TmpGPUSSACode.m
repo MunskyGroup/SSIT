@@ -1,10 +1,11 @@
-function [X]=TmpGPUSSACode(x0,N_run,useGPU)
+function [X]=TmpGPUSSACode(x0,N_run,parametersIn,useGPU)
 %This is an automatically generated MATLAB SSA Program.
 %The tools used to generate this file were covered at the.
 %2016 q-bio Summer School at the Colorado State University.
 arguments
    x0
    N_run
+   parametersIn
    useGPU=CPU
 end
 
@@ -15,7 +16,8 @@ if strcmp(useGPU,'GPU')
    g = parallel.gpu.RandStream('Philox4x32-10','Seed',0); % Set seed for RNG on GPU.
    parallel.gpu.RandStream.setGlobalStream(g); % Apply RNG seed to GPU.
    x1_0_GPU = x0(1)*gpuArray.ones(1,N_run); % Specific Initial Conditions.
-   [x1_1,x1_2,x1_3,x1_4,x1_5,x1_6,x1_7,x1_8,x1_9,x1_10,x1_11] = arrayfun(@TmpGPUSSACode_SSA,x1_0_GPU);
+   TmpGPUSSACode_SSA_GPU = @(x1_0_GPU)TmpGPUSSACode_SSA(x1_0_GPU,parametersIn);
+   [x1_1,x1_2,x1_3,x1_4,x1_5,x1_6,x1_7,x1_8,x1_9,x1_10,x1_11] = arrayfun(@TmpGPUSSACode_SSA_GPU,x1_0_GPU);
    X(1,1,:) =gather(x1_1);
    X(1,2,:) =gather(x1_2);
    X(1,3,:) =gather(x1_3);
@@ -30,210 +32,219 @@ if strcmp(useGPU,'GPU')
 elseif strcmp(useGPU,'Parallel')
    x1_0 = x0(1); % Specific Initial Conditions.
   parfor i = 1:N_run
-    [x1_1,x1_2,x1_3,x1_4,x1_5,x1_6,x1_7,x1_8,x1_9,x1_10,x1_11] = TmpGPUSSACode_SSA(x1_0);
-    X(:,:,i) = reshape(  [x1_1,x1_2,x1_3,x1_4,x1_5,x1_6,x1_7,x1_8,x1_9,x1_10,x1_11],[Nt,Nspec])';
+    [x] = collectFun(x1_0,parametersIn);
+    X(:,:,i) = reshape(x,[Nt,Nspec])';
   end
 elseif strcmp(useGPU,'Series')
   for i = 1:N_run
    x1_0 = x0(1); % Specific Initial Conditions.
-    [x1_1,x1_2,x1_3,x1_4,x1_5,x1_6,x1_7,x1_8,x1_9,x1_10,x1_11] = TmpGPUSSACode_SSA(x1_0);
+    [x1_1,x1_2,x1_3,x1_4,x1_5,x1_6,x1_7,x1_8,x1_9,x1_10,x1_11] = TmpGPUSSACode_SSA(x1_0,parametersIn);
     X(:,:,i) = reshape(  [x1_1,x1_2,x1_3,x1_4,x1_5,x1_6,x1_7,x1_8,x1_9,x1_10,x1_11],[Nt,Nspec])';
   end
 end
+end
 
 
-function [x1_1,x1_2,x1_3,x1_4,x1_5,x1_6,x1_7,x1_8,x1_9,x1_10,x1_11] = TmpGPUSSACode_SSA(x1)
+function [x1_1,x1_2,x1_3,x1_4,x1_5,x1_6,x1_7,x1_8,x1_9,x1_10,x1_11] = TmpGPUSSACode_SSA(x1,parametersIn)
 %First we define the parameters.
-k1=10;
-k2=1;
+k1=parametersIn(1);
+k2=parametersIn(2);
 
 %Initialize the time.
 t=0;
+%Initialize the state.
+x1new=x1;
 %Start the SSA.
 tstop = 0;   %Next time to print results.
 while t<tstop   %Next time to print results.
+  %Update the state to reflect the last reaction.
+  x1=x1new;
   w1=k1;
   w2=k2*x1;
   w0=0+w1+w2;
   t = t-1/w0*log(rand);
-  if t<=tstop
-    r2w0=rand*w0;
-    if r2w0<w1
-      x1=x1+(1);
-    elseif r2w0<w1+w2
-      x1=x1+(-1);
-    end
+  r2w0=rand*w0;
+  if r2w0<w1
+    x1new=x1+(1);
+  elseif r2w0<w1+w2
+    x1new=x1+(-1);
   end
 end
 x1_1=x1;
 
 tstop = 1;   %Next time to print results.
 while t<tstop   %Next time to print results.
+  %Update the state to reflect the last reaction.
+  x1=x1new;
   w1=k1;
   w2=k2*x1;
   w0=0+w1+w2;
   t = t-1/w0*log(rand);
-  if t<=tstop
-    r2w0=rand*w0;
-    if r2w0<w1
-      x1=x1+(1);
-    elseif r2w0<w1+w2
-      x1=x1+(-1);
-    end
+  r2w0=rand*w0;
+  if r2w0<w1
+    x1new=x1+(1);
+  elseif r2w0<w1+w2
+    x1new=x1+(-1);
   end
 end
 x1_2=x1;
 
 tstop = 2;   %Next time to print results.
 while t<tstop   %Next time to print results.
+  %Update the state to reflect the last reaction.
+  x1=x1new;
   w1=k1;
   w2=k2*x1;
   w0=0+w1+w2;
   t = t-1/w0*log(rand);
-  if t<=tstop
-    r2w0=rand*w0;
-    if r2w0<w1
-      x1=x1+(1);
-    elseif r2w0<w1+w2
-      x1=x1+(-1);
-    end
+  r2w0=rand*w0;
+  if r2w0<w1
+    x1new=x1+(1);
+  elseif r2w0<w1+w2
+    x1new=x1+(-1);
   end
 end
 x1_3=x1;
 
 tstop = 3;   %Next time to print results.
 while t<tstop   %Next time to print results.
+  %Update the state to reflect the last reaction.
+  x1=x1new;
   w1=k1;
   w2=k2*x1;
   w0=0+w1+w2;
   t = t-1/w0*log(rand);
-  if t<=tstop
-    r2w0=rand*w0;
-    if r2w0<w1
-      x1=x1+(1);
-    elseif r2w0<w1+w2
-      x1=x1+(-1);
-    end
+  r2w0=rand*w0;
+  if r2w0<w1
+    x1new=x1+(1);
+  elseif r2w0<w1+w2
+    x1new=x1+(-1);
   end
 end
 x1_4=x1;
 
 tstop = 4;   %Next time to print results.
 while t<tstop   %Next time to print results.
+  %Update the state to reflect the last reaction.
+  x1=x1new;
   w1=k1;
   w2=k2*x1;
   w0=0+w1+w2;
   t = t-1/w0*log(rand);
-  if t<=tstop
-    r2w0=rand*w0;
-    if r2w0<w1
-      x1=x1+(1);
-    elseif r2w0<w1+w2
-      x1=x1+(-1);
-    end
+  r2w0=rand*w0;
+  if r2w0<w1
+    x1new=x1+(1);
+  elseif r2w0<w1+w2
+    x1new=x1+(-1);
   end
 end
 x1_5=x1;
 
 tstop = 5;   %Next time to print results.
 while t<tstop   %Next time to print results.
+  %Update the state to reflect the last reaction.
+  x1=x1new;
   w1=k1;
   w2=k2*x1;
   w0=0+w1+w2;
   t = t-1/w0*log(rand);
-  if t<=tstop
-    r2w0=rand*w0;
-    if r2w0<w1
-      x1=x1+(1);
-    elseif r2w0<w1+w2
-      x1=x1+(-1);
-    end
+  r2w0=rand*w0;
+  if r2w0<w1
+    x1new=x1+(1);
+  elseif r2w0<w1+w2
+    x1new=x1+(-1);
   end
 end
 x1_6=x1;
 
 tstop = 6;   %Next time to print results.
 while t<tstop   %Next time to print results.
+  %Update the state to reflect the last reaction.
+  x1=x1new;
   w1=k1;
   w2=k2*x1;
   w0=0+w1+w2;
   t = t-1/w0*log(rand);
-  if t<=tstop
-    r2w0=rand*w0;
-    if r2w0<w1
-      x1=x1+(1);
-    elseif r2w0<w1+w2
-      x1=x1+(-1);
-    end
+  r2w0=rand*w0;
+  if r2w0<w1
+    x1new=x1+(1);
+  elseif r2w0<w1+w2
+    x1new=x1+(-1);
   end
 end
 x1_7=x1;
 
 tstop = 7;   %Next time to print results.
 while t<tstop   %Next time to print results.
+  %Update the state to reflect the last reaction.
+  x1=x1new;
   w1=k1;
   w2=k2*x1;
   w0=0+w1+w2;
   t = t-1/w0*log(rand);
-  if t<=tstop
-    r2w0=rand*w0;
-    if r2w0<w1
-      x1=x1+(1);
-    elseif r2w0<w1+w2
-      x1=x1+(-1);
-    end
+  r2w0=rand*w0;
+  if r2w0<w1
+    x1new=x1+(1);
+  elseif r2w0<w1+w2
+    x1new=x1+(-1);
   end
 end
 x1_8=x1;
 
 tstop = 8;   %Next time to print results.
 while t<tstop   %Next time to print results.
+  %Update the state to reflect the last reaction.
+  x1=x1new;
   w1=k1;
   w2=k2*x1;
   w0=0+w1+w2;
   t = t-1/w0*log(rand);
-  if t<=tstop
-    r2w0=rand*w0;
-    if r2w0<w1
-      x1=x1+(1);
-    elseif r2w0<w1+w2
-      x1=x1+(-1);
-    end
+  r2w0=rand*w0;
+  if r2w0<w1
+    x1new=x1+(1);
+  elseif r2w0<w1+w2
+    x1new=x1+(-1);
   end
 end
 x1_9=x1;
 
 tstop = 9;   %Next time to print results.
 while t<tstop   %Next time to print results.
+  %Update the state to reflect the last reaction.
+  x1=x1new;
   w1=k1;
   w2=k2*x1;
   w0=0+w1+w2;
   t = t-1/w0*log(rand);
-  if t<=tstop
-    r2w0=rand*w0;
-    if r2w0<w1
-      x1=x1+(1);
-    elseif r2w0<w1+w2
-      x1=x1+(-1);
-    end
+  r2w0=rand*w0;
+  if r2w0<w1
+    x1new=x1+(1);
+  elseif r2w0<w1+w2
+    x1new=x1+(-1);
   end
 end
 x1_10=x1;
 
 tstop = 10;   %Next time to print results.
 while t<tstop   %Next time to print results.
+  %Update the state to reflect the last reaction.
+  x1=x1new;
   w1=k1;
   w2=k2*x1;
   w0=0+w1+w2;
   t = t-1/w0*log(rand);
-  if t<=tstop
-    r2w0=rand*w0;
-    if r2w0<w1
-      x1=x1+(1);
-    elseif r2w0<w1+w2
-      x1=x1+(-1);
-    end
+  r2w0=rand*w0;
+  if r2w0<w1
+    x1new=x1+(1);
+  elseif r2w0<w1+w2
+    x1new=x1+(-1);
   end
 end
 x1_11=x1;
 
+end
+function [x] = collectFun(x1,parametersIn)
+% This function runs the SSA and gathers the results into a single matrix.
+[x1_1,x1_2,x1_3,x1_4,x1_5,x1_6,x1_7,x1_8,x1_9,x1_10,x1_11] = TmpGPUSSACode_SSA(x1,parametersIn);
+x=[x1_1,x1_2,x1_3,x1_4,x1_5,x1_6,x1_7,x1_8,x1_9,x1_10,x1_11];
+end

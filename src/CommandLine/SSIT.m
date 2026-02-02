@@ -2674,12 +2674,14 @@ classdef SSIT
                     % results in TAB2.rna = TAB.nuc+TAB.cyt
                     eval(['TAB2.',linkedSpecies{i,1},' = ',linkedSpecies{i,3},';']);
                 end
-
             end
 
             % Reorder table in order of species list
             [~,iA] = intersect(linkedSpecies(:,1),obj.species,'stable');
             TAB2 = TAB2(:,[1,iA'+1]);
+
+            % Update to a constrained copy of the data in the obj.
+            obj.dataSet.DATA = table2cell(TAB2);
 
             % dataTensor = sptensor(
             times = unique(TAB2.time);
@@ -2689,8 +2691,6 @@ classdef SSIT
                 timeAr(TAB2.time==times(i)) = i-1;
             end
             TAB2.time = timeAr;
-
-            obj.dataSet.DATA = table2cell(TAB2);
 
             % Construct sparse tensor to hold data.
             TAB2.Variables = max(0,TAB2.Variables);
