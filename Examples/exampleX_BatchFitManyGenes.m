@@ -61,6 +61,7 @@ end
 
 % Select which models to include in multimodel.
 Models = {Model_DUSP1,Model_RUNX1,Model_BIRC3,Model_TSC22D3};
+modelNames = {'Model_DUSP1','Model_RUNX1','Model_BIRC3','Model_TSC22D3'};
 
 % Define how parameters are assigned to sub-models.  All genes are
 % assumed to use the same upstream signal, but have different gene bursting
@@ -93,6 +94,24 @@ for iGene = 1:length(geneNames)
     eval([modelName,'.fittingOptions.modelVarsToFit = 3:9;';]);
     save(['seqModels/',modelName],modelName);
 end
+
+%% Update the four models used in multimodel demo with multimodel-fitted
+%% parameters (Model_DUSP1, Model_RUNX1, Model_BIRC3, Model_TSC22D3):
+for iGene = 1:4
+    modelName = modelNames{iGene};
+
+    Models{iGene}.parameters(:,2) = ...
+        combinedModel.SSITModels{iGene}.parameters(:,2);
+
+    % Update the workspace variable Model_XXXX
+    assignin('base', modelName, Models{iGene});
+
+    % Save Model_XXXX into seqModels/Model_XXXX.mat
+    m = struct();
+    m.(modelName) = Models{iGene};
+    save(fullfile('seqModels',[modelName '.mat']),'-struct','m',modelName);
+end
+
 
 %% Call Pipeline to Fit Model
 % See ClusteScriptOnly.m
