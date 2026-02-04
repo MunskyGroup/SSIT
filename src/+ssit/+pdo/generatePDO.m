@@ -523,7 +523,7 @@ if showPlot
 
         % Per-panel title
         if strlength(opts.Title) == 0
-            title(sprintf('PDO (S%d)', ispec), 'FontSize', opts.FontSize);
+            title(sprintf('PDO'), 'FontSize', opts.FontSize);
         else
             title(sprintf('S%d', ispec), 'FontSize', opts.FontSize);
         end

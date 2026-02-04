@@ -1288,8 +1288,8 @@ classdef SSIT
                 opts.FontSize (1,1) double {mustBePositive} = 18
                 opts.LegendFontSize (1,1) double {mustBePositive} = 18
                 opts.LegendLocation (1,1) string = "best"
-                opts.XLabel (1,1) string = "Observed data"
-                opts.YLabel (1,1) string = "True counts"
+                opts.XLabel (1,1) string = "True counts"
+                opts.YLabel (1,1) string = "Observed data"
                 opts.XLim double = []
                 opts.YLim double = []
             end
