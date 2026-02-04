@@ -527,6 +527,10 @@ if showPlot
         else
             title(sprintf('S%d', ispec), 'FontSize', opts.FontSize);
         end
+
+        C = colorbar;
+        lbl = ['log' char([8321 8320]) ' C x' char(8594) ' y'];
+        C.Label.String = lbl;
     end
 end
 if variablePDO
