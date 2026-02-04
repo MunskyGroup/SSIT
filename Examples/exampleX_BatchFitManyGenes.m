@@ -29,7 +29,7 @@ Model_Template.pdoOptions.type = 'Binomial';
 Model_Template.pdoOptions.unobservedSpecies = 'onGene';
 Model_Template.pdoOptions.props.CaptureProbabilityS1 = 0;    % Gene State is not measured
 Model_Template.pdoOptions.props.CaptureProbabilityS2 = 0.05; % 95% drop out from RNA
-[~,Model_Template] = Model_Template.generatePDO;
+[~,Model_Template] = Model_Template.generatePDO();
 
 %% Load and fit representative data set to get better first parameter guess
 DataFileName = 'data/Raw_DEX_UpRegulatedGenes_ForSSIT.csv';
@@ -96,7 +96,7 @@ for iGene = 1:length(geneNames)
 end
 
 %% Update the four models used in multimodel demo with multimodel-fitted
-%% parameters (Model_DUSP1, Model_RUNX1, Model_BIRC3, Model_TSC22D3):
+%  parameters (Model_DUSP1, Model_RUNX1, Model_BIRC3, Model_TSC22D3):
 for iGene = 1:4
     modelName = modelNames{iGene};
 
@@ -110,6 +110,9 @@ for iGene = 1:4
     m = struct();
     m.(modelName) = Models{iGene};
     save(fullfile('seqModels',[modelName '.mat']),'-struct','m',modelName);
+
+    % Make fit plots:
+    Models{iGene}.makeFitPlot
 end
 
 
@@ -143,7 +146,7 @@ DeltaCV = zeros(1,length(geneNames));
 fileExists = zeros(1,length(geneNames));
 for iGene = 1:length(geneNames)
     modelName = ['Model_',geneNames{iGene}];
-    saveName = ['seqModels/',modelName,'.mat'];
+    saveName = ['seqModels_fit/',modelName,'.mat'];
     if exist(saveName,'file')
         fileExists(iGene) = true;
         load(saveName)

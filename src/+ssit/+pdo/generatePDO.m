@@ -1,4 +1,4 @@
-function [app,pdo] = generatePDO(app,paramsPDO,FSPoutputs,indsObserved,variablePDO,maxSize)
+function [app,pdo] = generatePDO(app,paramsPDO,FSPoutputs,indsObserved,variablePDO,maxSize,showPlot,opts)
 %% SSIT.generatePDO - This function generates the Probabilistic 
 %% Distortion Operator (PDO) according to user choice.
 % 
@@ -9,7 +9,17 @@ function [app,pdo] = generatePDO(app,paramsPDO,FSPoutputs,indsObserved,variableP
 %   * indsObserved - ()
 %   * variablePDO - (logical), default: false
 %   * maxSize - ()
+%   * showPlot - (logical), default: true
 %
+%   Optional plotting arguments:
+%   * opts.Title - (string) 
+%   * opts.FontSize - (double), default: 18
+%   * opts.XLabel - (string), default: "True counts"
+%   * opts.YLabel - (string), default: "Observed counts"
+%   * opts.XLim - (double), default: []
+%   * opts.YLim - (double), default: []
+%   * opts.Levels - (double), default: 30
+%   * opts.CLim double - default: [-25 0] 
 % Output: 
 %
 % Example: 
@@ -20,7 +30,19 @@ arguments
     indsObserved = []
     variablePDO = false
     maxSize = []
+    showPlot (1,1) logical = true
+
+    % Plotting opts (used only when showPlot==true)
+    opts.Title (1,1) string = ""
+    opts.FontSize (1,1) double {mustBePositive} = 18
+    opts.XLabel (1,1) string = "True counts"
+    opts.YLabel (1,1) string = "Observed counts"
+    opts.XLim double = []
+    opts.YLim double = []
+    opts.Levels (1,1) double {mustBeInteger, mustBePositive} = 30
+    opts.CLim double = [-25 0]   % log10(P) clamp range for display
 end
+
 
 if isempty(maxSize)
     if isempty(FSPoutputs)
@@ -448,6 +470,64 @@ switch app.DistortionTypeDropDown.Value
                 conditionalPmfs{ispec} = 1;
             end
         end
+end
+% --------------------------------------------------------------------
+% Optional visualization of per-species conditional PMFs
+%   conditionalPmfs{ispec} is (nObserved x nTrue)
+%   x-axis = true counts (columns), y-axis = observed counts (rows)
+% --------------------------------------------------------------------
+if showPlot
+    if isempty(indsObserved)
+        indsToPlot = 1:nSpecies;
+    else
+        indsToPlot = indsObserved;
+    end
+
+    % Only plot species with non-trivial matrices
+    indsToPlot = indsToPlot(:)';
+    indsToPlot = indsToPlot(indsToPlot >= 1 & indsToPlot <= nSpecies);
+
+    % Make one figure with a tiled layout
+    fg = figure;
+    tl = tiledlayout(fg, 'flow');
+    if strlength(opts.Title) > 0
+        title(tl, opts.Title, 'FontSize', opts.FontSize);
+    end
+
+    for ii = 1:numel(indsToPlot)
+        ispec = indsToPlot(ii);
+        P = conditionalPmfs{ispec};
+
+        % Skip scalar/singleton PDOs
+        if isempty(P) || (isscalar(P) && numel(P)==1)
+            nexttile;
+            axis off;
+            text(0.1, 0.5, sprintf('S%d: (trivial PDO)', ispec), 'FontSize', opts.FontSize);
+            continue
+        end
+
+        % Log10 display with safe floor to avoid -Inf
+        Z = log10(max(P, realmin));
+        Z = max(opts.CLim(1), min(opts.CLim(2), Z));  % clamp for nicer contrast
+
+        nexttile;
+        contourf(0:size(P,2)-1, 0:size(P,1)-1, Z, opts.Levels, 'LineColor','none');
+        colorbar;
+        xlabel(opts.XLabel);
+        ylabel(opts.YLabel);
+
+        if ~isempty(opts.XLim); xlim(opts.XLim); end
+        if ~isempty(opts.YLim); ylim(opts.YLim); end
+
+        set(gca, 'FontSize', max(10, round(0.8*opts.FontSize)));
+
+        % Per-panel title
+        if strlength(opts.Title) == 0
+            title(sprintf('PDO (S%d)', ispec), 'FontSize', opts.FontSize);
+        else
+            title(sprintf('S%d', ispec), 'FontSize', opts.FontSize);
+        end
+    end
 end
 if variablePDO
     app.FIMTabOutputs.distortionOperator = ssit.pdo.TensorProductDistortionOperator(conditionalPmfs(indsObserved),dCdLam(indsObserved,:));
