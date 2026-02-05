@@ -15,7 +15,7 @@
 %clear
 %close all
 addpath(genpath('../'));
-%addpath(genpath('tmpPropensityFunctions'));
+addpath(genpath('tmpPropensityFunctions'));
 
 % example_1_CreateSSITModels  
 % example_4_SolveSSITModels_FSP
@@ -26,7 +26,7 @@ addpath(genpath('../'));
 % example_10_LoadingandFittingData_MHA
 
 %% Load pre-run results:
-% load('example_10_LoadingandFittingData_MHA.mat')
+% load('example_10_LoadingandFittingData_MH.mat')
 
 % View model summary:
 STL1_4state_MH.summarizeModel
@@ -136,13 +136,13 @@ STL1_4state_PDO_nuc = ...
 % Make guesses for the PDO hyperparameters λ, in this case: λ₁, λ₂, λ₃
 % Model: μ(x) = max(λ₁, λ₂ + λ₃·x)
 % Soon: Neural networks and hierarchical Bayes may be used to estimate λ
-parGuess = [0, 1500, 5];
+parGuess = [0, 2500, 5];
 
 STL1_4state_PDO_intens = STL1_4state_PDO;
 STL1_4state_PDO_intens = STL1_4state_PDO_intens.calibratePDO( ...
     'data/filtered_data_2M_NaCl_Step.csv', {'mRNA'},...
     {'RNA_STL1_total_TS3Full'}, {'STL1_avg_int_TS3Full'}, 'AffinePoiss',...
-    true, parGuess, {'Replica',2}, LegendLocation="southeast", ...
+    true, parGuess, {'Replica',1}, LegendLocation="southeast", ...
     Title="4-state STL1 (Affine PDO: Average intensity)", FontSize=24,...
     XLabel="True mRNA counts",YLabel="Average intensities (binned)");
 

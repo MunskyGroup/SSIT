@@ -1262,7 +1262,7 @@ classdef SSIT
             %   opts.FontSize (1,1) double {mustBePositive} = 18
             %   opts.LegendFontSize (1,1) double {mustBePositive} = 18
             %   opts.LegendLocation (1,1) string = "best"
-            %   opts.XLabel (1,1) string = "Observed data"
+            %   opts.XLabel (1,1) string = "Observed counts"
             %   opts.YLabel (1,1) string = "True counts"
             %   opts.XLim double = []
             %   opts.YLim double = []
@@ -1411,13 +1411,31 @@ classdef SSIT
 
                     if showPlot
                         [~,PDO] = obj.findPdoError(pdoType, lambdaNew, xTrue, xObsv);
-                        Z = max(-25, log10(PDO));
+                    
+                        % --- Safe floor + clamp ---
+                        Z = log10(max(PDO, realmin));   % avoids -Inf
+                        Z = max(-25, min(0, Z));        % clamp range (same visual contrast)
+                    
                         fg = figure; set(0,'CurrentFigure',fg);
-                        contourf(0:size(PDO,2)-1, 0:size(PDO,1)-1, Z);
-                        colorbar
+                    
+                        % --- Contour styling: no black lines, many levels ---
+                        nLevels = 30;
+                        contourf(0:size(PDO,2)-1, 0:size(PDO,1)-1, Z, nLevels, 'LineColor','none');
+                        colormap(parula);  % optional; remove if you prefer MATLAB default
+                        C = colorbar;
+                        % Use a label that will actually render reliably:
+                        C.Label.String = 'log_{10} C_{x \rightarrow y}';  % (string only; interpreter may be ignored)
+                        if isprop(C.Label,'Interpreter')
+                            C.Label.Interpreter = 'tex';
+                        end
+                    
                         hold on
-                        scatter(xTrue, xObsv, 100, 'sk', 'filled')
-
+                    
+                        % --- Scatter overlay (IMPORTANT: consistent axes)
+                        % x-axis is TRUE (columns), y-axis is OBSERVED (rows),
+                        % so scatter should be (xTrue, xObsv)
+                        scatter(xTrue, xObsv, 60, 'k', 'filled');
+                    
                         % --- Apply opts ---
                         if strlength(opts.XLabel) > 0
                             xlabel(opts.XLabel);
@@ -1431,10 +1449,13 @@ classdef SSIT
                         if ~isempty(opts.YLim)
                             ylim(opts.YLim);
                         end
-                        lgd = legend('PDO','Data','Location',char(opts.LegendLocation));
+                    
+                        % Legend: keep it, but don't let it add extra plot lines
+                        lgd = legend({'PDO','Data'}, 'Location', char(opts.LegendLocation));
                         if ~isempty(lgd) && isvalid(lgd)
                             lgd.FontSize = opts.LegendFontSize;
                         end
+                    
                         if strlength(opts.Title) > 0
                             tt = title(opts.Title);
                         else
@@ -1443,9 +1464,8 @@ classdef SSIT
                         if ~isempty(tt) && isvalid(tt)
                             tt.FontSize = opts.FontSize;
                         end
-                        % ---------------
-
-                        set(gca, 'fontsize', max(10, round(0.8*opts.FontSize))); % modest tie-in
+                    
+                        set(gca, 'FontSize', max(10, round(0.8*opts.FontSize)));
                     end
                 else
                     maxSize(i) = 0;

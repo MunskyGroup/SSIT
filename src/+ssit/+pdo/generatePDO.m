@@ -9,7 +9,7 @@ function [app,pdo] = generatePDO(app,paramsPDO,FSPoutputs,indsObserved,variableP
 %   * indsObserved - ()
 %   * variablePDO - (logical), default: false
 %   * maxSize - ()
-%   * showPlot - (logical), default: true
+%   * showPlot - (logical), default: false
 %
 %   Optional plotting arguments:
 %   * opts.Title - (string) 
@@ -30,7 +30,7 @@ arguments
     indsObserved = []
     variablePDO = false
     maxSize = []
-    showPlot (1,1) logical = true
+    showPlot (1,1) logical = false
 
     % Plotting opts (used only when showPlot==true)
     opts.Title (1,1) string = ""
