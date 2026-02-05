@@ -77,3 +77,14 @@ CrossValidationModel.parameters = crossValPars;
 % Make a figure to explore how much the parameters changed between replicas:
 fignum = 12; useRelative = true;
 CrossValidationModel.compareParameters(fignum,useRelative);
+
+%% Save model & cross-validation results:
+saveNames = unique({ ...
+    'STL1_4state_CrossVal'
+    'ConditionsGlobal'
+    'ConditionsReplicas'
+    'crossValPars'
+    'CrossValidationModel'
+    });
+    
+save('example_11_LoadingandFittingData_CrossValidation',saveNames{:})
