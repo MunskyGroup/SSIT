@@ -528,9 +528,12 @@ if showPlot
             title(sprintf('S%d', ispec), 'FontSize', opts.FontSize);
         end
 
+        % Use a colorbar label that will render reliably:       
         C = colorbar;
-        lbl = ['log' char([8321 8320]) ' C x' char(8594) ' y'];
-        C.Label.String = lbl;
+        C.Label.String = 'log_{10} C_{x \rightarrow y}';  % (string only; interpreter may be ignored in R2025b)
+        if isprop(C.Label,'Interpreter')
+            C.Label.Interpreter = 'tex';
+        end                   
     end
 end
 if variablePDO

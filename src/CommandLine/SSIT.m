@@ -1423,8 +1423,8 @@ classdef SSIT
                         contourf(0:size(PDO,2)-1, 0:size(PDO,1)-1, Z, nLevels, 'LineColor','none');
                         colormap(parula);  % optional; remove if you prefer MATLAB default
                         C = colorbar;
-                        % Use a label that will actually render reliably:
-                        C.Label.String = 'log_{10} C_{x \rightarrow y}';  % (string only; interpreter may be ignored)
+                        % Use a colorbar label that will render reliably:  
+                        C.Label.String = 'log_{10} C_{x \rightarrow y}';  % (string only; interpreter may be ignored in R2025b)
                         if isprop(C.Label,'Interpreter')
                             C.Label.Interpreter = 'tex';
                         end
