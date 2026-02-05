@@ -140,28 +140,19 @@ STL1_4state_FIM.plotFIMResults(STL1_4state_fimTotal,...
 % weakly constrained by your experiment.
 
 % Model_fimMetrics = 
-% 
-%   struct with fields:
-% 
-%           det: 3.978068235240957e+08
-%         trace: 2.291624663469069e+04
-%     minEigVal: 1.859230327938760e-01
+%          det: 3.9036e+21
+%        trace: 2.2181e+07
+%    minEigVal: 2.6411e+03
 
 % STL1_fimMetrics = 
-% 
-%   struct with fields:
-% 
-%           det: 3.956395658594882e-14
-%         trace: 3.491622747290549e+04
-%     minEigVal: -7.945218142991907e-14
+%          det: 1.5059e+00
+%        trace: 4.5588e+05
+%    minEigVal: 6.7265e-12
 
 % STL1_4state_fimMetrics = 
-% 
-%   struct with fields:
-% 
-%           det: 3.235888697269839e-49
-%         trace: 3.603813426122739e+06
-%     minEigVal: 1.123207852843959e-14
+%          det: -3.8153e-26
+%        trace: 1.5247e+08
+%    minEigVal: -8.3891e-10
 
 
 %% Save models & FIM results
