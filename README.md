@@ -74,8 +74,6 @@ The SSIT provides two basic interaction options: (1) command line tools and (2) 
 ## GUI Version  
 A GUI version of the SSIT has much of the functionality, and is a great way to familiarize yourself with the approach.  However, for intensive research tasks, we strongly recommend learning to use the more flexible and efficient command line tools. To get started with the GUI, compile and launch to tool kit with the following commands:
 
->> src2app;
-
 >> A = SSITGUI;
 
 You should then see the model loading and building page of the graphical interface, and you are off to the races...
