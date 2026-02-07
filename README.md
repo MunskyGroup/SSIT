@@ -58,7 +58,9 @@ For all basic functionalities:
 
 # Installation
 Clone this package to a local folder on your computer. Then, navigate to this new folder in matlab and run the installation script.
+
 >> install    % Run script to set paths and check availability of SSIT codes.
+
 >> install(1) % Also run test scripts to check functionality of critical SSIT functions.   
 
 # Testing
