@@ -1804,9 +1804,10 @@ classdef SSIT
             % See also: SSIT.makePlot for information on how to visualize
             % the solution data.
             if obj.initialTime>obj.tSpan(1)
-                error('First time in tspan cannot be earlier than the initial time.')
+                disp('Warning: First time in tSpan cannot be earlier than the initial time. Truncating tSpan to later times only.');
+                obj.tSpan = obj.tSpan(obj.tSpan>=obj.initialTime);
             elseif obj.initialTime~=obj.tSpan(1)
-                %                 warning('First time in tspan is not the same as initial time.')
+                disp('Warning: First time in tSpan was not the same as initial time. Adding initial time to list of solution times.');
                 obj.tSpan = unique([obj.initialTime,obj.tSpan]);
             end
 
@@ -3269,9 +3270,7 @@ classdef SSIT
 
             if reuseExistingSolution
                 solutions = obj.Solutions;  % Load previous model solutions.
-
             else
-
                 % Select which parameters to consider in loss function
                 % first for the model parameters
                 if strcmp(obj.fittingOptions.modelVarsToFit,'all')
