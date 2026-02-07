@@ -103,3 +103,11 @@ tests/TmpGPUSSACode.m
 Examples/TmpGPUSSACode.m
 TmpGPUSSACode.m
 *.mp4
+logFile.txt
+temporaryHybridModel.mat
+temporarySaveFile.mat
+temporarySaveFile2.mat
+testData1.csv
+testData2.csv
+TwoDNonLinearTV.xml
+exampleCombinedResultsTest.mat

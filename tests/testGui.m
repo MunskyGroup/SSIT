@@ -136,20 +136,21 @@ classdef testGui < matlab.uitest.TestCase
             tc.choose(tc.GUI.SpeciesDropDown,'rna')
 
         end
-        % function test_hybrid_and_pdo_fitting(tc)
-        %     %% Change back to data loading and fitting.
-        %     tc.choose(tc.GUI.TabGroup,'Data Loading and Fitting');
-        % 
-        %     % Change fitting options to only 10 iterations.
-        %     tc.GUI.DataLoadingAndFittingTabOutputs.fitOptions.props.Display = 'iter';
-        %     tc.GUI.DataLoadingAndFittingTabOutputs.fitOptions.props.MaxIter = 10;
-        % 
-        %     % Run Data Loading and Fitting with various buttons
-        %     Buttons = {'SolveandPlotButton','FitModelButton','SolveandPlotButton'};
-        %     for iB = 1:length(Buttons)
-        %         tc.press(tc.GUI.(Buttons{iB}));
-        %     end
-        % end
+
+        function test_hybrid_and_pdo_fitting(tc)
+            %% Change back to data loading and fitting.
+            tc.choose(tc.GUI.TabGroup,'Data Loading and Fitting');
+
+            % Change fitting options to only 10 iterations.
+            tc.GUI.DataLoadingAndFittingTabOutputs.fitOptions.props.Display = 'iter';
+            tc.GUI.DataLoadingAndFittingTabOutputs.fitOptions.props.MaxIter = 10;
+
+            % Run Data Loading and Fitting with various buttons
+            Buttons = {'SolveandPlotButton','FitModelButton','SolveandPlotButton'};
+            for iB = 1:length(Buttons)
+                tc.press(tc.GUI.(Buttons{iB}));
+            end
+        end
 
         function test_fsp_tab_hybrid_an(tc)
             % Change to FSP Tab
@@ -165,7 +166,6 @@ classdef testGui < matlab.uitest.TestCase
                 'FspRunButtom','FspPlotMarginalsOverTimeButton','FspMeanVarPlotButton'...
                 };
             for iB = 1:length(Buttons)
-                iB
                 tc.press(tc.GUI.(Buttons{iB}));
             end
         end       

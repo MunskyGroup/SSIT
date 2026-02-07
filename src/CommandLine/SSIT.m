@@ -179,6 +179,7 @@ classdef SSIT
         propensitiesGeneralMeanJac = [];
         propensitiesGeneralMoments = [];
         propensitiesGeneralMomentsJac = [];
+        propensityFilePrefix = 'Default';
 
         % Solutions
         Solutions = []; % Field holding solutions for current model and
@@ -619,6 +620,7 @@ classdef SSIT
             % end
 
             obj.propensitiesGeneral = PropensitiesGeneral;
+            obj.propensityFilePrefix = prefixName;
         end
         %%
         function constraints = get.fspConstraints(obj)
@@ -1848,8 +1850,6 @@ classdef SSIT
                     save(fName,append(ModelPrefix,'*'));
                 end
             end
-            
-
         end
 
         %% Model Analysis Functions
@@ -1880,7 +1880,28 @@ classdef SSIT
             %   [soln,bounds] = F.solve;  % Returns the sensitivity and the
             %                             % bounds for the FSP projection
             % See also: SSIT.makePlot for information on how to visualize
-            % the solution data.
+            % the solution data.   
+            
+            try
+                [Solution, bConstraints, obj] = obj.solveHelper(stateSpace,saveFile,fspSoln);
+            catch
+                obj.propensitiesGeneral = [];
+                newPropFileName = [obj.propensityFilePrefix,'_x'];
+                disp(['(Re)Forming Propensity Function Files under new name: ',newPropFileName]);
+                obj = obj.formPropensitiesGeneral(newPropFileName);
+                [Solution, bConstraints, obj] = obj.solveHelper(stateSpace,saveFile,fspSoln);               
+            end
+        end
+
+        function [Solution, bConstraints, obj] = solveHelper(obj,stateSpace,saveFile,fspSoln)
+            arguments
+                obj
+                stateSpace = [];
+                saveFile=[];
+                fspSoln=[];
+            end
+
+
             if obj.initialTime>obj.tSpan(1)
                 disp('Warning: First time in tSpan cannot be earlier than the initial time. Truncating tSpan to later times only.');
                 obj.tSpan = obj.tSpan(obj.tSpan>=obj.initialTime);
@@ -1902,7 +1923,6 @@ classdef SSIT
                     disp('(Re)Forming Propensity Functions Due to Detected Change in Hybrid Model Dimension.')
                     obj = formPropensitiesGeneral(obj,'hybrid',true);
                 end
-
 
                 if obj.modelReductionOptions.useModReduction
                     if ~isfield(obj.modelReductionOptions,'phi')
@@ -2223,7 +2243,6 @@ classdef SSIT
                     obj.Solutions.(newFields{ifield}) = Solution.(newFields{ifield});
                 end
             end
-
         end
 
         function A = sampleDataFromFSP(obj,fspSoln,saveFile,nCells,species2save)

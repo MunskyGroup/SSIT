@@ -1,4 +1,4 @@
-function install(runTests)
+function testResults = install(runTests)
 arguments
     runTests = false
 end
@@ -25,11 +25,8 @@ if runTests
     origDir = pwd;              % save current directory
     cleanupObj = onCleanup(@() cd(origDir));  % guarantee return
     cd('tests')
-    runtests('poissonTest')
-    runtests('poisson2Dtest')
-    runtests('poissonTVtest')
-    runtests('testGui')
-    runtests('miscelaneousTests')
-    runtests('multiModelTests')
-    runtests('modelReductionTest')
+    testResults = runtests({'poissonTest','poisson2Dtest','poissonTVtest',...
+        'miscelaneousTests','multiModelTests','modelReductionTest','testGui'});
+else
+    testResults =[];
 end
