@@ -652,6 +652,17 @@ classdef poissonTest < matlab.unittest.TestCase
 
         end
 
+        function TestTimeSpanChange(testCase)
+
+            testCase.Poiss.tSpan = linspace(10,30,5);
+            [~,~,testCase.Poiss] = testCase.Poiss.solve;
+
+            testCase.Poiss.initialTime = 0;
+            [soln] = testCase.Poiss.solve;
+
+
+        end
+
         function TestAdvancedDataLoading(testCase)
             % Test loading multiple data sets and running logical data selection.
             model = testCase.Poiss;
