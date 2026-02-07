@@ -7179,19 +7179,18 @@ end
             
 
         end
-        function cmd = generateCommandLinePipeline(saveFileIn,modelName,dummy, ...
-                Pipeline,pipelineArgs,saveFileOut,logFile,runNow,runOnCluster,clusterPrefix)
+        function cmd = generateCommandLinePipeline(saveFileIn,modelName, ...
+                Pipeline,opts)%pipelineArgs,saveFileOut,logFile,runNow,runOnCluster,clusterPrefix)
             arguments
                 saveFileIn
                 modelName
-                dummy
                 Pipeline
-                pipelineArgs
-                saveFileOut
-                logFile
-                runNow = false
-                runOnCluster = false
-                clusterPrefix = 'sbatch --cpus-per-task=1 --output=#LOG --error=#ERR --wrap="module load matlab-2022b; srun matlab -nodisplay -nosplash -nodesktop -r'
+                opts.pipelineArgs = struct()
+                opts.saveFileOut = 'ssitPipelineOutput.mat'
+                opts.logFile = 'logFile.txt'
+                opts.runNow = false
+                opts.runOnCluster = false
+                opts.clusterPrefix = 'sbatch --cpus-per-task=1 --output=#LOG --error=#ERR --wrap="module load matlab-2022b; srun matlab -nodisplay -nosplash -nodesktop -r'
             end
 
             % TODO - code currently works only for Mac and linux.  Need to
@@ -7200,17 +7199,17 @@ end
             % Parse inputs into format needed for command line call.
             str1 = append('(''',saveFileIn,''',''',modelName,''',[],''',Pipeline,''',');
             str2 = 'struct(';
-            fieldNames = fields(pipelineArgs);
+            fieldNames = fields(opts.pipelineArgs);
             for iField = 1:length(fieldNames)
                 field = fieldNames{iField};
-                if isnumeric(pipelineArgs.(field))||islogical(pipelineArgs.(field))
-                    value = num2str(pipelineArgs.(field));
+                if isnumeric(opts.pipelineArgs.(field))||islogical(opts.pipelineArgs.(field))
+                    value = num2str(opts.pipelineArgs.(field));
                 else
-                    value = append('''',pipelineArgs.(field),'''');
+                    value = append('''',opts.pipelineArgs.(field),'''');
                 end
                 str2 = append(str2,'''',field,''',',value,',');
             end
-            str2 = append(str1,str2(1:end-1),'),''',saveFileOut,'''');
+            str2 = append(str1,str2(1:end-1),'),''',opts.saveFileOut,'''');
 
             % Add path to SSIT.
             pth = which('SSIT');
@@ -7220,24 +7219,18 @@ end
             matlabpath = fullfile(matlabroot, 'bin', 'matlab');
 
             % Build command
-            if ~runOnCluster
+            if ~opts.runOnCluster
                 cmd = append(matlabpath,' -nodisplay -nosplash -nodesktop -r "',pth,'SSIT',str2,')',...
-                    '; exit;" > ',logFile,' 2>&1 < /dev/null &');
+                    '; exit;" > ',opts.logFile,' 2>&1 < /dev/null &');
             else
-                % clusterPrefix = strrep(clusterPrefix,'#LOG',logFile);
-                % clusterPrefix = strrep(clusterPrefix,'#ERR',append('err_',logFile));
-                clusterPrefix = regexprep(clusterPrefix,'\<#LOG\>',logFile);
-                clusterPrefix = regexprep(clusterPrefix,'\<#ERR\>',append('err_',logFile));
-
-                % pth = strrep(pth,"'","''");
-                % str2 = strrep(str2,"'","''");
-
+                clusterPrefix = regexprep(opts.clusterPrefix,'\<#LOG\>',opts.logFile);
+                clusterPrefix = regexprep(clusterPrefix,'\<#ERR\>',append('err_',opts.logFile));
                 cmd = append(clusterPrefix,' \"',pth,'SSIT',str2,')',...
                     '; exit;\""');
             end
 
             % Run command if requested.
-            if runNow
+            if opts.runNow
                 system(cmd);
             end
 
@@ -7280,7 +7273,12 @@ end
                 modelName = ['Model_',num2str(i)];
                 saveFile2 = [modelLibrary,'_',num2str(i)];
                 logfile = ['logFile',num2str(i),'.txt'];
-                SSIT.generateCommandLinePipeline(modelLibrary,modelName,[],pipeline,pipelineArgs,saveFile2,logfile,1,useCluster);
+                SSIT.generateCommandLinePipeline(modelLibrary,modelName,[],pipeline,...
+                    pipelineArgs=pipelineArgs,...
+                    saveFileOut=saveFile2, ...
+                    logFile=logfile, ...
+                    runNow1=true, ...
+                    runOnCluster=useCluster);
             end
         end
     end
