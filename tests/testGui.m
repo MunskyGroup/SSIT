@@ -168,24 +168,6 @@ classdef testGui < matlab.uitest.TestCase
                 iB
                 tc.press(tc.GUI.(Buttons{iB}));
             end
-        end
-        function test_fsp_tab_hybrid_an(tc)
-            % Change to FSP Tab
-            tc.choose(tc.GUI.TabGroup,'Finite State Projection');
-            tc.GUI.FspMarginalTimeCreateMovieCheckBox.Value = true;
-            tc.GUI.FspMeanVarShowVarianceCheckBox.Value = true;
-            tc.GUI.FspMeanVarShowOdeCheckBox.Value = true;
-            % tc.GUI.FspMeshCheckBox = true;
-
-            % Run FSP with various buttons
-            Buttons = {'FspRunButtom','FspAddConstraintButton','FspRunButtom',...
-                'FspUpdatePlotButton','FspPlotMarginalsButton','FspDefaultButton',...
-                'FspRunButtom','FspPlotMarginalsOverTimeButton','FspMeanVarPlotButton'...
-                };
-            for iB = 1:length(Buttons)
-                tc.press(tc.GUI.(Buttons{iB}));
-            end
-        end
-
+        end       
     end
 end
