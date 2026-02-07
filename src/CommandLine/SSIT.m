@@ -1728,21 +1728,72 @@ classdef SSIT
             %     contaqined at each time point.
             %
             % Example:  Model.summarizeData
+
             DATA = obj.dataSet;
+
             if isempty(DATA)
                 disp('No data has been loaded.')
                 return
-            else
-                disp(['Species in Data (Model Name: Data Name)'])
-                for iSp = 1:size(DATA.linkedSpecies,1)
-                    disp(['                ',DATA.linkedSpecies{iSp,1},':  ',DATA.linkedSpecies{iSp,2}]);
-                end               
-                disp(['Total Number of Cells: ',num2str(sum(DATA.nCells)) ]);
-                disp(['Cells per Time Point (Time: Number)'])
-                for iT = 1:length(DATA.nCells)
-                disp(['                     ',num2str(DATA.times(iT)),':  ',num2str(DATA.nCells(iT))]);
-                end               
             end
+
+            %% Header
+            disp('------------------------------------------------------------')
+            disp(['Data file: ', DATA.dataFileName])
+            disp('------------------------------------------------------------')
+            disp('Species summary:')
+            disp('  Model name (Data name)        min        max        mean')
+            disp('  --------------------------------------------------------')
+
+            %% Species statistics
+            for iSp = 1:size(DATA.linkedSpecies,1)
+                vals = [DATA.DATA{:, iSp+1}];
+
+                fprintf('  %-25s %10.3g %10.3g %10.3g\n', ...
+                    [DATA.linkedSpecies{iSp,1}, ' (', DATA.linkedSpecies{iSp,2}, ')'], ...
+                    min(vals), max(vals), mean(vals));
+            end
+            disp('------------------------------------------------------------')
+            disp(' ')
+
+            %% Filtering / cell counts
+            if isempty(DATA.conditions)
+                disp('Filtering conditions: None')
+            else
+                disp('Filtering conditions:')
+                for iFi = 1:size(DATA.conditions,1)
+                    if ~isempty(DATA.conditions{iFi,1})
+                        if isnumeric(DATA.conditions{iFi,2})
+                            disp(['  Conditon ',num2str(iFi),': ',DATA.conditions{iFi,1},' ',DATA.conditions{iFi,3},' ',num2str(DATA.conditions{iFi,2})])
+                        else
+                            disp(['   ',DATA.conditions{iFi,1},' ',DATA.conditions{iFi,3},' ',DATA.conditions{iFi,2}])
+                        end
+                    else
+                        str = DATA.conditions{iFi,3};
+                        str = strrep(str,'TAB.','');
+                        disp(['  Conditon ',num2str(iFi),': ', str])     
+                    end
+                end
+            end
+            fprintf('  Total number of cells after filtering: %d\n', sum(DATA.nCells))
+            disp('------------------------------------------------------------')
+            disp(' ')
+
+            %% Horizontal cells-per-time table
+            disp('Cells per time point:')
+            disp('------------------------------------------------------------')
+
+            % Time row
+            fprintf('  Time : ')
+            fprintf('%10.3g', DATA.times)
+            fprintf('\n')
+
+            % Cell count row
+            fprintf('  Cells: ')
+            fprintf('%10d', DATA.nCells)
+            fprintf('\n')
+
+            disp('------------------------------------------------------------')
+
 
         end
         function generateModelLibrary(obj,DataFileName,ModelSpecies,DataSpecies,...
@@ -2697,6 +2748,8 @@ classdef SSIT
                     end
                 end
             end
+            obj.dataSet.conditions = conditions;
+            obj.dataSet.dataFileName = dataFileName;
             % obj.dataSet.DATA = table2cell(TAB);
 
             % Link Species
