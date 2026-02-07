@@ -57,7 +57,9 @@ For all basic functionalities:
 - SimBiology Toolbox (for loading/saving SBML models only)
 
 # Installation
-Clone this package to a local folder on your computer. Then add the path to that folder (with subfolders) into MATLAB's search path. You can then call all functions from MATLAB. 
+Clone this package to a local folder on your computer. Then, navigate to this new folder in matlab and run the installation script.
+>> install    % Run script to set paths and check availability of SSIT codes.
+>> install(1) % Also run test scripts to check functionality of critical SSIT functions.   
 
 # Testing
 To test your installation, navigate to the folder SSIT/tests and run the following test routines.
@@ -77,7 +79,7 @@ A GUI version of the SSIT has much of the functionality, and is a great way to f
 >> A = SSITGUI;
 
 You should then see the model loading and building page of the graphical interface, and you are off to the races...
-![SSIT](https://github.com/MunskyGroup/SSIT/blob/main/src/gui/app_src/metadata/appScreenshot.png
+![SSIT](https://github.com/MunskyGroup/SSIT/blob/main/src/gui/app_src/metadata/appScreenshot.png)
 
 ## Command Line Version
 
