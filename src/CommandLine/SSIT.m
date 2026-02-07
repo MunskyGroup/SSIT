@@ -1718,6 +1718,33 @@ classdef SSIT
 
         end
 
+        function summarizeData(obj)
+            %% SSIT.summarizeData - Prints a summary of the data in SSIT model:
+            %
+            % Input:  SSIT model
+            %
+            % Output:  Summary text to screen showing which model species
+            %     are matched to which data, and how many measurements are
+            %     contaqined at each time point.
+            %
+            % Example:  Model.summarizeData
+            DATA = obj.dataSet;
+            if isempty(DATA)
+                disp('No data has been loaded.')
+                return
+            else
+                disp(['Species in Data (Model Name: Data Name)'])
+                for iSp = 1:size(DATA.linkedSpecies,1)
+                    disp(['                ',DATA.linkedSpecies{iSp,1},':  ',DATA.linkedSpecies{iSp,2}]);
+                end               
+                disp(['Total Number of Cells: ',num2str(sum(DATA.nCells)) ]);
+                disp(['Cells per Time Point (Time: Number)'])
+                for iT = 1:length(DATA.nCells)
+                disp(['                     ',num2str(DATA.times(iT)),':  ',num2str(DATA.nCells(iT))]);
+                end               
+            end
+
+        end
         function generateModelLibrary(obj,DataFileName,ModelSpecies,DataSpecies,...
                 Folder,ModelNames,Individual,Constraints,ModelPrefix)
             arguments
