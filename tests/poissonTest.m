@@ -104,6 +104,31 @@ classdef poissonTest < matlab.unittest.TestCase
                 'Solution Mean is not within 1% Tolerance');
         end
 
+        function PoissonMoments(testCase)            
+            % This test verifies that the moment closure approach is
+            % working for the Poisson case.
+            model = testCase.Poiss;
+
+            t = testCase.Poiss.tSpan;
+            mn = testCase.Poiss.parameters{1,2}/testCase.Poiss.parameters{2,2}*...
+                (1-exp(-testCase.Poiss.parameters{2,2}*t));
+
+            model.solutionScheme = 'ode';
+            [~,~,model] = model.solve;
+
+            model.solutionScheme = 'moments';
+            [~,~,model] = model.solve;
+
+            errMean = max(abs((model.Solutions.moments(1,:)-mn)./mn));
+
+            var = model.Solutions.moments(2,:)-model.Solutions.moments(1,:).^2;
+            errVar = max(abs((var-mn)./mn));
+
+            testCase.verifyEqual(errMean+errVar<0.01, true, ...
+                'Solution Mean and Variance not within 1% Tolerance');
+            
+        end
+
         function PoissonSpeed(testCase)
             disp(['Poiss time = ',num2str(testCase.PoissSolution.time)]);
             testCase.verifyEqual(testCase.PoissSolution.time<0.2, true, ...
@@ -216,17 +241,23 @@ classdef poissonTest < matlab.unittest.TestCase
             end
 
             tic
-            testCase.Poiss.ssaOptions.useParalel = false;
-            testCase.Poiss.ssaOptions.useGPU = true;
-            SSAGPU = testCase.Poiss.solve(testCase.PoissSolution);
-            timeGPU = toc;
-           
-            tic
             testCase.Poiss.ssaOptions.useParallel = true;
             testCase.Poiss.ssaOptions.useGPU = false;
             SSACPUp = testCase.Poiss.solve(testCase.PoissSolution);
             timeCPUp = toc;
 
+            if gpuDeviceCount>0
+                tic
+                testCase.Poiss.ssaOptions.useParalel = false;
+                testCase.Poiss.ssaOptions.useGPU = true;
+                SSAGPU = testCase.Poiss.solve(testCase.PoissSolution);
+                timeGPU = toc;
+            else
+                disp('Skipping GPU test - no device available')
+                timeGPU = 0;
+                SSAGPU = SSACPUp;
+            end
+           
             tic
             testCase.Poiss.ssaOptions.useParallel = false;
             testCase.Poiss.ssaOptions.useGPU = false;
@@ -242,18 +273,24 @@ classdef poissonTest < matlab.unittest.TestCase
             disp('GPU/CPU Performance for SSA - 1.1Mk sims')
             table(Methods,Times,Means,Vars)
 
-            testCase.Poiss.ssaOptions.nSimsPerExpt = 1000000;
-            tic
-            testCase.Poiss.ssaOptions.useParalel = false;
-            testCase.Poiss.ssaOptions.useGPU = true;
-            SSAGPU = testCase.Poiss.solve(testCase.PoissSolution);
-            timeGPU = toc;
-           
             tic
             testCase.Poiss.ssaOptions.useParallel = true;
             testCase.Poiss.ssaOptions.useGPU = false;
             SSACPUp = testCase.Poiss.solve(testCase.PoissSolution);
             timeCPUp = toc;
+            
+            if gpuDeviceCount>0
+                testCase.Poiss.ssaOptions.nSimsPerExpt = 1000000;
+                tic
+                testCase.Poiss.ssaOptions.useParalel = false;
+                testCase.Poiss.ssaOptions.useGPU = true;
+                SSAGPU = testCase.Poiss.solve(testCase.PoissSolution);
+                timeGPU = toc;
+            else
+                disp('Skipping GPU test - no device available')
+                timeGPU = 0;
+                SSAGPU = SSACPUp;
+            end
 
             Methods = {'1CPU+1GPU';append(num2str(p.NumWorkers),' CPUs')};
             Times = [timeGPU;timeCPUp];
@@ -314,6 +351,29 @@ classdef poissonTest < matlab.unittest.TestCase
 
             testCase.verifyEqual(relDiff<0.0001, true, ...
                 'Likelihood Calculation is not within 0.01% Tolerance');            
+        end
+
+        function likelihoodSpread(testCase)
+            % In this test we compare the computed log-likelihood to the
+            % exact solution for the Poisson Model:
+            % lam(t) = k/g*(1-exp(-g*t));
+            % logL = prod_n [Poisson(n|lam(t))]
+            
+            % Add additional times to FSP solution to test that it
+            % correctly can filter thee out when computing the likelihood
+            % values.
+            % testCase.Poiss.tSpan = [0:0.05:max(testCase.Poiss.tSpan)];
+            
+            % Update solution.
+            [~,~,testCase.Poiss] = testCase.Poiss.solve;
+
+            % Change numbers of cells
+            testCase.Poiss.dataSet.nCells(:) = 30;
+            testCase.Poiss.dataSet.nCells(end) = 60;           
+
+            % Call to compute likelihood
+            testCase.Poiss.estimateLikelihoodSpread;
+               
         end
 
         function LikelihoodGradient(testCase)
@@ -459,13 +519,16 @@ classdef poissonTest < matlab.unittest.TestCase
             
             % Skip first time point for fitting.
             Model.fittingOptions.timesToFit = Model.tSpan>0;
+            Model.odeIntegrator = 'ode45';
+
             odeLogL = Model.computeLikelihoodODE;
             
             t = Model.tSpan(2:end);
             mn = Model.parameters{1,2}/Model.parameters{2,2}*...
                 (1-exp(-Model.parameters{2,2}*t));
 
-            logLExact = -1/2*sum(Model.dataSet.nCells(2:end).*(Model.dataSet.mean(2:end)-mn').^2./Model.dataSet.var(2:end));
+            logLExact = -1/2*sum(Model.dataSet.nCells(2:end).*(Model.dataSet.mean(2:end)-mn').^2./ ...
+                Model.dataSet.var(2:end));
 
             relDiff = abs((logLExact-odeLogL)/logLExact);
 
@@ -586,6 +649,17 @@ classdef poissonTest < matlab.unittest.TestCase
 
             testCase.verifyEqual(exist('exampleResultsTest.mat','file'), 2, ...
                 'Model Creation Failed');
+
+        end
+
+        function TestTimeSpanChange(testCase)
+
+            testCase.Poiss.tSpan = linspace(10,30,5);
+            [~,~,testCase.Poiss] = testCase.Poiss.solve;
+
+            testCase.Poiss.initialTime = 0;
+            [soln] = testCase.Poiss.solve;
+
 
         end
 

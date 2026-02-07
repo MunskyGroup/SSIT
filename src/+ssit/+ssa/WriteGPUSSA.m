@@ -6,7 +6,7 @@ Nt = length(tprint); % Length of time at which to print results.
 fileID = fopen([fun_name,'.m'],'w');
 % Name of m-file to be written.
 
-txt = ['function [X]=',fun_name,'(x0,N_run,useGPU)\r\n'];
+txt = ['function [X]=',fun_name,'(x0,N_run,parametersIn,useGPU)\r\n'];
 fprintf(fileID,txt);
 fprintf(fileID,'%%This is an automatically generated MATLAB SSA Program.\r\n');
 fprintf(fileID,'%%The tools used to generate this file were covered at the.\r\n');
@@ -16,6 +16,7 @@ fprintf(fileID,'%%2016 q-bio Summer School at the Colorado State University.\r\n
 fprintf(fileID,'arguments\r\n');
 fprintf(fileID,'   x0\r\n');
 fprintf(fileID,'   N_run\r\n');
+fprintf(fileID,'   parametersIn\r\n');
 fprintf(fileID,'   useGPU=CPU\r\n');
 fprintf(fileID,'end\r\n\r\n');
 
@@ -33,6 +34,8 @@ for i=1:Nspec
     fprintf(fileID,['   x',num2str(i),'_0_GPU = x0(',num2str(i),')*gpuArray.ones(1,N_run); %% Specific Initial Conditions.\r\n']);
 end
 
+
+
 % fprintf(fileID,'for i = 1:N_split  %% Run loop over different GPU cards.\r\n');
 for i=1:Nspec
     for j=1:Nt
@@ -48,8 +51,11 @@ for i=1:Nspec
         txt2 = [txt2,',x',num2str(i),'_0_GPU'];
     end
 end
-txt = [txt,'] = arrayfun(@',fun_name,'_SSA,',txt2,');\r\n'];
-fprintf(fileID,txt);
+txtAF1 = ['   ',fun_name,'_SSA_GPU = @(',txt2,')',fun_name,'_SSA(',txt2,',parametersIn);\r\n'];
+txtAF2 = [txt,'] = arrayfun(@',fun_name,'_SSA_GPU,',txt2,');\r\n'];
+
+fprintf(fileID,txtAF1);
+fprintf(fileID,txtAF2);
 
 for i=1:Nspec
     for j=1:Nt
@@ -79,9 +85,9 @@ for i=1:Nspec
         txt2 = [txt2,',x',num2str(i),'_0'];
     end
 end
-txt3 = [txt0,'] = ',fun_name,'_SSA(',txt2,');\r\n'];
+txt3 = [txt0,'] = ',fun_name,'_SSA(',txt2,',parametersIn);\r\n'];
 % fprintf(fileID,txt3);
-txt = ['    [x] = collectFun(',txt2,');\r\n'];
+txt = ['    [x] = collectFun(',txt2,',parametersIn);\r\n'];
 fprintf(fileID,txt);
 
 % txt4 = ['    X(:,:,i) = reshape(',txt(3:end),'],[Nt,Nspec])'';\r\n'];
@@ -120,13 +126,14 @@ for i=1:Nspec
         txt2 = [txt2,',x',num2str(i)];
     end
 end
-txt = [txt,'] = ',fun_name,'_SSA(',txt2,')\r\n'];
+txt = [txt,'] = ',fun_name,'_SSA(',txt2,',parametersIn)\r\n'];
 fprintf(fileID,txt);
 
 
 fprintf(fileID,['%%First we define the parameters.\r\n']);
 for i=1:length(k)
-    txt = ['k',num2str(i),'=',num2str(k(i)),';\r\n'];
+    % txt = ['k',num2str(i),'=',num2str(k(i)),';\r\n'];
+    txt = ['k',num2str(i),'=parametersIn(',num2str(i),');\r\n'];
     fprintf(fileID,txt);
 end
 fprintf(fileID,'\r\n');
@@ -134,12 +141,22 @@ fprintf(fileID,'\r\n');
 fprintf(fileID,['%%Initialize the time.\r\n']);
 fprintf(fileID,['t=',num2str(tprint(1)),';\r\n']);
 
+fprintf(fileID,['%%Initialize the state.\r\n']);
+for j=1:Nspec
+    fprintf(fileID,['x',num2str(j),'new=x',num2str(j),';\r\n']);
+end
+
 fprintf(fileID,['%%Start the SSA.\r\n']);
 
 for it = 1:Nt
     fprintf(fileID,['tstop = ',num2str(tprint(it)),';   %%Next time to print results.\r\n']);
     fprintf(fileID,['while t<tstop   %%Next time to print results.\r\n']);
-    
+
+    fprintf(fileID,['  %%Update the state to reflect the last reaction.\r\n']);
+    for j=1:Nspec
+        fprintf(fileID,['  x',num2str(j),'=x',num2str(j),'new;\r\n']);
+    end
+
     txt2 = '  w0=0';
     for i=1:Nrxn
         txt = strcat({'  w'},{num2str(i)},{'='},w{i},{';\r\n'});
@@ -149,14 +166,14 @@ for it = 1:Nt
     txt2 = [txt2,';\r\n'];
     fprintf(fileID,txt2);
     fprintf(fileID,'  t = t-1/w0*log(rand);\r\n');
-    fprintf(fileID,'  if t<=tstop\r\n');
-    fprintf(fileID,'    r2w0=rand*w0;\r\n');
+    % fprintf(fileID,'  if t<=tstop\r\n');
+    fprintf(fileID,'  r2w0=rand*w0;\r\n');
     
     for i=1:Nrxn
         if i==1
-            txt = '    if r2w0<w1';
+            txt = '  if r2w0<w1';
         else
-            txt = '    elseif r2w0<w1';
+            txt = '  elseif r2w0<w1';
         end
         for j=2:i
             txt=[txt,'+w',num2str(j)];
@@ -166,13 +183,13 @@ for it = 1:Nt
         
         for j=1:Nspec
             if S(j,i)~=0
-                txt = ['      x',num2str(j),'=x',num2str(j),'+(',num2str(S(j,i)),');\r\n'];
+                txt = ['    x',num2str(j),'new=x',num2str(j),'+(',num2str(S(j,i)),');\r\n'];
                 fprintf(fileID,txt);
             end
         end
     end
-    fprintf(fileID,'    end\r\n');
     fprintf(fileID,'  end\r\n');
+    % fprintf(fileID,'  end\r\n');
     fprintf(fileID,'end\r\n');
     
     for i=1:Nspec
@@ -197,10 +214,10 @@ for i=1:Nspec
         txt2 = [txt2,',x',num2str(i)];
     end
 end
-txt = ['function [x] = collectFun(',txt2,')\r\n'];
+txt = ['function [x] = collectFun(',txt2,',parametersIn)\r\n'];
 fprintf(fileID,txt);
 fprintf(fileID,'%% This function runs the SSA and gathers the results into a single matrix.\r\n');
-txt4 = ['[',txt3,'] = ',fun_name,'_SSA(',txt2,');\r\n'];
+txt4 = ['[',txt3,'] = ',fun_name,'_SSA(',txt2,',parametersIn);\r\n'];
 fprintf(fileID,txt4);
 txt5 = ['x=','[',txt3,'];\r\n'];
 fprintf(fileID,txt5);

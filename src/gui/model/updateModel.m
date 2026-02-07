@@ -48,7 +48,13 @@ if useOldXspeciesVersion
     species(:,2) = num2cell(zeros(length(species),1));
 else
     species = app.SSITModel.species;
-    species(:,2) = num2cell(app.SSITModel.initialCondition);    
+    if ~isempty(app.SSITModel.initialCondition)
+        species(:,2) = num2cell(app.SSITModel.initialCondition);
+    else
+        species(:,2) = num2cell(zeros(size(species(:,1))));
+    end
+    % app.SSITModel.initialCondition = [app.SpeciesTable.Data{:,2}]
+    % species(:,2) = app.SpeciesTable.Data{:,2};%num2cell(app.SSITModel.initialCondition);    
 end
 % pars = unique(species,'stable');    % Removes any repeated propensity
 % app.ReactionsTabOutputs.varNames = pars;
@@ -132,7 +138,7 @@ if size(Mod,1)>=1                                   % If-statement to ensure tha
     
     J = zeros(length(pars),1,'logical');
     if size(app.ModelInputTable.Data,1)
-        [~,Jn] = intersect(pars,app.ModelInputTable.Data{:,1});
+        [~,Jn] = intersect(pars,app.ModelInputTable.Data(:,1));
         J(Jn) = 1;
         if sum(J)<size(app.ModelInputTable.Data,1)
             disp('WARNING - Removing one or more unused signals.')
@@ -301,7 +307,9 @@ app.SSITModel.stoichiometry = S;
 app.SSITModel.parameters = pars;
 app.SSITModel.propensityFunctions = Props_vec';
 app.SSITModel.inputExpressions = inputs;
-app.SSITModel.initialCondition = [app.SpeciesTable.Data{:,2}]';
+% if ~isempty(species)
+    app.SSITModel.initialCondition = [species{:,2}]';
+% end
 app.SSITModel.description = app.ModelAbout.Value;
 % k = strfind(fileName,'.'); k=k(end);
 % k1 = strfind(fileName,'/'); k1=k1(end);

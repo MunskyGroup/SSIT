@@ -66,9 +66,12 @@ else
         % end
         % % ReactionsTabOutputs.inputs the selected parameters into the reactions tab
         % index = find(ind1 == 1);
-        error('Support for multiple parameter sets has been removed');
+        % error('Support for multiple parameter sets has been removed');
+        warning('Support for multiple parameter sets has been removed. Only using the first one.');
+        index=1;
         % TODO - remove this section when all multi-par examples have been
         % converted.
+
 
     else % Without more than one set of parameters, the values are just put into the reactions tab
         index=1;
@@ -127,7 +130,7 @@ else
     allPlayers = append(Mytable_model{:,2:3});
     while contains(allPlayers,['x',num2str(nSp+1)])
         nSp = nSp+1;
-        app.SSITModel.species{nSp} = ['x',num2str(nSp)];
+        app.SSITModel.species{nSp,1} = ['x',num2str(nSp)];
     end
 
     % Build reaction network.
@@ -137,14 +140,14 @@ else
     for iRxn = 1:nRxn
         app.SSITModel.propensityFunctions{iRxn} = Mytable_model{iRxn,4};
         for iSp = 1:nSp
-            if contains(Mytable_model{iRxn,2},app.SSITModel.species{nSp})
-                J = strfind(Mytable_model{iRxn,2},app.SSITModel.species{nSp});
+            if contains(Mytable_model{iRxn,2},app.SSITModel.species{nSp,1})
+                J = strfind(Mytable_model{iRxn,2},app.SSITModel.species{nSp,1});
                 K1 = strfind(Mytable_model{iRxn,2}(J:end),'(');
                 K2 = strfind(Mytable_model{iRxn,2}(J:end),')');
                 app.SSITModel.stoichiometry(iSp,iRxn) = -eval(Mytable_model{iRxn,2}(J+K1:J+K2-2));
             end
-            if contains(Mytable_model{iRxn,3},app.SSITModel.species{nSp})
-                J = strfind(Mytable_model{iRxn,3},app.SSITModel.species{nSp});
+            if contains(Mytable_model{iRxn,3},app.SSITModel.species{nSp,1})
+                J = strfind(Mytable_model{iRxn,3},app.SSITModel.species{nSp,1});
                 K1 = strfind(Mytable_model{iRxn,3}(J:end),'(');
                 K2 = strfind(Mytable_model{iRxn,3}(J:end),')');
                 app.SSITModel.stoichiometry(iSp,iRxn) = app.SSITModel.stoichiometry(iSp,iRxn)+eval(Mytable_model{iRxn,3}(J+K1:J+K2-2));

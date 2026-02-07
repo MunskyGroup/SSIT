@@ -61,8 +61,8 @@ STL1_4state_MH.parameters(:,2) = num2cell(STL1_4state_MH_pars);
 
 % Plot fitting results:
 STL1_4state_MH.plotFits([], "all", [], {'linewidth',2},...
-    Title='4-state STL1', YLabel='Molecule Count',...
-    LegendLocation='northeast', LegendFontSize=12);
+    Title='4-state STL1', YLabel='Molecule Count', LegendFontSize=12,...
+LegendLocation='northeast', TimePoints=[0 8 10 15 30 55]);
 
 % You may need to re-run this multiple times until converged.
 % I got a MLE of -34,003.3 after a few runs. 
@@ -88,7 +88,7 @@ for i=1:3
     MHOptions.thin = 2;
 
     % Run Metropolis-Hastings: 
-    [STL1_4state_MH_pars,~,STL1_4state_MH_MHResults] = ...
+    [STL1_4state_MH_pars,~,STL1_4state_MHResults] = ...
         STL1_4state_MH.maximizeLikelihood([], MHOptions,...
         'MetropolisHastings');
     
@@ -96,14 +96,16 @@ for i=1:3
     STL1_4state_MH.parameters([1:15],2) = ...
         num2cell(STL1_4state_MH_pars);
 end
-STL1_4state_MH.plotMHResults(STL1_4state_MH_MHResults);
+STL1_4state_MH.plotMHResults(STL1_4state_MHResults);
 
 STL1_4state_MH.plotFits([], "all", [], {'linewidth',2},...
     Title='4-state STL1', YLabel='Molecule Count',...
-    LegendLocation='northeast', LegendFontSize=12, ProbXLim = [0 80]);
+    LegendLocation='northeast', LegendFontSize=12, ProbXLim = [0 80],...
+    TimePoints=[0 8 10 15 30 55]);
 
-%% Save models & MH results:
-saveNames = unique({'STL1_4state_MH'
+%% Save model & MH results:
+saveNames = unique({ ...
+    'STL1_4state_MH'
     'STL1_4state_MH_pars'
     'STL1_4state_MHResults'
     });

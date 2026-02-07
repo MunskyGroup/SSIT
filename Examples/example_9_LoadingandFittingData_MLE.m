@@ -22,8 +22,8 @@ addpath(genpath('../src'));
 % load('example_8_LoadingandFittingData.mat')
  
 % View model summary:
-Model_data.summarizeModel
-STL1_data.summarizeModel
+% Model_data.summarizeModel
+% STL1_data.summarizeModel
 STL1_4state_data.summarizeModel
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -31,8 +31,8 @@ STL1_4state_data.summarizeModel
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Make new copies of our model:
-Model_MLE = Model_data;
-STL1_MLE = STL1_data;
+% Model_MLE = Model_data;
+% STL1_MLE = STL1_data;
 STL1_4state_MLE = STL1_4state_data;
 
 % Let's see which model better fits our data...
@@ -43,41 +43,42 @@ fitOptions = optimset('Display','iter','MaxIter',2000);
 % Define which parameters to fit (in this case, all of them)
 % and convert from cell to double
 
-Model_pars = cell2mat(Model_MLE.parameters(1:4,2));
-STL1_pars = cell2mat(STL1_MLE.parameters(1:8,2));
+% Model_pars = cell2mat(Model_MLE.parameters(1:4,2));
+% STL1_pars = cell2mat(STL1_MLE.parameters(1:8,2));
 STL1_4state_pars = cell2mat(STL1_4state_MLE.parameters(1:15,2));
 
 %% Compute the MLEs:
-[Model_pars,Model_likelihood] = ...
- Model_MLE.maximizeLikelihood(Model_pars,fitOptions);
-
-[STL1_pars,STL1_likelihood] = ...
- STL1_MLE.maximizeLikelihood(STL1_pars,fitOptions);
+% [Model_pars,Model_likelihood] = ...
+%  Model_MLE.maximizeLikelihood(Model_pars,fitOptions);
+% 
+% [STL1_pars,STL1_likelihood] = ...
+%  STL1_MLE.maximizeLikelihood(STL1_pars,fitOptions);
 
 [STL1_4state_pars,STL1_4state_likelihood] = ...
  STL1_4state_MLE.maximizeLikelihood(STL1_4state_pars,fitOptions);
+% Note: Should see an MLE of -21961.2 at the end
 
 % Update parameters:
-for j=1:length(Model_pars)
-    Model_MLE.parameters{j,2} = Model_pars(j);
-end
-
-for k=1:length(STL1_pars)
-    STL1_MLE.parameters{k,2} = STL1_pars(k);
-end
+% for j=1:length(Model_pars)
+%     Model_MLE.parameters{j,2} = Model_pars(j);
+% end
+% 
+% for k=1:length(STL1_pars)
+%     STL1_MLE.parameters{k,2} = STL1_pars(k);
+% end
 
 for l=1:length(STL1_4state_pars)
     STL1_4state_MLE.parameters{l,2} = STL1_4state_pars(l);
 end
 
 % Make plots of the parameter fits from the MLEs:
-Model_MLE.plotFits([], "all", [], {'linewidth',2},...
-    Title='4-state STL1', YLabel='Molecule Count',...
-    LegendLocation='northeast', LegendFontSize=12);
-
-STL1_MLE.plotFits([], "all", [], {'linewidth',2},...
-    Title='4-state STL1', YLabel='Molecule Count',...
-    LegendLocation='northeast', LegendFontSize=12);
+% Model_MLE.plotFits([], "all", [], {'linewidth',2},...
+%     Title='Bursting Gene', YLabel='Molecule Count',...
+%     LegendLocation='northeast', LegendFontSize=12);
+% 
+% STL1_MLE.plotFits([], "all", [], {'linewidth',2},...
+%     Title='STL1', YLabel='Molecule Count',...
+%     LegendLocation='northeast', LegendFontSize=12);
 
 STL1_4state_MLE.plotFits([], "all", [], {'linewidth',2},...
     Title='4-state STL1', YLabel='Molecule Count',...

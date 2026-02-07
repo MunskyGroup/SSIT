@@ -22,8 +22,9 @@ STL1.summarizeModel
 STL1_4state.summarizeModel
 
 % Set the times at which distributions will be computed:
-Model.tSpan = linspace(0,20,200);
-STL1.tSpan = linspace(0,20,200);
+Model.tSpan = linspace(0,50,101);
+STL1.tSpan = linspace(0,50,101);
+STL1_4state.tSpan = linspace(0,50,101);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(1): Solve escape times for the bursting gene example model 
@@ -39,14 +40,13 @@ STL1.tSpan = linspace(0,20,200);
     Model_escape.fspOptions.escapeSinks.f = {'mRNA'};
     Model_escape.fspOptions.verbose = false;
     Model_escape.fspOptions.escapeSinks.b = 5;
-    [Model_escape_fspSoln,Model_escape.fspOptions.bounds] = ...
-        Model_escape.solve;
+    Model_escape = Model_escape.formPropensitiesGeneral('Model_escape');
+    [~,~,Model_escape] = Model_escape.solve;
 
     % Plot the CDF and PDF
-    Model_escape.plotFSP(Model_escape_fspSoln, [],...
-        "escapeTimes", [], [], {'linewidth',3},...
-        Title="Bursting Gene (mRNA)", Colors=[0.93,0.69,0.13],...
-        LegendLocation="southeast");
+    Model_escape.plotFSP(Model_escape.Solutions, [], "escapeTimes", [],...
+        [], {'linewidth',3}, Title="Bursting Gene (mRNA)",...
+        Colors=[0.93,0.69,0.13], LegendLocation="southeast");
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(2): Solve escape times for the time-varying STL1 yeast model
@@ -60,13 +60,13 @@ STL1.tSpan = linspace(0,20,200);
     % Solve for the escape time:
     STL1_escape.fspOptions.escapeSinks.f = {'offGene','onGene'};
     STL1_escape.fspOptions.escapeSinks.b = [0.5;0.5];
-    [STL1_escape_fspSoln,STL1_escape.fspOptions.bounds] = ...
-        STL1_escape.solve;
+    STL1_escape = STL1_escape.formPropensitiesGeneral('STL1_escape');
+    [~,~,STL1_escape] = STL1_escape.solve;
 
     % Plot the CDF and PDF
-    STL1_escape.plotFSP(STL1_escape_fspSoln, [],...
-        "escapeTimes", [], [], {'linewidth',3},...
-        Title="STL1 (offGene, onGene)", LegendLocation="east");
+    STL1_escape.plotFSP(STL1_escape.Solutions,[],"escapeTimes",[],[],...
+        {'linewidth',3}, Title="STL1 (offGene, onGene)",...
+        LegendLocation="east");
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(3): Solve escape times for the 4-state time-varying STL1 yeast model
@@ -77,21 +77,25 @@ STL1.tSpan = linspace(0,20,200);
     % Create a copy of the time-varying STL1 yeast model:
     STL1_4state_escape = STL1_4state;
 
+
+    % This should not be required, since propensities are already
+    % generated.
+    STL1_4state_escape = ...
+      STL1_4state_escape.formPropensitiesGeneral('STL1_4state_escape');
+
     % Set the initial populations:
-    STL1_4state_escape.initialCondition = [0;0;0;1;0];
+    STL1_4state_escape.initialCondition = [1;0;0;0;0];
 
     % Set the times at which distributions will be computed:
-    STL1_4state_escape.tSpan = linspace(0,1,200);
+    STL1_4state_escape.tSpan = linspace(0,100,200);
 
-    % Solve for time to mRNA=0:
+    % Solve for time for mRNA to reach 100:
     STL1_4state_escape.fspOptions.escapeSinks.f = {'mRNA'};
-    STL1_4state_escape.fspOptions.escapeSinks.b = 0;       
-
-    [STL1_4state_fspSoln_escape,STL1_4state_escape.fspOptions.bounds] = ...
-        STL1_4state_escape.solve;
+    STL1_4state_escape.fspOptions.escapeSinks.b = 100;    
+    [~,~,STL1_4state_escape] = STL1_4state_escape.solve;
 
     % Plot the CDF and PDF
-    STL1_4state_escape.plotFSP(STL1_4state_fspSoln_escape, [],...
-        "escapeTimes", [], [], {'linewidth',3}, XLim=[0,0.25],...
+    STL1_4state_escape.plotFSP(STL1_4state_escape.Solutions, [],...
+        "escapeTimes", [], [], {'linewidth',3}, XLim=[0,50],...
         TitleFontSize=24, Title="4-state STL1 (mRNA)",...
         Colors=[0.23,0.67,0.2], LegendLocation="southeast");

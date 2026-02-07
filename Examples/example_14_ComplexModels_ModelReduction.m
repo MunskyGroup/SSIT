@@ -52,9 +52,9 @@ STL1_MR_setup = STL1_4state_FSP;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 reductionType = 'Proper Orthogonal Decomposition'; 
-reductionOrder = 100;
+reductionOrder = 10;
 %qssaSpecies = 2;       % Only needed for the QSSA reduction scheme.
-podTimeSetSize = 520;   % Only needed for the POD reduction scheme.
+podTimeSetSize = 20;    % Only needed for the POD reduction scheme.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -124,3 +124,13 @@ STL1_MR.plotFSP(STL1_FSPsoln_Red,...
     YLabel='Molecule Count', Title='4-state STL1 (FSP reduced)',...
     TitleFontSize=24, AxisLabelSize=18, TickLabelSize=18,...
     Colors=[0.23,0.67,0.2], LegendFontSize=15, LegendLocation='northeast');
+
+%% Save reduced model & solution
+saveNames = unique({
+    'STL1_MR_setup'
+    'STL1_MR'
+    'STL1_FSPsoln_expand'
+    'STL1_FSPsoln_Red'
+    });
+    
+save('example_14_ComplexModels_ModelReduction',saveNames{:})

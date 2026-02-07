@@ -3,7 +3,21 @@ function [] = plotSsaInGui(app)
 % user to evaluate
 
 %% Extract SSA samples from storage
-samples = app.StochasticSimulationTabOutputs.samples;
+if isempty(app.SSITModel.Solutions)||~isfield(app.SSITModel.Solutions,'trajs')
+    msgbox('There is no trajectory to plot. Please click runSsa first to generate trajectories.');
+    return
+end
+
+samples = app.SSITModel.Solutions.trajs;
+if isfield(app.SSITModel.Solutions,'trajsDistorted')
+    speciesStochastic = setdiff(app.SSITModel.species,app.SSITModel.hybridOptions.upstreamODEs);
+    for iSp = 1:length(speciesStochastic)
+        if ~max(strcmpi(app.SSITModel.pdoOptions.unobservedSpecies,speciesStochastic{iSp}))
+            samples(end+1,:,:) = app.SSITModel.Solutions.trajsDistorted(iSp,:,:);
+        end
+    end
+end
+
 %% Extract the number and timepoints to plot
 if app.SsaNumSimField.Value<app.SsaNumSimToPlotField.Value
     app.SsaNumSimToPlotField.Value = app.SsaNumSimField.Value;
@@ -18,11 +32,11 @@ timesToPlot = eval(app.PrintTimesEditField.Value);  % Pulls the time array
 %% Check what species to plot
 speciesToPlot = [];
 legends = {};
-nSpecies = length(app.SSITModel.species);
+nSpecies = length(app.SpeciestoShowListBox.Items);
 for iSpecies = 1:nSpecies
-    if max(contains(app.SpeciestoShowListBox.Value,app.SSITModel.species{iSpecies}))
+    if max(strcmpi(app.SpeciestoShowListBox.Value,app.SpeciestoShowListBox.Items{iSpecies}))
         speciesToPlot = [speciesToPlot iSpecies];
-        legends = [legends app.SSITModel.species(iSpecies)];
+        legends = [legends app.SpeciestoShowListBox.Items(iSpecies)];
     end
 end
 %% Plot trajectories, each species have a color
@@ -40,12 +54,12 @@ for isim = 1:numToPlot
     end
 end
 
-for iSpecies = speciesToPlot
+for iSpecies = speciesToPlot(speciesToPlot<=length(app.SSITModel.species))
     if app.SsaShowOdeCheckBox.Value == 1
-        if isempty(app.FspTabOutputs.odeSolutions)
+        if isempty(app.SSITModel.Solutions.ode)
             runOde(app)
         end
-        ode(iSpecies) = plot(app.SsaTrajAxes,app.FspTabOutputs.tOde,app.FspTabOutputs.odeSolutions(:,iSpecies),speciesColors2{iSpecies},'LineWidth',3); hold(app.SsaTrajAxes,'on');
+        ode(iSpecies) = plot(app.SsaTrajAxes,app.SSITModel.Solutions.T_array,app.SSITModel.Solutions.ode(:,iSpecies),speciesColors2{iSpecies},'LineWidth',3); hold(app.SsaTrajAxes,'on');
         LG{end+1} = [append(char(app.SSITModel.species{iSpecies}),' ode')];
     end
 end

@@ -78,3 +78,12 @@ STL1_hybrid.plotFSP(STL1_hybrid_FSPsoln, STL1_hybrid.species(5),...
 STL1_hybrid.plotFSP(STL1_hybrid_FSPsoln, STL1_hybrid.species(5),...
     'marginals', [1,12,24,50,101,200],[],{'linewidth',3}, XLim=[0,100],...
     Colors=[0.23,0.67,0.2], TickLabelSize=15)
+
+
+%% Save hybrid model & solution
+saveNames = unique({
+    'STL1_hybrid'
+    'STL1_hybrid_FSPsoln'
+    });
+    
+save('example_13_ComplexModels_Hybrid',saveNames{:})

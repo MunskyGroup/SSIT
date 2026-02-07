@@ -27,7 +27,10 @@ end
 
 %% Set Initial Conditions and other user settings
 app.SSITModel.initialCondition = eval(app.FspInitCondField.Value)';   % Pulls the inital conditions specified
-Nsp = length(app.SSITModel.species);
+
+speciesStochastic = setdiff(app.SSITModel.species,app.SSITModel.hybridOptions.upstreamODEs);
+Nsp = length(speciesStochastic);
+
 app.SSITModel.customConstraintFuns = app.FspConstraintTable.Data(Nsp*2+1:end,1);
 app.SSITModel.fspOptions.bounds = app.FspTabOutputs.bounds';
 app.SSITModel.tSpan = unique(eval(app.FspPrintTimesField.Value));        % Pulls the time array from the app
@@ -37,11 +40,11 @@ app.SSITModel.fspOptions.fspTol = app.FspErrorTolField.Value;            % Pulls
 app.SSITModel.solutionScheme = 'fspsens';
 app.FspRunningStatus.Text = 'FSP-Sens is running...';
 tic
-[solutions,constraintBounds] = app.SSITModel.solve;
+[~,constraintBounds,app.SSITModel] = app.SSITModel.solve;
 app.FspRunningStatus.Text = ['FSP-Sens completed in ',num2str(toc,3),'s'];
 
 app.FspTabOutputs.bounds = constraintBounds';
-app.SensFspTabOutputs.solutions = solutions.sens;
+% app.SensFspTabOutputs.solutions = solutions.sens;
 app.FspConstraintTable.Data(:,3) = num2cell(app.FspTabOutputs.bounds');   % Sets the bounds from constraints to the ones found in the FSP analysis
 
 close(d_prog_bar)

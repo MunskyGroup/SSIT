@@ -142,7 +142,20 @@ for iSp = iSp+1:7
     % app.AddMoreDataButton.Visible = 'off';
 end
 
-
+%% PDO Options
+updateSpeciesDropBoxes
+if ~isempty(app.SSITModel.pdoOptions)&&isfield(app.SSITModel.pdoOptions,'type')
+    app.DistortionTypeDropDown.Value = app.SSITModel.pdoOptions.type;
+    app.ObservableSpeciesListBox.Value = ...
+        setdiff(app.ObservableSpeciesListBox.Items,app.SSITModel.pdoOptions.unobservedSpecies);
+    app.ObservableSpeciesListBox_2.Value = ...
+        setdiff(app.ObservableSpeciesListBox.Items,app.SSITModel.pdoOptions.unobservedSpecies);
+    if ~isempty(app.SSITModel.pdoOptions.PDO)
+        app.ShowDistortionPlotButton.Enable = true;
+    end
+else
+    app.DistortionTypeDropDown.Value = 'None';
+end
 
 %% FSP Options
 makeDefaultConstraints(app);
@@ -181,7 +194,7 @@ if updatePropensityFuns
         propQuest = questdlg(prompt,dlgtitle,'Yes - Overwrite','No - Use Current','No - Specify New Location','Yes - Overwrite');
         switch propQuest
             case 'Yes - Overwrite'
-                addpath(genpath([pwd,'/tmpPropensityFunctions/',propFileName]));
+                addpath(genpath(folder));
                 try
                     app.SSITModel = app.SSITModel.formPropensitiesGeneral([propFileName,'/',app.ModelFile.modelName],true);
                 catch
@@ -189,6 +202,7 @@ if updatePropensityFuns
                 end
             case 'No - Use Current'
                 % do nothing
+                addpath(genpath(folder));
             case 'No - Specify New Location'
                 [propFileName] = uigetdir([pwd,'/tmpPropensityFunctions/'],'Create or choose folder for new propensity functions.');
                 propFileName = strrep(propFileName,[pwd,'/tmpPropensityFunctions/'],'');
@@ -219,5 +233,8 @@ if saveCopy
     eval(append(app.ModelFile.modelName,' = app.SSITModel;'));
     save(fileName,app.ModelFile.modelName)
 end
+
+%% Clear Axes
+clearSSITGUIaxes
 
 end

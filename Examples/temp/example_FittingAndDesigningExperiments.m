@@ -1,8 +1,8 @@
 %% example_FittingAndDesigningExperiments
-% Example script to show how the SSIT can be used to identify a
+% In this script, we show how the SSIT can be used to identify a
 % time-inhomogeneous model for the activation of Dusp1 mRNA expression
 % under Dexamethasome stimulation of Glucocorticoid Receptors.
-clear
+clear all
 clc
 close all
 addpath(genpath('../src'));
@@ -33,7 +33,7 @@ Model = Model.formPropensitiesGeneral('Model');
 
 %% Load and Fit smFISH Data
 % Next we load experimental data from a CSV file and associate the species
-% 'rna' with the collumn 'RNA_nuc'.
+% 'rna' with the column 'RNA_nuc'.
 Model = Model.loadData('../ExampleData/DUSP1_Dex_100nM_Rep1_Rep2.csv',{'rna','RNA_nuc'});
 Model.fittingOptions.modelVarsToFit = 1:7;
 % Next, we call a fitting routine to maximize the likelihood of the data

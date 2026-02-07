@@ -123,22 +123,21 @@ classdef poisson2Dtest < matlab.unittest.TestCase
 
         function ODEsolution(testCase)
             % In this test, we check that the ODE Solution matches the
-            % exact solution for the 1D Time Varying Poisson model and the
+            % exact solution for the 2D Time NonVarying Poisson model and the
             % 2D Poisson Model.
-            % Compare to 2D Poisson starting at SS.
 
-            mn1 = testCase.TwoDPoissODE.parameters{1,2}/testCase.TwoDPoissODE.parameters{2,2};
-            mn2 = testCase.TwoDPoissODE.parameters{3,2}/testCase.TwoDPoissODE.parameters{4,2};
+            mn1 = testCase.TwoDPoissODE.parameters{1,2}/testCase.TwoDPoissODE.parameters{2,2}*...
+                (1-exp(-testCase.TwoDPoissODE.parameters{2,2}*testCase.TwoDPoissODE.tSpan));
+            mn2 = testCase.TwoDPoissODE.parameters{3,2}/testCase.TwoDPoissODE.parameters{4,2}*...
+                (1-exp(-testCase.TwoDPoissODE.parameters{2,2}*testCase.TwoDPoissODE.tSpan));
             
             Model = testCase.TwoDPoissODE;
             Model.fspOptions.initApproxSS = true;
             odeSoln = Model.solve;
 
-            diff1 = abs(odeSoln.ode(:,1)-mn1);
-            diff2 = abs(odeSoln.ode(:,2)-mn2);
+            relDiff1 = max(abs((odeSoln.ode(:,1)-mn1')./mn1'));
+            relDiff2 = max(abs((odeSoln.ode(:,2)-mn2')./mn2'));
 
-            relDiff1 = sum(diff1(diff1>0)./mn1)/length(diff1);
-            relDiff2 = sum(diff2(diff2>0)./mn2)/length(diff2);
 
             testCase.verifyEqual(max([relDiff1,relDiff2])<0.001, true, ...
                 'ODE Solution is not within 1% Tolerance');
@@ -184,6 +183,36 @@ classdef poisson2Dtest < matlab.unittest.TestCase
             % Test if the reduced species plotting functions work without crashing.
             modelA.makeFitPlot
             
+        end
+
+        function likelihoodSpread(testCase)
+            % In this test we compare the computed log-likelihood to the
+            % exact solution for the Poisson Model:
+            % lam(t) = k/g*(1-exp(-g*t));
+            % logL = prod_n [Poisson(n|lam(t))]
+            
+            % Add additional times to FSP solution to test that it
+            % correctly can filter thee out when computing the likelihood
+            % values.
+            % testCase.Poiss.tSpan = [0:0.05:max(testCase.Poiss.tSpan)];
+            
+            % Update solution.
+            [~,~,testCase.TwoDPoiss] = testCase.TwoDPoiss.solve;
+
+            delete 'testData.csv'
+            testCase.TwoDPoiss.ssaOptions.nSimsPerExpt = 1000;
+            testCase.TwoDPoiss.ssaOptions.Nexp = 1;
+            testCase.TwoDPoiss.sampleDataFromFSP(testCase.TwoDPoissSolution,'testData.csv');
+
+            modelBoth = testCase.TwoDPoiss.loadData('testData.csv',{'rna1','exp1_s1';'rna2','exp1_s2'});
+
+            % Change numbers of cells
+            modelBoth.dataSet.nCells(:) = 30;
+            modelBoth.dataSet.nCells(end) = 60;           
+
+            % Call to compute likelihood
+            modelBoth.estimateLikelihoodSpread;
+               
         end
     end
 end

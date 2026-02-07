@@ -5,7 +5,7 @@ arguments
     hists = true
 end
 %% Extract data to plot
-samples = app.StochasticSimulationTabOutputs.samples;
+samples = app.SSITModel.Solutions.trajs;
 %% This creates figures from the SSA tab into a Matlab figure
 if isempty(samples)
     msgbox('Please generate the trajectories first.');
