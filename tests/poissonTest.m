@@ -652,6 +652,29 @@ classdef poissonTest < matlab.unittest.TestCase
 
         end
 
+        function TestTimeSpanChange(testCase)
+            % Test a few minor issues
+
+            % Test correction of mismatch in tSpan and initialTime
+            testCase.Poiss.tSpan = linspace(10,30,5);
+            [~,~,testCase.Poiss] = testCase.Poiss.solve;
+            testCase.Poiss.initialTime = 0;
+            testCase.Poiss.solve;
+            testCase.Poiss.initialTime = 10;
+            testCase.Poiss.solve;
+
+            % Test Data Summaries
+            Mod = testCase.Poiss.loadData('testDataSSANEW.csv',...
+                {'rna','exp1_s1'},...
+                {[],[],'TAB.exp1_s1>=5&TAB.exp1_s1<=12'});
+            Mod.summarizeData
+            Mod = testCase.Poiss.loadData('testDataSSANEW.csv',...
+                {'rna','exp1_s1'},...
+                {'exp1_s1',5,'>='});
+            Mod.summarizeData
+
+        end
+
         function TestAdvancedDataLoading(testCase)
             % Test loading multiple data sets and running logical data selection.
             model = testCase.Poiss;

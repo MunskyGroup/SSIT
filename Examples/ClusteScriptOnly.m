@@ -23,8 +23,9 @@ for iRound = 1:5
             load(saveName)
             eval([modelName,'.formPropensitiesGeneral;']);
         end
-        cmd = SSIT.generateCommandLinePipeline(saveName,modelName,[],Pipeline,...
-            pipelineArgs,saveName,logfile,1,1);
+        cmd = SSIT.generateCommandLinePipeline(saveName,modelName,Pipeline,...
+            pipelineArgs=pipelineArgs,saveFileOut=saveName, ...
+            logFile=logfile,runNow=true,runOnCluster=true);
         pause(60); % Pause to allow for matlab licenses to reset.
     end
 end

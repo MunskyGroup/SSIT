@@ -179,6 +179,7 @@ classdef SSIT
         propensitiesGeneralMeanJac = [];
         propensitiesGeneralMoments = [];
         propensitiesGeneralMomentsJac = [];
+        propensityFilePrefix = 'Default';
 
         % Solutions
         Solutions = []; % Field holding solutions for current model and
@@ -619,6 +620,7 @@ classdef SSIT
             % end
 
             obj.propensitiesGeneral = PropensitiesGeneral;
+            obj.propensityFilePrefix = prefixName;
         end
         %%
         function constraints = get.fspConstraints(obj)
@@ -1718,6 +1720,84 @@ classdef SSIT
 
         end
 
+        function summarizeData(obj)
+            %% SSIT.summarizeData - Prints a summary of the data in SSIT model:
+            %
+            % Input:  SSIT model
+            %
+            % Output:  Summary text to screen showing which model species
+            %     are matched to which data, and how many measurements are
+            %     contaqined at each time point.
+            %
+            % Example:  Model.summarizeData
+
+            DATA = obj.dataSet;
+
+            if isempty(DATA)
+                disp('No data has been loaded.')
+                return
+            end
+
+            %% Header
+            disp('------------------------------------------------------------')
+            disp(['Data file: ', DATA.dataFileName])
+            disp('------------------------------------------------------------')
+            disp('Species summary:')
+            disp('  Model name (Data name)        min        max        mean')
+            disp('  --------------------------------------------------------')
+
+            %% Species statistics
+            for iSp = 1:size(DATA.linkedSpecies,1)
+                vals = [DATA.DATA{:, iSp+1}];
+
+                fprintf('  %-25s %10.3g %10.3g %10.3g\n', ...
+                    [DATA.linkedSpecies{iSp,1}, ' (', DATA.linkedSpecies{iSp,2}, ')'], ...
+                    min(vals), max(vals), mean(vals));
+            end
+            disp('------------------------------------------------------------')
+            disp(' ')
+
+            %% Filtering / cell counts
+            if isempty(DATA.conditions)
+                disp('Filtering conditions: None')
+            else
+                disp('Filtering conditions:')
+                for iFi = 1:size(DATA.conditions,1)
+                    if ~isempty(DATA.conditions{iFi,1})
+                        if isnumeric(DATA.conditions{iFi,2})
+                            disp(['  Conditon ',num2str(iFi),': ',DATA.conditions{iFi,1},' ',DATA.conditions{iFi,3},' ',num2str(DATA.conditions{iFi,2})])
+                        else
+                            disp(['   ',DATA.conditions{iFi,1},' ',DATA.conditions{iFi,3},' ',DATA.conditions{iFi,2}])
+                        end
+                    else
+                        str = DATA.conditions{iFi,3};
+                        str = strrep(str,'TAB.','');
+                        disp(['  Conditon ',num2str(iFi),': ', str])     
+                    end
+                end
+            end
+            fprintf('  Total number of cells after filtering: %d\n', sum(DATA.nCells))
+            disp('------------------------------------------------------------')
+            disp(' ')
+
+            %% Horizontal cells-per-time table
+            disp('Cells per time point:')
+            disp('------------------------------------------------------------')
+
+            % Time row
+            fprintf('  Time : ')
+            fprintf('%10.3g', DATA.times)
+            fprintf('\n')
+
+            % Cell count row
+            fprintf('  Cells: ')
+            fprintf('%10d', DATA.nCells)
+            fprintf('\n')
+
+            disp('------------------------------------------------------------')
+
+
+        end
         function generateModelLibrary(obj,DataFileName,ModelSpecies,DataSpecies,...
                 Folder,ModelNames,Individual,Constraints,ModelPrefix)
             arguments
@@ -1770,8 +1850,6 @@ classdef SSIT
                     save(fName,append(ModelPrefix,'*'));
                 end
             end
-            
-
         end
 
         %% Model Analysis Functions
@@ -1802,11 +1880,33 @@ classdef SSIT
             %   [soln,bounds] = F.solve;  % Returns the sensitivity and the
             %                             % bounds for the FSP projection
             % See also: SSIT.makePlot for information on how to visualize
-            % the solution data.
+            % the solution data.   
+            
+            try
+                [Solution, bConstraints, obj] = obj.solveHelper(stateSpace,saveFile,fspSoln);
+            catch
+                obj.propensitiesGeneral = [];
+                newPropFileName = [obj.propensityFilePrefix,'_x'];
+                disp(['(Re)Forming Propensity Function Files under new name: ',newPropFileName]);
+                obj = obj.formPropensitiesGeneral(newPropFileName);
+                [Solution, bConstraints, obj] = obj.solveHelper(stateSpace,saveFile,fspSoln);               
+            end
+        end
+
+        function [Solution, bConstraints, obj] = solveHelper(obj,stateSpace,saveFile,fspSoln)
+            arguments
+                obj
+                stateSpace = [];
+                saveFile=[];
+                fspSoln=[];
+            end
+
+
             if obj.initialTime>obj.tSpan(1)
-                error('First time in tspan cannot be earlier than the initial time.')
+                disp('Warning: First time in tSpan cannot be earlier than the initial time. Truncating tSpan to later times only.');
+                obj.tSpan = obj.tSpan(obj.tSpan>=obj.initialTime);
             elseif obj.initialTime~=obj.tSpan(1)
-                %                 warning('First time in tspan is not the same as initial time.')
+                disp('Warning: First time in tSpan was not the same as initial time. Adding initial time to list of solution times.');
                 obj.tSpan = unique([obj.initialTime,obj.tSpan]);
             end
 
@@ -1823,7 +1923,6 @@ classdef SSIT
                     disp('(Re)Forming Propensity Functions Due to Detected Change in Hybrid Model Dimension.')
                     obj = formPropensitiesGeneral(obj,'hybrid',true);
                 end
-
 
                 if obj.modelReductionOptions.useModReduction
                     if ~isfield(obj.modelReductionOptions,'phi')
@@ -2144,7 +2243,6 @@ classdef SSIT
                     obj.Solutions.(newFields{ifield}) = Solution.(newFields{ifield});
                 end
             end
-
         end
 
         function A = sampleDataFromFSP(obj,fspSoln,saveFile,nCells,species2save)
@@ -2669,6 +2767,8 @@ classdef SSIT
                     end
                 end
             end
+            obj.dataSet.conditions = conditions;
+            obj.dataSet.dataFileName = dataFileName;
             % obj.dataSet.DATA = table2cell(TAB);
 
             % Link Species
@@ -3269,9 +3369,7 @@ classdef SSIT
 
             if reuseExistingSolution
                 solutions = obj.Solutions;  % Load previous model solutions.
-
             else
-
                 % Select which parameters to consider in loss function
                 % first for the model parameters
                 if strcmp(obj.fittingOptions.modelVarsToFit,'all')
@@ -7100,19 +7198,18 @@ end
             
 
         end
-        function cmd = generateCommandLinePipeline(saveFileIn,modelName,dummy, ...
-                Pipeline,pipelineArgs,saveFileOut,logFile,runNow,runOnCluster,clusterPrefix)
+        function cmd = generateCommandLinePipeline(saveFileIn,modelName, ...
+                Pipeline,opts)%pipelineArgs,saveFileOut,logFile,runNow,runOnCluster,clusterPrefix)
             arguments
                 saveFileIn
                 modelName
-                dummy
                 Pipeline
-                pipelineArgs
-                saveFileOut
-                logFile
-                runNow = false
-                runOnCluster = false
-                clusterPrefix = 'sbatch --cpus-per-task=1 --output=#LOG --error=#ERR --wrap="module load matlab-2022b; srun matlab -nodisplay -nosplash -nodesktop -r'
+                opts.pipelineArgs = struct()
+                opts.saveFileOut = 'ssitPipelineOutput.mat'
+                opts.logFile = 'logFile.txt'
+                opts.runNow = false
+                opts.runOnCluster = false
+                opts.clusterPrefix = 'sbatch --cpus-per-task=1 --output=#LOG --error=#ERR --wrap="module load matlab-2022b; srun matlab -nodisplay -nosplash -nodesktop -r'
             end
 
             % TODO - code currently works only for Mac and linux.  Need to
@@ -7121,17 +7218,17 @@ end
             % Parse inputs into format needed for command line call.
             str1 = append('(''',saveFileIn,''',''',modelName,''',[],''',Pipeline,''',');
             str2 = 'struct(';
-            fieldNames = fields(pipelineArgs);
+            fieldNames = fields(opts.pipelineArgs);
             for iField = 1:length(fieldNames)
                 field = fieldNames{iField};
-                if isnumeric(pipelineArgs.(field))||islogical(pipelineArgs.(field))
-                    value = num2str(pipelineArgs.(field));
+                if isnumeric(opts.pipelineArgs.(field))||islogical(opts.pipelineArgs.(field))
+                    value = num2str(opts.pipelineArgs.(field));
                 else
-                    value = append('''',pipelineArgs.(field),'''');
+                    value = append('''',opts.pipelineArgs.(field),'''');
                 end
                 str2 = append(str2,'''',field,''',',value,',');
             end
-            str2 = append(str1,str2(1:end-1),'),''',saveFileOut,'''');
+            str2 = append(str1,str2(1:end-1),'),''',opts.saveFileOut,'''');
 
             % Add path to SSIT.
             pth = which('SSIT');
@@ -7141,24 +7238,18 @@ end
             matlabpath = fullfile(matlabroot, 'bin', 'matlab');
 
             % Build command
-            if ~runOnCluster
+            if ~opts.runOnCluster
                 cmd = append(matlabpath,' -nodisplay -nosplash -nodesktop -r "',pth,'SSIT',str2,')',...
-                    '; exit;" > ',logFile,' 2>&1 < /dev/null &');
+                    '; exit;" > ',opts.logFile,' 2>&1 < /dev/null &');
             else
-                % clusterPrefix = strrep(clusterPrefix,'#LOG',logFile);
-                % clusterPrefix = strrep(clusterPrefix,'#ERR',append('err_',logFile));
-                clusterPrefix = regexprep(clusterPrefix,'\<#LOG\>',logFile);
-                clusterPrefix = regexprep(clusterPrefix,'\<#ERR\>',append('err_',logFile));
-
-                % pth = strrep(pth,"'","''");
-                % str2 = strrep(str2,"'","''");
-
+                clusterPrefix = regexprep(opts.clusterPrefix,'\<#LOG\>',opts.logFile);
+                clusterPrefix = regexprep(clusterPrefix,'\<#ERR\>',append('err_',opts.logFile));
                 cmd = append(clusterPrefix,' \"',pth,'SSIT',str2,')',...
                     '; exit;\""');
             end
 
             % Run command if requested.
-            if runNow
+            if opts.runNow
                 system(cmd);
             end
 
@@ -7201,7 +7292,12 @@ end
                 modelName = ['Model_',num2str(i)];
                 saveFile2 = [modelLibrary,'_',num2str(i)];
                 logfile = ['logFile',num2str(i),'.txt'];
-                SSIT.generateCommandLinePipeline(modelLibrary,modelName,[],pipeline,pipelineArgs,saveFile2,logfile,1,useCluster);
+                SSIT.generateCommandLinePipeline(modelLibrary,modelName,[],pipeline,...
+                    pipelineArgs=pipelineArgs,...
+                    saveFileOut=saveFile2, ...
+                    logFile=logfile, ...
+                    runNow1=true, ...
+                    runOnCluster=useCluster);
             end
         end
     end
