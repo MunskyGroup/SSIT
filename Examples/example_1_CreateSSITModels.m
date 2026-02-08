@@ -67,7 +67,7 @@ STL1.parameters = ({'kon',0.2; 'koff',0.2; 'kr',10; 'dr',5;...
 STL1.summarizeModel
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Ex(3): Copy the 'STL1' model for 4-state dynamics.  
+%% Ex(3): Copy the 'STL1' model for 4-(gene)-state dynamics.  
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Create a copy of the STL1 model from above:
@@ -101,7 +101,7 @@ STL1_4state.propensityFunctions = {...
 % Add the new parameters for the 4 state model:
 STL1_4state.parameters = ({'t0',5.8; 'k12',90; 'k21o',1e+03; 'k21i',1;
     'k23',5e+02; 'k34',5; 'k32',1000; 'k43',200; 'dr',1; 'kr',2500; ...
-    'r1',35; 'r2',0.5; 'A',3; 'M',25; 'n',0.1});
+    'r1',26; 'r2',0.76; 'A',1.75; 'M',31; 'n',0.18});
 
 % Print a summary of STL1 Model:
 STL1_4state.summarizeModel

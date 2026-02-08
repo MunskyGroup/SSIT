@@ -48,8 +48,8 @@ SSIT(saveFile,'STL1_4state_pipe',[],Pipeline,pipelineArgs,saveFile);
 
 %% Get command to run job in background
 % Generate the command to run from terminal:
-cmd = SSIT.generateCommandLinePipeline(saveFile,'STL1_4state_pipe',[],...
-    Pipeline,pipelineArgs,saveFile,'logFile.txt')
+cmd = SSIT.generateCommandLinePipeline(saveFile,'STL1_4state_pipe',...
+    Pipeline,pipelineArgs=pipelineArgs,saveFileOut=saveFile)
 
 %% Run that command from matlab:
 system(cmd);
@@ -58,9 +58,11 @@ system(cmd);
 % Note: This is set up for a specific cluster that uses sbatch. To run on
 % another cluster, change the argument 'clusterPrefix' 
 % Generate the command to run from terminal:
-cmd = SSIT.generateCommandLinePipeline(saveFile,'STL1_4state_pipe',[],...
-    Pipeline,pipelineArgs,saveFile,'logFile.txt',0,1)
+cmd = SSIT.generateCommandLinePipeline(saveFile,'STL1_4state_pipe',...
+    Pipeline,pipelineArgs=pipelineArgs,saveFileOut=saveFile,...
+    runOnCluster=true,runNow=false)
 
 % Run it directly:
-cmd = SSIT.generateCommandLinePipeline(saveFile,'STL1_4state_pipe',[],...
-    Pipeline,pipelineArgs,saveFile,'logFile.txt',1,1)
+cmd = SSIT.generateCommandLinePipeline(saveFile,'STL1_4state_pipe',...
+    Pipeline,pipelineArgs=pipelineArgs,saveFileOut=saveFile, ...
+    runOnCluster=true,runNow=true)

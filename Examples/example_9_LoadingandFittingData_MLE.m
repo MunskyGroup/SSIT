@@ -35,10 +35,9 @@ STL1_4state_data.summarizeModel
 % STL1_MLE = STL1_data;
 STL1_4state_MLE = STL1_4state_data;
 
-% Let's see which model better fits our data...
-
 % Set fitOptions, with the maximum allowable number of iterations to fit:
 fitOptions = optimset('Display','iter','MaxIter',2000);
+STL1_4state_MLE.fittingOptions.modelVarsToFit = 1:10;
 
 % Define which parameters to fit (in this case, all of them)
 % and convert from cell to double
@@ -80,9 +79,9 @@ end
 %     Title='STL1', YLabel='Molecule Count',...
 %     LegendLocation='northeast', LegendFontSize=12);
 
-STL1_4state_MLE.plotFits([], "all", [], {'linewidth',2},...
-    Title='4-state STL1', YLabel='Molecule Count',...
-    LegendLocation='northeast', LegendFontSize=12);
+STL1_4state_MLE.plotFits([],"all",[],{'linewidth',2},TitleFontSize=24,...
+    Title='4-state STL1 (MLE)', YLabel='Molecule Count',...
+    LegendLocation='northeast', LegendFontSize=18, AxisLabelSize=20);
 
 %% Save models & MLEs:
 saveNames = unique({'Model_MLE'
