@@ -435,9 +435,11 @@ classdef SSIT
                 type
             end
 
+            load('SSITconfig.mat','pathToPropensityFuns');
+
             switch type
                 case 'fsp'
-                    delete([pwd,filesep,'tmpPropensityFunctions',filesep,prefixName,'_fsp*'])
+                    delete([pathToPropensityFuns,filesep,prefixName,'_fsp*'])
                     clear([prefixName,'_fsp*'])
                     % TODO - it would be good if we could search here and
                     % find if there are conflict files in pther folders
@@ -446,8 +448,8 @@ classdef SSIT
 
                 case 'ssa'
                 case 'ode'
-                    delete([pwd,filesep,'tmpPropensityFunctions',filesep,prefixName,'_mean*'],...
-                        [pwd,filesep,'tmpPropensityFunctions',filesep,prefixName,'_mean*'])
+                    delete([pathToPropensityFuns,filesep,prefixName,'_mean*'],...
+                        [pathToPropensityFuns,filesep,prefixName,'_mean*'])
                     clear([prefixName,'_mean'],[prefixName,'_mean_jac']);
 
                     conflictFile = which([prefixName,'_mean']);
@@ -457,8 +459,8 @@ classdef SSIT
                     end
 
                 case {'moments','gaussian'}
-                    delete([pwd,filesep,'tmpPropensityFunctions',filesep,prefixName,'_momentsgaussian*'],...
-                        [pwd,filesep,'tmpPropensityFunctions',filesep,prefixName,'_momentsgaussian_jac*'])
+                    delete([pathToPropensityFuns,filesep,prefixName,'_momentsgaussian*'],...
+                        [pathToPropensityFuns,filesep,prefixName,'_momentsgaussian_jac*'])
                     clear([prefixName,'_momentsgaussian'],[prefixName,'_momentsgaussian_jac']);
 
                     conflictFile = which([prefixName,'_momentsgaussian']);
@@ -507,14 +509,11 @@ classdef SSIT
             % This function starts the process to write m-file for each
             % propensity function.
 
-            if ~exist([pwd,filesep,'tmpPropensityFunctions'],'dir')
-                mkdir([pwd,filesep,'tmpPropensityFunctions'])
-            end
-            addpath([pwd,filesep,'tmpPropensityFunctions'])
+            load('SSITconfig.mat','pathToPropensityFuns');
 
             if strcmpi(obj.solutionScheme,'ode')
                 obj = clearPropensityFiles(obj,prefixName,'ode');
-                momentOdeFileName = [pwd,filesep,'tmpPropensityFunctions',filesep,prefixName,'_mean'];
+                momentOdeFileName = [pathToPropensityFuns,filesep,prefixName,'_mean'];
                 try
                     jacCreated = ssit.moments.writeFunForMomentsODESymb(obj.stoichiometry,...
                         obj.propensityFunctions,...
@@ -537,7 +536,7 @@ classdef SSIT
             elseif strcmpi(obj.solutionScheme,'moments')||strcmpi(obj.solutionScheme,'gaussian')
                 obj = clearPropensityFiles(obj,prefixName,'moments');
                 try
-                    momentOdeFileName = [pwd,filesep,'tmpPropensityFunctions',filesep,prefixName,'_momentsgaussian'];
+                    momentOdeFileName = [pathToPropensityFuns,filesep,prefixName,'_momentsgaussian'];
                     jacCreated = ssit.moments.writeFunForMomentsODESymb(obj.stoichiometry,...
                         obj.propensityFunctions,...
                         obj.species,...
@@ -605,7 +604,7 @@ classdef SSIT
             % end
 
             % try
-            %     delete([pwd,filesep,'tmpPropensityFunctions',filesep,prefixName,'_ODE*'])
+            %     delete([pathToPropensityFuns,filesep,prefixName,'_ODE*'])
             %     objODE = obj;
             %     objODE.solutionScheme='ode';
             %     objODE.solutionSchemes = {};
@@ -1886,7 +1885,8 @@ classdef SSIT
                 [Solution, bConstraints, obj] = obj.solveHelper(stateSpace,saveFile,fspSoln);
             catch
                 obj.propensitiesGeneral = [];
-                newPropFileName = [obj.propensityFilePrefix,'_x'];
+
+                newPropFileName = [obj.propensityFilePrefix,'_',char(randi([97 122]))];
                 disp(['(Re)Forming Propensity Function Files under new name: ',newPropFileName]);
                 obj = obj.formPropensitiesGeneral(newPropFileName);
                 [Solution, bConstraints, obj] = obj.solveHelper(stateSpace,saveFile,fspSoln);               

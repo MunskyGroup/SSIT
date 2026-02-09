@@ -53,7 +53,7 @@ for it = 1:length(T_array)
 
         kSp = 0;
         for iSp = 1:length(speciesStochastic)
-            if ~max(strcmpi(app.SSITModel.pdoOptions.unobservedSpecies,speciesStochastic{iSp}))
+            if isempty(app.SSITModel.pdoOptions.unobservedSpecies)||~max(strcmpi(app.SSITModel.pdoOptions.unobservedSpecies,speciesStochastic{iSp}))
                 INDS = setdiff([1:Nd],iSp);
                 if ~isempty(INDS)
                     px = double(app.SSITModel.Solutions.fsp{it}.p.sumOver(INDS).data);

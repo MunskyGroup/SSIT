@@ -55,7 +55,7 @@ for it = 1:length(T_array2)
 
         kSp = 0;
         for iSp = 1:length(speciesStochastic)
-            if ~max(strcmpi(app.SSITModel.pdoOptions.unobservedSpecies,speciesStochastic{iSp}))
+            if isempty(app.SSITModel.pdoOptions.unobservedSpecies)||~max(strcmpi(app.SSITModel.pdoOptions.unobservedSpecies,speciesStochastic{iSp}))
                 INDS = setdiff([1:Nd],iSp);
                 if ~isempty(INDS)
                     px = double(app.SSITModel.Solutions.fsp{it}.p.sumOver(INDS).data);
@@ -78,7 +78,7 @@ if ~app.FspMarginalTimeCreateMovieCheckBox.Value
             stairs([0:length(mdist{it,iplt})], [mdist{it,iplt};0],'linewidth',2);
             hold('on');
         end
-        title(['Marginals of ',char(app.SSITModel.species(iplt))])
+        title(['Marginals of ',char(app.SpeciestoShowListBoxMargFSPvT.Items(iplt))])
         xlabel('Species Count')
         ylabel('Probability')
         legendCell = cellstr(num2str(T_array2', 'Time=%1.2f'));
