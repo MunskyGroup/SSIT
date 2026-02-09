@@ -81,7 +81,7 @@ A GUI version of the SSIT has much of the functionality, and is a great way to f
 >> A = SSITGUI;
 
 You should then see the model loading and building page of the graphical interface, and you are off to the races...
-![SSIT](https://github.com/MunskyGroup/SSIT/blob/main/src/gui/app_src/metadata/appScreenshot.png)
+![SSIT](https://github.com/MunskyGroup/SSIT/blob/main/src/gui/appsrc/metadata/appScreenshot.png)
 
 ## Command Line Version
 
