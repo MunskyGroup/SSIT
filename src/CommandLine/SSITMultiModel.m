@@ -172,7 +172,6 @@ classdef SSITMultiModel
                 makeplot = false
                 fignums = [];
             end
-
             if isempty(parameters)
                 parameters = SMM.parameters;
             end
