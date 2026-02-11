@@ -62,14 +62,15 @@ STL1_4state_MH_pars = [STL1_4state_MH.parameters{:,2}];
 %  Running a few rounds of MLE and MH together may improve convergence.
 
 STL1_4state_MH.parameters(:,2) = num2cell(STL1_4state_MH_pars);
-for i=1:3
+
+for i=1:2
     % Maximize likelihood:
     STL1_4state_MH_pars = STL1_4state_MH.maximizeLikelihood([]);    
     % Update parameters in the model:
     STL1_4state_MH.parameters(1:fitpars, 2) = num2cell(STL1_4state_MH_pars);
 
     % Run Metropolis-Hastings    
-    proposalWidthScale = 0.02;
+    proposalWidthScale = 0.01;
     MHOptions.proposalDistribution  = ...
        @(x)x+proposalWidthScale*randn(size(x));
 
@@ -86,6 +87,8 @@ for i=1:3
     % Store MH parameters in model:
     STL1_4state_MH.parameters([1:fitpars],2) = num2cell(STL1_4state_MH_pars);
 end
+
+% Plot results:
 STL1_4state_MH.plotMHResults(STL1_4state_MHResults);
 
 STL1_4state_MH.plotFits([], "all", [], {'linewidth',2},...
