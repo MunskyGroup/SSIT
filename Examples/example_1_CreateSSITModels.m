@@ -80,12 +80,12 @@ STL1_4state.species = {'g1';'g2';'g3';'g4';'mRNA'};
 STL1_4state.initialCondition = [1;0;0;0;0];  
 
 % Set stoichiometry of reactions:
-STL1_4state.stoichiometry = [-1,1,0,0,0,0,0,0;...   % gene state 1
-                              1,-1,-1,1,0,0,0,0;... % gene state 2
-                              0,0,1,-1,-1,1,0,0;... % gene state 3        
-                              0,0,0,0,1,-1,0,0;...  % gene state 4
-                              0,0,0,0,0,0,1,-1]     % mRNA
-                 % Reactions: 1,2,3,4,5,6,7, 8
+STL1_4state.stoichiometry = [-1,1,0,0,0,0,0,0,0,0,0;...   % gene state 1
+                              1,-1,-1,1,0,0,0,0,0,0,0;... % gene state 2
+                              0,0,1,-1,-1,1,0,0,0,0,0;... % gene state 3        
+                              0,0,0,0,1,-1,0,0,0,0,0;...  % gene state 4
+                              0,0,0,0,0,0,1,1,1,1,-1]     % mRNA
+                 % Reactions: 1,2,3,4,5,6,7,8,9,10,11
 
 % Add a lag to the time-varying TF/MAPK input signal:
 STL1_4state.inputExpressions = ...
@@ -94,14 +94,15 @@ STL1_4state.inputExpressions = ...
 % Set propensity functions:
 STL1_4state.propensityFunctions = {...
           'k12*g1';'(max(0,k21o*(1-k21i*Hog1)))*g2';...
-          'k23*g2';'k32*g3';...
-          'k34*g3';'k43*g4';...
-          'kr*g4';'dr*mRNA'}; 
+          'k23*g2';'k32*g3'; 'k34*g3';'k43*g4';...
+          'kr1*g1';'kr2*g2';'kr3*g3';'kr4*g4';'dr*mRNA'}; 
 
 % Add the new parameters for the 4 state model:
-STL1_4state.parameters = ({'t0',5.8; 'k12',90; 'k21o',1e+03; 'k21i',1;
-    'k23',5e+02; 'k34',5; 'k32',1000; 'k43',200; 'dr',1; 'kr',2500; ...
-    'r1',26; 'r2',0.76; 'A',1.75; 'M',31; 'n',0.18});
+STL1_4state.parameters = ({'t0',3.17; 'k12',78; 'k21o',1.92e+05;...
+    'k21i',3200; 'k23',0.402; 'k34',7.8; 'k32',1.62;...
+    'k43',2.28; 'dr',0.294; 'kr1',4.68e-02; 'kr2',0.72;...
+    'kr3', 59.4; 'kr4', 3.24; 'r1',4.14e-03; 'r2',0.426;...
+    'A',9.3e+09; 'M',6.4e-04; 'n',3.1});
 
 % Print a summary of STL1 Model:
 STL1_4state.summarizeModel

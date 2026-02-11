@@ -34,38 +34,29 @@ STL1_4state_MLE.summarizeModel
 % Make a new copy of our 4-state STL1 model:
 STL1_4state_MH = STL1_4state_MLE;
 
+% Specify how many model parameters will be fit (the rest will be fixed):
+fitpars = 13;
+
 %% Specify Bayesian Prior and fit
 % Specify Prior as log-normal distribution with wide uncertainty
 % Prior log-mean:
-mu_log10 = [0.8,3,-0.1,2,2.75,0.6,3,2.5,0,3.5,1.5,-0.15,0.5,1.5,-1]; 
+mu_log10 = [0.5,2,5,3.5,-0.4,1,0.2,0.4,-0.5,-1.3,-0.1,2,0.5]; 
 
 % Prior log-standard deviation:
-sig_log10 = 2*ones(1,15);  
+sig_log10 = 2*ones(1,fitpars);  
 
 % Prior:
 STL1_4state_MH.fittingOptions.logPrior = ...
     @(x)-sum((log10(x)-mu_log10).^2./(2*sig_log10.^2));
 
 % Choose parameters to search:
-STL1_4state_MH.fittingOptions.modelVarsToFit = [1:15]; 
+STL1_4state_MH.fittingOptions.modelVarsToFit = [1:fitpars]; 
 
 % Create first parameter guess:
 STL1_4state_MH_pars = [STL1_4state_MH.parameters{:,2}];      
 
-% Fit to maximize likelihood:
-STL1_4state_MH_pars = ...
-    STL1_4state_MH.maximizeLikelihood(STL1_4state_MH_pars); 
-
-% Update new parameters:
-STL1_4state_MH.parameters(:,2) = num2cell(STL1_4state_MH_pars); 
-
-% Plot fitting results:
-STL1_4state_MH.plotFits([], "all", [], {'linewidth',2},...
-    Title='4-state STL1', YLabel='Molecule Count', LegendFontSize=12,...
-LegendLocation='northeast', TimePoints=[0 8 10 15 30 55]);
-
-% You may need to re-run this multiple times until converged.
-% I got a MLE of -34,003.3 after a few runs. 
+% % You may need to re-run this multiple times until converged.
+% % I got a MLE of -34,003.3 after a few runs. 
 
 %% Iterating between MLE and MH
 %  Running a few rounds of MLE and MH together may improve convergence.
@@ -75,31 +66,30 @@ for i=1:3
     % Maximize likelihood:
     STL1_4state_MH_pars = STL1_4state_MH.maximizeLikelihood([]);    
     % Update parameters in the model:
-    STL1_4state_MH.parameters(:,2) = num2cell(STL1_4state_MH_pars);
+    STL1_4state_MH.parameters(1:fitpars, 2) = num2cell(STL1_4state_MH_pars);
 
     % Run Metropolis-Hastings    
-    proposalWidthScale = 0.01;
+    proposalWidthScale = 0.02;
     MHOptions.proposalDistribution  = ...
        @(x)x+proposalWidthScale*randn(size(x));
 
     % Set MH runtime options (number of samples, burnin, thin, etc.):
     MHOptions.numberOfSamples = 2000;
-    MHOptions.burnin = 200;
+    MHOptions.burnin = 500;
     MHOptions.thin = 2;
 
-    % Run Metropolis-Hastings: 
+    % Run Metropolis-Hastings (seeking acceptance ratio around 0.3-0.4): 
     [STL1_4state_MH_pars,~,STL1_4state_MHResults] = ...
         STL1_4state_MH.maximizeLikelihood([], MHOptions,...
         'MetropolisHastings');
     
     % Store MH parameters in model:
-    STL1_4state_MH.parameters([1:15],2) = ...
-        num2cell(STL1_4state_MH_pars);
+    STL1_4state_MH.parameters([1:fitpars],2) = num2cell(STL1_4state_MH_pars);
 end
 STL1_4state_MH.plotMHResults(STL1_4state_MHResults);
 
 STL1_4state_MH.plotFits([], "all", [], {'linewidth',2},...
-    Title='4-state STL1', YLabel='Molecule Count',...
+    Title='4-state STL1 (MH)', YLabel='Molecule Count',...
     LegendLocation='northeast', LegendFontSize=18, ProbXLim = [0 80],...
     TimePoints=[0 8 10 15 30 55], TitleFontSize=24, AxisLabelSize=20);
 

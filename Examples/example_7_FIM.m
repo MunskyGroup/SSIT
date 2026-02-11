@@ -150,9 +150,9 @@ STL1_4state_FIM.plotFIMResults(STL1_4state_fimTotal,...
 %    minEigVal: 6.7265e-12
 
 % STL1_4state_fimMetrics = 
-%          det: -3.8153e-26
-%        trace: 1.5247e+08
-%    minEigVal: -8.3891e-10
+%          det: 3.1402e+00
+%        trace: 9.2817e+08
+%    minEigVal: 8.4878e-13
 
 
 %% Save models & FIM results

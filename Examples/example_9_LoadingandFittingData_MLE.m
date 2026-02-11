@@ -35,16 +35,17 @@ STL1_4state_data.summarizeModel
 % STL1_MLE = STL1_data;
 STL1_4state_MLE = STL1_4state_data;
 
+% Specify how many model parameters will be fit (the rest will be fixed):
+fitpars = 13;
+STL1_4state_MLE.fittingOptions.modelVarsToFit = 1:fitpars;
+
 % Set fitOptions, with the maximum allowable number of iterations to fit:
-fitOptions = optimset('Display','iter','MaxIter',2000);
-STL1_4state_MLE.fittingOptions.modelVarsToFit = 1:10;
+fitOptions = optimset('Display','iter','MaxIter',3000);
 
-% Define which parameters to fit (in this case, all of them)
-% and convert from cell to double
-
+% Store parameters for fitting:
 % Model_pars = cell2mat(Model_MLE.parameters(1:4,2));
 % STL1_pars = cell2mat(STL1_MLE.parameters(1:8,2));
-STL1_4state_pars = cell2mat(STL1_4state_MLE.parameters(1:15,2));
+STL1_4state_pars = cell2mat(STL1_4state_MLE.parameters(1:fitpars,2));
 
 %% Compute the MLEs:
 % [Model_pars,Model_likelihood] = ...

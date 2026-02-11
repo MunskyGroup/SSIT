@@ -146,7 +146,7 @@ DeltaCV = zeros(1,length(geneNames));
 fileExists = zeros(1,length(geneNames));
 for iGene = 1:length(geneNames)
     modelName = ['Model_',geneNames{iGene}];
-    saveName = ['seqModels_fit/',modelName,'.mat'];
+    saveName = ['seqModels/',modelName,'.mat'];
     if exist(saveName,'file')
         fileExists(iGene) = true;
         load(saveName)
