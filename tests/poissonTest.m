@@ -123,8 +123,13 @@ classdef poissonTest < matlab.unittest.TestCase
 
             var = model.Solutions.moments(2,:)-model.Solutions.moments(1,:).^2;
             errVar = max(abs((var-mn)./mn));
-
+            
             testCase.verifyEqual(errMean+errVar<0.01, true, ...
+                'Solution Mean and Variance not within 1% Tolerance');
+            
+            var2 = squeeze(model.Solutions.momenstsCOV(1,1,:))';
+            errVar2 = max(abs((var2-mn)./mn));
+            testCase.verifyEqual(errVar2<0.01, true, ...
                 'Solution Mean and Variance not within 1% Tolerance');
             
         end

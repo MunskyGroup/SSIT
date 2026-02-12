@@ -2230,6 +2230,23 @@ classdef SSIT
 
                     [~,soln] =  odeIntegrat(RHS,obj.tSpan,initCond,options);
                     Solution.moments = soln';
+
+                    Solution.momenstsMean = soln(:,1:nSp);
+                    Nt = length(obj.tSpan);
+                    Solution.momenstsCOV = zeros(nSp,nSp,Nt);
+                    for it = 1:Nt
+                        MU = soln(it,1:nSp);
+                        EXTX = zeros(nSp,nSp);
+                        k = 0;
+                        for i = 1:nSp
+                            for j = i:nSp
+                                k = k+1;
+                                EXTX(i,j) = soln(it,nSp+k);
+                                EXTX(j,i) = EXTX(i,j);
+                            end
+                        end                             
+                        Solution.momenstsCOV(:,:,it) =  EXTX - MU'*MU;
+                    end
                    
                     bConstraints = max(obj.fspConstraints.f((reshape(Solution.moments(1:nSp,:),[nSp,length(obj.tSpan)]))),[],2);
                     bConstraints = max(bConstraints,obj.fspConstraints.b);
