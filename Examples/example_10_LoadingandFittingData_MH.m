@@ -36,6 +36,7 @@ STL1_4state_MH = STL1_4state_MLE;
 
 % Specify how many model parameters will be fit (the rest will be fixed):
 fitpars = 13;
+STL1_4state_MH.fittingOptions.modelVarsToFit = [1:fitpars]; 
 
 %% Specify Bayesian Prior and fit
 % Specify Prior as log-normal distribution with wide uncertainty
@@ -48,9 +49,6 @@ sig_log10 = 2*ones(1,fitpars);
 % Prior:
 STL1_4state_MH.fittingOptions.logPrior = ...
     @(x)-sum((log10(x)-mu_log10).^2./(2*sig_log10.^2));
-
-% Choose parameters to search:
-STL1_4state_MH.fittingOptions.modelVarsToFit = [1:fitpars]; 
 
 % Create first parameter guess:
 STL1_4state_MH_pars = [STL1_4state_MH.parameters{:,2}];      

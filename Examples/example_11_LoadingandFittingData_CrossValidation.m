@@ -59,7 +59,7 @@ ConditionsReplicas = {'TAB.Replica==1';'TAB.Replica==2'};
 % that there is an expected 0.1 log10 deviation expected in some parameters 
 % and smaller in others.  No deviation at all is indicated by 0.
 Log10Constraints = ...
-    [0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.02,0.02,0.02,0.02,0.02,0.1,0.1]; 
+    [0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.02,0.02,0.02,0.02,0.02]; 
 
 % Create full model:
 CrossValidationModel = SSITMultiModel.createCrossValMultiModel(...
@@ -73,6 +73,18 @@ crossValPars = CrossValidationModel.maximizeLikelihood(...
     crossValPars, fitOptions, fitAlgorithm);
 CrossValidationModel = CrossValidationModel.updateModels(crossValPars);
 CrossValidationModel.parameters = crossValPars;
+
+% Get the fixed parameters (Hog1 input):
+fixed = cell2mat(STL1_4state_CrossVal.parameters(14:18,2)).';  % 1x5 row
+
+% Combine newly fit parameters from each replica model with fixed 
+% parameters (1x36 vector):
+CrossValidationModel.parameters = ...
+    [CrossValidationModel.parameters(1:13), fixed,...
+     CrossValidationModel.parameters(14:26), fixed];    
+
+% Update parameter indices:
+CrossValidationModel.parameterIndices = {1:18, 19:36};
 
 % Make a figure to explore how much the parameters changed between replicas:
 fignum = 12; useRelative = true;

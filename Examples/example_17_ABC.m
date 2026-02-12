@@ -41,9 +41,9 @@ STL1_4state_ABC = ...
                             {'mRNA','RNA_STL1_total_TS3Full'},...
                             {'Replica',1;'Condition','0.2M_NaCl_Step'});
 
-% Choose which parameters to fit (here: all parameters):
-STL1_4state_ABC.fittingOptions.modelVarsToFit = ...
-    1:size(STL1_4state_ABC.parameters,1);
+% Choose which parameters to fit:
+fitpars = 13;
+STL1_4state_ABC.fittingOptions.modelVarsToFit = [1:fitpars]; 
 
 %% Set up a prior over parameters (logPriorLoss)
 % logPriorLoss should return a *loss* (positive penalty); smaller is better.
@@ -51,7 +51,7 @@ STL1_4state_ABC.fittingOptions.modelVarsToFit = ...
 % corresponding to a log-normal prior.
 
 % Get current parameter values as a reasonable prior mean:
-theta0 = cell2mat(STL1_4state_ABC.parameters(:,2));
+theta0 = cell2mat(STL1_4state_ABC.parameters([1:fitpars],2)); 
 log10_mu = log10(theta0(:));
 log10_sigma = 2 * ones(size(log10_mu));  % std dev in log10-space  
 
