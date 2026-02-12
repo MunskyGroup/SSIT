@@ -82,6 +82,23 @@ classdef poissonTest < matlab.unittest.TestCase
                 'Final FSP is not within tolerance');
         end
 
+        
+        function FspSSConverged(testCase)
+            % In this test, we check tha the FSP expansion to find the
+            % initial Steady State is correct.
+
+            testCase.Poiss.fspOptions.initApproxSS = true;
+            testCase.Poiss.fspOptions.stateSpace = [];
+            testCase.Poiss.fspOptions.bounds = [0,1];
+            testCase.Poiss.tSpan = [0];
+            ssPoissSolution = testCase.Poiss.solve;
+
+            final = [0:length(double(ssPoissSolution.fsp{1}.p.data))-1]*double(ssPoissSolution.fsp{1}.p.data);
+            tst = abs(final-testCase.Poiss.parameters{1,2}/testCase.Poiss.parameters{2,2})<1e-4;
+            testCase.verifyEqual(tst, true, ...
+                'Final FSP is not within tolerance');
+        end
+
         function PoissonMeans(testCase)
             % In this test, we check that the Time invariant 1D Poisson
             % model generates a solution with the correct means versus
