@@ -52,9 +52,9 @@ STL1_MR_setup = STL1_4state_FSP;
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 reductionType = 'Proper Orthogonal Decomposition'; 
-reductionOrder = 10;
+reductionOrder = 50;
 %qssaSpecies = 2;       % Only needed for the QSSA reduction scheme.
-podTimeSetSize = 20;    % Only needed for the POD reduction scheme.
+podTimeSetSize = 30;    % Only needed for the POD reduction scheme.
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

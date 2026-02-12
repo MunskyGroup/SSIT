@@ -39,7 +39,8 @@ STL1_4state_MH.summarizeModel
 
 %% Set Fitting Options:
 fitAlgorithm = 'fminsearch';
-fitOptions = optimset('Display','final','MaxIter',200);
+fitOptions = optimset('Display','final','MaxIter',200); 
+% Note: 'MaxIter', 200 for fast run; Set to 'MaxIter', 2000 for accuracy
 
 % Make a copy of our 4-state STL1 model:
 STL1_4state_CrossVal = STL1_4state_MH;
