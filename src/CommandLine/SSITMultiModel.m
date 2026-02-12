@@ -451,7 +451,8 @@ classdef SSITMultiModel
             nPars = size(SMM.SSITModels{1}.parameters,1);
             plotMat = zeros(nMod,nPars);
             for iMod = 1:nMod
-                plotMat(iMod,:) = SMM.parameters(SMM.parameterIndices{iMod});
+                plotMat(iMod,:) = [SMM.SSITModels{iMod}.parameters{:,2}];
+                plotMat(iMod,SMM.SSITModels{iMod}.fittingOptions.modelVarsToFit) = SMM.parameters(SMM.parameterIndices{iMod});
             end
             if relative
                 plotMatRel = plotMat./repmat(mean(plotMat),nMod,1);
@@ -461,7 +462,7 @@ classdef SSITMultiModel
                 plotMat(iMod+1,nPars+1) = 0;
                 pcolor(log10(plotMat));
             end
-            set(gca,'xtick',[0.5:1:nPars+0.5],'XTickLabel',SMM.SSITModels{1}.parameters(:,1))
+            set(gca,'xtick',[1.5:1:nPars+0.5],'XTickLabel',[SMM.SSITModels{1}.parameters(:,1)])
             set(gca,'ytick',[0.5:1:nMod+0.5],'YTickLabel',1:nMod,'FontSize',15)
             xlabel('Parameter Name')
             ylabel('Model Number')

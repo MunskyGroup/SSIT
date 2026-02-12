@@ -74,20 +74,8 @@ crossValPars = CrossValidationModel.maximizeLikelihood(...
 CrossValidationModel = CrossValidationModel.updateModels(crossValPars);
 CrossValidationModel.parameters = crossValPars;
 
-% Get the fixed parameters (Hog1 input):
-fixed = cell2mat(STL1_4state_CrossVal.parameters(14:18,2)).';  % 1x5 row
-
-% Combine newly fit parameters from each replica model with fixed 
-% parameters (1x36 vector):
-CrossValidationModel.parameters = ...
-    [CrossValidationModel.parameters(1:13), fixed,...
-     CrossValidationModel.parameters(14:26), fixed];    
-
-% Update parameter indices:
-CrossValidationModel.parameterIndices = {1:18, 19:36};
-
 % Make a figure to explore how much the parameters changed between replicas:
-fignum = 12; useRelative = true;
+fignum = 11; useRelative = true;
 CrossValidationModel.compareParameters(fignum,useRelative);
 
 %% Save model & cross-validation results:
