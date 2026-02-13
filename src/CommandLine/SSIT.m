@@ -3923,6 +3923,11 @@ classdef SSIT
 
             numConstraints = length(obj.fspOptions.bounds);
 
+            if isempty(fspSoln)&&isfield(obj.Solutions,'fsp')
+                fspSoln.fsp = obj.Solutions.fsp;
+                fspSoln.stateSpace = obj.Solutions.stateSpace;
+            end
+
             if ~isfield(fspSoln,'stateSpace')
                 if obj.useHybrid
                     error('Model reduction not currently available for time varying or hybrid system. Let us know if this is something you would like.')
@@ -5068,7 +5073,7 @@ end
             % plotFSP — Plot FSP results like plotODE/plotSSA, with species subsetting
             arguments
                 obj
-                solution
+                solution = []
                 speciesNames = []
                 plotType (1,1) string = "means"
                 indTimes = []
@@ -5086,6 +5091,10 @@ end
                 opts.YLabel (1,1) string = "Molecule Count / Concentration"
                 opts.XLim double = []
                 opts.YLim double = []
+            end
+
+            if isempty(solution)
+                solution = obj.Solutions;
             end
         
             % ----- Species selection -----

@@ -12,7 +12,8 @@ phiScale = [];
 phiPlot = [];
 
 SolnNeeded = {'Proper Orthogonal Decomposition','POD 2nd','POD Update',...
-    'Dynamic Mode Decomposition','Eigen Decomposition Initial'};
+    'Dynamic Mode Decomposition','Eigen Decomposition Initial',...
+    'POD','DMD','POD2','ED'};
 if isfield(fspSoln,'fsp')
     nStates = size(fspSoln.A_total,1);
     nTimes = length(fspSoln.fsp);
@@ -50,6 +51,95 @@ switch redType
         %'No Transform' --
         %   No model reduction is used.  This is meant only for testing.
         phi = eye(size(fspSoln.A_total,1));
+        phi_inv = phi';
+    case {'Linear State Lumping','LNSL'}
+        %'Linear State Lumping' (LNSL) -- 
+        %   State space is divided into linearly distributed bins.
+        %   Then within each bin, the proability distribution is assumed to
+        %   be constant. The number of bins for each species is defined by
+        %   redOrder.
+        nStates = size(fspSoln.stateSpace.states,2);
+        spmax=max(fspSoln.stateSpace.states,[],2);
+        nSpecies = size(fspSoln.stateSpace.states,1);
+        for i = nSpecies:-1:1
+            bins{i} = unique(floor(linspace(1,spmax(i)+1,redOrder+1)))-1;
+        end
+
+        phi_map = zeros(nStates,nSpecies);
+        for j=1:nStates
+            for i=1:nSpecies
+                phi_map(j,i) = find(fspSoln.stateSpace.states(i,j)<=bins{i},1,"first");
+            end
+        end
+        binns = max(phi_map);
+        cprod = [1,cumprod(binns(1:end-1))]';
+        phi_inds = (phi_map-1)*cprod+1;
+
+        phi = zeros(nStates,binns(end)*cprod(end));
+        phi(sub2ind(size(phi),(1:nStates)',phi_inds))=1;
+        phi = orth(phi);
+        phi_inv = phi';
+    case {'Logarithmic State Lumping','LGSL'}
+        %'Logarithmic State Lumping' -- 
+        %   State space is divided into logarithmically distributed bins.
+        %   Then within each bin, the proability distribution is assumed to
+        %   be constant. The number of bins for each species is defined by
+        %   redOrder.
+        nStates = size(fspSoln.stateSpace.states,2);
+        spmax=max(fspSoln.stateSpace.states,[],2);
+        nSpecies = size(fspSoln.stateSpace.states,1);
+
+        % define bins
+        for i = nSpecies:-1:1
+            m=redOrder;
+            bins{i} = [0,unique(ceil(logspace(0,log10(spmax(i)),m)))];
+            while length(bins{i})<min(redOrder+1,spmax(i)+1)
+                m=ceil(m*1.1);
+                bins{i} = [0,unique(ceil(logspace(0,log10(spmax(i)),m)))];
+            end
+        end
+
+        % map each state to its corresponding bin
+        phi_map = zeros(nStates,nSpecies);
+        for j=1:nStates
+            for i=1:nSpecies
+                phi_map(j,i) = find(fspSoln.stateSpace.states(i,j)<=bins{i},1,"first");
+            end
+        end
+        binns = max(phi_map);
+        cprod = [1,cumprod(binns(1:end-1))]';
+        phi_inds = (phi_map-1)*cprod+1;
+
+        phi = sparse(nStates,binns(end)*cprod(end));
+        phi(sub2ind(size(phi),(1:nStates)',phi_inds))=1;
+
+        % Remove un-needed lumped states that are not represented in the FSP state
+        % space.
+        nonEmptyColumns = sum(phi,1)~=0;
+        phi = phi(:,nonEmptyColumns);
+
+        phi_inv = phi';
+        phi = phi./sum(phi,1);
+
+    case {'Proper Orthogonal Decomposition','POD'}
+        %'Proper Orthogonal Decomposition' --
+        %   The infintesimal generator is projected onto the orthonorml
+        %   basis spanned by a previous solution of the full master
+        %   equation at discrete time points.  this is done by perfoming
+        %   SVD on the solutions and choosing the output space
+        %   corresponding to the 'redOrder' largest singular values.
+        [phi,D,~] = svds(Solns,redOrder,"largest","Tolerance",1e-18);
+        J = find(cumsum(diag(D))<=0.9999*sum(diag(D)),1,"last");
+        phi = orth([Solns(:,1),phi(:,1:J)]);
+        phi_inv = phi';
+    case 'POD Update'
+        %'POD Update' --
+        %   The infintesimal generator is UPDATED onto the orthonorml
+        %   basis spanned by (1) current POD projection, and (2) an NEW
+        %   solution of the full master equation at discrete time points.
+        [phi,D,~] = svds([phi,Solns],redOrder,"largest","Tolerance",1e-18);
+        J = find(cumsum(diag(D))<=0.9999*sum(diag(D)),1,"last");
+        phi = orth([Solns(:,1),phi(:,1:J)]);
         phi_inv = phi';
     case {'Log Lump QSSA','LGQSSA'}
         %'Log Lump QSSA' -- 
@@ -136,75 +226,6 @@ switch redType
         %   eigenvectors for this projection is defined by 'redOrder'.  
         [phi,~] = eigs(fspSoln.A_total,redOrder,0);
         phi_inv = phi';
-    case {'Linear State Lumping','LNSL'}
-        %'Linear State Lumping' -- 
-        %   State space is divided into linearly distributed bins.
-        %   Then within each bin, the proability distribution is assumed to
-        %   be constant. The number of bins for each species is defined by
-        %   redOrder.
-        nStates = size(fspSoln.stateSpace.states,2);
-        spmax=max(fspSoln.stateSpace.states,[],2);
-        nSpecies = size(fspSoln.stateSpace.states,1);
-        for i = nSpecies:-1:1
-            bins{i} = unique(floor(linspace(1,spmax(i)+1,redOrder+1)))-1;
-        end
-
-        phi_map = zeros(nStates,nSpecies);
-        for j=1:nStates
-            for i=1:nSpecies
-                phi_map(j,i) = find(fspSoln.stateSpace.states(i,j)<=bins{i},1,"first");
-            end
-        end
-        binns = max(phi_map);
-        cprod = [1,cumprod(binns(1:end-1))]';
-        phi_inds = (phi_map-1)*cprod+1;
-
-        phi = zeros(nStates,binns(end)*cprod(end));
-        phi(sub2ind(size(phi),(1:nStates)',phi_inds))=1;
-        phi = orth(phi);
-        phi_inv = phi';
-    case {'Logarithmic State Lumping','LGSL'}
-        %'Logarithmic State Lumping' -- 
-        %   State space is divided into logarithmically distributed bins.
-        %   Then within each bin, the proability distribution is assumed to
-        %   be constant. The number of bins for each species is defined by
-        %   redOrder.
-        nStates = size(fspSoln.stateSpace.states,2);
-        spmax=max(fspSoln.stateSpace.states,[],2);
-        nSpecies = size(fspSoln.stateSpace.states,1);
-
-        % define bins
-        for i = nSpecies:-1:1
-            m=redOrder;
-            bins{i} = [0,unique(ceil(logspace(0,log10(spmax(i)),m)))];
-            while length(bins{i})<min(redOrder+1,spmax(i)+1)
-                m=ceil(m*1.1);
-                bins{i} = [0,unique(ceil(logspace(0,log10(spmax(i)),m)))];
-            end
-        end
-
-        % map each state to its corresponding bin
-        phi_map = zeros(nStates,nSpecies);
-        for j=1:nStates
-            for i=1:nSpecies
-                phi_map(j,i) = find(fspSoln.stateSpace.states(i,j)<=bins{i},1,"first");
-            end
-        end
-        binns = max(phi_map);
-        cprod = [1,cumprod(binns(1:end-1))]';
-        phi_inds = (phi_map-1)*cprod+1;
-
-        phi = sparse(nStates,binns(end)*cprod(end));
-        phi(sub2ind(size(phi),(1:nStates)',phi_inds))=1;
-
-        % Remove un-needed lumped states that are not represented in the FSP state
-        % space.
-        nonEmptyColumns = sum(phi,1)~=0;
-        phi = phi(:,nonEmptyColumns);
-
-        phi_inv = phi';
-        phi = phi./sum(phi,1);
-
     case 'Balanced Model Truncation (HSV)'
         %'Balanced Model Truncation (HSV)' -- 
         %   The projection is chosen according to the Henkel Singular
@@ -223,24 +244,6 @@ switch redType
         % [~,redOutputs.info] = balred(sys);
         % phi = [];phi_inv = [];
 
-    case {'Proper Orthogonal Decomposition','POD'}
-        %'Proper Orthogonal Decomposition' --
-        %   The infintesimal generator is projected onto the orthonorml
-        %   basis spanned by a previous solution of the full master
-        %   equation at discrete time points.  this is done by perfoming
-        %   SVD on the solutions and choosing the output space
-        %   corresponding to the 'redOrder' largest singular values.
-        [phi,D,~] = svds(Solns,redOrder,"largest","Tolerance",1e-18);
-        phi = orth([Solns(:,1),phi]);
-        phi_inv = phi';
-    case 'POD Update'
-        %'POD Update' --
-        %   The infintesimal generator is UPDATED onto the orthonorml
-        %   basis spanned by (1) current POD projection, and (2) an NEW
-        %   solution of the full master equation at discrete time points.
-        [phi,~,~] = svds([phi,Solns],redOrder,"largest","Tolerance",1e-18);
-        phi = orth([Solns(:,1),phi]);
-        phi_inv = phi';
     case 'QSSA'
         %'QSSA' -- 
         %   Species specified in 'redOptions.qssaSpecies' are assumed to be
