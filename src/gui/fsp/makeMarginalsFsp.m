@@ -54,7 +54,7 @@ if isfield(app.SSITModel.pdoOptions,'PDO')&&max(species2Plot)>length(speciesStoc
 
     kSp = 0;
     for iSp = 1:length(speciesStochastic)
-        if ~max(strcmpi(app.SSITModel.pdoOptions.unobservedSpecies,speciesStochastic{iSp}))
+        if isempty(app.SSITModel.pdoOptions.unobservedSpecies)||~max(strcmpi(app.SSITModel.pdoOptions.unobservedSpecies,speciesStochastic{iSp}))
             INDS = setdiff([1:Nd],iSp);
             if ~isempty(INDS)
                 px = double(app.SSITModel.Solutions.fsp{j}.p.sumOver(INDS).data);

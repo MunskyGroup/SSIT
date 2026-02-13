@@ -44,7 +44,7 @@ end
 Nd = app.SSITModel.Solutions.fsp{iTime}.p.dim;
 kSp = 0;
 for iSp = 1:length(speciesStochastic)
-    if ~max(strcmpi(app.SSITModel.pdoOptions.unobservedSpecies,speciesStochastic{iSp}))
+    if isempty(app.SSITModel.pdoOptions.unobservedSpecies)||~max(strcmpi(app.SSITModel.pdoOptions.unobservedSpecies,speciesStochastic{iSp}))
         kSp = kSp+1;
         if kSp==indSp
             INDS = setdiff([1:Nd],iSp);

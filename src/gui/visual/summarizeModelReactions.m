@@ -100,8 +100,10 @@ for iR = 1:nRxn
         propstext = Reactions{iR,4};
         propstext = strrep(propstext,'.*','*');
         propstext = strrep(propstext,'./','/');
-        intp = 'none';
-        textLines{end+1} = sprintf('s{%d}:  %s -> %s  | w{%d}(x): %s', ...
+        intp = 'latex';
+        % textLines{end+1} = sprintf('s{%d}:  %s -> %s  | w{%d}(x): %s', ...
+        %     iR, reactTxt, prodTxt, iR, propstext);
+        textLines{end+1} = sprintf('s_{%d}: \\quad %s \\rightarrow %s \\quad | \\quad w_{%d}(x): \\quad %s', ...
             iR, reactTxt, prodTxt, iR, propstext);
     end
     
@@ -126,7 +128,7 @@ if ~isempty(Inputs)
         InputsTxt2 = Inputs{i,2};
         InputsTxt2 = strrep(InputsTxt2,'.*','*');
         InputsTxt2 = strrep(InputsTxt2,'./','/');
-        intp = 'none';
+        intp = 'latex';
     end
     textLines{end+1} = sprintf('%s(t) = %s', InputsTxt1, InputsTxt2);
     intps{end+1} = intp;
@@ -157,8 +159,12 @@ for i = 1:nLines
                 'Interpreter', intps{i}, 'FontSize', 14, ...
                 'VerticalAlignment', 'top', 'Units', 'data');
     end
-    y = y - dy * 0.05;
 
+    if strfind(textLines{i},'\frac')
+        y = y - dy * 0.075;
+    else
+        y = y - dy * 0.05;
+    end
 end
 
 ax.YLim = [y-0.1,1];

@@ -215,16 +215,18 @@ classdef Propensity
 
             varODEs = sym('varODEs',[length(upstreamODEs),1],'real');
 
-            % Delete previous propensity function m-files
-            if ~exist([pwd,filesep,'tmpPropensityFunctions'],'dir')
-                mkdir([pwd,filesep,'tmpPropensityFunctions'])
-            end
-            delete(append(pwd,filesep,'tmpPropensityFunctions',filesep,prefixName,'*'));
+            load('SSITconfig.mat','pathToPropensityFuns');
+
+            % % Delete previous propensity function m-files
+            % if ~exist([pwd,filesep,'tmpPropensityFunctions'],'dir')
+            %     mkdir([pwd,filesep,'tmpPropensityFunctions'])
+            % end
+            delete(append(pathToPropensityFuns,filesep,prefixName,'*'));
             if contains(prefixName,filesep)
                 J = find(prefixName==filesep,1,"last");
-                addpath([pwd,filesep,'tmpPropensityFunctions',filesep,prefixName(1:J-1)],'-begin')
+                addpath([pathToPropensityFuns,filesep,prefixName(1:J-1)],'-begin')
             else
-                addpath([pwd,filesep,'tmpPropensityFunctions',filesep],'-begin')
+                addpath([pathToPropensityFuns,filesep],'-begin')
             end
 
             obj = cell(1,n_reactions);
@@ -957,10 +959,14 @@ if isempty(prefixName)
     prefixName = prefixName(j+1:end);
 end
 
+load('SSITconfig.mat','pathToPropensityFuns');
+
 % ifn = sum(contains({dir('tmpPropensityFunctions').name},[prefixName,'_fun']))+1;
-files = dir(fullfile('tmpPropensityFunctions', [prefixName '_fun*']));
+% files = dir(fullfile('tmpPropensityFunctions', [prefixName '_fun*']));
+files = dir(fullfile(pathToPropensityFuns, [prefixName '_fun*']));
 ifn = numel(files) + 1;
-fn = [pwd, filesep,'tmpPropensityFunctions',filesep,prefixName,'_fun_',num2str(ifn),'.m'];
+
+fn = append(pathToPropensityFuns,filesep,prefixName,'_fun_',num2str(ifn),'.m');
 
 if jacobian&&~isempty(varODEs)
     exprJac = sym(zeros([1,length(varODEs)]));
@@ -1032,7 +1038,7 @@ else
     exprHandle=[];
 end
 % if jacobian
-%     fn = [pwd,filesep,'tmpPropensityFunctions',filesep,prefix,'_fun_',num2str(ifn+1),'.m'];
+%     fn = [pathToPropensityFuns,filesep,prefix,'_fun_',num2str(ifn+1),'.m'];
 %     if isempty(varODEs)
 %         % if (time_dep && state_dep)
 %         %     exprHandleJac = matlabFunction(exprJac,'Vars',{t,states,parameters},'File',fn);

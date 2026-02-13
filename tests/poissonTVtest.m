@@ -23,9 +23,9 @@ classdef poissonTVtest < matlab.unittest.TestCase
             testCase1.TvPoiss.inputExpressions = {'Ig','t>1'};
             testCase1.TvPoiss = testCase1.TvPoiss.formPropensitiesGeneral('PoissTV');
 
-            [testCase1.TvPoissSolution,testCase1.TvPoiss.fspOptions.bounds] = testCase1.TvPoiss.solve;
+            [~,~,testCase1.TvPoiss] = testCase1.TvPoiss.solve;
             tic
-            [testCase1.TvPoissSolution,testCase1.TvPoiss.fspOptions.bounds] = testCase1.TvPoiss.solve(testCase1.TvPoissSolution.stateSpace);
+            [~,~,testCase1.TvPoiss]  = testCase1.TvPoiss.solve;
             testCase1.TvPoissSolution.time = toc;
 
             %% ODE model for TV Poisson process
@@ -51,11 +51,11 @@ classdef poissonTVtest < matlab.unittest.TestCase
             mn = testCase.TvPoiss.parameters{1,2}/testCase.TvPoiss.parameters{2,2}*...
                 (1-exp(-testCase.TvPoiss.parameters{2,2}*tp));
             
-            fspSoln = testCase.TvPoissSolution.fsp;
+            fspSoln = testCase.TvPoiss.Solutions.fsp;
             fspMn = NaN*mn;
             for i = 1:length(fspSoln)
-                n = size(testCase.TvPoissSolution.fsp{i}.p.data,1);
-                fspMn(i) = [0:n-1]*double(testCase.TvPoissSolution.fsp{i}.p.data);
+                n = size(fspSoln{i}.p.data,1);
+                fspMn(i) = [0:n-1]*double(fspSoln{i}.p.data);
             end
 
             diff = abs(fspMn-mn);
