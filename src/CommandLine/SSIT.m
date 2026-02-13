@@ -6684,7 +6684,7 @@ end
         %
         %   opts (name-value):
         %     .FigureHandle    (default: new figure)
-        %     .PlotEllipses    (logical, default true)
+        %     .PlotEllipses    (logical, default false)
         %     .EllipseLevel    (double, default 0.9) – confidence level
         %     .EllipseFigure   (default: new figure)
         %     .EllipsePairs    (K×2) subset of index pairs [i j] to plot
@@ -6709,7 +6709,7 @@ end
                 paramNames = []
                 theta0 = []
                 opts.FigureHandle = []
-                opts.PlotEllipses (1,1) logical = true
+                opts.PlotEllipses (1,1) logical = false
                 opts.EllipseLevel (1,1) double {mustBePositive} = 0.9
                 opts.EllipseFigure = []
                 opts.EllipsePairs = []
