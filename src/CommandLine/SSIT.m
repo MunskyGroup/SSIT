@@ -6758,7 +6758,9 @@ end
                 fimDisp  = fimSym;
                 eigDisp  = eigVals;
                 fimLabel = 'FIM';
-                eigLabel = 'Eigenvalues';               
+                eigLabel = 'Eigenvalues';
+            else
+                error("plotFIMResults requires 'scale' to be specified as 'lin' or 'log'.");
             end
             diagInfo = diag(fimSym);
         
