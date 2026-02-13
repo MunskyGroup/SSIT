@@ -36,7 +36,7 @@ Model_FIM = Model_FSP;
 %% Compute FIMs using FSP sensitivity results
 % Compute the FIM:
 Model_FIM = Model_FSP;
-Model_fimResults = Model_FIM.computeFIM(); 
+Model_fimResults = Model_FIM.computeFIM([],'log',[]); 
 
 % Generate a count of measured cells (in place of real data):
 Model_cellCounts = 100*ones(size(Model_FIM.tSpan));
@@ -46,13 +46,10 @@ Model_cellCounts = 100*ones(size(Model_FIM.tSpan));
 [Model_fimTotal,Model_mleCovEstimate,Model_fimMetrics] = ...
     Model_FIM.evaluateExperiment(Model_fimResults,Model_cellCounts)
 
-ellipsePairs = [1 2; 1 4; 3 4];
-
 theta0 = [Model_FIM.parameters{:,2}];
 
-Model_FIM.plotFIMResults(Model_fimTotal, Model_FIM.parameters, theta0,...
-                         PlotEllipses=true, EllipseLevel=0.9,...
-                         EllipsePairs=ellipsePairs);
+Model_FIM.plotFIMResults(Model_fimTotal, 'log', Model_FIM.parameters,...
+                         theta0, PlotEllipses=true);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(2): Compute the Fisher Information Matrix for the STL1 yeast model
@@ -65,7 +62,7 @@ STL1_FIM = STL1_FSP;
 
 %% Compute FIMs using FSP sensitivity results
 % Compute the FIM:
-STL1_fimResults = STL1_FIM.computeFIM(); 
+STL1_fimResults = STL1_FIM.computeFIM([],'log',[]); 
 
 % Generate a count of measured cells (in place of real data):
 STL1_cellCounts = 100*ones(size(STL1_FIM.tSpan));
@@ -78,9 +75,8 @@ STL1_cellCounts = 100*ones(size(STL1_FIM.tSpan));
 STL1_theta0 = [STL1_FIM.parameters{:,2}];
 
 % Plot the FIMs:
-STL1_FIM.plotFIMResults(STL1_fimTotal, STL1_FIM.parameters, STL1_theta0,...
-                        PlotEllipses=true, EllipseLevel=0.9,...
-                        EllipsePairs=ellipsePairs);
+STL1_FIM.plotFIMResults(STL1_fimTotal, 'log', STL1_FIM.parameters,...
+                        STL1_theta0, PlotEllipses=true);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(3): Compute the FIM for the 4-state STL1 yeast model
@@ -126,7 +122,7 @@ STL1_4state_cellCounts = 1000*ones(size(STL1_4state_FIM.tSpan));
 % Plot the FIMs (6 parameter combinations):
 STL1_4state_FIM.plotFIMResults(STL1_4state_fimTotal_full, 'log',...
     STL1_4state_FIM.parameters, PlotEllipses=true,...
-    EllipsePairs=[1 6; 4 13; 6 7; 9 10; 8 10; 8 9]);
+    EllipsePairs=[1 6; 9 17; 2 3; 9 10; 8 13; 8 9]);
 
 % Plot the FIMs (9 parameter combinations):
 STL1_4state_FIM.plotFIMResults(STL1_4state_fimTotal_free, 'log',...
@@ -153,10 +149,17 @@ STL1_4state_FIM.plotFIMResults(STL1_4state_fimTotal_free, 'log',...
 %        trace: 4.5588e+05
 %    minEigVal: 6.7265e-12
 
+%% Full FIM
 % STL1_4state_fimMetrics = 
 %          det: 3.1402e+00
 %        trace: 9.2817e+08
 %    minEigVal: 8.4878e-13
+
+%% FIM sub matrix (free parameters):
+% STL1_4state_fimMetrics_free =  
+%           det: 2.7889e+44
+%         trace: 6.9367e+05
+%     minEigVal: 1.1381
 
 
 %% Save models & FIM results
