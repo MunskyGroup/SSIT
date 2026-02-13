@@ -47,9 +47,17 @@ end
 
 switch redType
     case 'No Transform'
+        %'No Transform' --
+        %   No model reduction is used.  This is meant only for testing.
         phi = eye(size(fspSoln.A_total,1));
         phi_inv = phi';
-    case 'Log Lump QSSA'
+    case {'Log Lump QSSA','LGQSSA'}
+        %'Log Lump QSSA' -- 
+        %   State space is divided into logarithmically distributed bins.
+        %   Then within each bin, a quasi-steady-state-assumption is made
+        %   to estimate the distribution of proability mass within that
+        %   bin. The number of bins for each species is defined by
+        %   redOrder.
         nStates = size(fspSoln.stateSpace.states,2);
         spmax=max(fspSoln.stateSpace.states,[],2);
         nSpecies = size(fspSoln.stateSpace.states,1);
@@ -121,16 +129,19 @@ switch redType
         phiScale = (1./squareform(pdist(centersGrid)));
         phiScale(isinf(phiScale))=0;
 
-    case 'Eigen Decomposition'
+    case {'Eigen Decomposition','ED'}
+        %'Eigen Decomposition' --
+        %   The infintesimal generator is projected onto the eigenvectors
+        %   corresponding to its least negative eigenvalues. The number of
+        %   eigenvectors for this projection is defined by 'redOrder'.  
         [phi,~] = eigs(fspSoln.A_total,redOrder,0);
         phi_inv = phi';
-    case 'Eigen Decomposition Initial'
-        [phi,D] = eigs(fspSoln.A_total,redOrder,0);
-        [~,I] = sort(real(diag(D)),'descend');
-        phi = phi(:,I(1:redOrder));
-        phi = orth([Solns(:,1),phi]);
-        phi_inv = phi';
-    case 'Linear State Lumping'
+    case {'Linear State Lumping','LNSL'}
+        %'Linear State Lumping' -- 
+        %   State space is divided into linearly distributed bins.
+        %   Then within each bin, the proability distribution is assumed to
+        %   be constant. The number of bins for each species is defined by
+        %   redOrder.
         nStates = size(fspSoln.stateSpace.states,2);
         spmax=max(fspSoln.stateSpace.states,[],2);
         nSpecies = size(fspSoln.stateSpace.states,1);
@@ -152,7 +163,12 @@ switch redType
         phi(sub2ind(size(phi),(1:nStates)',phi_inds))=1;
         phi = orth(phi);
         phi_inv = phi';
-    case 'Logarithmic State Lumping'
+    case {'Logarithmic State Lumping','LGSL'}
+        %'Logarithmic State Lumping' -- 
+        %   State space is divided into logarithmically distributed bins.
+        %   Then within each bin, the proability distribution is assumed to
+        %   be constant. The number of bins for each species is defined by
+        %   redOrder.
         nStates = size(fspSoln.stateSpace.states,2);
         spmax=max(fspSoln.stateSpace.states,[],2);
         nSpecies = size(fspSoln.stateSpace.states,1);
@@ -186,37 +202,51 @@ switch redType
         nonEmptyColumns = sum(phi,1)~=0;
         phi = phi(:,nonEmptyColumns);
 
-        %         phi = sparse(orth(full(phi)));
-        %         phi_inv = phi';
         phi_inv = phi';
         phi = phi./sum(phi,1);
 
     case 'Balanced Model Truncation (HSV)'
-        nStates = size(fspSoln.states,2);
-        sys = ss(fspSoln.A_total,fspSoln.P0,eye(nStates),[]);
-        [~,redOutputs.info] = balred(sys);
-        phi = [];phi_inv = [];
+        %'Balanced Model Truncation (HSV)' -- 
+        %   The projection is chosen according to the Henkel Singular
+        %   Values of the linear systems (A, B, C, []), where A is the
+        %   infinitesimal generator, B=P0 is the initial probability
+        %   distribution, and C=eye is the identity matrix (corresponding
+        %   to perfect observations).
+        %
+        error('TODO - Balanced Truncation Projection has been deactivated.')
+        % TODO - this might work much better when C is chosen as PDO that
+        % acounts for the loss of observable species.
+        % P0 = zeros(size(fspSoln.A_total,1),1);
+        % P0(:) = fspSoln.fsp{1}.p.data;
+        % nStates = size(fspSoln.stateSpace.states,2);
+        % sys = ss(fspSoln.A_total,P0,eye(nStates),[]);
+        % [~,redOutputs.info] = balred(sys);
+        % phi = [];phi_inv = [];
 
-    case 'Proper Orthogonal Decomposition'
-
+    case {'Proper Orthogonal Decomposition','POD'}
+        %'Proper Orthogonal Decomposition' --
+        %   The infintesimal generator is projected onto the orthonorml
+        %   basis spanned by a previous solution of the full master
+        %   equation at discrete time points.  this is done by perfoming
+        %   SVD on the solutions and choosing the output space
+        %   corresponding to the 'redOrder' largest singular values.
         [phi,D,~] = svds(Solns,redOrder,"largest","Tolerance",1e-18);
-        %         [phi,D,~] = svds(Solns,n,0);
-        %         [~,I] = sort(real(diag(D)),'descend');
-        %         phi = phi(:,I(1:n));
-        %         [phi,~,~] = svds(fspSoln.fullSolutionsNow',n);
         phi = orth([Solns(:,1),phi]);
         phi_inv = phi';
-
     case 'POD Update'
+        %'POD Update' --
+        %   The infintesimal generator is UPDATED onto the orthonorml
+        %   basis spanned by (1) current POD projection, and (2) an NEW
+        %   solution of the full master equation at discrete time points.
         [phi,~,~] = svds([phi,Solns],redOrder,"largest","Tolerance",1e-18);
-        %         [phi,D,~] = svds(Solns,n,0);
-        %         [~,I] = sort(real(diag(D)),'descend');
-        %         phi = phi(:,I(1:n));
-        %         [phi,~,~] = svds(fspSoln.fullSolutionsNow',n);
         phi = orth([Solns(:,1),phi]);
         phi_inv = phi';
-
     case 'QSSA'
+        %'QSSA' -- 
+        %   Species specified in 'redOptions.qssaSpecies' are assumed to be
+        %   in quasi-steady-state assuming that all other species are held
+        %   constant. Reaction rates for remaining species are projected
+        %   onto a lower dimensional state space. 
         nStates = size(fspSoln.stateSpace.states,2);
         spmax=max(fspSoln.stateSpace.states,[],2);
         nSpecies = size(fspSoln.stateSpace.states,1);
@@ -264,21 +294,24 @@ switch redType
         % plotting shape 
         phiPlot = phi;
 
-    case 'POD 2nd'
-
-        Ds = Solns(:,2:end)-Solns(:,1:end-1);
-        Ds = Ds./sum(abs(Ds));
-        [phi,D,~] = svds([Solns,Ds],redOrder,"largest","Tolerance",1e-18);
-        %         [phi,D,~] = svds(Solns,n,0);
-        %         [~,I] = sort(real(diag(D)),'descend');
-        %         phi = phi(:,I(1:n));
-        %         [phi,~,~] = svds(fspSoln.fullSolutionsNow',n);
+    case {'POD 2nd','POD2'}
+        %'POD 2nd' --
+        %   The infintesimal generator is projected onto the orthonorml
+        %   basis spanned by a previous solution of the full master
+        %   equation at discrete time points AND the approximate time
+        %   derivative of these solutions. This is done by perfoming
+        %   SVD on the solutions and choosing the output space
+        %   corresponding to the 'redOrder' largest singular values.
+        %
+        % Ds = Solns(:,2:end)-Solns(:,1:end-1);
+        % Ds = Ds./sum(abs(Ds));
+        % [phi,~,~] = svds([Solns,fspSoln.A_total*Solns],redOrder,"largest","Tolerance",1e-18);
+        [phi,~,~] = svds([Solns,fspSoln.A_total*Solns],redOrder,"largest","Tolerance",1e-18);
         phi = orth([Solns(:,1),phi]);
         phi_inv = phi';
 
-
-    case 'Dynamic Mode Decomposition'
-
+    case {'Dynamic Mode Decomposition','DMD'}
+        %'Dynamic Mode Decomposition' --
         V1 = Solns(:,1:end-1);
         V2 = Solns(:,2:end);
         [Ured,Sigred,Wred] = svds(V1,redOrder);
@@ -286,8 +319,12 @@ switch redType
         [y,~] = eig(S);
         phi = Ured*real(y);
         phi_inv = phi';
-    case 'Radial Basis Functions'
-        [phi,phi_inv] = ssit.fsp_model_reduction.radiaBasisPhi(fspSoln.states,redOrder,0,1);
+    case {'Radial Basis Functions','RBF'}
+        error('TODO - Radial Basis Function projection not yet functional')
+        % %'Radial Basis Functions' --
+        % %  MAster equation is projected onto a set of radial basis
+        % %  functions that are randomly placed throughout the statespace.
+        % [phi,phi_inv] = ssit.fsp_model_reduction.radiaBasisPhi(fspSoln.stateSpace.states,redOrder,0,1);
 end
 end
 function keys =  state2key( states )

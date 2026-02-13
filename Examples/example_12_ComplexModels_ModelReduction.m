@@ -28,7 +28,7 @@ STL1_MR_setup = STL1_4state_FSP;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Choose which type of model reduction to apply. Options include:
-%   'Proper Orthogonal Decomposition' - solve the FSP once and then use POD
+%   'POD' - solve the FSP once and then use POD
 %       to construct a reduced basis set that covers the current FSP
 %       solution.  For best use, this reduction should be found using a
 %       fine time resolution in the calculation of the FSP. The size of the
@@ -51,7 +51,7 @@ STL1_MR_setup = STL1_4state_FSP;
 %   'No Transform' - test case where no reduction is applied.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-reductionType = 'Proper Orthogonal Decomposition'; 
+reductionType = 'LGSL'; 
 reductionOrder = 50;
 %qssaSpecies = 2;       % Only needed for the QSSA reduction scheme.
 podTimeSetSize = 30;    % Only needed for the POD reduction scheme.
@@ -80,7 +80,7 @@ STL1_MR_setup.fspOptions.fspTol = inf;
 % at finer resolution. Note -- this means that the POD will be inefficient
 % for the initial set up of the reduction.  The benefits typically come
 % from solving the model multiple times with different parameter sets.
-if strcmp(reductionType,'Proper Orthogonal Decomposition')
+if strcmp(reductionType,'POD')||strcmp(reductionType,'POD 2nd')
     tSpan = STL1_MR_setup.tSpan;
     STL1_MR_setup.tSpan = linspace(min(STL1_MR_setup.tSpan),...
         max(STL1_MR_setup.tSpan),podTimeSetSize);
@@ -133,4 +133,4 @@ saveNames = unique({
     'STL1_FSPsoln_Red'
     });
     
-save('example_14_ComplexModels_ModelReduction',saveNames{:})
+save('example_12_ComplexModels_ModelReduction',saveNames{:})
