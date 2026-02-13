@@ -21,7 +21,7 @@ addpath(genpath('../src'));
 
 %% Set SSA options:
 % Make copy of our 4-state STL1 model:
-STL1_4state_ABC = STL1_4state_MLE;
+STL1_4state_ABC = STL1_4state;
 
 %Set solution scheme to SSA:
 STL1_4state_ABC.solutionScheme = 'SSA';
@@ -63,8 +63,8 @@ logPriorLoss = [];
 % 'MetropolisHastings' algorithm. Tune these depending on your problem size.
 
 fitOptions = struct();
-fitOptions.numberOfSamples       = 2000;         % Total MH iterations 
-fitOptions.burnIn                = 500;          % Discard burn-in samples
+fitOptions.numberOfSamples       = 200;         % Total MH iterations 
+fitOptions.burnIn                = 20;          % Discard burn-in samples
 fitOptions.thin                  = 1;            % Keep every nth sample
 proposalWidthScale               = 1e-4;         % Proposal scale
 % Proposal distribution:
@@ -98,7 +98,7 @@ enforceIndependence = true;
 STL1_4state_ABC = STL1_4state_ABC.formPropensitiesGeneral('STL1_4state_ABC');
 
 % Set parameter guesses (optional):
-parGuess = cell2mat(STL1_4state_MLE.parameters((1:13),2));
+parGuess = cell2mat(STL1_4state.parameters((1:13),2));
 
 [parsABC, minimumLoss, ResultsABC, STL1_4state_ABC] = ...
      STL1_4state_ABC.runABCsearch(parGuess, lossFunction, logPriorLoss,...

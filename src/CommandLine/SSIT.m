@@ -2364,7 +2364,7 @@ classdef SSIT
             end
         end
 
-        function [fimResults,sensSoln] = computeFIM(obj,sensSoln,scale,MHSamples)
+        function [fimResults,sensSoln] = computeFIM(obj,sensSoln,scale,MHSamples,freePars)
             %% computeFIM - Computes the Fisher Information Matrix (FIM)
             %%              at all time points.
             % Inputs:
@@ -2377,7 +2377,8 @@ classdef SSIT
             %             default: 'lin'
             %   * MHSamples (optional) - set of parameter sets at which
             %                            to calculate the FIM
-            %
+            %   * freePars (optional) - indices of free parameters for
+            %                           which to compute FIM submatrix
             % Outputs:
             %   * fimResults - FIM at each time point in obj.tSpan
             %   * sensSoln - FSP sensitivity solutions
@@ -2386,6 +2387,29 @@ classdef SSIT
                 sensSoln = [];
                 scale = 'lin';
                 MHSamples = [];
+                freePars = [];
+            end
+
+            % Determine which parameters sensitivities correspond to
+            if strcmp(obj.fittingOptions.modelVarsToFit,'all') || isempty(obj.fittingOptions.modelVarsToFit)
+                fitParsGlobal = 1:size(obj.parameters,1);
+            else
+                fitParsGlobal = obj.fittingOptions.modelVarsToFit;
+            end
+            
+            % Map requested freePars (global indices) -> local indices in sensitivity ordering
+            if isempty(freePars)
+                freeLocal = 1:numel(fitParsGlobal);
+            else
+                % allow logical mask same length as obj.parameters
+                if islogical(freePars)
+                    freePars = find(freePars);
+                end
+                freeLocal = find(ismember(fitParsGlobal, freePars));
+                if isempty(freeLocal)
+                    error('computeFIM:freeParsNotInModelVarsToFit', ...
+                          'None of freePars are in fittingOptions.modelVarsToFit.');
+                end
             end
 
             if ~isempty(MHSamples)
@@ -2405,14 +2429,24 @@ classdef SSIT
                     saveSens = false;
                 end
 
+                % for i=1:nSamples
+                %     objTMP = obj;
+                %     objTMP.parameters(objTMP.fittingOptions.modelVarsToFit,2) = ...
+                %         num2cell(MHSamples(i,:));
+                %     if saveSens
+                %         [fimResults(:,i),sensSoln{i}] = computeFIM(obj,sensSoln{i},scale);
+                %     else
+                %         fimResults(:,i) = objTMP.computeFIM(sensSoln{i},scale);
+                %     end
+                % end
                 for i=1:nSamples
                     objTMP = obj;
-                    objTMP.parameters(objTMP.fittingOptions.modelVarsToFit,2) = ...
-                        num2cell(MHSamples(i,:));
+                    objTMP.parameters(fitParsGlobal,2) = num2cell(MHSamples(i,:));
+                
                     if saveSens
-                        [fimResults(:,i),sensSoln{i}] = computeFIM(obj,sensSoln{i},scale);
+                        [fimResults(:,i), sensSoln{i}] = computeFIM(objTMP, sensSoln{i}, scale, [], freePars);
                     else
-                        fimResults(:,i) = objTMP.computeFIM(sensSoln{i},scale);
+                        fimResults(:,i) = objTMP.computeFIM(sensSoln{i}, scale, [], freePars);
                     end
                 end
             else
@@ -2448,7 +2482,9 @@ classdef SSIT
                 fimResults = {};
                 for it=length(sensSoln.data):-1:1
                     if isempty(indsUnobserved)
-                        F = ssit.fim.computeSingleCellFim(sensSoln.data{it}.p, sensSoln.data{it}.S, obj.pdoOptions.PDO);
+                        %F = ssit.fim.computeSingleCellFim(sensSoln.data{it}.p, sensSoln.data{it}.S, obj.pdoOptions.PDO);
+                        Sfree = sensSoln.data{it}.S(freeLocal);
+                        F = ssit.fim.computeSingleCellFim(sensSoln.data{it}.p, Sfree, obj.pdoOptions.PDO);
                     else
                         % Remove unobservable species.
                         redS = sensSoln.data{it}.S;
@@ -2486,8 +2522,10 @@ classdef SSIT
                                 end
                             end
                         end
-
-                        F = ssit.fim.computeSingleCellFim(sensSoln.data{it}.p.sumOver(indsUnobserved), redS, PDO);
+                        % Restrict to free parameters
+                        redSfree = redS(freeLocal); 
+                        %F = ssit.fim.computeSingleCellFim(sensSoln.data{it}.p.sumOver(indsUnobserved), redS, PDO);F = ssit.fim.computeSingleCellFim( ...
+                        F = ssit.fim.computeSingleCellFim(sensSoln.data{it}.p.sumOver(indsUnobserved), redSfree, PDO);
                     end
                     fimResults{it,1} = F;
                 end
@@ -2499,14 +2537,21 @@ classdef SSIT
                 % included.  Also, the current code does not allow for some
                 % PDO parameters to be free while others are fixed.
 
+                % if strcmp(scale,'log')
+                %     for it=length(sensSoln.data):-1:1
+                %         fimResults{it,1} = diag([obj.parameters{:,2}])*...
+                %             fimResults{it,1}*...
+                %             diag([obj.parameters{:,2}]);
+                %     end
+                % end
                 if strcmp(scale,'log')
+                    % Parameter values corresponding to the *fit* ordering
+                    fitVals = cell2mat(obj.parameters(fitParsGlobal,2));
+                    freeVals = fitVals(freeLocal);                
                     for it=length(sensSoln.data):-1:1
-                        fimResults{it,1} = diag([obj.parameters{:,2}])*...
-                            fimResults{it,1}*...
-                            diag([obj.parameters{:,2}]);
+                        fimResults{it,1} = diag(freeVals) * fimResults{it,1} * diag(freeVals);
                     end
                 end
-
             end
         end
 
