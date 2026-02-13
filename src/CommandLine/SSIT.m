@@ -6666,7 +6666,7 @@ end
         end
 
 
-       function plotFIMResults(obj, fimInput, paramNames, theta0, opts)
+       function plotFIMResults(obj,fimInput,scale,paramNames,theta0,opts)
         % plotFIMResults  Visualize a Fisher Information Matrix (FIM) and
         %                 FIM-based parameter uncertainty ellipses.
         %
@@ -6676,11 +6676,13 @@ end
         %   obj.plotFIMResults(fimInput, paramNames, theta0, opts)
         %
         %   fimInput   : n×n numeric FIM, or a 1×1 cell containing it
+        %   scale      : specify whether the FIM results are based on  
+        %                linear parameters or their natural logarithm 
+        %                ('lin' or 'log')
         %   paramNames : cellstr of parameter names; default {'\theta_1',...}
         %   theta0     : 1×n center of ellipses (e.g., log10-params); default zeros
         %
         %   opts (name-value):
-        %     .UseLog10        (logical, default true)
         %     .FigureHandle    (default: new figure)
         %     .PlotEllipses    (logical, default true)
         %     .EllipseLevel    (double, default 0.9) – confidence level
@@ -6703,9 +6705,9 @@ end
             arguments
                 obj
                 fimInput
+                scale 
                 paramNames = []
                 theta0 = []
-                opts.UseLog10 (1,1) logical = true
                 opts.FigureHandle = []
                 opts.PlotEllipses (1,1) logical = true
                 opts.EllipseLevel (1,1) double {mustBePositive} = 0.9
@@ -6746,17 +6748,17 @@ end
             condInfo = (isempty(posEig)) * NaN + (~isempty(posEig)) * (max(posEig) / min(posEig));
         
             % -------- Prepare plotting values --------
-            if opts.UseLog10
+            if strcmp(scale,'log')
                 epsVal   = 1e-16;
                 fimDisp  = log10(max(fimSym, epsVal));
                 eigDisp  = log10(max(eigVals, epsVal));
                 fimLabel = 'log_{10} FIM';
                 eigLabel = 'log_{10} eigenvalues';
-            else
+            elseif strcmp(scale,'lin')
                 fimDisp  = fimSym;
                 eigDisp  = eigVals;
                 fimLabel = 'FIM';
-                eigLabel = 'Eigenvalues';
+                eigLabel = 'Eigenvalues';               
             end
             diagInfo = diag(fimSym);
         
