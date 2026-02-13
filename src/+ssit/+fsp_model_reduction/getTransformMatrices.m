@@ -128,6 +128,10 @@ switch redType
         %   equation at discrete time points.  this is done by perfoming
         %   SVD on the solutions and choosing the output space
         %   corresponding to the 'redOrder' largest singular values.
+        if size(Solns,2)>40
+            J = unique(round(linspace(1,size(Solns,2),40)));
+            Solns = Solns(:,J);
+        end
         [phi,D,~] = svds(Solns,redOrder,"largest","Tolerance",1e-18);
         J = find(cumsum(diag(D))<=0.9999*sum(diag(D)),1,"last");
         phi = orth([Solns(:,1),phi(:,1:J)]);
@@ -137,6 +141,10 @@ switch redType
         %   The infintesimal generator is UPDATED onto the orthonorml
         %   basis spanned by (1) current POD projection, and (2) an NEW
         %   solution of the full master equation at discrete time points.
+        if size(Solns,2)>40
+            J = unique(round(linspace(1,size(Solns,2),40)));
+            Solns = Solns(:,J);
+        end
         [phi,D,~] = svds([phi,Solns],redOrder,"largest","Tolerance",1e-18);
         J = find(cumsum(diag(D))<=0.9999*sum(diag(D)),1,"last");
         phi = orth([Solns(:,1),phi(:,1:J)]);
