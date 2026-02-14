@@ -89,7 +89,7 @@ enforceIndependence = true;
 %   * perform MH sampling to approximate the posterior.
 %
 % Outputs:
-%   pars                    - “best” (minimum-loss) parameter set found
+%   pars                    - "best" (minimum-loss) parameter set found
 %   minimumLossFunction     - value of the loss at that point
 %   Results                 - MH/ABC diagnostics and chains
 %   ModelABC                - model updated with 'pars'
