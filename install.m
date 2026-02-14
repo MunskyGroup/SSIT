@@ -75,6 +75,9 @@ if runExamples
     origDir = pwd;              % save current directory
     cleanupEx = onCleanup(@() cd(origDir));  % guarantee return
     cd('Examples')
+    if ~exist("exampleLogs","dir")
+        mkdir("exampleLogs")
+    end
     ExampleFiles = {'example_1_CreateSSITModels'
         'example_2_SolveSSITModels_ODE'
         'example_3_SolveSSITModels_SSA'
