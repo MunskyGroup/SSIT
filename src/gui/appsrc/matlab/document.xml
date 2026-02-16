@@ -6,6 +6,7 @@
         GridLayout                      matlab.ui.container.GridLayout
         LeftPanel                       matlab.ui.container.Panel
         RightPanel                      matlab.ui.container.Panel
+        Image                           matlab.ui.control.Image
         IncludeGUIDatainSaveSwitch      matlab.ui.control.Switch
         IncludeGUIDatainSaveSwitchLabel  matlab.ui.control.Label
         FileModelLabel                  matlab.ui.control.Label
@@ -1895,13 +1896,13 @@
             app.ModelParameterTable.ColumnEditable = [false true];
             app.ModelParameterTable.CellEditCallback = createCallbackFcn(app, @ModelParameterTableCellEdit, true);
             app.ModelParameterTable.Tooltip = {'Adjust constant parameters here.'};
-            app.ModelParameterTable.Position = [1112 79 244 285];
+            app.ModelParameterTable.Position = [1116 12 244 244];
 
             % Create ParametersLabel
             app.ParametersLabel = uilabel(app.ModelLoadingandBuildingTab);
             app.ParametersLabel.VerticalAlignment = 'top';
             app.ParametersLabel.FontWeight = 'bold';
-            app.ParametersLabel.Position = [1112 358 216 25];
+            app.ParametersLabel.Position = [1114 250 216 25];
             app.ParametersLabel.Text = 'Parameters';
 
             % Create ModelInputTable
@@ -2083,7 +2084,7 @@
             app.ParametersLabel_3 = uilabel(app.ModelLoadingandBuildingTab);
             app.ParametersLabel_3.VerticalAlignment = 'top';
             app.ParametersLabel_3.FontWeight = 'bold';
-            app.ParametersLabel_3.Position = [1112 554 216 25];
+            app.ParametersLabel_3.Position = [1116 446 216 25];
             app.ParametersLabel_3.Text = 'Species';
 
             % Create SpeciesTable
@@ -2094,7 +2095,7 @@
             app.SpeciesTable.ColumnEditable = [false true];
             app.SpeciesTable.CellEditCallback = createCallbackFcn(app, @SpeciesTableCellEdit, true);
             app.SpeciesTable.Tooltip = {'Adjust species initial conditions here.'};
-            app.SpeciesTable.Position = [1112 393 244 167];
+            app.SpeciesTable.Position = [1116 285 244 167];
 
             % Create RenameSpeciesDropDownLabel
             app.RenameSpeciesDropDownLabel = uilabel(app.ModelLoadingandBuildingTab);
@@ -2136,7 +2137,7 @@
             xlabel(app.PDO_Axis, '"True" Expression Level')
             ylabel(app.PDO_Axis, '"Observed" Expression Level')
             zlabel(app.PDO_Axis, 'Z')
-            app.PDO_Axis.Position = [486 257 399 279];
+            app.PDO_Axis.Position = [487 181 399 279];
 
             % Create PDO_Axis2
             app.PDO_Axis2 = uiaxes(app.DistortionandHybridModelingTab);
@@ -2144,7 +2145,7 @@
             xlabel(app.PDO_Axis2, '"True" Expression Level')
             ylabel(app.PDO_Axis2, '"Observed" Expression Level')
             zlabel(app.PDO_Axis2, 'Z')
-            app.PDO_Axis2.Position = [913 257 399 279];
+            app.PDO_Axis2.Position = [914 181 399 279];
 
             % Create IncludeDataDistortionsinModelLabel
             app.IncludeDataDistortionsinModelLabel = uilabel(app.DistortionandHybridModelingTab);
@@ -2208,24 +2209,24 @@
             % Create SpeciesDropDownLabel
             app.SpeciesDropDownLabel = uilabel(app.DistortionandHybridModelingTab);
             app.SpeciesDropDownLabel.HorizontalAlignment = 'right';
-            app.SpeciesDropDownLabel.Position = [504 578 48 22];
+            app.SpeciesDropDownLabel.Position = [505 502 48 22];
             app.SpeciesDropDownLabel.Text = 'Species';
 
             % Create SpeciesDropDown
             app.SpeciesDropDown = uidropdown(app.DistortionandHybridModelingTab);
             app.SpeciesDropDown.ValueChangedFcn = createCallbackFcn(app, @ShowDistortionPlotButtonPushed, true);
-            app.SpeciesDropDown.Position = [567 578 100 22];
+            app.SpeciesDropDown.Position = [568 502 100 22];
 
             % Create SolutionTimeDropDownLabel
             app.SolutionTimeDropDownLabel = uilabel(app.DistortionandHybridModelingTab);
             app.SolutionTimeDropDownLabel.HorizontalAlignment = 'right';
-            app.SolutionTimeDropDownLabel.Position = [914 580 79 22];
+            app.SolutionTimeDropDownLabel.Position = [915 504 79 22];
             app.SolutionTimeDropDownLabel.Text = 'Solution Time';
 
             % Create SolutionTimeDropDown
             app.SolutionTimeDropDown = uidropdown(app.DistortionandHybridModelingTab);
             app.SolutionTimeDropDown.ValueChangedFcn = createCallbackFcn(app, @ShowDistortionPlotButtonPushed, true);
-            app.SolutionTimeDropDown.Position = [1008 580 100 22];
+            app.SolutionTimeDropDown.Position = [1009 504 100 22];
 
             % Create HybridModelOptionsLabel
             app.HybridModelOptionsLabel = uilabel(app.DistortionandHybridModelingTab);
@@ -2758,12 +2759,12 @@
             % Create FspMarginalsPanel
             app.FspMarginalsPanel = uipanel(app.FiniteStateProjectionTab);
             app.FspMarginalsPanel.Title = 'Marginals';
-            app.FspMarginalsPanel.Position = [1004 299 157 222];
+            app.FspMarginalsPanel.Position = [1004 250 157 211];
 
             % Create SelectSpeciesLabel
             app.SelectSpeciesLabel = uilabel(app.FspMarginalsPanel);
             app.SelectSpeciesLabel.VerticalAlignment = 'top';
-            app.SelectSpeciesLabel.Position = [3 178 124 23];
+            app.SelectSpeciesLabel.Position = [3 167 124 23];
             app.SelectSpeciesLabel.Text = 'Select Species';
 
             % Create FspPlotMarginalsButton
@@ -2772,33 +2773,33 @@
             app.FspPlotMarginalsButton.BackgroundColor = [0 1 0];
             app.FspPlotMarginalsButton.FontWeight = 'bold';
             app.FspPlotMarginalsButton.Tooltip = {'Export FSP marginal plot at current time'};
-            app.FspPlotMarginalsButton.Position = [3 8 151 28];
+            app.FspPlotMarginalsButton.Position = [3 3 151 28];
             app.FspPlotMarginalsButton.Text = 'Plot Marginals';
 
             % Create SpeciestoShowListBoxMargFSP
             app.SpeciestoShowListBoxMargFSP = uilistbox(app.FspMarginalsPanel);
             app.SpeciestoShowListBoxMargFSP.Items = {'x1', 'x2', 'x3'};
             app.SpeciestoShowListBoxMargFSP.Multiselect = 'on';
-            app.SpeciestoShowListBoxMargFSP.Position = [27 120 100 55];
+            app.SpeciestoShowListBoxMargFSP.Position = [27 109 100 55];
             app.SpeciestoShowListBoxMargFSP.Value = {'x1'};
 
             % Create ChoosePlotsLabel
             app.ChoosePlotsLabel = uilabel(app.FiniteStateProjectionTab);
-            app.ChoosePlotsLabel.HorizontalAlignment = 'right';
+            app.ChoosePlotsLabel.HorizontalAlignment = 'center';
             app.ChoosePlotsLabel.VerticalAlignment = 'bottom';
-            app.ChoosePlotsLabel.FontSize = 24;
-            app.ChoosePlotsLabel.Position = [994 538 245 44];
+            app.ChoosePlotsLabel.FontSize = 18;
+            app.ChoosePlotsLabel.Position = [1036 463 245 44];
             app.ChoosePlotsLabel.Text = 'Choose Plots';
 
             % Create FspMarginalsOverTimePanel
             app.FspMarginalsOverTimePanel = uipanel(app.FiniteStateProjectionTab);
             app.FspMarginalsOverTimePanel.Title = 'Marginals Over Time';
-            app.FspMarginalsOverTimePanel.Position = [1174 299 157 222];
+            app.FspMarginalsOverTimePanel.Position = [1174 251 173 210];
 
             % Create InputTimePointsLabel
             app.InputTimePointsLabel = uilabel(app.FspMarginalsOverTimePanel);
             app.InputTimePointsLabel.VerticalAlignment = 'top';
-            app.InputTimePointsLabel.Position = [9 92 145 20];
+            app.InputTimePointsLabel.Position = [9 80 145 20];
             app.InputTimePointsLabel.Text = 'Input Time Points';
 
             % Create FspPlotMarginalsOverTimeButton
@@ -2807,54 +2808,54 @@
             app.FspPlotMarginalsOverTimeButton.BackgroundColor = [0 1 0];
             app.FspPlotMarginalsOverTimeButton.FontWeight = 'bold';
             app.FspPlotMarginalsOverTimeButton.Tooltip = {'export marginal over time'};
-            app.FspPlotMarginalsOverTimeButton.Position = [3 8 151 28];
+            app.FspPlotMarginalsOverTimeButton.Position = [3 3 151 28];
             app.FspPlotMarginalsOverTimeButton.Text = 'Plot Marginals ';
 
             % Create FspMarginalVecField
             app.FspMarginalVecField = uieditfield(app.FspMarginalsOverTimePanel, 'text');
             app.FspMarginalVecField.Tooltip = {'movie time points'};
-            app.FspMarginalVecField.Position = [11 70 100 22];
+            app.FspMarginalVecField.Position = [11 58 100 22];
             app.FspMarginalVecField.Value = '[0:1:10]';
 
             % Create SelectSpeciesLabel_2
             app.SelectSpeciesLabel_2 = uilabel(app.FspMarginalsOverTimePanel);
             app.SelectSpeciesLabel_2.VerticalAlignment = 'top';
-            app.SelectSpeciesLabel_2.Position = [3 171 114 29];
+            app.SelectSpeciesLabel_2.Position = [3 159 114 29];
             app.SelectSpeciesLabel_2.Text = 'Select Species';
 
             % Create FspMarginalTimeCreateMovieCheckBox
             app.FspMarginalTimeCreateMovieCheckBox = uicheckbox(app.FspMarginalsOverTimePanel);
             app.FspMarginalTimeCreateMovieCheckBox.Text = 'Create Movie';
-            app.FspMarginalTimeCreateMovieCheckBox.Position = [6 40 141 28];
+            app.FspMarginalTimeCreateMovieCheckBox.Position = [6 28 141 28];
 
             % Create SpeciestoShowListBoxMargFSPvT
             app.SpeciestoShowListBoxMargFSPvT = uilistbox(app.FspMarginalsOverTimePanel);
             app.SpeciestoShowListBoxMargFSPvT.Items = {'x1', 'x2', 'x3'};
             app.SpeciestoShowListBoxMargFSPvT.Multiselect = 'on';
-            app.SpeciestoShowListBoxMargFSPvT.Position = [14 120 100 55];
+            app.SpeciestoShowListBoxMargFSPvT.Position = [14 108 100 55];
             app.SpeciestoShowListBoxMargFSPvT.Value = {'x1'};
 
             % Create FspMeanandVariancePanel
             app.FspMeanandVariancePanel = uipanel(app.FiniteStateProjectionTab);
             app.FspMeanandVariancePanel.Title = 'Mean and Variance';
-            app.FspMeanandVariancePanel.Position = [1005 40 157 250];
+            app.FspMeanandVariancePanel.Position = [1005 32 157 214];
 
             % Create SelectSpeciesLabel_3
             app.SelectSpeciesLabel_3 = uilabel(app.FspMeanandVariancePanel);
             app.SelectSpeciesLabel_3.VerticalAlignment = 'top';
-            app.SelectSpeciesLabel_3.Position = [2 205 115 25];
+            app.SelectSpeciesLabel_3.Position = [2 169 115 25];
             app.SelectSpeciesLabel_3.Text = 'Select Species';
 
             % Create SelectPlotsLabel_2
             app.SelectPlotsLabel_2 = uilabel(app.FspMeanandVariancePanel);
-            app.SelectPlotsLabel_2.Position = [16 121 69 22];
+            app.SelectPlotsLabel_2.Position = [16 85 69 22];
             app.SelectPlotsLabel_2.Text = 'Select Plots';
 
             % Create FspMeanVarShowVarianceCheckBox
             app.FspMeanVarShowVarianceCheckBox = uicheckbox(app.FspMeanandVariancePanel);
             app.FspMeanVarShowVarianceCheckBox.Tooltip = {'select to plot standard deviations'};
             app.FspMeanVarShowVarianceCheckBox.Text = 'Show Variance';
-            app.FspMeanVarShowVarianceCheckBox.Position = [16 99 135 22];
+            app.FspMeanVarShowVarianceCheckBox.Position = [16 63 135 22];
 
             % Create FspMeanVarPlotButton
             app.FspMeanVarPlotButton = uibutton(app.FspMeanandVariancePanel, 'push');
@@ -2862,36 +2863,36 @@
             app.FspMeanVarPlotButton.BackgroundColor = [0 1 0];
             app.FspMeanVarPlotButton.FontWeight = 'bold';
             app.FspMeanVarPlotButton.Tooltip = {'export selected figures'};
-            app.FspMeanVarPlotButton.Position = [1 43 151 28];
+            app.FspMeanVarPlotButton.Position = [1 7 151 28];
             app.FspMeanVarPlotButton.Text = 'Plot Mean and Variance';
 
             % Create FspMeanVarShowOdeCheckBox
             app.FspMeanVarShowOdeCheckBox = uicheckbox(app.FspMeanandVariancePanel);
             app.FspMeanVarShowOdeCheckBox.Tooltip = {'select to plot ODE solution'};
             app.FspMeanVarShowOdeCheckBox.Text = 'Show ODE';
-            app.FspMeanVarShowOdeCheckBox.Position = [16 77 135 22];
+            app.FspMeanVarShowOdeCheckBox.Position = [16 41 135 22];
 
             % Create SpeciestoShowListBoxMeans
             app.SpeciestoShowListBoxMeans = uilistbox(app.FspMeanandVariancePanel);
             app.SpeciestoShowListBoxMeans.Items = {'x1', 'x2', 'x3'};
             app.SpeciestoShowListBoxMeans.Multiselect = 'on';
-            app.SpeciestoShowListBoxMeans.Position = [18 151 100 55];
+            app.SpeciestoShowListBoxMeans.Position = [18 115 100 55];
             app.SpeciestoShowListBoxMeans.Value = {'x1'};
 
             % Create FspJointDistributionPanel
             app.FspJointDistributionPanel = uipanel(app.FiniteStateProjectionTab);
             app.FspJointDistributionPanel.Title = 'Joint Distribution';
-            app.FspJointDistributionPanel.Position = [1175 42 175 248];
+            app.FspJointDistributionPanel.Position = [1175 32 175 214];
 
             % Create SelectSpeciesLabel_4
             app.SelectSpeciesLabel_4 = uilabel(app.FspJointDistributionPanel);
             app.SelectSpeciesLabel_4.VerticalAlignment = 'top';
-            app.SelectSpeciesLabel_4.Position = [3 204 126 22];
+            app.SelectSpeciesLabel_4.Position = [3 170 126 22];
             app.SelectSpeciesLabel_4.Text = 'Select Species';
 
             % Create SelectPlotsLabel_3
             app.SelectPlotsLabel_3 = uilabel(app.FspJointDistributionPanel);
-            app.SelectPlotsLabel_3.Position = [16 125 69 22];
+            app.SelectPlotsLabel_3.Position = [16 91 69 22];
             app.SelectPlotsLabel_3.Text = 'Select Plots';
 
             % Create FspContourCheckBox
@@ -2899,14 +2900,14 @@
             app.FspContourCheckBox.ValueChangedFcn = createCallbackFcn(app, @FspContourCheckBoxValueChanged, true);
             app.FspContourCheckBox.Tooltip = {'select to plot contour of joint distributions'};
             app.FspContourCheckBox.Text = 'Contour';
-            app.FspContourCheckBox.Position = [16 106 100 22];
+            app.FspContourCheckBox.Position = [16 72 100 22];
 
             % Create FspMeshCheckBox
             app.FspMeshCheckBox = uicheckbox(app.FspJointDistributionPanel);
             app.FspMeshCheckBox.ValueChangedFcn = createCallbackFcn(app, @FspMeshCheckBoxValueChanged, true);
             app.FspMeshCheckBox.Tooltip = {'select to create mesh of joint distributions'};
             app.FspMeshCheckBox.Text = 'Mesh';
-            app.FspMeshCheckBox.Position = [16 87 92 22];
+            app.FspMeshCheckBox.Position = [16 53 92 22];
 
             % Create PlotJointDistributionsButton
             app.PlotJointDistributionsButton = uibutton(app.FspJointDistributionPanel, 'push');
@@ -2914,30 +2915,30 @@
             app.PlotJointDistributionsButton.BackgroundColor = [0 1 0];
             app.PlotJointDistributionsButton.FontWeight = 'bold';
             app.PlotJointDistributionsButton.Tooltip = {'export above selected plots'};
-            app.PlotJointDistributionsButton.Position = [5 39 151 28];
+            app.PlotJointDistributionsButton.Position = [5 5 151 28];
             app.PlotJointDistributionsButton.Text = 'Plot Joint Distributions';
 
             % Create FspJointCreateMovCheckBox
             app.FspJointCreateMovCheckBox = uicheckbox(app.FspJointDistributionPanel);
             app.FspJointCreateMovCheckBox.Tooltip = {'select to create movie of joint distributions'};
             app.FspJointCreateMovCheckBox.Text = 'Create Movie';
-            app.FspJointCreateMovCheckBox.Position = [16 69 137 22];
+            app.FspJointCreateMovCheckBox.Position = [16 35 137 22];
 
             % Create JointSp1
             app.JointSp1 = uilistbox(app.FspJointDistributionPanel);
             app.JointSp1.Items = {'x1', 'x2', 'x3'};
-            app.JointSp1.Position = [11 150 61 55];
+            app.JointSp1.Position = [11 116 61 55];
             app.JointSp1.Value = 'x1';
 
             % Create JointSp2
             app.JointSp2 = uilistbox(app.FspJointDistributionPanel);
             app.JointSp2.Items = {'x1', 'x2', 'x3'};
-            app.JointSp2.Position = [106 150 66 55];
+            app.JointSp2.Position = [106 116 66 55];
             app.JointSp2.Value = 'x1';
 
             % Create vsLabel
             app.vsLabel = uilabel(app.FspJointDistributionPanel);
-            app.vsLabel.Position = [78 166 25 22];
+            app.vsLabel.Position = [78 132 25 22];
             app.vsLabel.Text = 'vs.';
 
             % Create XminEditFieldLabel
@@ -3057,7 +3058,7 @@
             app.ExportFSPDatatoWorkspaceForManualPlotsButton.ButtonPushedFcn = createCallbackFcn(app, @ExportFSPDatatoWorkspaceForManualPlotsButtonPushed, true);
             app.ExportFSPDatatoWorkspaceForManualPlotsButton.BackgroundColor = [0 1 0];
             app.ExportFSPDatatoWorkspaceForManualPlotsButton.FontWeight = 'bold';
-            app.ExportFSPDatatoWorkspaceForManualPlotsButton.Position = [1018 13 296 22];
+            app.ExportFSPDatatoWorkspaceForManualPlotsButton.Position = [1018 5 296 22];
             app.ExportFSPDatatoWorkspaceForManualPlotsButton.Text = 'Export FSP Data to Workspace For Manual Plots';
 
             % Create SpeciestoShowListBox_2Label
@@ -3558,7 +3559,7 @@
             app.SpeciestoshowinplotsPanel.Title = 'Species to show in plots';
             app.SpeciestoshowinplotsPanel.Visible = 'off';
             app.SpeciestoshowinplotsPanel.FontWeight = 'bold';
-            app.SpeciestoshowinplotsPanel.Position = [1021 295 167 100];
+            app.SpeciestoshowinplotsPanel.Position = [1041 184 167 100];
 
             % Create SpeciesForFitPlot
             app.SpeciesForFitPlot = uilistbox(app.SpeciestoshowinplotsPanel);
@@ -3614,27 +3615,27 @@
             app.FitModelButton.Text = 'Fit Model';
             app.FitModelButton.BackgroundColor = [0 1 0];
             app.FitModelButton.FontWeight = 'bold';
-            app.FitModelButton.Position = [1216 449 100 23];
+            app.FitModelButton.Position = [1236 338 100 23];
 
             % Create FittingAlgorithmDropDownLabel
             app.FittingAlgorithmDropDownLabel = uilabel(app.DataLoadingandFittingTab);
             app.FittingAlgorithmDropDownLabel.HorizontalAlignment = 'right';
             app.FittingAlgorithmDropDownLabel.VerticalAlignment = 'bottom';
             app.FittingAlgorithmDropDownLabel.FontWeight = 'bold';
-            app.FittingAlgorithmDropDownLabel.Position = [966 482 139 33];
+            app.FittingAlgorithmDropDownLabel.Position = [986 371 139 33];
             app.FittingAlgorithmDropDownLabel.Text = 'Fitting Algorithm';
 
             % Create FittingAlgorithmDropDown
             app.FittingAlgorithmDropDown = uidropdown(app.DataLoadingandFittingTab);
             app.FittingAlgorithmDropDown.Items = {'fminsearch', 'MetropolisHastings'};
             app.FittingAlgorithmDropDown.ValueChangedFcn = createCallbackFcn(app, @FittingAlgorithmDropDownValueChanged, true);
-            app.FittingAlgorithmDropDown.Position = [1121 476 203 22];
+            app.FittingAlgorithmDropDown.Position = [1141 365 203 22];
             app.FittingAlgorithmDropDown.Value = 'fminsearch';
 
             % Create ParameterFittingandUncertaintyQuantificationLabel
             app.ParameterFittingandUncertaintyQuantificationLabel = uilabel(app.DataLoadingandFittingTab);
             app.ParameterFittingandUncertaintyQuantificationLabel.FontWeight = 'bold';
-            app.ParameterFittingandUncertaintyQuantificationLabel.Position = [986 548 286 22];
+            app.ParameterFittingandUncertaintyQuantificationLabel.Position = [1006 437 286 22];
             app.ParameterFittingandUncertaintyQuantificationLabel.Text = 'Parameter Fitting and Uncertainty Quantification';
 
             % Create SettingsButton
@@ -3642,7 +3643,7 @@
             app.SettingsButton.ButtonPushedFcn = createCallbackFcn(app, @SettingsButtonPushed, true);
             app.SettingsButton.BackgroundColor = [1 1 0];
             app.SettingsButton.FontWeight = 'bold';
-            app.SettingsButton.Position = [1115 449 84 23];
+            app.SettingsButton.Position = [1135 338 84 23];
             app.SettingsButton.Text = 'Settings';
 
             % Create GraphPosteriorDistributionsButton
@@ -3651,34 +3652,34 @@
             app.GraphPosteriorDistributionsButton.BackgroundColor = [0 1 0];
             app.GraphPosteriorDistributionsButton.FontWeight = 'bold';
             app.GraphPosteriorDistributionsButton.Enable = 'off';
-            app.GraphPosteriorDistributionsButton.Position = [1131 413 183 28];
+            app.GraphPosteriorDistributionsButton.Position = [1151 302 183 28];
             app.GraphPosteriorDistributionsButton.Text = 'Graph Posterior Distributions';
 
             % Create SuppressFSPExpansionfasterbutmaybelessaccurateCheckBox
             app.SuppressFSPExpansionfasterbutmaybelessaccurateCheckBox = uicheckbox(app.DataLoadingandFittingTab);
             app.SuppressFSPExpansionfasterbutmaybelessaccurateCheckBox.Text = 'Suppress FSP Expansion (faster but may be less accurate)';
-            app.SuppressFSPExpansionfasterbutmaybelessaccurateCheckBox.Position = [1009 502 341 22];
+            app.SuppressFSPExpansionfasterbutmaybelessaccurateCheckBox.Position = [1029 391 341 22];
 
             % Create SetPriorButton
             app.SetPriorButton = uibutton(app.DataLoadingandFittingTab, 'push');
             app.SetPriorButton.ButtonPushedFcn = createCallbackFcn(app, @SetPriorButtonPushed, true);
             app.SetPriorButton.BackgroundColor = [1 1 0];
             app.SetPriorButton.FontWeight = 'bold';
-            app.SetPriorButton.Position = [1197 525 100 23];
+            app.SetPriorButton.Position = [1217 414 100 23];
             app.SetPriorButton.Text = 'Set Prior';
 
             % Create PriorTypeDropDownLabel
             app.PriorTypeDropDownLabel = uilabel(app.DataLoadingandFittingTab);
             app.PriorTypeDropDownLabel.HorizontalAlignment = 'right';
             app.PriorTypeDropDownLabel.FontWeight = 'bold';
-            app.PriorTypeDropDownLabel.Position = [1006 525 63 22];
+            app.PriorTypeDropDownLabel.Position = [1026 414 63 22];
             app.PriorTypeDropDownLabel.Text = 'Prior Type';
 
             % Create PriorTypeDropDown
             app.PriorTypeDropDown = uidropdown(app.DataLoadingandFittingTab);
             app.PriorTypeDropDown.Items = {'None', 'LogNormal', 'Normal', ''};
             app.PriorTypeDropDown.ValueChangedFcn = createCallbackFcn(app, @PriorTypeDropDownValueChanged, true);
-            app.PriorTypeDropDown.Position = [1084 525 100 22];
+            app.PriorTypeDropDown.Position = [1104 414 100 22];
             app.PriorTypeDropDown.Value = 'None';
 
             % Create LinkSpeciesLabel
@@ -4007,6 +4008,11 @@
             app.IncludeGUIDatainSaveSwitch.Tooltip = {'Including GUI data in save takes longer and more space to save, but will lead to faster and easier launch times.'};
             app.IncludeGUIDatainSaveSwitch.Position = [192 18 45 20];
             app.IncludeGUIDatainSaveSwitch.Value = 'On';
+
+            % Create Image
+            app.Image = uiimage(app.RightPanel);
+            app.Image.Position = [1224 558 156 144];
+            app.Image.ImageSource = 'SSITLOGO.jpg';
 
             % Create FitinBackgroundmaclinuxonlyButton
             app.FitinBackgroundmaclinuxonlyButton = uibutton(app.UIFigure, 'state');
