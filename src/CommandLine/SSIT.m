@@ -510,6 +510,16 @@ classdef SSIT
             % propensity function.
 
             load('SSITconfig.mat','pathToPropensityFuns');
+            % oldPath = path;
+            Jslash = strfind(prefixName,filesep);
+            if isempty(Jslash)
+                pathFuns = append(pathToPropensityFuns);
+                Jslash = 0;
+            else
+                pathFuns = append(pathToPropensityFuns,filesep,prefixName(1:Jslash(end)-1));
+                addpath(pathFuns);
+                Jslash = Jslash(end);
+           end
 
             if strcmpi(obj.solutionScheme,'ode')
                 obj = clearPropensityFiles(obj,prefixName,'ode');
@@ -523,9 +533,11 @@ classdef SSIT
                         false,...
                         obj.inputExpressions, ...
                         [momentOdeFileName,'_jac']);
-                    obj.propensitiesGeneralMean = eval(['@(t,v,pars)',prefixName,'_mean(t,v,pars)']);
+                    obj.propensitiesGeneralMean = str2func([prefixName(Jslash+1:end),'_mean']);
+                    % obj.propensitiesGeneralMean = eval(['@(t,v,pars)',pathToPropensityFuns,filesep,prefixName,'_mean(t,v,pars)']);
                     if jacCreated
-                        obj.propensitiesGeneralMeanJac = eval(['@(t,v,pars)',prefixName,'_mean_jac(t,v,pars)']);
+                        obj.propensitiesGeneralMeanJac = str2func([prefixName(Jslash+1:end),'_mean_jac']);
+                        % obj.propensitiesGeneralMeanJac = eval(['@(t,v,pars)',pathToPropensityFuns,filesep,prefixName,'_mean_jac(t,v,pars)']);
                     else
                         obj.propensitiesGeneralMeanJac = [];
                     end
@@ -545,9 +557,11 @@ classdef SSIT
                         true,...
                         obj.inputExpressions,...
                         [momentOdeFileName,'_jac']);
-                    obj.propensitiesGeneralMoments = eval(['@(t,v,pars)',prefixName,'_momentsgaussian(t,v,pars)']);
+                    obj.propensitiesGeneralMoments = str2func([prefixName(Jslash+1:end),'_momentsgaussian']);
+                    % obj.propensitiesGeneralMoments = eval(['@(t,v,pars)',pathToPropensityFuns,filesep,prefixName,'_momentsgaussian(t,v,pars)']);
                     if jacCreated
-                        obj.propensitiesGeneralMomentsJac = eval(['@(t,v,pars)',prefixName,'_momentsgaussian_jac(t,v,pars)']);
+                        obj.propensitiesGeneralMomentsJac = str2func([prefixName(Jslash+1:end),'_momentsgaussian_jac']);
+                        % obj.propensitiesGeneralMomentsJac = eval(['@(t,v,pars)',pathToPropensityFuns,filesep,prefixName,'_momentsgaussian_jac(t,v,pars)']);
                     else
                         obj.propensitiesGeneralMomentsJac = [];
                     end
@@ -620,6 +634,7 @@ classdef SSIT
 
             obj.propensitiesGeneral = PropensitiesGeneral;
             obj.propensityFilePrefix = prefixName;
+            % path(oldPath);   % restore path
         end
         %%
         function constraints = get.fspConstraints(obj)

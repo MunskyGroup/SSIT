@@ -133,11 +133,10 @@ classdef poisson2Dtest < matlab.unittest.TestCase
             
             Model = testCase.TwoDPoissODE;
             Model.fspOptions.initApproxSS = true;
-            odeSoln = Model.solve;
+            [~,~,Model] = Model.solve;
 
-            relDiff1 = max(abs((odeSoln.ode(:,1)-mn1')./mn1'));
-            relDiff2 = max(abs((odeSoln.ode(:,2)-mn2')./mn2'));
-
+            relDiff1 = max(abs((Model.Solutions.ode(:,1)-mn1')./mn1'));
+            relDiff2 = max(abs((Model.Solutions.ode(:,2)-mn2')./mn2'));
 
             testCase.verifyEqual(max([relDiff1,relDiff2])<0.001, true, ...
                 'ODE Solution is not within 1% Tolerance');

@@ -65,7 +65,7 @@ if runTests
     cleanupTest = onCleanup(@() cd(origDir));  % guarantee return
     cd('tests')
     testResults.tests = runtests({'poissonTest','poisson2Dtest','poissonTVtest',...
-        'miscelaneousTests','multiModelTests','modelReductionTest','testGui'});
+        'miscelaneousTests','multiModelTests','modelReductionTest','testGui'})
     clear cleanupTest
 else
     testResults.tests =[];
