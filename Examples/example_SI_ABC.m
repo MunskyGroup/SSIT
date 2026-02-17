@@ -21,37 +21,35 @@ addpath(genpath('../src'));
 
 %% Set SSA options:
 % Make copy of our 4-state STL1 model:
-STL1_4state_ABC = STL1_4state;
+scRNAseq = Model_Template;
 
 %Set solution scheme to SSA:
-STL1_4state_ABC.solutionScheme = 'SSA';
+scRNAseq.solutionScheme = 'SSA';
 
 % Set number of simulations performed per experiment (small # for demo):
-STL1_4state_ABC.ssaOptions.nSimsPerExpt=100;
+scRNAseq.ssaOptions.nSimsPerExpt=100;
     
 % Equilibrate before starting (burn-in):
-STL1_4state_ABC.tSpan = [0,STL1_4state_ABC.tSpan];
+scRNAseq.tSpan = [0,scRNAseq.tSpan];
 
 % Run iterations in parallel with multiple cores:
-STL1_4state_ABC.ssaOptions.useParallel = true;
+scRNAseq.ssaOptions.useParallel = true;
 
 %% Associate STL1 data:
-STL1_4state_ABC = ...
-    STL1_4state_ABC.loadData('data/filtered_data_2M_NaCl_Step.csv',...
-                            {'mRNA','RNA_STL1_total_TS3Full'},...
-                            {'Replica',1;'Condition','0.2M_NaCl_Step'});
+scRNAseq = ...
+    scRNAseq.loadData('data/Raw_DEX_UpRegulatedGenes_ForSSIT.csv',...
+                     {'rna','TSC22D3'});
 
 % Choose which parameters to fit:
-fitpars = 13;
-STL1_4state_ABC.fittingOptions.modelVarsToFit = [1:fitpars]; 
+fitpars = 1:9;
+scRNAseq.fittingOptions.modelVarsToFit = [fitpars]; 
 
 %% Set up a prior over parameters (logPriorLoss)
 % logPriorLoss should return a *loss* (positive penalty); smaller is better.
 % A convenient choice is a quadratic penalty in log10-parameter space,
 % corresponding to a log-normal prior.
 
-% Get current parameter values as a reasonable prior mean:
-theta0 = cell2mat(STL1_4state_ABC.parameters([1:fitpars],2)); 
+theta0 = cell2mat(scRNAseq.parameters([fitpars],2)); 
 log10_mu = log10(theta0(:));
 log10_sigma = 2 * ones(size(log10_mu));  % std dev in log10-space  
 
@@ -63,17 +61,17 @@ logPriorLoss = [];
 % 'MetropolisHastings' algorithm. Tune these depending on your problem size.
 
 fitOptions = struct();
-fitOptions.numberOfSamples       = 200;         % Total MH iterations 
-fitOptions.burnIn                = 20;          % Discard burn-in samples
+fitOptions.numberOfSamples       = 500;          % Total MH iterations 
+fitOptions.burnIn                = 10;           % Discard burn-in samples
 fitOptions.thin                  = 1;            % Keep every nth sample
-proposalWidthScale               = 1e-4;         % Proposal scale
+proposalWidthScale               = 0.5;          % Proposal scale
 % Proposal distribution:
 fitOptions.proposalDistribution  = @(x)x+proposalWidthScale*randn(size(x));
-% Log prior:
-fitOptions.logPrior = @(x)sum((log10(x)-mu_log10).^2./(2*sig_log10.^2));
+
+fitOptions.logPrior = @(z) -sum((z-log10_mu).^2./(2*log10_sigma.^2));
 
 % Initial parameter guess (optional, default: current Model.parameters):
-parGuess = [];
+%parGuess = [];
 
 % Choose loss function for ABC (default: 'cdf_one_norm'):
 lossFunction = 'cdf_one_norm';
@@ -95,14 +93,14 @@ enforceIndependence = true;
 %   ModelABC                - model updated with 'pars'
 
 % Compile and store the given reaction propensities:
-STL1_4state_ABC = STL1_4state_ABC.formPropensitiesGeneral('STL1_4state_ABC');
+scRNAseq = scRNAseq.formPropensitiesGeneral('scRNAseq');
 
 % Set parameter guesses (optional):
-parGuess = cell2mat(STL1_4state.parameters((1:13),2));
+parGuess = cell2mat(scRNAseq.parameters((fitpars),2));
 
-[parsABC, minimumLoss, ResultsABC, STL1_4state_ABC] = ...
-     STL1_4state_ABC.runABCsearch(parGuess, lossFunction, logPriorLoss,...
-                                  fitOptions, enforceIndependence);
+[parsABC, minimumLoss, ResultsABC, scRNAseq] = ...
+     scRNAseq.runABCsearch(parGuess, lossFunction, logPriorLoss,...
+                           fitOptions, enforceIndependence);
 
 fprintf('ABC completed.\n');
 fprintf('Minimum loss value: %g\n', minimumLoss);
@@ -141,7 +139,7 @@ end
 %% (Experimental data vs. data simulated by the SSA):
 % Minimum loss from ABC run:
 minLoss = minimumLoss;  
-nTimes  = sum(STL1_4state_ABC.fittingOptions.timesToFit);
+nTimes  = sum(scRNAseq.fittingOptions.timesToFit);
 % Set the number of species being fitting (in this case, only mRNA):
 nSpecies = 1;  
 % Replicate groups / dose groups etc., if applicable:
@@ -150,7 +148,7 @@ nConds   = 1;
 avgLossPerCDF = minLoss / (nTimes * nSpecies * nConds);
 fprintf('Average CDF L1 discrepancy per time/species: %.4f\n',avgLossPerCDF);
 
-L_init = STL1_4state_ABC.computeLossFunctionSSA(lossFunction,...
+L_init = scRNAseq.computeLossFunctionSSA(lossFunction,...
                                                 theta0, enforceIndependence);
 L_min  = minimumLoss;
 
@@ -160,11 +158,12 @@ fprintf('Relative improvement: %.1f%%\n', 100 * (L_init - L_min)/L_init);
 
 %% Compare ABC posterior sample to MLE
 % TODO: Overlay parameter values and compute predictive distributions.
+%load('seqModels/Model_TSC22D3.mat')
 
-thetaMLE = cell2mat(STL1_4state_MLE.parameters(1:18,2));
+theta_TSC22D3 = cell2mat(Model_TSC22D3.parameters(1:9,2));
 
-L_MLE = STL1_4state_ABC.computeLossFunctionSSA(lossFunction,...
-                                            thetaMLE, enforceIndependence);
+L_MLE = scRNAseq.computeLossFunctionSSA(lossFunction,...
+                                        theta_TSC22D3, enforceIndependence);
 L_min  = minimumLoss;
 
 fprintf('MLE loss: %.3f,  Final (min) ABC loss: %.3f\n', L_MLE, L_min);
