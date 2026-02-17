@@ -23,15 +23,14 @@ scRNAseq.solutionScheme = 'SSA';
 scRNAseq.ssaOptions.nSimsPerExpt=100;
     
 % Equilibrate before starting (burn-in):
-scRNAseq.tSpan = [0,scRNAseq.tSpan];
+scRNAseq.tSpan = [-100,scRNAseq.tSpan];
 
 % Run iterations in parallel with multiple cores:
 scRNAseq.ssaOptions.useParallel = true;
 
-%% Associate STL1 data:
-scRNAseq = ...
-    scRNAseq.loadData('data/Raw_DEX_UpRegulatedGenes_ForSSIT.csv',...
-                     {'rna','TSC22D3'});
+%% Associate scRNA-seq data for gene TSC22D3:
+scRNAseq = scRNAseq.loadData('data/Raw_DEX_UpRegulatedGenes_ForSSIT.csv',...
+                            {'rna','TSC22D3'});
 
 % Choose which parameters to fit:
 fitpars = 1:9;
