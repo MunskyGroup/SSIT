@@ -1,26 +1,19 @@
-%% SSIT/Examples/example_17_ABC.m
+%% SSIT/Examples/example_SI_ABC.m
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Section 2.5.7: Approximate Bayesian Computation 
-%
-% Demonstration of Approximate Bayesian Computation (ABC) in the SSIT
-% using the runABCsearch method.
+%% Approximate Bayesian Computation (ABC)
+%  in the SSIT using `runABCsearch'
 %
 % This example:
-%   1. Loads our 4-state STL1 model with SSA solution scheme.
-%   2. Associates the 4-state STL1 model with STL1 smFISH data.
+%   1. Loads a template model for scRNA-seq genes with SSA solution scheme.
+%   2. Associates the template model with scRNA-seq data for gene TSC22D3.
 %   3. Defines a prior over parameters.
 %   4. Runs ABC via Metropolis–Hastings using 'cdf_one_norm' loss.
 %   5. Visualizes the ABC results.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%% Preliminaries
-% clear
-% close all
-addpath(genpath('../src'));
-
 %% Set SSA options:
-% Make copy of our 4-state STL1 model:
+% Make copy of scRNAseq template model:
 scRNAseq = Model_Template;
 
 %Set solution scheme to SSA:
@@ -30,15 +23,14 @@ scRNAseq.solutionScheme = 'SSA';
 scRNAseq.ssaOptions.nSimsPerExpt=100;
     
 % Equilibrate before starting (burn-in):
-scRNAseq.tSpan = [0,scRNAseq.tSpan];
+scRNAseq.tSpan = [-100,scRNAseq.tSpan];
 
 % Run iterations in parallel with multiple cores:
 scRNAseq.ssaOptions.useParallel = true;
 
-%% Associate STL1 data:
-scRNAseq = ...
-    scRNAseq.loadData('data/Raw_DEX_UpRegulatedGenes_ForSSIT.csv',...
-                     {'rna','TSC22D3'});
+%% Associate scRNA-seq data for gene TSC22D3:
+scRNAseq = scRNAseq.loadData('data/Raw_DEX_UpRegulatedGenes_ForSSIT.csv',...
+                            {'rna','TSC22D3'});
 
 % Choose which parameters to fit:
 fitpars = 1:9;

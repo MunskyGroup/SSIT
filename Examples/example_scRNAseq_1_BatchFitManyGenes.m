@@ -1,4 +1,8 @@
-%Multi-Model Example.
+% scRNA-seq example 
+% * Define and solve template model using FSP
+% * Generate Binomial PDO for missing RNA counts
+% * Show example for using SSITMultiModel to fit multiple models with some 
+%   shared parameters and some distinct parameters
 addpath(genpath('../src'));
 
 %% Define Base Model Combination

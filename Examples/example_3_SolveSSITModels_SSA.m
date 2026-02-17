@@ -50,7 +50,7 @@ STL1_4state.tSpan = linspace(0,50,101);
     
     % A negative initial time is used to allow model to equilibrate 
     % before starting (burn-in). Large burn-in times cause long run times.
-    Model_SSA.tSpan = [0,Model_SSA.tSpan];
+    Model_SSA.tSpan = [-100,Model_SSA.tSpan];
     
     % Set the initial time:
     Model_SSA.initialTime = Model_SSA.tSpan(1); 
@@ -138,7 +138,7 @@ STL1_4state.tSpan = linspace(0,50,101);
        
     % A negative initial time is used to allow model to equilibrate 
     % before starting (burn-in). Large burn-in times cause long run times.
-    STL1_4state_SSA.tSpan = [0,STL1_4state_SSA.tSpan];
+    STL1_4state_SSA.tSpan = [-100,STL1_4state_SSA.tSpan];
 
     % Set the initial time:
     STL1_4state_SSA.initialTime = STL1_4state_SSA.tSpan(1); 
