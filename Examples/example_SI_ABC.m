@@ -20,7 +20,7 @@
 addpath(genpath('../src'));
 
 %% Set SSA options:
-% Make copy of our 4-state STL1 model:
+% Make copy of scRNAseq template model:
 scRNAseq = Model_Template;
 
 %Set solution scheme to SSA:
