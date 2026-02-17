@@ -1,10 +1,8 @@
 %% SSIT/Examples/example_SI_ABC.m
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Section 2.5.7: Approximate Bayesian Computation 
-%
-% Demonstration of Approximate Bayesian Computation (ABC) in the SSIT
-% using the runABCsearch method.
+%% Approximate Bayesian Computation (ABC)
+%  in the SSIT using `runABCsearch'
 %
 % This example:
 %   1. Loads a template model for scRNA-seq genes with SSA solution scheme.
@@ -13,11 +11,6 @@
 %   4. Runs ABC via Metropolis–Hastings using 'cdf_one_norm' loss.
 %   5. Visualizes the ABC results.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-%% Preliminaries
-% clear
-% close all
-addpath(genpath('../src'));
 
 %% Set SSA options:
 % Make copy of scRNAseq template model:
