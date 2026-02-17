@@ -124,9 +124,10 @@ if isfield(ResultsABC, 'mhSamples')
     for k = 1:nPars
         subplot(ceil(nPars/2), 2, k);
         histogram(parChain(:,k), 40, 'Normalization', 'pdf');
-        hold on;
-        xline(parsABC(k), 'r', 'LineWidth', 1.5);
+        hold on;        
         xline(parGuess(k), 'b', 'LineWidth', 1.5);
+        xline(parsABC(k), 'r', 'LineWidth', 1.5);
+        xline(cell2mat(Model_TSC22D3.parameters(k,2)),'g','LineWidth',1.5);
         title(sprintf('Parameter %d', k));
         xlabel('\theta_k');
         ylabel('Posterior density (approx.)');
