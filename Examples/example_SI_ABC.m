@@ -65,13 +65,17 @@ fitOptions.numberOfSamples       = 500;          % Total MH iterations
 fitOptions.burnIn                = 10;           % Discard burn-in samples
 fitOptions.thin                  = 1;            % Keep every nth sample
 proposalWidthScale               = 0.5;          % Proposal scale
+
 % Proposal distribution:
 fitOptions.proposalDistribution  = @(x)x+proposalWidthScale*randn(size(x));
 
+% Log prior:
 fitOptions.logPrior = @(z) -sum((z-log10_mu).^2./(2*log10_sigma.^2));
 
 % Initial parameter guess (optional, default: current Model.parameters):
 %parGuess = [];
+% In this case, parGuess = []; is the same as the default:
+parGuess = cell2mat(scRNAseq.parameters((fitpars),2));
 
 % Choose loss function for ABC (default: 'cdf_one_norm'):
 lossFunction = 'cdf_one_norm';
@@ -94,9 +98,6 @@ enforceIndependence = true;
 
 % Compile and store the given reaction propensities:
 scRNAseq = scRNAseq.formPropensitiesGeneral('scRNAseq');
-
-% Set parameter guesses (optional):
-parGuess = cell2mat(scRNAseq.parameters((fitpars),2));
 
 [parsABC, minimumLoss, ResultsABC, scRNAseq] = ...
      scRNAseq.runABCsearch(parGuess, lossFunction, logPriorLoss,...
@@ -125,7 +126,7 @@ if isfield(ResultsABC, 'mhSamples')
         histogram(parChain(:,k), 40, 'Normalization', 'pdf');
         hold on;
         xline(parsABC(k), 'r', 'LineWidth', 1.5);
-        xline(STL1_4state_MH_pars(k), 'b', 'LineWidth', 1.5);
+        xline(parGuess(k), 'b', 'LineWidth', 1.5);
         title(sprintf('Parameter %d', k));
         xlabel('\theta_k');
         ylabel('Posterior density (approx.)');
