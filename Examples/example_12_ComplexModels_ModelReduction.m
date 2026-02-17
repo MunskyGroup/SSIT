@@ -1,4 +1,4 @@
-%% SSIT/Examples/example_14_ModelReduction
+%% SSIT/Examples/example_12_ModelReduction
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Section 2.5: Complex models
 %   * Create reduced FSP models using different types of 

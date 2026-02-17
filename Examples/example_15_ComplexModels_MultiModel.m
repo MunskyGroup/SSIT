@@ -1,4 +1,4 @@
-%% SSIT/Examples/example_12_ComplexModels_MultiModel
+%% SSIT/Examples/example_15_ComplexModels_MultiModel
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Section 2.5: Complex models

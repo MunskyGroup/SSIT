@@ -1,4 +1,4 @@
-%% SSIT/Examples/example_15_PDO
+%% SSIT/Examples/example_14_PDO
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Section 2.5: Complex models

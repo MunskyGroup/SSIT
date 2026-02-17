@@ -1,4 +1,4 @@
-%% SSIT/Examples/example_18_Moments
+%% SSIT/Examples/example_SI_Moments
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Section 2.2: Finding and visualizing master equation solutions

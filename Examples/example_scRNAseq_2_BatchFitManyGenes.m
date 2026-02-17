@@ -1,4 +1,4 @@
-%% Call Pipeline to Fit Model
+%% Call Pipeline to Fit scRNA-seq Models
 addpath(genpath('../src'));
 
 % Specify pipeline to apply to model and arguments
