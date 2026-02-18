@@ -54,9 +54,9 @@ logPriorLoss = [];
 
 fitOptions = struct();
 fitOptions.numberOfSamples       = 500;          % Total MH iterations 
-fitOptions.burnIn                = 10;           % Discard burn-in samples
+fitOptions.burnIn                = 10;            % Discard burn-in samples
 fitOptions.thin                  = 1;            % Keep every nth sample
-proposalWidthScale               = 0.5;          % Proposal scale
+proposalWidthScale               = 0.5;           % Proposal scale
 
 % Proposal distribution:
 fitOptions.proposalDistribution  = @(x)x+proposalWidthScale*randn(size(x));

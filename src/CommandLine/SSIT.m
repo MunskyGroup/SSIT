@@ -5106,9 +5106,9 @@ end
                     end
                     histogram(X_t, 'FaceColor', fc, 'EdgeColor', 'k');
                     ax = gca; ax.FontSize = opts.TickLabelSize;
-                    xlabel(sprintf('Molecule Count (%s)', selNames{j}), 'FontSize', opts.AxisLabelSize);
+                    xlabel(sprintf('Molecule Count', selNames{j}), 'FontSize', opts.AxisLabelSize);
                     ylabel('Frequency', 'FontSize', opts.AxisLabelSize);
-                    title(sprintf('Distribution at t ≈ %.2f (%s)', Tfull(tHist_idx), selNames{j}), 'FontSize', opts.TitleFontSize);
+                    title(sprintf('t ≈ %.2f (%s)', Tfull(tHist_idx), selNames{j}), 'FontSize', opts.TitleFontSize);
                     grid on; box on;
                 end
             else
@@ -5122,9 +5122,9 @@ end
                 end
                 histogram(X_t, 'FaceColor', fc, 'EdgeColor', 'k');
                 ax = gca; ax.FontSize = opts.TickLabelSize;
-                xlabel(sprintf('Molecule Count (%s)', selNames{j}), 'FontSize', opts.AxisLabelSize);
+                xlabel(sprintf('Molecule Count', selNames{j}), 'FontSize', opts.AxisLabelSize);
                 ylabel('Frequency', 'FontSize', opts.AxisLabelSize);
-                title(sprintf('Distribution at t ≈ %.2f (%s)', Tfull(tHist_idx), selNames{j}), 'FontSize', opts.TitleFontSize);
+                title(sprintf('t ≈ %.2f (%s)', Tfull(tHist_idx), selNames{j}), 'FontSize', opts.TitleFontSize);
                 grid on; box on;
             end
         end
