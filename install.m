@@ -7,6 +7,19 @@ arguments
     publishHtml = false
 end
 
+% Check that 
+weAreIn = pwd;
+J = strfind(weAreIn,filesep);
+if ~strcmpi(weAreIn(J(end)+1:end),'SSIT')
+    abort = questdlg({'You appear not to be in the SSIT Directory.';'Your current directory is';weAreIn;'Do you wish to abort?'}, ...
+        'Confirm Action', ...
+        'Yes','No','Yes');
+    if strcmpi(abort,'Yes')
+        return
+    end
+end
+
+
 % Set the path to include all SSIT codes.  
 addpath(genpath('src'));
 
@@ -65,8 +78,10 @@ if runTests
     origDir = pwd;              % save current directory
     cleanupTest = onCleanup(@() cd(origDir));  % guarantee return
     cd('tests')
+    set(0, 'DefaultFigureVisible', 'off');
     testResults.tests = runtests({'poissonTest','poisson2Dtest','poissonTVtest',...
         'miscelaneousTests','multiModelTests','modelReductionTest','testGui'})
+    set(0, 'DefaultFigureVisible', 'on');
     clear cleanupTest
 else
     testResults.tests =[];
@@ -102,7 +117,8 @@ if runExamples
         };
     completed = zeros(1,length(ExampleFiles),'logical');
     for iEx = 1:length(ExampleFiles)
-        try         
+        try 
+            set(0, 'DefaultFigureVisible', 'off');
             if publishHtml
                 publish(ExampleFiles{iEx})
                 close all
@@ -116,6 +132,7 @@ if runExamples
             end
             close all
         catch me
+            set(0, 'DefaultFigureVisible', 'on');
             disp([ExampleFiles{iEx},' failed with message:'])
             me
             close all
