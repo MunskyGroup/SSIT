@@ -1,7 +1,7 @@
 %% SSIT/Examples/example_14_PDO
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Section 2.5: Complex models
+%% Section 2.4: Complex models
 %   * Use a probability distribution operator (PDO) to handle distortion 
 %     of data
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

@@ -1,7 +1,7 @@
 %% SSIT/Examples/example_8_LoadingandFittingData_DataLoading
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Section 2.4: Loading and fitting Hog1-MAPK pathway STL1 yeast data 
+%% Section 2.3: Loading and fitting Hog1-MAPK pathway STL1 yeast data 
 %   * Data loading and handling 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

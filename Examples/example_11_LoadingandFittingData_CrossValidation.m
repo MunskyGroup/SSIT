@@ -1,7 +1,7 @@
 %% SSIT/Examples/example_11_LoadingandFittingData_CrossValidation
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Section 2.4: Loading and fitting time-varying STL1 yeast data 
+%% Section 2.3: Loading and fitting time-varying STL1 yeast data 
 %   * Fitted model evaluation using cross-validation
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

@@ -1,7 +1,7 @@
 %% SSIT/Examples/example_7b_FIM_ExperimentDesign
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Section 2.2.9: FIM Optimality Criteria and Experiment Design
+%% Section 2.2: FIM Optimality Criteria and Experiment Design
 %   * Use Fisher information results to design a next round of experiments
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

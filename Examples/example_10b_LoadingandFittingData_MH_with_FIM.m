@@ -1,7 +1,7 @@
 %% SSIT/Examples/example_10b_LoadingandFittingData_MH_with_FIM
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Section 2.4: Loading and fitting time-varying STL1 yeast data 
+%% Section 2.3: Loading and fitting time-varying STL1 yeast data 
 %   * Uncertainty sampling using the Metropolis-Hastings Algorithm (MHA)
 %   * Use Bayesian priors and iterate between computing MLE and MH
 %   * Use FIM for Metropolis-Hastings proposal distribution 

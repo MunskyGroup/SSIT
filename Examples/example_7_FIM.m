@@ -1,8 +1,7 @@
 %% SSIT/Examples/example_7_FIM
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Section 2.3: Sensitivity analysis and Fisher Information Matrix 
-%% (Part II)
+%% Section 2.2: Fisher Information Matrix (FIM)
 %   * Set up and solve the FSP-FIM matrix 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

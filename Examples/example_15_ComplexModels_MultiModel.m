@@ -1,7 +1,7 @@
 %% SSIT/Examples/example_15_ComplexModels_MultiModel
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Section 2.5: Complex models
+%% Section 2.4: Complex models
 %   * Fit multiple models and data sets with shared parameters
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

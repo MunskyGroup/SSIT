@@ -1,7 +1,7 @@
 %% SSIT/Examples/example_9_LoadingandFittingData_MLE
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Section 2.4: Loading and fitting time-varying STL1 yeast data 
+%% Section 2.3: Loading and fitting time-varying STL1 yeast data 
 %   * Maximize the likelihood L(D|theta) and use the maximum likelihood
 %     estimate (MLE) to fit the experimental data
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
