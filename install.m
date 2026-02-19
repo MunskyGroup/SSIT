@@ -105,6 +105,7 @@ if runExamples
         try         
             if publishHtml
                 publish(ExampleFiles{iEx})
+                close all
             else
                 tic; out = evalc(ExampleFiles{iEx}); timeToc = toc;
                 fid = fopen(['exampleLogs/output',ExampleFiles{iEx},'.txt'],'w');
