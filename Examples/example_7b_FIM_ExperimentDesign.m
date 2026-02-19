@@ -27,12 +27,12 @@ fimResults = STL1_4state_design.computeFIM([],'log',[]);
 cellCounts_data = STL1_4state_design.dataSet.nCells*...
                  ones(size(STL1_4state_design.tSpan));
 
-%% Experiment Design
-% Find the FIM-based designs for a total cells 
-
 % Compile and store propensities:
 STL1_4state_design = ...
     STL1_4state_design.formPropensitiesGeneral('STL1_4state_design');
+
+%% Experiment Design
+% Find the FIM-based designs for a total cells 
 
 % Compute the optimal number of cells from the FIM results using different 
 % design criteria:  `Trace' maximizes the trace of the FIM; 
@@ -40,9 +40,9 @@ STL1_4state_design = ...
 % `Smallest Eigenvalue' maximizes the smallest e.val of the FIM; and 
 % `TR[$<i_1>,<i_2>$,...]' maximizes the determinant of the FIM for the 
 % specified indices.  The latter is shown for different parameter 
-% combinations, where `Tr[9:10]' are the mRNA-specific parameters `dr' and 
-% `kr' (degradation and transcription, respectively).  All other parameters 
-% are assumed to be known and fixed.
+% combinations, where `Tr[9:13]' are the mRNA-specific parameters `dr' and 
+% `kr1',`kr2',`kr3', and `kr4' (degradation and transcription reactions).  
+% All other parameters are assumed to be known and fixed.
 nCol = sum(cellCounts);
 nTotal = nCol(1);
 nCellsOpt_detCov = ...
