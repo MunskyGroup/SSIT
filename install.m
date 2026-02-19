@@ -1,9 +1,10 @@
-function testResults = install(runTests,runExamples,overwritePropFuns,saveSearchPath)
+function testResults = install(runTests,runExamples,overwritePropFuns,saveSearchPath,publishHtml)
 arguments
     runTests = false
     runExamples = false
     overwritePropFuns = []
     saveSearchPath = []
+    publishHtml = false
 end
 
 % Set the path to include all SSIT codes.  
@@ -102,12 +103,16 @@ if runExamples
     completed = zeros(1,length(ExampleFiles),'logical');
     for iEx = 1:length(ExampleFiles)
         try         
-            tic; out = evalc(ExampleFiles{iEx}); timeToc = toc;
-            fid = fopen(['exampleLogs/output',ExampleFiles{iEx},'.txt'],'w');
-            fprintf(fid,'%s', out);
-            fclose(fid);
-            completed(iEx) = true;
-            disp([ExampleFiles{iEx},' succeeded in ',num2str(timeToc),' s; logfile in ','exampleLogs/output',ExampleFiles{iEx},'.txt'])
+            if publishHtml
+                publish(ExampleFiles{iEx})
+            else
+                tic; out = evalc(ExampleFiles{iEx}); timeToc = toc;
+                fid = fopen(['exampleLogs/output',ExampleFiles{iEx},'.txt'],'w');
+                fprintf(fid,'%s', out);
+                fclose(fid);
+                completed(iEx) = true;
+                disp([ExampleFiles{iEx},' succeeded in ',num2str(timeToc),' s; logfile in ','exampleLogs/output',ExampleFiles{iEx},'.txt'])
+            end
             close all
         catch me
             disp([ExampleFiles{iEx},' failed with message:'])
