@@ -50,32 +50,27 @@ nCellsOpt_detCov = ...
 nCellsOpt_trace = ...
     STL1_4state_design.optimizeCellCounts(fimResults,nTotal,'Trace');
 nCellsOpt_tr = ...
-    STL1_4state_design.optimizeCellCounts(fimResults,nTotal,'tr[1:10]');
-nCellsOpt_tr1 = ...
-    STL1_4state_design.optimizeCellCounts(fimResults,nTotal,'tr[11:15]');
+    STL1_4state_design.optimizeCellCounts(fimResults,nTotal,'tr[1:8]');
 nCellsOpt_trR = ...
-    STL1_4state_design.optimizeCellCounts(fimResults,nTotal,'tr[9:10]');
+    STL1_4state_design.optimizeCellCounts(fimResults,nTotal,'tr[9:13]');
+nCellsOpt_trI = ...
+    STL1_4state_design.optimizeCellCounts(fimResults,nTotal,'tr[14:18]');
 
 %% Make a bar chart to compare the different designs
 % Find which x positions correspond to time=30 and time=60 for off-setting:
 t = STL1_4state_design.tSpan;
-x = 1:size(t,2);
-idx = ismember(t, [30 60]);        
-
-% Build custom x-locations for series that need separation
-x_m02 = x;  x_m03(idx) = x_m02(idx) - 0.5;
-x_p02 = x;  x_p02(idx) = x_p02(idx) + 0.5;
+x = 1:size(t,2);   
 
 f = figure;
-bar(x,      nCellsOpt_trace,  0.5); hold on
-bar(x_m02,  nCellsOpt_trR,    0.5);
-bar(x_p02,  nCellsOpt_tr1,    0.5);
-bar(x,      nCellsOpt_detCov, 0.5);
-bar(x_m02,  nCellsOpt_tr,     0.5);
+bar(x,  nCellsOpt_trace,   0.4); hold on
+bar(x,  nCellsOpt_detCov,  0.4);
+bar(x,  nCellsOpt_trI,     0.4);
+bar(x+0.2,  nCellsOpt_trR, 0.4);
+bar(x-0.2,  nCellsOpt_tr,  0.4);
 
 set(gca,'XTick',x,'XTickLabel',t,'FontSize',16)
 title('4-state STL1 (FIM Optimal Designs)','FontSize',24)
 xlabel('Time (min)','FontSize',20)
 ylabel('Number of cells','FontSize',20)
-legend('Trace,Tr[1] Designs','Tr[9:10] Design','Tr[11:15] Design', ...
-       'DetCov,\lambda Designs','Tr[1:10] Design','Location','northeast')
+legend('Trace Design','DetCov Design', 'Tr[14:18] Design',...
+        'Tr[9:13] Design', 'Tr[1:8] Design', 'Location', 'northeast')
