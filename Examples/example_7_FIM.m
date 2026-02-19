@@ -76,7 +76,8 @@ STL1_theta0 = [STL1_FIM.parameters{:,2}];
 
 % Plot the FIMs:
 STL1_FIM.plotFIMResults(STL1_fimTotal, 'log', STL1_FIM.parameters,...
-                        STL1_theta0, PlotEllipses=true);
+                        STL1_theta0, PlotEllipses=true,...
+                        EllipsePairs=[1 3; 1 4; 3 4; 7 8; 3 6; 2 7]);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(3): Compute the FIM for the 4-state STL1 yeast model

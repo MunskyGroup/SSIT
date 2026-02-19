@@ -11,7 +11,7 @@
 % from example_4_SolveSSITModels_FSP, sensitivities computed in 
 % example_6_SensitivityAnalysis, FIM results from example_7_FIM,  
 % loaded data from example_8_LoadingandFittingData_DataLoading, and
-% Metropolis-Hastings results from example_10_LoadingandFittingData_MHA
+% Metropolis-Hastings results from example_10_LoadingandFittingData_MH
 %clear
 %close all
 addpath(genpath('../'));
@@ -23,7 +23,7 @@ addpath(genpath('tmpPropensityFunctions'));
 % example_7_FIM
 % example_8_LoadingandFittingData_DataLoading
 % example_9_LoadingandFittingData_MLE
-% example_10_LoadingandFittingData_MHA
+% example_10_LoadingandFittingData_MH
 
 %% Load pre-run results:
 % load('example_10_LoadingandFittingData_MH.mat')
