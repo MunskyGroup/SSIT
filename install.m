@@ -85,19 +85,20 @@ if runExamples
         'example_5_SolveSSITModels_EscapeTimes'
         'example_6_SensitivityAnalysis'
         'example_7_FIM'
-        'example_8_LoadingandFittingData_DataLoading'
-        'example_8b_LoadingandFittingData_SimulatingData'
-        'example_9_LoadingandFittingData_MLE'
-        'example_10_LoadingandFittingData_MH'
-        'example_10b_LoadingandFittingData_MH_with_FIM'
-        'example_11_LoadingandFittingData_CrossValidation'
-        'example_12_ComplexModels_MultiModel'
-        'example_13_ComplexModels_Hybrid'
-        'example_14_ComplexModels_ModelReduction'
-        'example_15_PDO'
-        'example_16_PipelinesAndClusterComputing'
-        'example_17_ABC'
-        'example_18_Moments'};
+        % 'example_8_LoadingandFittingData_DataLoading'
+        % 'example_8b_LoadingandFittingData_SimulatingData'
+        % 'example_9_LoadingandFittingData_MLE'
+        % 'example_10_LoadingandFittingData_MH'
+        % 'example_10b_LoadingandFittingData_MH_with_FIM'
+        % 'example_11_LoadingandFittingData_CrossValidation'
+        % 'example_12_ComplexModels_ModelReduction'
+        % 'example_13_ComplexModels_Hybrid'
+        % 'example_14_ComplexModels_PDO'
+        % 'example_15_ComplexModels_MultiModel'
+        % 'example_16_PipelinesAndClusterComputing'
+        % 'example_SI_ABC'
+        % 'example_SI_Moments'
+        };
     completed = zeros(1,length(ExampleFiles),'logical');
     for iEx = 1:length(ExampleFiles)
         try         
