@@ -222,6 +222,12 @@ classdef miscelaneousTests < matlab.unittest.TestCase
          end
          
          function testCommandLine(testCase)
+             
+             % Skip on GitHub.
+             if isGitHubActions()
+                 testCase.assumeFail("Skipped on GitHub Actions.");
+             end
+             
              %% Define Model/Data Combination
              % Specify data set to fit.
              DataSettings = {'testData.csv',{'mRNA','exp1_s1'}};
@@ -273,4 +279,7 @@ classdef miscelaneousTests < matlab.unittest.TestCase
          
 
     end
+end
+function tf = isGitHubActions()
+    tf = strcmp(getenv("GITHUB_ACTIONS"), "true");
 end

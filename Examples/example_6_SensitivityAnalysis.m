@@ -1,7 +1,7 @@
 %% SSIT/Examples/example_6_SensitivityAnalysis
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Section 2.3: Sensitivity analysis and Fisher Information Matrix (Part I)
+%% Section 2.2: Sensitivity analysis 
 %   * Compute model sensitivities to small changes in the model parameters
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -11,7 +11,6 @@
 
 % clear
 % close all
-addpath(genpath('../src'));
 
 % example_1_CreateSSITModels  
 % example_4_SolveSSITModels_FSP

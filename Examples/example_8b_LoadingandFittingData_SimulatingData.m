@@ -1,14 +1,13 @@
 %% example_8b_LoadingandFittingData_SimulatingData
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Section 2.4: Loading and fitting data
+%% Section 2.3: Loading and fitting data
 %   * Simulate data for testing
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Preliminaries:
 %clear
 %close all
-% addpath(genpath('../../'));
 
 % example_1_CreateSSITModels
 % example_4_SolveSSITModels_FSP

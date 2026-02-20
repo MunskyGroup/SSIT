@@ -1,0 +1,618 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<META http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      -->
+<title>example_3_SolveSSITModels_SSA</title>
+<meta name="generator" content="MATLAB 25.2">
+<link rel="schema.DC" href="http://purl.org/dc/elements/1.1/">
+<meta name="DC.date" content="2026-02-20">
+<meta name="DC.source" content="example_3_SolveSSITModels_SSA.m">
+<style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; }
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+span.typesection { color:#A0522D }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style>
+</head>
+<body>
+<div class="content">
+<h2>Contents</h2>
+<div>
+<ul>
+<li>
+<a href="#1">SSIT/Examples/example_3_SolveSSITModels_SSA</a>
+</li>
+<li>
+<a href="#2">Section 2.2: Finding and visualizing master equation solutions</a>
+</li>
+<li>
+<a href="#3">Preliminaries</a>
+</li>
+<li>
+<a href="#4">Ex(1): Use Gillepsie's Stochastic Simulation Algorithm (SSA)</a>
+</li>
+<li>
+<a href="#5">Run Gillepsie's Stochastic Simulation Algorithm (SSA) and analyse</a>
+</li>
+<li>
+<a href="#6">trajectories</a>
+</li>
+<li>
+<a href="#7">Model:</a>
+</li>
+<li>
+<a href="#8">Make a video of the SSA trajectories being plotted:</a>
+</li>
+<li>
+<a href="#9">Ex(2): Use Gillepsie's Stochastic Simulation Algorithm (SSA)</a>
+</li>
+<li>
+<a href="#10">STL1 model:</a>
+</li>
+<li>
+<a href="#11">Make a video of the SSA trajectories being plotted:</a>
+</li>
+<li>
+<a href="#12">Ex(3): Use Gillepsie's Stochastic Simulation Algorithm (SSA)</a>
+</li>
+<li>
+<a href="#13">4-state STL1 model:</a>
+</li>
+<li>
+<a href="#14">Make a video of the SSA trajectories being plotted:</a>
+</li>
+<li>
+<a href="#15">Save SSA models &amp; solutions</a>
+</li>
+</ul>
+</div>
+<h2 id="1">SSIT/Examples/example_3_SolveSSITModels_SSA</h2>
+<pre class="codeinput">
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<h2 id="2">Section 2.2: Finding and visualizing master equation solutions</h2>
+<pre class="language-matlab">* Compute Stochastic <span class="string">Simulation</span> <span class="string">Algorithm</span> <span class="string">(SSA)</span> <span class="string">trajectories</span>
+</pre>
+<pre class="codeinput">
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<h2 id="3">Preliminaries</h2>
+<p>Use the models from example_1_CreateSSITModels clear close all</p>
+<pre class="codeinput">
+<span class="comment">% example_1_CreateSSITModels</span>
+
+<span class="comment">% Load the models created in example_1_CreateSSITModels</span>
+<span class="comment">% load('example_1_CreateSSITModels.mat')</span>
+
+<span class="comment">% View model summaries:</span>
+Model.summarizeModel
+STL1.summarizeModel
+STL1_4state.summarizeModel
+
+<span class="comment">% Set the times at which distributions will be computed:</span>
+Model.tSpan = linspace(0,50,101);
+STL1.tSpan = linspace(0,50,101);
+STL1_4state.tSpan = linspace(0,50,101);
+
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<pre class="codeoutput">Species:
+     offGene; IC = 1;  discrete stochastic
+     onGene; IC = 0;  discrete stochastic
+     mRNA; IC = 0;  discrete stochastic
+ 
+Reactions:
+  Reaction 1:
+     s1: 1*offGene --&gt; 1*onGene
+     w1: kon * offGene
+  Reaction 2:
+     s2: 1*onGene --&gt; 1*offGene
+     w2: koff * onGene
+  Reaction 3:
+     s3: NULL --&gt; 1*mRNA
+     w3: kr * onGene
+  Reaction 4:
+     s4: 1*mRNA --&gt; NULL
+     w4: dr * mRNA
+ 
+Model Parameters:
+    {'kon' }    {[0.2000]}
+    {'koff'}    {[0.2000]}
+    {'kr'  }    {[    10]}
+    {'dr'  }    {[     5]}
+
+Species:
+     offGene; IC = 1;  discrete stochastic
+     onGene; IC = 0;  discrete stochastic
+     mRNA; IC = 0;  discrete stochastic
+ 
+Reactions:
+  Reaction 1:
+     s1: 1*offGene --&gt; 1*onGene
+     w1: kon * offGene
+  Reaction 2:
+     s2: 1*onGene --&gt; 1*offGene
+     w2: onGene*koff/(1+Hog1)
+  Reaction 3:
+     s3: NULL --&gt; 1*mRNA
+     w3: kr * onGene
+  Reaction 4:
+     s4: 1*mRNA --&gt; NULL
+     w4: dr * mRNA
+ 
+Input Signals:
+     Hog1(t) = (a0+a1*exp(-r1*t)*(1-exp(-r2*t))*(t&gt;0))
+ 
+Model Parameters:
+    {'kon' }    {[0.2000]}
+    {'koff'}    {[0.2000]}
+    {'kr'  }    {[    10]}
+    {'dr'  }    {[     5]}
+    {'a0'  }    {[     5]}
+    {'a1'  }    {[    10]}
+    {'r1'  }    {[0.0040]}
+    {'r2'  }    {[0.0100]}
+
+Species:
+     g1; IC = 1;  discrete stochastic
+     g2; IC = 0;  discrete stochastic
+     g3; IC = 0;  discrete stochastic
+     g4; IC = 0;  discrete stochastic
+     mRNA; IC = 0;  discrete stochastic
+ 
+Reactions:
+  Reaction 1:
+     s1: 1*g1 --&gt; 1*g2
+     w1: k12*g1
+  Reaction 2:
+     s2: 1*g2 --&gt; 1*g1
+     w2: (max(0,k21o*(1-k21i*Hog1)))*g2
+  Reaction 3:
+     s3: 1*g2 --&gt; 1*g3
+     w3: k23*g2
+  Reaction 4:
+     s4: 1*g3 --&gt; 1*g2
+     w4: k32*g3
+  Reaction 5:
+     s5: 1*g3 --&gt; 1*g4
+     w5: k34*g3
+  Reaction 6:
+     s6: 1*g4 --&gt; 1*g3
+     w6: k43*g4
+  Reaction 7:
+     s7: NULL --&gt; 1*mRNA
+     w7: kr1*g1
+  Reaction 8:
+     s8: NULL --&gt; 1*mRNA
+     w8: kr2*g2
+  Reaction 9:
+     s9: NULL --&gt; 1*mRNA
+     w9: kr3*g3
+  Reaction 10:
+     s10: NULL --&gt; 1*mRNA
+     w10: kr4*g4
+  Reaction 11:
+     s11: 1*mRNA --&gt; NULL
+     w11: dr*mRNA
+ 
+Input Signals:
+     Hog1(t) = A*(((1-(exp(1)^(-r1*(t-t0))))*exp(1)^(-r2*(t-t0)))/(1+((1-(exp(1)^(-r1*(t-t0))))*exp(1)^(-r2*(t-t0)))/M))^n*(t&gt;t0)
+ 
+Model Parameters:
+    {'t0'  }    {[    3.1700]}
+    {'k12' }    {[        78]}
+    {'k21o'}    {[    192000]}
+    {'k21i'}    {[      3200]}
+    {'k23' }    {[    0.4020]}
+    {'k34' }    {[    7.8000]}
+    {'k32' }    {[    1.6200]}
+    {'k43' }    {[    2.2800]}
+    {'dr'  }    {[    0.2940]}
+    {'kr1' }    {[    0.0468]}
+    {'kr2' }    {[    0.7200]}
+    {'kr3' }    {[   59.4000]}
+    {'kr4' }    {[    3.2400]}
+    {'r1'  }    {[    0.0041]}
+    {'r2'  }    {[    0.4260]}
+    {'A'   }    {[9.3000e+09]}
+    {'M'   }    {[6.4000e-04]}
+    {'n'   }    {[    3.1000]}
+
+</pre>
+<h2 id="4">Ex(1): Use Gillepsie's Stochastic Simulation Algorithm (SSA)</h2>
+<p>to solve the time evolution of state space probabilities for the bursting gene example model from example_1_CreateSSITModels</p>
+<pre class="codeinput">
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<h2 id="5">Run Gillepsie's Stochastic Simulation Algorithm (SSA) and analyse</h2>
+<h2 id="6">trajectories</h2>
+<h2 id="7">Model:</h2>
+<p>Create a copy of the bursting gene model for SSA:</p>
+<pre class="codeinput">    Model_SSA = Model;
+
+    <span class="comment">% Set solution scheme to SSA:</span>
+    Model_SSA.solutionScheme = <span class="string">'SSA'</span>;
+
+    <span class="comment">% 'nSimsPerExpt' is an SSA option that defaults to 100, sets the number</span>
+    <span class="comment">% of simulations performed per experiment (set small number for demo):</span>
+    Model_SSA.ssaOptions.nSimsPerExpt=10;
+
+    <span class="comment">% 'verbose' defaults to false, prints completed sim number to screen.</span>
+    Model_SSA.ssaOptions.verbose=true;
+
+    <span class="comment">% A negative initial time is used to allow model to equilibrate</span>
+    <span class="comment">% before starting (burn-in). Large burn-in times cause long run times.</span>
+    Model_SSA.tSpan = [-100,Model_SSA.tSpan];
+
+    <span class="comment">% Set the initial time:</span>
+    Model_SSA.initialTime = Model_SSA.tSpan(1);
+
+    <span class="comment">% Run iterations in parallel with multiple cores, or execute serially:</span>
+    Model_SSA.ssaOptions.useParallel = true;
+
+    <span class="comment">% Run SSA:</span>
+    Model_SSA.Solutions = Model_SSA.solve;
+
+    <span class="comment">% Plot SSA trajectories and means:</span>
+    Model_SSA.plotSSA(<span class="string">'all'</span>, 10, Model_SSA.species, {<span class="string">'linewidth'</span>,4}, <span class="keyword">...</span>
+        Title=<span class="string">"Bursting Gene"</span>, MeanOnly=true, TitleFontSize=32,<span class="keyword">...</span>
+        AxisLabelSize=24, TickLabelSize=24, LegendFontSize=20,<span class="keyword">...</span>
+        LegendLocation=<span class="string">'east'</span>, XLabel=<span class="string">'Time'</span>, YLabel=<span class="string">'Molecule Count'</span>);
+</pre>
+<pre class="codeoutput">1020 SSA Runs Completed
+</pre>
+<img vspace="5" hspace="5" src="example_3_SolveSSITModels_SSA_01.png" alt=""> <img vspace="5" hspace="5" src="example_3_SolveSSITModels_SSA_02.png" alt=""> <h2 id="8">Make a video of the SSA trajectories being plotted:</h2>
+<p>makeSSAvideo(Model_SSAsoln, 'all', 100, Model_SSA.species, ... 'Model_SSA_video')</p>
+<pre class="codeinput">
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<h2 id="9">Ex(2): Use Gillepsie's Stochastic Simulation Algorithm (SSA)</h2>
+<p>to solve the time evolution of state space probabilities for the time-varying STL1 yeast model from example_1_CreateSSITModels</p>
+<pre class="codeinput">
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<h2 id="10">STL1 model:</h2>
+<p>Create a copy of the time-varying STL1 yeast model for SSA:</p>
+<pre class="codeinput">    STL1_SSA = STL1;
+
+    <span class="comment">% Set solution scheme to SSA:</span>
+    STL1_SSA.solutionScheme = <span class="string">'SSA'</span>;
+
+    <span class="comment">% 'nSimsPerExpt' is an SSA option that defaults to 100, sets the number</span>
+    <span class="comment">% of simulations performed per experiment (set small number for demo):</span>
+    STL1_SSA.ssaOptions.nSimsPerExpt=10;
+
+    <span class="comment">% 'verbose' defaults to false, prints completed sim number to screen:</span>
+    STL1_SSA.ssaOptions.verbose=true;
+
+    <span class="comment">% A negative initial time is used to allow model to equilibrate</span>
+    <span class="comment">% before starting (burn-in). Large burn-in times cause long run times.</span>
+    STL1_SSA.tSpan = [-100,STL1_SSA.tSpan];
+
+    <span class="comment">% Set the initial time:</span>
+    STL1_SSA.initialTime = STL1_SSA.tSpan(1);
+
+    <span class="comment">% Run iterations in parallel with multiple cores, or execute serially:</span>
+    STL1_SSA.ssaOptions.useParallel = true;
+
+    <span class="comment">% Run SSA:</span>
+    STL1_SSA.Solutions = STL1_SSA.solve;
+
+    <span class="comment">% Plot SSA trajectories and means:</span>
+    STL1_SSA.plotSSA(<span class="string">'all'</span>, 100, STL1_SSA.species, {<span class="string">'linewidth'</span>,4}, <span class="keyword">...</span>
+        Title=<span class="string">"STL1"</span>, MeanOnly=true, TitleFontSize=32,<span class="keyword">...</span>
+        AxisLabelSize=24, TickLabelSize=24,<span class="keyword">...</span>
+        LegendFontSize=20, LegendLocation=<span class="string">'east'</span>,<span class="keyword">...</span>
+        XLabel=<span class="string">'Time'</span>, YLabel=<span class="string">'Molecule Count'</span>);
+</pre>
+<pre class="codeoutput">1020 SSA Runs Completed
+</pre>
+<img vspace="5" hspace="5" src="example_3_SolveSSITModels_SSA_03.png" alt=""> <img vspace="5" hspace="5" src="example_3_SolveSSITModels_SSA_04.png" alt=""> <h2 id="11">Make a video of the SSA trajectories being plotted:</h2>
+<p>makeSSAvideo(STL1_SSAsoln, 'all', 100, STL1_SSA.species, ... 'STL1_SSA_video')</p>
+<pre class="codeinput">
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<h2 id="12">Ex(3): Use Gillepsie's Stochastic Simulation Algorithm (SSA)</h2>
+<p>to solve the time evolution of state space probabilities for the 4-state time-varying STL1 yeast model from example_1_CreateSSITModels</p>
+<pre class="codeinput">
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<h2 id="13">4-state STL1 model:</h2>
+<p>Create a copy of the time-varying STL1 yeast model for SSA:</p>
+<pre class="codeinput">    STL1_4state_SSA = STL1_4state;
+
+    <span class="comment">% Set solution scheme to SSA:</span>
+    STL1_4state_SSA.solutionScheme = <span class="string">'SSA'</span>;
+
+    <span class="comment">% 'nSimsPerExpt' is an SSA option that defaults to 100, sets the number</span>
+    <span class="comment">% of simulations performed per experiment (set small number for demo):</span>
+    STL1_4state_SSA.ssaOptions.nSimsPerExpt=10;
+
+    <span class="comment">% 'verbose' defaults to false, prints completed sim number to screen.</span>
+    STL1_4state_SSA.ssaOptions.verbose=true;
+
+    <span class="comment">% A negative initial time is used to allow model to equilibrate</span>
+    <span class="comment">% before starting (burn-in). Large burn-in times cause long run times.</span>
+    STL1_4state_SSA.tSpan = [-100,STL1_4state_SSA.tSpan];
+
+    <span class="comment">% Set the initial time:</span>
+    STL1_4state_SSA.initialTime = STL1_4state_SSA.tSpan(1);
+
+    <span class="comment">% Run iterations in parallel with multiple cores, or execute serially:</span>
+    STL1_4state_SSA.ssaOptions.useParallel = true;
+
+    <span class="comment">% Run SSA:</span>
+    STL1_4state_SSA.Solutions = STL1_4state_SSA.solve;
+
+    <span class="comment">% Plot SSA trajectories and means (mRNA):</span>
+    STL1_4state_SSA.plotSSA(<span class="string">'all'</span>, 100, STL1_4state_SSA.species(5),<span class="keyword">...</span>
+        {<span class="string">'linewidth'</span>,4}, Title=<span class="string">"4-state STL1 (mRNA)"</span>, MeanOnly=false,<span class="keyword">...</span>
+        TitleFontSize=26, AxisLabelSize=20, TickLabelSize=20,<span class="keyword">...</span>
+        LegendFontSize=20, LegendLocation=<span class="string">'northeast'</span>, HistTime=20,<span class="keyword">...</span>
+        XLabel=<span class="string">'Time'</span>, YLabel=<span class="string">'Molecule Count'</span>, Colors=[0.23,0.67,0.20]);
+
+    <span class="comment">% Plot SSA trajectories and means (gene states):</span>
+    STL1_4state_SSA.plotSSA(<span class="string">'all'</span>, 100, STL1_4state_SSA.species(1:4),<span class="keyword">...</span>
+        {<span class="string">'linewidth'</span>,4}, Title=<span class="string">"4-state STL1 (gene states)"</span>,<span class="keyword">...</span>
+        MeanOnly=true, TitleFontSize=26, AxisLabelSize=20,<span class="keyword">...</span>
+        TickLabelSize=20, LegendFontSize=20, LegendLocation=<span class="string">'east'</span>,<span class="keyword">...</span>
+        XLabel=<span class="string">'Time'</span>, YLabel=<span class="string">'Molecule Count'</span>);
+</pre>
+<pre class="codeoutput">1020 SSA Runs Completed
+</pre>
+<img vspace="5" hspace="5" src="example_3_SolveSSITModels_SSA_05.png" alt=""> <img vspace="5" hspace="5" src="example_3_SolveSSITModels_SSA_06.png" alt=""> <img vspace="5" hspace="5" src="example_3_SolveSSITModels_SSA_07.png" alt=""> <img vspace="5" hspace="5" src="example_3_SolveSSITModels_SSA_08.png" alt=""> <h2 id="14">Make a video of the SSA trajectories being plotted:</h2>
+<p>makeSSAvideo(STL1_4state_SSAsoln, 'all', 100, ... STL1_4state_SSA.species, 'STL1_SSA_video_4state')</p>
+<h2 id="15">Save SSA models &amp; solutions</h2>
+<pre class="codeinput">saveNames = unique({<span class="string">'Model_SSA'</span>
+    <span class="string">'STL1_SSA'</span>
+    <span class="string">'STL1_4state_SSA'</span>
+    });
+
+save(<span class="string">'example_3_SolveSSITModels_SSA'</span>,saveNames{:})
+</pre>
+<p class="footer">
+<br>
+<a href="https://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2025b</a>
+<br>
+</p>
+</div>
+<!--
+##### SOURCE BEGIN #####
+%% SSIT/Examples/example_3_SolveSSITModels_SSA
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Section 2.2: Finding and visualizing master equation solutions
+%   * Compute Stochastic Simulation Algorithm (SSA) trajectories
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% Preliminaries
+% Use the models from example_1_CreateSSITModels
+% clear
+% close all
+
+% example_1_CreateSSITModels
+
+% Load the models created in example_1_CreateSSITModels
+% load('example_1_CreateSSITModels.mat')
+
+% View model summaries:
+Model.summarizeModel
+STL1.summarizeModel
+STL1_4state.summarizeModel
+
+% Set the times at which distributions will be computed:
+Model.tSpan = linspace(0,50,101);
+STL1.tSpan = linspace(0,50,101);
+STL1_4state.tSpan = linspace(0,50,101);
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Ex(1): Use Gillepsie's Stochastic Simulation Algorithm (SSA) 
+% to solve the time evolution of state space probabilities for   
+% the bursting gene example model from example_1_CreateSSITModels  
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% Run Gillepsie's Stochastic Simulation Algorithm (SSA) and analyse 
+%% trajectories
+%% Model:
+    % Create a copy of the bursting gene model for SSA:
+    Model_SSA = Model;
+
+    % Set solution scheme to SSA:
+    Model_SSA.solutionScheme = 'SSA';
+
+    % 'nSimsPerExpt' is an SSA option that defaults to 100, sets the number
+    % of simulations performed per experiment (set small number for demo):
+    Model_SSA.ssaOptions.nSimsPerExpt=10;
+
+    % 'verbose' defaults to false, prints completed sim number to screen.
+    Model_SSA.ssaOptions.verbose=true;
+    
+    % A negative initial time is used to allow model to equilibrate 
+    % before starting (burn-in). Large burn-in times cause long run times.
+    Model_SSA.tSpan = [-100,Model_SSA.tSpan];
+    
+    % Set the initial time:
+    Model_SSA.initialTime = Model_SSA.tSpan(1); 
+    
+    % Run iterations in parallel with multiple cores, or execute serially:
+    Model_SSA.ssaOptions.useParallel = true;
+    
+    % Run SSA:
+    Model_SSA.Solutions = Model_SSA.solve;
+    
+    % Plot SSA trajectories and means:
+    Model_SSA.plotSSA('all', 10, Model_SSA.species, {'linewidth',4}, ...
+        Title="Bursting Gene", MeanOnly=true, TitleFontSize=32,...
+        AxisLabelSize=24, TickLabelSize=24, LegendFontSize=20,...
+        LegendLocation='east', XLabel='Time', YLabel='Molecule Count');
+
+    %% Make a video of the SSA trajectories being plotted:
+    % makeSSAvideo(Model_SSAsoln, 'all', 100, Model_SSA.species, ...
+    %             'Model_SSA_video')
+        
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Ex(2): Use Gillepsie's Stochastic Simulation Algorithm (SSA) 
+% to solve the time evolution of state space probabilities for the 
+% time-varying STL1 yeast model from example_1_CreateSSITModels  
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% STL1 model:
+    % Create a copy of the time-varying STL1 yeast model for SSA:
+    STL1_SSA = STL1;
+
+    % Set solution scheme to SSA:
+    STL1_SSA.solutionScheme = 'SSA';
+
+    % 'nSimsPerExpt' is an SSA option that defaults to 100, sets the number
+    % of simulations performed per experiment (set small number for demo):
+    STL1_SSA.ssaOptions.nSimsPerExpt=10;
+
+    % 'verbose' defaults to false, prints completed sim number to screen:
+    STL1_SSA.ssaOptions.verbose=true;
+    
+    % A negative initial time is used to allow model to equilibrate 
+    % before starting (burn-in). Large burn-in times cause long run times.
+    STL1_SSA.tSpan = [-100,STL1_SSA.tSpan];
+
+    % Set the initial time:
+    STL1_SSA.initialTime = STL1_SSA.tSpan(1); 
+    
+    % Run iterations in parallel with multiple cores, or execute serially:
+    STL1_SSA.ssaOptions.useParallel = true;
+    
+    % Run SSA:
+    STL1_SSA.Solutions = STL1_SSA.solve;
+            
+    % Plot SSA trajectories and means:
+    STL1_SSA.plotSSA('all', 100, STL1_SSA.species, {'linewidth',4}, ...
+        Title="STL1", MeanOnly=true, TitleFontSize=32,...
+        AxisLabelSize=24, TickLabelSize=24,...
+        LegendFontSize=20, LegendLocation='east',...
+        XLabel='Time', YLabel='Molecule Count');
+
+    %% Make a video of the SSA trajectories being plotted:
+    % makeSSAvideo(STL1_SSAsoln, 'all', 100, STL1_SSA.species, ...
+    %             'STL1_SSA_video')
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Ex(3): Use Gillepsie's Stochastic Simulation Algorithm (SSA) 
+% to solve the time evolution of state space probabilities for the 4-state
+% time-varying STL1 yeast model from example_1_CreateSSITModels  
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% 4-state STL1 model:
+    % Create a copy of the time-varying STL1 yeast model for SSA:
+    STL1_4state_SSA = STL1_4state;
+
+    % Set solution scheme to SSA:
+    STL1_4state_SSA.solutionScheme = 'SSA';
+
+    % 'nSimsPerExpt' is an SSA option that defaults to 100, sets the number
+    % of simulations performed per experiment (set small number for demo):
+    STL1_4state_SSA.ssaOptions.nSimsPerExpt=10;
+
+    % 'verbose' defaults to false, prints completed sim number to screen.
+    STL1_4state_SSA.ssaOptions.verbose=true;
+       
+    % A negative initial time is used to allow model to equilibrate 
+    % before starting (burn-in). Large burn-in times cause long run times.
+    STL1_4state_SSA.tSpan = [-100,STL1_4state_SSA.tSpan];
+
+    % Set the initial time:
+    STL1_4state_SSA.initialTime = STL1_4state_SSA.tSpan(1); 
+    
+    % Run iterations in parallel with multiple cores, or execute serially:
+    STL1_4state_SSA.ssaOptions.useParallel = true;
+    
+    % Run SSA:
+    STL1_4state_SSA.Solutions = STL1_4state_SSA.solve;
+            
+    % Plot SSA trajectories and means (mRNA):
+    STL1_4state_SSA.plotSSA('all', 100, STL1_4state_SSA.species(5),...
+        {'linewidth',4}, Title="4-state STL1 (mRNA)", MeanOnly=false,...
+        TitleFontSize=26, AxisLabelSize=20, TickLabelSize=20,...
+        LegendFontSize=20, LegendLocation='northeast', HistTime=20,...
+        XLabel='Time', YLabel='Molecule Count', Colors=[0.23,0.67,0.20]);  
+
+    % Plot SSA trajectories and means (gene states):
+    STL1_4state_SSA.plotSSA('all', 100, STL1_4state_SSA.species(1:4),...
+        {'linewidth',4}, Title="4-state STL1 (gene states)",...
+        MeanOnly=true, TitleFontSize=26, AxisLabelSize=20,...
+        TickLabelSize=20, LegendFontSize=20, LegendLocation='east',...
+        XLabel='Time', YLabel='Molecule Count'); 
+
+    %% Make a video of the SSA trajectories being plotted:
+    % makeSSAvideo(STL1_4state_SSAsoln, 'all', 100, ...
+    %              STL1_4state_SSA.species, 'STL1_SSA_video_4state')
+
+%% Save SSA models & solutions
+saveNames = unique({'Model_SSA'
+    'STL1_SSA'
+    'STL1_4state_SSA'
+    });
+    
+save('example_3_SolveSSITModels_SSA',saveNames{:})
+##### SOURCE END #####
+-->
+</body>
+</html>

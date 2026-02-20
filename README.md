@@ -48,28 +48,33 @@ Functionality includes:
 
 # Dependencies
 For all basic functionalities:
-- MATLAB R2023a
-  - Note that most, but not all, functionalities are also working in R2023b; we therefore encourage using R2023a for the time being.
+- MATLAB R2023a or later
 - Symbolic Computing Toolbox.
 - Image Processing Toolbox
 - Global Optimization Toolbox (for model fitting only)
 - Parallel Computing Toolbox (optional). 
 - SimBiology Toolbox (for loading/saving SBML models only)
 
-# Installation
-Clone this package to a local folder on your computer. Then, navigate to this new folder in matlab and run the installation script.
+# Installation and Testing
+Clone this package to a local folder on your computer. Then, navigate to this new folder in matlab and run the installation script from the MATLAB command window.
 
->> install    % Run script to set paths and check availability of SSIT codes.
+```matlab
+install    % Run script to set paths and check availability of SSIT codes.
+```
 
->> install(1) % Also run test scripts to check functionality of critical SSIT functions.   
+```matlab
+install(true) % Also run test scripts to check functionality of critical SSIT functions.
+```  
 
-# Testing
-To test your installation, navigate to the folder SSIT/tests and run the following test routines.
-- PoissonTest % Tests various solution schemes, data generation/loading and model parameterization for a 1-species model
-- Poisson2DTest % Tests various solutions for a 2-species model
-- PoissonTVTest % Tests various solutions for a 1-species Time-varying model
+
+## Testing
+The folder SSIT/tests contains the following test routines.
+- PoissonTest % Tests various solution schemes, data generation/loading and model parameterization against exact solutions for a 1-species model
+- Poisson2DTest % Tests various solutions against exact results for a 2-species model
+- PoissonTVTest % Tests various solutions against exact solutions for a 1-species Time-varying model
 - multiModelTests % Tests various solutions for a combinations of multiple models with different data sets.
 - modelReductionTests % Tests various model reduction schemes for more efficient solutions of the Chemical Master Equation
+- testGui % Tests button functionality for the SSIT GUI.
 - miscelaneousTests % Tests other aspects, including GUI functionality, loading/saving to SBME and SimBiology
 
 # Getting Started
@@ -78,66 +83,89 @@ The SSIT provides two basic interaction options: (1) command line tools and (2) 
 ## GUI Version  
 A GUI version of the SSIT has much of the functionality, and is a great way to familiarize yourself with the approach.  However, for intensive research tasks, we strongly recommend learning to use the more flexible and efficient command line tools. To get started with the GUI, compile and launch to tool kit with the following commands:
 
->> A = SSITGUI;
+```matlab
+A = SSITGUI;
+```
 
 You should then see the model loading and building page of the graphical interface, and you are off to the races...
 ![SSIT](https://github.com/MunskyGroup/SSIT/blob/main/src/gui/appsrc/metadata/appScreenshot.png)
 
 ## Command Line Version
 
-To get started with the Command line Tools, navigate to the directory "Examples" and open one of the tutorial scripts "example_XXX.m".  We recommend getting started using the following examples: 
+To get started with the Command line Tools, navigate to the directory "Examples" and open one of the tutorial scripts "example_XXX.m". Click on the links below to see html versions of the expected results.
 
-[Examples/example_SSITBasics.m](https://htmlpreview.github.io/?https://github.com/MunskyGroup/SSIT/blob/main/Examples/html/example_SSITBasics.html) This example will get you started on creating and solving SSIT models.
+### Numbered examples (`Examples/example_<N>*.m`)
 
-[Examples/example_EscapeTimes.m](https://htmlpreview.github.io/?https://github.com/MunskyGroup/SSIT/blob/main/Examples/html/example_EscapeTimes.html) This example will get you started on using the SSIT to calculate escape time distributions.
+- [Examples/example_1_CreateSSITModels.m](Examples/example_1_CreateSSITModels.m): Create, save, and load SSIT models. ([html of expected results](https://htmlpreview.github.io/?https://github.com/MunskyGroup/SSIT/blob/main/Examples/html/example_1_CreateSSITModels.html))
+- [Examples/example_2_SolveSSITModels_ODE.m](Examples/example_2_SolveSSITModels_ODE.m): Solve and visualize models using ODE-based approaches. ([html of expected results](https://htmlpreview.github.io/?https://github.com/MunskyGroup/SSIT/blob/main/Examples/html/example_2_SolveSSITModels_ODE.html))
+- [Examples/example_3_SolveSSITModels_SSA.m](Examples/example_3_SolveSSITModels_SSA.m): Solve and visualize models using SSA simulations. ([html of expected results](https://htmlpreview.github.io/?https://github.com/MunskyGroup/SSIT/blob/main/Examples/html/example_3_SolveSSITModels_SSA.html))
+- [Examples/example_4_SolveSSITModels_FSP.m](Examples/example_4_SolveSSITModels_FSP.m): Solve and visualize models using the FSP method. ([html of expected results](https://htmlpreview.github.io/?https://github.com/MunskyGroup/SSIT/blob/main/Examples/html/example_4_SolveSSITModels_FSP.html))
+- [Examples/example_5_SolveSSITModels_EscapeTimes.m](Examples/example_5_SolveSSITModels_EscapeTimes.m): Compute escape-time distributions from stochastic models. ([html of expected results](https://htmlpreview.github.io/?https://github.com/MunskyGroup/SSIT/blob/main/Examples/html/example_5_SolveSSITModels_EscapeTimes.html))
+- [Examples/example_6_SensitivityAnalysis.m](Examples/example_6_SensitivityAnalysis.m): Run parameter sensitivity analysis for CME/FSP solutions. ([html of expected results](https://htmlpreview.github.io/?https://github.com/MunskyGroup/SSIT/blob/main/Examples/html/example_6_SensitivityAnalysis.html))
+- [Examples/example_7_FIM.m](Examples/example_7_FIM.m): Compute the Fisher Information Matrix (FIM). ([html of expected results](https://htmlpreview.github.io/?https://github.com/MunskyGroup/SSIT/blob/main/Examples/html/example_7_FIM.html))
+- [Examples/example_7b_FIM_ExperimentDesign.m](Examples/example_7b_FIM_ExperimentDesign.m): Use FIM-based optimality criteria for experiment design.
+- [Examples/example_8_LoadingandFittingData_DataLoading.m](Examples/example_8_LoadingandFittingData_DataLoading.m): Load Hog1/STL1 data sets for inference workflows.
+- [Examples/example_8b_LoadingandFittingData_SimulatingData.m](Examples/example_8b_LoadingandFittingData_SimulatingData.m): Simulate synthetic data for loading/fitting workflows.
+- [Examples/example_9_LoadingandFittingData_MLE.m](Examples/example_9_LoadingandFittingData_MLE.m): Fit model parameters using maximum likelihood estimation.
+- [Examples/example_10_LoadingandFittingData_MH.m](Examples/example_10_LoadingandFittingData_MH.m): Fit time-varying data using Metropolis-Hastings sampling.
+- [Examples/example_10b_LoadingandFittingData_MH_with_FIM.m](Examples/example_10b_LoadingandFittingData_MH_with_FIM.m): Combine Metropolis-Hastings fitting with FIM analysis.
+- [Examples/example_11_LoadingandFittingData_CrossValidation.m](Examples/example_11_LoadingandFittingData_CrossValidation.m): Perform cross-validation for model fitting performance.
+- [Examples/example_12_ComplexModels_ModelReduction.m](Examples/example_12_ComplexModels_ModelReduction.m): Apply model-reduction methods for complex CME models.
+- [Examples/example_13_ComplexModels_Hybrid.m](Examples/example_13_ComplexModels_Hybrid.m): Build and solve hybrid deterministic-stochastic models.
+- [Examples/example_14_ComplexModels_PDO.m](Examples/example_14_ComplexModels_PDO.m): Include probabilistic distortion operators (PDOs) in model fitting.
+- [Examples/example_15_ComplexModels_MultiModel.m](Examples/example_15_ComplexModels_MultiModel.m): Fit multiple related models/data sets with shared parameters.
+- [Examples/example_16_PipelinesAndClusterComputing.m](Examples/example_16_PipelinesAndClusterComputing.m): Run SSIT pipelines for batch and cluster computing.
 
-[Examples/example_FIMCalculation.m](https://htmlpreview.github.io/?https://github.com/MunskyGroup/SSIT/blob/main/Examples/html/example_FIMCalculation.html) This example demonstrates the use of the SSIT to calculate Sensitivity of the CME solution and the Fisher Information Matrix.
+### scRNAseq examples (`Examples/example_scRNAseq_<N>*.m`)
 
-[Examples/example_FittingAndDesigningExperiments.m](https://htmlpreview.github.io/?https://github.com/MunskyGroup/SSIT/blob/main/Examples/html/example_FittingAndDesigningExperiments.html) This example demonstrates the use of the SSIT and Fisher Information Matrix to design optimally informative experiments.
+- [Examples/example_scRNAseq_1_BatchFitManyGenes.m](Examples/example_scRNAseq_1_BatchFitManyGenes.m): Define a template scRNA-seq model and generate PDO-aware data mapping.
+- [Examples/example_scRNAseq_2_BatchFitManyGenes.m](Examples/example_scRNAseq_2_BatchFitManyGenes.m): Configure and run a pipeline to batch-fit many genes.
+- [Examples/example_scRNAseq_3_BatchFitManyGenes.m](Examples/example_scRNAseq_3_BatchFitManyGenes.m): Collect and plot scRNA-seq batch-fitting results.
 
-[Examples/example_HybridModel.m](https://htmlpreview.github.io/?https://github.com/MunskyGroup/SSIT/blob/main/Examples/html/example_HybridModel.html) This example demonstrates the use of the SSIT for creating hybrid models where some (upstream) species evolve determistically while other (downstream) species are stochastic.
+### SI examples (`Examples/example_SI*.m`)
 
-[Examples/example_ModelReductionTool.m](https://htmlpreview.github.io/?https://github.com/MunskyGroup/SSIT/blob/main/Examples/html/example_ModelReductionTool.html) This example  demonstrates the use of the SSIT for applying linear transformations to reduce the size of the CME solution scheme (e.g., eigvenvalue decomposition, principle orthoginal decomposition, quasi-steady state assumptions, or coarse mesh solutions).
-
-[Examples/example_MultiModelTool.m](https://htmlpreview.github.io/?https://github.com/MunskyGroup/SSIT/blob/main/Examples/html/example_MultiModelTool.html) This example demonstrates the use of the SSIT for fitting multiple different models with shared or related pameters, but fit to different data sets.
+- [Examples/example_SI_ABC.m](Examples/example_SI_ABC.m): Demonstrate approximate Bayesian computation (ABC) workflows.
+- [Examples/example_SI_Epidemics.m](Examples/example_SI_Epidemics.m): Model epidemic data with SI/SIS/SIR/SEIS-style models.
+- [Examples/example_SI_Moments.m](Examples/example_SI_Moments.m): Solve and visualize models using moment-based analyses.
+- [Examples/example_SI_SBML.m](Examples/example_SI_SBML.m): Demonstrate importing and working with SBML-formatted models.
 
 Or you can start creating and solving models as follows.
 
 Example for generating an FSI model and fitting it to smFISH data for Dusp1 activation following glucocorticoid stimulation:
 
-Define SSIT Model
+**Define SSIT Model**
 
->> Model = SSIT;
+```matlab
+install;
+Model = SSIT;
+Model.species = {'OnGene';'rna'};
+Model.initialCondition = [0; 0];
+Model.propensityFunctions = {'kon * IGR * (2-OnGene)'; 'koff * OnGene'; ...
+    'kr * OnGene'; 'gr * rna'};
+Model.stoichiometry = [1,-1,0,0; 0,0,1,-1];
+Model.inputExpressions = {'IGR','a0 + a1 * exp(-r1 * t) * ...
+    (1-exp(-r2 * t)) * (t>0)'};
+Model.parameters = ({'koff',0.14; 'kon',0.14; 'kr',25; 'gr',0.01; ...
+    'a0',0.006; 'a1',0.4; 'r1',0.04; 'r2',0.1});
+Model.fspOptions.initApproxSS = true;  % Model is assumed to start at steady state at t=0;
+```
 
->> Model.species = {'OnGene';'rna'};
+**Load and Fit smFISH Data** (must be run in main SSIT directory)
 
->> Model.initialCondition = [0; 0];
+```matlab
+Model = Model.loadData('../ExampleData/DUSP1_Dex_100nM_Rep1_Rep2.csv', ...
+    {'rna','RNA_nuc'});
+Model.tSpan = unique([Model.initialTime,Model.dataSet.times]);
+fitOptions = optimset('Display','iter','MaxIter',100);
+[pars,likelihood] = Model.maximizeLikelihood([],fitOptions);
+```
 
->> Model.propensityFunctions = {'kon * IGR * (2-OnGene)'; 'koff * OnGene'; 'kr * OnGene'; 'gr * rna'};
+**Update Model and Make Plots of Results**
 
->> Model.stoichiometry = [1,-1,0,0; 0,0,1,-1];
-
->> Model.inputExpressions = {'IGR','a0 + a1 * exp(-r1 * t) * (1-exp(-r2 * t)) * (t>0)'};
-
->> Model.parameters = ({'koff',0.14; 'kon',0.14; 'kr',25; 'gr',0.01; 'a0',0.006; 'a1',0.4; 'r1',0.04; 'r2',0.1});
-    
->> Model.fspOptions.initApproxSS = true;  % Model is assumed to start at steady state at t=0;
-
-Load and Fit smFISH Data
-    
->> Model = Model.loadData('../ExampleData/DUSP1_Dex_100nM_Rep1_Rep2.csv',{'rna','RNA_nuc'});
-    
->> Model.tSpan = unique([Model.initialTime,Model.dataSet.times]);
-
->> fitOptions = optimset('Display','iter','MaxIter',100);
-
->> [pars,likelihood] = Model.maximizeLikelihood([],fitOptions);
-
-Update Model and Make Plots of Results
-
->> Model.parameters(:,2) = num2cell(pars);
-
->> Model.makeFitPlot
+```matlab
+Model.parameters(:,2) = num2cell(pars);
+Model.makeFitPlot;
+```
 
 You should arrive at a fit of the model to the experimentally measured Dusp1 mRNA distributions looking something like this:
 

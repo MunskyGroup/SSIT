@@ -1,0 +1,583 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<META http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      -->
+<title>example_4_SolveSSITModels_FSP</title>
+<meta name="generator" content="MATLAB 25.2">
+<link rel="schema.DC" href="http://purl.org/dc/elements/1.1/">
+<meta name="DC.date" content="2026-02-20">
+<meta name="DC.source" content="example_4_SolveSSITModels_FSP.m">
+<style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; }
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+span.typesection { color:#A0522D }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style>
+</head>
+<body>
+<div class="content">
+<h2>Contents</h2>
+<div>
+<ul>
+<li>
+<a href="#1">example_4_SolveSSITModels_FSP</a>
+</li>
+<li>
+<a href="#2">Section 2.2: Finding and visualizing master equation solutions</a>
+</li>
+<li>
+<a href="#3">Preliminaries</a>
+</li>
+<li>
+<a href="#4">Ex(1): Use the stochastic Finite State Projection (FSP)</a>
+</li>
+<li>
+<a href="#5">Model:</a>
+</li>
+<li>
+<a href="#6">Ex(2): Use the stochastic Finite State Projection (FSP)</a>
+</li>
+<li>
+<a href="#7">STL1:</a>
+</li>
+<li>
+<a href="#8">Ex(3): Use the stochastic Finite State Projection (FSP)</a>
+</li>
+<li>
+<a href="#9">STL1 (4-state):</a>
+</li>
+<li>
+<a href="#10">Plots for FSP solutions:</a>
+</li>
+<li>
+<a href="#11">Save FSP models &amp; solutions</a>
+</li>
+</ul>
+</div>
+<h2 id="1">example_4_SolveSSITModels_FSP</h2>
+<pre class="codeinput">
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<h2 id="2">Section 2.2: Finding and visualizing master equation solutions</h2>
+<pre class="language-matlab">* Compute Finite <span class="string">State</span> <span class="string">Projection</span> <span class="string">(FSP)</span> <span class="string">solutions</span>
+</pre>
+<pre class="codeinput">
+<span class="comment">%%%%%%%%%%%%%%%%%%d%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<h2 id="3">Preliminaries</h2>
+<p>Use the models from example_1_CreateSSITModels clear close all</p>
+<pre class="codeinput">
+<span class="comment">% example_1_CreateSSITModels</span>
+
+<span class="comment">% Load the models created in example_1_CreateSSITModels</span>
+<span class="comment">% load('example_1_CreateSSITModels.mat')</span>
+
+<span class="comment">% View model summaries:</span>
+Model.summarizeModel
+STL1.summarizeModel
+STL1_4state.summarizeModel
+
+<span class="comment">% Set the times at which distributions will be computed:</span>
+Model.tSpan = linspace(0,50,101);
+STL1.tSpan = linspace(0,50,101);
+STL1_4state.tSpan = linspace(0,50,101);
+
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<pre class="codeoutput">Species:
+     offGene; IC = 1;  discrete stochastic
+     onGene; IC = 0;  discrete stochastic
+     mRNA; IC = 0;  discrete stochastic
+ 
+Reactions:
+  Reaction 1:
+     s1: 1*offGene --&gt; 1*onGene
+     w1: kon * offGene
+  Reaction 2:
+     s2: 1*onGene --&gt; 1*offGene
+     w2: koff * onGene
+  Reaction 3:
+     s3: NULL --&gt; 1*mRNA
+     w3: kr * onGene
+  Reaction 4:
+     s4: 1*mRNA --&gt; NULL
+     w4: dr * mRNA
+ 
+Model Parameters:
+    {'kon' }    {[0.2000]}
+    {'koff'}    {[0.2000]}
+    {'kr'  }    {[    10]}
+    {'dr'  }    {[     5]}
+
+Species:
+     offGene; IC = 1;  discrete stochastic
+     onGene; IC = 0;  discrete stochastic
+     mRNA; IC = 0;  discrete stochastic
+ 
+Reactions:
+  Reaction 1:
+     s1: 1*offGene --&gt; 1*onGene
+     w1: kon * offGene
+  Reaction 2:
+     s2: 1*onGene --&gt; 1*offGene
+     w2: onGene*koff/(1+Hog1)
+  Reaction 3:
+     s3: NULL --&gt; 1*mRNA
+     w3: kr * onGene
+  Reaction 4:
+     s4: 1*mRNA --&gt; NULL
+     w4: dr * mRNA
+ 
+Input Signals:
+     Hog1(t) = (a0+a1*exp(-r1*t)*(1-exp(-r2*t))*(t&gt;0))
+ 
+Model Parameters:
+    {'kon' }    {[0.2000]}
+    {'koff'}    {[0.2000]}
+    {'kr'  }    {[    10]}
+    {'dr'  }    {[     5]}
+    {'a0'  }    {[     5]}
+    {'a1'  }    {[    10]}
+    {'r1'  }    {[0.0040]}
+    {'r2'  }    {[0.0100]}
+
+Species:
+     g1; IC = 1;  discrete stochastic
+     g2; IC = 0;  discrete stochastic
+     g3; IC = 0;  discrete stochastic
+     g4; IC = 0;  discrete stochastic
+     mRNA; IC = 0;  discrete stochastic
+ 
+Reactions:
+  Reaction 1:
+     s1: 1*g1 --&gt; 1*g2
+     w1: k12*g1
+  Reaction 2:
+     s2: 1*g2 --&gt; 1*g1
+     w2: (max(0,k21o*(1-k21i*Hog1)))*g2
+  Reaction 3:
+     s3: 1*g2 --&gt; 1*g3
+     w3: k23*g2
+  Reaction 4:
+     s4: 1*g3 --&gt; 1*g2
+     w4: k32*g3
+  Reaction 5:
+     s5: 1*g3 --&gt; 1*g4
+     w5: k34*g3
+  Reaction 6:
+     s6: 1*g4 --&gt; 1*g3
+     w6: k43*g4
+  Reaction 7:
+     s7: NULL --&gt; 1*mRNA
+     w7: kr1*g1
+  Reaction 8:
+     s8: NULL --&gt; 1*mRNA
+     w8: kr2*g2
+  Reaction 9:
+     s9: NULL --&gt; 1*mRNA
+     w9: kr3*g3
+  Reaction 10:
+     s10: NULL --&gt; 1*mRNA
+     w10: kr4*g4
+  Reaction 11:
+     s11: 1*mRNA --&gt; NULL
+     w11: dr*mRNA
+ 
+Input Signals:
+     Hog1(t) = A*(((1-(exp(1)^(-r1*(t-t0))))*exp(1)^(-r2*(t-t0)))/(1+((1-(exp(1)^(-r1*(t-t0))))*exp(1)^(-r2*(t-t0)))/M))^n*(t&gt;t0)
+ 
+Model Parameters:
+    {'t0'  }    {[    3.1700]}
+    {'k12' }    {[        78]}
+    {'k21o'}    {[    192000]}
+    {'k21i'}    {[      3200]}
+    {'k23' }    {[    0.4020]}
+    {'k34' }    {[    7.8000]}
+    {'k32' }    {[    1.6200]}
+    {'k43' }    {[    2.2800]}
+    {'dr'  }    {[    0.2940]}
+    {'kr1' }    {[    0.0468]}
+    {'kr2' }    {[    0.7200]}
+    {'kr3' }    {[   59.4000]}
+    {'kr4' }    {[    3.2400]}
+    {'r1'  }    {[    0.0041]}
+    {'r2'  }    {[    0.4260]}
+    {'A'   }    {[9.3000e+09]}
+    {'M'   }    {[6.4000e-04]}
+    {'n'   }    {[    3.1000]}
+
+</pre>
+<h2 id="4">Ex(1): Use the stochastic Finite State Projection (FSP)</h2>
+<p>approximation of the Chemical Master Equation (CME) to solve the time evolution of state space probabilities for the bursting gene example model from example_1_CreateSSITModels</p>
+<pre class="codeinput">
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<h2 id="5">Model:</h2>
+<p>Create a copy of the bursting gene model for FSP:</p>
+<pre class="codeinput">    Model_FSP = Model;
+
+    <span class="comment">% Ensure the solution scheme is set to FSP (default):</span>
+    Model_FSP.solutionScheme = <span class="string">'FSP'</span>;
+
+    <span class="comment">% Set FSP 1-norm error tolerance:</span>
+    Model_FSP.fspOptions.fspTol = 1e-4;
+
+    <span class="comment">% Guess initial bounds on FSP StateSpace:</span>
+    Model_FSP.fspOptions.bounds = [0,0,0,1,1,200];
+
+    <span class="comment">% Have FSP approximate the steady state for the initial distribution</span>
+    <span class="comment">% by finding the eigenvector corresponding to the smallest magnitude</span>
+    <span class="comment">% eigenvalue (i.e., zero, for generator matrix A, d/dtP(t)=AP(t)):</span>
+    Model_FSP.fspOptions.initApproxSS = false;
+
+    <span class="comment">% This function compiles and stores the given reaction propensities</span>
+    <span class="comment">% into symbolic expression functions that use sparse matrices to</span>
+    <span class="comment">% operate on the system based on the current state. The functions are</span>
+    <span class="comment">% stored with the given prefix, in this case, 'Model_FSP':</span>
+    Model_FSP = Model_FSP.formPropensitiesGeneral(<span class="string">'Model_FSP'</span>);
+
+    <span class="comment">% Solve with FSP:</span>
+    [~,~,Model_FSP] = Model_FSP.solve;
+
+    <span class="comment">% Plot marginal distributions at t=20:</span>
+    Model_FSP.plotFSP(Model_FSP.Solutions,Model_FSP.species,<span class="string">'meansAndDevs'</span>)
+
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<img vspace="5" hspace="5" src="example_4_SolveSSITModels_FSP_01.png" alt=""> <h2 id="6">Ex(2): Use the stochastic Finite State Projection (FSP)</h2>
+<p>approximation of the Chemical Master Equation (CME) to solve the time evolution of state space probabilities for the time-varying STL1 yeast model from example_1_CreateSSITModels</p>
+<pre class="codeinput">
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<h2 id="7">STL1:</h2>
+<p>Create a copy of the time-varying STL1 yeast model for FSP:</p>
+<pre class="codeinput">    STL1_FSP = STL1;
+
+    <span class="comment">% Ensure the solution scheme is set to FSP (default):</span>
+    STL1_FSP.solutionScheme = <span class="string">'FSP'</span>;
+
+    <span class="comment">% Set FSP 1-norm error tolerance:</span>
+    STL1_FSP.fspOptions.fspTol = 1e-4;
+
+    <span class="comment">% Guess initial bounds on FSP StateSpace:</span>
+    STL1_FSP.fspOptions.bounds = [0,0,0,1,1,200];
+
+    <span class="comment">% Have FSP approximate the steady state for the initial distribution</span>
+    <span class="comment">% by finding the eigenvector corresponding to the smallest magnitude</span>
+    <span class="comment">% eigenvalue (i.e., zero, for generator matrix A, d/dtP(t)=AP(t)):</span>
+    STL1_FSP.fspOptions.initApproxSS = false;
+
+    <span class="comment">% This function compiles and stores the given reaction propensities</span>
+    <span class="comment">% into symbolic expression functions that use sparse matrices to</span>
+    <span class="comment">% operate on the system based on the current state. The functions are</span>
+    <span class="comment">% stored with the given prefix, in this case, 'STL1_FSP':</span>
+    STL1_FSP = STL1_FSP.formPropensitiesGeneral(<span class="string">'STL1_FSP'</span>);
+
+    <span class="comment">% Solve with FSP:</span>
+    [~,~,STL1_FSP] = STL1_FSP.solve;
+
+    <span class="comment">% Plot marginal distributions at t=20:</span>
+    STL1_FSP.plotFSP(STL1_FSP.Solutions, STL1_FSP.species,<span class="string">'meansAndDevs'</span>)
+
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<img vspace="5" hspace="5" src="example_4_SolveSSITModels_FSP_02.png" alt=""> <h2 id="8">Ex(3): Use the stochastic Finite State Projection (FSP)</h2>
+<p>approximation of the Chemical Master Equation (CME) to solve the time evolution of state space probabilities for the 4-state time-varying STL1 yeast model from example_1_CreateSSITModels</p>
+<pre class="codeinput">
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<h2 id="9">STL1 (4-state):</h2>
+<p>Create a copy of the time-varying STL1 yeast model for FSP:</p>
+<pre class="codeinput">    STL1_4state_FSP = STL1_4state;
+
+    <span class="comment">% Ensure the solution scheme is set to FSP (default):</span>
+    STL1_4state_FSP.solutionScheme = <span class="string">'FSP'</span>;
+
+    <span class="comment">% Set FSP 1-norm error tolerance:</span>
+    STL1_4state_FSP.fspOptions.fspTol = 1e-4;
+
+    <span class="comment">% Guess initial bounds on FSP StateSpace:</span>
+    STL1_4state_FSP.fspOptions.bounds = [1,1,1,1,200];
+
+    <span class="comment">% Have FSP approximate the steady state for the initial distribution</span>
+    <span class="comment">% by finding the eigenvector corresponding to the smallest magnitude</span>
+    <span class="comment">% eigenvalue (i.e., zero, for generator matrix A, d/dtP(t)=AP(t)):</span>
+    STL1_4state_FSP.fspOptions.initApproxSS = true;
+
+    <span class="comment">% This function compiles and stores the given reaction propensities</span>
+    <span class="comment">% into symbolic expression functions that use sparse matrices to</span>
+    <span class="comment">% operate on the system based on the current state. The functions are</span>
+    <span class="comment">% stored with the given prefix, in this case, 'STL1_4state_FSP':</span>
+    STL1_4state_FSP = <span class="keyword">...</span>
+        STL1_4state_FSP.formPropensitiesGeneral(<span class="string">'STL1_4state_FSP'</span>);
+
+    <span class="comment">% Solve Model:</span>
+    [~,~,STL1_4state_FSP] = STL1_4state_FSP.solve;
+</pre>
+<h2 id="10">Plots for FSP solutions:</h2>
+<p>Means only: STL1_4state_FSP.plotFSP(STL1_4state_FSPsoln,... STL1_4state_FSP.species, 'means')</p>
+<pre class="codeinput">    <span class="comment">% Means and standard deviations:</span>
+    STL1_4state_FSP.plotFSP(STL1_4state_FSP.Solutions,<span class="keyword">...</span>
+        STL1_4state_FSP.species(5),<span class="string">'meansAndDevs'</span>,[],[],{<span class="string">'linewidth'</span>,4},<span class="keyword">...</span>
+        Title=<span class="string">'4-state STL1 (mRNA)'</span>, TitleFontSize=26,<span class="keyword">...</span>
+        Colors=[0.23,0.67,0.2], AxisLabelSize=20, TickLabelSize=20,<span class="keyword">...</span>
+        XLabel=<span class="string">'Time'</span>, YLabel=<span class="string">'Molecule Count'</span>,<span class="keyword">...</span>
+        LegendFontSize=20, LegendLocation=<span class="string">'northeast'</span>);
+
+    <span class="comment">% Marginal distributions:</span>
+    STL1_4state_FSP.plotFSP(STL1_4state_FSP.Solutions,<span class="keyword">...</span>
+        STL1_4state_FSP.species(5), <span class="string">'marginals'</span>, [1,12,24,50,101],<span class="keyword">...</span>
+        [], {<span class="string">'linewidth'</span>,3}, Colors=[0.23,0.67,0.2], XLim=[0,100])
+
+    <span class="comment">% Joint distributions (warning: can be slow for many parameters!):</span>
+    <span class="comment">% STL1_4state_FSP.plotFSP(STL1_4state_FSPsoln,...</span>
+    <span class="comment">%     STL1_4state_FSP.species(5), 'joints')</span>
+</pre>
+<img vspace="5" hspace="5" src="example_4_SolveSSITModels_FSP_03.png" alt=""> <img vspace="5" hspace="5" src="example_4_SolveSSITModels_FSP_04.png" alt=""> <h2 id="11">Save FSP models &amp; solutions</h2>
+<pre class="codeinput">saveNames = unique({
+    <span class="string">'Model_FSP'</span>
+    <span class="string">'STL1_FSP'</span>
+    <span class="string">'STL1_4state_FSP'</span>
+    });
+
+save(<span class="string">'example_4_SolveSSITModels_FSP'</span>,saveNames{:})
+</pre>
+<p class="footer">
+<br>
+<a href="https://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2025b</a>
+<br>
+</p>
+</div>
+<!--
+##### SOURCE BEGIN #####
+%% example_4_SolveSSITModels_FSP
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Section 2.2: Finding and visualizing master equation solutions
+%   * Compute Finite State Projection (FSP) solutions
+%%%%%%%%%%%%%%%%%%d%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% Preliminaries
+% Use the models from example_1_CreateSSITModels
+% clear
+% close all
+
+% example_1_CreateSSITModels
+
+% Load the models created in example_1_CreateSSITModels
+% load('example_1_CreateSSITModels.mat')
+
+% View model summaries:
+Model.summarizeModel
+STL1.summarizeModel
+STL1_4state.summarizeModel
+
+% Set the times at which distributions will be computed:
+Model.tSpan = linspace(0,50,101);
+STL1.tSpan = linspace(0,50,101);
+STL1_4state.tSpan = linspace(0,50,101);
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Ex(1): Use the stochastic Finite State Projection (FSP) 
+% approximation of the Chemical Master Equation (CME) to solve the time 
+% evolution of state space probabilities for the bursting gene example 
+% model from example_1_CreateSSITModels 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% Model:
+    % Create a copy of the bursting gene model for FSP:
+    Model_FSP = Model;
+    
+    % Ensure the solution scheme is set to FSP (default):
+    Model_FSP.solutionScheme = 'FSP';  
+    
+    % Set FSP 1-norm error tolerance:
+    Model_FSP.fspOptions.fspTol = 1e-4; 
+    
+    % Guess initial bounds on FSP StateSpace:
+    Model_FSP.fspOptions.bounds = [0,0,0,1,1,200];
+    
+    % Have FSP approximate the steady state for the initial distribution 
+    % by finding the eigenvector corresponding to the smallest magnitude 
+    % eigenvalue (i.e., zero, for generator matrix A, d/dtP(t)=AP(t)):
+    Model_FSP.fspOptions.initApproxSS = false; 
+
+    % This function compiles and stores the given reaction propensities  
+    % into symbolic expression functions that use sparse matrices to  
+    % operate on the system based on the current state. The functions are 
+    % stored with the given prefix, in this case, 'Model_FSP':
+    Model_FSP = Model_FSP.formPropensitiesGeneral('Model_FSP');
+    
+    % Solve with FSP:
+    [~,~,Model_FSP] = Model_FSP.solve; 
+    
+    % Plot marginal distributions at t=20:  
+    Model_FSP.plotFSP(Model_FSP.Solutions,Model_FSP.species,'meansAndDevs')
+                       
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Ex(2): Use the stochastic Finite State Projection (FSP) 
+% approximation of the Chemical Master Equation (CME) to solve the time 
+% evolution of state space probabilities for the time-varying STL1 yeast 
+% model from example_1_CreateSSITModels 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% STL1:
+    % Create a copy of the time-varying STL1 yeast model for FSP:
+    STL1_FSP = STL1;
+    
+    % Ensure the solution scheme is set to FSP (default):
+    STL1_FSP.solutionScheme = 'FSP';  
+
+    % Set FSP 1-norm error tolerance:
+    STL1_FSP.fspOptions.fspTol = 1e-4; 
+    
+    % Guess initial bounds on FSP StateSpace:
+    STL1_FSP.fspOptions.bounds = [0,0,0,1,1,200];
+    
+    % Have FSP approximate the steady state for the initial distribution 
+    % by finding the eigenvector corresponding to the smallest magnitude 
+    % eigenvalue (i.e., zero, for generator matrix A, d/dtP(t)=AP(t)):
+    STL1_FSP.fspOptions.initApproxSS = false; 
+
+    % This function compiles and stores the given reaction propensities  
+    % into symbolic expression functions that use sparse matrices to  
+    % operate on the system based on the current state. The functions are 
+    % stored with the given prefix, in this case, 'STL1_FSP':
+    STL1_FSP = STL1_FSP.formPropensitiesGeneral('STL1_FSP');
+    
+    % Solve with FSP:
+    [~,~,STL1_FSP] = STL1_FSP.solve; 
+    
+    % Plot marginal distributions at t=20:  
+    STL1_FSP.plotFSP(STL1_FSP.Solutions, STL1_FSP.species,'meansAndDevs')
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Ex(3): Use the stochastic Finite State Projection (FSP) 
+% approximation of the Chemical Master Equation (CME) to solve the time 
+% evolution of state space probabilities for the 4-state 
+% time-varying STL1 yeast model from example_1_CreateSSITModels 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% STL1 (4-state):
+    % Create a copy of the time-varying STL1 yeast model for FSP:
+    STL1_4state_FSP = STL1_4state;
+    
+    % Ensure the solution scheme is set to FSP (default):
+    STL1_4state_FSP.solutionScheme = 'FSP';  
+    
+    % Set FSP 1-norm error tolerance:
+    STL1_4state_FSP.fspOptions.fspTol = 1e-4; 
+    
+    % Guess initial bounds on FSP StateSpace:
+    STL1_4state_FSP.fspOptions.bounds = [1,1,1,1,200];
+    
+    % Have FSP approximate the steady state for the initial distribution 
+    % by finding the eigenvector corresponding to the smallest magnitude 
+    % eigenvalue (i.e., zero, for generator matrix A, d/dtP(t)=AP(t)):
+    STL1_4state_FSP.fspOptions.initApproxSS = true; 
+
+    % This function compiles and stores the given reaction propensities  
+    % into symbolic expression functions that use sparse matrices to  
+    % operate on the system based on the current state. The functions are 
+    % stored with the given prefix, in this case, 'STL1_4state_FSP':
+    STL1_4state_FSP = ...
+        STL1_4state_FSP.formPropensitiesGeneral('STL1_4state_FSP');
+    
+    % Solve Model:
+    [~,~,STL1_4state_FSP] = STL1_4state_FSP.solve; 
+    
+    %% Plots for FSP solutions:
+    % Means only:
+    % STL1_4state_FSP.plotFSP(STL1_4state_FSPsoln,...
+    %     STL1_4state_FSP.species, 'means')
+
+    % Means and standard deviations:
+    STL1_4state_FSP.plotFSP(STL1_4state_FSP.Solutions,...
+        STL1_4state_FSP.species(5),'meansAndDevs',[],[],{'linewidth',4},...
+        Title='4-state STL1 (mRNA)', TitleFontSize=26,...
+        Colors=[0.23,0.67,0.2], AxisLabelSize=20, TickLabelSize=20,...
+        XLabel='Time', YLabel='Molecule Count',...
+        LegendFontSize=20, LegendLocation='northeast');
+
+    % Marginal distributions:
+    STL1_4state_FSP.plotFSP(STL1_4state_FSP.Solutions,...
+        STL1_4state_FSP.species(5), 'marginals', [1,12,24,50,101],...
+        [], {'linewidth',3}, Colors=[0.23,0.67,0.2], XLim=[0,100])
+
+    % Joint distributions (warning: can be slow for many parameters!):
+    % STL1_4state_FSP.plotFSP(STL1_4state_FSPsoln,...
+    %     STL1_4state_FSP.species(5), 'joints')
+
+
+%% Save FSP models & solutions
+saveNames = unique({
+    'Model_FSP'
+    'STL1_FSP'
+    'STL1_4state_FSP'
+    });
+    
+save('example_4_SolveSSITModels_FSP',saveNames{:})
+##### SOURCE END #####
+-->
+</body>
+</html>

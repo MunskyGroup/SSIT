@@ -9,7 +9,6 @@
 % Use the models from example_1_CreateSSITModels
 % clear
 % close all
-addpath(genpath('../src'));
 
 % example_1_CreateSSITModels
 
@@ -125,7 +124,7 @@ STL1_4state.tSpan = linspace(0,50,101);
         LegendFontSize=20, LegendLocation='east',...
         Colors=[0.23,0.67,0.20], XLabel='Time', YLabel='Molecule Count')
 
-    % Plot ODE solutions for the 4 gene states:
+    % Plot ODE solutions for the four gene states:
     STL1_4state_ODE.plotODE(STL1_4state_ODE.species(1:4),...
         STL1_4state_ODE.tSpan, {'linewidth',4}, TitleFontSize=26,...
         Title='4-state STL1 (gene states)', AxisLabelSize=20,...

@@ -1,8 +1,7 @@
 %% SSIT/Examples/example_7_FIM
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Section 2.3: Sensitivity analysis and Fisher Information Matrix 
-%% (Part II)
+%% Section 2.2: Fisher Information Matrix (FIM)
 %   * Set up and solve the FSP-FIM matrix 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -12,7 +11,6 @@
 
 % clear
 % close all
-addpath(genpath('../'));
 
 % example_1_CreateSSITModels  
 % example_4_SolveSSITModels_FSP
@@ -76,7 +74,8 @@ STL1_theta0 = [STL1_FIM.parameters{:,2}];
 
 % Plot the FIMs:
 STL1_FIM.plotFIMResults(STL1_fimTotal, 'log', STL1_FIM.parameters,...
-                        STL1_theta0, PlotEllipses=true);
+                        STL1_theta0, PlotEllipses=true,...
+                        EllipsePairs=[1 3; 1 4; 3 4; 7 8; 3 6; 2 7]);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(3): Compute the FIM for the 4-state STL1 yeast model
@@ -126,7 +125,8 @@ STL1_4state_FIM.plotFIMResults(STL1_4state_fimTotal_full, 'log',...
 
 % Plot the FIMs (free):
 STL1_4state_FIM.plotFIMResults(STL1_4state_fimTotal_free, 'log',...
-    STL1_4state_FIM.parameters(1:13));
+    STL1_4state_FIM.parameters(1:13), PlotEllipses=true,...
+    EllipsePairs=[1 6; 2 3; 9 10; 8 13; 8 9]);
 
 %%
 % Note:  If detI(θ)=0, then at least one eigenvalue 𝜆𝑘=0. That means the 

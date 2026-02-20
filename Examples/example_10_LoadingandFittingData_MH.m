@@ -1,7 +1,7 @@
 %% SSIT/Examples/example_10_LoadingandFittingData_MH
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Section 2.4: Loading and fitting time-varying STL1 yeast data 
+%% Section 2.3: Loading and fitting time-varying STL1 yeast data 
 %   * Uncertainty sampling using the Metropolis-Hastings Algorithm (MHA)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -12,7 +12,6 @@
 % example_9_LoadingandFittingData_MLE
 % clear
 % close all
-addpath(genpath('../src'));
 
 % example_1_CreateSSITModels  
 % example_4_SolveSSITModels_FSP

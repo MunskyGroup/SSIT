@@ -4633,7 +4633,8 @@ function plotMoments(obj, solution, speciesNames, plotType, indTimes, figureNums
     % ---------- Prepare figures & colors ----------
     if isempty(figureNums)
         h = findobj('type','figure');
-        if ~isempty(h), baseFig = max([h.Number]); else, baseFig = 0; end
+        % if ~isempty(h), baseFig = max([h.Number]); else, baseFig = 0; end
+        if ~isempty(h), baseFig = length(h); else, baseFig = 0; end
         figureNums = baseFig + (1:10);
     end
     kfig = 1;
@@ -5235,8 +5236,9 @@ end
             % ----- Figure numbers -----
             if isempty(figureNums)
                 h = findobj('type','figure');
-                if ~isempty(h)
-                    figureNums = max([h.Number])+(1:10);
+                if ~isempty(h)                  
+                    figureNums = length(h)+(1:10);
+                    % figureNums = max([h.Number])+(1:10);
                 else
                     figureNums = (1:10);
                 end
@@ -5494,7 +5496,8 @@ end
                         % Figure numbering
                         if isempty(figureNums)
                             h = findobj('type','figure');
-                            if ~isempty(h), figureNums = max([h.Number])+(1:10);
+                            % if ~isempty(h), figureNums = max([h.Number])+(1:10);
+                            if ~isempty(h), figureNums = length(h)+(1:10);
                             else,            figureNums = (1:10);
                             end
                         end

@@ -244,7 +244,7 @@ classdef Propensity
             t = sym('t','real');
 
             allvars = unique([symvar([symbolicExpression{:}])]);
-            syms(allvars, 'real');
+            assume(allvars, 'real');
 
             if ~isempty(upstreamODEs)
                 syms(upstreamODEs,'positive')

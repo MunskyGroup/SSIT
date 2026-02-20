@@ -1,10 +1,24 @@
-function testResults = install(runTests,runExamples,overwritePropFuns,saveSearchPath)
+function testResults = install(runTests,runExamples,overwritePropFuns,saveSearchPath,publishHtml)
 arguments
     runTests = false
     runExamples = false
     overwritePropFuns = []
     saveSearchPath = []
+    publishHtml = false
 end
+
+% Check that 
+weAreIn = pwd;
+J = strfind(weAreIn,filesep);
+if ~strcmpi(weAreIn(J(end)+1:end),'SSIT')
+    abort = questdlg({'You appear not to be in the SSIT Directory.';'Your current directory is';weAreIn;'Do you wish to abort?'}, ...
+        'Confirm Action', ...
+        'Yes','No','Yes');
+    if strcmpi(abort,'Yes')
+        return
+    end
+end
+
 
 % Set the path to include all SSIT codes.  
 addpath(genpath('src'));
@@ -64,8 +78,10 @@ if runTests
     origDir = pwd;              % save current directory
     cleanupTest = onCleanup(@() cd(origDir));  % guarantee return
     cd('tests')
+    set(0, 'DefaultFigureVisible', 'off');
     testResults.tests = runtests({'poissonTest','poisson2Dtest','poissonTVtest',...
         'miscelaneousTests','multiModelTests','modelReductionTest','testGui'})
+    set(0, 'DefaultFigureVisible', 'on');
     clear cleanupTest
 else
     testResults.tests =[];
@@ -101,15 +117,23 @@ if runExamples
         };
     completed = zeros(1,length(ExampleFiles),'logical');
     for iEx = 1:length(ExampleFiles)
-        try         
-            tic; out = evalc(ExampleFiles{iEx}); timeToc = toc;
-            fid = fopen(['exampleLogs/output',ExampleFiles{iEx},'.txt'],'w');
-            fprintf(fid,'%s', out);
-            fclose(fid);
-            completed(iEx) = true;
-            disp([ExampleFiles{iEx},' succeeded in ',num2str(timeToc),' s; logfile in ','exampleLogs/output',ExampleFiles{iEx},'.txt'])
+        try 
+            if publishHtml
+                set(0, 'DefaultFigureVisible', 'on');
+                publish(ExampleFiles{iEx})
+                close all
+            else
+                set(0, 'DefaultFigureVisible', 'off');
+                tic; out = evalc(ExampleFiles{iEx}); timeToc = toc;
+                fid = fopen(['exampleLogs/output',ExampleFiles{iEx},'.txt'],'w');
+                fprintf(fid,'%s', out);
+                fclose(fid);
+                completed(iEx) = true;
+                disp([ExampleFiles{iEx},' succeeded in ',num2str(timeToc),' s; logfile in ','exampleLogs/output',ExampleFiles{iEx},'.txt'])
+            end
             close all
         catch me
+            set(0, 'DefaultFigureVisible', 'on');
             disp([ExampleFiles{iEx},' failed with message:'])
             me
             close all

@@ -9,7 +9,6 @@
 % Use the models from example_1_CreateSSITModels
 % clear
 % close all
-addpath(genpath('../'));
 
 % example_1_CreateSSITModels
 
@@ -76,7 +75,6 @@ STL1_4state.tSpan = linspace(0,50,101);
 %% 4-state STL1:
     % Create a copy of the time-varying STL1 yeast model:
     STL1_4state_escape = STL1_4state;
-
 
     % This should not be required, since propensities are already
     % generated.

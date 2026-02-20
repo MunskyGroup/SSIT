@@ -1,7 +1,7 @@
 %% SSIT/Examples/example_13_SolveSSITModels_Hybrid
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Section 2.5: Complex models
+%% Section 2.4: Complex models
 %   * Solve a model by using a hybrid deterministic-stochastic approach
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

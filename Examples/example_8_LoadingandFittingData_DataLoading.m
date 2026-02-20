@@ -1,7 +1,7 @@
 %% SSIT/Examples/example_8_LoadingandFittingData_DataLoading
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Section 2.4: Loading and fitting Hog1-MAPK pathway STL1 yeast data 
+%% Section 2.3: Loading and fitting Hog1-MAPK pathway STL1 yeast data 
 %   * Data loading and handling 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -10,7 +10,6 @@
 % example_4_SolveSSITModels_FSP
 % clear
 % close all
-addpath(genpath('../src'));
 
 % example_1_CreateSSITModels 
 % example_4_SolveSSITModels_FSP
@@ -71,4 +70,4 @@ saveNames = unique({
     'STL1_4state_data'
     });
     
-save('example_8_LoadingandFittingData',saveNames{:}) 
+save('example_8_LoadingandFittingData_DataLoading',saveNames{:}) 
