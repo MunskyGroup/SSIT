@@ -11,7 +11,6 @@
 
 % clear
 % close all
-addpath(genpath('../'));
 
 % example_1_CreateSSITModels  
 % example_4_SolveSSITModels_FSP
@@ -126,7 +125,8 @@ STL1_4state_FIM.plotFIMResults(STL1_4state_fimTotal_full, 'log',...
 
 % Plot the FIMs (free):
 STL1_4state_FIM.plotFIMResults(STL1_4state_fimTotal_free, 'log',...
-    STL1_4state_FIM.parameters(1:13));
+    STL1_4state_FIM.parameters(1:13), PlotEllipses=true,...
+    EllipsePairs=[1 6; 2 3; 9 10; 8 13; 8 9]);
 
 %%
 % Note:  If detI(θ)=0, then at least one eigenvalue 𝜆𝑘=0. That means the 

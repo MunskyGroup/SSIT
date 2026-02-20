@@ -12,7 +12,6 @@
 % example_8_LoadingandFittingData_DataLoading
 % clear
 % close all
-addpath(genpath('../src'));
 
 % example_1_CreateSSITModels  
 % example_4_SolveSSITModels_FSP
@@ -40,7 +39,7 @@ fitpars = 13;
 STL1_4state_MLE.fittingOptions.modelVarsToFit = 1:fitpars;
 
 % Set fitOptions, with the maximum allowable number of iterations to fit:
-fitOptions = optimset('Display','iter','MaxIter',3000);
+fitOptions = optimset('Display','iter','MaxIter',2000);
 
 % Store parameters for fitting:
 % Model_pars = cell2mat(Model_MLE.parameters(1:4,2));

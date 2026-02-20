@@ -9,7 +9,6 @@
 % Use the models from example_1_CreateSSITModels
 % clear
 % close all
-addpath(genpath('../src'));
 
 % example_1_CreateSSITModels
 

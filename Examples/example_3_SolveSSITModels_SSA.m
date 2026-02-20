@@ -9,7 +9,6 @@
 % Use the models from example_1_CreateSSITModels
 % clear
 % close all
-addpath(genpath('../src'));
 
 % example_1_CreateSSITModels
 
@@ -42,10 +41,10 @@ STL1_4state.tSpan = linspace(0,50,101);
     Model_SSA.solutionScheme = 'SSA';
 
     % 'nSimsPerExpt' is an SSA option that defaults to 100, sets the number
-    % of simulations performed per experiment (set small number for demo)
+    % of simulations performed per experiment (set small number for demo):
     Model_SSA.ssaOptions.nSimsPerExpt=10;
 
-    % 'verbose' defaults to false, prints completed sim number to screen
+    % 'verbose' defaults to false, prints completed sim number to screen.
     Model_SSA.ssaOptions.verbose=true;
     
     % A negative initial time is used to allow model to equilibrate 
@@ -85,10 +84,10 @@ STL1_4state.tSpan = linspace(0,50,101);
     STL1_SSA.solutionScheme = 'SSA';
 
     % 'nSimsPerExpt' is an SSA option that defaults to 100, sets the number
-    % of simulations performed per experiment (set small number for demo)
+    % of simulations performed per experiment (set small number for demo):
     STL1_SSA.ssaOptions.nSimsPerExpt=10;
 
-    % 'verbose' defaults to false, prints completed sim number to screen
+    % 'verbose' defaults to false, prints completed sim number to screen:
     STL1_SSA.ssaOptions.verbose=true;
     
     % A negative initial time is used to allow model to equilibrate 
@@ -129,10 +128,10 @@ STL1_4state.tSpan = linspace(0,50,101);
     STL1_4state_SSA.solutionScheme = 'SSA';
 
     % 'nSimsPerExpt' is an SSA option that defaults to 100, sets the number
-    % of simulations performed per experiment (set small number for demo)
+    % of simulations performed per experiment (set small number for demo):
     STL1_4state_SSA.ssaOptions.nSimsPerExpt=10;
 
-    % 'verbose' defaults to false, prints completed sim number to screen
+    % 'verbose' defaults to false, prints completed sim number to screen.
     STL1_4state_SSA.ssaOptions.verbose=true;
        
     % A negative initial time is used to allow model to equilibrate 

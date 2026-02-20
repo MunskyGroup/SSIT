@@ -12,7 +12,6 @@
 % example_9_LoadingandFittingData_MLE
 % clear
 % close all
-addpath(genpath('../src'));
 
 % example_1_CreateSSITModels  
 % example_4_SolveSSITModels_FSP

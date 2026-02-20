@@ -14,8 +14,8 @@
 % example_4_SolveSSITModels_FSP
 % example_8_LoadingandFittingData_DataLoading
 
-%% Load pre-run results:
-% load('example_8_LoadingandFittingData_DataLoading.mat')
+%% Load pre-run results (pre-loaded data):
+load('example_8_LoadingandFittingData_DataLoading.mat')
 
 % Make a copy of our model:
 STL1_4state_design = STL1_4state_data;

@@ -8,7 +8,6 @@
 %% Preliminaries:
 %clear
 %close all
-% addpath(genpath('../../'));
 
 % example_1_CreateSSITModels
 % example_4_SolveSSITModels_FSP
