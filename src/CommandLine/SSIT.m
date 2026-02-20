@@ -4642,8 +4642,6 @@ classdef SSIT
         end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function plotMoments(obj, solution, speciesNames, plotType, indTimes, figureNums, lineProps, opts)
-  % plotMoments — Plot moment-based solutions like plotODE/plotSSA/plotFSP
-
     arguments
         obj
         solution
@@ -5270,16 +5268,14 @@ end
         end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%            
-        function plotFSP(obj, solution, speciesNames, plotType, indTimes, figureNums, lineProps, opts)
-            % plotFSP — Plot FSP results like plotODE/plotSSA, with species subsetting
+        function plotFSP(obj, opts)
             arguments
                 obj
-                solution = []
-                speciesNames = []
-                plotType (1,1) string = "means"
-                indTimes = []
-                figureNums = []
-                lineProps = {'linewidth',2}
+                opts.speciesNames = []
+                opts.plotType (1,1) string = "means"
+                opts.indTimes = []
+                opts.figureNums = []
+                opts.lineProps = {'linewidth',2}
                 opts.SpeciesIdx = []
                 opts.Colors = []
                 opts.Title (1,1) string = ""
@@ -5294,9 +5290,12 @@ end
                 opts.YLim double = []
             end
 
-            if isempty(solution)
-                solution = obj.Solutions;
-            end
+            solution = obj.Solutions;
+            speciesNames = opts.speciesNames; 
+            plotType = opts.plotType;
+            indTimes = opts.indTimes; 
+            figureNums = opts.figureNums;
+            lineProps = opts.lineProps; 
         
             % ----- Species selection -----
             nSpecies = numel(obj.species);
