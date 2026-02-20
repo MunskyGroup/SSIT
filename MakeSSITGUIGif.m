@@ -1,5 +1,5 @@
 % makeGUIgif
-install;  
+% install;  
 stubDir = tempname;
 mkdir(stubDir);
 
@@ -17,17 +17,44 @@ cleanup = onCleanup(@() path(origPath)); % restore later
 close all force
 A = SSITGUI;
 
-gifFile = 'SSITAnimation.gif';
-
-% --- capture current figure ---
+%%
 frame = getframe(A.UIFigure);
 im = frame2im(frame);
-[Amovie,map] = rgb2ind(im,256);
+sizeFrame = size(im);
+
+%%
+
+gifFile = 'SSITAnimation.gif';
+
+im = imread('images/SSITGUI_Wheels/Logo.png');
+
+% Pad the image 'im' to be the same size as sizeFrame by adding rows and
+% columns above and below
+imnew = 255*ones(sizeFrame,"uint8");
+bottom = round(sizeFrame(1)/2 - size(im,1)/2);
+left = round(sizeFrame(2)/2 - size(im,2)/2);
+
+imnew(bottom+1:bottom+size(im,1),left+1:left+size(im,2),:) = im;
+[Amovie,map] = rgb2ind(imnew,256);
 
 % --- first frame: create GIF ---
 imwrite(Amovie,map,gifFile,'gif', ...
     'LoopCount',inf, ...
     'DelayTime',0.2);
+
+% % --- capture current figure ---
+% frame = getframe(A.UIFigure);
+% im = frame2im(frame);
+% [Amovie,map] = rgb2ind(im,256);
+% 
+% % --- first frame: create GIF ---
+% imwrite(Amovie,map,gifFile,'gif', ...
+%     'LoopCount',inf, ...
+%     'DelayTime',0.2);
+updateGif('images/SSITGUI_Wheels/Abstract.png',gifFile,sizeFrame);
+updateGif('images/SSITGUI_Wheels/Load.png',gifFile,sizeFrame);
+
+updateGif(A,gifFile);
 
 A.TabGroup.SelectedTab = A.ModelLoadingandBuildingTab;
 A = loadModelBP(A, [], 'tests/test_data/GRDusp1ModelTestLibrary.mat');
@@ -35,6 +62,9 @@ A.ChooseSSITModel.Value = 'ModelDUSP1_100nM';
 A = ChooseSSITModelValue(A);
 
 updateGif(A,gifFile);
+
+%%
+updateGif('images/SSITGUI_Wheels/Solve.png',gifFile,sizeFrame);
 
 A.TabGroup.SelectedTab = A.StochasticSimulationTab;
 A.PrintTimesEditField.Value = '[0:10:180]';
@@ -61,11 +91,58 @@ for x = 0:10:180
     updateGif(A,gifFile);
 end
 
+%% Switch to FSP.
+A.TabGroup.SelectedTab = A.FiniteStateProjectionTab;
+A.FspRunButtom.ButtonPushedFcn(A, []);
+updateGif(A,gifFile);
+A.SpeciestoShowListBox_2.Value = 'rna';
+for x = 0:10:180
+    A.FspTimeSlider.Value = x;
+    A.FspTimeSlider.ValueChangedFcn(A,[]);
+    updateGif(A,gifFile);
+end
 
-function gifFile = updateGif(A,gifFile)
-% --- capture again and append ---
-frame = getframe(A.UIFigure);
-im = frame2im(frame);
+%% Switch to FSP-Sens.
+updateGif('images/SSITGUI_Wheels/Sensitivity.png',gifFile,sizeFrame);
+
+A.TabGroup.SelectedTab = A.SensitivityAnalysisTab;
+A.SensRunButton.ButtonPushedFcn(A, []);
+updateGif(A,gifFile);
+A.SpeciesForSensPlot.Value = 'rna';
+A.SensParDropDown.Value = 'knuc2cyt';
+for x = 0:10:180
+    A.SensPlotTimeSlider.Value = x;
+    A.SensPlotTimeSlider.ValueChangedFcn(A,[]);
+    updateGif(A,gifFile);
+end
+A.SensParDropDown.Value = 'kon_1';
+for x = 0:10:180
+    A.SensPlotTimeSlider.Value = x;
+    A.SensPlotTimeSlider.ValueChangedFcn(A,[]);
+    updateGif(A,gifFile);
+end
+function gifFile = updateGif(A,gifFile,sizeFrame)
+arguments
+    A
+    gifFile
+    sizeFrame =[]
+end
+if isa(A,'SSITGUI')
+    % --- capture again and append ---
+    frame = getframe(A.UIFigure);
+    im = frame2im(frame);
+elseif isa(A,'string')||isa(A,'char')
+    imold = imread(A);
+    if max(size(imold)./sizeFrame)>1
+        newSize = floor(size(imold,[1,2])/max(size(imold,[1,2])./sizeFrame(1:2)));
+        imold = imresize(imold,newSize);
+    end
+
+    im = 255*ones(sizeFrame,"uint8");
+    bottom = round(sizeFrame(1)/2 - size(imold,1)/2);
+    left = round(sizeFrame(2)/2 - size(imold,2)/2);
+    im(bottom+1:bottom+size(imold,1),left+1:left+size(imold,2),:) = imold;
+end
 [Amovie,map] = rgb2ind(im,256);
 
 imwrite(Amovie,map,gifFile,'gif', ...
