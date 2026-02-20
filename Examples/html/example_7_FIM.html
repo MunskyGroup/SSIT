@@ -1,0 +1,727 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<META http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      -->
+<title>example_7_FIM</title>
+<meta name="generator" content="MATLAB 25.2">
+<link rel="schema.DC" href="http://purl.org/dc/elements/1.1/">
+<meta name="DC.date" content="2026-02-20">
+<meta name="DC.source" content="example_7_FIM.m">
+<style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; }
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+span.typesection { color:#A0522D }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style>
+</head>
+<body>
+<div class="content">
+<h2>Contents</h2>
+<div>
+<ul>
+<li>
+<a href="#1">SSIT/Examples/example_7_FIM</a>
+</li>
+<li>
+<a href="#2">Section 2.2: Fisher Information Matrix (FIM)</a>
+</li>
+<li>
+<a href="#3">Preliminaries</a>
+</li>
+<li>
+<a href="#4">Load pre-computed sensitivities:</a>
+</li>
+<li>
+<a href="#5">Ex(1): Compute the Fisher Information Matrix for the bursting gene model</a>
+</li>
+<li>
+<a href="#6">Compute FIMs using FSP sensitivity results</a>
+</li>
+<li>
+<a href="#7">Ex(2): Compute the Fisher Information Matrix for the STL1 yeast model</a>
+</li>
+<li>
+<a href="#8">Compute FIMs using FSP sensitivity results</a>
+</li>
+<li>
+<a href="#9">Ex(3): Compute the FIM for the 4-state STL1 yeast model</a>
+</li>
+<li>
+<a href="#10">Compute FIMs using FSP sensitivity results</a>
+</li>
+<li>
+<a href="#12">Full FIM</a>
+</li>
+<li>
+<a href="#13">FIM sub matrix (free parameters):</a>
+</li>
+<li>
+<a href="#14">Save models &amp; FIM results</a>
+</li>
+</ul>
+</div>
+<h2 id="1">SSIT/Examples/example_7_FIM</h2>
+<pre class="codeinput">
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<h2 id="2">Section 2.2: Fisher Information Matrix (FIM)</h2>
+<pre class="language-matlab">* Set up <span class="string">and</span> <span class="string">solve</span> <span class="string">the</span> <span class="string">FSP-FIM</span> <span class="string">matrix</span>
+</pre>
+<pre class="codeinput">
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<h2 id="3">Preliminaries</h2>
+<p>Use the models from example_1_CreateSSITModels and computed FSP solutions from example_4_SolveSSITModels_FSP</p>
+<pre class="codeinput">
+<span class="comment">% clear</span>
+<span class="comment">% close all</span>
+
+<span class="comment">% example_1_CreateSSITModels</span>
+<span class="comment">% example_4_SolveSSITModels_FSP</span>
+</pre>
+<h2 id="4">Load pre-computed sensitivities:</h2>
+<p>load('example_4_SolveSSITModels_FSP.mat')</p>
+<pre class="codeinput">
+<span class="comment">% View model summaries:</span>
+Model_FSP.summarizeModel
+STL1_FSP.summarizeModel
+STL1_4state_FSP.summarizeModel
+
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<pre class="codeoutput">Species:
+     offGene; IC = 1;  discrete stochastic
+     onGene; IC = 0;  discrete stochastic
+     mRNA; IC = 0;  discrete stochastic
+ 
+Reactions:
+  Reaction 1:
+     s1: 1*offGene --&gt; 1*onGene
+     w1: kon * offGene
+  Reaction 2:
+     s2: 1*onGene --&gt; 1*offGene
+     w2: koff * onGene
+  Reaction 3:
+     s3: NULL --&gt; 1*mRNA
+     w3: kr * onGene
+  Reaction 4:
+     s4: 1*mRNA --&gt; NULL
+     w4: dr * mRNA
+ 
+Model Parameters:
+    {'kon' }    {[0.2000]}
+    {'koff'}    {[0.2000]}
+    {'kr'  }    {[    10]}
+    {'dr'  }    {[     5]}
+
+Species:
+     offGene; IC = 1;  discrete stochastic
+     onGene; IC = 0;  discrete stochastic
+     mRNA; IC = 0;  discrete stochastic
+ 
+Reactions:
+  Reaction 1:
+     s1: 1*offGene --&gt; 1*onGene
+     w1: kon * offGene
+  Reaction 2:
+     s2: 1*onGene --&gt; 1*offGene
+     w2: onGene*koff/(1+Hog1)
+  Reaction 3:
+     s3: NULL --&gt; 1*mRNA
+     w3: kr * onGene
+  Reaction 4:
+     s4: 1*mRNA --&gt; NULL
+     w4: dr * mRNA
+ 
+Input Signals:
+     Hog1(t) = (a0+a1*exp(-r1*t)*(1-exp(-r2*t))*(t&gt;0))
+ 
+Model Parameters:
+    {'kon' }    {[0.2000]}
+    {'koff'}    {[0.2000]}
+    {'kr'  }    {[    10]}
+    {'dr'  }    {[     5]}
+    {'a0'  }    {[     5]}
+    {'a1'  }    {[    10]}
+    {'r1'  }    {[0.0040]}
+    {'r2'  }    {[0.0100]}
+
+Species:
+     g1; IC = 1;  discrete stochastic
+     g2; IC = 0;  discrete stochastic
+     g3; IC = 0;  discrete stochastic
+     g4; IC = 0;  discrete stochastic
+     mRNA; IC = 0;  discrete stochastic
+ 
+Reactions:
+  Reaction 1:
+     s1: 1*g1 --&gt; 1*g2
+     w1: k12*g1
+  Reaction 2:
+     s2: 1*g2 --&gt; 1*g1
+     w2: (max(0,k21o*(1-k21i*Hog1)))*g2
+  Reaction 3:
+     s3: 1*g2 --&gt; 1*g3
+     w3: k23*g2
+  Reaction 4:
+     s4: 1*g3 --&gt; 1*g2
+     w4: k32*g3
+  Reaction 5:
+     s5: 1*g3 --&gt; 1*g4
+     w5: k34*g3
+  Reaction 6:
+     s6: 1*g4 --&gt; 1*g3
+     w6: k43*g4
+  Reaction 7:
+     s7: NULL --&gt; 1*mRNA
+     w7: kr1*g1
+  Reaction 8:
+     s8: NULL --&gt; 1*mRNA
+     w8: kr2*g2
+  Reaction 9:
+     s9: NULL --&gt; 1*mRNA
+     w9: kr3*g3
+  Reaction 10:
+     s10: NULL --&gt; 1*mRNA
+     w10: kr4*g4
+  Reaction 11:
+     s11: 1*mRNA --&gt; NULL
+     w11: dr*mRNA
+ 
+Input Signals:
+     Hog1(t) = A*(((1-(exp(1)^(-r1*(t-t0))))*exp(1)^(-r2*(t-t0)))/(1+((1-(exp(1)^(-r1*(t-t0))))*exp(1)^(-r2*(t-t0)))/M))^n*(t&gt;t0)
+ 
+Model Parameters:
+    {'t0'  }    {[    3.1700]}
+    {'k12' }    {[        78]}
+    {'k21o'}    {[    192000]}
+    {'k21i'}    {[      3200]}
+    {'k23' }    {[    0.4020]}
+    {'k34' }    {[    7.8000]}
+    {'k32' }    {[    1.6200]}
+    {'k43' }    {[    2.2800]}
+    {'dr'  }    {[    0.2940]}
+    {'kr1' }    {[    0.0468]}
+    {'kr2' }    {[    0.7200]}
+    {'kr3' }    {[   59.4000]}
+    {'kr4' }    {[    3.2400]}
+    {'r1'  }    {[    0.0041]}
+    {'r2'  }    {[    0.4260]}
+    {'A'   }    {[9.3000e+09]}
+    {'M'   }    {[6.4000e-04]}
+    {'n'   }    {[    3.1000]}
+
+</pre>
+<h2 id="5">Ex(1): Compute the Fisher Information Matrix for the bursting gene model</h2>
+<pre>from example_1_CreateSSITModels</pre>
+<pre class="codeinput">
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+
+<span class="comment">% Make a copy of the bursting gene model with solved sensitivities:</span>
+Model_FIM = Model_FSP;
+</pre>
+<h2 id="6">Compute FIMs using FSP sensitivity results</h2>
+<p>Compute the FIM:</p>
+<pre class="codeinput">Model_FIM = Model_FSP;
+Model_fimResults = Model_FIM.computeFIM([],<span class="string">'log'</span>,[]);
+
+<span class="comment">% Generate a count of measured cells (in place of real data):</span>
+Model_cellCounts = 100*ones(size(Model_FIM.tSpan));
+
+<span class="comment">% Evaluate the provided experiment design (in "cellCounts")</span>
+<span class="comment">% and produce an array of FIMs (one for each parameter set):</span>
+[Model_fimTotal,Model_mleCovEstimate,Model_fimMetrics] = <span class="keyword">...</span>
+    Model_FIM.evaluateExperiment(Model_fimResults,Model_cellCounts)
+
+theta0 = [Model_FIM.parameters{:,2}];
+
+Model_FIM.plotFIMResults(Model_fimTotal, <span class="string">'log'</span>, Model_FIM.parameters,<span class="keyword">...</span>
+                         theta0, PlotEllipses=true);
+
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<pre class="codeoutput">
+Model_fimTotal =
+
+  1&times;1 cell array
+
+    {4&times;4 double}
+
+
+Model_mleCovEstimate =
+
+  1&times;1 cell array
+
+    {4&times;4 double}
+
+
+Model_fimMetrics = 
+
+  struct with fields:
+
+          det: 1.1866e+22
+        trace: 1.9111e+06
+    minEigVal: 1.0651e+05
+
+</pre>
+<img vspace="5" hspace="5" src="example_7_FIM_01.png" alt=""> <img vspace="5" hspace="5" src="example_7_FIM_02.png" alt=""> <h2 id="7">Ex(2): Compute the Fisher Information Matrix for the STL1 yeast model</h2>
+<pre>from example_1_CreateSSITModels</pre>
+<pre class="codeinput">
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+
+<span class="comment">% Make a copy of the time-varying STL1 yeast model with solved</span>
+<span class="comment">% sensitivities:</span>
+STL1_FIM = STL1_FSP;
+</pre>
+<h2 id="8">Compute FIMs using FSP sensitivity results</h2>
+<p>Compute the FIM:</p>
+<pre class="codeinput">STL1_fimResults = STL1_FIM.computeFIM([],<span class="string">'log'</span>,[]);
+
+<span class="comment">% Generate a count of measured cells (in place of real data):</span>
+STL1_cellCounts = 100*ones(size(STL1_FIM.tSpan));
+
+<span class="comment">% Evaluate the provided experiment design (in "cellCounts")</span>
+<span class="comment">% and produce an array of FIMs (one for each parameter set):</span>
+[STL1_fimTotal,STL1_mleCovEstimate,STL1_fimMetrics] = <span class="keyword">...</span>
+    STL1_FIM.evaluateExperiment(STL1_fimResults,STL1_cellCounts)
+
+STL1_theta0 = [STL1_FIM.parameters{:,2}];
+
+<span class="comment">% Plot the FIMs:</span>
+STL1_FIM.plotFIMResults(STL1_fimTotal, <span class="string">'log'</span>, STL1_FIM.parameters,<span class="keyword">...</span>
+                        STL1_theta0, PlotEllipses=true,<span class="keyword">...</span>
+                        EllipsePairs=[1 3; 1 4; 3 4; 7 8; 3 6; 2 7]);
+
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<pre class="codeoutput">
+STL1_fimTotal =
+
+  1&times;1 cell array
+
+    {8&times;8 double}
+
+
+STL1_mleCovEstimate =
+
+  1&times;1 cell array
+
+    {8&times;8 double}
+
+
+STL1_fimMetrics = 
+
+  struct with fields:
+
+          det: 2.4100e-05
+        trace: 3.5158e+04
+    minEigVal: 1.1562e-10
+
+</pre>
+<img vspace="5" hspace="5" src="example_7_FIM_03.png" alt=""> <img vspace="5" hspace="5" src="example_7_FIM_04.png" alt=""> <h2 id="9">Ex(3): Compute the FIM for the 4-state STL1 yeast model</h2>
+<pre>from example_1_CreateSSITModels</pre>
+<pre class="codeinput">
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+
+<span class="comment">% Make a copy of the 4-state time-varying STL1 yeast model with solved</span>
+<span class="comment">% sensitivities:</span>
+STL1_4state_FIM = STL1_4state_FSP;
+
+<span class="comment">% Define indices of free parameters for FIM sub matrix. Here, Hog1 input</span>
+<span class="comment">% parameters are experimentally known (thus fixed) and all others are free:</span>
+freePars = 1:13;
+</pre>
+<h2 id="10">Compute FIMs using FSP sensitivity results</h2>
+<p>Compute the full FIM:</p>
+<pre class="codeinput">STL1_4state_fimResults_full = STL1_4state_FIM.computeFIM([],<span class="string">'log'</span>,[]);
+
+<span class="comment">% Compute the FIM sub matrix for free parameters:</span>
+STL1_4state_fimResults_free = <span class="keyword">...</span>
+    STL1_4state_FIM.computeFIM([],<span class="string">'log'</span>,[],freePars);
+
+<span class="comment">% Generate a count of measured cells:</span>
+cellCounts = 1000*ones(size(STL1_4state_FIM.tSpan));
+
+<span class="comment">% - Or, get the number of cells using 'nCells':</span>
+<span class="comment">% STL1_4state_cellCounts = ...</span>
+<span class="comment">% STL1_4state_data.dataSet.nCells*ones(size(STL1_4state_FIM.tSpan));</span>
+
+
+<span class="comment">% Evaluate the provided experiment design (in "cellCounts")</span>
+<span class="comment">% and produce an array of FIMs (one for each parameter set):</span>
+[STL1_4state_fimTotal_full,STL1_4state_mleCovEstimate_full,<span class="keyword">...</span>
+    STL1_4state_fimMetrics_full] = <span class="keyword">...</span>
+    STL1_4state_FIM.evaluateExperiment(STL1_4state_fimResults_full,<span class="keyword">...</span>
+                                       cellCounts)
+
+[STL1_4state_fimTotal_free,STL1_4state_mleCovEstimate_free,<span class="keyword">...</span>
+    STL1_4state_fimMetrics_free] = <span class="keyword">...</span>
+    STL1_4state_FIM.evaluateExperiment(STL1_4state_fimResults_free,<span class="keyword">...</span>
+                                       cellCounts)
+
+<span class="comment">% Plot the FIMs (full):</span>
+STL1_4state_FIM.plotFIMResults(STL1_4state_fimTotal_full, <span class="string">'log'</span>,<span class="keyword">...</span>
+    STL1_4state_FIM.parameters, PlotEllipses=true,<span class="keyword">...</span>
+    EllipsePairs=[1 6; 9 17; 2 3; 9 10; 8 13; 8 9]);
+
+<span class="comment">% Plot the FIMs (free):</span>
+STL1_4state_FIM.plotFIMResults(STL1_4state_fimTotal_free, <span class="string">'log'</span>,<span class="keyword">...</span>
+    STL1_4state_FIM.parameters(1:13), PlotEllipses=true,<span class="keyword">...</span>
+    EllipsePairs=[1 6; 2 3; 9 10; 8 13; 8 9]);
+</pre>
+<pre class="codeoutput">FIM has rank 17 and is not invertable for this experiment design
+
+STL1_4state_fimTotal_full =
+
+  1&times;1 cell array
+
+    {18&times;18 double}
+
+
+STL1_4state_mleCovEstimate_full =
+
+  1&times;1 cell array
+
+    {18&times;18 double}
+
+
+STL1_4state_fimMetrics_full = 
+
+  struct with fields:
+
+          det: -1.7952e+33
+        trace: 2.9419e+06
+    minEigVal: 1.8854e-13
+
+
+STL1_4state_fimTotal_free =
+
+  1&times;1 cell array
+
+    {13&times;13 double}
+
+
+STL1_4state_mleCovEstimate_free =
+
+  1&times;1 cell array
+
+    {13&times;13 double}
+
+
+STL1_4state_fimMetrics_free = 
+
+  struct with fields:
+
+          det: 2.7883e+44
+        trace: 6.9367e+05
+    minEigVal: 1.1379
+
+</pre>
+<img vspace="5" hspace="5" src="example_7_FIM_05.png" alt=""> <img vspace="5" hspace="5" src="example_7_FIM_06.png" alt=""> <img vspace="5" hspace="5" src="example_7_FIM_07.png" alt=""> <img vspace="5" hspace="5" src="example_7_FIM_08.png" alt=""> <p>Note: If detI(θ)=0, then at least one eigenvalue =0. That means the FIM is rank-deficient, so there is at least one non-trivial linear combination of parameters whose variance (via the Cram&eacute;r&ndash;Rao bound) is infinite. That direction is locally non-identifiable at ; the likelihood is flat in that direction. If detI(θ) is nonzero but extremely small, that usually means one or more eigenvalues are tiny (but not exactly zero). Then there is practical non-identifiability or very strong parameter correlation: those directions in parameter space are only very weakly constrained by your experiment.</p>
+<pre class="codeinput">
+<span class="comment">% Model_fimMetrics =</span>
+<span class="comment">%          det: 3.9036e+21</span>
+<span class="comment">%        trace: 2.2181e+07</span>
+<span class="comment">%    minEigVal: 2.6411e+03</span>
+
+<span class="comment">% STL1_fimMetrics =</span>
+<span class="comment">%          det: 1.5059e+00</span>
+<span class="comment">%        trace: 4.5588e+05</span>
+<span class="comment">%    minEigVal: 6.7265e-12</span>
+</pre>
+<h2 id="12">Full FIM</h2>
+<p>STL1_4state_fimMetrics = det: 3.1402e+00 trace: 9.2817e+08 minEigVal: 8.4878e-13</p>
+<h2 id="13">FIM sub matrix (free parameters):</h2>
+<p>STL1_4state_fimMetrics_free = det: 2.7889e+44 trace: 6.9367e+05 minEigVal: 1.1381</p>
+<h2 id="14">Save models &amp; FIM results</h2>
+<pre class="codeinput">saveNames = unique({<span class="string">'Model_FIM'</span>
+    <span class="string">'Model_fimResults'</span>
+    <span class="string">'Model_cellCounts'</span>
+    <span class="string">'Model_fimTotal'</span>
+    <span class="string">'Model_mleCovEstimate'</span>
+    <span class="string">'Model_fimMetrics'</span>
+    <span class="string">'STL1_FIM'</span>
+    <span class="string">'STL1_fimResults'</span>
+    <span class="string">'STL1_cellCounts'</span>
+    <span class="string">'STL1_fimTotal'</span>
+    <span class="string">'STL1_mleCovEstimate'</span>
+    <span class="string">'STL1_fimMetrics'</span>
+    <span class="string">'STL1_4state_FIM'</span>
+    <span class="string">'STL1_4state_FIM'</span>
+    <span class="string">'STL1_4state_fimResults_full'</span>
+    <span class="string">'STL1_4state_fimResults_free'</span>
+    <span class="string">'cellCounts'</span>
+    <span class="string">'STL1_4state_fimTotal_full'</span>
+    <span class="string">'STL1_4state_fimTotal_free'</span>
+    <span class="string">'STL1_4state_mleCovEstimate_full'</span>
+    <span class="string">'STL1_4state_mleCovEstimate_free'</span>
+    <span class="string">'STL1_4state_fimMetrics_full'</span>
+    <span class="string">'STL1_4state_fimMetrics_free'</span>
+    });
+
+save(<span class="string">'example_7_FIM'</span>,saveNames{:})
+</pre>
+<p class="footer">
+<br>
+<a href="https://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2025b</a>
+<br>
+</p>
+</div>
+<!--
+##### SOURCE BEGIN #####
+%% SSIT/Examples/example_7_FIM
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Section 2.2: Fisher Information Matrix (FIM)
+%   * Set up and solve the FSP-FIM matrix 
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% Preliminaries
+% Use the models from example_1_CreateSSITModels and computed FSP solutions 
+% from example_4_SolveSSITModels_FSP
+
+% clear
+% close all
+
+% example_1_CreateSSITModels  
+% example_4_SolveSSITModels_FSP
+
+%% Load pre-computed sensitivities:
+% load('example_4_SolveSSITModels_FSP.mat')
+
+% View model summaries:
+Model_FSP.summarizeModel
+STL1_FSP.summarizeModel
+STL1_4state_FSP.summarizeModel
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Ex(1): Compute the Fisher Information Matrix for the bursting gene model
+%  from example_1_CreateSSITModels
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Make a copy of the bursting gene model with solved sensitivities:
+Model_FIM = Model_FSP;
+
+%% Compute FIMs using FSP sensitivity results
+% Compute the FIM:
+Model_FIM = Model_FSP;
+Model_fimResults = Model_FIM.computeFIM([],'log',[]); 
+
+% Generate a count of measured cells (in place of real data):
+Model_cellCounts = 100*ones(size(Model_FIM.tSpan));
+
+% Evaluate the provided experiment design (in "cellCounts") 
+% and produce an array of FIMs (one for each parameter set):
+[Model_fimTotal,Model_mleCovEstimate,Model_fimMetrics] = ...
+    Model_FIM.evaluateExperiment(Model_fimResults,Model_cellCounts)
+
+theta0 = [Model_FIM.parameters{:,2}];
+
+Model_FIM.plotFIMResults(Model_fimTotal, 'log', Model_FIM.parameters,...
+                         theta0, PlotEllipses=true);
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Ex(2): Compute the Fisher Information Matrix for the STL1 yeast model
+%  from example_1_CreateSSITModels
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Make a copy of the time-varying STL1 yeast model with solved 
+% sensitivities:
+STL1_FIM = STL1_FSP;
+
+%% Compute FIMs using FSP sensitivity results
+% Compute the FIM:
+STL1_fimResults = STL1_FIM.computeFIM([],'log',[]); 
+
+% Generate a count of measured cells (in place of real data):
+STL1_cellCounts = 100*ones(size(STL1_FIM.tSpan));
+
+% Evaluate the provided experiment design (in "cellCounts") 
+% and produce an array of FIMs (one for each parameter set):
+[STL1_fimTotal,STL1_mleCovEstimate,STL1_fimMetrics] = ...
+    STL1_FIM.evaluateExperiment(STL1_fimResults,STL1_cellCounts)
+
+STL1_theta0 = [STL1_FIM.parameters{:,2}];
+
+% Plot the FIMs:
+STL1_FIM.plotFIMResults(STL1_fimTotal, 'log', STL1_FIM.parameters,...
+                        STL1_theta0, PlotEllipses=true,...
+                        EllipsePairs=[1 3; 1 4; 3 4; 7 8; 3 6; 2 7]);
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Ex(3): Compute the FIM for the 4-state STL1 yeast model
+%  from example_1_CreateSSITModels
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Make a copy of the 4-state time-varying STL1 yeast model with solved 
+% sensitivities:
+STL1_4state_FIM = STL1_4state_FSP;
+
+% Define indices of free parameters for FIM sub matrix. Here, Hog1 input 
+% parameters are experimentally known (thus fixed) and all others are free:
+freePars = 1:13;
+
+%% Compute FIMs using FSP sensitivity results
+% Compute the full FIM:
+STL1_4state_fimResults_full = STL1_4state_FIM.computeFIM([],'log',[]); 
+
+% Compute the FIM sub matrix for free parameters:
+STL1_4state_fimResults_free = ...
+    STL1_4state_FIM.computeFIM([],'log',[],freePars);
+
+% Generate a count of measured cells:
+cellCounts = 1000*ones(size(STL1_4state_FIM.tSpan));
+
+% - Or, get the number of cells using 'nCells':
+% STL1_4state_cellCounts = ...
+% STL1_4state_data.dataSet.nCells*ones(size(STL1_4state_FIM.tSpan));
+
+
+% Evaluate the provided experiment design (in "cellCounts") 
+% and produce an array of FIMs (one for each parameter set):
+[STL1_4state_fimTotal_full,STL1_4state_mleCovEstimate_full,...
+    STL1_4state_fimMetrics_full] = ...
+    STL1_4state_FIM.evaluateExperiment(STL1_4state_fimResults_full,...
+                                       cellCounts)
+
+[STL1_4state_fimTotal_free,STL1_4state_mleCovEstimate_free,...
+    STL1_4state_fimMetrics_free] = ...
+    STL1_4state_FIM.evaluateExperiment(STL1_4state_fimResults_free,...
+                                       cellCounts)
+
+% Plot the FIMs (full):
+STL1_4state_FIM.plotFIMResults(STL1_4state_fimTotal_full, 'log',...
+    STL1_4state_FIM.parameters, PlotEllipses=true,...
+    EllipsePairs=[1 6; 9 17; 2 3; 9 10; 8 13; 8 9]);
+
+% Plot the FIMs (free):
+STL1_4state_FIM.plotFIMResults(STL1_4state_fimTotal_free, 'log',...
+    STL1_4state_FIM.parameters(1:13), PlotEllipses=true,...
+    EllipsePairs=[1 6; 2 3; 9 10; 8 13; 8 9]);
+
+%%
+% Note:  If detI(θ)=0, then at least one eigenvalue =0. That means the 
+% FIM is rank-deficient, so there is at least one non-trivial linear 
+% combination of parameters whose variance (via the Cramér–Rao bound) is 
+% infinite. That direction is locally non-identifiable at ; the likelihood 
+% is flat in that direction.  If detI(θ) is nonzero but extremely small, 
+% that usually means one or more eigenvalues are tiny (but not exactly 
+% zero). Then there is practical non-identifiability or very strong 
+% parameter correlation: those directions in parameter space are only very 
+% weakly constrained by your experiment.
+
+% Model_fimMetrics = 
+%          det: 3.9036e+21
+%        trace: 2.2181e+07
+%    minEigVal: 2.6411e+03
+
+% STL1_fimMetrics = 
+%          det: 1.5059e+00
+%        trace: 4.5588e+05
+%    minEigVal: 6.7265e-12
+
+%% Full FIM
+% STL1_4state_fimMetrics = 
+%          det: 3.1402e+00
+%        trace: 9.2817e+08
+%    minEigVal: 8.4878e-13
+
+%% FIM sub matrix (free parameters):
+% STL1_4state_fimMetrics_free =  
+%           det: 2.7889e+44
+%         trace: 6.9367e+05
+%     minEigVal: 1.1381
+
+
+%% Save models & FIM results
+saveNames = unique({'Model_FIM'
+    'Model_fimResults'
+    'Model_cellCounts'
+    'Model_fimTotal'
+    'Model_mleCovEstimate'
+    'Model_fimMetrics'
+    'STL1_FIM'
+    'STL1_fimResults'
+    'STL1_cellCounts'
+    'STL1_fimTotal'
+    'STL1_mleCovEstimate'
+    'STL1_fimMetrics'
+    'STL1_4state_FIM'
+    'STL1_4state_FIM'
+    'STL1_4state_fimResults_full'
+    'STL1_4state_fimResults_free'
+    'cellCounts'
+    'STL1_4state_fimTotal_full'
+    'STL1_4state_fimTotal_free'
+    'STL1_4state_mleCovEstimate_full'
+    'STL1_4state_mleCovEstimate_free'
+    'STL1_4state_fimMetrics_full'
+    'STL1_4state_fimMetrics_free'
+    });
+    
+save('example_7_FIM',saveNames{:})
+
+##### SOURCE END #####
+-->
+</body>
+</html>
