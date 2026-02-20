@@ -6,16 +6,15 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Preliminaries
-% Use the fit 4-state STL1 model from example_9_LoadingandFittingData_MLE 
+% Use the solved 4-state STL1 model from example_4_SolveSSITModels_FSP 
 %clear
 %close all
 
 % example_1_CreateSSITModels  
 % example_4_SolveSSITModels_FSP
-% example_9_LoadingandFittingData_MLE
 
 %% Load pre-solved model 
-% load('example_9_LoadingandFittingData_MLE.mat')
+% load('example_4_SolveSSITModels_FSP.mat')
 
 % View model summariy:
 STL1_4state_FSP.summarizeModel
@@ -31,7 +30,7 @@ STL1_4state_FSP.summarizeModel
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Make a copy of our model:
-STL1_4state_multi_1 = STL1_4state_MLE;
+STL1_4state_multi_1 = STL1_4state_FSP;
 
 %% Load and associate smFISH data
 %  Associate the data with an SSIT model data as usual 
@@ -214,8 +213,8 @@ combinedModelDependent = ...
 %% Ex(4): Mixed parameters
 % Sometimes it is desirable to only let some parameters change from
 % condition to condition.  In this example, both STL1_4state_multi_1 and  
-% STL1_4state_multi_2 share parameters [14:18], but each model also has
-% its own [1:13].  (This was shown in 'example_11_...CrossValidation.m')  
+% STL1_4state_multi_2 share parameters [1:11,14:18], but each model also 
+% has its own [12:13]. (This was shown in 'example_11_...CrossValidation.m')  
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Make copies of our multi models:
@@ -223,19 +222,21 @@ STL1_4state_multi_1_mix = STL1_4state_multi_1;
 STL1_4state_multi_2_mix = STL1_4state_multi_2;
 
 %% Specify how many model parameters will be fit
-% Model 1 has 5 shared parameters plus 13 of its own (18 total):
-STL1_4state_multi_1_mix.fittingOptions.modelVarsToFit = [14:18,1:13];
+% Model 1 has 16 shared parameters plus 2 of its own (18 total):
+STL1_4state_multi_1_mix.fittingOptions.modelVarsToFit = ...
+    [[1:11,14:18],12:13];
 
-% Model 2 has 5 shared parameters plus 13 of its own (18 total):
-STL1_4state_multi_2_mix.fittingOptions.modelVarsToFit = [14:18,1:13];
+% Model 2 has 5 shared parameters plus 2 of its own (18 total):
+STL1_4state_multi_2_mix.fittingOptions.modelVarsToFit = ...
+    [[1:11,14:18],12:13];
 
 % Select which models to include in SSITMultiModel:
 Models_mix = {STL1_4state_multi_1_mix, STL1_4state_multi_2_mix};
 
 %% Define how parameters are assigned to sub-models by their indices  
-% In this example, the first 13 parameters are shared, and each model has 5
+% In this example, the first 16 parameters are shared, and each model has 2
 % of its own parameters which must be stored in separate indices:
-ParsIndices_mix = {[1:13,14:18], [1:13,19:23]};
+ParsIndices_mix = {[1:16,17:18], [1:16,19:20]};
 
 % Combine models into one "MultiModel", specify parameters, and initialize:
 combinedModelMixed = SSITMultiModel(Models_mix, ParsIndices_mix);
