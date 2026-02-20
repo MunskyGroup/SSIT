@@ -58,9 +58,13 @@ For all basic functionalities:
 # Installation and Testing
 Clone this package to a local folder on your computer. Then, navigate to this new folder in matlab and run the installation script from the MATLAB command window.
 
->> install    % Run script to set paths and check availability of SSIT codes.
+```matlab
+install    % Run script to set paths and check availability of SSIT codes.
+```
 
->> install(True) % Also run test scripts to check functionality of critical SSIT functions.  
+```matlab
+install(true) % Also run test scripts to check functionality of critical SSIT functions.
+```  
 
 
 ## Testing
@@ -79,7 +83,9 @@ The SSIT provides two basic interaction options: (1) command line tools and (2) 
 ## GUI Version  
 A GUI version of the SSIT has much of the functionality, and is a great way to familiarize yourself with the approach.  However, for intensive research tasks, we strongly recommend learning to use the more flexible and efficient command line tools. To get started with the GUI, compile and launch to tool kit with the following commands:
 
->> A = SSITGUI;
+```matlab
+A = SSITGUI;
+```
 
 You should then see the model loading and building page of the graphical interface, and you are off to the races...
 ![SSIT](https://github.com/MunskyGroup/SSIT/blob/main/src/gui/appsrc/metadata/appScreenshot.png)
@@ -127,39 +133,39 @@ Or you can start creating and solving models as follows.
 
 Example for generating an FSI model and fitting it to smFISH data for Dusp1 activation following glucocorticoid stimulation:
 
-Define SSIT Model
+**Define SSIT Model**
 
->> Model = SSIT;
+```matlab
+install;
+Model = SSIT;
+Model.species = {'OnGene';'rna'};
+Model.initialCondition = [0; 0];
+Model.propensityFunctions = {'kon * IGR * (2-OnGene)'; 'koff * OnGene'; ...
+    'kr * OnGene'; 'gr * rna'};
+Model.stoichiometry = [1,-1,0,0; 0,0,1,-1];
+Model.inputExpressions = {'IGR','a0 + a1 * exp(-r1 * t) * ...
+    (1-exp(-r2 * t)) * (t>0)'};
+Model.parameters = ({'koff',0.14; 'kon',0.14; 'kr',25; 'gr',0.01; ...
+    'a0',0.006; 'a1',0.4; 'r1',0.04; 'r2',0.1});
+Model.fspOptions.initApproxSS = true;  % Model is assumed to start at steady state at t=0;
+```
 
->> Model.species = {'OnGene';'rna'};
+**Load and Fit smFISH Data** (must be run in main SSIT directory)
 
->> Model.initialCondition = [0; 0];
+```matlab
+Model = Model.loadData('../ExampleData/DUSP1_Dex_100nM_Rep1_Rep2.csv', ...
+    {'rna','RNA_nuc'});
+Model.tSpan = unique([Model.initialTime,Model.dataSet.times]);
+fitOptions = optimset('Display','iter','MaxIter',100);
+[pars,likelihood] = Model.maximizeLikelihood([],fitOptions);
+```
 
->> Model.propensityFunctions = {'kon * IGR * (2-OnGene)'; 'koff * OnGene'; 'kr * OnGene'; 'gr * rna'};
+**Update Model and Make Plots of Results**
 
->> Model.stoichiometry = [1,-1,0,0; 0,0,1,-1];
-
->> Model.inputExpressions = {'IGR','a0 + a1 * exp(-r1 * t) * (1-exp(-r2 * t)) * (t>0)'};
-
->> Model.parameters = ({'koff',0.14; 'kon',0.14; 'kr',25; 'gr',0.01; 'a0',0.006; 'a1',0.4; 'r1',0.04; 'r2',0.1});
-    
->> Model.fspOptions.initApproxSS = true;  % Model is assumed to start at steady state at t=0;
-
-Load and Fit smFISH Data
-    
->> Model = Model.loadData('../ExampleData/DUSP1_Dex_100nM_Rep1_Rep2.csv',{'rna','RNA_nuc'});
-    
->> Model.tSpan = unique([Model.initialTime,Model.dataSet.times]);
-
->> fitOptions = optimset('Display','iter','MaxIter',100);
-
->> [pars,likelihood] = Model.maximizeLikelihood([],fitOptions);
-
-Update Model and Make Plots of Results
-
->> Model.parameters(:,2) = num2cell(pars);
-
->> Model.makeFitPlot
+```matlab
+Model.parameters(:,2) = num2cell(pars);
+Model.makeFitPlot;
+```
 
 You should arrive at a fit of the model to the experimentally measured Dusp1 mRNA distributions looking something like this:
 
