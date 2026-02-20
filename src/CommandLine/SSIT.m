@@ -4648,7 +4648,7 @@ function plotMoments(obj, solution, speciesNames, plotType, indTimes, figureNums
         obj
         solution
         speciesNames = []
-        plotType (1,1) string = "means"           % "means" | "meansAndDevs"
+        plotType (1,1) string = "means"            % "means" | "meansAndDevs"
         indTimes = []                              % [] | indices | time-vector (same length as Nt)
         figureNums = []                            % [] | numeric array of candidate figure numbers
         lineProps = {'linewidth',2}
@@ -4949,13 +4949,13 @@ end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         % plotSSA - Plots SSA trajectories and histograms from ssaSoln struct
-        function plotSSA(obj,speciesIdx,numTraj,speciesNames,lineProps,opts)
+        function plotSSA(obj,opts)
             arguments
                 obj
-                speciesIdx = []                     
-                numTraj = []                % [] -> min(10, numTotalTraj)
-                speciesNames = []             
-                lineProps = {'linewidth',2};        
+                opts.speciesIdx = []                     
+                opts.numTraj = []            % [] -> min(10, numTotalTraj)
+                opts.speciesNames = []             
+                opts.lineProps = {'linewidth',2};        
                 opts.Title (1,1) string = ""
                 opts.MeanOnly (1,1) logical = false
                 opts.HistTime double = 100  % histogram time (closest used)
@@ -4968,8 +4968,9 @@ end
                 opts.YLabel (1,1) string = "Molecule Count / Concentration"
                 opts.XLim double = []
                 opts.YLim double = []
-                opts.Colors = []      
-                % [] | species ×3 RGB | cell array | colormap name               
+                opts.Colors = [] % [] | species ×3 RGB | cell array | colormap name  
+                opts.makeVideo = false
+                opts.videoFileName = 'ssa_trajectories.mp4'
             end
         
             % ----- Extract SSA solution & sizes -----
@@ -4979,6 +4980,7 @@ end
             numTotalTraj  = size(ssaSoln.trajs, 3);
         
             % ----- Number of trajectories to draw -----
+            numTraj = opts.numTraj;
             if isempty(numTraj)
                 numTraj = min(10, numTotalTraj);
             else
@@ -4993,6 +4995,9 @@ end
             if isstring(allNames), allNames = cellstr(allNames); end
         
             % ----- Select species by names (priority) or indices -----
+            speciesNames = opts.speciesNames;
+            speciesIdx = opts.speciesIdx;
+
             if ~isempty(speciesNames)
                 if isstring(speciesNames), speciesNames = cellstr(speciesNames); end
                 [tf, loc] = ismember(speciesNames, allNames);
@@ -5113,7 +5118,7 @@ end
                 end
         
                 Xs_full = squeeze(ssaSoln.trajs(s, validIdx, :));
-                h = plot(T, mean(Xs_full, 2), lineProps{:}, 'Color', baseColor);
+                h = plot(T, mean(Xs_full, 2), opts.lineProps{:}, 'Color', baseColor);
                 legendHandles(j) = h;
                 legendEntries{j} = selNames{j};
             end
@@ -5186,8 +5191,86 @@ end
                 title(sprintf('t ≈ %.2f (%s)', Tfull(tHist_idx), selNames{j}), 'FontSize', opts.TitleFontSize);
                 grid on; box on;
             end
+
+            if makeVideo                           
+                    T = ssaSoln.T_array;
+                    validIdx = T >= 0;
+                    T = T(validIdx);
+                    trajs = ssaSoln.trajs(:, validIdx, :);
+                
+                    speciesColors = lines(numSpecies);
+                    randIdx = randperm(numTotalTraj, numTraj); % pick trajectories to show
+                
+                    % Setup video writer
+                    v = VideoWriter(videoFileName, 'MPEG-4');
+                    v.FrameRate = 10;
+                    open(v);
+                
+                    % Create figure for plotting
+                    figure;
+                    hold on;
+                
+                    % Initialize plot handles
+                    if strcmp(speciesIdx, 'all')
+                        h = gobjects(numSpecies, numTraj);
+                        for s = 1:numSpecies
+                            for i = 1:numTraj
+                                h(s, i) = plot(NaN, NaN, '-', 'Color', [speciesColors(s, :) 0.3]);
+                            end
+                        end
+                        meanLines = gobjects(1, numSpecies);
+                        for s = 1:numSpecies
+                            meanLines(s) = plot(NaN, NaN, 'Color', speciesColors(s, :), 'LineWidth', 2);
+                        end
+                    else
+                        s = speciesIdx;
+                        h = gobjects(1, numTraj);
+                        for i = 1:numTraj
+                            h(i) = plot(NaN, NaN, '-', 'Color', [speciesColors(s, :) 0.3]);
+                        end
+                        meanLine = plot(NaN, NaN, 'Color', speciesColors(s, :), 'LineWidth', 2);
+                    end
+                
+                    xlabel('Time');
+                    ylabel('Molecule Count');
+                    if strcmp(speciesIdx, 'all')
+                        legend(meanLines, speciesNames, 'Location', 'Best');
+                    else
+                        legend(meanLine, speciesNames{speciesIdx}, 'Location', 'Best');
+                    end
+                    grid on;
+                
+                    % Animate over time
+                    for tIdx = 2:length(T)
+                        tNow = T(1:tIdx);
+                
+                        if strcmp(speciesIdx, 'all')
+                            for s = 1:numSpecies
+                                Xs = squeeze(trajs(s, 1:tIdx, randIdx));
+                                for i = 1:numTraj
+                                    set(h(s, i), 'XData', tNow, 'YData', Xs(:, i));
+                                end
+                                set(meanLines(s), 'XData', tNow, 'YData', mean(Xs, 2));
+                            end
+                        else
+                            Xs = squeeze(trajs(speciesIdx, 1:tIdx, randIdx));
+                            for i = 1:numTraj
+                                set(h(i), 'XData', tNow, 'YData', Xs(:, i));
+                            end
+                            set(meanLine, 'XData', tNow, 'YData', mean(Xs, 2));
+                        end
+                
+                        drawnow;
+                        frame = getframe(gcf);
+                        writeVideo(v, frame);
+                    end
+                
+                    close(v);
+                    disp(['Video saved to ', videoFileName]);
+            end
         end
-            
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%            
         function plotFSP(obj, solution, speciesNames, plotType, indTimes, figureNums, lineProps, opts)
             % plotFSP — Plot FSP results like plotODE/plotSSA, with species subsetting
             arguments
