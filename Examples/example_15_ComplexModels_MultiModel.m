@@ -6,16 +6,16 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Preliminaries
-% Use the STL1 and 4-state STL1 models from example_1_CreateSSITModels 
+% Use the fit 4-state STL1 model from example_9_LoadingandFittingData_MLE 
 %clear
 %close all
-addpath(genpath('../'));
 
 % example_1_CreateSSITModels  
 % example_4_SolveSSITModels_FSP
+% example_9_LoadingandFittingData_MLE
 
 %% Load pre-solved model 
-% load('example_4_SolveSSITModels_FSP.mat')
+% load('example_9_LoadingandFittingData_MLE.mat')
 
 % View model summariy:
 STL1_4state_FSP.summarizeModel
@@ -31,7 +31,7 @@ STL1_4state_FSP.summarizeModel
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Make a copy of our model:
-STL1_4state_multi_1 = STL1_4state_FSP;
+STL1_4state_multi_1 = STL1_4state_MLE;
 
 %% Load and associate smFISH data
 %  Associate the data with an SSIT model data as usual 
@@ -54,7 +54,7 @@ STL1_4state_multi_2 = ...
 
 %% Set Fitting Options:
 fitAlgorithm = 'fminsearch';
-fitOptions = optimset('Display','final','MaxIter',20);
+fitOptions = optimset('Display','final','MaxIter',200); % small # for demo
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(0): Single model
