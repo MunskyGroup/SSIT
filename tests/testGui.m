@@ -31,7 +31,7 @@ classdef testGui < matlab.uitest.TestCase
         function test_change_model_folder(tc)
             % Skip on GitHub.
             if isGitHubActions()
-                testCase.assumeFail("Skipped on GitHub Actions.");
+                tc.assumeFail("Skipped on GitHub Actions.");
             end
 
             tc.press(tc.GUI.RefreshFoldersButton)
@@ -40,7 +40,7 @@ classdef testGui < matlab.uitest.TestCase
         function test_select_model(tc)
             % Skip on GitHub.
             if isGitHubActions()
-                testCase.assumeFail("Skipped on GitHub Actions.");
+                tc.assumeFail("Skipped on GitHub Actions.");
             end
             tc.choose(tc.GUI.ModelDropDown,'M00_Poisson_Process.mat');
         end
@@ -48,7 +48,7 @@ classdef testGui < matlab.uitest.TestCase
         function test_ssa_tab_options(tc)
             % Skip on GitHub.
             if isGitHubActions()
-                testCase.assumeFail("Skipped on GitHub Actions.");
+                tc.assumeFail("Skipped on GitHub Actions.");
             end
             % Change to SSA Tab
             tc.choose(tc.GUI.TabGroup,'Stochastic Simulation');
@@ -59,7 +59,7 @@ classdef testGui < matlab.uitest.TestCase
         function test_fsp_tab_options(tc)
             % Skip on GitHub.
             if isGitHubActions()
-                testCase.assumeFail("Skipped on GitHub Actions.");
+                tc.assumeFail("Skipped on GitHub Actions.");
             end
             % Change to FSP Tab
             tc.choose(tc.GUI.TabGroup,'Finite State Projection');
@@ -81,7 +81,7 @@ classdef testGui < matlab.uitest.TestCase
         function test_change_to_sens_tab(tc)
             % Skip on GitHub.
             if isGitHubActions()
-                testCase.assumeFail("Skipped on GitHub Actions.");
+                tc.assumeFail("Skipped on GitHub Actions.");
             end
             % Change to Sensitivity Tab
             tc.choose(tc.GUI.TabGroup,'Sensitivity Analysis');
@@ -96,7 +96,7 @@ classdef testGui < matlab.uitest.TestCase
         function test_change_to_FIM_tab(tc)
             % Skip on GitHub.
             if isGitHubActions()
-                testCase.assumeFail("Skipped on GitHub Actions.");
+                tc.assumeFail("Skipped on GitHub Actions.");
             end
             % Change to Sensitivity Tab
             tc.choose(tc.GUI.TabGroup,'Fisher Information');
@@ -116,7 +116,7 @@ classdef testGui < matlab.uitest.TestCase
         function test_load_complex_model(tc)
             % Skip on GitHub.
             if isGitHubActions()
-                testCase.assumeFail("Skipped on GitHub Actions.");
+                tc.assumeFail("Skipped on GitHub Actions.");
             end
             tc.choose(tc.GUI.TabGroup,'Model Loading and Building');
             tc.GUI = loadModelBP(tc.GUI, [], 'tests/test_data/GRDusp1ModelTestLibrary.mat');
@@ -152,7 +152,7 @@ classdef testGui < matlab.uitest.TestCase
         function test_hybrid_and_pdo_options(tc)
             % Skip on GitHub.
             if isGitHubActions()
-                testCase.assumeFail("Skipped on GitHub Actions.");
+                tc.assumeFail("Skipped on GitHub Actions.");
             end
             % Switch to Distortion and Hybrid Modeling tab
             tc.choose(tc.GUI.TabGroup,'Distortion and Hybrid Modeling');
@@ -173,7 +173,7 @@ classdef testGui < matlab.uitest.TestCase
         function test_hybrid_and_pdo_fitting(tc)
             % Skip on GitHub.
             if isGitHubActions()
-                testCase.assumeFail("Skipped on GitHub Actions.");
+                tc.assumeFail("Skipped on GitHub Actions.");
             end
             %% Change back to data loading and fitting.
             tc.choose(tc.GUI.TabGroup,'Data Loading and Fitting');
@@ -192,7 +192,7 @@ classdef testGui < matlab.uitest.TestCase
         function test_fsp_tab_hybrid_an(tc)
             % Skip on GitHub.
             if isGitHubActions()
-                testCase.assumeFail("Skipped on GitHub Actions.");
+                tc.assumeFail("Skipped on GitHub Actions.");
             end
             % Change to FSP Tab
             tc.choose(tc.GUI.TabGroup,'Finite State Projection');
