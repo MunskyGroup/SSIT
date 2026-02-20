@@ -1,24 +1,34 @@
-function testResults = install(runTests,runExamples,overwritePropFuns,saveSearchPath,publishHtml)
+function testResults = install(runTests,runExamples,overwritePropFuns,saveSearchPath,publishHtml,cluster)
 arguments
     runTests = false
     runExamples = false
     overwritePropFuns = []
     saveSearchPath = []
     publishHtml = false
+    cluster = false
 end
+
+if cluster
+    runTests =false;
+    runExamples = false;
+end
+    
 
 % Check that 
 weAreIn = pwd;
 J = strfind(weAreIn,filesep);
 if ~strcmpi(weAreIn(J(end)+1:end),'SSIT')
-    abort = questdlg({'You appear not to be in the SSIT Directory.';'Your current directory is';weAreIn;'Do you wish to abort?'}, ...
-        'Confirm Action', ...
-        'Yes','No','Yes');
-    if strcmpi(abort,'Yes')
-        return
+    if cluster
+        error('Not in correct SSIT directory -- cannot install')
+    else
+        abort = questdlg({'You appear not to be in the SSIT Directory.';'Your current directory is';weAreIn;'Do you wish to abort?'}, ...
+            'Confirm Action', ...
+            'Yes','No','Yes');
+        if strcmpi(abort,'Yes')
+            return
+        end
     end
 end
-
 
 % Set the path to include all SSIT codes.  
 addpath(genpath('src'));
@@ -26,7 +36,7 @@ addpath(genpath('src'));
 if ~exist("tmpPropensityFunctions")
     disp('Creating director "tmpPropensityFunctions".')
     mkdir("tmpPropensityFunctions")
-elseif ~isempty(dir("tmpPropensityFunctions"))
+elseif ~isempty(dir("tmpPropensityFunctions"))&&~cluster
     if isempty(overwritePropFuns)
         overwritePropFuns = questdlg({'Directory "tmpPropensityFunctions" already exists.','Do you wish to delete for a clean installation?'}, ...
             'Confirm Action', ...
@@ -52,6 +62,11 @@ try
     disp('SSIT Command Tools are available.')
 catch me
     me
+    return
+end
+
+if cluster
+    savepath
     return
 end
 
