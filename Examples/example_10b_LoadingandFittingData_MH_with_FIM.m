@@ -15,17 +15,17 @@ STL1_4state_MH_FIM = STL1_4state_MLE;
 %% Compute FIM, Run Metropolis Hastings
 % Specify Prior as log-normal distribution with wide uncertainty
 % Prior log-mean:
-mu_log10 = [0.8,3,-0.1,2,2.75,0.6,3,2.5,0,3.5,1.5,-0.15,0.5,1.5,-1]; 
+mu_log10 = [0.5,2,5,3.5,-0.4,1,0.2,0.4,-0.5,-1.3,-0.1,2,0.5]; 
 
 % Prior log-standard deviation:
-sig_log10 = 2*ones(1,15);      
+sig_log10 = 2*ones(1,13);      
 
 % Prior:
 STL1_4state_MH_FIM.fittingOptions.logPrior = ...
     @(x)-sum((log10(x)-mu_log10).^2./(2*sig_log10.^2));
 
 % Choose parameters to search:
-STL1_4state_MH_FIM.fittingOptions.modelVarsToFit = [1:15];
+STL1_4state_MH_FIM.fittingOptions.modelVarsToFit = [1:13];
 
 % Create first parameter guess:
 STL1_4state_MH_FIM_pars = [STL1_4state_MH_FIM.parameters{:,2}];         
@@ -37,18 +37,15 @@ fimResults = STL1_4state_MH_FIM.computeFIM([],'log');
 fimTotal = STL1_4state_MH_FIM.evaluateExperiment(fimResults,...
            STL1_4state_MH_FIM.dataSet.nCells,diag(sig_log10.^2)); 
 
-% Choose parameters to search:
-STL1_4state_MH_FIM.fittingOptions.modelVarsToFit = [1:15]; 
-
 % Select FIM for free parameters:
-FIMfree = fimTotal{1}([1:15],[1:15]); 
+FIMfree = fimTotal{1}([1:13],[1:13]); 
 
 % Estimate the covariance using CRLB:
 COVfree = (1/2*(FIMfree + FIMfree'))^(-1);  
 
 % Define Metropolis-Hasting settings:
 STL1_4state_MH_FIM.fittingOptions.logPrior = ...
-    @(x)-sum((log10(x)-mu_log10([1:15])).^2./(2*sig_log10([1:15]).^2));
+    @(x)-sum((log10(x)-mu_log10([1:13])).^2./(2*sig_log10([1:13]).^2));
 proposalWidthScale = 0.01;
 STL1_4state_MH_FIM_FIMOptions = ...
  struct('proposalDistribution',@(x)mvnrnd(x,proposalWidthScale*COVfree),...
@@ -60,7 +57,7 @@ STL1_4state_MH_FIM_FIMOptions = ...
     STL1_4state_MH_FIM_FIMOptions, 'MetropolisHastings'); 
 
 % Store sampled parameters:
-STL1_4state_MH_FIM.parameters([1:15],2) = ...
+STL1_4state_MH_FIM.parameters([1:13],2) = ...
     num2cell(STL1_4state_MH_FIM_pars);
 
 % Plot MH samples, FIM:
