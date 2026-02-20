@@ -4438,12 +4438,12 @@ classdef SSIT
             end
         end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        function plotODE(obj,speciesNames,timeVec,lineProps,opts)
+        function plotODE(obj,opts)
             arguments
                 obj
-                speciesNames = []                  
-                timeVec = []
-                lineProps = {'linewidth',2};
+                opts.speciesNames cell = []                  
+                opts.timeVec double = []
+                opts.lineProps cell = {'linewidth',2};
                 opts.Title (1,1) string = ""
                 opts.TitleFontSize (1,1) double {mustBePositive} = 24
                 opts.AxisLabelSize (1,1) double {mustBePositive} = 18
@@ -4454,12 +4454,18 @@ classdef SSIT
                 opts.YLabel (1,1) string = "Molecule Count / Concentration"
                 opts.XLim double = []
                 opts.YLim double = []
-                opts.Colors = []  
+                opts.Colors = [] 
+                opts.makeMovie logical = false
+                opts.videoFileName (1,1) string = 'ode_trajectories.mp4'
                 % [] | n×3 RGB | cell of ColorSpec/RGB | colormap name string
             end
         
             X = obj.Solutions.ode;  % [nTime × nSpecies]
             [nTime, nSpecies] = size(X);
+
+            speciesNames = opts.speciesNames;
+            timeVec = opts.timeVec;
+            lineProps = opts.lineProps;
         
             % ----- timeVec -----
             if isempty(timeVec)
@@ -4581,6 +4587,58 @@ classdef SSIT
                 if ~isempty(lgd), lgd.FontSize = opts.LegendFontSize; end
             end
             hold off;
+
+            % Plot ODE video - Animates and saves ODE trajectories as a video
+            if opts.makeMovie
+                videoFileName = opts.videoFileName;
+            
+                if nargin < 4 || isempty(videoFileName)
+                    videoFileName = 'ode_trajectories.mp4';
+                end
+                if nargin < 3 || isempty(timeVec)
+                    timeVec = 1:nTime;
+                end
+                if nargin < 2 || isempty(speciesNames)
+                    speciesNames = arrayfun(@(s) sprintf('Species %d', s), 1:nSpecies, 'UniformOutput', false);
+                elseif length(speciesNames) ~= nSpecies
+                    error('The number of species names must match the number of species (%d).', numSpecies);
+                end
+            
+                % Prepare video writer
+                v = VideoWriter(videoFileName, 'MPEG-4');
+                v.FrameRate = 10;
+                open(v);
+            
+                % Setup figure
+                figure;
+                hold on;
+                colors = lines(nSpecies);
+            
+                h = gobjects(1, nSpecies);
+                for s = 1:nSpecies
+                    h(s) = plot(NaN, NaN, '-', 'LineWidth', 2, 'Color', colors(s, :));
+                end
+            
+                xlabel('Time');
+                ylabel('Molecule Count / Concentration');
+                title('ODE Trajectories Animation');
+                legend(speciesNames, 'Location', 'southeast');
+                grid on;
+            
+                % Animate each time point
+                for tIdx = 2:nTime
+                    tNow = timeVec(1:tIdx);
+                    for s = 1:nSpecies
+                        set(h(s), 'XData', tNow, 'YData', X(1:tIdx, s));
+                    end
+                    drawnow;
+                    frame = getframe(gcf);
+                    writeVideo(v, frame);
+                end
+            
+                close(v);
+                disp(['Video saved to ', videoFileName]);
+            end
         end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 function plotMoments(obj, solution, speciesNames, plotType, indTimes, figureNums, lineProps, opts)
