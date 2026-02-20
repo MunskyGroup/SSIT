@@ -4969,7 +4969,7 @@ end
                 opts.XLim double = []
                 opts.YLim double = []
                 opts.Colors = [] % [] | species ×3 RGB | cell array | colormap name  
-                opts.makeVideo = false
+                opts.makeMovie = false
                 opts.videoFileName = 'ssa_trajectories.mp4'
             end
         
@@ -5192,7 +5192,7 @@ end
                 grid on; box on;
             end
 
-            if makeVideo                           
+            if opts.makeMovie                           
                     T = ssaSoln.T_array;
                     validIdx = T >= 0;
                     T = T(validIdx);
@@ -5202,7 +5202,7 @@ end
                     randIdx = randperm(numTotalTraj, numTraj); % pick trajectories to show
                 
                     % Setup video writer
-                    v = VideoWriter(videoFileName, 'MPEG-4');
+                    v = VideoWriter(opts.videoFileName, 'MPEG-4');
                     v.FrameRate = 10;
                     open(v);
                 
@@ -5263,10 +5263,9 @@ end
                         drawnow;
                         frame = getframe(gcf);
                         writeVideo(v, frame);
-                    end
-                
+                    end                
                     close(v);
-                    disp(['Video saved to ', videoFileName]);
+                    disp(['Video saved to ', opts.videoFileName]);
             end
         end
 
