@@ -88,7 +88,7 @@ A = SSITGUI;
 ```
 
 You should then see the model loading and building page of the graphical interface, and you are off to the races...
-![SSIT](https://github.com/MunskyGroup/SSIT/blob/main/src/gui/appsrc/metadata/appScreenshot.png)
+![SSIT](https://github.com/MunskyGroup/SSIT/blob/main/images/SSITAnimation.gif)
 
 ## Command Line Version
 
