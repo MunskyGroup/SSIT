@@ -1,0 +1,455 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<META http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      -->
+<title>example_5_SolveSSITModels_EscapeTimes</title>
+<meta name="generator" content="MATLAB 25.2">
+<link rel="schema.DC" href="http://purl.org/dc/elements/1.1/">
+<meta name="DC.date" content="2026-02-20">
+<meta name="DC.source" content="example_5_SolveSSITModels_EscapeTimes.m">
+<style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; }
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+span.typesection { color:#A0522D }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style>
+</head>
+<body>
+<div class="content">
+<h2>Contents</h2>
+<div>
+<ul>
+<li>
+<a href="#1">SSIT/Examples/example_5_SolveSSITModels_EscapeTimes</a>
+</li>
+<li>
+<a href="#2">Section 2.2: Finding and visualizing master equation solutions</a>
+</li>
+<li>
+<a href="#3">Preliminaries</a>
+</li>
+<li>
+<a href="#4">Ex(1): Solve escape times for the bursting gene example model</a>
+</li>
+<li>
+<a href="#5">Model:</a>
+</li>
+<li>
+<a href="#6">Specify a boundary for the escape calculation</a>
+</li>
+<li>
+<a href="#7">Ex(2): Solve escape times for the time-varying STL1 yeast model</a>
+</li>
+<li>
+<a href="#8">STL1:</a>
+</li>
+<li>
+<a href="#9">Ex(3): Solve escape times for the 4-state time-varying STL1 yeast model</a>
+</li>
+<li>
+<a href="#10">4-state STL1:</a>
+</li>
+</ul>
+</div>
+<h2 id="1">SSIT/Examples/example_5_SolveSSITModels_EscapeTimes</h2>
+<pre class="codeinput">
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<h2 id="2">Section 2.2: Finding and visualizing master equation solutions</h2>
+<pre class="language-matlab">* Solve a <span class="string">first-passage</span> <span class="string">time</span> <span class="string">problem</span> <span class="string">(escape times)</span>
+</pre>
+<pre class="codeinput">
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<h2 id="3">Preliminaries</h2>
+<p>Use the models from example_1_CreateSSITModels clear close all</p>
+<pre class="codeinput">
+<span class="comment">% example_1_CreateSSITModels</span>
+
+<span class="comment">% Load the models created in example_1_CreateSSITModels</span>
+<span class="comment">% load('example_1_CreateSSITModels.mat')</span>
+
+<span class="comment">% View model summaries:</span>
+Model.summarizeModel
+STL1.summarizeModel
+STL1_4state.summarizeModel
+
+<span class="comment">% Set the times at which distributions will be computed:</span>
+Model.tSpan = linspace(0,50,101);
+STL1.tSpan = linspace(0,50,101);
+STL1_4state.tSpan = linspace(0,50,101);
+
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<pre class="codeoutput">Species:
+     offGene; IC = 1;  discrete stochastic
+     onGene; IC = 0;  discrete stochastic
+     mRNA; IC = 0;  discrete stochastic
+ 
+Reactions:
+  Reaction 1:
+     s1: 1*offGene --&gt; 1*onGene
+     w1: kon * offGene
+  Reaction 2:
+     s2: 1*onGene --&gt; 1*offGene
+     w2: koff * onGene
+  Reaction 3:
+     s3: NULL --&gt; 1*mRNA
+     w3: kr * onGene
+  Reaction 4:
+     s4: 1*mRNA --&gt; NULL
+     w4: dr * mRNA
+ 
+Model Parameters:
+    {'kon' }    {[0.2000]}
+    {'koff'}    {[0.2000]}
+    {'kr'  }    {[    10]}
+    {'dr'  }    {[     5]}
+
+Species:
+     offGene; IC = 1;  discrete stochastic
+     onGene; IC = 0;  discrete stochastic
+     mRNA; IC = 0;  discrete stochastic
+ 
+Reactions:
+  Reaction 1:
+     s1: 1*offGene --&gt; 1*onGene
+     w1: kon * offGene
+  Reaction 2:
+     s2: 1*onGene --&gt; 1*offGene
+     w2: onGene*koff/(1+Hog1)
+  Reaction 3:
+     s3: NULL --&gt; 1*mRNA
+     w3: kr * onGene
+  Reaction 4:
+     s4: 1*mRNA --&gt; NULL
+     w4: dr * mRNA
+ 
+Input Signals:
+     Hog1(t) = (a0+a1*exp(-r1*t)*(1-exp(-r2*t))*(t&gt;0))
+ 
+Model Parameters:
+    {'kon' }    {[0.2000]}
+    {'koff'}    {[0.2000]}
+    {'kr'  }    {[    10]}
+    {'dr'  }    {[     5]}
+    {'a0'  }    {[     5]}
+    {'a1'  }    {[    10]}
+    {'r1'  }    {[0.0040]}
+    {'r2'  }    {[0.0100]}
+
+Species:
+     g1; IC = 1;  discrete stochastic
+     g2; IC = 0;  discrete stochastic
+     g3; IC = 0;  discrete stochastic
+     g4; IC = 0;  discrete stochastic
+     mRNA; IC = 0;  discrete stochastic
+ 
+Reactions:
+  Reaction 1:
+     s1: 1*g1 --&gt; 1*g2
+     w1: k12*g1
+  Reaction 2:
+     s2: 1*g2 --&gt; 1*g1
+     w2: (max(0,k21o*(1-k21i*Hog1)))*g2
+  Reaction 3:
+     s3: 1*g2 --&gt; 1*g3
+     w3: k23*g2
+  Reaction 4:
+     s4: 1*g3 --&gt; 1*g2
+     w4: k32*g3
+  Reaction 5:
+     s5: 1*g3 --&gt; 1*g4
+     w5: k34*g3
+  Reaction 6:
+     s6: 1*g4 --&gt; 1*g3
+     w6: k43*g4
+  Reaction 7:
+     s7: NULL --&gt; 1*mRNA
+     w7: kr1*g1
+  Reaction 8:
+     s8: NULL --&gt; 1*mRNA
+     w8: kr2*g2
+  Reaction 9:
+     s9: NULL --&gt; 1*mRNA
+     w9: kr3*g3
+  Reaction 10:
+     s10: NULL --&gt; 1*mRNA
+     w10: kr4*g4
+  Reaction 11:
+     s11: 1*mRNA --&gt; NULL
+     w11: dr*mRNA
+ 
+Input Signals:
+     Hog1(t) = A*(((1-(exp(1)^(-r1*(t-t0))))*exp(1)^(-r2*(t-t0)))/(1+((1-(exp(1)^(-r1*(t-t0))))*exp(1)^(-r2*(t-t0)))/M))^n*(t&gt;t0)
+ 
+Model Parameters:
+    {'t0'  }    {[    3.1700]}
+    {'k12' }    {[        78]}
+    {'k21o'}    {[    192000]}
+    {'k21i'}    {[      3200]}
+    {'k23' }    {[    0.4020]}
+    {'k34' }    {[    7.8000]}
+    {'k32' }    {[    1.6200]}
+    {'k43' }    {[    2.2800]}
+    {'dr'  }    {[    0.2940]}
+    {'kr1' }    {[    0.0468]}
+    {'kr2' }    {[    0.7200]}
+    {'kr3' }    {[   59.4000]}
+    {'kr4' }    {[    3.2400]}
+    {'r1'  }    {[    0.0041]}
+    {'r2'  }    {[    0.4260]}
+    {'A'   }    {[9.3000e+09]}
+    {'M'   }    {[6.4000e-04]}
+    {'n'   }    {[    3.1000]}
+
+</pre>
+<h2 id="4">Ex(1): Solve escape times for the bursting gene example model</h2>
+<pre>from example_1_CreateSSITModels</pre>
+<pre class="codeinput">
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<h2 id="5">Model:</h2>
+<p>Create a copy of the bursting gene model:</p>
+<pre class="codeinput">    Model_escape = Model;
+</pre>
+<h2 id="6">Specify a boundary for the escape calculation</h2>
+<p>Calculate the time until the mRNA concentration reaches 5</p>
+<pre class="codeinput">    Model_escape.fspOptions.escapeSinks.f = {<span class="string">'mRNA'</span>};
+    Model_escape.fspOptions.verbose = false;
+    Model_escape.fspOptions.escapeSinks.b = 5;
+    Model_escape = Model_escape.formPropensitiesGeneral(<span class="string">'Model_escape'</span>);
+    [~,~,Model_escape] = Model_escape.solve;
+
+    <span class="comment">% Plot the CDF and PDF</span>
+    Model_escape.plotFSP(Model_escape.Solutions, [], <span class="string">"escapeTimes"</span>, [],<span class="keyword">...</span>
+        [], {<span class="string">'linewidth'</span>,3}, Title=<span class="string">"Bursting Gene (mRNA)"</span>,<span class="keyword">...</span>
+        Colors=[0.93,0.69,0.13], LegendLocation=<span class="string">"southeast"</span>);
+
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<img vspace="5" hspace="5" src="example_5_SolveSSITModels_EscapeTimes_01.png" alt=""> <h2 id="7">Ex(2): Solve escape times for the time-varying STL1 yeast model</h2>
+<pre>from example_1_CreateSSITModels</pre>
+<pre class="codeinput">
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<h2 id="8">STL1:</h2>
+<p>Create a copy of the time-varying STL1 yeast model:</p>
+<pre class="codeinput">    STL1_escape = STL1;
+
+    <span class="comment">% Solve for the escape time:</span>
+    STL1_escape.fspOptions.escapeSinks.f = {<span class="string">'offGene'</span>,<span class="string">'onGene'</span>};
+    STL1_escape.fspOptions.escapeSinks.b = [0.5;0.5];
+    STL1_escape = STL1_escape.formPropensitiesGeneral(<span class="string">'STL1_escape'</span>);
+    [~,~,STL1_escape] = STL1_escape.solve;
+
+    <span class="comment">% Plot the CDF and PDF</span>
+    STL1_escape.plotFSP(STL1_escape.Solutions,[],<span class="string">"escapeTimes"</span>,[],[],<span class="keyword">...</span>
+        {<span class="string">'linewidth'</span>,3}, Title=<span class="string">"STL1 (offGene, onGene)"</span>,<span class="keyword">...</span>
+        LegendLocation=<span class="string">"east"</span>);
+
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<img vspace="5" hspace="5" src="example_5_SolveSSITModels_EscapeTimes_02.png" alt=""> <h2 id="9">Ex(3): Solve escape times for the 4-state time-varying STL1 yeast model</h2>
+<pre>from example_1_CreateSSITModels</pre>
+<pre class="codeinput">
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<h2 id="10">4-state STL1:</h2>
+<p>Create a copy of the time-varying STL1 yeast model:</p>
+<pre class="codeinput">    STL1_4state_escape = STL1_4state;
+
+    <span class="comment">% This should not be required, since propensities are already</span>
+    <span class="comment">% generated.</span>
+    STL1_4state_escape = <span class="keyword">...</span>
+      STL1_4state_escape.formPropensitiesGeneral(<span class="string">'STL1_4state_escape'</span>);
+
+    <span class="comment">% Set the initial populations:</span>
+    STL1_4state_escape.initialCondition = [1;0;0;0;0];
+
+    <span class="comment">% Set the times at which distributions will be computed:</span>
+    STL1_4state_escape.tSpan = linspace(0,100,200);
+
+    <span class="comment">% Solve for time for mRNA to reach 100:</span>
+    STL1_4state_escape.fspOptions.escapeSinks.f = {<span class="string">'mRNA'</span>};
+    STL1_4state_escape.fspOptions.escapeSinks.b = 100;
+    [~,~,STL1_4state_escape] = STL1_4state_escape.solve;
+
+    <span class="comment">% Plot the CDF and PDF</span>
+    STL1_4state_escape.plotFSP(STL1_4state_escape.Solutions, [],<span class="keyword">...</span>
+        <span class="string">"escapeTimes"</span>, [], [], {<span class="string">'linewidth'</span>,3}, XLim=[0,50],<span class="keyword">...</span>
+        TitleFontSize=24, Title=<span class="string">"4-state STL1 (mRNA)"</span>,<span class="keyword">...</span>
+        Colors=[0.23,0.67,0.2], LegendLocation=<span class="string">"southeast"</span>);
+</pre>
+<img vspace="5" hspace="5" src="example_5_SolveSSITModels_EscapeTimes_03.png" alt=""> <p class="footer">
+<br>
+<a href="https://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2025b</a>
+<br>
+</p>
+</div>
+<!--
+##### SOURCE BEGIN #####
+%% SSIT/Examples/example_5_SolveSSITModels_EscapeTimes 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Section 2.2: Finding and visualizing master equation solutions
+%   * Solve a first-passage time problem (escape times)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% Preliminaries
+% Use the models from example_1_CreateSSITModels
+% clear
+% close all
+
+% example_1_CreateSSITModels
+
+% Load the models created in example_1_CreateSSITModels
+% load('example_1_CreateSSITModels.mat')
+
+% View model summaries:
+Model.summarizeModel
+STL1.summarizeModel
+STL1_4state.summarizeModel
+
+% Set the times at which distributions will be computed:
+Model.tSpan = linspace(0,50,101);
+STL1.tSpan = linspace(0,50,101);
+STL1_4state.tSpan = linspace(0,50,101);
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Ex(1): Solve escape times for the bursting gene example model 
+%  from example_1_CreateSSITModels
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% Model:
+    % Create a copy of the bursting gene model:
+    Model_escape = Model;
+    
+    %% Specify a boundary for the escape calculation
+    % Calculate the time until the mRNA concentration reaches 5
+    Model_escape.fspOptions.escapeSinks.f = {'mRNA'};
+    Model_escape.fspOptions.verbose = false;
+    Model_escape.fspOptions.escapeSinks.b = 5;
+    Model_escape = Model_escape.formPropensitiesGeneral('Model_escape');
+    [~,~,Model_escape] = Model_escape.solve;
+
+    % Plot the CDF and PDF
+    Model_escape.plotFSP(Model_escape.Solutions, [], "escapeTimes", [],...
+        [], {'linewidth',3}, Title="Bursting Gene (mRNA)",...
+        Colors=[0.93,0.69,0.13], LegendLocation="southeast");
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Ex(2): Solve escape times for the time-varying STL1 yeast model
+%  from example_1_CreateSSITModels
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% STL1:
+    % Create a copy of the time-varying STL1 yeast model:
+    STL1_escape = STL1;
+    
+    % Solve for the escape time:
+    STL1_escape.fspOptions.escapeSinks.f = {'offGene','onGene'};
+    STL1_escape.fspOptions.escapeSinks.b = [0.5;0.5];
+    STL1_escape = STL1_escape.formPropensitiesGeneral('STL1_escape');
+    [~,~,STL1_escape] = STL1_escape.solve;
+
+    % Plot the CDF and PDF
+    STL1_escape.plotFSP(STL1_escape.Solutions,[],"escapeTimes",[],[],...
+        {'linewidth',3}, Title="STL1 (offGene, onGene)",...
+        LegendLocation="east");
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Ex(3): Solve escape times for the 4-state time-varying STL1 yeast model
+%  from example_1_CreateSSITModels
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% 4-state STL1:
+    % Create a copy of the time-varying STL1 yeast model:
+    STL1_4state_escape = STL1_4state;
+
+    % This should not be required, since propensities are already
+    % generated.
+    STL1_4state_escape = ...
+      STL1_4state_escape.formPropensitiesGeneral('STL1_4state_escape');
+
+    % Set the initial populations:
+    STL1_4state_escape.initialCondition = [1;0;0;0;0];
+
+    % Set the times at which distributions will be computed:
+    STL1_4state_escape.tSpan = linspace(0,100,200);
+
+    % Solve for time for mRNA to reach 100:
+    STL1_4state_escape.fspOptions.escapeSinks.f = {'mRNA'};
+    STL1_4state_escape.fspOptions.escapeSinks.b = 100;    
+    [~,~,STL1_4state_escape] = STL1_4state_escape.solve;
+
+    % Plot the CDF and PDF
+    STL1_4state_escape.plotFSP(STL1_4state_escape.Solutions, [],...
+        "escapeTimes", [], [], {'linewidth',3}, XLim=[0,50],...
+        TitleFontSize=24, Title="4-state STL1 (mRNA)",...
+        Colors=[0.23,0.67,0.2], LegendLocation="southeast");
+
+##### SOURCE END #####
+-->
+</body>
+</html>

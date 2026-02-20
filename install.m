@@ -118,11 +118,12 @@ if runExamples
     completed = zeros(1,length(ExampleFiles),'logical');
     for iEx = 1:length(ExampleFiles)
         try 
-            set(0, 'DefaultFigureVisible', 'off');
             if publishHtml
+                set(0, 'DefaultFigureVisible', 'on');
                 publish(ExampleFiles{iEx})
                 close all
             else
+                set(0, 'DefaultFigureVisible', 'off');
                 tic; out = evalc(ExampleFiles{iEx}); timeToc = toc;
                 fid = fopen(['exampleLogs/output',ExampleFiles{iEx},'.txt'],'w');
                 fprintf(fid,'%s', out);
