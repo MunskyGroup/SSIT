@@ -198,6 +198,8 @@ end
 if isempty(stateSpace)||stateSpace.numConstraints~=constraintCount||size(stateSpace.states,1)~=length(speciesNames)
     stateSpace = ssit.FiniteStateSet(initStates, stoichMatrix);
     stateSpace = stateSpace.expand(constraintFunctions, constraintBoundsFinal);
+else
+    constraintBoundsFinal = max(constraintBoundsFinal,max(constraintFunctions(stateSpace.states),[],2));
 end
 
 % Define initial probability mass function.
