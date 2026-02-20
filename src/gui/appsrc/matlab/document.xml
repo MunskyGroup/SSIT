@@ -1809,6 +1809,9 @@
         % Create UIFigure and components
         function createComponents(app)
 
+            % Get the file path for locating images
+            pathToMLAPP = fileparts(mfilename('fullpath'));
+
             % Create UIFigure and hide until all components are created
             app.UIFigure = uifigure('Visible', 'off');
             app.UIFigure.AutoResizeChildren = 'off';
@@ -4012,7 +4015,7 @@
             % Create Image
             app.Image = uiimage(app.RightPanel);
             app.Image.Position = [1224 558 156 144];
-            app.Image.ImageSource = 'SSITLOGO.jpg';
+            app.Image.ImageSource = fullfile(pathToMLAPP, 'SSITLOGO.jpg');
 
             % Create FitinBackgroundmaclinuxonlyButton
             app.FitinBackgroundmaclinuxonlyButton = uibutton(app.UIFigure, 'state');
