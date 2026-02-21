@@ -4641,15 +4641,15 @@ classdef SSIT
             end
         end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function plotMoments(obj, solution, speciesNames, plotType, indTimes, figureNums, lineProps, opts)
+function plotMoments(obj, opts)
     arguments
         obj
-        solution
-        speciesNames = []
-        plotType (1,1) string = "means"            % "means" | "meansAndDevs"
-        indTimes = []                              % [] | indices | time-vector (same length as Nt)
-        figureNums = []                            % [] | numeric array of candidate figure numbers
-        lineProps = {'linewidth',2}
+        opts.solution = obj.Solutions;
+        opts.speciesNames = []
+        opts.plotType (1,1) string = "means"       % "means" | "meansAndDevs"
+        opts.indTimes = []                         % [] | indices | time-vector (same length as Nt)
+        opts.figureNums = []                       % [] | numeric array of candidate figure numbers
+        opts.lineProps = {'linewidth',2}
         opts.SpeciesIdx = []                       % numeric indices (alternative to names)
         opts.Colors = []                           % [] | colormap name | n×3 RGB | cell array
         opts.Title (1,1) string = ""
@@ -4663,6 +4663,13 @@ function plotMoments(obj, solution, speciesNames, plotType, indTimes, figureNums
         opts.XLim double = []                      % e.g., [0 50]
         opts.YLim double = []                      % e.g., [0 200]
     end
+
+    solution = opts.solution;
+    speciesNames = opts.speciesNames;
+    plotType = opts.plotType; 
+    indTimes = opts.indTimes;                   
+    figureNums = opts.figureNums;            
+    lineProps = opts.lineProps;
 
     % ---------- Resolve raw moments matrix ----------
     momRaw = extractMomentsMatrix(solution);
@@ -5271,6 +5278,7 @@ end
         function plotFSP(obj, opts)
             arguments
                 obj
+                opts.solution = obj.Solutions;
                 opts.speciesNames = []
                 opts.plotType (1,1) string = "means"
                 opts.indTimes = []
@@ -5290,7 +5298,7 @@ end
                 opts.YLim double = []
             end
 
-            solution = obj.Solutions;
+            solution = opts.solution;
             speciesNames = opts.speciesNames; 
             plotType = opts.plotType;
             indTimes = opts.indTimes; 
@@ -5367,7 +5375,8 @@ end
                 app.FspPrintTimesField.Value = mat2str(obj.tSpan);
                 solution = exportFSPResults(app);
                 % Time selection
-                if isempty(indTimes), indTimes = 1:length(solution.T_array); 
+                if isempty(indTimes)
+                    indTimes = 1:length(obj.tSpan); 
                 end
                 Nt = numel(indTimes);
             end
