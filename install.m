@@ -9,7 +9,6 @@ arguments
 end
 
 if isCluster
-    runTests = false;
     runExamples = false;
 end
     
