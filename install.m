@@ -1,24 +1,23 @@
-function testResults = install(runTests,runExamples,overwritePropFuns,saveSearchPath,publishHtml,cluster)
+function testResults = install(runTests,runExamples,overwritePropFuns,saveSearchPath,publishHtml,isCluster)
 arguments
     runTests = false
     runExamples = false
     overwritePropFuns = []
     saveSearchPath = []
     publishHtml = false
-    cluster = false
+    isCluster = false
 end
 
-if cluster
-    runTests =false;
+if isCluster
+    runTests = false;
     runExamples = false;
 end
     
-
 % Check that 
 weAreIn = pwd;
 J = strfind(weAreIn,filesep);
 if ~strcmpi(weAreIn(J(end)+1:end),'SSIT')
-    if cluster
+    if isCluster
         error('Not in correct SSIT directory -- cannot install')
     else
         abort = questdlg({'You appear not to be in the SSIT Directory.';'Your current directory is';weAreIn;'Do you wish to abort?'}, ...
@@ -33,10 +32,10 @@ end
 % Set the path to include all SSIT codes.  
 addpath(genpath('src'));
 
-if ~exist("tmpPropensityFunctions")
+if ~exist("tmpPropensityFunctions","dir")
     disp('Creating director "tmpPropensityFunctions".')
     mkdir("tmpPropensityFunctions")
-elseif ~isempty(dir("tmpPropensityFunctions"))&&~cluster
+elseif ~isempty(dir("tmpPropensityFunctions"))&&~isCluster
     if isempty(overwritePropFuns)
         overwritePropFuns = questdlg({'Directory "tmpPropensityFunctions" already exists.','Do you wish to delete for a clean installation?'}, ...
             'Confirm Action', ...
@@ -57,6 +56,7 @@ else
     save(configFile,'pathToPropensityFuns','-append');
 end
 
+% Test command line installation
 try
     A1 = SSIT; clear A1
     disp('SSIT Command Tools are available.')
@@ -64,28 +64,27 @@ catch me
     me
     return
 end
+% Test GUI installation (if not on cluster)
+if ~isCluster
+    try
+        A2 = SSITGUI; close(A2.UIFigure);
+        disp('SSIT Command Tools and SSIT GUI are available.')
+    catch me
+        me
+        return
+    end
 
-if cluster
-    savepath
-    return
-end
-
-try
-    A2 = SSITGUI; close(A2.UIFigure);
-    disp('SSIT Command Tools and SSIT GUI are available.')
-catch me
-    me
-    return
-end
-
-if isempty(saveSearchPath)
-    saveSearchPath = questdlg({'Installation is successful.','Do you wish to save the MATLAB search path','to use SSIT in future sessions?'}, ...
-        'Confirm Action', ...
-        'Yes','No','No');
-end
-switch saveSearchPath
-    case 'Yes'
-        savepath
+    if isempty(saveSearchPath)
+        saveSearchPath = questdlg({'Installation is successful.','Do you wish to save the MATLAB search path','to use SSIT in future sessions?'}, ...
+            'Confirm Action', ...
+            'Yes','No','No');
+    end
+    switch saveSearchPath
+        case 'Yes'
+            savepath
+    end
+else
+    savepath 'src/pathdef.m';
 end
 
 if runTests
@@ -102,7 +101,7 @@ else
     testResults.tests =[];
 end
 
-if runExamples
+if ~isCluster&&runExamples
     origDir = pwd;              % save current directory
     cleanupEx = onCleanup(@() cd(origDir));  % guarantee return
     cd('Examples')
