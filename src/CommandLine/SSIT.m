@@ -569,6 +569,10 @@ classdef SSIT
                     disp('Could not write moments equations (possibly due to incompatible logical functions in propensities).')
                 end
                 return
+            elseif strcmpi(obj.solutionScheme,'ssa')
+                % propensity functions do not need to be compiled in
+                % advance for SSA calls.
+                return
             end
 
             % Clear Statespace
@@ -1900,7 +1904,6 @@ classdef SSIT
                 [Solution, bConstraints, obj] = obj.solveHelper(stateSpace,saveFile,fspSoln);
             catch
                 obj.propensitiesGeneral = [];
-
                 newPropFileName = [obj.propensityFilePrefix,'_',char(randi([97 122]))];
                 disp(['(Re)Forming Propensity Function Files under new name: ',newPropFileName]);
                 obj = obj.formPropensitiesGeneral(newPropFileName);
@@ -2154,6 +2157,7 @@ classdef SSIT
                         disp(['SSA Results saved to ',saveFile])
                     end
 
+                    
                     bConstraints = max(obj.fspConstraints.f((reshape(Solution.trajs,[size(Solution.trajs,1),size(Solution.trajs,2)*size(Solution.trajs,3)]))),[],2);
                     bConstraints = max(bConstraints,obj.fspConstraints.b);
 
