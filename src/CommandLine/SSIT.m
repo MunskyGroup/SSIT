@@ -2156,10 +2156,14 @@ classdef SSIT
                         writetable(A,saveFile)
                         disp(['SSA Results saved to ',saveFile])
                     end
-
                     
-                    bConstraints = max(obj.fspConstraints.f((reshape(Solution.trajs,[size(Solution.trajs,1),size(Solution.trajs,2)*size(Solution.trajs,3)]))),[],2);
-                    bConstraints = max(bConstraints,obj.fspConstraints.b);
+                    states = reshape(Solution.trajs,[size(Solution.trajs,1),size(Solution.trajs,2)*size(Solution.trajs,3)]);
+                    try
+                        bConstraints = max(obj.fspConstraints.f(states),[],2);
+                        bConstraints = max(bConstraints,obj.fspConstraints.b);
+                    catch
+                        bConstraints = [zeros(size(Solution.trajs,1));max(obj.fspConstraints.f(states),[],2)];
+                    end
 
                 case 'fspsens'
                     if strcmp(obj.sensOptions.solutionMethod,'forward')&&isempty(obj.propensitiesGeneral{1}.sensTimeFactorVec)
