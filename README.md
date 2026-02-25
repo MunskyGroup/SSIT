@@ -186,9 +186,7 @@ The provided SSIT tools also make use a modified version of Expokit for the solu
 
 The SSIT is free to use or copy with citation of the authors and the above referenced packages (Expokit from Sidje) and (TensorToolbox from Bader et al).  If you use the SSIT for your research, we would appreciate it if you could cite us.
 
-The Stochastic System Identification Toolkit (SSIT) to model, fit, predict, and design experiments
-Alex N Popinga, Jack Forman, Dmitri Svetlov, Huy Vo, Brian Munsky
-bioRxiv 2026.02.20.707039; doi: https://doi.org/10.64898/2026.02.20.707039
+* Alex N Popinga, Jack Forman, Dmitri Svetlov, Huy Vo, Brian Munsky.  "The Stochastic System Identification Toolkit (SSIT) to model, fit, predict, and design experiments." bioRxiv 2026.02.20.707039; doi: https://doi.org/10.64898/2026.02.20.707039
 
 To learn more about the history and use of the FSP, please explore the following papers. 
 
