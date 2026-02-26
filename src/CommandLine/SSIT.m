@@ -3649,7 +3649,7 @@ classdef SSIT
             end
         end
         % WARNING: returns height of posterior instead of likelihood if priors are specified
-        function [pars,likelihood,otherResults,obj,ess] = maximizeLikelihood(obj,parGuess,fitOptions,fitAlgorithm)
+        function [pars,likelihood,otherResults,obj,essVec] = maximizeLikelihood(obj,parGuess,fitOptions,fitAlgorithm)
             arguments
                 obj
                 parGuess = [];
@@ -3833,7 +3833,7 @@ classdef SSIT
 
                     rng('shuffle')
                     if allFitOptions.numChains==1
-                        [otherResults.mhSamples,otherResults.mhAcceptance,otherResults.mhValue,x0,likelihood,ess] = ...
+                        [otherResults.mhSamples,otherResults.mhAcceptance,otherResults.mhValue,x0,likelihood,otherResults.ess] = ...
                             ssit.parest.metropolisHastingsSample(x0',allFitOptions.numberOfSamples,...
                             'logpdf',OBJmh,'proprnd',allFitOptions.proposalDistribution,...
                             'symmetric',allFitOptions.isPropDistSymmetric,...
@@ -3892,7 +3892,7 @@ classdef SSIT
             end
 
             parNames = obj.parameters(obj.fittingOptions.modelVarsToFit, 1);  % 13x1 cell
-            essVec   = ess(:);                                                % force column
+            essVec   = otherResults.ess(:);                                   % force column
             
             fprintf('\nEffective sample size (ESS) per parameter:\n');
             fprintf('  %-6s  %10s\n', 'Param', 'ESS');
@@ -7165,22 +7165,27 @@ end
             end
 
 
-            function plotMHResults(obj,mhResults,FIM,fimScale,mhPlotScale,scatterFig,showConvergence)
+            function plotMHResults(obj,mhResults,opts)
             arguments
                 obj
                 mhResults = [];
-                FIM =[];
-                fimScale = 'lin';
-                mhPlotScale = 'log10';
-                scatterFig = [];
-                showConvergence = true
+                opts.FIM =[];
+                opts.fimScale = 'lin';
+                opts.mhPlotScale = 'log10';
+                opts.scatterFig = [];
+                opts.ess = [];
             end
+            FIM = opts.FIM;
+            fimScale = opts.fimScale;
+            mhPlotScale = opts.mhPlotScale;
+            scatterFig = opts.scatterFig;
+            ess = opts.ess;
 
-            obj.plotMHResultsStatic(obj,mhResults,FIM,fimScale,mhPlotScale,scatterFig)
+            obj.plotMHResultsStatic(obj,mhResults,FIM,fimScale,mhPlotScale,scatterFig,ess)
         end
     end
     methods (Static)
-        function plotMHResultsStatic(obj,mhResults,FIM,fimScale,mhPlotScale,scatterFig,showConvergence,plotColors)
+        function plotMHResultsStatic(obj,mhResults,FIM,fimScale,mhPlotScale,scatterFig,ess,showConvergence,plotColors)
             arguments
                 obj
                 mhResults = [];
@@ -7188,7 +7193,8 @@ end
                 fimScale = 'lin';
                 mhPlotScale = 'log10';
                 scatterFig = [];
-                showConvergence = true;
+                ess = [];
+                showConvergence = true
                 plotColors = struct() % Optional: fields like scatter, ellipseFIM, ellipseMH, etc.
             end
 
@@ -7271,7 +7277,7 @@ end
                     plot(mhResults.mhValue);
                     xlabel('Iteration number');
                     ylabel('log-likelihood')
-                    title('MH Convergence')
+                    title('MH Convergence',ess)
 
                     fg = figure; set(0,'CurrentFigure',fg)
                     ac = xcorr(mhResults.mhValue-mean(mhResults.mhValue),'normalized');
@@ -7282,7 +7288,7 @@ end
                     Neff = N/tau;
                     xlabel('Lag');
                     ylabel('Auto-correlation')
-                    title('MH Convergence')
+                    title('MH Convergence',ess)
                 end
 
                 if isempty(scatterFig)
