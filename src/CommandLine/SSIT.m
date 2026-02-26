@@ -2162,7 +2162,7 @@ classdef SSIT
                         bConstraints = max(obj.fspConstraints.f(states),[],2);
                         bConstraints = max(bConstraints,obj.fspConstraints.b);
                     catch
-                        bConstraints = [zeros(size(Solution.trajs,1));max(obj.fspConstraints.f(states),[],2)];
+                        bConstraints = [zeros(size(Solution.trajs,1),1);max(obj.fspConstraints.f(states),[],2)];
                     end
 
                 case 'fspsens'
