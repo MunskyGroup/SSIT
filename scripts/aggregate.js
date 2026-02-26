@@ -15,17 +15,19 @@ if (fs.existsSync(dataDir)) {
       fs.readFileSync(path.join(dataDir, file))
     );
 
-    if (file.startsWith("clones")) {
+    // Only process if clones array exists
+    if (content.clones && Array.isArray(content.clones)) {
       content.clones.forEach(day => {
-        totalClones += day.count;
-        totalUniqueCloners += day.uniques;
+        totalClones += day.count || 0;
+        totalUniqueCloners += day.uniques || 0;
       });
     }
 
-    if (file.startsWith("views")) {
+    // Only process if views array exists
+    if (content.views && Array.isArray(content.views)) {
       content.views.forEach(day => {
-        totalViews += day.count;
-        totalUniqueVisitors += day.uniques;
+        totalViews += day.count || 0;
+        totalUniqueVisitors += day.uniques || 0;
       });
     }
   });
