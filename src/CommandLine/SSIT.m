@@ -2638,22 +2638,20 @@ classdef SSIT
             %   * 'nCellsTotalNew' - the total number of cells to be
             %       measured, spread out among the Nt time points
             %   * 'FIMmetric' - type of optimization, allowable metrics are:
-            %       'Determinant' - maximize the expected determinant of
-            %                       the FIM
-            %       'DetCovariance' - minimize the expected determinant of
-            %                         MLE covariance
-            %       'Smallest Eigenvalue' - maximize the smallest e.val of
-            %                               the FIM
+            %       'D-opt' - maximize the expected determinant of the FIM
+            %       'D-cov' - minimize the expected determinant of the MLE
+            %                 covariance
+            %       'E-opt' - maximize the smallest eigenvalue of the FIM
             %       'Trace' - maximize the trace of the FIM
-            %       '[<i1>,<i2>,...]' - minimize the determinant of the
-            %                           inverse FIM for the specified
-            %                           indices, (all other parameters are
-            %                           assumed to be free)
-            %       'TR[<i1>,<i2>,...]' - maximize the determinant of the
-            %                             FIM for the specified indices,
-            %                             (only the parameters in
-            %                             obj.fittingOptions.modelVarsToFit
-            %                             are assumed to be free)
+            %       'D-opt-sub-inv[<i1>,<i2>,...]' 
+            %               - minimize the determinant of the inverse FIM 
+            %                 for the specified indices, (all other 
+            %                 parameters are assumed to be free)
+            %       'D-opt-sub[<i1>,<i2>,...]' 
+            %               - maximize the determinant of the FIM for the
+            %                 specified indices, (only the parameters in
+            %                 obj.fittingOptions.modelVarsToFit are assumed
+            %                 to be free)
             %   * 'Nc' - an optimal guess for the optimal experiment
             %            design
             %   * 'NcFixed' - a minimal number of cells to measure at each
@@ -2670,12 +2668,12 @@ classdef SSIT
             %      to measure at each point in time)
             %
             % Example: Model.optimizeCellCounts(fimResults,nCellsTotal,...
-            %           'Determinant',[],[],[],[],diag(log10.^2));
+            %           'D-opt',[],[],[],[],diag(log10.^2));
             arguments
                 obj
                 fims
                 nCellsTotalNew
-                FIMMetric = 'Smallest Eigenvalue'
+                FIMMetric = 'E-opt'
                 NcGuess = []
                 NcFixed = []
                 NcMax = []
@@ -2687,23 +2685,23 @@ classdef SSIT
                 error('Number of cells must be evenly divisible by incrementAdd.')
             end
             switch FIMMetric
-                case 'Determinant'
+                case 'D-opt'
                     met = @(A)-max(0,det(A));
-                case 'DetCovariance'
+                case 'D-cov'
                     met = @(A)max(0,det(inv(A)));
-                case 'Smallest Eigenvalue'
+                case 'E-opt'
                     met = @(A)-min(eig(A));
                 case 'Trace'
                     met = @(A)-trace(A);
                 otherwise
-                    if strcmp(FIMMetric(1:2),'TR')
-                        k = eval(FIMMetric(3:end));
+                    if startsWith(FIMMetric,'D-opt-sub-inv')
+                        k = eval(FIMMetric(14:end));
                         met = @(A)max(0,det(inv(A(k,k))));
-                    elseif strcmp(FIMMetric(1:2),'tr')
-                        k = eval(FIMMetric(3:end));
+                    elseif startsWith(FIMMetric,'D-opt-sub')
+                        k = eval(FIMMetric(10:end));
                         met = @(A)-max(0,det((A(k,k))));
-                    elseif strcmp(FIMMetric(1:2),'GR')
-                        k = eval(FIMMetric(3:end));
+                    elseif startsWith(FIMMetric,'D-cov-sub')
+                        k = eval(FIMMetric(10:end));
                         ek = zeros(length(k),length(fims{1}));
                         ek(1:length(k),k) = eye(length(k));
                         met = @(A)max(0,det(ek*inv(A)*ek'));

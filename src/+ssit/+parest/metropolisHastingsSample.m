@@ -1,4 +1,4 @@
-function [smpl,accept,value,bestfound,bestObjToNow] = metropolisHastingsSample(start,nsamples,varargin)
+function [smpl,accept,value,bestfound,bestObjToNow,ess] = metropolisHastingsSample(start,nsamples,varargin)
 % MHSAMPLE Generate Markov chain using Metropolis-Hasting algorithm 
 %   SMPL = MHSAMPLE(START,NSAMPLES,'pdf',PDF,'proppdf',PROPPDF,'proprnd',PROPRND)
 %   draws NSAMPLES random samples from a target stationary distribution PDF
@@ -87,10 +87,14 @@ function [smpl,accept,value,bestfound,bestObjToNow] = metropolisHastingsSample(s
 
 % parse the information in the name/value pairs 
 pnames = {'pdf' ,'logpdf', 'proppdf','logproppdf','proprnd', ...
-    'burnin','thin','symmetric','nchains','progress','saveFileName'};
-dflts =  {[] [] [],[],[] 0,1,false,1,false,'tmpMHResults'};
-[pdf,logpdf,proppdf,logproppdf, proprnd,burnin,thin,sym,nchain,progress,saveFileName] = ...
-       internal.stats.parseArgs(pnames, dflts, varargin{:});
+    'burnin','thin','symmetric','nchains','progress','saveFileName', ...
+    'computeESS','essMaxLag','essMethod'};
+
+dflts  = {[] [] [],[],[] 0,1,false,1,false,'tmpMHResults', ...
+    true,[], 'initialPositive'};
+
+[pdf,logpdf,proppdf,logproppdf, proprnd,burnin,thin,sym,nchain,progress,saveFileName, ...
+    computeESS,essMaxLag,essMethod] = internal.stats.parseArgs(pnames, dflts, varargin{:});
 
 if exist(saveFileName,'file')||exist([saveFileName,'.mat'],'file')
     load(saveFileName,'value','smpl','bestfound'); 
@@ -312,5 +316,3 @@ switch type
             error(message('stats:mhsample:NonfiniteProprnd'));
         end     
 end
-
-
