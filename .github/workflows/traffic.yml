@@ -59,7 +59,9 @@ jobs:
             if [ "$httpCode" = "401" ]; then
               echo "Token is invalid or expired. Regenerate GH_TRAFFIC_TOKEN." >&2
             elif [ "$httpCode" = "403" ]; then
-              echo "Token is valid but lacks permissions for traffic insights. Use a PAT from a user with push access." >&2
+              echo "Token is valid but cannot access traffic insights." >&2
+              echo "For fine-grained PATs, grant repository permission: Administration (read)." >&2
+              echo "Also ensure the token owner has push access and authorize SSO for the token if your org enforces SAML." >&2
             fi
 
             exit 1
