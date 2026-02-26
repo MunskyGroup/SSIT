@@ -223,3 +223,9 @@ For use of FIM for experiment design, please read/cite one of the following:
 
 For more general insight on the use of quantitative models in biology, please read the q-bio Community written textbook:
 - B Munsky, WS Hlavacek, LS Tsimring (Editors), "Quantitative biology: theory, computational methods, and models, MIT Press, 2018. 
+
+## 📊 Repository Traffic
+
+<!-- TRAFFIC_STATS_START -->
+Loading...
+<!-- TRAFFIC_STATS_END --> 
