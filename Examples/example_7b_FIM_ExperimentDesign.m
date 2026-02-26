@@ -43,7 +43,7 @@ STL1_4state_design = ...
 % combinations, where `Tr[9:13]' are the mRNA-specific parameters `dr' and 
 % `kr1',`kr2',`kr3', and `kr4' (degradation and transcription reactions).  
 % All other parameters are assumed to be known and fixed.
-nCol = sum(cellCounts);
+nCol = sum(cellCounts_data);
 nTotal = nCol(1);
 nCellsOpt_detCov = ...
     STL1_4state_design.optimizeCellCounts(fimResults,nTotal,'DetCovariance');
