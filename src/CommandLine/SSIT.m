@@ -7173,13 +7173,13 @@ end
                 opts.fimScale = 'lin';
                 opts.mhPlotScale = 'log10';
                 opts.scatterFig = [];
-                opts.ess = [];
+                opts.ESS = true;
             end
             FIM = opts.FIM;
             fimScale = opts.fimScale;
             mhPlotScale = opts.mhPlotScale;
             scatterFig = opts.scatterFig;
-            ess = opts.ess;
+            ess = opts.ESS;
 
             obj.plotMHResultsStatic(obj,mhResults,FIM,fimScale,mhPlotScale,scatterFig,ess)
         end
@@ -7193,7 +7193,7 @@ end
                 fimScale = 'lin';
                 mhPlotScale = 'log10';
                 scatterFig = [];
-                ess = [];
+                ess = true;  % display min(mhResults.ess(:)) in title    
                 showConvergence = true
                 plotColors = struct() % Optional: fields like scatter, ellipseFIM, ellipseMH, etc.
             end
@@ -7277,8 +7277,12 @@ end
                     plot(mhResults.mhValue);
                     xlabel('Iteration number');
                     ylabel('log-likelihood')
-                    title('MH Convergence',ess)
-
+                    if ess
+                        minEss = min(mhResults.ess(:));
+                        title(sprintf('MH Convergence (Min ESS=%.2f)', minEss));
+                    else
+                        title('MH Convergence');
+                    end
                     fg = figure; set(0,'CurrentFigure',fg)
                     ac = xcorr(mhResults.mhValue-mean(mhResults.mhValue),'normalized');
                     ac = ac(size(mhResults.mhValue,1):end);
@@ -7288,7 +7292,12 @@ end
                     Neff = N/tau;
                     xlabel('Lag');
                     ylabel('Auto-correlation')
-                    title('MH Convergence',ess)
+                    if ess
+                        minEss = min(mhResults.ess(:));
+                        title(sprintf('MH Convergence (Min ESS=%.2f)', minEss));
+                    else
+                        title('MH Convergence');
+                    end
                 end
 
                 if isempty(scatterFig)
