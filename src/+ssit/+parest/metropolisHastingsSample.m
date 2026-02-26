@@ -279,6 +279,7 @@ if computeESS
             ess(d,c) = local_ess_1d(x, essMaxLag, essMethod);
         end
     end
+
 end
 
 %----------------------------------------------------

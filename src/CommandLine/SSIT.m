@@ -3649,7 +3649,7 @@ classdef SSIT
             end
         end
         % WARNING: returns height of posterior instead of likelihood if priors are specified
-        function [pars,likelihood,otherResults,obj] = maximizeLikelihood(obj,parGuess,fitOptions,fitAlgorithm)
+        function [pars,likelihood,otherResults,obj,ess] = maximizeLikelihood(obj,parGuess,fitOptions,fitAlgorithm)
             arguments
                 obj
                 parGuess = [];
@@ -3891,7 +3891,17 @@ classdef SSIT
                 obj.parameters(obj.fittingOptions.modelVarsToFit,2) = num2cell(pars);
             end
 
-            ess
+            parNames = obj.parameters(obj.fittingOptions.modelVarsToFit, 1);  % 13x1 cell
+            essVec   = ess(:);                                                % force column
+            
+            fprintf('\nEffective sample size (ESS) per parameter:\n');
+            fprintf('  %-6s  %10s\n', 'Param', 'ESS');
+            fprintf('  %-6s  %10s\n', '-----', '----------');
+            
+            for i = 1:numel(essVec)
+                fprintf('  %-6s  %10.3f\n', parNames{i}, essVec(i));
+            end
+            fprintf('\nMin ESS: %.3f | Median ESS: %.3f\n', min(essVec), median(essVec));
         end
 
         %% Approximate Bayesian Computation
