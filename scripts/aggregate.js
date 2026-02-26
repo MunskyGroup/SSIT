@@ -4,34 +4,75 @@ const path = require("path");
 const dataDir = "./data";
 const readmePath = "./README.md";
 
-let totalClones = 0;
-let totalUniqueCloners = 0;
-let totalViews = 0;
-let totalUniqueVisitors = 0;
+const cloneCountsByDay = new Map();
+const viewCountsByDay = new Map();
+
+function upsertDay(map, dayEntry) {
+  if (!dayEntry || !dayEntry.timestamp) {
+    return;
+  }
+
+  const dayKey = String(dayEntry.timestamp).slice(0, 10);
+  const count = Number(dayEntry.count) || 0;
+  const uniques = Number(dayEntry.uniques) || 0;
+  const previous = map.get(dayKey);
+
+  if (!previous) {
+    map.set(dayKey, { count, uniques });
+    return;
+  }
+
+  map.set(dayKey, {
+    count: Math.max(previous.count, count),
+    uniques: Math.max(previous.uniques, uniques),
+  });
+}
+
+function processTrafficContent(content) {
+  if (content && Array.isArray(content.clones)) {
+    content.clones.forEach(day => upsertDay(cloneCountsByDay, day));
+  }
+
+  if (content && Array.isArray(content.views)) {
+    content.views.forEach(day => upsertDay(viewCountsByDay, day));
+  }
+}
 
 if (fs.existsSync(dataDir)) {
   fs.readdirSync(dataDir).forEach(file => {
-    const content = JSON.parse(
-      fs.readFileSync(path.join(dataDir, file))
-    );
-
-    // Only process if clones array exists
-    if (content.clones && Array.isArray(content.clones)) {
-      content.clones.forEach(day => {
-        totalClones += day.count || 0;
-        totalUniqueCloners += day.uniques || 0;
-      });
+    if (!file.endsWith(".json")) {
+      return;
     }
 
-    // Only process if views array exists
-    if (content.views && Array.isArray(content.views)) {
-      content.views.forEach(day => {
-        totalViews += day.count || 0;
-        totalUniqueVisitors += day.uniques || 0;
-      });
+    const filePath = path.join(dataDir, file);
+
+    let parsed;
+    try {
+      parsed = JSON.parse(fs.readFileSync(filePath, "utf8"));
+    } catch (_err) {
+      return;
     }
+
+    processTrafficContent(parsed);
   });
 }
+
+const totalClones = [...cloneCountsByDay.values()].reduce(
+  (sum, day) => sum + day.count,
+  0
+);
+const totalUniqueCloners = [...cloneCountsByDay.values()].reduce(
+  (sum, day) => sum + day.uniques,
+  0
+);
+const totalViews = [...viewCountsByDay.values()].reduce(
+  (sum, day) => sum + day.count,
+  0
+);
+const totalUniqueVisitors = [...viewCountsByDay.values()].reduce(
+  (sum, day) => sum + day.uniques,
+  0
+);
 
 const statsSection = `
 <!-- TRAFFIC_STATS_START -->
