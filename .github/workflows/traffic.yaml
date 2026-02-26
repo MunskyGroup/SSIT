@@ -1,0 +1,33 @@
+steps:
+  - uses: actions/checkout@v4
+
+  - uses: actions/setup-node@v4
+    with:
+      node-version: 20
+
+  - name: Fetch Traffic Data
+    run: |
+      curl -H "Authorization: Bearer ${{ secrets.GH_TRAFFIC_TOKEN }}" \
+      https://api.github.com/repos/${{ github.repository }}/traffic/clones \
+      -o clones.json
+
+      curl -H "Authorization: Bearer ${{ secrets.GH_TRAFFIC_TOKEN }}" \
+      https://api.github.com/repos/${{ github.repository }}/traffic/views \
+      -o views.json
+
+  - name: Save Historical Data
+    run: |
+      mkdir -p data
+      cp clones.json data/clones-$(date +%F).json
+      cp views.json data/views-$(date +%F).json
+
+  - name: Update README Stats
+    run: node scripts/aggregate.js
+
+  - name: Commit Changes
+    run: |
+      git config user.name "github-actions"
+      git config user.email "actions@github.com"
+      git add .
+      git commit -m "Update traffic stats" || echo "No changes"
+      git push
