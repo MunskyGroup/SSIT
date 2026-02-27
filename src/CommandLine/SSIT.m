@@ -5257,7 +5257,7 @@ end
             C = resolveColors(opts.Colors, nSel);  % nSel×3 or cell of nSel entries
         
             switch plotType
-                case 'means'
+                case "means"
                     figure(figureNums(kfig)); clf; kfig=kfig+1; hold on
                     hMean = gobjects(1, nSel);
                     tt = solution.T_array(indTimes);
@@ -5284,7 +5284,7 @@ end
                     end
                     grid on; box on; hold off;
         
-                case 'meansAndDevs'
+                case "meansAndDevs"
                     figure(figureNums(kfig)); clf; kfig=kfig+1; hold on
                     hMean = gobjects(1, nSel);                 % handles for legend
                 
@@ -5325,7 +5325,7 @@ end
                     end
                     grid on; box on; hold off;
         
-                case 'marginals'
+                case "marginals"
                     for jj = 1:nSel
                         s = fspSelIdx(jj);
                         f = figure(figureNums(kfig)); clf; kfig=kfig+1;
@@ -5366,7 +5366,7 @@ end
                                 'FontSize', opts.TitleFontSize);
                     end
         
-                case 'joints'
+                case "joints"
                     if nSel < 2
                         error('Joint distributions only available when 2 or more species are selected.');
                     end
@@ -5388,7 +5388,7 @@ end
                         end
                     end
 
-                case 'escapeTimes'
+                case "escapeTimes"
                     % ---- Gather times ----
                     tt = solution.T_array(:);
                     if isempty(indTimes), indTimes = 1:numel(tt); end
@@ -5479,7 +5479,7 @@ end
                     if ~isempty(opts.XLim), xlim(opts.XLim); end
                     if ~isempty(opts.YLim), ylim(opts.YLim); end
 
-                    case 'sens'
+                    case "sens"
                         % ---- Build plottable sensitivity results (as before) ----
                         app.SensFspTabOutputs.solutions = solution.sens;
                         app.SensPrintTimesEditField.Value = mat2str(obj.tSpan);
