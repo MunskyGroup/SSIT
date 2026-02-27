@@ -3862,14 +3862,29 @@ classdef SSIT
                             tmpMHValue(iChain) = {mhValue};
                             tmpMHxbest(iChain) = {xbest};
                             tmpMHfbest(iChain) = fbest;
+                            tmpESS(iChain) = ess;
                         end
                         [~,jBest] = max(tmpMHfbest);
                         x0 = tmpMHxbest{jBest}';
                         otherResults.mhSamples = tmpMHSamp;
                         otherResults.mhAcceptance = tmpMHAcceptance;
                         otherResults.mhValue = tmpMHValue;
+                        otherResults.ess = tmpESS;
                         obj.Solutions.mhResults = otherResults;
+
+                        % ------- Print ESS: -------
+                        parNames = obj.parameters(obj.fittingOptions.modelVarsToFit, 1);  % names of fitting parameters
+                        essVec   = otherResults.ess(:);                                   % force column
                         
+                        fprintf('\nEffective sample size (ESS) per parameter:\n');
+                        fprintf('  %-6s  %10s\n', 'Param', 'ESS');
+                        fprintf('  %-6s  %10s\n', '-----', '----------');
+                        
+                        for i = 1:numel(essVec)
+                            fprintf('  %-6s  %10.3f\n', parNames{i}, essVec(i));
+                        end
+                        fprintf('\nMin ESS: %.3f | Median ESS: %.3f\n', min(essVec), median(essVec));
+                        % --------------------------
                         clear tmpMH*
                     end
                     % If fit was in linear space, need to convert to log
@@ -3890,18 +3905,6 @@ classdef SSIT
                 % Update best parameters set in returned model.
                 obj.parameters(obj.fittingOptions.modelVarsToFit,2) = num2cell(pars);
             end
-
-            parNames = obj.parameters(obj.fittingOptions.modelVarsToFit, 1);  % 13x1 cell
-            essVec   = otherResults.ess(:);                                   % force column
-            
-            fprintf('\nEffective sample size (ESS) per parameter:\n');
-            fprintf('  %-6s  %10s\n', 'Param', 'ESS');
-            fprintf('  %-6s  %10s\n', '-----', '----------');
-            
-            for i = 1:numel(essVec)
-                fprintf('  %-6s  %10.3f\n', parNames{i}, essVec(i));
-            end
-            fprintf('\nMin ESS: %.3f | Median ESS: %.3f\n', min(essVec), median(essVec));
         end
 
         %% Approximate Bayesian Computation
@@ -6846,11 +6849,6 @@ end
         % plotFIMResults  Visualize a Fisher Information Matrix (FIM) and
         %                 FIM-based parameter uncertainty ellipses.
         %
-        %   obj.plotFIMResults(fimInput)
-        %   obj.plotFIMResults(fimInput, paramNames)
-        %   obj.plotFIMResults(fimInput, paramNames, theta0)
-        %   obj.plotFIMResults(fimInput, paramNames, theta0, opts)
-        %
         %   fimInput   : n×n numeric FIM, or a 1×1 cell containing it
         %   scale      : specify whether the FIM results are based on  
         %                linear parameters or their natural logarithm 
@@ -6864,6 +6862,7 @@ end
         %     .EllipseLevel    (double, default 0.9) – confidence level
         %     .EllipseFigure   (default: new figure)
         %     .EllipsePairs    (K×2) subset of index pairs [i j] to plot
+        %     .MatrixType      (string "fim" or "invfim", default "fim")
         %
         %     .Colors (struct or []):
         %         .HeatmapColormap  – colormap name/handle for heatmap
@@ -6872,7 +6871,7 @@ end
         %         .Ellipse          – line spec (e.g. 'r--') used if no color given
         %         .EllipseColor     – single color (char or 1×3) for all ellipses
         %         .EllipseColors    – per-ellipse colors (cellstr or K×3 RGB), used
-        %                              only when EllipsePairs is provided
+        %                             only when EllipsePairs is provided
         %         .CenterSquare     – color for the square marker edge (default 'k')
         %
         %     .Title, .TitleFontSize, .AxisLabelSize, .TickLabelSize,
@@ -6896,6 +6895,7 @@ end
                 opts.TickLabelSize (1,1) double {mustBePositive} = 12
                 opts.LegendFontSize (1,1) double {mustBePositive} = 14
                 opts.LegendLocation (1,1) string = "best"
+                opts.MatrixType (1,1) string {mustBeMember(opts.MatrixType,["fim","invfim"])} = "fim"
             end
         
             % -------- Extract numeric FIM --------
@@ -6918,22 +6918,29 @@ end
         
             % -------- Basic spectral info --------
             fimSym = 0.5 * (fim + fim.');
+            isInv = (opts.MatrixType == "invfim");
             [eigVec, eigValMat] = eig(fimSym);
             eigVals = diag(eigValMat);
             posEig = eigVals(eigVals > 0);
             condInfo = (isempty(posEig)) * NaN + (~isempty(posEig)) * (max(posEig) / min(posEig));
-        
+
+            if isInv
+                baseLabel = 'FIM^{-1}';
+            else
+                baseLabel = 'FIM';
+            end
+            
             % -------- Prepare plotting values --------
             if strcmp(scale,'log')
                 epsVal   = 1e-16;
                 fimDisp  = log10(max(fimSym, epsVal));
                 eigDisp  = log10(max(eigVals, epsVal));
-                fimLabel = 'log_{10} FIM';
+                fimLabel = ['log_{10} ' baseLabel];
                 eigLabel = 'log_{10} eigenvalues';
             elseif strcmp(scale,'lin')
                 fimDisp  = fimSym;
                 eigDisp  = eigVals;
-                fimLabel = 'FIM';
+                fimLabel = baseLabel;
                 eigLabel = 'Eigenvalues';
             else
                 error("plotFIMResults requires 'scale' to be specified as 'lin' or 'log'.");
@@ -6999,14 +7006,21 @@ end
         
             % -------- Ellipse plots --------
             if ~opts.PlotEllipses, return; end
-        
-            % Safe inverse via eig
-            epsShift = 1e-12;
-            [V,D] = eig(fimSym);
-            lam   = diag(D);
-            lamSafe = max(lam, epsShift);
-            covFIM = V * diag(1 ./ lamSafe) * V.';
-            covFIM = 0.5 * (covFIM + covFIM.');   % symmetrize
+
+            if opts.PlotEllipses
+                if ~isInv
+                    % invert FIM via eig -> covariance
+                    epsShift = 1e-12;
+                    [V,D] = eig(fimSym);
+                    lam = diag(D);
+                    lamSafe = max(lam, epsShift);
+                    covFIM = V * diag(1./lamSafe) * V.';
+                    covFIM = 0.5*(covFIM + covFIM.'); % symmetrize
+                else
+                    % already covariance-like
+                    covFIM = fimSym;
+                end
+            end
         
             % Figure
             if ~isempty(opts.EllipseFigure) && ishghandle(opts.EllipseFigure)
