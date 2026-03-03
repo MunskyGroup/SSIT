@@ -71,7 +71,7 @@ STL1_MR_setup = STL1_4state_FSP;
 
 reductionType = 'POD'; 
 reductionOrder = 50;
-% podTimeSetSize = 30;    % Only needed for the POD reduction scheme.
+podTimeSetSize = 30;    % Only needed for the POD reduction scheme.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Use Proper Orthogonal Decomposition (POD) to create a reduced 
