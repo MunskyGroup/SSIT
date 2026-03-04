@@ -2646,22 +2646,20 @@ classdef SSIT
             %   * 'nCellsTotalNew' - the total number of cells to be
             %       measured, spread out among the Nt time points
             %   * 'FIMmetric' - type of optimization, allowable metrics are:
-            %       'Determinant' - maximize the expected determinant of
-            %                       the FIM
-            %       'DetCovariance' - minimize the expected determinant of
-            %                         MLE covariance
-            %       'Smallest Eigenvalue' - maximize the smallest e.val of
-            %                               the FIM
+            %       'D-opt' - maximize the expected determinant of the FIM
+            %       'D-cov' - minimize the expected determinant of the MLE
+            %                 covariance
+            %       'E-opt' - maximize the smallest eigenvalue of the FIM
             %       'Trace' - maximize the trace of the FIM
-            %       '[<i1>,<i2>,...]' - minimize the determinant of the
-            %                           inverse FIM for the specified
-            %                           indices, (all other parameters are
-            %                           assumed to be free)
-            %       'TR[<i1>,<i2>,...]' - maximize the determinant of the
-            %                             FIM for the specified indices,
-            %                             (only the parameters in
-            %                             obj.fittingOptions.modelVarsToFit
-            %                             are assumed to be free)
+            %       'D-opt-sub-inv[<i1>,<i2>,...]' 
+            %               - minimize the determinant of the inverse FIM 
+            %                 for the specified indices, (all other 
+            %                 parameters are assumed to be free)
+            %       'D-opt-sub[<i1>,<i2>,...]' 
+            %               - maximize the determinant of the FIM for the
+            %                 specified indices, (only the parameters in
+            %                 obj.fittingOptions.modelVarsToFit are assumed
+            %                 to be free)
             %   * 'Nc' - an optimal guess for the optimal experiment
             %            design
             %   * 'NcFixed' - a minimal number of cells to measure at each
@@ -2678,12 +2676,12 @@ classdef SSIT
             %      to measure at each point in time)
             %
             % Example: Model.optimizeCellCounts(fimResults,nCellsTotal,...
-            %           'Determinant',[],[],[],[],diag(log10.^2));
+            %           'D-opt',[],[],[],[],diag(log10.^2));
             arguments
                 obj
                 fims
                 nCellsTotalNew
-                FIMMetric = 'Smallest Eigenvalue'
+                FIMMetric = 'E-opt'
                 NcGuess = []
                 NcFixed = []
                 NcMax = []
@@ -2695,23 +2693,23 @@ classdef SSIT
                 error('Number of cells must be evenly divisible by incrementAdd.')
             end
             switch FIMMetric
-                case 'Determinant'
+                case 'D-opt'
                     met = @(A)-max(0,det(A));
-                case 'DetCovariance'
+                case 'D-cov'
                     met = @(A)max(0,det(inv(A)));
-                case 'Smallest Eigenvalue'
+                case 'E-opt'
                     met = @(A)-min(eig(A));
                 case 'Trace'
                     met = @(A)-trace(A);
                 otherwise
-                    if strcmp(FIMMetric(1:2),'TR')
-                        k = eval(FIMMetric(3:end));
+                    if startsWith(FIMMetric,'D-opt-sub-inv')
+                        k = eval(FIMMetric(14:end));
                         met = @(A)max(0,det(inv(A(k,k))));
-                    elseif strcmp(FIMMetric(1:2),'tr')
-                        k = eval(FIMMetric(3:end));
+                    elseif startsWith(FIMMetric,'D-opt-sub')
+                        k = eval(FIMMetric(10:end));
                         met = @(A)-max(0,det((A(k,k))));
-                    elseif strcmp(FIMMetric(1:2),'GR')
-                        k = eval(FIMMetric(3:end));
+                    elseif startsWith(FIMMetric,'D-cov-sub')
+                        k = eval(FIMMetric(10:end));
                         ek = zeros(length(k),length(fims{1}));
                         ek(1:length(k),k) = eye(length(k));
                         met = @(A)max(0,det(ek*inv(A)*ek'));
@@ -3659,7 +3657,7 @@ classdef SSIT
             end
         end
         % WARNING: returns height of posterior instead of likelihood if priors are specified
-        function [pars,likelihood,otherResults,obj] = maximizeLikelihood(obj,parGuess,fitOptions,fitAlgorithm)
+        function [pars,likelihood,otherResults,obj,essVec] = maximizeLikelihood(obj,parGuess,fitOptions,fitAlgorithm)
             arguments
                 obj
                 parGuess = [];
@@ -3771,6 +3769,7 @@ classdef SSIT
                     defaultFitOptions.CovFIMscale = 0.6;
                     defaultFitOptions.suppressFSPExpansion = true;
                     defaultFitOptions.logForm = true;
+                    defaultFitOptions.computeESS = true;
                     defaultFitOptions.obj = [];
 
                     j=1;
@@ -3843,13 +3842,14 @@ classdef SSIT
 
                     rng('shuffle')
                     if allFitOptions.numChains==1
-                        [otherResults.mhSamples,otherResults.mhAcceptance,otherResults.mhValue,x0,likelihood] = ...
+                        [otherResults.mhSamples,otherResults.mhAcceptance,otherResults.mhValue,x0,likelihood,otherResults.ess] = ...
                             ssit.parest.metropolisHastingsSample(x0',allFitOptions.numberOfSamples,...
                             'logpdf',OBJmh,'proprnd',allFitOptions.proposalDistribution,...
                             'symmetric',allFitOptions.isPropDistSymmetric,...
                             'thin',allFitOptions.thin,'nchain',1,'burnin',allFitOptions.burnIn,...
                             'progress',allFitOptions.progress,...
-                            'saveFileName',allFitOptions.saveFile);
+                            'saveFileName',allFitOptions.saveFile,...
+                            'computeESS',allFitOptions.computeESS);
                         obj.Solutions.mhResults = otherResults;
                     else
                         try
@@ -3859,25 +3859,41 @@ classdef SSIT
                         allFitOptions.progress=0;
                         clear tmpMH*
                         parfor iChain = 1:allFitOptions.numChains
-                            [mhSamples, mhAcceptance, mhValue,xbest,fbest] = ...
+                            [mhSamples, mhAcceptance, mhValue,xbest,fbest,ess] = ...
                                 ssit.parest.metropolisHastingsSample(x0',allFitOptions.numberOfSamples,...
                                 'logpdf',OBJmh,'proprnd',allFitOptions.proposalDistribution,'symmetric',...
                                 allFitOptions.isPropDistSymmetric,...
                                 'thin',allFitOptions.thin,'nchain',1,'burnin',allFitOptions.burnIn,...
-                                'progress',allFitOptions.progress);
+                                'progress',allFitOptions.progress,...
+                                'computeESS',allFitOptions.computeESS);
                             tmpMHSamp(iChain) = {mhSamples};
                             tmpMHAcceptance(iChain) = {mhAcceptance};
                             tmpMHValue(iChain) = {mhValue};
                             tmpMHxbest(iChain) = {xbest};
                             tmpMHfbest(iChain) = fbest;
+                            tmpESS(iChain) = ess;
                         end
                         [~,jBest] = max(tmpMHfbest);
                         x0 = tmpMHxbest{jBest}';
                         otherResults.mhSamples = tmpMHSamp;
                         otherResults.mhAcceptance = tmpMHAcceptance;
                         otherResults.mhValue = tmpMHValue;
+                        otherResults.ess = tmpESS;
                         obj.Solutions.mhResults = otherResults;
+
+                        % ------- Print ESS: -------
+                        parNames = obj.parameters(obj.fittingOptions.modelVarsToFit, 1);  % names of fitting parameters
+                        essVec   = otherResults.ess(:);                                   % force column
                         
+                        fprintf('\nEffective sample size (ESS) per parameter:\n');
+                        fprintf('  %-6s  %10s\n', 'Param', 'ESS');
+                        fprintf('  %-6s  %10s\n', '-----', '----------');
+                        
+                        for i = 1:numel(essVec)
+                            fprintf('  %-6s  %10.3f\n', parNames{i}, essVec(i));
+                        end
+                        fprintf('\nMin ESS: %.3f | Median ESS: %.3f\n', min(essVec), median(essVec));
+                        % --------------------------
                         clear tmpMH*
                     end
                     % If fit was in linear space, need to convert to log
@@ -3898,8 +3914,6 @@ classdef SSIT
                 % Update best parameters set in returned model.
                 obj.parameters(obj.fittingOptions.modelVarsToFit,2) = num2cell(pars);
             end
-
-
         end
 
         %% Approximate Bayesian Computation
@@ -4446,12 +4460,12 @@ classdef SSIT
             end
         end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        function plotODE(obj,speciesNames,timeVec,lineProps,opts)
+        function plotODE(obj,opts)
             arguments
                 obj
-                speciesNames = []                  
-                timeVec = []
-                lineProps = {'linewidth',2};
+                opts.speciesNames cell = []                  
+                opts.timeVec double = []
+                opts.lineProps cell = {'linewidth',2};
                 opts.Title (1,1) string = ""
                 opts.TitleFontSize (1,1) double {mustBePositive} = 24
                 opts.AxisLabelSize (1,1) double {mustBePositive} = 18
@@ -4462,12 +4476,18 @@ classdef SSIT
                 opts.YLabel (1,1) string = "Molecule Count / Concentration"
                 opts.XLim double = []
                 opts.YLim double = []
-                opts.Colors = []  
+                opts.Colors = [] 
+                opts.makeMovie logical = false
+                opts.videoFileName (1,1) string = 'ode_trajectories.mp4'
                 % [] | n×3 RGB | cell of ColorSpec/RGB | colormap name string
             end
         
             X = obj.Solutions.ode;  % [nTime × nSpecies]
             [nTime, nSpecies] = size(X);
+
+            speciesNames = opts.speciesNames;
+            timeVec = opts.timeVec;
+            lineProps = opts.lineProps;
         
             % ----- timeVec -----
             if isempty(timeVec)
@@ -4589,19 +4609,69 @@ classdef SSIT
                 if ~isempty(lgd), lgd.FontSize = opts.LegendFontSize; end
             end
             hold off;
+
+            % Plot ODE video - Animates and saves ODE trajectories as a video
+            if opts.makeMovie
+                videoFileName = opts.videoFileName;
+            
+                if nargin < 4 || isempty(videoFileName)
+                    videoFileName = 'ode_trajectories.mp4';
+                end
+                if nargin < 3 || isempty(timeVec)
+                    timeVec = 1:nTime;
+                end
+                if nargin < 2 || isempty(speciesNames)
+                    speciesNames = arrayfun(@(s) sprintf('Species %d', s), 1:nSpecies, 'UniformOutput', false);
+                elseif length(speciesNames) ~= nSpecies
+                    error('The number of species names must match the number of species (%d).', numSpecies);
+                end
+            
+                % Prepare video writer
+                v = VideoWriter(videoFileName, 'MPEG-4');
+                v.FrameRate = 10;
+                open(v);
+            
+                % Setup figure
+                figure;
+                hold on;
+                colors = lines(nSpecies);
+            
+                h = gobjects(1, nSpecies);
+                for s = 1:nSpecies
+                    h(s) = plot(NaN, NaN, '-', 'LineWidth', 2, 'Color', colors(s, :));
+                end
+            
+                xlabel('Time');
+                ylabel('Molecule Count / Concentration');
+                title('ODE Trajectories Animation');
+                legend(speciesNames, 'Location', 'southeast');
+                grid on;
+            
+                % Animate each time point
+                for tIdx = 2:nTime
+                    tNow = timeVec(1:tIdx);
+                    for s = 1:nSpecies
+                        set(h(s), 'XData', tNow, 'YData', X(1:tIdx, s));
+                    end
+                    drawnow;
+                    frame = getframe(gcf);
+                    writeVideo(v, frame);
+                end
+            
+                close(v);
+                disp(['Video saved to ', videoFileName]);
+            end
         end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-function plotMoments(obj, solution, speciesNames, plotType, indTimes, figureNums, lineProps, opts)
-  % plotMoments — Plot moment-based solutions like plotODE/plotSSA/plotFSP
-
+function plotMoments(obj, opts)
     arguments
         obj
-        solution
-        speciesNames = []
-        plotType (1,1) string = "means"           % "means" | "meansAndDevs"
-        indTimes = []                              % [] | indices | time-vector (same length as Nt)
-        figureNums = []                            % [] | numeric array of candidate figure numbers
-        lineProps = {'linewidth',2}
+        opts.solution = obj.Solutions;
+        opts.speciesNames = []
+        opts.plotType (1,1) string = "means"       % "means" | "meansAndDevs"
+        opts.indTimes = []                         % [] | indices | time-vector (same length as Nt)
+        opts.figureNums = []                       % [] | numeric array of candidate figure numbers
+        opts.lineProps = {'linewidth',2}
         opts.SpeciesIdx = []                       % numeric indices (alternative to names)
         opts.Colors = []                           % [] | colormap name | n×3 RGB | cell array
         opts.Title (1,1) string = ""
@@ -4615,6 +4685,13 @@ function plotMoments(obj, solution, speciesNames, plotType, indTimes, figureNums
         opts.XLim double = []                      % e.g., [0 50]
         opts.YLim double = []                      % e.g., [0 200]
     end
+
+    solution = opts.solution;
+    speciesNames = opts.speciesNames;
+    plotType = opts.plotType; 
+    indTimes = opts.indTimes;                   
+    figureNums = opts.figureNums;            
+    lineProps = opts.lineProps;
 
     % ---------- Resolve raw moments matrix ----------
     momRaw = extractMomentsMatrix(solution);
@@ -4899,13 +4976,13 @@ end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         % plotSSA - Plots SSA trajectories and histograms from ssaSoln struct
-        function plotSSA(obj,speciesIdx,numTraj,speciesNames,lineProps,opts)
+        function plotSSA(obj,opts)
             arguments
                 obj
-                speciesIdx = []                     
-                numTraj = []                % [] -> min(10, numTotalTraj)
-                speciesNames = []             
-                lineProps = {'linewidth',2};        
+                opts.speciesIdx = []                     
+                opts.numTraj = []            % [] -> min(10, numTotalTraj)
+                opts.speciesNames = []             
+                opts.lineProps = {'linewidth',2};        
                 opts.Title (1,1) string = ""
                 opts.MeanOnly (1,1) logical = false
                 opts.HistTime double = 100  % histogram time (closest used)
@@ -4918,8 +4995,9 @@ end
                 opts.YLabel (1,1) string = "Molecule Count / Concentration"
                 opts.XLim double = []
                 opts.YLim double = []
-                opts.Colors = []      
-                % [] | species ×3 RGB | cell array | colormap name               
+                opts.Colors = [] % [] | species ×3 RGB | cell array | colormap name  
+                opts.makeMovie = false
+                opts.videoFileName = 'ssa_trajectories.mp4'
             end
         
             % ----- Extract SSA solution & sizes -----
@@ -4929,6 +5007,7 @@ end
             numTotalTraj  = size(ssaSoln.trajs, 3);
         
             % ----- Number of trajectories to draw -----
+            numTraj = opts.numTraj;
             if isempty(numTraj)
                 numTraj = min(10, numTotalTraj);
             else
@@ -4943,6 +5022,9 @@ end
             if isstring(allNames), allNames = cellstr(allNames); end
         
             % ----- Select species by names (priority) or indices -----
+            speciesNames = opts.speciesNames;
+            speciesIdx = opts.speciesIdx;
+
             if ~isempty(speciesNames)
                 if isstring(speciesNames), speciesNames = cellstr(speciesNames); end
                 [tf, loc] = ismember(speciesNames, allNames);
@@ -5063,7 +5145,7 @@ end
                 end
         
                 Xs_full = squeeze(ssaSoln.trajs(s, validIdx, :));
-                h = plot(T, mean(Xs_full, 2), lineProps{:}, 'Color', baseColor);
+                h = plot(T, mean(Xs_full, 2), opts.lineProps{:}, 'Color', baseColor);
                 legendHandles(j) = h;
                 legendEntries{j} = selNames{j};
             end
@@ -5136,18 +5218,94 @@ end
                 title(sprintf('t ≈ %.2f (%s)', Tfull(tHist_idx), selNames{j}), 'FontSize', opts.TitleFontSize);
                 grid on; box on;
             end
+
+            if opts.makeMovie                           
+                    T = ssaSoln.T_array;
+                    validIdx = T >= 0;
+                    T = T(validIdx);
+                    trajs = ssaSoln.trajs(:, validIdx, :);
+                
+                    speciesColors = lines(numSpecies);
+                    randIdx = randperm(numTotalTraj, numTraj); % pick trajectories to show
+                
+                    % Setup video writer
+                    v = VideoWriter(opts.videoFileName, 'MPEG-4');
+                    v.FrameRate = 10;
+                    open(v);
+                
+                    % Create figure for plotting
+                    figure;
+                    hold on;
+                
+                    % Initialize plot handles
+                    if strcmp(speciesIdx, 'all')
+                        h = gobjects(numSpecies, numTraj);
+                        for s = 1:numSpecies
+                            for i = 1:numTraj
+                                h(s, i) = plot(NaN, NaN, '-', 'Color', [speciesColors(s, :) 0.3]);
+                            end
+                        end
+                        meanLines = gobjects(1, numSpecies);
+                        for s = 1:numSpecies
+                            meanLines(s) = plot(NaN, NaN, 'Color', speciesColors(s, :), 'LineWidth', 2);
+                        end
+                    else
+                        s = speciesIdx;
+                        h = gobjects(1, numTraj);
+                        for i = 1:numTraj
+                            h(i) = plot(NaN, NaN, '-', 'Color', [speciesColors(s, :) 0.3]);
+                        end
+                        meanLine = plot(NaN, NaN, 'Color', speciesColors(s, :), 'LineWidth', 2);
+                    end
+                
+                    xlabel('Time');
+                    ylabel('Molecule Count');
+                    if strcmp(speciesIdx, 'all')
+                        legend(meanLines, speciesNames, 'Location', 'Best');
+                    else
+                        legend(meanLine, speciesNames{speciesIdx}, 'Location', 'Best');
+                    end
+                    grid on;
+                
+                    % Animate over time
+                    for tIdx = 2:length(T)
+                        tNow = T(1:tIdx);
+                
+                        if strcmp(speciesIdx, 'all')
+                            for s = 1:numSpecies
+                                Xs = squeeze(trajs(s, 1:tIdx, randIdx));
+                                for i = 1:numTraj
+                                    set(h(s, i), 'XData', tNow, 'YData', Xs(:, i));
+                                end
+                                set(meanLines(s), 'XData', tNow, 'YData', mean(Xs, 2));
+                            end
+                        else
+                            Xs = squeeze(trajs(speciesIdx, 1:tIdx, randIdx));
+                            for i = 1:numTraj
+                                set(h(i), 'XData', tNow, 'YData', Xs(:, i));
+                            end
+                            set(meanLine, 'XData', tNow, 'YData', mean(Xs, 2));
+                        end
+                
+                        drawnow;
+                        frame = getframe(gcf);
+                        writeVideo(v, frame);
+                    end                
+                    close(v);
+                    disp(['Video saved to ', opts.videoFileName]);
+            end
         end
-            
-        function plotFSP(obj, solution, speciesNames, plotType, indTimes, figureNums, lineProps, opts)
-            % plotFSP — Plot FSP results like plotODE/plotSSA, with species subsetting
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%            
+        function plotFSP(obj, opts)
             arguments
                 obj
-                solution = []
-                speciesNames = []
-                plotType (1,1) string = "means"
-                indTimes = []
-                figureNums = []
-                lineProps = {'linewidth',2}
+                opts.solution = obj.Solutions;
+                opts.speciesNames = []
+                opts.plotType (1,1) string = "means"
+                opts.indTimes = []
+                opts.figureNums = []
+                opts.lineProps = {'linewidth',2}
                 opts.SpeciesIdx = []
                 opts.Colors = []
                 opts.Title (1,1) string = ""
@@ -5162,9 +5320,12 @@ end
                 opts.YLim double = []
             end
 
-            if isempty(solution)
-                solution = obj.Solutions;
-            end
+            solution = opts.solution;
+            speciesNames = opts.speciesNames; 
+            plotType = opts.plotType;
+            indTimes = opts.indTimes; 
+            figureNums = opts.figureNums;
+            lineProps = opts.lineProps; 
         
             % ----- Species selection -----
             nSpecies = numel(obj.species);
@@ -5236,7 +5397,8 @@ end
                 app.FspPrintTimesField.Value = mat2str(obj.tSpan);
                 solution = exportFSPResults(app);
                 % Time selection
-                if isempty(indTimes), indTimes = 1:length(solution.T_array); 
+                if isempty(indTimes)
+                    indTimes = 1:length(obj.tSpan); 
                 end
                 Nt = numel(indTimes);
             end
@@ -6009,7 +6171,7 @@ end
         end
 
 
-        function figHandles = plotFits(obj, fitSolution, plotType, figureNums, lineProps, opts)
+        function figHandles = plotFits(obj, fitSolution, opts)
             % plotFits — Compare model FSP fits to experimental data.
             %
             % figHandles = plotFits(obj, fitSolution, plotType, figureNums, lineProps, opts)
@@ -6017,10 +6179,10 @@ end
             % Inputs:
             %   obj          : SSIT object (with fields like DataLoadingAndFittingTabOutputs, etc.)
             %   fitSolution  : struct returned by computeLikelihood (3rd output), or [] to recompute
-            %   plotType     : "histograms" | "trajectories" | "likelihood" | "all"
-            %   figureNums   : [] or vector of figure numbers to reuse
-            %   lineProps    : e.g., {'linewidth',2}
             %   opts         : struct with fields:
+            %       .plotType     : "histograms" | "trajectories" | "likelihood" | "all"
+            %       .figureNums   : [] or vector of figure numbers to reuse
+            %       .lineProps    : e.g., {'linewidth',2}
             %       .SmoothWindow       (double, default=1)
             %       .UsePanels          (logical, default=true)
             %       .VarianceType       ("STD" or "IQR", default="STD")
@@ -6043,9 +6205,9 @@ end
                 arguments
                     obj
                     fitSolution = []
-                    plotType (1,1) string = "histograms"
-                    figureNums = []
-                    lineProps = {'linewidth',2}
+                    opts.plotType (1,1) string = "histograms"
+                    opts.figureNums = []
+                    opts.lineProps = {'linewidth',2}
                     opts.SpeciesNames = []   
                     opts.SpeciesIdx   = []   
                     opts.SmoothWindow (1,1) double {mustBePositive} = 1
@@ -6068,6 +6230,10 @@ end
                     opts.TimeIdx double = []     % subset of time indices for CDF/PDF
                     opts.TimePoints double = []  % subset of time values for CDF/PDF (exact match)
                 end
+
+                plotType = opts.plotType;
+                figureNums = opts.figureNums;
+                lineProps = opts.lineProps;
             
                 % ---- Compute fitSolution if needed ----
                 if isempty(fitSolution)
@@ -6696,11 +6862,6 @@ end
         % plotFIMResults  Visualize a Fisher Information Matrix (FIM) and
         %                 FIM-based parameter uncertainty ellipses.
         %
-        %   obj.plotFIMResults(fimInput)
-        %   obj.plotFIMResults(fimInput, paramNames)
-        %   obj.plotFIMResults(fimInput, paramNames, theta0)
-        %   obj.plotFIMResults(fimInput, paramNames, theta0, opts)
-        %
         %   fimInput   : n×n numeric FIM, or a 1×1 cell containing it
         %   scale      : specify whether the FIM results are based on  
         %                linear parameters or their natural logarithm 
@@ -6714,6 +6875,7 @@ end
         %     .EllipseLevel    (double, default 0.9) – confidence level
         %     .EllipseFigure   (default: new figure)
         %     .EllipsePairs    (K×2) subset of index pairs [i j] to plot
+        %     .MatrixType      (string "fim" or "invfim", default "fim")
         %
         %     .Colors (struct or []):
         %         .HeatmapColormap  – colormap name/handle for heatmap
@@ -6722,7 +6884,7 @@ end
         %         .Ellipse          – line spec (e.g. 'r--') used if no color given
         %         .EllipseColor     – single color (char or 1×3) for all ellipses
         %         .EllipseColors    – per-ellipse colors (cellstr or K×3 RGB), used
-        %                              only when EllipsePairs is provided
+        %                             only when EllipsePairs is provided
         %         .CenterSquare     – color for the square marker edge (default 'k')
         %
         %     .Title, .TitleFontSize, .AxisLabelSize, .TickLabelSize,
@@ -6746,6 +6908,7 @@ end
                 opts.TickLabelSize (1,1) double {mustBePositive} = 12
                 opts.LegendFontSize (1,1) double {mustBePositive} = 14
                 opts.LegendLocation (1,1) string = "best"
+                opts.MatrixType (1,1) string {mustBeMember(opts.MatrixType,["fim","invfim"])} = "fim"
             end
         
             % -------- Extract numeric FIM --------
@@ -6768,22 +6931,29 @@ end
         
             % -------- Basic spectral info --------
             fimSym = 0.5 * (fim + fim.');
+            isInv = (opts.MatrixType == "invfim");
             [eigVec, eigValMat] = eig(fimSym);
             eigVals = diag(eigValMat);
             posEig = eigVals(eigVals > 0);
             condInfo = (isempty(posEig)) * NaN + (~isempty(posEig)) * (max(posEig) / min(posEig));
-        
+
+            if isInv
+                baseLabel = 'FIM^{-1}';
+            else
+                baseLabel = 'FIM';
+            end
+            
             % -------- Prepare plotting values --------
             if strcmp(scale,'log')
                 epsVal   = 1e-16;
                 fimDisp  = log10(max(fimSym, epsVal));
                 eigDisp  = log10(max(eigVals, epsVal));
-                fimLabel = 'log_{10} FIM';
+                fimLabel = ['log_{10} ' baseLabel];
                 eigLabel = 'log_{10} eigenvalues';
             elseif strcmp(scale,'lin')
                 fimDisp  = fimSym;
                 eigDisp  = eigVals;
-                fimLabel = 'FIM';
+                fimLabel = baseLabel;
                 eigLabel = 'Eigenvalues';
             else
                 error("plotFIMResults requires 'scale' to be specified as 'lin' or 'log'.");
@@ -6849,14 +7019,21 @@ end
         
             % -------- Ellipse plots --------
             if ~opts.PlotEllipses, return; end
-        
-            % Safe inverse via eig
-            epsShift = 1e-12;
-            [V,D] = eig(fimSym);
-            lam   = diag(D);
-            lamSafe = max(lam, epsShift);
-            covFIM = V * diag(1 ./ lamSafe) * V.';
-            covFIM = 0.5 * (covFIM + covFIM.');   % symmetrize
+
+            if opts.PlotEllipses
+                if ~isInv
+                    % invert FIM via eig -> covariance
+                    epsShift = 1e-12;
+                    [V,D] = eig(fimSym);
+                    lam = diag(D);
+                    lamSafe = max(lam, epsShift);
+                    covFIM = V * diag(1./lamSafe) * V.';
+                    covFIM = 0.5*(covFIM + covFIM.'); % symmetrize
+                else
+                    % already covariance-like
+                    covFIM = fimSym;
+                end
+            end
         
             % Figure
             if ~isempty(opts.EllipseFigure) && ishghandle(opts.EllipseFigure)
@@ -7015,22 +7192,31 @@ end
             end
 
 
-            function plotMHResults(obj,mhResults,FIM,fimScale,mhPlotScale,scatterFig,showConvergence)
+            function plotMHResults(obj,mhResults,opts)
             arguments
                 obj
                 mhResults = [];
-                FIM =[];
-                fimScale = 'lin';
-                mhPlotScale = 'log10';
-                scatterFig = [];
-                showConvergence = true
+                opts.FIM =[];
+                opts.fimScale = 'lin';
+                opts.mhPlotScale = 'log10';
+                opts.scatterFig = [];
+                opts.plotColors = struct();
+                opts.showConvergence = true;
+                opts.ESS = true;
             end
+            FIM = opts.FIM;
+            fimScale = opts.fimScale;
+            mhPlotScale = opts.mhPlotScale;
+            scatterFig = opts.scatterFig;
+            plotColors = opts.plotColors;
+            showConvergence = opts.showConvergence;
+            ess = opts.ESS;
 
-            obj.plotMHResultsStatic(obj,mhResults,FIM,fimScale,mhPlotScale,scatterFig)
+            obj.plotMHResultsStatic(obj,mhResults,FIM,fimScale,mhPlotScale,scatterFig,ess,showConvergence,plotColors)
         end
     end
     methods (Static)
-        function plotMHResultsStatic(obj,mhResults,FIM,fimScale,mhPlotScale,scatterFig,showConvergence,plotColors)
+        function plotMHResultsStatic(obj,mhResults,FIM,fimScale,mhPlotScale,scatterFig,ess,showConvergence,plotColors)
             arguments
                 obj
                 mhResults = [];
@@ -7038,7 +7224,8 @@ end
                 fimScale = 'lin';
                 mhPlotScale = 'log10';
                 scatterFig = [];
-                showConvergence = true;
+                ess = true;  % display min(mhResults.ess(:)) in title    
+                showConvergence = true
                 plotColors = struct() % Optional: fields like scatter, ellipseFIM, ellipseMH, etc.
             end
 
@@ -7121,8 +7308,12 @@ end
                     plot(mhResults.mhValue);
                     xlabel('Iteration number');
                     ylabel('log-likelihood')
-                    title('MH Convergence')
-
+                    if ess
+                        minEss = min(mhResults.ess(:));
+                        title(sprintf('MH Convergence (Min ESS=%.2f)', minEss));
+                    else
+                        title('MH Convergence');
+                    end
                     fg = figure; set(0,'CurrentFigure',fg)
                     ac = xcorr(mhResults.mhValue-mean(mhResults.mhValue),'normalized');
                     ac = ac(size(mhResults.mhValue,1):end);
@@ -7132,7 +7323,12 @@ end
                     Neff = N/tau;
                     xlabel('Lag');
                     ylabel('Auto-correlation')
-                    title('MH Convergence')
+                    if ess
+                        minEss = min(mhResults.ess(:));
+                        title(sprintf('MH Convergence (Min ESS=%.2f)', minEss));
+                    else
+                        title('MH Convergence');
+                    end
                 end
 
                 if isempty(scatterFig)

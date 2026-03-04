@@ -1,0 +1,427 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<META http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      -->
+<title>example_13_ComplexModels_Hybrid</title>
+<meta name="generator" content="MATLAB 25.2">
+<link rel="schema.DC" href="http://purl.org/dc/elements/1.1/">
+<meta name="DC.date" content="2026-03-03">
+<meta name="DC.source" content="example_13_ComplexModels_Hybrid.m">
+<style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; }
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+span.typesection { color:#A0522D }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style>
+</head>
+<body>
+<div class="content">
+<h2>Contents</h2>
+<div>
+<ul>
+<li>
+<a href="#1">SSIT/Examples/example_13_SolveSSITModels_Hybrid</a>
+</li>
+<li>
+<a href="#2">Section 2.4: Complex models</a>
+</li>
+<li>
+<a href="#3">Preliminaries</a>
+</li>
+<li>
+<a href="#4">Plots for FSP solutions:</a>
+</li>
+<li>
+<a href="#5">Save hybrid model &amp; solution</a>
+</li>
+</ul>
+</div>
+<h2 id="1">SSIT/Examples/example_13_SolveSSITModels_Hybrid</h2>
+<pre class="codeinput">
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<h2 id="2">Section 2.4: Complex models</h2>
+<pre class="language-matlab">* Solve a <span class="string">model</span> <span class="string">by</span> <span class="string">using</span> <span class="string">a</span> <span class="string">hybrid</span> <span class="string">deterministic-stochastic</span> <span class="string">approach</span>
+</pre>
+<pre class="codeinput">
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<h2 id="3">Preliminaries</h2>
+<p>Use the STL1 model from example_1_CreateSSITModels</p>
+<pre class="codeinput">
+<span class="comment">%clear</span>
+<span class="comment">%close all</span>
+addpath(genpath(<span class="string">'../src'</span>));
+
+<span class="comment">% example_1_CreateSSITModels</span>
+
+<span class="comment">% View model summaries:</span>
+STL1_4state.summarizeModel
+
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+<span class="comment">% Adjust a model to treat some species (i.e., upstream reactions) using an</span>
+<span class="comment">% ODE formulation, while having other species (i.e., downstream species)</span>
+<span class="comment">% evolve in a discrete stochastic manner using FSP. This runs significantly</span>
+<span class="comment">% faster than full FSP solutions.</span>
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+
+<span class="comment">% Create a copy of our models:</span>
+STL1_hybrid = STL1_4state;
+
+<span class="comment">% Set the times at distributions will be computed:</span>
+STL1_hybrid.tSpan = linspace(0,50,200);
+
+<span class="comment">% Set 'useHybrid' to true:</span>
+STL1_hybrid.useHybrid = true;
+
+<span class="comment">% Define which species will be solved by ODEs:</span>
+STL1_hybrid.hybridOptions.upstreamODEs = {<span class="string">'g1'</span>,<span class="string">'g2'</span>,<span class="string">'g3'</span>,<span class="string">'g4'</span>};
+
+<span class="comment">% Set solution scheme to FSP:</span>
+STL1_hybrid.solutionScheme = <span class="string">'FSP'</span>;
+
+<span class="comment">% View summary of hybrid STL1 model, expecting:</span>
+    <span class="comment">%   Species:</span>
+    <span class="comment">%       g1; IC = 1;  upstream ODE</span>
+    <span class="comment">%       g2; IC = 0;  upstream ODE</span>
+    <span class="comment">%       g3; IC = 0;  upstream ODE</span>
+    <span class="comment">%       g4; IC = 0;  upstream ODE</span>
+    <span class="comment">%       mRNA; IC = 0;  discrete stochastic</span>
+STL1_hybrid.summarizeModel
+
+<span class="comment">% Optionally, define a custom constraint on the species:</span>
+<span class="comment">% (e.g.,'offGene'+'onGene')</span>
+STL1_hybrid.customConstraintFuns = [];
+
+<span class="comment">% Set FSP 1-norm error tolerance:</span>
+STL1_hybrid.fspOptions.fspTol = 1e-4;
+
+<span class="comment">% Guess initial bounds on FSP StateSpace:</span>
+STL1_hybrid.fspOptions.bounds = [1,1,1,1,300];
+
+<span class="comment">% This function compiles and stores the given reaction propensities</span>
+<span class="comment">% into symbolic expression functions that use sparse matrices:</span>
+STL1_hybrid = STL1_hybrid.formPropensitiesGeneral(<span class="string">'STL1_hybrid'</span>);
+
+<span class="comment">% Have FSP approximate the steady state for the initial distribution:</span>
+STL1_hybrid.fspOptions.initApproxSS = true;
+
+<span class="comment">% Solve STL1_hybrid:</span>
+[STL1_hybrid_FSPsoln,STL1_hybrid.fspOptions.bounds] = STL1_hybrid.solve;
+</pre>
+<pre class="codeoutput">Species:
+     g1; IC = 1;  discrete stochastic
+     g2; IC = 0;  discrete stochastic
+     g3; IC = 0;  discrete stochastic
+     g4; IC = 0;  discrete stochastic
+     mRNA; IC = 0;  discrete stochastic
+ 
+Reactions:
+  Reaction 1:
+     s1: 1*g1 --&gt; 1*g2
+     w1: k12*g1
+  Reaction 2:
+     s2: 1*g2 --&gt; 1*g1
+     w2: (max(0,k21o*(1-k21i*Hog1)))*g2
+  Reaction 3:
+     s3: 1*g2 --&gt; 1*g3
+     w3: k23*g2
+  Reaction 4:
+     s4: 1*g3 --&gt; 1*g2
+     w4: k32*g3
+  Reaction 5:
+     s5: 1*g3 --&gt; 1*g4
+     w5: k34*g3
+  Reaction 6:
+     s6: 1*g4 --&gt; 1*g3
+     w6: k43*g4
+  Reaction 7:
+     s7: NULL --&gt; 1*mRNA
+     w7: kr1*g1
+  Reaction 8:
+     s8: NULL --&gt; 1*mRNA
+     w8: kr2*g2
+  Reaction 9:
+     s9: NULL --&gt; 1*mRNA
+     w9: kr3*g3
+  Reaction 10:
+     s10: NULL --&gt; 1*mRNA
+     w10: kr4*g4
+  Reaction 11:
+     s11: 1*mRNA --&gt; NULL
+     w11: dr*mRNA
+ 
+Input Signals:
+     Hog1(t) = A*(((1-(exp(1)^(-r1*(t-t0))))*exp(1)^(-r2*(t-t0)))/(1+((1-(exp(1)^(-r1*(t-t0))))*exp(1)^(-r2*(t-t0)))/M))^n*(t&gt;t0)
+ 
+Model Parameters:
+    {'t0'  }    {[3.1700e+00]}
+    {'k12' }    {[        78]}
+    {'k21o'}    {[    192000]}
+    {'k21i'}    {[      3200]}
+    {'k23' }    {[4.0200e-01]}
+    {'k34' }    {[7.8000e+00]}
+    {'k32' }    {[1.6200e+00]}
+    {'k43' }    {[2.2800e+00]}
+    {'dr'  }    {[2.9400e-01]}
+    {'kr1' }    {[4.6800e-02]}
+    {'kr2' }    {[7.2000e-01]}
+    {'kr3' }    {[5.9400e+01]}
+    {'kr4' }    {[3.2400e+00]}
+    {'r1'  }    {[4.1400e-03]}
+    {'r2'  }    {[4.2600e-01]}
+    {'A'   }    {[9.3000e+09]}
+    {'M'   }    {[6.4000e-04]}
+    {'n'   }    {[3.1000e+00]}
+
+Species:
+     g1; IC = 1;  upstream ODE
+     g2; IC = 0;  upstream ODE
+     g3; IC = 0;  upstream ODE
+     g4; IC = 0;  upstream ODE
+     mRNA; IC = 0;  discrete stochastic
+ 
+Reactions:
+  Reaction 1:
+     s1: 1*g1 --&gt; 1*g2
+     w1: k12*g1
+  Reaction 2:
+     s2: 1*g2 --&gt; 1*g1
+     w2: (max(0,k21o*(1-k21i*Hog1)))*g2
+  Reaction 3:
+     s3: 1*g2 --&gt; 1*g3
+     w3: k23*g2
+  Reaction 4:
+     s4: 1*g3 --&gt; 1*g2
+     w4: k32*g3
+  Reaction 5:
+     s5: 1*g3 --&gt; 1*g4
+     w5: k34*g3
+  Reaction 6:
+     s6: 1*g4 --&gt; 1*g3
+     w6: k43*g4
+  Reaction 7:
+     s7: NULL --&gt; 1*mRNA
+     w7: kr1*g1
+  Reaction 8:
+     s8: NULL --&gt; 1*mRNA
+     w8: kr2*g2
+  Reaction 9:
+     s9: NULL --&gt; 1*mRNA
+     w9: kr3*g3
+  Reaction 10:
+     s10: NULL --&gt; 1*mRNA
+     w10: kr4*g4
+  Reaction 11:
+     s11: 1*mRNA --&gt; NULL
+     w11: dr*mRNA
+ 
+Input Signals:
+     Hog1(t) = A*(((1-(exp(1)^(-r1*(t-t0))))*exp(1)^(-r2*(t-t0)))/(1+((1-(exp(1)^(-r1*(t-t0))))*exp(1)^(-r2*(t-t0)))/M))^n*(t&gt;t0)
+ 
+Model Parameters:
+    {'t0'  }    {[3.1700e+00]}
+    {'k12' }    {[        78]}
+    {'k21o'}    {[    192000]}
+    {'k21i'}    {[      3200]}
+    {'k23' }    {[4.0200e-01]}
+    {'k34' }    {[7.8000e+00]}
+    {'k32' }    {[1.6200e+00]}
+    {'k43' }    {[2.2800e+00]}
+    {'dr'  }    {[2.9400e-01]}
+    {'kr1' }    {[4.6800e-02]}
+    {'kr2' }    {[7.2000e-01]}
+    {'kr3' }    {[5.9400e+01]}
+    {'kr4' }    {[3.2400e+00]}
+    {'r1'  }    {[4.1400e-03]}
+    {'r2'  }    {[4.2600e-01]}
+    {'A'   }    {[9.3000e+09]}
+    {'M'   }    {[6.4000e-04]}
+    {'n'   }    {[3.1000e+00]}
+
+</pre>
+<h2 id="4">Plots for FSP solutions:</h2>
+<p>Means and standard deviations:</p>
+<pre class="codeinput">STL1_hybrid.plotFSP(solution=STL1_hybrid_FSPsoln, TickLabelSize=20,<span class="keyword">...</span>
+    speciesNames=STL1_hybrid.species(5), plotType=<span class="string">'meansAndDevs'</span>,<span class="keyword">...</span>
+    Title=<span class="string">'4-state STL1 (hybrid)'</span>, TitleFontSize=26, LegendFontSize=20,<span class="keyword">...</span>
+    YLabel=<span class="string">'Molecule Count'</span>, YLim=[-10,50], lineProps={<span class="string">'linewidth'</span>,4},<span class="keyword">...</span>
+    LegendLocation=<span class="string">'northeast'</span>, AxisLabelSize=20, Colors=[0.23,0.67,0.2]);
+
+<span class="comment">% Marginal distributions:</span>
+STL1_hybrid.plotFSP(solution=STL1_hybrid_FSPsoln, plotType=<span class="string">'marginals'</span>,<span class="keyword">...</span>
+    speciesNames=STL1_hybrid.species(5), indTimes=[1,12,24,50,101,200],<span class="keyword">...</span>
+    lineProps={<span class="string">'linewidth'</span>,3}, XLim=[0,100], Colors=[0.23,0.67,0.2],<span class="keyword">...</span>
+    AxisLabelSize=20, TickLabelSize=20)
+</pre>
+<img vspace="5" hspace="5" src="example_13_ComplexModels_Hybrid_01.png" alt=""> <img vspace="5" hspace="5" src="example_13_ComplexModels_Hybrid_02.png" alt=""> <h2 id="5">Save hybrid model &amp; solution</h2>
+<pre class="codeinput">saveNames = unique({
+    <span class="string">'STL1_hybrid'</span>
+    <span class="string">'STL1_hybrid_FSPsoln'</span>
+    });
+
+save(<span class="string">'example_13_ComplexModels_Hybrid'</span>,saveNames{:})
+</pre>
+<p class="footer">
+<br>
+<a href="https://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2025b</a>
+<br>
+</p>
+</div>
+<!--
+##### SOURCE BEGIN #####
+%% SSIT/Examples/example_13_SolveSSITModels_Hybrid
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Section 2.4: Complex models
+%   * Solve a model by using a hybrid deterministic-stochastic approach
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% Preliminaries
+% Use the STL1 model from example_1_CreateSSITModels
+%clear
+%close all
+addpath(genpath('../src'));
+
+% example_1_CreateSSITModels 
+
+% View model summaries:
+STL1_4state.summarizeModel
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Adjust a model to treat some species (i.e., upstream reactions) using an 
+% ODE formulation, while having other species (i.e., downstream species) 
+% evolve in a discrete stochastic manner using FSP. This runs significantly 
+% faster than full FSP solutions.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Create a copy of our models:
+STL1_hybrid = STL1_4state;
+
+% Set the times at distributions will be computed:
+STL1_hybrid.tSpan = linspace(0,50,200);
+
+% Set 'useHybrid' to true:
+STL1_hybrid.useHybrid = true;
+
+% Define which species will be solved by ODEs:
+STL1_hybrid.hybridOptions.upstreamODEs = {'g1','g2','g3','g4'};
+
+% Set solution scheme to FSP:
+STL1_hybrid.solutionScheme = 'FSP';
+
+% View summary of hybrid STL1 model, expecting:
+    %   Species:
+    %       g1; IC = 1;  upstream ODE
+    %       g2; IC = 0;  upstream ODE
+    %       g3; IC = 0;  upstream ODE
+    %       g4; IC = 0;  upstream ODE
+    %       mRNA; IC = 0;  discrete stochastic
+STL1_hybrid.summarizeModel
+
+% Optionally, define a custom constraint on the species: 
+% (e.g.,'offGene'+'onGene')
+STL1_hybrid.customConstraintFuns = [];
+
+% Set FSP 1-norm error tolerance:
+STL1_hybrid.fspOptions.fspTol = 1e-4; 
+    
+% Guess initial bounds on FSP StateSpace:
+STL1_hybrid.fspOptions.bounds = [1,1,1,1,300];
+
+% This function compiles and stores the given reaction propensities  
+% into symbolic expression functions that use sparse matrices:
+STL1_hybrid = STL1_hybrid.formPropensitiesGeneral('STL1_hybrid');
+
+% Have FSP approximate the steady state for the initial distribution:
+STL1_hybrid.fspOptions.initApproxSS = true; 
+    
+% Solve STL1_hybrid:
+[STL1_hybrid_FSPsoln,STL1_hybrid.fspOptions.bounds] = STL1_hybrid.solve; 
+
+%% Plots for FSP solutions:
+% Means and standard deviations:
+STL1_hybrid.plotFSP(solution=STL1_hybrid_FSPsoln, TickLabelSize=20,...
+    speciesNames=STL1_hybrid.species(5), plotType='meansAndDevs',...
+    Title='4-state STL1 (hybrid)', TitleFontSize=26, LegendFontSize=20,...
+    YLabel='Molecule Count', YLim=[-10,50], lineProps={'linewidth',4},...
+    LegendLocation='northeast', AxisLabelSize=20, Colors=[0.23,0.67,0.2]);
+
+% Marginal distributions:
+STL1_hybrid.plotFSP(solution=STL1_hybrid_FSPsoln, plotType='marginals',...
+    speciesNames=STL1_hybrid.species(5), indTimes=[1,12,24,50,101,200],...
+    lineProps={'linewidth',3}, XLim=[0,100], Colors=[0.23,0.67,0.2],...
+    AxisLabelSize=20, TickLabelSize=20)
+
+
+%% Save hybrid model & solution
+saveNames = unique({
+    'STL1_hybrid'
+    'STL1_hybrid_FSPsoln'
+    });
+    
+save('example_13_ComplexModels_Hybrid',saveNames{:})
+##### SOURCE END #####
+-->
+</body>
+</html>

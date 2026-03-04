@@ -1,0 +1,1313 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<META http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      -->
+<title>example_9_LoadingandFittingData_MLE</title>
+<meta name="generator" content="MATLAB 25.2">
+<link rel="schema.DC" href="http://purl.org/dc/elements/1.1/">
+<meta name="DC.date" content="2026-03-03">
+<meta name="DC.source" content="example_9_LoadingandFittingData_MLE.m">
+<style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; }
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+span.typesection { color:#A0522D }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style>
+</head>
+<body>
+<div class="content">
+<h2>Contents</h2>
+<div>
+<ul>
+<li>
+<a href="#1">SSIT/Examples/example_9_LoadingandFittingData_MLE</a>
+</li>
+<li>
+<a href="#2">Section 2.3: Loading and fitting time-varying STL1 yeast data</a>
+</li>
+<li>
+<a href="#3">Preliminaries</a>
+</li>
+<li>
+<a href="#4">Load pre-computed FSP solutions &amp; loaded data:</a>
+</li>
+<li>
+<a href="#5">Fit experimental data using maximum likelihood estimates (MLEs)</a>
+</li>
+<li>
+<a href="#6">Compute the MLEs:</a>
+</li>
+<li>
+<a href="#7">Save models &amp; MLEs:</a>
+</li>
+</ul>
+</div>
+<h2 id="1">SSIT/Examples/example_9_LoadingandFittingData_MLE</h2>
+<pre class="codeinput">
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<h2 id="2">Section 2.3: Loading and fitting time-varying STL1 yeast data</h2>
+<pre class="language-matlab">* Maximize the <span class="string">likelihood</span> <span class="string">L(D|theta)</span> <span class="string">and</span> <span class="string">use</span> <span class="string">the</span> <span class="string">maximum</span> <span class="string">likelihood</span>
+  estimate (MLE) to <span class="string">fit</span> <span class="string">the</span> <span class="string">experimental</span> <span class="string">data</span>
+</pre>
+<pre class="codeinput">
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<h2 id="3">Preliminaries</h2>
+<p>Use the STL1 model from example_1_CreateSSITModels, FSP solutions from example_4_SolveSSITModels_FSP, and loaded data from example_8_LoadingandFittingData_DataLoading clear close all</p>
+<pre class="codeinput">
+<span class="comment">% example_1_CreateSSITModels</span>
+<span class="comment">% example_4_SolveSSITModels_FSP</span>
+<span class="comment">% example_8_LoadingandFittingData_DataLoading</span>
+</pre>
+<h2 id="4">Load pre-computed FSP solutions &amp; loaded data:</h2>
+<p>load('example_8_LoadingandFittingData.mat')</p>
+<pre class="codeinput">
+<span class="comment">% View model summary:</span>
+<span class="comment">% Model_data.summarizeModel</span>
+<span class="comment">% STL1_data.summarizeModel</span>
+STL1_4state_data.summarizeModel
+
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<pre class="codeoutput">Species:
+     g1; IC = 1;  discrete stochastic
+     g2; IC = 0;  discrete stochastic
+     g3; IC = 0;  discrete stochastic
+     g4; IC = 0;  discrete stochastic
+     mRNA; IC = 0;  discrete stochastic
+ 
+Reactions:
+  Reaction 1:
+     s1: 1*g1 --&gt; 1*g2
+     w1: k12*g1
+  Reaction 2:
+     s2: 1*g2 --&gt; 1*g1
+     w2: (max(0,k21o*(1-k21i*Hog1)))*g2
+  Reaction 3:
+     s3: 1*g2 --&gt; 1*g3
+     w3: k23*g2
+  Reaction 4:
+     s4: 1*g3 --&gt; 1*g2
+     w4: k32*g3
+  Reaction 5:
+     s5: 1*g3 --&gt; 1*g4
+     w5: k34*g3
+  Reaction 6:
+     s6: 1*g4 --&gt; 1*g3
+     w6: k43*g4
+  Reaction 7:
+     s7: NULL --&gt; 1*mRNA
+     w7: kr1*g1
+  Reaction 8:
+     s8: NULL --&gt; 1*mRNA
+     w8: kr2*g2
+  Reaction 9:
+     s9: NULL --&gt; 1*mRNA
+     w9: kr3*g3
+  Reaction 10:
+     s10: NULL --&gt; 1*mRNA
+     w10: kr4*g4
+  Reaction 11:
+     s11: 1*mRNA --&gt; NULL
+     w11: dr*mRNA
+ 
+Input Signals:
+     Hog1(t) = A*(((1-(exp(1)^(-r1*(t-t0))))*exp(1)^(-r2*(t-t0)))/(1+((1-(exp(1)^(-r1*(t-t0))))*exp(1)^(-r2*(t-t0)))/M))^n*(t&gt;t0)
+ 
+Model Parameters:
+    {'t0'  }    {[3.1700e+00]}
+    {'k12' }    {[        78]}
+    {'k21o'}    {[    192000]}
+    {'k21i'}    {[      3200]}
+    {'k23' }    {[4.0200e-01]}
+    {'k34' }    {[7.8000e+00]}
+    {'k32' }    {[1.6200e+00]}
+    {'k43' }    {[2.2800e+00]}
+    {'dr'  }    {[2.9400e-01]}
+    {'kr1' }    {[4.6800e-02]}
+    {'kr2' }    {[7.2000e-01]}
+    {'kr3' }    {[5.9400e+01]}
+    {'kr4' }    {[3.2400e+00]}
+    {'r1'  }    {[4.1400e-03]}
+    {'r2'  }    {[4.2600e-01]}
+    {'A'   }    {[9.3000e+09]}
+    {'M'   }    {[6.4000e-04]}
+    {'n'   }    {[3.1000e+00]}
+
+</pre>
+<h2 id="5">Fit experimental data using maximum likelihood estimates (MLEs)</h2>
+<pre class="codeinput">
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+
+<span class="comment">% Make new copies of our model:</span>
+<span class="comment">% Model_MLE = Model_data;</span>
+<span class="comment">% STL1_MLE = STL1_data;</span>
+STL1_4state_MLE = STL1_4state_data;
+
+<span class="comment">% Specify how many model parameters will be fit (the rest will be fixed):</span>
+fitpars = 13;
+STL1_4state_MLE.fittingOptions.modelVarsToFit = 1:fitpars;
+
+<span class="comment">% Set fitOptions, with the maximum allowable number of iterations to fit:</span>
+fitOptions = optimset(<span class="string">'Display'</span>,<span class="string">'iter'</span>,<span class="string">'MaxIter'</span>,2000);
+
+<span class="comment">% Store parameters for fitting:</span>
+<span class="comment">% Model_pars = cell2mat(Model_MLE.parameters(1:4,2));</span>
+<span class="comment">% STL1_pars = cell2mat(STL1_MLE.parameters(1:8,2));</span>
+STL1_4state_pars = cell2mat(STL1_4state_MLE.parameters(1:fitpars,2));
+</pre>
+<h2 id="6">Compute the MLEs:</h2>
+<p>[Model_pars,Model_likelihood] = ... Model_MLE.maximizeLikelihood(Model_pars,fitOptions);</p>
+<p>[STL1_pars,STL1_likelihood] = ... STL1_MLE.maximizeLikelihood(STL1_pars,fitOptions);</p>
+<pre class="codeinput">[STL1_4state_pars,STL1_4state_likelihood] = <span class="keyword">...</span>
+ STL1_4state_MLE.maximizeLikelihood(STL1_4state_pars,fitOptions);
+<span class="comment">% Note: Should see an MLE of -21961.2 at the end</span>
+
+<span class="comment">% Update parameters:</span>
+<span class="comment">% for j=1:length(Model_pars)</span>
+<span class="comment">%     Model_MLE.parameters{j,2} = Model_pars(j);</span>
+<span class="comment">% end</span>
+<span class="comment">%</span>
+<span class="comment">% for k=1:length(STL1_pars)</span>
+<span class="comment">%     STL1_MLE.parameters{k,2} = STL1_pars(k);</span>
+<span class="comment">% end</span>
+
+<span class="keyword">for</span> l=1:length(STL1_4state_pars)
+    STL1_4state_MLE.parameters{l,2} = STL1_4state_pars(l);
+<span class="keyword">end</span>
+
+<span class="comment">% Make plots of the parameter fits from the MLEs:</span>
+<span class="comment">% Model_MLE.plotFits([], "all", [], {'linewidth',2},...</span>
+<span class="comment">%     Title='Bursting Gene', YLabel='Molecule Count',...</span>
+<span class="comment">%     LegendLocation='northeast', LegendFontSize=12);</span>
+<span class="comment">%</span>
+<span class="comment">% STL1_MLE.plotFits([], "all", [], {'linewidth',2},...</span>
+<span class="comment">%     Title='STL1', YLabel='Molecule Count',...</span>
+<span class="comment">%     LegendLocation='northeast', LegendFontSize=12);</span>
+
+STL1_4state_MLE.plotFits([],<span class="string">"all"</span>,[],{<span class="string">'linewidth'</span>,2},TitleFontSize=24,<span class="keyword">...</span>
+    Title=<span class="string">'4-state STL1 (MLE)'</span>, YLabel=<span class="string">'Molecule Count'</span>,<span class="keyword">...</span>
+    LegendLocation=<span class="string">'northeast'</span>, LegendFontSize=18, AxisLabelSize=20);
+</pre>
+<pre class="codeoutput"> 
+ Iteration   Func-count         f(x)         Procedure
+     0            1          29886.8         
+     1           14          29636.1         initial simplex
+     2           15          29636.1         reflect
+     3           17            29215         expand
+     4           18            29215         reflect
+     5           19            29215         reflect
+     6           20            29215         reflect
+     7           21            29215         reflect
+     8           22            29215         reflect
+     9           23            29215         reflect
+    10           24            29215         reflect
+    11           25            29215         reflect
+    12           27          28980.4         expand
+    13           28          28980.4         reflect
+    14           29          28980.4         reflect
+    15           31          28618.4         expand
+    16           32          28618.4         reflect
+    17           33          28618.4         reflect
+    18           34          28618.4         reflect
+    19           35          28618.4         reflect
+    20           36          28618.4         reflect
+    21           37          28618.4         reflect
+    22           38          28618.4         reflect
+    23           40          28448.4         expand
+    24           41          28448.4         reflect
+    25           43          28136.8         expand
+    26           44          28136.8         reflect
+    27           45          28136.8         reflect
+    28           46          28136.8         reflect
+    29           47          28136.8         reflect
+    30           49          27784.6         expand
+    31           50          27784.6         reflect
+    32           51          27784.6         reflect
+    33           52          27784.6         reflect
+    34           54          27507.5         expand
+    35           55          27507.5         reflect
+    36           57          27507.5         contract inside
+    37           58          27507.5         reflect
+    38           60          27056.7         expand
+    39           61          27056.7         reflect
+    40           62          27056.7         reflect
+    41           63          27056.7         reflect
+    42           64          27056.7         reflect
+    43           65          27056.7         reflect
+    44           67          26486.8         expand
+    45           68          26486.8         reflect
+    46           69          26486.8         reflect
+    47           70          26486.8         reflect
+    48           71          26486.8         reflect
+    49           72          26486.8         reflect
+    50           73          26486.8         reflect
+    51           74          26486.8         reflect
+    52           76          25971.4         expand
+    53           77          25971.4         reflect
+    54           78          25971.4         reflect
+    55           79          25971.4         reflect
+    56           80          25971.4         reflect
+    57           81          25971.4         reflect
+    58           82          25971.4         reflect
+    59           84          25530.6         expand
+    60           85          25530.6         reflect
+    61           86          25530.6         reflect
+    62           87          25530.6         reflect
+    63           88          25530.6         reflect
+    64           90          25307.1         expand
+    65           91          25307.1         reflect
+    66           92          25307.1         reflect
+    67           93          25307.1         reflect
+    68           94          25307.1         reflect
+    69           96          25293.1         reflect
+    70           98            25265         reflect
+    71           99            25265         reflect
+    72          100            25265         reflect
+    73          101            25265         reflect
+    74          102            25265         reflect
+    75          103            25265         reflect
+    76          105            25265         contract inside
+    77          107            25265         contract inside
+    78          108            25265         reflect
+    79          110            25265         contract inside
+    80          111            25265         reflect
+    81          113            25265         contract outside
+    82          115            25265         contract inside
+    83          116            25265         reflect
+    84          117            25265         reflect
+    85          118            25265         reflect
+    86          120            25265         contract inside
+    87          122            25265         contract inside
+    88          124            25265         contract inside
+    89          126            25265         contract inside
+    90          127            25265         reflect
+    91          128            25265         reflect
+    92          130            25265         contract inside
+    93          132            25265         contract inside
+    94          134            25265         contract inside
+    95          136            25265         contract inside
+    96          138          25244.1         reflect
+    97          139          25244.1         reflect
+    98          141          25244.1         contract inside
+    99          142          25244.1         reflect
+   100          144          25244.1         contract inside
+   101          146          25244.1         contract inside
+   102          147          25244.1         reflect
+   103          149          25232.1         reflect
+   104          150          25232.1         reflect
+   105          151          25232.1         reflect
+   106          152          25232.1         reflect
+   107          153          25232.1         reflect
+   108          154          25232.1         reflect
+   109          155          25232.1         reflect
+   110          156          25232.1         reflect
+   111          158          25232.1         contract outside
+   112          159          25232.1         reflect
+   113          161          25224.3         reflect
+   114          163          25224.3         contract outside
+   115          164          25224.3         reflect
+   116          165          25224.3         reflect
+   117          167            25219         reflect
+   118          169            25219         contract inside
+   119          170            25219         reflect
+   120          172          25213.1         reflect
+   121          174          25213.1         contract inside
+   122          175          25213.1         reflect
+   123          177          25213.1         contract inside
+   124          178          25213.1         reflect
+   125          179          25213.1         reflect
+   126          180          25213.1         reflect
+   127          181          25213.1         reflect
+   128          182          25213.1         reflect
+   129          183          25213.1         reflect
+   130          185          25194.8         expand
+   131          186          25194.8         reflect
+   132          187          25194.8         reflect
+   133          189          25187.2         expand
+   134          190          25187.2         reflect
+   135          191          25187.2         reflect
+   136          192          25187.2         reflect
+   137          193          25187.2         reflect
+   138          194          25187.2         reflect
+   139          195          25187.2         reflect
+   140          196          25187.2         reflect
+   141          197          25187.2         reflect
+   142          199          25178.7         reflect
+   143          200          25178.7         reflect
+   144          201          25178.7         reflect
+   145          203          25175.6         reflect
+   146          204          25175.6         reflect
+   147          205          25175.6         reflect
+   148          206          25175.6         reflect
+   149          207          25175.6         reflect
+   150          208          25175.6         reflect
+   151          210          25171.5         reflect
+   152          212          25164.2         reflect
+   153          213          25164.2         reflect
+   154          214          25164.2         reflect
+   155          215          25164.2         reflect
+   156          217            25160         reflect
+   157          218            25160         reflect
+   158          219            25160         reflect
+   159          221          25153.6         reflect
+   160          223          25153.6         contract inside
+   161          224          25153.6         reflect
+   162          226          25153.6         contract inside
+   163          227          25153.6         reflect
+   164          228          25153.6         reflect
+   165          229          25153.6         reflect
+   166          231          25142.1         expand
+   167          232          25142.1         reflect
+   168          233          25142.1         reflect
+   169          234          25142.1         reflect
+   170          235          25142.1         reflect
+   171          236          25142.1         reflect
+   172          237          25142.1         reflect
+   173          238          25142.1         reflect
+   174          239          25142.1         reflect
+   175          240          25142.1         reflect
+   176          242          25130.1         expand
+   177          243          25130.1         reflect
+   178          245          25130.1         reflect
+   179          247          25127.3         reflect
+   180          248          25127.3         reflect
+   181          249          25127.3         reflect
+   182          250          25127.3         reflect
+   183          251          25127.3         reflect
+   184          252          25127.3         reflect
+   185          253          25127.3         reflect
+   186          255          25119.3         reflect
+   187          256          25119.3         reflect
+   188          258          25117.6         reflect
+   189          259          25117.6         reflect
+   190          260          25117.6         reflect
+   191          262          25117.6         contract inside
+   192          263          25117.6         reflect
+   193          264          25117.6         reflect
+   194          265          25117.6         reflect
+   195          267          25114.9         reflect
+   196          269          25114.9         contract inside
+   197          270          25114.9         reflect
+   198          271          25114.9         reflect
+   199          272          25114.9         reflect
+   200          274          25114.9         contract inside
+   201          276          25109.2         reflect
+   202          278          25109.2         contract inside
+   203          279          25109.2         reflect
+   204          280          25109.2         reflect
+   205          281          25109.2         reflect
+   206          283          25109.2         contract inside
+   207          285          25109.2         contract inside
+   208          286          25109.2         reflect
+   209          287          25109.2         reflect
+   210          288          25109.2         reflect
+   211          290          25109.2         contract outside
+   212          291          25109.2         reflect
+   213          293          25109.2         contract inside
+   214          294          25109.2         reflect
+   215          296          25109.2         contract outside
+   216          298          25109.2         contract inside
+   217          300          25098.8         expand
+   218          302          25098.8         contract outside
+   219          303          25098.8         reflect
+   220          304          25098.8         reflect
+   221          305          25098.8         reflect
+   222          306          25098.8         reflect
+   223          307          25098.8         reflect
+   224          308          25098.8         reflect
+   225          309          25098.8         reflect
+   226          311          25098.8         contract inside
+   227          312          25098.8         reflect
+   228          313          25098.8         reflect
+   229          314          25098.8         reflect
+   230          316          25091.7         expand
+   231          317          25091.7         reflect
+   232          318          25091.7         reflect
+   233          319          25091.7         reflect
+   234          320          25091.7         reflect
+   235          321          25091.7         reflect
+   236          322          25091.7         reflect
+   237          323          25091.7         reflect
+   238          324          25091.7         reflect
+   239          326          25088.9         expand
+   240          328          25086.8         expand
+   241          330          25079.4         expand
+   242          331          25079.4         reflect
+   243          333          25068.1         expand
+   244          334          25068.1         reflect
+   245          335          25068.1         reflect
+   246          336          25068.1         reflect
+   247          337          25068.1         reflect
+   248          338          25068.1         reflect
+   249          340          25056.8         expand
+   250          341          25056.8         reflect
+   251          342          25056.8         reflect
+   252          343          25056.8         reflect
+   253          344          25056.8         reflect
+   254          345          25056.8         reflect
+   255          346          25056.8         reflect
+   256          348          25047.3         expand
+   257          349          25047.3         reflect
+   258          350          25047.3         reflect
+   259          352          25040.2         expand
+   260          354          25019.2         expand
+   261          355          25019.2         reflect
+   262          356          25019.2         reflect
+   263          357          25019.2         reflect
+   264          358          25019.2         reflect
+   265          359          25019.2         reflect
+   266          360          25019.2         reflect
+   267          362          25002.7         expand
+   268          363          25002.7         reflect
+   269          364          25002.7         reflect
+   270          366          25002.1         reflect
+   271          367          25002.1         reflect
+   272          368          25002.1         reflect
+   273          370          24993.8         expand
+   274          371          24993.8         reflect
+   275          372          24993.8         reflect
+   276          374          24978.1         expand
+   277          376          24973.5         reflect
+   278          378          24970.7         reflect
+   279          379          24970.7         reflect
+   280          380          24970.7         reflect
+   281          381          24970.7         reflect
+   282          383          24968.5         reflect
+   283          384          24968.5         reflect
+   284          385          24968.5         reflect
+   285          386          24968.5         reflect
+   286          388          24958.9         reflect
+   287          390          24958.9         contract outside
+   288          391          24958.9         reflect
+   289          393          24958.9         contract outside
+   290          395          24955.9         reflect
+   291          396          24955.9         reflect
+   292          397          24955.9         reflect
+   293          398          24955.9         reflect
+   294          400          24955.9         contract inside
+   295          402          24954.7         reflect
+   296          403          24954.7         reflect
+   297          404          24954.7         reflect
+   298          405          24954.7         reflect
+   299          407          24954.7         contract inside
+   300          408          24954.7         reflect
+   301          410          24944.9         reflect
+   302          411          24944.9         reflect
+   303          412          24944.9         reflect
+   304          413          24944.9         reflect
+   305          415          24944.9         contract inside
+   306          417          24944.9         contract inside
+   307          419          24944.9         contract inside
+   308          421          24925.5         expand
+   309          422          24925.5         reflect
+   310          424          24925.5         contract inside
+   311          425          24925.5         reflect
+   312          426          24925.5         reflect
+   313          427          24925.5         reflect
+   314          428          24925.5         reflect
+   315          429          24925.5         reflect
+   316          430          24925.5         reflect
+   317          431          24925.5         reflect
+   318          432          24925.5         reflect
+   319          433          24925.5         reflect
+   320          434          24925.5         reflect
+   321          436          24925.5         contract inside
+   322          438          24925.5         contract inside
+   323          439          24925.5         reflect
+   324          440          24925.5         reflect
+   325          441          24925.5         reflect
+   326          442          24925.5         reflect
+   327          443          24925.5         reflect
+   328          444          24925.5         reflect
+   329          445          24925.5         reflect
+   330          447          24913.4         reflect
+   331          448          24913.4         reflect
+   332          449          24913.4         reflect
+   333          451          24900.2         reflect
+   334          452          24900.2         reflect
+   335          454          24894.4         expand
+   336          455          24894.4         reflect
+   337          456          24894.4         reflect
+   338          457          24894.4         reflect
+   339          458          24894.4         reflect
+   340          459          24894.4         reflect
+   341          460          24894.4         reflect
+   342          462          24894.4         contract inside
+   343          463          24894.4         reflect
+   344          464          24894.4         reflect
+   345          466          24894.4         contract inside
+   346          468          24894.4         contract inside
+   347          469          24894.4         reflect
+   348          471          24885.6         reflect
+   349          472          24885.6         reflect
+   350          473          24885.6         reflect
+   351          474          24885.6         reflect
+   352          475          24885.6         reflect
+   353          476          24885.6         reflect
+   354          477          24885.6         reflect
+   355          478          24885.6         reflect
+   356          480          24884.9         contract outside
+   357          482          24884.9         contract inside
+   358          484          24884.9         contract inside
+   359          485          24884.9         reflect
+   360          487          24884.7         reflect
+   361          488          24884.7         reflect
+   362          489          24884.7         reflect
+   363          490          24884.7         reflect
+   364          491          24884.7         reflect
+   365          493          24884.7         contract inside
+   366          495          24884.7         contract inside
+   367          497          24884.1         contract inside
+   368          498          24884.1         reflect
+   369          500          24884.1         reflect
+   370          501          24884.1         reflect
+   371          502          24884.1         reflect
+   372          503          24884.1         reflect
+   373          505          24879.5         contract inside
+   374          507          24879.5         contract inside
+   375          509          24879.5         contract inside
+   376          510          24879.5         reflect
+   377          512          24874.3         reflect
+   378          513          24874.3         reflect
+   379          515          24874.3         contract inside
+   380          516          24874.3         reflect
+   381          518          24874.3         contract inside
+   382          519          24874.3         reflect
+   383          520          24874.3         reflect
+   384          522          24874.3         contract inside
+   385          523          24874.3         reflect
+   386          524          24874.3         reflect
+   387          526          24874.3         contract inside
+   388          528          24874.3         contract outside
+   389          529          24874.3         reflect
+   390          530          24874.3         reflect
+   391          531          24874.3         reflect
+   392          532          24874.3         reflect
+   393          533          24874.3         reflect
+   394          535          24874.3         contract inside
+   395          537          24874.3         contract inside
+   396          539          24874.3         contract inside
+   397          540          24874.3         reflect
+   398          541          24874.3         reflect
+   399          543          24872.7         reflect
+   400          545          24872.7         contract inside
+   401          546          24872.7         reflect
+   402          548          24872.7         contract inside
+   403          550          24872.7         contract outside
+   404          551          24872.7         reflect
+   405          553          24872.6         reflect
+   406          555          24872.6         contract inside
+   407          556          24872.6         reflect
+   408          558          24872.6         contract inside
+   409          560          24871.4         reflect
+   410          562          24871.4         contract inside
+   411          564          24871.4         contract inside
+   412          565          24871.4         reflect
+   413          566          24871.4         reflect
+   414          568          24871.4         contract inside
+   415          570          24870.5         reflect
+   416          572          24870.3         reflect
+   417          573          24870.3         reflect
+   418          574          24870.3         reflect
+   419          576          24870.3         contract inside
+   420          577          24870.3         reflect
+   421          579          24868.6         expand
+   422          580          24868.6         reflect
+   423          581          24868.6         reflect
+   424          582          24868.6         reflect
+   425          584          24868.5         reflect
+   426          585          24868.5         reflect
+   427          586          24868.5         reflect
+   428          588          24868.3         reflect
+   429          589          24868.3         reflect
+   430          591          24866.9         expand
+   431          592          24866.9         reflect
+   432          594          24866.8         reflect
+   433          595          24866.8         reflect
+   434          596          24866.8         reflect
+   435          598          24865.8         expand
+   436          600          24865.8         contract inside
+   437          601          24865.8         reflect
+   438          602          24865.8         reflect
+   439          603          24865.8         reflect
+   440          604          24865.8         reflect
+   441          605          24865.8         reflect
+   442          606          24865.8         reflect
+   443          607          24865.8         reflect
+   444          609          24865.5         reflect
+   445          611          24864.6         reflect
+   446          613          24864.5         reflect
+   447          615          24864.5         contract inside
+   448          616          24864.5         reflect
+   449          617          24864.5         reflect
+   450          618          24864.5         reflect
+   451          619          24864.5         reflect
+   452          620          24864.5         reflect
+   453          621          24864.5         reflect
+   454          623          24864.2         reflect
+   455          624          24864.2         reflect
+   456          625          24864.2         reflect
+   457          626          24864.2         reflect
+   458          628          24863.7         reflect
+   459          629          24863.7         reflect
+   460          630          24863.7         reflect
+   461          632          24863.6         reflect
+   462          634          24863.6         contract inside
+   463          635          24863.6         reflect
+   464          636          24863.6         reflect
+   465          637          24863.6         reflect
+   466          638          24863.6         reflect
+   467          639          24863.6         reflect
+   468          641          24863.6         contract inside
+   469          643          24863.6         contract inside
+   470          645            24863         reflect
+   471          647          24862.2         expand
+   472          649          24862.2         contract inside
+   473          650          24862.2         reflect
+   474          651          24862.2         reflect
+   475          652          24862.2         reflect
+   476          653          24862.2         reflect
+   477          655          24862.2         contract inside
+   478          656          24862.2         reflect
+   479          657          24862.2         reflect
+   480          659          24862.2         contract inside
+   481          661          24862.2         contract outside
+   482          662          24862.2         reflect
+   483          663          24862.2         reflect
+   484          664          24862.2         reflect
+   485          665          24862.2         reflect
+   486          666          24862.2         reflect
+   487          667          24862.2         reflect
+   488          668          24862.2         reflect
+   489          670          24862.2         contract inside
+   490          672          24862.2         contract inside
+   491          674          24861.8         reflect
+   492          676          24861.3         expand
+   493          677          24861.3         reflect
+   494          678          24861.3         reflect
+   495          679          24861.3         reflect
+   496          680          24861.3         reflect
+   497          681          24861.3         reflect
+   498          682          24861.3         reflect
+   499          683          24861.3         reflect
+   500          684          24861.3         reflect
+   501          685          24861.3         reflect
+   502          686          24861.3         reflect
+   503          687          24861.3         reflect
+   504          688          24861.3         reflect
+   505          689          24861.3         reflect
+   506          690          24861.3         reflect
+   507          691          24861.3         reflect
+   508          693            24861         reflect
+   509          695            24861         contract outside
+   510          696            24861         reflect
+   511          697            24861         reflect
+   512          699            24861         contract inside
+   513          700            24861         reflect
+   514          701            24861         reflect
+   515          703          24860.8         reflect
+   516          704          24860.8         reflect
+   517          706          24860.8         contract inside
+   518          707          24860.8         reflect
+   519          709          24860.8         contract inside
+   520          710          24860.8         reflect
+   521          712          24860.8         contract inside
+   522          714          24860.8         contract inside
+   523          716          24860.8         reflect
+   524          717          24860.8         reflect
+   525          719          24860.8         contract inside
+   526          720          24860.8         reflect
+   527          722          24860.6         reflect
+   528          723          24860.6         reflect
+   529          724          24860.6         reflect
+   530          726          24860.6         contract inside
+   531          728          24860.6         reflect
+   532          729          24860.6         reflect
+   533          730          24860.6         reflect
+   534          731          24860.6         reflect
+   535          732          24860.6         reflect
+   536          733          24860.6         reflect
+   537          735          24860.6         contract inside
+   538          736          24860.6         reflect
+   539          738          24860.5         expand
+   540          739          24860.5         reflect
+   541          740          24860.5         reflect
+   542          741          24860.5         reflect
+   543          742          24860.5         reflect
+   544          743          24860.5         reflect
+   545          744          24860.5         reflect
+   546          745          24860.5         reflect
+   547          747          24860.3         expand
+   548          748          24860.3         reflect
+   549          750          24860.3         contract inside
+   550          752          24860.3         reflect
+   551          753          24860.3         reflect
+   552          754          24860.3         reflect
+   553          755          24860.3         reflect
+   554          756          24860.3         reflect
+   555          758          24860.3         contract outside
+   556          760          24860.2         reflect
+   557          761          24860.2         reflect
+   558          763          24860.1         reflect
+   559          764          24860.1         reflect
+   560          765          24860.1         reflect
+   561          766          24860.1         reflect
+   562          768          24860.1         contract inside
+   563          770          24860.1         contract inside
+   564          771          24860.1         reflect
+   565          772          24860.1         reflect
+   566          774            24860         reflect
+   567          775            24860         reflect
+   568          776            24860         reflect
+   569          777            24860         reflect
+   570          778            24860         reflect
+   571          780            24860         reflect
+   572          781            24860         reflect
+   573          782            24860         reflect
+   574          783            24860         reflect
+   575          785          24859.9         reflect
+   576          787          24859.7         expand
+   577          788          24859.7         reflect
+   578          789          24859.7         reflect
+   579          790          24859.7         reflect
+   580          791          24859.7         reflect
+   581          792          24859.7         reflect
+   582          793          24859.7         reflect
+   583          794          24859.7         reflect
+   584          795          24859.7         reflect
+   585          796          24859.7         reflect
+   586          797          24859.7         reflect
+   587          799          24859.3         expand
+   588          800          24859.3         reflect
+   589          801          24859.3         reflect
+   590          802          24859.3         reflect
+   591          803          24859.3         reflect
+   592          804          24859.3         reflect
+   593          805          24859.3         reflect
+   594          806          24859.3         reflect
+   595          807          24859.3         reflect
+   596          808          24859.3         reflect
+   597          809          24859.3         reflect
+   598          810          24859.3         reflect
+   599          812          24859.2         reflect
+   600          814          24858.9         expand
+   601          815          24858.9         reflect
+   602          816          24858.9         reflect
+   603          817          24858.9         reflect
+   604          818          24858.9         reflect
+   605          819          24858.9         reflect
+   606          820          24858.9         reflect
+   607          821          24858.9         reflect
+   608          822          24858.9         reflect
+   609          824          24858.7         reflect
+   610          825          24858.7         reflect
+   611          826          24858.7         reflect
+   612          828          24858.6         expand
+   613          829          24858.6         reflect
+   614          831          24858.5         expand
+   615          832          24858.5         reflect
+   616          833          24858.5         reflect
+   617          834          24858.5         reflect
+   618          836          24858.4         reflect
+   619          838          24858.4         reflect
+   620          840          24858.3         reflect
+   621          841          24858.3         reflect
+   622          843          24858.1         expand
+   623          844          24858.1         reflect
+   624          845          24858.1         reflect
+   625          846          24858.1         reflect
+   626          847          24858.1         reflect
+   627          848          24858.1         reflect
+   628          849          24858.1         reflect
+   629          851            24858         reflect
+   630          852            24858         reflect
+   631          854            24858         contract inside
+   632          856          24857.9         reflect
+   633          857          24857.9         reflect
+   634          858          24857.9         reflect
+   635          860          24857.8         reflect
+   636          861          24857.8         reflect
+   637          862          24857.8         reflect
+   638          863          24857.8         reflect
+   639          864          24857.8         reflect
+   640          865          24857.8         reflect
+   641          867          24857.8         reflect
+   642          868          24857.8         reflect
+   643          869          24857.8         reflect
+   644          870          24857.8         reflect
+   645          871          24857.8         reflect
+   646          873          24857.7         reflect
+   647          875          24857.7         reflect
+   648          876          24857.7         reflect
+   649          877          24857.7         reflect
+   650          878          24857.7         reflect
+   651          880          24857.7         contract inside
+   652          882          24857.7         contract inside
+   653          884          24857.7         contract inside
+   654          885          24857.7         reflect
+   655          886          24857.7         reflect
+   656          887          24857.7         reflect
+   657          888          24857.7         reflect
+   658          890          24857.6         contract inside
+   659          891          24857.6         reflect
+   660          893          24857.6         contract inside
+   661          895          24857.6         contract inside
+   662          896          24857.6         reflect
+   663          898          24857.6         reflect
+   664          899          24857.6         reflect
+   665          901          24857.5         reflect
+   666          903          24857.5         contract inside
+   667          905          24857.5         contract inside
+   668          907          24857.5         contract inside
+   669          909          24857.5         contract inside
+   670          910          24857.5         reflect
+   671          912          24857.5         contract inside
+   672          914          24857.5         reflect
+   673          915          24857.5         reflect
+   674          917          24857.5         contract inside
+   675          919          24857.5         contract inside
+   676          921          24857.5         contract inside
+   677          922          24857.5         reflect
+   678          923          24857.5         reflect
+   679          924          24857.5         reflect
+   680          925          24857.5         reflect
+   681          927          24857.5         reflect
+   682          928          24857.5         reflect
+   683          929          24857.5         reflect
+   684          931          24857.5         contract inside
+   685          932          24857.5         reflect
+   686          933          24857.5         reflect
+   687          934          24857.5         reflect
+   688          936          24857.4         expand
+   689          937          24857.4         reflect
+   690          939          24857.4         contract inside
+   691          940          24857.4         reflect
+   692          941          24857.4         reflect
+   693          942          24857.4         reflect
+   694          943          24857.4         reflect
+   695          945          24857.4         contract inside
+   696          947          24857.4         contract inside
+   697          948          24857.4         reflect
+   698          949          24857.4         reflect
+   699          950          24857.4         reflect
+   700          951          24857.4         reflect
+   701          952          24857.4         reflect
+   702          953          24857.4         reflect
+   703          955          24857.4         contract outside
+   704          956          24857.4         reflect
+   705          957          24857.4         reflect
+   706          959          24857.4         contract inside
+   707          961          24857.4         contract inside
+   708          963          24857.4         reflect
+   709          965          24857.3         expand
+   710          966          24857.3         reflect
+   711          967          24857.3         reflect
+   712          968          24857.3         reflect
+   713          969          24857.3         reflect
+   714          970          24857.3         reflect
+   715          972          24857.3         contract outside
+   716          973          24857.3         reflect
+   717          974          24857.3         reflect
+   718          976          24857.3         reflect
+   719          977          24857.3         reflect
+   720          978          24857.3         reflect
+   721          979          24857.3         reflect
+   722          980          24857.3         reflect
+   723          981          24857.3         reflect
+   724          982          24857.3         reflect
+   725          983          24857.3         reflect
+   726          984          24857.3         reflect
+   727          986          24857.3         contract inside
+   728          987          24857.3         reflect
+   729          988          24857.3         reflect
+   730          989          24857.3         reflect
+   731          991          24857.2         reflect
+   732          992          24857.2         reflect
+   733          993          24857.2         reflect
+   734         1008          24857.2         shrink
+   735         1009          24857.2         reflect
+   736         1010          24857.2         reflect
+   737         1012          24857.2         contract inside
+   738         1027          24857.2         shrink
+   739         1028          24857.2         reflect
+   740         1029          24857.2         reflect
+   741         1030          24857.2         reflect
+   742         1031          24857.2         reflect
+   743         1033          24857.2         contract inside
+   744         1035          24857.2         contract inside
+   745         1036          24857.2         reflect
+   746         1037          24857.2         reflect
+   747         1038          24857.2         reflect
+   748         1039          24857.2         reflect
+   749         1040          24857.2         reflect
+   750         1055          24857.2         shrink
+   751         1056          24857.2         reflect
+   752         1057          24857.2         reflect
+   753         1072          24857.2         shrink
+   754         1073          24857.2         reflect
+   755         1074          24857.2         reflect
+   756         1075          24857.2         reflect
+   757         1076          24857.2         reflect
+   758         1077          24857.2         reflect
+   759         1092          24857.2         shrink
+   760         1094          24857.2         contract inside
+   761         1096          24857.2         contract inside
+   762         1098          24857.2         contract inside
+   763         1100          24857.2         expand
+   764         1102          24857.2         contract inside
+   765         1104          24857.2         contract inside
+   766         1105          24857.2         reflect
+   767         1106          24857.2         reflect
+   768         1108          24857.2         contract inside
+   769         1109          24857.2         reflect
+   770         1111          24857.2         contract inside
+   771         1113          24857.2         contract inside
+   772         1115          24857.2         contract inside
+   773         1117          24857.2         contract inside
+   774         1119          24857.2         contract inside
+   775         1121          24857.2         contract inside
+   776         1123          24857.2         contract inside
+   777         1125          24857.2         contract inside
+   778         1127          24857.2         contract inside
+   779         1129          24857.2         contract inside
+   780         1131          24857.2         contract inside
+   781         1133          24857.2         contract inside
+   782         1135          24857.2         contract inside
+   783         1137          24857.2         contract inside
+   784         1138          24857.2         reflect
+   785         1140          24857.2         contract inside
+   786         1142          24857.2         contract inside
+   787         1144          24857.2         contract inside
+   788         1146          24857.2         contract inside
+   789         1148          24857.2         contract inside
+   790         1150          24857.2         contract inside
+   791         1152          24857.2         contract inside
+   792         1154          24857.2         contract inside
+   793         1156          24857.2         contract inside
+   794         1158          24857.2         contract inside
+   795         1160          24857.2         contract inside
+   796         1162          24857.2         contract inside
+   797         1164          24857.2         contract inside
+   798         1165          24857.2         reflect
+   799         1167          24857.2         contract inside
+   800         1169          24857.2         contract inside
+   801         1170          24857.2         reflect
+   802         1172          24857.2         contract inside
+   803         1174          24857.2         contract inside
+   804         1176          24857.2         contract inside
+   805         1178          24857.2         contract inside
+   806         1180          24857.2         contract inside
+   807         1182          24857.2         contract inside
+   808         1184          24857.2         contract inside
+   809         1186          24857.2         contract inside
+   810         1187          24857.2         reflect
+   811         1189          24857.2         contract inside
+   812         1191          24857.2         contract inside
+   813         1193          24857.2         contract inside
+   814         1195          24857.2         contract inside
+   815         1197          24857.2         contract inside
+   816         1199          24857.2         contract inside
+   817         1201          24857.2         contract inside
+   818         1203          24857.2         contract inside
+   819         1205          24857.2         contract inside
+   820         1207          24857.2         contract inside
+   821         1209          24857.2         contract inside
+   822         1211          24857.2         contract inside
+   823         1213          24857.2         contract inside
+   824         1215          24857.2         contract inside
+   825         1217          24857.2         contract inside
+   826         1219          24857.2         contract inside
+   827         1221          24857.2         contract inside
+   828         1223          24857.2         contract inside
+   829         1225          24857.2         contract inside
+   830         1240          24857.2         shrink
+   831         1242          24857.2         contract inside
+   832         1244          24857.2         contract inside
+   833         1246          24857.2         contract inside
+   834         1248          24857.2         contract inside
+   835         1263          24857.2         shrink
+   836         1278          24857.2         shrink
+   837         1279          24857.2         reflect
+   838         1280          24857.2         reflect
+   839         1281          24857.2         reflect
+   840         1282          24857.2         reflect
+   841         1283          24857.2         reflect
+   842         1284          24857.2         reflect
+   843         1285          24857.2         reflect
+   844         1286          24857.2         reflect
+   845         1287          24857.2         reflect
+   846         1288          24857.2         reflect
+   847         1289          24857.2         reflect
+   848         1290          24857.2         reflect
+   849         1291          24857.2         reflect
+   850         1292          24857.2         reflect
+   851         1294          24857.2         reflect
+   852         1295          24857.2         reflect
+   853         1296          24857.2         reflect
+   854         1297          24857.2         reflect
+   855         1298          24857.2         reflect
+   856         1299          24857.2         reflect
+   857         1301          24857.2         contract outside
+   858         1303          24857.2         contract inside
+   859         1304          24857.2         reflect
+   860         1305          24857.2         reflect
+   861         1307          24857.2         contract inside
+   862         1309          24857.2         contract inside
+   863         1311          24857.2         contract inside
+   864         1313          24857.2         contract inside
+   865         1315          24857.2         contract inside
+   866         1317          24857.2         contract inside
+   867         1319          24857.2         contract inside
+   868         1321          24857.2         contract inside
+   869         1323          24857.2         contract inside
+   870         1338          24857.2         shrink
+   871         1339          24857.2         reflect
+   872         1340          24857.2         reflect
+   873         1341          24857.2         reflect
+   874         1343          24857.2         contract inside
+   875         1344          24857.2         reflect
+   876         1345          24857.2         reflect
+   877         1346          24857.2         reflect
+   878         1348          24857.2         contract outside
+   879         1363          24857.2         shrink
+   880         1364          24857.2         reflect
+   881         1365          24857.2         reflect
+   882         1367          24857.2         reflect
+   883         1368          24857.2         reflect
+   884         1369          24857.2         reflect
+   885         1370          24857.2         reflect
+   886         1371          24857.2         reflect
+   887         1386          24857.2         shrink
+   888         1387          24857.2         reflect
+   889         1388          24857.2         reflect
+   890         1403          24857.2         shrink
+   891         1405          24857.2         contract inside
+   892         1406          24857.2         reflect
+   893         1408          24857.2         contract inside
+   894         1410          24857.2         contract inside
+   895         1411          24857.2         reflect
+   896         1412          24857.2         reflect
+   897         1427          24857.2         shrink
+   898         1428          24857.2         reflect
+   899         1430          24857.2         contract outside
+   900         1432          24857.2         contract inside
+   901         1433          24857.2         reflect
+   902         1448          24857.2         shrink
+   903         1450          24857.2         contract outside
+   904         1451          24857.2         reflect
+   905         1452          24857.2         reflect
+   906         1453          24857.2         reflect
+   907         1468          24857.2         shrink
+   908         1469          24857.2         reflect
+   909         1470          24857.2         reflect
+   910         1471          24857.2         reflect
+   911         1472          24857.2         reflect
+   912         1473          24857.2         reflect
+   913         1475          24857.2         contract inside
+   914         1477          24857.2         contract inside
+   915         1478          24857.2         reflect
+   916         1493          24857.2         shrink
+   917         1494          24857.2         reflect
+   918         1495          24857.2         reflect
+   919         1496          24857.2         reflect
+   920         1498          24857.2         contract inside
+   921         1499          24857.2         reflect
+   922         1500          24857.2         reflect
+   923         1501          24857.2         reflect
+   924         1503          24857.2         contract inside
+   925         1518          24857.2         shrink
+   926         1519          24857.2         reflect
+   927         1521          24857.2         contract inside
+   928         1522          24857.2         reflect
+   929         1523          24857.2         reflect
+   930         1525          24857.2         contract inside
+   931         1526          24857.2         reflect
+   932         1527          24857.2         reflect
+   933         1529          24857.2         contract inside
+   934         1531          24857.2         contract inside
+   935         1532          24857.2         reflect
+   936         1533          24857.2         reflect
+ 
+Optimization terminated:
+ the current x satisfies the termination criteria using OPTIONS.TolX of 1.000000e-04 
+ and F(X) satisfies the convergence criteria using OPTIONS.TolFun of 1.000000e-04 
+
+</pre>
+<img vspace="5" hspace="5" src="example_9_LoadingandFittingData_MLE_01.png" alt=""> <img vspace="5" hspace="5" src="example_9_LoadingandFittingData_MLE_02.png" alt=""> <img vspace="5" hspace="5" src="example_9_LoadingandFittingData_MLE_03.png" alt=""> <img vspace="5" hspace="5" src="example_9_LoadingandFittingData_MLE_04.png" alt=""> <h2 id="7">Save models &amp; MLEs:</h2>
+<pre class="codeinput">saveNames = unique({
+    <span class="string">'STL1_MLE'</span>
+    <span class="string">'STL1_4state_MLE'</span>
+    <span class="string">'STL1_4state_pars'</span>
+    <span class="string">'STL1_4state_likelihood'</span>
+    });
+
+save(<span class="string">'example_9_LoadingandFittingData_MLE'</span>,saveNames{:})
+</pre>
+<p class="footer">
+<br>
+<a href="https://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2025b</a>
+<br>
+</p>
+</div>
+<!--
+##### SOURCE BEGIN #####
+%% SSIT/Examples/example_9_LoadingandFittingData_MLE
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Section 2.3: Loading and fitting time-varying STL1 yeast data 
+%   * Maximize the likelihood L(D|theta) and use the maximum likelihood
+%     estimate (MLE) to fit the experimental data
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% Preliminaries
+% Use the STL1 model from example_1_CreateSSITModels, FSP solutions from 
+% example_4_SolveSSITModels_FSP, and loaded data from 
+% example_8_LoadingandFittingData_DataLoading
+% clear
+% close all
+
+% example_1_CreateSSITModels  
+% example_4_SolveSSITModels_FSP
+% example_8_LoadingandFittingData_DataLoading
+
+%% Load pre-computed FSP solutions & loaded data:
+% load('example_8_LoadingandFittingData.mat')
+ 
+% View model summary:
+% Model_data.summarizeModel
+% STL1_data.summarizeModel
+STL1_4state_data.summarizeModel
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Fit experimental data using maximum likelihood estimates (MLEs)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Make new copies of our model:
+% Model_MLE = Model_data;
+% STL1_MLE = STL1_data;
+STL1_4state_MLE = STL1_4state_data;
+
+% Specify how many model parameters will be fit (the rest will be fixed):
+fitpars = 13;
+STL1_4state_MLE.fittingOptions.modelVarsToFit = 1:fitpars;
+
+% Set fitOptions, with the maximum allowable number of iterations to fit:
+fitOptions = optimset('Display','iter','MaxIter',2000);
+
+% Store parameters for fitting:
+% Model_pars = cell2mat(Model_MLE.parameters(1:4,2));
+% STL1_pars = cell2mat(STL1_MLE.parameters(1:8,2));
+STL1_4state_pars = cell2mat(STL1_4state_MLE.parameters(1:fitpars,2));
+
+%% Compute the MLEs:
+% [Model_pars,Model_likelihood] = ...
+%  Model_MLE.maximizeLikelihood(Model_pars,fitOptions);
+% 
+% [STL1_pars,STL1_likelihood] = ...
+%  STL1_MLE.maximizeLikelihood(STL1_pars,fitOptions);
+
+[STL1_4state_pars,STL1_4state_likelihood] = ...
+ STL1_4state_MLE.maximizeLikelihood(STL1_4state_pars,fitOptions);
+% Note: Should see an MLE of -21961.2 at the end
+
+% Update parameters:
+% for j=1:length(Model_pars)
+%     Model_MLE.parameters{j,2} = Model_pars(j);
+% end
+% 
+% for k=1:length(STL1_pars)
+%     STL1_MLE.parameters{k,2} = STL1_pars(k);
+% end
+
+for l=1:length(STL1_4state_pars)
+    STL1_4state_MLE.parameters{l,2} = STL1_4state_pars(l);
+end
+
+% Make plots of the parameter fits from the MLEs:
+% Model_MLE.plotFits([], "all", [], {'linewidth',2},...
+%     Title='Bursting Gene', YLabel='Molecule Count',...
+%     LegendLocation='northeast', LegendFontSize=12);
+% 
+% STL1_MLE.plotFits([], "all", [], {'linewidth',2},...
+%     Title='STL1', YLabel='Molecule Count',...
+%     LegendLocation='northeast', LegendFontSize=12);
+
+STL1_4state_MLE.plotFits([],"all",[],{'linewidth',2},TitleFontSize=24,...
+    Title='4-state STL1 (MLE)', YLabel='Molecule Count',...
+    LegendLocation='northeast', LegendFontSize=18, AxisLabelSize=20);
+
+%% Save models & MLEs:
+saveNames = unique({
+    'STL1_MLE'
+    'STL1_4state_MLE'
+    'STL1_4state_pars'
+    'STL1_4state_likelihood'
+    });
+    
+save('example_9_LoadingandFittingData_MLE',saveNames{:})
+##### SOURCE END #####
+-->
+</body>
+</html>

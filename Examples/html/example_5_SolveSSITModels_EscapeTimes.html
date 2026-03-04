@@ -9,7 +9,7 @@ To make changes, update the MATLAB code and republish this document.
 <title>example_5_SolveSSITModels_EscapeTimes</title>
 <meta name="generator" content="MATLAB 25.2">
 <link rel="schema.DC" href="http://purl.org/dc/elements/1.1/">
-<meta name="DC.date" content="2026-02-20">
+<meta name="DC.date" content="2026-03-03">
 <meta name="DC.source" content="example_5_SolveSSITModels_EscapeTimes.m">
 <style type="text/css">
 html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
@@ -161,10 +161,10 @@ Reactions:
      w4: dr * mRNA
  
 Model Parameters:
-    {'kon' }    {[0.2000]}
-    {'koff'}    {[0.2000]}
-    {'kr'  }    {[    10]}
-    {'dr'  }    {[     5]}
+    {'kon' }    {[2.0000e-01]}
+    {'koff'}    {[2.0000e-01]}
+    {'kr'  }    {[        10]}
+    {'dr'  }    {[         5]}
 
 Species:
      offGene; IC = 1;  discrete stochastic
@@ -189,14 +189,14 @@ Input Signals:
      Hog1(t) = (a0+a1*exp(-r1*t)*(1-exp(-r2*t))*(t&gt;0))
  
 Model Parameters:
-    {'kon' }    {[0.2000]}
-    {'koff'}    {[0.2000]}
-    {'kr'  }    {[    10]}
-    {'dr'  }    {[     5]}
-    {'a0'  }    {[     5]}
-    {'a1'  }    {[    10]}
-    {'r1'  }    {[0.0040]}
-    {'r2'  }    {[0.0100]}
+    {'kon' }    {[2.0000e-01]}
+    {'koff'}    {[2.0000e-01]}
+    {'kr'  }    {[        10]}
+    {'dr'  }    {[         5]}
+    {'a0'  }    {[         5]}
+    {'a1'  }    {[        10]}
+    {'r1'  }    {[4.0000e-03]}
+    {'r2'  }    {[1.0000e-02]}
 
 Species:
      g1; IC = 1;  discrete stochastic
@@ -244,24 +244,24 @@ Input Signals:
      Hog1(t) = A*(((1-(exp(1)^(-r1*(t-t0))))*exp(1)^(-r2*(t-t0)))/(1+((1-(exp(1)^(-r1*(t-t0))))*exp(1)^(-r2*(t-t0)))/M))^n*(t&gt;t0)
  
 Model Parameters:
-    {'t0'  }    {[    3.1700]}
+    {'t0'  }    {[3.1700e+00]}
     {'k12' }    {[        78]}
     {'k21o'}    {[    192000]}
     {'k21i'}    {[      3200]}
-    {'k23' }    {[    0.4020]}
-    {'k34' }    {[    7.8000]}
-    {'k32' }    {[    1.6200]}
-    {'k43' }    {[    2.2800]}
-    {'dr'  }    {[    0.2940]}
-    {'kr1' }    {[    0.0468]}
-    {'kr2' }    {[    0.7200]}
-    {'kr3' }    {[   59.4000]}
-    {'kr4' }    {[    3.2400]}
-    {'r1'  }    {[    0.0041]}
-    {'r2'  }    {[    0.4260]}
+    {'k23' }    {[4.0200e-01]}
+    {'k34' }    {[7.8000e+00]}
+    {'k32' }    {[1.6200e+00]}
+    {'k43' }    {[2.2800e+00]}
+    {'dr'  }    {[2.9400e-01]}
+    {'kr1' }    {[4.6800e-02]}
+    {'kr2' }    {[7.2000e-01]}
+    {'kr3' }    {[5.9400e+01]}
+    {'kr4' }    {[3.2400e+00]}
+    {'r1'  }    {[4.1400e-03]}
+    {'r2'  }    {[4.2600e-01]}
     {'A'   }    {[9.3000e+09]}
     {'M'   }    {[6.4000e-04]}
-    {'n'   }    {[    3.1000]}
+    {'n'   }    {[3.1000e+00]}
 
 </pre>
 <h2 id="4">Ex(1): Solve escape times for the bursting gene example model</h2>
@@ -282,8 +282,8 @@ Model Parameters:
     [~,~,Model_escape] = Model_escape.solve;
 
     <span class="comment">% Plot the CDF and PDF</span>
-    Model_escape.plotFSP(Model_escape.Solutions, [], <span class="string">"escapeTimes"</span>, [],<span class="keyword">...</span>
-        [], {<span class="string">'linewidth'</span>,3}, Title=<span class="string">"Bursting Gene (mRNA)"</span>,<span class="keyword">...</span>
+    Model_escape.plotFSP(plotType=<span class="string">"escapeTimes"</span>,<span class="keyword">...</span>
+        lineProps={<span class="string">'linewidth'</span>,3}, Title=<span class="string">"Bursting Gene (mRNA)"</span>,<span class="keyword">...</span>
         Colors=[0.93,0.69,0.13], LegendLocation=<span class="string">"southeast"</span>);
 
 <span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
@@ -304,9 +304,8 @@ Model Parameters:
     [~,~,STL1_escape] = STL1_escape.solve;
 
     <span class="comment">% Plot the CDF and PDF</span>
-    STL1_escape.plotFSP(STL1_escape.Solutions,[],<span class="string">"escapeTimes"</span>,[],[],<span class="keyword">...</span>
-        {<span class="string">'linewidth'</span>,3}, Title=<span class="string">"STL1 (offGene, onGene)"</span>,<span class="keyword">...</span>
-        LegendLocation=<span class="string">"east"</span>);
+    STL1_escape.plotFSP(plotType=<span class="string">"escapeTimes"</span>, LegendLocation=<span class="string">"east"</span>,<span class="keyword">...</span>
+        lineProps={<span class="string">'linewidth'</span>,3}, Title=<span class="string">"STL1 (offGene, onGene)"</span>);
 
 <span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
 </pre>
@@ -336,10 +335,10 @@ Model Parameters:
     [~,~,STL1_4state_escape] = STL1_4state_escape.solve;
 
     <span class="comment">% Plot the CDF and PDF</span>
-    STL1_4state_escape.plotFSP(STL1_4state_escape.Solutions, [],<span class="keyword">...</span>
-        <span class="string">"escapeTimes"</span>, [], [], {<span class="string">'linewidth'</span>,3}, XLim=[0,50],<span class="keyword">...</span>
+    STL1_4state_escape.plotFSP(plotType=<span class="string">"escapeTimes"</span>, XLim=[0,50],<span class="keyword">...</span>
+        lineProps={<span class="string">'linewidth'</span>,3}, LegendLocation=<span class="string">"southeast"</span>,<span class="keyword">...</span>
         TitleFontSize=24, Title=<span class="string">"4-state STL1 (mRNA)"</span>,<span class="keyword">...</span>
-        Colors=[0.23,0.67,0.2], LegendLocation=<span class="string">"southeast"</span>);
+        Colors=[0.23,0.67,0.2]);
 </pre>
 <img vspace="5" hspace="5" src="example_5_SolveSSITModels_EscapeTimes_03.png" alt=""> <p class="footer">
 <br>
@@ -394,8 +393,8 @@ STL1_4state.tSpan = linspace(0,50,101);
     [~,~,Model_escape] = Model_escape.solve;
 
     % Plot the CDF and PDF
-    Model_escape.plotFSP(Model_escape.Solutions, [], "escapeTimes", [],...
-        [], {'linewidth',3}, Title="Bursting Gene (mRNA)",...
+    Model_escape.plotFSP(plotType="escapeTimes",...
+        lineProps={'linewidth',3}, Title="Bursting Gene (mRNA)",...
         Colors=[0.93,0.69,0.13], LegendLocation="southeast");
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -414,9 +413,8 @@ STL1_4state.tSpan = linspace(0,50,101);
     [~,~,STL1_escape] = STL1_escape.solve;
 
     % Plot the CDF and PDF
-    STL1_escape.plotFSP(STL1_escape.Solutions,[],"escapeTimes",[],[],...
-        {'linewidth',3}, Title="STL1 (offGene, onGene)",...
-        LegendLocation="east");
+    STL1_escape.plotFSP(plotType="escapeTimes", LegendLocation="east",...
+        lineProps={'linewidth',3}, Title="STL1 (offGene, onGene)");
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(3): Solve escape times for the 4-state time-varying STL1 yeast model
@@ -444,11 +442,10 @@ STL1_4state.tSpan = linspace(0,50,101);
     [~,~,STL1_4state_escape] = STL1_4state_escape.solve;
 
     % Plot the CDF and PDF
-    STL1_4state_escape.plotFSP(STL1_4state_escape.Solutions, [],...
-        "escapeTimes", [], [], {'linewidth',3}, XLim=[0,50],...
+    STL1_4state_escape.plotFSP(plotType="escapeTimes", XLim=[0,50],...
+        lineProps={'linewidth',3}, LegendLocation="southeast",...
         TitleFontSize=24, Title="4-state STL1 (mRNA)",...
-        Colors=[0.23,0.67,0.2], LegendLocation="southeast");
-
+        Colors=[0.23,0.67,0.2]);
 ##### SOURCE END #####
 -->
 </body>

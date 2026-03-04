@@ -1,0 +1,930 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<META http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      -->
+<title>example_14_ComplexModels_PDO</title>
+<meta name="generator" content="MATLAB 25.2">
+<link rel="schema.DC" href="http://purl.org/dc/elements/1.1/">
+<meta name="DC.date" content="2026-03-03">
+<meta name="DC.source" content="example_14_ComplexModels_PDO.m">
+<style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; }
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+span.typesection { color:#A0522D }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style>
+</head>
+<body>
+<div class="content">
+<h2>Contents</h2>
+<div>
+<ul>
+<li>
+<a href="#1">SSIT/Examples/example_14_PDO</a>
+</li>
+<li>
+<a href="#2">Section 2.4: Complex models</a>
+</li>
+<li>
+<a href="#3">Preliminaries</a>
+</li>
+<li>
+<a href="#4">Load pre-run results:</a>
+</li>
+<li>
+<a href="#6">Section 2.5: Complex models</a>
+</li>
+<li>
+<a href="#7">Compute the optimal number of cells from the FIM results using the min.</a>
+</li>
+<li>
+<a href="#8">PDO Calculations</a>
+</li>
+<li>
+<a href="#9">Ex(1): Calibrate PDO from cytoplasmic mRNA count data</a>
+</li>
+<li>
+<a href="#10">Ex(2): Calibrate PDO from average intensity data</a>
+</li>
+<li>
+<a href="#11">FIM + PDO analyses</a>
+</li>
+<li>
+<a href="#12">Plot legend</a>
+</li>
+<li>
+<a href="#13">Save PDO models + results:</a>
+</li>
+</ul>
+</div>
+<h2 id="1">SSIT/Examples/example_14_PDO</h2>
+<pre class="codeinput">
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<h2 id="2">Section 2.4: Complex models</h2>
+<pre class="language-matlab">* Use a <span class="string">probability</span> <span class="string">distribution</span> <span class="string">operator</span> <span class="string">(PDO)</span> <span class="string">to</span> <span class="string">handle</span> <span class="string">distortion</span>
+  of <span class="string">data</span>
+</pre>
+<pre class="codeinput">
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<h2 id="3">Preliminaries</h2>
+<p>Use the STL1 model from example_1_CreateSSITModels, FSP solutions from example_4_SolveSSITModels_FSP, sensitivities computed in example_6_SensitivityAnalysis, FIM results from example_7_FIM, loaded data from example_8_LoadingandFittingData_DataLoading, and Metropolis-Hastings results from example_10_LoadingandFittingData_MH</p>
+<pre class="codeinput">
+<span class="comment">%clear</span>
+<span class="comment">%close all</span>
+addpath(genpath(<span class="string">'../'</span>));
+addpath(genpath(<span class="string">'tmpPropensityFunctions'</span>));
+
+<span class="comment">% example_1_CreateSSITModels</span>
+<span class="comment">% example_4_SolveSSITModels_FSP</span>
+<span class="comment">% example_6_SensitivityAnalysis</span>
+<span class="comment">% example_7_FIM</span>
+<span class="comment">% example_8_LoadingandFittingData_DataLoading</span>
+<span class="comment">% example_9_LoadingandFittingData_MLE</span>
+<span class="comment">% example_10_LoadingandFittingData_MH</span>
+</pre>
+<h2 id="4">Load pre-run results:</h2>
+<p>load('example_10_LoadingandFittingData_MH.mat')</p>
+<pre class="codeinput">
+<span class="comment">% View model summary:</span>
+STL1_4state_MH.summarizeModel
+
+<span class="comment">% Create a copy of the STL1 model for PDO:</span>
+STL1_4state_PDO = STL1_4state_MH;
+</pre>
+<pre class="codeoutput">Species:
+     g1; IC = 1;  discrete stochastic
+     g2; IC = 0;  discrete stochastic
+     g3; IC = 0;  discrete stochastic
+     g4; IC = 0;  discrete stochastic
+     mRNA; IC = 0;  discrete stochastic
+ 
+Reactions:
+  Reaction 1:
+     s1: 1*g1 --&gt; 1*g2
+     w1: k12*g1
+  Reaction 2:
+     s2: 1*g2 --&gt; 1*g1
+     w2: (max(0,k21o*(1-k21i*Hog1)))*g2
+  Reaction 3:
+     s3: 1*g2 --&gt; 1*g3
+     w3: k23*g2
+  Reaction 4:
+     s4: 1*g3 --&gt; 1*g2
+     w4: k32*g3
+  Reaction 5:
+     s5: 1*g3 --&gt; 1*g4
+     w5: k34*g3
+  Reaction 6:
+     s6: 1*g4 --&gt; 1*g3
+     w6: k43*g4
+  Reaction 7:
+     s7: NULL --&gt; 1*mRNA
+     w7: kr1*g1
+  Reaction 8:
+     s8: NULL --&gt; 1*mRNA
+     w8: kr2*g2
+  Reaction 9:
+     s9: NULL --&gt; 1*mRNA
+     w9: kr3*g3
+  Reaction 10:
+     s10: NULL --&gt; 1*mRNA
+     w10: kr4*g4
+  Reaction 11:
+     s11: 1*mRNA --&gt; NULL
+     w11: dr*mRNA
+ 
+Input Signals:
+     Hog1(t) = A*(((1-(exp(1)^(-r1*(t-t0))))*exp(1)^(-r2*(t-t0)))/(1+((1-(exp(1)^(-r1*(t-t0))))*exp(1)^(-r2*(t-t0)))/M))^n*(t&gt;t0)
+ 
+Model Parameters:
+    {'t0'  }    {[4.6670e+00]}
+    {'k12' }    {[5.6952e+00]}
+    {'k21o'}    {[5.6202e+02]}
+    {'k21i'}    {[3.3473e+00]}
+    {'k23' }    {[3.8955e-01]}
+    {'k34' }    {[1.2789e+00]}
+    {'k32' }    {[4.0527e+00]}
+    {'k43' }    {[6.6118e-01]}
+    {'dr'  }    {[2.2980e-01]}
+    {'kr1' }    {[7.2306e-02]}
+    {'kr2' }    {[2.7184e-01]}
+    {'kr3' }    {[8.3779e+01]}
+    {'kr4' }    {[1.3655e+01]}
+    {'r1'  }    {[4.1400e-03]}
+    {'r2'  }    {[4.2600e-01]}
+    {'A'   }    {[9.3000e+09]}
+    {'M'   }    {[6.4000e-04]}
+    {'n'   }    {[3.1000e+00]}
+
+</pre>
+<pre class="codeinput">fimResults = STL1_4state_PDO.computeFIM();
+
+<span class="comment">% Get the number of cells using 'nCells':</span>
+cellCounts = STL1_4state_PDO.dataSet.nCells*ones(size(STL1_4state_PDO.tSpan));
+
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<h2 id="6">Section 2.5: Complex models</h2>
+<pre class="language-matlab">* Apply an <span class="string">Affine</span> <span class="string">Poisson</span> <span class="string">conditional</span> <span class="string">probability</span> <span class="string">distribution</span>
+  operator (PDO) to <span class="string">transform</span> <span class="string">parameter</span> <span class="string">probabilities</span> <span class="string">computed</span>
+  from <span class="string">average</span> <span class="string">intensity</span> <span class="string">data</span> <span class="string">according</span> <span class="string">to</span> <span class="string">parameter</span> <span class="string">probabilities</span>
+  computed <span class="string">from</span> <span class="string">mRNA</span> <span class="string">spot</span> <span class="string">count</span> <span class="string">data</span>
+</pre>
+<pre class="codeinput">
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+
+figNew = figure;
+plotColors = struct(<span class="string">'scatter'</span>, [0.2, 0.6, 1], <span class="keyword">...</span>
+           <span class="string">'ellipseFIM'</span>, <span class="string">'r'</span>, <span class="keyword">...</span>
+           <span class="string">'ellipseMH'</span>, <span class="string">'g--'</span>, <span class="keyword">...</span>
+           <span class="string">'marker'</span>, [0.1, 0.1, 0.1]);
+
+sig_log10 = 2*ones(1,13);
+
+fimTotal = STL1_4state_PDO.evaluateExperiment(fimResults,<span class="keyword">...</span>
+           STL1_4state_PDO.dataSet.nCells,diag(sig_log10.^2));
+
+STL1_4state_PDO.plotMHResults(STL1_4state_MHResults,FIM=fimTotal,<span class="keyword">...</span>
+                              fimScale=<span class="string">'log'</span>,scatterFig=figNew,<span class="keyword">...</span>
+                              plotColors=plotColors)
+
+<span class="comment">% Find and store the total number of cells in your data set (already</span>
+<span class="comment">% computed by SSIT when data was loaded in</span>
+<span class="comment">% example_8_LoadingandFittingData_DataLoading:</span>
+nTotal = sum(STL1_4state_PDO.dataSet.nCells);
+</pre>
+<pre class="codeoutput">
+MH sample means and standard deviations (log10 scale):
+             t0: mean =  0.6636, std = 0.0072
+            k12: mean =  0.7981, std = 0.0715
+           k21o: mean =  2.7663, std = 0.0467
+           k21i: mean =  0.5653, std = 0.0287
+            k23: mean = -0.4364, std = 0.0170
+            k34: mean =  0.1797, std = 0.0473
+            k32: mean =  0.5945, std = 0.0281
+            k43: mean = -0.1336, std = 0.0398
+             dr: mean = -0.6319, std = 0.0080
+            kr1: mean = -1.1349, std = 0.0140
+            kr2: mean = -0.5701, std = 0.0359
+            kr3: mean =  1.9262, std = 0.0236
+            kr4: mean =  1.1122, std = 0.0286
+</pre>
+<img vspace="5" hspace="5" src="example_14_ComplexModels_PDO_01.png" alt=""> <img vspace="5" hspace="5" src="example_14_ComplexModels_PDO_02.png" alt=""> <img vspace="5" hspace="5" src="example_14_ComplexModels_PDO_03.png" alt=""> <h2 id="7">Compute the optimal number of cells from the FIM results using the min.</h2>
+<p>inv determinant <a href="x^{-1}">x^{-1}</a> (all other parameters are known and fixed)</p>
+<pre class="codeinput">nCellsOpt = STL1_4state_PDO.optimizeCellCounts(fimResults,nTotal,<span class="string">'E-opt'</span>);
+
+nCellsOptAvail = min(nCellsOpt,STL1_4state_PDO.dataSet.nCells)
+
+fimOpt = STL1_4state_PDO.evaluateExperiment(fimResults,nCellsOpt,<span class="keyword">...</span>
+                                             diag(sig_log10.^2));
+
+fimOptAvail = STL1_4state_PDO.evaluateExperiment(fimResults,<span class="keyword">...</span>
+                                        nCellsOptAvail,diag(sig_log10.^2));
+figOpt = figure;
+STL1_4state_PDO.plotMHResults(STL1_4state_MHResults, fimScale=<span class="string">'log'</span>,<span class="keyword">...</span>
+                              FIM=[fimOpt,fimTotal], scatterFig=figOpt,<span class="keyword">...</span>
+                              plotColors=plotColors);
+figOptAvail = figure;
+STL1_4state_PDO.plotMHResults(STL1_4state_MHResults,<span class="keyword">...</span>
+                            FIM=[fimOptAvail,fimTotal], fimScale=<span class="string">'log'</span>,<span class="keyword">...</span>
+                            scatterFig=figOptAvail, plotColors=plotColors);
+
+f = figure;
+set(f,<span class="string">'Position'</span>,[616   748   412   170])
+bar([1:size(nCellsOpt,2)],nTotal,0.45)
+hold <span class="string">on</span>
+bar([1:size(nCellsOpt,2)]+0.5,nCellsOpt,0.45)
+set(gca,<span class="string">'xtick'</span>,[1:size(nCellsOpt,2)]+0.25,<span class="string">'xticklabel'</span>,<span class="keyword">...</span>
+    STL1_4state_PDO.dataSet.times,<span class="string">'fontsize'</span>,16,<span class="string">'ylim'</span>,[0,7000])
+legend(<span class="string">'Intuitive Design'</span>,<span class="string">'Optimal Design'</span>)
+
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<pre class="codeoutput">
+nCellsOptAvail =
+
+  Columns 1 through 6
+
+           0           0           0           0         284           0
+           0           0           0           0         284           0
+           0           0           0           0         284           0
+           0           0           0           0         284           0
+           0           0           0           0         284           0
+           0           0           0           0         284           0
+           0           0           0           0         284           0
+           0           0           0           0         284           0
+           0           0           0           0         284           0
+           0           0           0           0         284           0
+           0           0           0           0         284           0
+           0           0           0           0         284           0
+           0           0           0           0         284           0
+           0           0           0           0         284           0
+           0           0           0           0         284           0
+           0           0           0           0         284           0
+
+  Columns 7 through 12
+
+        1163           0        1619        1619           0        1619
+         702           0         702         702           0         702
+         707           0         707         707           0         707
+         812           0         812         812           0         812
+         672           0         672         672           0         672
+        1163           0        1191        1191           0        1191
+         539           0         539         539           0         539
+         556           0         556         556           0         556
+        1163           0        1251        1251           0        1251
+         613           0         613         613           0         613
+         977           0         977         977           0         977
+         336           0         336         336           0         336
+         737           0         737         737           0         737
+        1011           0        1011        1011           0        1011
+         397           0         397         397           0         397
+        1107           0        1107        1107           0        1107
+
+  Columns 13 through 16
+
+           0           0           0           0
+           0           0           0           0
+           0           0           0           0
+           0           0           0           0
+           0           0           0           0
+           0           0           0           0
+           0           0           0           0
+           0           0           0           0
+           0           0           0           0
+           0           0           0           0
+           0           0           0           0
+           0           0           0           0
+           0           0           0           0
+           0           0           0           0
+           0           0           0           0
+           0           0           0           0
+
+
+MH sample means and standard deviations (log10 scale):
+             t0: mean =  0.6636, std = 0.0072
+            k12: mean =  0.7981, std = 0.0715
+           k21o: mean =  2.7663, std = 0.0467
+           k21i: mean =  0.5653, std = 0.0287
+            k23: mean = -0.4364, std = 0.0170
+            k34: mean =  0.1797, std = 0.0473
+            k32: mean =  0.5945, std = 0.0281
+            k43: mean = -0.1336, std = 0.0398
+             dr: mean = -0.6319, std = 0.0080
+            kr1: mean = -1.1349, std = 0.0140
+            kr2: mean = -0.5701, std = 0.0359
+            kr3: mean =  1.9262, std = 0.0236
+            kr4: mean =  1.1122, std = 0.0286
+
+MH sample means and standard deviations (log10 scale):
+             t0: mean =  0.6636, std = 0.0072
+            k12: mean =  0.7981, std = 0.0715
+           k21o: mean =  2.7663, std = 0.0467
+           k21i: mean =  0.5653, std = 0.0287
+            k23: mean = -0.4364, std = 0.0170
+            k34: mean =  0.1797, std = 0.0473
+            k32: mean =  0.5945, std = 0.0281
+            k43: mean = -0.1336, std = 0.0398
+             dr: mean = -0.6319, std = 0.0080
+            kr1: mean = -1.1349, std = 0.0140
+            kr2: mean = -0.5701, std = 0.0359
+            kr3: mean =  1.9262, std = 0.0236
+            kr4: mean =  1.1122, std = 0.0286
+</pre>
+<img vspace="5" hspace="5" src="example_14_ComplexModels_PDO_04.png" alt=""> <img vspace="5" hspace="5" src="example_14_ComplexModels_PDO_05.png" alt=""> <img vspace="5" hspace="5" src="example_14_ComplexModels_PDO_06.png" alt=""> <img vspace="5" hspace="5" src="example_14_ComplexModels_PDO_07.png" alt=""> <img vspace="5" hspace="5" src="example_14_ComplexModels_PDO_08.png" alt=""> <img vspace="5" hspace="5" src="example_14_ComplexModels_PDO_09.png" alt=""> <img vspace="5" hspace="5" src="example_14_ComplexModels_PDO_10.png" alt=""> <h2 id="8">PDO Calculations</h2>
+<h2 id="9">Ex(1): Calibrate PDO from cytoplasmic mRNA count data</h2>
+<p>Calibrate Binomial PDOs from empirical data under the `missing spot' assumption from Vo et al. (2013). 'RNA_STL1_total_TS3Full' is the full mRNA count and represents the `true' data; `RNA_STL1_cyto_TS3Full' is the mRNA count from only cytoplasm and `RNA_STL1_nuc_TS3Full' is the mRNA count from only the nucleus.</p>
+<pre class="codeinput">
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+STL1_4state_PDO_cyt = STL1_4state_PDO;
+STL1_4state_PDO_nuc = STL1_4state_PDO;
+
+STL1_4state_PDO_cyt = <span class="keyword">...</span>
+ STL1_4state_PDO_cyt.calibratePDO(<span class="string">'data/filtered_data_2M_NaCl_Step.csv'</span>,<span class="keyword">...</span>
+        {<span class="string">'mRNA'</span>}, {<span class="string">'RNA_STL1_total_TS3Full'</span>}, {<span class="string">'RNA_STL1_cyto_TS3Full'</span>},<span class="keyword">...</span>
+        <span class="string">'Binomial'</span>, true, [], {<span class="string">'Replica'</span>,1}, LegendLocation=<span class="string">"northwest"</span>,<span class="keyword">...</span>
+        Title=<span class="string">"4-state STL1 (PDO: Cytoplasmic mRNA)"</span>, FontSize=24,<span class="keyword">...</span>
+        XLabel=<span class="string">"Total mRNA counts"</span>, YLabel=<span class="string">"Cytoplasmic mRNA counts"</span>);
+
+STL1_4state_PDO_nuc = <span class="keyword">...</span>
+ STL1_4state_PDO_nuc.calibratePDO(<span class="string">'data/filtered_data_2M_NaCl_Step.csv'</span>,<span class="keyword">...</span>
+        {<span class="string">'mRNA'</span>}, {<span class="string">'RNA_STL1_total_TS3Full'</span>}, {<span class="string">'RNA_STL1_nuc_TS3Full'</span>},<span class="keyword">...</span>
+        <span class="string">'Binomial'</span>, true, [], {<span class="string">'Replica'</span>,1}, LegendLocation=<span class="string">"northwest"</span>,<span class="keyword">...</span>
+        Title=<span class="string">"4-state STL1 (PDO: Nuclear mRNA)"</span>, FontSize=24,<span class="keyword">...</span>
+        XLabel=<span class="string">"Total mRNA counts"</span>, YLabel=<span class="string">"Nuclear mRNA counts"</span>);
+
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<img vspace="5" hspace="5" src="example_14_ComplexModels_PDO_11.png" alt=""> <img vspace="5" hspace="5" src="example_14_ComplexModels_PDO_12.png" alt=""> <h2 id="10">Ex(2): Calibrate PDO from average intensity data</h2>
+<p>Calibrate the PDO from empirical data. Here, the number of spots has been measured using different assays in data column 'RNA_STL1_total_TS3Full' for the 'true' data set (mRNA spot counts) and in the columns 'STL1_avg_int_TS3Full' for integrated intensity. We calibrate an 'AffinePoiss' PDO where the obervation probability is a Poisson distribution where the mean value is affine linearly related to the true value: P(y|x) = Poiss(a0 + a1*x)</p>
+<pre class="codeinput">
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+<span class="comment">% Make guesses for the PDO hyperparameters λ, in this case: λ₁, λ₂, λ₃</span>
+<span class="comment">% Model: μ(x) = max(λ₁, λ₂ + λ₃&middot;x)</span>
+<span class="comment">% Soon: Neural networks and hierarchical Bayes may be used to estimate λ</span>
+parGuess = [0, 2500, 5];
+
+STL1_4state_PDO_intens = STL1_4state_PDO;
+STL1_4state_PDO_intens = STL1_4state_PDO_intens.calibratePDO( <span class="keyword">...</span>
+    <span class="string">'data/filtered_data_2M_NaCl_Step.csv'</span>, {<span class="string">'mRNA'</span>},<span class="keyword">...</span>
+    {<span class="string">'RNA_STL1_total_TS3Full'</span>}, {<span class="string">'STL1_avg_int_TS3Full'</span>}, <span class="string">'AffinePoiss'</span>,<span class="keyword">...</span>
+    true, parGuess, {<span class="string">'Replica'</span>,1}, LegendLocation=<span class="string">"southeast"</span>, <span class="keyword">...</span>
+    Title=<span class="string">"4-state STL1 (Affine PDO: Average intensity)"</span>, FontSize=24,<span class="keyword">...</span>
+    XLabel=<span class="string">"True mRNA counts"</span>,YLabel=<span class="string">"Average intensities (binned)"</span>);
+
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<img vspace="5" hspace="5" src="example_14_ComplexModels_PDO_13.png" alt=""> <h2 id="11">FIM + PDO analyses</h2>
+<pre class="language-matlab">* Ex(1): Analyze FIM <span class="string">with</span> <span class="string">PDO</span> <span class="string">for</span> <span class="string">cytoplasmic</span> <span class="string">&amp;</span> <span class="string">nuclear</span> <span class="string">mRNA</span> <span class="string">counts</span>
+</pre>
+<pre class="codeinput">
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+
+<span class="comment">% Cytoplasm:</span>
+fimsPDO_cyt = STL1_4state_PDO_cyt.computeFIM([],<span class="string">'log'</span>);
+fimPDO_cyt = STL1_4state_PDO_cyt.evaluateExperiment(fimsPDO_cyt,<span class="keyword">...</span>
+                                            nCellsOpt, diag(sig_log10.^2));
+
+nCellsOptPDO_cyt = STL1_4state_PDO_cyt.optimizeCellCounts(<span class="keyword">...</span>
+                         fimsPDO_cyt, nTotal, <span class="string">'E-opt'</span>);
+figPDO_cyt = figure;
+STL1_4state_PDO_cyt.plotMHResults(STL1_4state_MHResults, fimScale=<span class="string">'log'</span>,<span class="keyword">...</span>
+                  FIM=[fimPDO_cyt,fimTotal,fimOpt], scatterFig=figPDO_cyt);
+
+<span class="comment">% Nucleus:</span>
+fimsPDO_nuc = STL1_4state_PDO_nuc.computeFIM([],<span class="string">'log'</span>);
+fimPDO_nuc = STL1_4state_PDO_nuc.evaluateExperiment(fimsPDO_nuc,<span class="keyword">...</span>
+                                            nCellsOpt, diag(sig_log10.^2));
+
+nCellsOptPDO_nuc = STL1_4state_PDO_nuc.optimizeCellCounts(<span class="keyword">...</span>
+                       fimsPDO_nuc, nTotal, <span class="string">'E-opt'</span>);
+figPDO_nuc = figure;
+STL1_4state_PDO_nuc.plotMHResults(STL1_4state_MHResults, fimScale=<span class="string">'log'</span>,<span class="keyword">...</span>
+                  FIM=[fimPDO_nuc,fimTotal,fimOpt], scatterFig=figPDO_nuc);
+
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+<span class="comment">%   * Ex(2): Analyze FIM with PDO for average intensity data</span>
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+fimsPDOintens = STL1_4state_PDO_intens.computeFIM([],<span class="string">'log'</span>);
+fimPDOintens = STL1_4state_PDO_intens.evaluateExperiment(fimsPDOintens,<span class="keyword">...</span>
+                                            nCellsOpt,diag(sig_log10.^2));
+
+nCellsOptPDOintens = STL1_4state_PDO_intens.optimizeCellCounts(<span class="keyword">...</span>
+                           fimsPDOintens,nTotal,<span class="string">'E-opt'</span>);
+
+figintens = figure;
+STL1_4state_PDO_intens.plotMHResults(STL1_4state_MHResults,<span class="keyword">...</span>
+   FIM=[fimPDOintens,fimTotal,fimOpt],fimScale=<span class="string">'log'</span>,scatterFig=figintens);
+</pre>
+<pre class="codeoutput">Padding conditionalPmfs input to increase size for PDO: 146 to 198
+Padding conditionalPmfs input to increase size for PDO: 146 to 198
+Padding conditionalPmfs input to increase size for PDO: 146 to 198
+Padding conditionalPmfs input to increase size for PDO: 146 to 198
+Padding conditionalPmfs input to increase size for PDO: 146 to 198
+Padding conditionalPmfs input to increase size for PDO: 146 to 198
+Padding conditionalPmfs input to increase size for PDO: 146 to 198
+Padding conditionalPmfs input to increase size for PDO: 146 to 198
+Padding conditionalPmfs input to increase size for PDO: 146 to 198
+Padding conditionalPmfs input to increase size for PDO: 146 to 198
+Padding conditionalPmfs input to increase size for PDO: 146 to 198
+Padding conditionalPmfs input to increase size for PDO: 146 to 198
+Padding conditionalPmfs input to increase size for PDO: 146 to 198
+Padding conditionalPmfs input to increase size for PDO: 146 to 198
+Padding conditionalPmfs input to increase size for PDO: 146 to 198
+Padding conditionalPmfs input to increase size for PDO: 146 to 198
+
+MH sample means and standard deviations (log10 scale):
+             t0: mean =  0.6636, std = 0.0072
+            k12: mean =  0.7981, std = 0.0715
+           k21o: mean =  2.7663, std = 0.0467
+           k21i: mean =  0.5653, std = 0.0287
+            k23: mean = -0.4364, std = 0.0170
+            k34: mean =  0.1797, std = 0.0473
+            k32: mean =  0.5945, std = 0.0281
+            k43: mean = -0.1336, std = 0.0398
+             dr: mean = -0.6319, std = 0.0080
+            kr1: mean = -1.1349, std = 0.0140
+            kr2: mean = -0.5701, std = 0.0359
+            kr3: mean =  1.9262, std = 0.0236
+            kr4: mean =  1.1122, std = 0.0286
+Padding conditionalPmfs input to increase size for PDO: 146 to 198
+Padding conditionalPmfs input to increase size for PDO: 146 to 198
+Padding conditionalPmfs input to increase size for PDO: 146 to 198
+Padding conditionalPmfs input to increase size for PDO: 146 to 198
+Padding conditionalPmfs input to increase size for PDO: 146 to 198
+Padding conditionalPmfs input to increase size for PDO: 146 to 198
+Padding conditionalPmfs input to increase size for PDO: 146 to 198
+Padding conditionalPmfs input to increase size for PDO: 146 to 198
+Padding conditionalPmfs input to increase size for PDO: 146 to 198
+Padding conditionalPmfs input to increase size for PDO: 146 to 198
+Padding conditionalPmfs input to increase size for PDO: 146 to 198
+Padding conditionalPmfs input to increase size for PDO: 146 to 198
+Padding conditionalPmfs input to increase size for PDO: 146 to 198
+Padding conditionalPmfs input to increase size for PDO: 146 to 198
+Padding conditionalPmfs input to increase size for PDO: 146 to 198
+Padding conditionalPmfs input to increase size for PDO: 146 to 198
+
+MH sample means and standard deviations (log10 scale):
+             t0: mean =  0.6636, std = 0.0072
+            k12: mean =  0.7981, std = 0.0715
+           k21o: mean =  2.7663, std = 0.0467
+           k21i: mean =  0.5653, std = 0.0287
+            k23: mean = -0.4364, std = 0.0170
+            k34: mean =  0.1797, std = 0.0473
+            k32: mean =  0.5945, std = 0.0281
+            k43: mean = -0.1336, std = 0.0398
+             dr: mean = -0.6319, std = 0.0080
+            kr1: mean = -1.1349, std = 0.0140
+            kr2: mean = -0.5701, std = 0.0359
+            kr3: mean =  1.9262, std = 0.0236
+            kr4: mean =  1.1122, std = 0.0286
+Padding conditionalPmfs input to increase size for PDO: 146 to 198
+Padding conditionalPmfs input to increase size for PDO: 146 to 198
+Padding conditionalPmfs input to increase size for PDO: 146 to 198
+Padding conditionalPmfs input to increase size for PDO: 146 to 198
+Padding conditionalPmfs input to increase size for PDO: 146 to 198
+Padding conditionalPmfs input to increase size for PDO: 146 to 198
+Padding conditionalPmfs input to increase size for PDO: 146 to 198
+Padding conditionalPmfs input to increase size for PDO: 146 to 198
+Padding conditionalPmfs input to increase size for PDO: 146 to 198
+Padding conditionalPmfs input to increase size for PDO: 146 to 198
+Padding conditionalPmfs input to increase size for PDO: 146 to 198
+Padding conditionalPmfs input to increase size for PDO: 146 to 198
+Padding conditionalPmfs input to increase size for PDO: 146 to 198
+Padding conditionalPmfs input to increase size for PDO: 146 to 198
+Padding conditionalPmfs input to increase size for PDO: 146 to 198
+Padding conditionalPmfs input to increase size for PDO: 146 to 198
+
+MH sample means and standard deviations (log10 scale):
+             t0: mean =  0.6636, std = 0.0072
+            k12: mean =  0.7981, std = 0.0715
+           k21o: mean =  2.7663, std = 0.0467
+           k21i: mean =  0.5653, std = 0.0287
+            k23: mean = -0.4364, std = 0.0170
+            k34: mean =  0.1797, std = 0.0473
+            k32: mean =  0.5945, std = 0.0281
+            k43: mean = -0.1336, std = 0.0398
+             dr: mean = -0.6319, std = 0.0080
+            kr1: mean = -1.1349, std = 0.0140
+            kr2: mean = -0.5701, std = 0.0359
+            kr3: mean =  1.9262, std = 0.0236
+            kr4: mean =  1.1122, std = 0.0286
+</pre>
+<img vspace="5" hspace="5" src="example_14_ComplexModels_PDO_14.png" alt=""> <img vspace="5" hspace="5" src="example_14_ComplexModels_PDO_15.png" alt=""> <img vspace="5" hspace="5" src="example_14_ComplexModels_PDO_16.png" alt=""> <img vspace="5" hspace="5" src="example_14_ComplexModels_PDO_17.png" alt=""> <img vspace="5" hspace="5" src="example_14_ComplexModels_PDO_18.png" alt=""> <img vspace="5" hspace="5" src="example_14_ComplexModels_PDO_19.png" alt=""> <img vspace="5" hspace="5" src="example_14_ComplexModels_PDO_20.png" alt=""> <img vspace="5" hspace="5" src="example_14_ComplexModels_PDO_21.png" alt=""> <img vspace="5" hspace="5" src="example_14_ComplexModels_PDO_22.png" alt=""> <img vspace="5" hspace="5" src="example_14_ComplexModels_PDO_23.png" alt=""> <h2 id="12">Plot legend</h2>
+<pre class="codeinput">axs = findall(figPDO_cyt, <span class="string">'Type'</span>, <span class="string">'axes'</span>);
+ax  = axs(1);
+hold(ax,<span class="string">'on'</span>);
+
+<span class="comment">% Helpers:</span>
+near = @(c,tol,tgt) (numel(c)==3) &amp;&amp; all(abs(c(:)'-tgt)&lt;=tol);
+isMagenta = @(c) near(c,0.15,[1 0 1]);
+isCyan    = @(c) near(c,0.15,[0 1 1]);
+isBlue    = @(c) near(c,0.15,[0 0 1]);
+isGreen   = @(c) near(c,0.15,[0 1 0]);
+
+<span class="comment">% MCMC 90% credible interval (magenta dashed):</span>
+hMHell = findobj(ax,<span class="string">'Type'</span>,<span class="string">'line'</span>,<span class="string">'LineStyle'</span>,<span class="string">'--'</span>);
+hMHell = hMHell(arrayfun(@(h) isMagenta(h.Color), hMHell));
+
+<span class="comment">% FIM ellipses (solid lines):</span>
+hFIM = findobj(ax,<span class="string">'Type'</span>,<span class="string">'line'</span>,<span class="string">'LineStyle'</span>,<span class="string">'-'</span>);
+
+<span class="comment">% Classify FIM ellipses by color:</span>
+hFIM_cyan  = hFIM(arrayfun(@(h) isCyan(h.Color),  hFIM));
+hFIM_blue  = hFIM(arrayfun(@(h) isBlue(h.Color),  hFIM));
+hFIM_green = hFIM(arrayfun(@(h) isGreen(h.Color), hFIM));
+
+<span class="comment">% Find MCMC samples (scatter) and MLE (square marker):</span>
+hSamples = findobj(ax,<span class="string">'Type'</span>,<span class="string">'scatter'</span>);
+<span class="keyword">if</span> isempty(hSamples)
+    cand = findobj(ax,<span class="string">'Type'</span>,<span class="string">'line'</span>,<span class="string">'Marker'</span>,<span class="string">'o'</span>);
+    hSamples = cand(~arrayfun(@(h) strcmp(get(h,<span class="string">'MarkerFaceColor'</span>),<span class="string">'none'</span>), cand));
+<span class="keyword">end</span>
+hMLE = findobj(ax,<span class="string">'Type'</span>,<span class="string">'line'</span>,<span class="string">'Marker'</span>,<span class="string">'s'</span>);
+
+<span class="comment">% Build legend in a sensible order:</span>
+L = []; names = {};
+<span class="keyword">if</span> ~isempty(hSamples),L(end+1)=hSamples(1);names{end+1}=<span class="string">'MCMC samples'</span>;<span class="keyword">end</span>
+<span class="keyword">if</span> ~isempty(hMLE),L(end+1)=hMLE(1); names{end+1}=<span class="string">'MLE'</span>;<span class="keyword">end</span>
+<span class="keyword">if</span> ~isempty(hMHell),L(end+1)=hMHell(1);names{end+1}=<span class="string">'MCMC 90% CI'</span>;<span class="keyword">end</span>
+<span class="keyword">if</span> ~isempty(hFIM_cyan),L(end+1)=hFIM_cyan(1);names{end+1}=<span class="string">'FIM PDO'</span>;<span class="keyword">end</span>
+<span class="keyword">if</span> ~isempty(hFIM_blue),L(end+1)=hFIM_blue(1);names{end+1}=<span class="string">'FIM total'</span>;<span class="keyword">end</span>
+<span class="keyword">if</span> ~isempty(hFIM_green),L(end+1)=hFIM_green(1);names{end+1}=<span class="string">'FIM optimal'</span>;<span class="keyword">end</span>
+
+<span class="comment">% Fallback: if color classification failed, just take first three FIM lines</span>
+<span class="keyword">if</span> numel(L)&lt;5
+    remainingFIM = setdiff(hFIM, [hFIM_cyan; hFIM_blue; hFIM_green]);
+    <span class="keyword">for</span> k = 1:min(3, numel(remainingFIM))
+        L(end+1) = remainingFIM(k);
+        names{end+1} = sprintf(<span class="string">'FIM #%d'</span>, k);
+    <span class="keyword">end</span>
+<span class="keyword">end</span>
+
+lgd = legend(ax, L, names, <span class="string">'Location'</span>,<span class="string">'best'</span>);
+lgd.FontSize = 12;
+</pre>
+<img vspace="5" hspace="5" src="example_14_ComplexModels_PDO_24.png" alt=""> <h2 id="13">Save PDO models + results:</h2>
+<pre class="codeinput">saveNames = unique({<span class="string">'STL1_4state_PDO'</span>
+    <span class="string">'fimTotal'</span>
+    <span class="string">'nTotal'</span>
+    <span class="string">'nCellsOpt'</span>
+    <span class="string">'nCellsOptAvail'</span>
+    <span class="string">'fimOpt'</span>
+    <span class="string">'fimOptAvail'</span>
+    <span class="string">'STL1_4state_PDO_cyt'</span>
+    <span class="string">'STL1_4state_PDO_nuc'</span>
+    <span class="string">'STL1_4state_PDO_intens'</span>
+    <span class="string">'fimsPDO_cyt'</span>
+    <span class="string">'fimsPDO_nuc'</span>
+    <span class="string">'fimsPDOintens'</span>
+    <span class="string">'fimPDO_cyt'</span>
+    <span class="string">'fimPDO_nuc'</span>
+    <span class="string">'fimPDOintens'</span>
+    <span class="string">'nCellsOptPDO_cyt'</span>
+    <span class="string">'nCellsOptPDO_nuc'</span>
+    <span class="string">'nCellsOptPDOintens'</span>
+    });
+
+save(<span class="string">'example_15_PDO'</span>,saveNames{:})
+</pre>
+<p class="footer">
+<br>
+<a href="https://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2025b</a>
+<br>
+</p>
+</div>
+<!--
+##### SOURCE BEGIN #####
+%% SSIT/Examples/example_14_PDO
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Section 2.4: Complex models
+%   * Use a probability distribution operator (PDO) to handle distortion 
+%     of data
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% Preliminaries
+% Use the STL1 model from example_1_CreateSSITModels, FSP solutions  
+% from example_4_SolveSSITModels_FSP, sensitivities computed in 
+% example_6_SensitivityAnalysis, FIM results from example_7_FIM,  
+% loaded data from example_8_LoadingandFittingData_DataLoading, and
+% Metropolis-Hastings results from example_10_LoadingandFittingData_MH
+%clear
+%close all
+addpath(genpath('../'));
+addpath(genpath('tmpPropensityFunctions'));
+
+% example_1_CreateSSITModels  
+% example_4_SolveSSITModels_FSP
+% example_6_SensitivityAnalysis
+% example_7_FIM
+% example_8_LoadingandFittingData_DataLoading
+% example_9_LoadingandFittingData_MLE
+% example_10_LoadingandFittingData_MH
+
+%% Load pre-run results:
+% load('example_10_LoadingandFittingData_MH.mat')
+
+% View model summary:
+STL1_4state_MH.summarizeModel
+
+% Create a copy of the STL1 model for PDO:
+STL1_4state_PDO = STL1_4state_MH;
+
+%%
+fimResults = STL1_4state_PDO.computeFIM(); 
+
+% Get the number of cells using 'nCells':
+cellCounts = STL1_4state_PDO.dataSet.nCells*ones(size(STL1_4state_PDO.tSpan));
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Section 2.5: Complex models
+%   * Apply an Affine Poisson conditional probability distribution 
+%     operator (PDO) to transform parameter probabilities computed   
+%     from average intensity data according to parameter probabilities 
+%     computed from mRNA spot count data
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+figNew = figure;
+plotColors = struct('scatter', [0.2, 0.6, 1], ...
+           'ellipseFIM', 'r', ...
+           'ellipseMH', 'gREPLACE_WITH_DASH_DASH', ...
+           'marker', [0.1, 0.1, 0.1]);
+
+sig_log10 = 2*ones(1,13);
+
+fimTotal = STL1_4state_PDO.evaluateExperiment(fimResults,...
+           STL1_4state_PDO.dataSet.nCells,diag(sig_log10.^2));
+
+STL1_4state_PDO.plotMHResults(STL1_4state_MHResults,FIM=fimTotal,...
+                              fimScale='log',scatterFig=figNew,...
+                              plotColors=plotColors)
+
+% Find and store the total number of cells in your data set (already
+% computed by SSIT when data was loaded in 
+% example_8_LoadingandFittingData_DataLoading:
+nTotal = sum(STL1_4state_PDO.dataSet.nCells);
+
+%% Compute the optimal number of cells from the FIM results using the min. 
+% inv determinant <x^{-1}> (all other parameters are known and fixed)
+nCellsOpt = STL1_4state_PDO.optimizeCellCounts(fimResults,nTotal,'E-opt');
+ 
+nCellsOptAvail = min(nCellsOpt,STL1_4state_PDO.dataSet.nCells)
+
+fimOpt = STL1_4state_PDO.evaluateExperiment(fimResults,nCellsOpt,...
+                                             diag(sig_log10.^2));
+
+fimOptAvail = STL1_4state_PDO.evaluateExperiment(fimResults,...
+                                        nCellsOptAvail,diag(sig_log10.^2));
+figOpt = figure;
+STL1_4state_PDO.plotMHResults(STL1_4state_MHResults, fimScale='log',...
+                              FIM=[fimOpt,fimTotal], scatterFig=figOpt,...
+                              plotColors=plotColors);
+figOptAvail = figure;
+STL1_4state_PDO.plotMHResults(STL1_4state_MHResults,...
+                            FIM=[fimOptAvail,fimTotal], fimScale='log',...
+                            scatterFig=figOptAvail, plotColors=plotColors);
+ 
+f = figure;
+set(f,'Position',[616   748   412   170])
+bar([1:size(nCellsOpt,2)],nTotal,0.45)
+hold on
+bar([1:size(nCellsOpt,2)]+0.5,nCellsOpt,0.45)
+set(gca,'xtick',[1:size(nCellsOpt,2)]+0.25,'xticklabel',...
+    STL1_4state_PDO.dataSet.times,'fontsize',16,'ylim',[0,7000])
+legend('Intuitive Design','Optimal Design')
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% PDO Calculations
+%% Ex(1): Calibrate PDO from cytoplasmic mRNA count data
+% Calibrate Binomial PDOs from empirical data under the `missing spot'
+% assumption from Vo et al. (2013).  'RNA_STL1_total_TS3Full' is the full 
+% mRNA count and represents the `true' data; `RNA_STL1_cyto_TS3Full' is the
+% mRNA count from only cytoplasm and `RNA_STL1_nuc_TS3Full' is the mRNA 
+% count from only the nucleus.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+STL1_4state_PDO_cyt = STL1_4state_PDO;
+STL1_4state_PDO_nuc = STL1_4state_PDO;
+
+STL1_4state_PDO_cyt = ...
+ STL1_4state_PDO_cyt.calibratePDO('data/filtered_data_2M_NaCl_Step.csv',...
+        {'mRNA'}, {'RNA_STL1_total_TS3Full'}, {'RNA_STL1_cyto_TS3Full'},...
+        'Binomial', true, [], {'Replica',1}, LegendLocation="northwest",...
+        Title="4-state STL1 (PDO: Cytoplasmic mRNA)", FontSize=24,...
+        XLabel="Total mRNA counts", YLabel="Cytoplasmic mRNA counts");
+
+STL1_4state_PDO_nuc = ...
+ STL1_4state_PDO_nuc.calibratePDO('data/filtered_data_2M_NaCl_Step.csv',...
+        {'mRNA'}, {'RNA_STL1_total_TS3Full'}, {'RNA_STL1_nuc_TS3Full'},...
+        'Binomial', true, [], {'Replica',1}, LegendLocation="northwest",...
+        Title="4-state STL1 (PDO: Nuclear mRNA)", FontSize=24,...
+        XLabel="Total mRNA counts", YLabel="Nuclear mRNA counts");
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Ex(2): Calibrate PDO from average intensity data
+% Calibrate the PDO from empirical data. Here, the number of spots has
+% been measured using different assays in data column 
+% 'RNA_STL1_total_TS3Full' for the 'true' data set (mRNA spot counts) and 
+% in the columns 'STL1_avg_int_TS3Full' for integrated intensity.  
+% We calibrate an 'AffinePoiss' PDO where the obervation probability is a 
+% Poisson distribution where the mean value is affine linearly related to 
+% the true value: P(y|x) = Poiss(a0 + a1*x)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Make guesses for the PDO hyperparameters λ, in this case: λ₁, λ₂, λ₃
+% Model: μ(x) = max(λ₁, λ₂ + λ₃·x)
+% Soon: Neural networks and hierarchical Bayes may be used to estimate λ
+parGuess = [0, 2500, 5];
+
+STL1_4state_PDO_intens = STL1_4state_PDO;
+STL1_4state_PDO_intens = STL1_4state_PDO_intens.calibratePDO( ...
+    'data/filtered_data_2M_NaCl_Step.csv', {'mRNA'},...
+    {'RNA_STL1_total_TS3Full'}, {'STL1_avg_int_TS3Full'}, 'AffinePoiss',...
+    true, parGuess, {'Replica',1}, LegendLocation="southeast", ...
+    Title="4-state STL1 (Affine PDO: Average intensity)", FontSize=24,...
+    XLabel="True mRNA counts",YLabel="Average intensities (binned)");
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% FIM + PDO analyses
+%   * Ex(1): Analyze FIM with PDO for cytoplasmic & nuclear mRNA counts
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Cytoplasm:
+fimsPDO_cyt = STL1_4state_PDO_cyt.computeFIM([],'log');
+fimPDO_cyt = STL1_4state_PDO_cyt.evaluateExperiment(fimsPDO_cyt,...
+                                            nCellsOpt, diag(sig_log10.^2));
+
+nCellsOptPDO_cyt = STL1_4state_PDO_cyt.optimizeCellCounts(...
+                         fimsPDO_cyt, nTotal, 'E-opt');
+figPDO_cyt = figure;
+STL1_4state_PDO_cyt.plotMHResults(STL1_4state_MHResults, fimScale='log',...
+                  FIM=[fimPDO_cyt,fimTotal,fimOpt], scatterFig=figPDO_cyt);
+
+% Nucleus:
+fimsPDO_nuc = STL1_4state_PDO_nuc.computeFIM([],'log');
+fimPDO_nuc = STL1_4state_PDO_nuc.evaluateExperiment(fimsPDO_nuc,...
+                                            nCellsOpt, diag(sig_log10.^2));
+
+nCellsOptPDO_nuc = STL1_4state_PDO_nuc.optimizeCellCounts(...
+                       fimsPDO_nuc, nTotal, 'E-opt');
+figPDO_nuc = figure;
+STL1_4state_PDO_nuc.plotMHResults(STL1_4state_MHResults, fimScale='log',...
+                  FIM=[fimPDO_nuc,fimTotal,fimOpt], scatterFig=figPDO_nuc);
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%   * Ex(2): Analyze FIM with PDO for average intensity data
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+fimsPDOintens = STL1_4state_PDO_intens.computeFIM([],'log');
+fimPDOintens = STL1_4state_PDO_intens.evaluateExperiment(fimsPDOintens,...
+                                            nCellsOpt,diag(sig_log10.^2));
+
+nCellsOptPDOintens = STL1_4state_PDO_intens.optimizeCellCounts(...
+                           fimsPDOintens,nTotal,'E-opt');
+
+figintens = figure;
+STL1_4state_PDO_intens.plotMHResults(STL1_4state_MHResults,...
+   FIM=[fimPDOintens,fimTotal,fimOpt],fimScale='log',scatterFig=figintens);
+
+%% Plot legend
+axs = findall(figPDO_cyt, 'Type', 'axes');
+ax  = axs(1);        
+hold(ax,'on');
+
+% Helpers:
+near = @(c,tol,tgt) (numel(c)==3) && all(abs(c(:)'-tgt)<=tol);
+isMagenta = @(c) near(c,0.15,[1 0 1]);
+isCyan    = @(c) near(c,0.15,[0 1 1]);
+isBlue    = @(c) near(c,0.15,[0 0 1]);
+isGreen   = @(c) near(c,0.15,[0 1 0]);
+
+% MCMC 90% credible interval (magenta dashed):
+hMHell = findobj(ax,'Type','line','LineStyle','REPLACE_WITH_DASH_DASH');
+hMHell = hMHell(arrayfun(@(h) isMagenta(h.Color), hMHell));
+
+% FIM ellipses (solid lines):
+hFIM = findobj(ax,'Type','line','LineStyle','-');
+
+% Classify FIM ellipses by color:
+hFIM_cyan  = hFIM(arrayfun(@(h) isCyan(h.Color),  hFIM));
+hFIM_blue  = hFIM(arrayfun(@(h) isBlue(h.Color),  hFIM));
+hFIM_green = hFIM(arrayfun(@(h) isGreen(h.Color), hFIM));
+
+% Find MCMC samples (scatter) and MLE (square marker):
+hSamples = findobj(ax,'Type','scatter');
+if isempty(hSamples)
+    cand = findobj(ax,'Type','line','Marker','o');
+    hSamples = cand(~arrayfun(@(h) strcmp(get(h,'MarkerFaceColor'),'none'), cand));
+end
+hMLE = findobj(ax,'Type','line','Marker','s');
+
+% Build legend in a sensible order:
+L = []; names = {};
+if ~isempty(hSamples),L(end+1)=hSamples(1);names{end+1}='MCMC samples';end
+if ~isempty(hMLE),L(end+1)=hMLE(1); names{end+1}='MLE';end
+if ~isempty(hMHell),L(end+1)=hMHell(1);names{end+1}='MCMC 90% CI';end
+if ~isempty(hFIM_cyan),L(end+1)=hFIM_cyan(1);names{end+1}='FIM PDO';end
+if ~isempty(hFIM_blue),L(end+1)=hFIM_blue(1);names{end+1}='FIM total';end
+if ~isempty(hFIM_green),L(end+1)=hFIM_green(1);names{end+1}='FIM optimal';end
+
+% Fallback: if color classification failed, just take first three FIM lines
+if numel(L)<5
+    remainingFIM = setdiff(hFIM, [hFIM_cyan; hFIM_blue; hFIM_green]);
+    for k = 1:min(3, numel(remainingFIM))
+        L(end+1) = remainingFIM(k);
+        names{end+1} = sprintf('FIM #%d', k);
+    end
+end
+
+lgd = legend(ax, L, names, 'Location','best');
+lgd.FontSize = 12;
+
+
+%% Save PDO models + results:
+saveNames = unique({'STL1_4state_PDO'
+    'fimTotal'
+    'nTotal'
+    'nCellsOpt'
+    'nCellsOptAvail'
+    'fimOpt'
+    'fimOptAvail'
+    'STL1_4state_PDO_cyt'
+    'STL1_4state_PDO_nuc'
+    'STL1_4state_PDO_intens'
+    'fimsPDO_cyt'
+    'fimsPDO_nuc'
+    'fimsPDOintens'
+    'fimPDO_cyt'
+    'fimPDO_nuc'
+    'fimPDOintens'
+    'nCellsOptPDO_cyt'
+    'nCellsOptPDO_nuc'
+    'nCellsOptPDOintens'
+    });
+    
+save('example_15_PDO',saveNames{:})
+
+##### SOURCE END #####
+-->
+</body>
+</html>

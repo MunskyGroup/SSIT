@@ -36,25 +36,28 @@ STL1_4state_design = ...
 
 % Compute the optimal number of cells from the FIM results using different 
 % design criteria:  `Trace' maximizes the trace of the FIM; 
-% `DetCovariance' minimizes the expected determinant of MLE covariance; 
-% `Smallest Eigenvalue' maximizes the smallest e.val of the FIM; and 
-% `TR[$<i_1>,<i_2>$,...]' maximizes the determinant of the FIM for the 
-% specified indices.  The latter is shown for different parameter 
-% combinations, where `Tr[9:13]' are the mRNA-specific parameters `dr' and 
-% `kr1',`kr2',`kr3', and `kr4' (degradation and transcription reactions).  
-% All other parameters are assumed to be known and fixed.
+% `D-cov' minimizes the expected determinant of MLE covariance; 
+% `E-opt' maximizes the smallest e.val of the FIM; and 
+% `D-opt-sub[$<i_1>,<i_2>$,...]' maximizes the determinant of the FIM for  
+% the specified indices.  The latter is shown for different parameter 
+% combinations, where D-opt-sub[9:13]' are the mRNA-specific parameters 
+% `dr' and `kr1',`kr2',`kr3', and `kr4' (degradation and transcription 
+% reactions).  All other parameters are assumed to be known and fixed.
 nCol = sum(cellCounts_data);
 nTotal = nCol(1);
-nCellsOpt_detCov = ...
-    STL1_4state_design.optimizeCellCounts(fimResults,nTotal,'DetCovariance');
-nCellsOpt_trace = ...
+nCellsOpt_Dcov = ...
+    STL1_4state_design.optimizeCellCounts(fimResults,nTotal,'D-cov');
+nCellsOpt_Trace = ...
     STL1_4state_design.optimizeCellCounts(fimResults,nTotal,'Trace');
-nCellsOpt_tr = ...
-    STL1_4state_design.optimizeCellCounts(fimResults,nTotal,'tr[1:8]');
-nCellsOpt_trR = ...
-    STL1_4state_design.optimizeCellCounts(fimResults,nTotal,'tr[9:13]');
-nCellsOpt_trI = ...
-    STL1_4state_design.optimizeCellCounts(fimResults,nTotal,'tr[14:18]');
+nCellsOpt_Doptsub = ...
+    STL1_4state_design.optimizeCellCounts(fimResults,nTotal,...
+                                          'D-opt-sub[1:8]');
+nCellsOpt_DoptsubR = ...
+    STL1_4state_design.optimizeCellCounts(fimResults,nTotal,...
+                                          'D-opt-sub[9:13]');
+nCellsOpt_DoptsubI = ...
+    STL1_4state_design.optimizeCellCounts(fimResults,nTotal,...
+                                          'D-opt-sub[14:18]');
 
 %% Make a bar chart to compare the different designs
 % Find which x positions correspond to time=30 and time=60 for off-setting:
@@ -62,15 +65,16 @@ t = STL1_4state_design.tSpan;
 x = 1:size(t,2);   
 
 f = figure;
-bar(x,  nCellsOpt_trace,   0.4); hold on
-bar(x,  nCellsOpt_detCov,  0.4);
-bar(x,  nCellsOpt_trI,     0.4);
-bar(x+0.2,  nCellsOpt_trR, 0.4);
-bar(x-0.2,  nCellsOpt_tr,  0.4);
+bar(x,  nCellsOpt_Trace,        0.4); hold on
+bar(x,  nCellsOpt_Dcov,         0.4);
+bar(x,  nCellsOpt_DoptsubI,     0.4);
+bar(x+0.2,  nCellsOpt_DoptsubR, 0.4);
+bar(x-0.2,  nCellsOpt_Doptsub,  0.4);
 
 set(gca,'XTick',x,'XTickLabel',t,'FontSize',16)
 title('4-state STL1 (FIM Optimal Designs)','FontSize',24)
 xlabel('Time (min)','FontSize',20)
 ylabel('Number of cells','FontSize',20)
-legend('Trace Design','DetCov Design', 'Tr[14:18] Design',...
-        'Tr[9:13] Design', 'Tr[1:8] Design', 'Location', 'northeast')
+legend('Trace Design','D-cov Design', 'D-opt-sub[14:18] Design',...
+        'D-opt-sub[9:13] Design', 'D-opt-sub[1:8] Design',...
+        'Location', 'northeast')

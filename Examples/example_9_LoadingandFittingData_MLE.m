@@ -79,19 +79,15 @@ end
 %     Title='STL1', YLabel='Molecule Count',...
 %     LegendLocation='northeast', LegendFontSize=12);
 
-STL1_4state_MLE.plotFits([],"all",[],{'linewidth',2},TitleFontSize=24,...
-    Title='4-state STL1 (MLE)', YLabel='Molecule Count',...
-    LegendLocation='northeast', LegendFontSize=18, AxisLabelSize=20);
+STL1_4state_MLE.plotFits(plotType="all",lineProps={'linewidth',2},...
+    TitleFontSize=24, Title='4-state STL1 (MLE)', LegendFontSize=18,...
+    YLabel='Molecule Count', LegendLocation='northeast', AxisLabelSize=20);
 
 %% Save models & MLEs:
-saveNames = unique({'Model_MLE'
+saveNames = unique({
     'STL1_MLE'
     'STL1_4state_MLE'
-    'Model_pars'
-    'STL1_pars'
     'STL1_4state_pars'
-    'Model_likelihood'
-    'STL1_likelihood'
     'STL1_4state_likelihood'
     });
     

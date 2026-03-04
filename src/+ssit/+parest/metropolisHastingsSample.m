@@ -1,4 +1,4 @@
-function [smpl,accept,value,bestfound,bestObjToNow] = metropolisHastingsSample(start,nsamples,varargin)
+function [smpl,accept,value,bestfound,bestObjToNow,ess] = metropolisHastingsSample(start,nsamples,varargin)
 % MHSAMPLE Generate Markov chain using Metropolis-Hasting algorithm 
 %   SMPL = MHSAMPLE(START,NSAMPLES,'pdf',PDF,'proppdf',PROPPDF,'proprnd',PROPRND)
 %   draws NSAMPLES random samples from a target stationary distribution PDF
@@ -87,10 +87,14 @@ function [smpl,accept,value,bestfound,bestObjToNow] = metropolisHastingsSample(s
 
 % parse the information in the name/value pairs 
 pnames = {'pdf' ,'logpdf', 'proppdf','logproppdf','proprnd', ...
-    'burnin','thin','symmetric','nchains','progress','saveFileName'};
-dflts =  {[] [] [],[],[] 0,1,false,1,false,'tmpMHResults'};
-[pdf,logpdf,proppdf,logproppdf, proprnd,burnin,thin,sym,nchain,progress,saveFileName] = ...
-       internal.stats.parseArgs(pnames, dflts, varargin{:});
+    'burnin','thin','symmetric','nchains','progress','saveFileName', ...
+    'computeESS','essMaxLag','essMethod'};
+
+dflts  = {[] [] [],[],[] 0,1,false,1,false,'tmpMHResults', ...
+    true,[], 'initialPositive'};
+
+[pdf,logpdf,proppdf,logproppdf, proprnd,burnin,thin,sym,nchain,progress,saveFileName, ...
+    computeESS,essMaxLag,essMethod] = internal.stats.parseArgs(pnames, dflts, varargin{:});
 
 if exist(saveFileName,'file')||exist([saveFileName,'.mat'],'file')
     load(saveFileName,'value','smpl','bestfound'); 
@@ -255,6 +259,93 @@ accept = accept/(nsamples*thin+burnin);
 % Move the replicates dimension to the end to make samples easier to
 % manipulate.
 smpl = permute(smpl,[1 3 2]);
+
+% ---------------- ESS calculation ----------------
+ess = [];
+if computeESS
+    % smpl is [N x distnDims x nchain]
+    Ns = size(smpl,1);
+    if isempty(essMaxLag)
+        essMaxLag = min(2000, floor(Ns/2));
+    else
+        essMaxLag = min(essMaxLag, Ns-1);
+    end
+
+    ess = zeros(distnDims, nchain, outclass); % [nPar x nChain]
+
+    for c = 1:nchain
+        for d = 1:distnDims
+            x = smpl(:,d,c);
+            ess(d,c) = local_ess_1d(x, essMaxLag, essMethod);
+        end
+    end
+
+end
+
+%----------------------------------------------------
+function ess = local_ess_1d(x, maxLag, method)
+%LOCAL_ESS_1D Effective sample size for a 1D chain using ACF + truncation.
+%   x: [N x 1] chain
+%   maxLag: maximum lag to consider
+%   method: 'initialPositive' (default) or 'fixed'
+
+x = double(x(:));
+N = numel(x);
+
+% guard rails
+if N < 3 || all(~isfinite(x))
+    ess = NaN;
+    return
+end
+
+% drop non-finite entries conservatively (rare if your chain is clean)
+x = x(isfinite(x));
+N = numel(x);
+if N < 3
+    ess = NaN;
+    return
+end
+
+x = x - mean(x);
+v = sum(x.^2);
+if v <= 0 || ~isfinite(v)
+    ess = 1;
+    return
+end
+
+% FFT autocorrelation (biased, but standard for ESS/IAT estimation)
+nfft = 2^nextpow2(2*N);
+fx   = fft(x, nfft);
+acf  = ifft(fx .* conj(fx));
+acf  = real(acf(1:maxLag+1));       % includes lag 0
+acf  = acf ./ acf(1);               % rho_0 = 1
+rho  = acf(2:end);                  % rho_1..rho_maxLag
+
+switch lower(method)
+    case 'initialpositive'
+        % simple initial-positive truncation:
+        % stop at first non-positive autocorrelation
+        k = find(rho <= 0, 1, 'first');
+        if isempty(k)
+            K = numel(rho);
+        else
+            K = k - 1;
+        end
+        tau = 1 + 2*sum(rho(1:K));
+
+    case 'fixed'
+        tau = 1 + 2*sum(rho);
+
+    otherwise
+        error('Unknown essMethod "%s". Use "initialPositive" or "fixed".', method);
+end
+
+% numerical safety
+tau = max(tau, 1);
+ess = N / tau;
+
+% bound to [1, N]
+ess = max(1, min(ess, N));
  
 %-------------------------------------------------
 function  y = mylog(x)
@@ -312,5 +403,3 @@ switch type
             error(message('stats:mhsample:NonfiniteProprnd'));
         end     
 end
-
-

@@ -9,7 +9,7 @@ To make changes, update the MATLAB code and republish this document.
 <title>example_1_CreateSSITModels</title>
 <meta name="generator" content="MATLAB 25.2">
 <link rel="schema.DC" href="http://purl.org/dc/elements/1.1/">
-<meta name="DC.date" content="2026-02-20">
+<meta name="DC.date" content="2026-03-03">
 <meta name="DC.source" content="example_1_CreateSSITModels.m">
 <style type="text/css">
 html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
@@ -184,10 +184,10 @@ Reactions:
      w4: dr * mRNA
  
 Model Parameters:
-    {'kon' }    {[0.2000]}
-    {'koff'}    {[0.2000]}
-    {'kr'  }    {[    10]}
-    {'dr'  }    {[     5]}
+    {'kon' }    {[2.0000e-01]}
+    {'koff'}    {[2.0000e-01]}
+    {'kr'  }    {[        10]}
+    {'dr'  }    {[         5]}
 
 </pre>
 <h2 id="7">Ex(2): Copy the Bursting Gene Model above to a new model, 'STL1'.</h2>
@@ -236,14 +236,14 @@ Input Signals:
      Hog1(t) = (a0+a1*exp(-r1*t)*(1-exp(-r2*t))*(t&gt;0))
  
 Model Parameters:
-    {'kon' }    {[0.2000]}
-    {'koff'}    {[0.2000]}
-    {'kr'  }    {[    10]}
-    {'dr'  }    {[     5]}
-    {'a0'  }    {[     5]}
-    {'a1'  }    {[    10]}
-    {'r1'  }    {[0.0040]}
-    {'r2'  }    {[0.0100]}
+    {'kon' }    {[2.0000e-01]}
+    {'koff'}    {[2.0000e-01]}
+    {'kr'  }    {[        10]}
+    {'dr'  }    {[         5]}
+    {'a0'  }    {[         5]}
+    {'a1'  }    {[        10]}
+    {'r1'  }    {[4.0000e-03]}
+    {'r2'  }    {[1.0000e-02]}
 
 </pre>
 <h2 id="8">Ex(3): Copy the 'STL1' model for 4-(gene)-state dynamics.</h2>
@@ -308,7 +308,7 @@ STL1_4state =
                  initialCondition: [5&times;1 double]
                      initialProbs: 1
                       initialTime: 0
-                            tSpan: [0 0.5000 1 1.5000 2 &hellip; ] (1&times;21 double)
+                            tSpan: [0 5.0000e-01 1 1.5000e+00 &hellip; ] (1&times;21 double)
                    solutionScheme: 'FSP'
                     odeIntegrator: 'ode23s'
                   solutionSchemes: {}
@@ -375,24 +375,24 @@ Input Signals:
      Hog1(t) = A*(((1-(exp(1)^(-r1*(t-t0))))*exp(1)^(-r2*(t-t0)))/(1+((1-(exp(1)^(-r1*(t-t0))))*exp(1)^(-r2*(t-t0)))/M))^n*(t&gt;t0)
  
 Model Parameters:
-    {'t0'  }    {[    3.1700]}
+    {'t0'  }    {[3.1700e+00]}
     {'k12' }    {[        78]}
     {'k21o'}    {[    192000]}
     {'k21i'}    {[      3200]}
-    {'k23' }    {[    0.4020]}
-    {'k34' }    {[    7.8000]}
-    {'k32' }    {[    1.6200]}
-    {'k43' }    {[    2.2800]}
-    {'dr'  }    {[    0.2940]}
-    {'kr1' }    {[    0.0468]}
-    {'kr2' }    {[    0.7200]}
-    {'kr3' }    {[   59.4000]}
-    {'kr4' }    {[    3.2400]}
-    {'r1'  }    {[    0.0041]}
-    {'r2'  }    {[    0.4260]}
+    {'k23' }    {[4.0200e-01]}
+    {'k34' }    {[7.8000e+00]}
+    {'k32' }    {[1.6200e+00]}
+    {'k43' }    {[2.2800e+00]}
+    {'dr'  }    {[2.9400e-01]}
+    {'kr1' }    {[4.6800e-02]}
+    {'kr2' }    {[7.2000e-01]}
+    {'kr3' }    {[5.9400e+01]}
+    {'kr4' }    {[3.2400e+00]}
+    {'r1'  }    {[4.1400e-03]}
+    {'r2'  }    {[4.2600e-01]}
     {'A'   }    {[9.3000e+09]}
     {'M'   }    {[6.4000e-04]}
-    {'n'   }    {[    3.1000]}
+    {'n'   }    {[3.1000e+00]}
 
 </pre>
 <h2 id="9">Ex.(4) Load and modify a pre-set SSIT model</h2>

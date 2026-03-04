@@ -1,0 +1,974 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<META http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      -->
+<title>example_15_ComplexModels_MultiModel</title>
+<meta name="generator" content="MATLAB 25.2">
+<link rel="schema.DC" href="http://purl.org/dc/elements/1.1/">
+<meta name="DC.date" content="2026-03-03">
+<meta name="DC.source" content="example_15_ComplexModels_MultiModel.m">
+<style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; }
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+span.typesection { color:#A0522D }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style>
+</head>
+<body>
+<div class="content">
+<h2>Contents</h2>
+<div>
+<ul>
+<li>
+<a href="#1">SSIT/Examples/example_15_ComplexModels_MultiModel</a>
+</li>
+<li>
+<a href="#2">Section 2.4: Complex models</a>
+</li>
+<li>
+<a href="#3">Preliminaries</a>
+</li>
+<li>
+<a href="#4">Load pre-solved model</a>
+</li>
+<li>
+<a href="#5">Example script to show how multiple SSIT models and data sets can be fit</a>
+</li>
+<li>
+<a href="#6">simultaneously. This is most useful in situations where:</a>
+</li>
+<li>
+<a href="#7">Make a copy of our model:</a>
+</li>
+<li>
+<a href="#8">Load and associate smFISH data</a>
+</li>
+<li>
+<a href="#9">Create a second model and associate it to its own data</a>
+</li>
+<li>
+<a href="#10">Set Fitting Options:</a>
+</li>
+<li>
+<a href="#11">Ex(0): Single model</a>
+</li>
+<li>
+<a href="#12">Ex(1): Adding new model+data to an existing MultiModel</a>
+</li>
+<li>
+<a href="#13">Ex(2): Completely independent parameters</a>
+</li>
+<li>
+<a href="#14">Specify how many model parameters will be fit</a>
+</li>
+<li>
+<a href="#15">Ex(3): Completely dependent parameters</a>
+</li>
+<li>
+<a href="#16">Specify how many model parameters will be fit</a>
+</li>
+<li>
+<a href="#17">Note: This example is shown for illustration purposes only.</a>
+</li>
+<li>
+<a href="#18">Ex(4): Mixed parameters</a>
+</li>
+<li>
+<a href="#19">Specify how many model parameters will be fit</a>
+</li>
+<li>
+<a href="#20">Define how parameters are assigned to sub-models by their indices</a>
+</li>
+<li>
+<a href="#21">Ex(5): Constrained parameters</a>
+</li>
+<li>
+<a href="#22">Specify the constraint:</a>
+</li>
+<li>
+<a href="#23">Define how parameters are assigned to sub-models by their indices</a>
+</li>
+<li>
+<a href="#24">Ex(6): Different models, same data</a>
+</li>
+<li>
+<a href="#25">Make copies of our models:</a>
+</li>
+<li>
+<a href="#26">Specify how many model parameters will be fit</a>
+</li>
+<li>
+<a href="#27">Define how parameters are assigned to sub-models by their indices</a>
+</li>
+</ul>
+</div>
+<h2 id="1">SSIT/Examples/example_15_ComplexModels_MultiModel</h2>
+<pre class="codeinput">
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<h2 id="2">Section 2.4: Complex models</h2>
+<pre class="language-matlab">* Fit multiple <span class="string">models</span> <span class="string">and</span> <span class="string">data</span> <span class="string">sets</span> <span class="string">with</span> <span class="string">shared</span> <span class="string">parameters</span>
+</pre>
+<pre class="codeinput">
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<h2 id="3">Preliminaries</h2>
+<p>Use the solved 4-state STL1 model from example_4_SolveSSITModels_FSP</p>
+<pre class="codeinput">
+<span class="comment">%clear</span>
+<span class="comment">%close all</span>
+
+<span class="comment">% example_1_CreateSSITModels</span>
+<span class="comment">% example_4_SolveSSITModels_FSP</span>
+</pre>
+<h2 id="4">Load pre-solved model</h2>
+<p>load('example_4_SolveSSITModels_FSP.mat')</p>
+<pre class="codeinput">
+<span class="comment">% View model summariy:</span>
+STL1_4state_FSP.summarizeModel
+
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<pre class="codeoutput">Species:
+     g1; IC = 1;  discrete stochastic
+     g2; IC = 0;  discrete stochastic
+     g3; IC = 0;  discrete stochastic
+     g4; IC = 0;  discrete stochastic
+     mRNA; IC = 0;  discrete stochastic
+ 
+Reactions:
+  Reaction 1:
+     s1: 1*g1 --&gt; 1*g2
+     w1: k12*g1
+  Reaction 2:
+     s2: 1*g2 --&gt; 1*g1
+     w2: (max(0,k21o*(1-k21i*Hog1)))*g2
+  Reaction 3:
+     s3: 1*g2 --&gt; 1*g3
+     w3: k23*g2
+  Reaction 4:
+     s4: 1*g3 --&gt; 1*g2
+     w4: k32*g3
+  Reaction 5:
+     s5: 1*g3 --&gt; 1*g4
+     w5: k34*g3
+  Reaction 6:
+     s6: 1*g4 --&gt; 1*g3
+     w6: k43*g4
+  Reaction 7:
+     s7: NULL --&gt; 1*mRNA
+     w7: kr1*g1
+  Reaction 8:
+     s8: NULL --&gt; 1*mRNA
+     w8: kr2*g2
+  Reaction 9:
+     s9: NULL --&gt; 1*mRNA
+     w9: kr3*g3
+  Reaction 10:
+     s10: NULL --&gt; 1*mRNA
+     w10: kr4*g4
+  Reaction 11:
+     s11: 1*mRNA --&gt; NULL
+     w11: dr*mRNA
+ 
+Input Signals:
+     Hog1(t) = A*(((1-(exp(1)^(-r1*(t-t0))))*exp(1)^(-r2*(t-t0)))/(1+((1-(exp(1)^(-r1*(t-t0))))*exp(1)^(-r2*(t-t0)))/M))^n*(t&gt;t0)
+ 
+Model Parameters:
+    {'t0'  }    {[3.1700e+00]}
+    {'k12' }    {[        78]}
+    {'k21o'}    {[    192000]}
+    {'k21i'}    {[      3200]}
+    {'k23' }    {[4.0200e-01]}
+    {'k34' }    {[7.8000e+00]}
+    {'k32' }    {[1.6200e+00]}
+    {'k43' }    {[2.2800e+00]}
+    {'dr'  }    {[2.9400e-01]}
+    {'kr1' }    {[4.6800e-02]}
+    {'kr2' }    {[7.2000e-01]}
+    {'kr3' }    {[5.9400e+01]}
+    {'kr4' }    {[3.2400e+00]}
+    {'r1'  }    {[4.1400e-03]}
+    {'r2'  }    {[4.2600e-01]}
+    {'A'   }    {[9.3000e+09]}
+    {'M'   }    {[6.4000e-04]}
+    {'n'   }    {[3.1000e+00]}
+
+</pre>
+<h2 id="5">Example script to show how multiple SSIT models and data sets can be fit</h2>
+<h2 id="6">simultaneously. This is most useful in situations where:</h2>
+<pre class="language-matlab">1) The <span class="string">analysis</span> <span class="string">considers</span> <span class="string">different</span> <span class="string">experimental</span> <span class="string">conditions</span> <span class="string">(e.g.,</span>
+   different <span class="string">time</span> <span class="string">points</span>, different <span class="string">inducer</span> <span class="string">concentrations</span>, different
+   genetic <span class="string">mutations).</span>
+2) Replica-to-replica variations <span class="string">are</span> <span class="string">expected</span> <span class="string">that</span> <span class="string">would</span> <span class="string">result</span> <span class="string">in</span>
+   slightly <span class="string">different</span> <span class="string">parameter</span> <span class="string">combinations</span>
+</pre>
+<pre class="codeinput">
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<h2 id="7">Make a copy of our model:</h2>
+<pre class="codeinput">STL1_4state_multi_1 = STL1_4state_FSP;
+</pre>
+<h2 id="8">Load and associate smFISH data</h2>
+<pre>Associate the data with an SSIT model data as usual
+(example_8_LoadingandFittingData_DataLoading):</pre>
+<pre class="codeinput">STL1_4state_multi_1 = <span class="keyword">...</span>
+   STL1_4state_multi_1.loadData(<span class="string">'data/filtered_data_2M_NaCl_Step.csv'</span>,<span class="keyword">...</span>
+                               {<span class="string">'mRNA'</span>,<span class="string">'RNA_STL1_total_TS3Full'</span>},<span class="keyword">...</span>
+                               {<span class="string">'Replica'</span>,1;<span class="string">'Condition'</span>,<span class="string">'0.2M_NaCl_Step'</span>});
+</pre>
+<h2 id="9">Create a second model and associate it to its own data</h2>
+<pre>In this case, the second set will be associated to Replica 2 data</pre>
+<pre class="codeinput">STL1_4state_multi_2 = STL1_4state_multi_1;
+STL1_4state_multi_2 = <span class="keyword">...</span>
+   STL1_4state_multi_2.loadData(<span class="string">'data/filtered_data_2M_NaCl_Step.csv'</span>,<span class="keyword">...</span>
+                               {<span class="string">'mRNA'</span>,<span class="string">'RNA_STL1_total_TS3Full'</span>},<span class="keyword">...</span>
+                               {<span class="string">'Replica'</span>,2;<span class="string">'Condition'</span>,<span class="string">'0.2M_NaCl_Step'</span>});
+</pre>
+<h2 id="10">Set Fitting Options:</h2>
+<pre class="codeinput">fitAlgorithm = <span class="string">'fminsearch'</span>;
+fitOptions = optimset(<span class="string">'Display'</span>,<span class="string">'final'</span>,<span class="string">'MaxIter'</span>,200); <span class="comment">% small # for demo</span>
+
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<h2 id="11">Ex(0): Single model</h2>
+<p>This is a simple example, where we only fit one model to a single data set. First, we create a MultiModel class with just our original model:</p>
+<pre class="codeinput">
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+
+<span class="comment">% Make copies of our multi models:</span>
+STL1_4state_multi_1_single = STL1_4state_multi_1;
+STL1_4state_multi_2_single = STL1_4state_multi_2;
+
+npars = size(STL1_4state_multi_1_single.parameters,1);
+STL1_4state_multi_1_single.fittingOptions.modelVarsToFit = 1:npars;
+<span class="comment">% or your intended subset, all &le; npar</span>
+singleModel = SSITMultiModel({STL1_4state_multi_1_single},{1:npars});
+
+<span class="comment">% We then copy the original parameters into the MultiModel:</span>
+allParsSingle = ([STL1_4state_multi_1_single.parameters{:,2}]);
+
+<span class="comment">% Next, we run a few rounds of fitting:</span>
+<span class="keyword">for</span> iFit = 1:2
+    <span class="comment">% Initialize state space:</span>
+    singleModel = singleModel.initializeStateSpaces;
+
+    <span class="comment">% Run seach for MLE:</span>
+    allParsSingle = singleModel.maximizeLikelihood(allParsSingle,<span class="keyword">...</span>
+                                                 fitOptions, fitAlgorithm);
+
+    <span class="comment">% Update Model with new parameters:</span>
+    singleModel = singleModel.updateModels(allParsSingle);
+<span class="keyword">end</span>
+
+<span class="comment">% We then copy the parameters back into Model1 and Model2 so we can reuse</span>
+<span class="comment">% them later:</span>
+STL1_4state_multi_1_single.parameters = singleModel.SSITModels{1}.parameters;
+STL1_4state_multi_2_single.parameters = singleModel.SSITModels{1}.parameters;
+
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<pre class="codeoutput"> 
+Exiting: Maximum number of iterations has been exceeded
+         - increase MaxIter option.
+         Current function value: 24914.686527 
+
+ 
+Exiting: Maximum number of iterations has been exceeded
+         - increase MaxIter option.
+         Current function value: 24819.056422 
+
+</pre>
+<h2 id="12">Ex(1): Adding new model+data to an existing MultiModel</h2>
+<p>This is how one adds a second model/data combination. In this case the parameters of the new model are completely independent of the parameter set for the first model.</p>
+<pre class="codeinput">
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+
+<span class="comment">% Make copies of our multi models:</span>
+STL1_4state_multi_1_new = STL1_4state_multi_1;
+STL1_4state_multi_2_new = STL1_4state_multi_2;
+
+npars2 = size(STL1_4state_multi_2_new.parameters,1);
+STL1_4state_multi_2_new.fittingOptions.modelVarsToFit = 1:npars2;
+<span class="comment">% or your intended subset, all &le; npar</span>
+
+combinedModel = singleModel.addModel({STL1_4state_multi_2_new},{1:npars2});
+combinedModel = combinedModel.initializeStateSpaces;
+allParsCombined = ([STL1_4state_multi_1_new.parameters{:,2},<span class="keyword">...</span>
+                   [STL1_4state_multi_2_new.parameters{:,2}]]);
+allParsCombined = combinedModel.maximizeLikelihood(<span class="keyword">...</span>
+    allParsCombined, fitOptions, fitAlgorithm);
+combinedModel = combinedModel.updateModels(allParsCombined);
+
+<span class="comment">% Note: This example is shown for illustration purposes only.  Usually, if</span>
+<span class="comment">% one is fitting a single model independently, then it is more efficient to</span>
+<span class="comment">% fit it separately.</span>
+
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<pre class="codeoutput"> 
+Exiting: Maximum number of iterations has been exceeded
+         - increase MaxIter option.
+         Current function value: 47992.654017 
+
+</pre>
+<h2 id="13">Ex(2): Completely independent parameters</h2>
+<pre>Here is how we can create the combined model in one shot.</pre>
+<pre class="codeinput">
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+
+<span class="comment">% Make copies of our multi models:</span>
+STL1_4state_multi_1_ind = STL1_4state_multi_1;
+STL1_4state_multi_2_ind = STL1_4state_multi_2;
+</pre>
+<h2 id="14">Specify how many model parameters will be fit</h2>
+<p>Model 1 has 0 shared parameters plus 18 of its own (18 total):</p>
+<pre class="codeinput">STL1_4state_multi_1_ind.fittingOptions.modelVarsToFit = [1:18];
+
+<span class="comment">% Model 2 has 0 shared parameters plus 18 of its own (18 total):</span>
+STL1_4state_multi_2_ind.fittingOptions.modelVarsToFit = [1:18];
+
+<span class="comment">% Select which models to include in SSITMultiModel:</span>
+Models_ind = {STL1_4state_multi_1_ind, STL1_4state_multi_2_ind};
+
+<span class="comment">% Define how parameters are assigned to sub-models by their indices.</span>
+<span class="comment">% In this example, the parameters are completely independent:</span>
+ParsIndices_ind = {[1:18], [19:36]};
+
+<span class="comment">% Combine models into one "MultiModel", specify parameters, and initialize:</span>
+combinedModelIndependent = SSITMultiModel(Models_ind,ParsIndices_ind);
+combinedModelIndependent = combinedModelIndependent.initializeStateSpaces;
+
+<span class="comment">% Store parameters for later updating:</span>
+allParsIndependent = ([STL1_4state_multi_1_ind.parameters{:,2},<span class="keyword">...</span>
+                       [STL1_4state_multi_2_ind.parameters{:,2}]]);
+
+<span class="comment">% Fit parameters using maximum likelihood estimation:</span>
+allParsIndependent = combinedModelIndependent.maximizeLikelihood(<span class="keyword">...</span>
+    allParsIndependent, fitOptions, fitAlgorithm);
+
+<span class="comment">% Update model parameters and plot results:</span>
+combinedModelIndependent = <span class="keyword">...</span>
+    combinedModelIndependent.updateModels(allParsIndependent,true);
+
+
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<pre class="codeoutput"> 
+Exiting: Maximum number of iterations has been exceeded
+         - increase MaxIter option.
+         Current function value: 49049.876924 
+
+</pre>
+<img vspace="5" hspace="5" src="example_15_ComplexModels_MultiModel_01.png" alt=""> <img vspace="5" hspace="5" src="example_15_ComplexModels_MultiModel_02.png" alt=""> <img vspace="5" hspace="5" src="example_15_ComplexModels_MultiModel_03.png" alt=""> <img vspace="5" hspace="5" src="example_15_ComplexModels_MultiModel_04.png" alt=""> <img vspace="5" hspace="5" src="example_15_ComplexModels_MultiModel_05.png" alt=""> <img vspace="5" hspace="5" src="example_15_ComplexModels_MultiModel_06.png" alt=""> <img vspace="5" hspace="5" src="example_15_ComplexModels_MultiModel_07.png" alt=""> <img vspace="5" hspace="5" src="example_15_ComplexModels_MultiModel_08.png" alt=""> <h2 id="15">Ex(3): Completely dependent parameters</h2>
+<pre>Here is an example of how a single set of parameters can be used for
+both models and data sets. In the following we make a joint model where
+both STL1_4state_multi_1 and STL1_4state_multi_2 use the parameters
+[1:15].</pre>
+<pre class="codeinput">
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+
+<span class="comment">% Make copies of our multi models:</span>
+STL1_4state_multi_1_dep = STL1_4state_multi_1;
+STL1_4state_multi_2_dep = STL1_4state_multi_2;
+</pre>
+<h2 id="16">Specify how many model parameters will be fit</h2>
+<p>Model 1 has 18 shared parameters plus 0 of its own (18 total):</p>
+<pre class="codeinput">STL1_4state_multi_1_dep.fittingOptions.modelVarsToFit = [1:18];
+
+<span class="comment">% Model 2 has 18 shared parameters plus 0 of its own (18 total):</span>
+STL1_4state_multi_2_dep.fittingOptions.modelVarsToFit = [1:18];
+
+<span class="comment">% Select which models to include in SSITMultiModel:</span>
+Models_dep = {STL1_4state_multi_1_dep, STL1_4state_multi_2_dep};
+
+<span class="comment">% Define how parameters are assigned to sub-models by their indices.</span>
+<span class="comment">% In this example, the parameters are completely dependent:</span>
+ParsIndices_dep = {[1:18], [1:18]};
+
+<span class="comment">% Combine models into one "MultiModel", specify parameters, and initialize:</span>
+combinedModelDependent = SSITMultiModel(Models_dep, ParsIndices_dep);
+combinedModelDependent = combinedModelDependent.initializeStateSpaces;
+
+<span class="comment">% Store parameters for later updating:</span>
+allParsDependent = ([STL1_4state_multi_1_dep.parameters{:,2}]);
+
+<span class="comment">% Fit parameters using maximum likelihood estimation:</span>
+allParsDependent = combinedModelDependent.maximizeLikelihood(<span class="keyword">...</span>
+    allParsDependent, fitOptions, fitAlgorithm);
+
+<span class="comment">% Update model parameters and plot results:</span>
+combinedModelDependent = <span class="keyword">...</span>
+    combinedModelDependent.updateModels(allParsDependent,true);
+</pre>
+<pre class="codeoutput"> 
+Exiting: Maximum number of iterations has been exceeded
+         - increase MaxIter option.
+         Current function value: 46201.379959 
+
+</pre>
+<img vspace="5" hspace="5" src="example_15_ComplexModels_MultiModel_09.png" alt=""> <img vspace="5" hspace="5" src="example_15_ComplexModels_MultiModel_10.png" alt=""> <img vspace="5" hspace="5" src="example_15_ComplexModels_MultiModel_11.png" alt=""> <img vspace="5" hspace="5" src="example_15_ComplexModels_MultiModel_12.png" alt=""> <img vspace="5" hspace="5" src="example_15_ComplexModels_MultiModel_13.png" alt=""> <img vspace="5" hspace="5" src="example_15_ComplexModels_MultiModel_14.png" alt=""> <img vspace="5" hspace="5" src="example_15_ComplexModels_MultiModel_15.png" alt=""> <img vspace="5" hspace="5" src="example_15_ComplexModels_MultiModel_16.png" alt=""> <h2 id="17">Note: This example is shown for illustration purposes only.</h2>
+<p>Usually, if one is fitting two replicas of the exact same experiment, then it is more efficient to combine the data from both replicas and fit them at the same time, e.g. to combined all replicas into one set, simply load the data without the replica filtering condition: STL1_4state_data = ... STL1_4state_data.loadData('data/filtered_data_2M_NaCl_Step.csv',... {'mRNA','RNA_STL1_total_TS3Full'},... {'Condition','0.2M_NaCl_Step'});</p>
+<pre class="codeinput">
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<h2 id="18">Ex(4): Mixed parameters</h2>
+<p>Sometimes it is desirable to only let some parameters change from condition to condition. In this example, both STL1_4state_multi_1 and STL1_4state_multi_2 share parameters [1:11,14:18], but each model also has its own [12:13]. (This was shown in 'example_11_...CrossValidation.m')</p>
+<pre class="codeinput">
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+
+<span class="comment">% Make copies of our multi models:</span>
+STL1_4state_multi_1_mix = STL1_4state_multi_1;
+STL1_4state_multi_2_mix = STL1_4state_multi_2;
+</pre>
+<h2 id="19">Specify how many model parameters will be fit</h2>
+<p>Model 1 has 16 shared parameters plus 2 of its own (18 total):</p>
+<pre class="codeinput">STL1_4state_multi_1_mix.fittingOptions.modelVarsToFit = <span class="keyword">...</span>
+    [[1:11,14:18],12:13];
+
+<span class="comment">% Model 2 has 5 shared parameters plus 2 of its own (18 total):</span>
+STL1_4state_multi_2_mix.fittingOptions.modelVarsToFit = <span class="keyword">...</span>
+    [[1:11,14:18],12:13];
+
+<span class="comment">% Select which models to include in SSITMultiModel:</span>
+Models_mix = {STL1_4state_multi_1_mix, STL1_4state_multi_2_mix};
+</pre>
+<h2 id="20">Define how parameters are assigned to sub-models by their indices</h2>
+<p>In this example, the first 16 parameters are shared, and each model has 2 of its own parameters which must be stored in separate indices:</p>
+<pre class="codeinput">ParsIndices_mix = {[1:16,17:18], [1:16,19:20]};
+
+<span class="comment">% Combine models into one "MultiModel", specify parameters, and initialize:</span>
+combinedModelMixed = SSITMultiModel(Models_mix, ParsIndices_mix);
+combinedModelMixed = combinedModelMixed.initializeStateSpaces;
+
+<span class="comment">% Store parameters for later updating:</span>
+allParsMixed = ([STL1_4state_multi_1_mix.parameters{:,2},<span class="keyword">...</span>
+                 STL1_4state_multi_2_mix.parameters{:,2}]);
+
+<span class="comment">% Fit parameters using maximum likelihood estimation:</span>
+allParsMixed = combinedModelMixed.maximizeLikelihood(<span class="keyword">...</span>
+                allParsMixed, fitOptions, fitAlgorithm);
+
+<span class="comment">% Update model parameters and plot results:</span>
+combinedModelMixed = combinedModelMixed.updateModels(allParsMixed, true);
+
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<pre class="codeoutput"> 
+Exiting: Maximum number of iterations has been exceeded
+         - increase MaxIter option.
+         Current function value: 67962.519900 
+
+</pre>
+<img vspace="5" hspace="5" src="example_15_ComplexModels_MultiModel_17.png" alt=""> <img vspace="5" hspace="5" src="example_15_ComplexModels_MultiModel_18.png" alt=""> <img vspace="5" hspace="5" src="example_15_ComplexModels_MultiModel_19.png" alt=""> <img vspace="5" hspace="5" src="example_15_ComplexModels_MultiModel_20.png" alt=""> <img vspace="5" hspace="5" src="example_15_ComplexModels_MultiModel_21.png" alt=""> <img vspace="5" hspace="5" src="example_15_ComplexModels_MultiModel_22.png" alt=""> <img vspace="5" hspace="5" src="example_15_ComplexModels_MultiModel_23.png" alt=""> <img vspace="5" hspace="5" src="example_15_ComplexModels_MultiModel_24.png" alt=""> <h2 id="21">Ex(5): Constrained parameters</h2>
+<p>It is often helpful to place constraints on parameters, since it can be expected that certain parameters should not change that much from one experiment to another, while others could be more sensitive to expeimental error. Here, we will assume that parameters 14-18 are the same for both cases, and that parameters 1-13 are similar but allowed to change by small values.</p>
+<pre class="codeinput">
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+
+<span class="comment">% Make copies of our multi models:</span>
+STL1_4state_multi_1_con = STL1_4state_multi_1;
+STL1_4state_multi_2_con = STL1_4state_multi_2;
+
+<span class="comment">% Each STL1_4state_multi_* model has 18 fit parameters locally</span>
+STL1_4state_multi_1_con.fittingOptions.modelVarsToFit = 1:18;
+STL1_4state_multi_2_con.fittingOptions.modelVarsToFit = 1:18;
+</pre>
+<h2 id="22">Specify the constraint:</h2>
+<pre class="codeinput">sigma = 1.0;
+constraint = @(x) -(1/(2*sigma^2)) * sum( (x(1:13) - x(19:31)).^2 );
+</pre>
+<h2 id="23">Define how parameters are assigned to sub-models by their indices</h2>
+<pre class="codeinput">parIdx = { 1:18, [14:18, 19:31] };
+
+<span class="comment">% Combine models into one "MultiModel", specify parameters, and initialize:</span>
+combinedModelConstrained = SSITMultiModel({STL1_4state_multi_1_con,<span class="keyword">...</span>
+                           STL1_4state_multi_2_con}, parIdx, constraint);
+
+combinedModelConstrained = combinedModelConstrained.initializeStateSpaces();
+
+x0 = allParsMixed;      <span class="comment">% 1..15 exist</span>
+x0(16:24) = x0(7:15);   <span class="comment">% seed the second block</span>
+
+<span class="comment">% Fit parameters using maximum likelihood estimation:</span>
+xOpt = combinedModelConstrained.maximizeLikelihood(x0, fitOptions,<span class="keyword">...</span>
+                                                   fitAlgorithm);
+
+<span class="comment">% Update model parameters and plot results:</span>
+combinedModelConstrained = combinedModelConstrained.updateModels(xOpt,true);
+
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<pre class="codeoutput"> 
+Exiting: Maximum number of iterations has been exceeded
+         - increase MaxIter option.
+         Current function value: 304231.350693 
+
+</pre>
+<h2 id="24">Ex(6): Different models, same data</h2>
+<p>In this example, both the simplified STL1 model "STL1_multi" and the "STL1_4state_multi" model share the parameter "dr", [4] and [9], respectively, but parameters [1:3,5:7] are only for Model 1 (STL1) and [1:8,10:18] are only for Model 2 (STL1_4state).</p>
+<pre class="codeinput">
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<h2 id="25">Make copies of our models:</h2>
+<pre class="codeinput">STL1_multi = STL1_FSP;
+STL1_4state_multi = STL1_4state_multi_1;
+
+<span class="comment">% Load and associate data:</span>
+STL1_multi = STL1_multi.loadData(<span class="string">'data/filtered_data_2M_NaCl_Step.csv'</span>,<span class="keyword">...</span>
+                               {<span class="string">'mRNA'</span>,<span class="string">'RNA_STL1_total_TS3Full'</span>},<span class="keyword">...</span>
+                               {<span class="string">'Replica'</span>,1;<span class="string">'Condition'</span>,<span class="string">'0.2M_NaCl_Step'</span>});
+STL1_4state_multi = <span class="keyword">...</span>
+   STL1_4state_multi.loadData(<span class="string">'data/filtered_data_2M_NaCl_Step.csv'</span>,<span class="keyword">...</span>
+                             {<span class="string">'mRNA'</span>,<span class="string">'RNA_STL1_total_TS3Full'</span>},<span class="keyword">...</span>
+                             {<span class="string">'Replica'</span>,1;<span class="string">'Condition'</span>,<span class="string">'0.2M_NaCl_Step'</span>});
+</pre>
+<h2 id="26">Specify how many model parameters will be fit</h2>
+<p>Model 1 has 1 shared parameters plus 6 of its own (7 total):</p>
+<pre class="codeinput">STL1_multi.fittingOptions.modelVarsToFit = [4,[1:3,5:7]];
+
+<span class="comment">% Model 2 has 1 shared parameters plus 14 of its own (15 total):</span>
+STL1_4state_multi.fittingOptions.modelVarsToFit = [9,[1:8,10:18]];
+
+<span class="comment">% Select which models to include in SSITMultiModel:</span>
+Models_diff = {STL1_multi, STL1_4state_multi};
+</pre>
+<h2 id="27">Define how parameters are assigned to sub-models by their indices</h2>
+<pre class="codeinput">ParsIndices_diff = {[1,2:7], [1,8:24]};
+
+<span class="comment">% Combine models into one "MultiModel", specify parameters, and initialize:</span>
+combinedModeldiff = SSITMultiModel(Models_diff, ParsIndices_diff);
+combinedModeldiff = combinedModeldiff.initializeStateSpaces;
+
+<span class="comment">% Store parameters for later updating:</span>
+allParsDiff = ([STL1_multi.parameters{:,2},<span class="keyword">...</span>
+                STL1_4state_multi.parameters{:,2}]);
+
+<span class="comment">% Fit parameters using maximum likelihood estimation:</span>
+allParsDiff = combinedModeldiff.maximizeLikelihood(allParsDiff,<span class="keyword">...</span>
+                                                 fitOptions, fitAlgorithm);
+
+<span class="comment">% Update model parameters and plot results:</span>
+combinedModeldiff = combinedModeldiff.updateModels(allParsDiff, true);
+</pre>
+<pre class="codeoutput"> 
+Exiting: Maximum number of iterations has been exceeded
+         - increase MaxIter option.
+         Current function value: 94629.551753 
+
+</pre>
+<img vspace="5" hspace="5" src="example_15_ComplexModels_MultiModel_25.png" alt=""> <img vspace="5" hspace="5" src="example_15_ComplexModels_MultiModel_26.png" alt=""> <img vspace="5" hspace="5" src="example_15_ComplexModels_MultiModel_27.png" alt=""> <img vspace="5" hspace="5" src="example_15_ComplexModels_MultiModel_28.png" alt=""> <img vspace="5" hspace="5" src="example_15_ComplexModels_MultiModel_29.png" alt=""> <img vspace="5" hspace="5" src="example_15_ComplexModels_MultiModel_30.png" alt=""> <img vspace="5" hspace="5" src="example_15_ComplexModels_MultiModel_31.png" alt=""> <img vspace="5" hspace="5" src="example_15_ComplexModels_MultiModel_32.png" alt=""> <p class="footer">
+<br>
+<a href="https://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2025b</a>
+<br>
+</p>
+</div>
+<!--
+##### SOURCE BEGIN #####
+%% SSIT/Examples/example_15_ComplexModels_MultiModel
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Section 2.4: Complex models
+%   * Fit multiple models and data sets with shared parameters
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% Preliminaries
+% Use the solved 4-state STL1 model from example_4_SolveSSITModels_FSP 
+%clear
+%close all
+
+% example_1_CreateSSITModels  
+% example_4_SolveSSITModels_FSP
+
+%% Load pre-solved model 
+% load('example_4_SolveSSITModels_FSP.mat')
+
+% View model summariy:
+STL1_4state_FSP.summarizeModel
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Example script to show how multiple SSIT models and data sets can be fit
+%% simultaneously.  This is most useful in situations where:
+%   1) The analysis considers different experimental conditions (e.g.,
+%      different time points, different inducer concentrations, different
+%      genetic mutations).
+%   2) Replica-to-replica variations are expected that would result in
+%      slightly different parameter combinations
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% Make a copy of our model:
+STL1_4state_multi_1 = STL1_4state_FSP;
+
+%% Load and associate smFISH data
+%  Associate the data with an SSIT model data as usual 
+%  (example_8_LoadingandFittingData_DataLoading):
+
+STL1_4state_multi_1 = ...
+   STL1_4state_multi_1.loadData('data/filtered_data_2M_NaCl_Step.csv',...
+                               {'mRNA','RNA_STL1_total_TS3Full'},...
+                               {'Replica',1;'Condition','0.2M_NaCl_Step'});
+
+
+%% Create a second model and associate it to its own data 
+%  In this case, the second set will be associated to Replica 2 data
+
+STL1_4state_multi_2 = STL1_4state_multi_1;
+STL1_4state_multi_2 = ...
+   STL1_4state_multi_2.loadData('data/filtered_data_2M_NaCl_Step.csv',...
+                               {'mRNA','RNA_STL1_total_TS3Full'},...
+                               {'Replica',2;'Condition','0.2M_NaCl_Step'});
+
+%% Set Fitting Options:
+fitAlgorithm = 'fminsearch';
+fitOptions = optimset('Display','final','MaxIter',200); % small # for demo
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Ex(0): Single model
+% This is a simple example, where we only fit one model to a single data
+% set. First, we create a MultiModel class with just our original model:
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Make copies of our multi models:
+STL1_4state_multi_1_single = STL1_4state_multi_1;
+STL1_4state_multi_2_single = STL1_4state_multi_2;
+
+npars = size(STL1_4state_multi_1_single.parameters,1);
+STL1_4state_multi_1_single.fittingOptions.modelVarsToFit = 1:npars;   
+% or your intended subset, all ≤ npar
+singleModel = SSITMultiModel({STL1_4state_multi_1_single},{1:npars});
+
+% We then copy the original parameters into the MultiModel:
+allParsSingle = ([STL1_4state_multi_1_single.parameters{:,2}]);
+
+% Next, we run a few rounds of fitting:
+for iFit = 1:2
+    % Initialize state space:
+    singleModel = singleModel.initializeStateSpaces;
+    
+    % Run seach for MLE:
+    allParsSingle = singleModel.maximizeLikelihood(allParsSingle,...
+                                                 fitOptions, fitAlgorithm);
+    
+    % Update Model with new parameters:
+    singleModel = singleModel.updateModels(allParsSingle);
+end
+
+% We then copy the parameters back into Model1 and Model2 so we can reuse 
+% them later:
+STL1_4state_multi_1_single.parameters = singleModel.SSITModels{1}.parameters;
+STL1_4state_multi_2_single.parameters = singleModel.SSITModels{1}.parameters;
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Ex(1): Adding new model+data to an existing MultiModel
+% This is how one adds a second model/data combination.  In this case the
+% parameters of the new model are completely independent of the parameter
+% set for the first model.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Make copies of our multi models:
+STL1_4state_multi_1_new = STL1_4state_multi_1;
+STL1_4state_multi_2_new = STL1_4state_multi_2;
+
+npars2 = size(STL1_4state_multi_2_new.parameters,1);
+STL1_4state_multi_2_new.fittingOptions.modelVarsToFit = 1:npars2;   
+% or your intended subset, all ≤ npar
+
+combinedModel = singleModel.addModel({STL1_4state_multi_2_new},{1:npars2});
+combinedModel = combinedModel.initializeStateSpaces;
+allParsCombined = ([STL1_4state_multi_1_new.parameters{:,2},...
+                   [STL1_4state_multi_2_new.parameters{:,2}]]);
+allParsCombined = combinedModel.maximizeLikelihood(...
+    allParsCombined, fitOptions, fitAlgorithm);
+combinedModel = combinedModel.updateModels(allParsCombined);
+
+% Note: This example is shown for illustration purposes only.  Usually, if 
+% one is fitting a single model independently, then it is more efficient to 
+% fit it separately.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Ex(2): Completely independent parameters
+%  Here is how we can create the combined model in one shot.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Make copies of our multi models:
+STL1_4state_multi_1_ind = STL1_4state_multi_1;
+STL1_4state_multi_2_ind = STL1_4state_multi_2;
+
+%% Specify how many model parameters will be fit
+% Model 1 has 0 shared parameters plus 18 of its own (18 total):
+STL1_4state_multi_1_ind.fittingOptions.modelVarsToFit = [1:18];
+
+% Model 2 has 0 shared parameters plus 18 of its own (18 total):
+STL1_4state_multi_2_ind.fittingOptions.modelVarsToFit = [1:18];
+
+% Select which models to include in SSITMultiModel:
+Models_ind = {STL1_4state_multi_1_ind, STL1_4state_multi_2_ind};
+
+% Define how parameters are assigned to sub-models by their indices.  
+% In this example, the parameters are completely independent:
+ParsIndices_ind = {[1:18], [19:36]};
+
+% Combine models into one "MultiModel", specify parameters, and initialize:
+combinedModelIndependent = SSITMultiModel(Models_ind,ParsIndices_ind);
+combinedModelIndependent = combinedModelIndependent.initializeStateSpaces;
+
+% Store parameters for later updating:
+allParsIndependent = ([STL1_4state_multi_1_ind.parameters{:,2},...
+                       [STL1_4state_multi_2_ind.parameters{:,2}]]);
+
+% Fit parameters using maximum likelihood estimation:
+allParsIndependent = combinedModelIndependent.maximizeLikelihood(...
+    allParsIndependent, fitOptions, fitAlgorithm);
+
+% Update model parameters and plot results:
+combinedModelIndependent = ...
+    combinedModelIndependent.updateModels(allParsIndependent,true);
+
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Ex(3): Completely dependent parameters
+%  Here is an example of how a single set of parameters can be used for 
+%  both models and data sets. In the following we make a joint model where 
+%  both STL1_4state_multi_1 and STL1_4state_multi_2 use the parameters 
+% [1:15].
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Make copies of our multi models:
+STL1_4state_multi_1_dep = STL1_4state_multi_1;
+STL1_4state_multi_2_dep = STL1_4state_multi_2;
+
+%% Specify how many model parameters will be fit
+% Model 1 has 18 shared parameters plus 0 of its own (18 total): 
+STL1_4state_multi_1_dep.fittingOptions.modelVarsToFit = [1:18];
+
+% Model 2 has 18 shared parameters plus 0 of its own (18 total):
+STL1_4state_multi_2_dep.fittingOptions.modelVarsToFit = [1:18];
+
+% Select which models to include in SSITMultiModel:
+Models_dep = {STL1_4state_multi_1_dep, STL1_4state_multi_2_dep};
+
+% Define how parameters are assigned to sub-models by their indices.  
+% In this example, the parameters are completely dependent:
+ParsIndices_dep = {[1:18], [1:18]};
+
+% Combine models into one "MultiModel", specify parameters, and initialize:
+combinedModelDependent = SSITMultiModel(Models_dep, ParsIndices_dep);
+combinedModelDependent = combinedModelDependent.initializeStateSpaces;
+
+% Store parameters for later updating:
+allParsDependent = ([STL1_4state_multi_1_dep.parameters{:,2}]);
+
+% Fit parameters using maximum likelihood estimation:
+allParsDependent = combinedModelDependent.maximizeLikelihood(...
+    allParsDependent, fitOptions, fitAlgorithm);
+
+% Update model parameters and plot results:
+combinedModelDependent = ...
+    combinedModelDependent.updateModels(allParsDependent,true);
+
+%% Note: This example is shown for illustration purposes only.  
+% Usually, if one is fitting two replicas of the exact same experiment, 
+% then it is more efficient to combine the data from both replicas and fit 
+% them at the same time, e.g. to combined all replicas into one set, simply 
+% load the data without the replica filtering condition:
+% STL1_4state_data = ...
+%     STL1_4state_data.loadData('data/filtered_data_2M_NaCl_Step.csv',...
+%                              {'mRNA','RNA_STL1_total_TS3Full'},...
+%                              {'Condition','0.2M_NaCl_Step'});
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Ex(4): Mixed parameters
+% Sometimes it is desirable to only let some parameters change from
+% condition to condition.  In this example, both STL1_4state_multi_1 and  
+% STL1_4state_multi_2 share parameters [1:11,14:18], but each model also 
+% has its own [12:13]. (This was shown in 'example_11_...CrossValidation.m')  
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Make copies of our multi models:
+STL1_4state_multi_1_mix = STL1_4state_multi_1;
+STL1_4state_multi_2_mix = STL1_4state_multi_2;
+
+%% Specify how many model parameters will be fit
+% Model 1 has 16 shared parameters plus 2 of its own (18 total):
+STL1_4state_multi_1_mix.fittingOptions.modelVarsToFit = ...
+    [[1:11,14:18],12:13];
+
+% Model 2 has 5 shared parameters plus 2 of its own (18 total):
+STL1_4state_multi_2_mix.fittingOptions.modelVarsToFit = ...
+    [[1:11,14:18],12:13];
+
+% Select which models to include in SSITMultiModel:
+Models_mix = {STL1_4state_multi_1_mix, STL1_4state_multi_2_mix};
+
+%% Define how parameters are assigned to sub-models by their indices  
+% In this example, the first 16 parameters are shared, and each model has 2
+% of its own parameters which must be stored in separate indices:
+ParsIndices_mix = {[1:16,17:18], [1:16,19:20]};
+
+% Combine models into one "MultiModel", specify parameters, and initialize:
+combinedModelMixed = SSITMultiModel(Models_mix, ParsIndices_mix);
+combinedModelMixed = combinedModelMixed.initializeStateSpaces;
+
+% Store parameters for later updating:
+allParsMixed = ([STL1_4state_multi_1_mix.parameters{:,2},...
+                 STL1_4state_multi_2_mix.parameters{:,2}]);
+
+% Fit parameters using maximum likelihood estimation:
+allParsMixed = combinedModelMixed.maximizeLikelihood(...
+                allParsMixed, fitOptions, fitAlgorithm);
+
+% Update model parameters and plot results:
+combinedModelMixed = combinedModelMixed.updateModels(allParsMixed, true);
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Ex(5): Constrained parameters
+% It is often helpful to place constraints on parameters, since it can
+% be expected that certain parameters should not change that much from one
+% experiment to another, while others could be more sensitive to
+% expeimental error.  Here, we will assume that parameters 14-18 are the 
+% same for both cases, and that parameters 1-13 are similar but allowed to 
+% change by small values.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Make copies of our multi models:
+STL1_4state_multi_1_con = STL1_4state_multi_1;
+STL1_4state_multi_2_con = STL1_4state_multi_2;
+
+% Each STL1_4state_multi_* model has 18 fit parameters locally
+STL1_4state_multi_1_con.fittingOptions.modelVarsToFit = 1:18;
+STL1_4state_multi_2_con.fittingOptions.modelVarsToFit = 1:18;
+
+%% Specify the constraint:
+sigma = 1.0;
+constraint = @(x) -(1/(2*sigma^2)) * sum( (x(1:13) - x(19:31)).^2 );
+
+%% Define how parameters are assigned to sub-models by their indices  
+parIdx = { 1:18, [14:18, 19:31] };
+
+% Combine models into one "MultiModel", specify parameters, and initialize:
+combinedModelConstrained = SSITMultiModel({STL1_4state_multi_1_con,...
+                           STL1_4state_multi_2_con}, parIdx, constraint);
+
+combinedModelConstrained = combinedModelConstrained.initializeStateSpaces();
+
+x0 = allParsMixed;      % 1..15 exist
+x0(16:24) = x0(7:15);   % seed the second block
+
+% Fit parameters using maximum likelihood estimation:
+xOpt = combinedModelConstrained.maximizeLikelihood(x0, fitOptions,...
+                                                   fitAlgorithm);
+
+% Update model parameters and plot results:
+combinedModelConstrained = combinedModelConstrained.updateModels(xOpt,true);
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Ex(6): Different models, same data
+% In this example, both the simplified STL1 model "STL1_multi" and the
+% "STL1_4state_multi" model share the parameter "dr", [4] and [9], 
+% respectively, but parameters [1:3,5:7] are only for Model 1 (STL1) and 
+% [1:8,10:18] are only for Model 2 (STL1_4state).
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% Make copies of our models:
+STL1_multi = STL1_FSP;
+STL1_4state_multi = STL1_4state_multi_1;
+
+% Load and associate data:
+STL1_multi = STL1_multi.loadData('data/filtered_data_2M_NaCl_Step.csv',...
+                               {'mRNA','RNA_STL1_total_TS3Full'},...
+                               {'Replica',1;'Condition','0.2M_NaCl_Step'});
+STL1_4state_multi = ...
+   STL1_4state_multi.loadData('data/filtered_data_2M_NaCl_Step.csv',...
+                             {'mRNA','RNA_STL1_total_TS3Full'},...
+                             {'Replica',1;'Condition','0.2M_NaCl_Step'});
+
+%% Specify how many model parameters will be fit
+% Model 1 has 1 shared parameters plus 6 of its own (7 total):
+STL1_multi.fittingOptions.modelVarsToFit = [4,[1:3,5:7]];
+
+% Model 2 has 1 shared parameters plus 14 of its own (15 total):
+STL1_4state_multi.fittingOptions.modelVarsToFit = [9,[1:8,10:18]];
+
+% Select which models to include in SSITMultiModel:
+Models_diff = {STL1_multi, STL1_4state_multi};
+
+%% Define how parameters are assigned to sub-models by their indices  
+ParsIndices_diff = {[1,2:7], [1,8:24]};
+
+% Combine models into one "MultiModel", specify parameters, and initialize:
+combinedModeldiff = SSITMultiModel(Models_diff, ParsIndices_diff);
+combinedModeldiff = combinedModeldiff.initializeStateSpaces;
+
+% Store parameters for later updating:
+allParsDiff = ([STL1_multi.parameters{:,2},...
+                STL1_4state_multi.parameters{:,2}]);
+
+% Fit parameters using maximum likelihood estimation:
+allParsDiff = combinedModeldiff.maximizeLikelihood(allParsDiff,...
+                                                 fitOptions, fitAlgorithm);
+
+% Update model parameters and plot results:
+combinedModeldiff = combinedModeldiff.updateModels(allParsDiff, true);
+##### SOURCE END #####
+-->
+</body>
+</html>

@@ -630,19 +630,19 @@ classdef poissonTest < matlab.unittest.TestCase
             Nc = Model.dataSet.nCells;
             figure
             FIM = Model.totalFim(fimResults,Nc);
-            Model.plotMHResults(MHResults,FIM)
+            Model.plotMHResults(MHResults,FIM=FIM)
 
             % Find optimal experiment design given parameters sets
-            NcOptExperiment = Model.optimizeCellCounts(fimResults,sum(Nc),'Determinant',[],[],10000*ones(size(Nc)));
+            NcOptExperiment = Model.optimizeCellCounts(fimResults,sum(Nc),'D-opt',[],[],10000*ones(size(Nc)));
             FIMOptExpt = Model.totalFim(fimResults,NcOptExperiment);
-            Model.plotMHResults(MHResults,[FIM,FIMOptExpt])         
+            Model.plotMHResults(MHResults,FIM=[FIM,FIMOptExpt])         
 
             % Find optimal experiment design given parameters sets but
             % where there is a base of 10 cells at every time point.
             NcBase = Nc;
-            NcOptExperimentBase = Model.optimizeCellCounts(fimResults,sum(Nc),'Determinant',[],NcBase,10000*ones(size(Nc)));
+            NcOptExperimentBase = Model.optimizeCellCounts(fimResults,sum(Nc),'D-opt',[],NcBase,10000*ones(size(Nc)));
             FIMOptExptBase = Model.totalFim(fimResults,NcOptExperimentBase+NcBase);
-            Model.plotMHResults(MHResults,[FIM,FIMOptExpt,FIMOptExptBase])
+            Model.plotMHResults(MHResults,FIM=[FIM,FIMOptExpt,FIMOptExptBase])
 
         end 
         

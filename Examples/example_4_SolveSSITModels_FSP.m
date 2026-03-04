@@ -60,7 +60,7 @@ STL1_4state.tSpan = linspace(0,50,101);
     [~,~,Model_FSP] = Model_FSP.solve; 
     
     % Plot marginal distributions at t=20:  
-    Model_FSP.plotFSP(Model_FSP.Solutions,Model_FSP.species,'meansAndDevs')
+    Model_FSP.plotFSP(plotType='meansAndDevs',Title='Bursting Gene (FSP)')
                        
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(2): Use the stochastic Finite State Projection (FSP) 
@@ -97,7 +97,7 @@ STL1_4state.tSpan = linspace(0,50,101);
     [~,~,STL1_FSP] = STL1_FSP.solve; 
     
     % Plot marginal distributions at t=20:  
-    STL1_FSP.plotFSP(STL1_FSP.Solutions, STL1_FSP.species,'meansAndDevs')
+    STL1_FSP.plotFSP(plotType='meansAndDevs',Title='STL1 (FSP)')
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(3): Use the stochastic Finite State Projection (FSP) 
@@ -140,17 +140,17 @@ STL1_4state.tSpan = linspace(0,50,101);
     %     STL1_4state_FSP.species, 'means')
 
     % Means and standard deviations:
-    STL1_4state_FSP.plotFSP(STL1_4state_FSP.Solutions,...
-        STL1_4state_FSP.species(5),'meansAndDevs',[],[],{'linewidth',4},...
+    STL1_4state_FSP.plotFSP(speciesNames=STL1_4state_FSP.species(5),...
+        plotType='meansAndDevs', lineProps={'linewidth',4},...
         Title='4-state STL1 (mRNA)', TitleFontSize=26,...
         Colors=[0.23,0.67,0.2], AxisLabelSize=20, TickLabelSize=20,...
         XLabel='Time', YLabel='Molecule Count',...
         LegendFontSize=20, LegendLocation='northeast');
 
     % Marginal distributions:
-    STL1_4state_FSP.plotFSP(STL1_4state_FSP.Solutions,...
-        STL1_4state_FSP.species(5), 'marginals', [1,12,24,50,101],...
-        [], {'linewidth',3}, Colors=[0.23,0.67,0.2], XLim=[0,100])
+    STL1_4state_FSP.plotFSP(speciesNames=STL1_4state_FSP.species(5),...
+        plotType='marginals', indTimes=[1,12,24,50,101],...
+        lineProps={'linewidth',3}, Colors=[0.23,0.67,0.2], XLim=[0,100])
 
     % Joint distributions (warning: can be slow for many parameters!):
     % STL1_4state_FSP.plotFSP(STL1_4state_FSPsoln,...
