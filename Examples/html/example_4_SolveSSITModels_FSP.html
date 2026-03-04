@@ -9,7 +9,7 @@ To make changes, update the MATLAB code and republish this document.
 <title>example_4_SolveSSITModels_FSP</title>
 <meta name="generator" content="MATLAB 25.2">
 <link rel="schema.DC" href="http://purl.org/dc/elements/1.1/">
-<meta name="DC.date" content="2026-02-20">
+<meta name="DC.date" content="2026-03-03">
 <meta name="DC.source" content="example_4_SolveSSITModels_FSP.m">
 <style type="text/css">
 html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
@@ -164,10 +164,10 @@ Reactions:
      w4: dr * mRNA
  
 Model Parameters:
-    {'kon' }    {[0.2000]}
-    {'koff'}    {[0.2000]}
-    {'kr'  }    {[    10]}
-    {'dr'  }    {[     5]}
+    {'kon' }    {[2.0000e-01]}
+    {'koff'}    {[2.0000e-01]}
+    {'kr'  }    {[        10]}
+    {'dr'  }    {[         5]}
 
 Species:
      offGene; IC = 1;  discrete stochastic
@@ -192,14 +192,14 @@ Input Signals:
      Hog1(t) = (a0+a1*exp(-r1*t)*(1-exp(-r2*t))*(t&gt;0))
  
 Model Parameters:
-    {'kon' }    {[0.2000]}
-    {'koff'}    {[0.2000]}
-    {'kr'  }    {[    10]}
-    {'dr'  }    {[     5]}
-    {'a0'  }    {[     5]}
-    {'a1'  }    {[    10]}
-    {'r1'  }    {[0.0040]}
-    {'r2'  }    {[0.0100]}
+    {'kon' }    {[2.0000e-01]}
+    {'koff'}    {[2.0000e-01]}
+    {'kr'  }    {[        10]}
+    {'dr'  }    {[         5]}
+    {'a0'  }    {[         5]}
+    {'a1'  }    {[        10]}
+    {'r1'  }    {[4.0000e-03]}
+    {'r2'  }    {[1.0000e-02]}
 
 Species:
      g1; IC = 1;  discrete stochastic
@@ -247,24 +247,24 @@ Input Signals:
      Hog1(t) = A*(((1-(exp(1)^(-r1*(t-t0))))*exp(1)^(-r2*(t-t0)))/(1+((1-(exp(1)^(-r1*(t-t0))))*exp(1)^(-r2*(t-t0)))/M))^n*(t&gt;t0)
  
 Model Parameters:
-    {'t0'  }    {[    3.1700]}
+    {'t0'  }    {[3.1700e+00]}
     {'k12' }    {[        78]}
     {'k21o'}    {[    192000]}
     {'k21i'}    {[      3200]}
-    {'k23' }    {[    0.4020]}
-    {'k34' }    {[    7.8000]}
-    {'k32' }    {[    1.6200]}
-    {'k43' }    {[    2.2800]}
-    {'dr'  }    {[    0.2940]}
-    {'kr1' }    {[    0.0468]}
-    {'kr2' }    {[    0.7200]}
-    {'kr3' }    {[   59.4000]}
-    {'kr4' }    {[    3.2400]}
-    {'r1'  }    {[    0.0041]}
-    {'r2'  }    {[    0.4260]}
+    {'k23' }    {[4.0200e-01]}
+    {'k34' }    {[7.8000e+00]}
+    {'k32' }    {[1.6200e+00]}
+    {'k43' }    {[2.2800e+00]}
+    {'dr'  }    {[2.9400e-01]}
+    {'kr1' }    {[4.6800e-02]}
+    {'kr2' }    {[7.2000e-01]}
+    {'kr3' }    {[5.9400e+01]}
+    {'kr4' }    {[3.2400e+00]}
+    {'r1'  }    {[4.1400e-03]}
+    {'r2'  }    {[4.2600e-01]}
     {'A'   }    {[9.3000e+09]}
     {'M'   }    {[6.4000e-04]}
-    {'n'   }    {[    3.1000]}
+    {'n'   }    {[3.1000e+00]}
 
 </pre>
 <h2 id="4">Ex(1): Use the stochastic Finite State Projection (FSP)</h2>
@@ -300,7 +300,7 @@ Model Parameters:
     [~,~,Model_FSP] = Model_FSP.solve;
 
     <span class="comment">% Plot marginal distributions at t=20:</span>
-    Model_FSP.plotFSP(Model_FSP.Solutions,Model_FSP.species,<span class="string">'meansAndDevs'</span>)
+    Model_FSP.plotFSP(plotType=<span class="string">'meansAndDevs'</span>,Title=<span class="string">'Bursting Gene (FSP)'</span>)
 
 <span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
 </pre>
@@ -337,7 +337,7 @@ Model Parameters:
     [~,~,STL1_FSP] = STL1_FSP.solve;
 
     <span class="comment">% Plot marginal distributions at t=20:</span>
-    STL1_FSP.plotFSP(STL1_FSP.Solutions, STL1_FSP.species,<span class="string">'meansAndDevs'</span>)
+    STL1_FSP.plotFSP(plotType=<span class="string">'meansAndDevs'</span>,Title=<span class="string">'STL1 (FSP)'</span>)
 
 <span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
 </pre>
@@ -377,17 +377,17 @@ Model Parameters:
 <h2 id="10">Plots for FSP solutions:</h2>
 <p>Means only: STL1_4state_FSP.plotFSP(STL1_4state_FSPsoln,... STL1_4state_FSP.species, 'means')</p>
 <pre class="codeinput">    <span class="comment">% Means and standard deviations:</span>
-    STL1_4state_FSP.plotFSP(STL1_4state_FSP.Solutions,<span class="keyword">...</span>
-        STL1_4state_FSP.species(5),<span class="string">'meansAndDevs'</span>,[],[],{<span class="string">'linewidth'</span>,4},<span class="keyword">...</span>
+    STL1_4state_FSP.plotFSP(speciesNames=STL1_4state_FSP.species(5),<span class="keyword">...</span>
+        plotType=<span class="string">'meansAndDevs'</span>, lineProps={<span class="string">'linewidth'</span>,4},<span class="keyword">...</span>
         Title=<span class="string">'4-state STL1 (mRNA)'</span>, TitleFontSize=26,<span class="keyword">...</span>
         Colors=[0.23,0.67,0.2], AxisLabelSize=20, TickLabelSize=20,<span class="keyword">...</span>
         XLabel=<span class="string">'Time'</span>, YLabel=<span class="string">'Molecule Count'</span>,<span class="keyword">...</span>
         LegendFontSize=20, LegendLocation=<span class="string">'northeast'</span>);
 
     <span class="comment">% Marginal distributions:</span>
-    STL1_4state_FSP.plotFSP(STL1_4state_FSP.Solutions,<span class="keyword">...</span>
-        STL1_4state_FSP.species(5), <span class="string">'marginals'</span>, [1,12,24,50,101],<span class="keyword">...</span>
-        [], {<span class="string">'linewidth'</span>,3}, Colors=[0.23,0.67,0.2], XLim=[0,100])
+    STL1_4state_FSP.plotFSP(speciesNames=STL1_4state_FSP.species(5),<span class="keyword">...</span>
+        plotType=<span class="string">'marginals'</span>, indTimes=[1,12,24,50,101],<span class="keyword">...</span>
+        lineProps={<span class="string">'linewidth'</span>,3}, Colors=[0.23,0.67,0.2], XLim=[0,100])
 
     <span class="comment">% Joint distributions (warning: can be slow for many parameters!):</span>
     <span class="comment">% STL1_4state_FSP.plotFSP(STL1_4state_FSPsoln,...</span>
@@ -472,7 +472,7 @@ STL1_4state.tSpan = linspace(0,50,101);
     [~,~,Model_FSP] = Model_FSP.solve; 
     
     % Plot marginal distributions at t=20:  
-    Model_FSP.plotFSP(Model_FSP.Solutions,Model_FSP.species,'meansAndDevs')
+    Model_FSP.plotFSP(plotType='meansAndDevs',Title='Bursting Gene (FSP)')
                        
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(2): Use the stochastic Finite State Projection (FSP) 
@@ -509,7 +509,7 @@ STL1_4state.tSpan = linspace(0,50,101);
     [~,~,STL1_FSP] = STL1_FSP.solve; 
     
     % Plot marginal distributions at t=20:  
-    STL1_FSP.plotFSP(STL1_FSP.Solutions, STL1_FSP.species,'meansAndDevs')
+    STL1_FSP.plotFSP(plotType='meansAndDevs',Title='STL1 (FSP)')
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(3): Use the stochastic Finite State Projection (FSP) 
@@ -552,17 +552,17 @@ STL1_4state.tSpan = linspace(0,50,101);
     %     STL1_4state_FSP.species, 'means')
 
     % Means and standard deviations:
-    STL1_4state_FSP.plotFSP(STL1_4state_FSP.Solutions,...
-        STL1_4state_FSP.species(5),'meansAndDevs',[],[],{'linewidth',4},...
+    STL1_4state_FSP.plotFSP(speciesNames=STL1_4state_FSP.species(5),...
+        plotType='meansAndDevs', lineProps={'linewidth',4},...
         Title='4-state STL1 (mRNA)', TitleFontSize=26,...
         Colors=[0.23,0.67,0.2], AxisLabelSize=20, TickLabelSize=20,...
         XLabel='Time', YLabel='Molecule Count',...
         LegendFontSize=20, LegendLocation='northeast');
 
     % Marginal distributions:
-    STL1_4state_FSP.plotFSP(STL1_4state_FSP.Solutions,...
-        STL1_4state_FSP.species(5), 'marginals', [1,12,24,50,101],...
-        [], {'linewidth',3}, Colors=[0.23,0.67,0.2], XLim=[0,100])
+    STL1_4state_FSP.plotFSP(speciesNames=STL1_4state_FSP.species(5),...
+        plotType='marginals', indTimes=[1,12,24,50,101],...
+        lineProps={'linewidth',3}, Colors=[0.23,0.67,0.2], XLim=[0,100])
 
     % Joint distributions (warning: can be slow for many parameters!):
     % STL1_4state_FSP.plotFSP(STL1_4state_FSPsoln,...

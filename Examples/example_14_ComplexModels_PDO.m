@@ -54,15 +54,14 @@ plotColors = struct('scatter', [0.2, 0.6, 1], ...
            'ellipseMH', 'g--', ...
            'marker', [0.1, 0.1, 0.1]);
 
-sig_log10 = 2*ones(1,18);
+sig_log10 = 2*ones(1,13);
 
-fimTotal = ...
-    STL1_4state_PDO.evaluateExperiment(fimResults,...
-    STL1_4state_PDO.dataSet.nCells,diag(sig_log10.^2));
+fimTotal = STL1_4state_PDO.evaluateExperiment(fimResults,...
+           STL1_4state_PDO.dataSet.nCells,diag(sig_log10.^2));
 
-STL1_4state_PDO.plotMHResults(STL1_4state_MHResults,[fimTotal],...
-                              'log',[],figNew,plotColors)
-
+STL1_4state_PDO.plotMHResults(STL1_4state_MHResults,FIM=fimTotal,...
+                              fimScale='log',scatterFig=figNew,...
+                              plotColors=plotColors)
 
 % Find and store the total number of cells in your data set (already
 % computed by SSIT when data was loaded in 
@@ -71,8 +70,7 @@ nTotal = sum(STL1_4state_PDO.dataSet.nCells);
 
 %% Compute the optimal number of cells from the FIM results using the min. 
 % inv determinant <x^{-1}> (all other parameters are known and fixed)
-nCellsOpt = STL1_4state_PDO.optimizeCellCounts(fimResults,nTotal,...
-                                                'Smallest Eigenvalue');
+nCellsOpt = STL1_4state_PDO.optimizeCellCounts(fimResults,nTotal,'E-opt');
  
 nCellsOptAvail = min(nCellsOpt,STL1_4state_PDO.dataSet.nCells)
 
@@ -82,11 +80,13 @@ fimOpt = STL1_4state_PDO.evaluateExperiment(fimResults,nCellsOpt,...
 fimOptAvail = STL1_4state_PDO.evaluateExperiment(fimResults,...
                                         nCellsOptAvail,diag(sig_log10.^2));
 figOpt = figure;
-STL1_4state_PDO.plotMHResults(STL1_4state_MHResults, [fimOpt,fimTotal],...
-                              'log',[],figOpt,plotColors);
+STL1_4state_PDO.plotMHResults(STL1_4state_MHResults, fimScale='log',...
+                              FIM=[fimOpt,fimTotal], scatterFig=figOpt,...
+                              plotColors=plotColors);
 figOptAvail = figure;
 STL1_4state_PDO.plotMHResults(STL1_4state_MHResults,...
-                   [fimOptAvail,fimTotal],'log',[],figOptAvail,plotColors);
+                            FIM=[fimOptAvail,fimTotal], fimScale='log',...
+                            scatterFig=figOptAvail, plotColors=plotColors);
  
 f = figure;
 set(f,'Position',[616   748   412   170])
@@ -157,10 +157,10 @@ fimPDO_cyt = STL1_4state_PDO_cyt.evaluateExperiment(fimsPDO_cyt,...
                                             nCellsOpt, diag(sig_log10.^2));
 
 nCellsOptPDO_cyt = STL1_4state_PDO_cyt.optimizeCellCounts(...
-                               fimsPDO_cyt, nTotal, 'Smallest Eigenvalue');
+                         fimsPDO_cyt, nTotal, 'E-opt');
 figPDO_cyt = figure;
-STL1_4state_PDO_cyt.plotMHResults(STL1_4state_MHResults,...
-                         [fimPDO_cyt,fimTotal,fimOpt],'log',[],figPDO_cyt);
+STL1_4state_PDO_cyt.plotMHResults(STL1_4state_MHResults, fimScale='log',...
+                  FIM=[fimPDO_cyt,fimTotal,fimOpt], scatterFig=figPDO_cyt);
 
 % Nucleus:
 fimsPDO_nuc = STL1_4state_PDO_nuc.computeFIM([],'log');
@@ -168,10 +168,10 @@ fimPDO_nuc = STL1_4state_PDO_nuc.evaluateExperiment(fimsPDO_nuc,...
                                             nCellsOpt, diag(sig_log10.^2));
 
 nCellsOptPDO_nuc = STL1_4state_PDO_nuc.optimizeCellCounts(...
-                               fimsPDO_nuc, nTotal, 'Smallest Eigenvalue');
+                       fimsPDO_nuc, nTotal, 'E-opt');
 figPDO_nuc = figure;
-STL1_4state_PDO_nuc.plotMHResults(STL1_4state_MHResults,...
-                         [fimPDO_nuc,fimTotal,fimOpt],'log',[],figPDO_nuc);
+STL1_4state_PDO_nuc.plotMHResults(STL1_4state_MHResults, fimScale='log',...
+                  FIM=[fimPDO_nuc,fimTotal,fimOpt], scatterFig=figPDO_nuc);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %   * Ex(2): Analyze FIM with PDO for average intensity data
@@ -181,11 +181,11 @@ fimPDOintens = STL1_4state_PDO_intens.evaluateExperiment(fimsPDOintens,...
                                             nCellsOpt,diag(sig_log10.^2));
 
 nCellsOptPDOintens = STL1_4state_PDO_intens.optimizeCellCounts(...
-                               fimsPDOintens,nTotal,'Smallest Eigenvalue');
+                           fimsPDOintens,nTotal,'E-opt');
 
 figintens = figure;
 STL1_4state_PDO_intens.plotMHResults(STL1_4state_MHResults,...
-                        [fimPDOintens,fimTotal,fimOpt],'log',[],figintens);
+   FIM=[fimPDOintens,fimTotal,fimOpt],fimScale='log',scatterFig=figintens);
 
 %% Plot legend
 axs = findall(figPDO_cyt, 'Type', 'axes');

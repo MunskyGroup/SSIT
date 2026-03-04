@@ -3761,6 +3761,7 @@ classdef SSIT
                     defaultFitOptions.CovFIMscale = 0.6;
                     defaultFitOptions.suppressFSPExpansion = true;
                     defaultFitOptions.logForm = true;
+                    defaultFitOptions.computeESS = true;
                     defaultFitOptions.obj = [];
 
                     j=1;
@@ -6162,7 +6163,7 @@ end
         end
 
 
-        function figHandles = plotFits(obj, fitSolution, plotType, figureNums, lineProps, opts)
+        function figHandles = plotFits(obj, fitSolution, opts)
             % plotFits — Compare model FSP fits to experimental data.
             %
             % figHandles = plotFits(obj, fitSolution, plotType, figureNums, lineProps, opts)
@@ -6170,10 +6171,10 @@ end
             % Inputs:
             %   obj          : SSIT object (with fields like DataLoadingAndFittingTabOutputs, etc.)
             %   fitSolution  : struct returned by computeLikelihood (3rd output), or [] to recompute
-            %   plotType     : "histograms" | "trajectories" | "likelihood" | "all"
-            %   figureNums   : [] or vector of figure numbers to reuse
-            %   lineProps    : e.g., {'linewidth',2}
             %   opts         : struct with fields:
+            %       .plotType     : "histograms" | "trajectories" | "likelihood" | "all"
+            %       .figureNums   : [] or vector of figure numbers to reuse
+            %       .lineProps    : e.g., {'linewidth',2}
             %       .SmoothWindow       (double, default=1)
             %       .UsePanels          (logical, default=true)
             %       .VarianceType       ("STD" or "IQR", default="STD")
@@ -6196,9 +6197,9 @@ end
                 arguments
                     obj
                     fitSolution = []
-                    plotType (1,1) string = "histograms"
-                    figureNums = []
-                    lineProps = {'linewidth',2}
+                    opts.plotType (1,1) string = "histograms"
+                    opts.figureNums = []
+                    opts.lineProps = {'linewidth',2}
                     opts.SpeciesNames = []   
                     opts.SpeciesIdx   = []   
                     opts.SmoothWindow (1,1) double {mustBePositive} = 1
@@ -6221,6 +6222,10 @@ end
                     opts.TimeIdx double = []     % subset of time indices for CDF/PDF
                     opts.TimePoints double = []  % subset of time values for CDF/PDF (exact match)
                 end
+
+                plotType = opts.plotType;
+                figureNums = opts.figureNums;
+                lineProps = opts.lineProps;
             
                 % ---- Compute fitSolution if needed ----
                 if isempty(fitSolution)
@@ -7187,15 +7192,19 @@ end
                 opts.fimScale = 'lin';
                 opts.mhPlotScale = 'log10';
                 opts.scatterFig = [];
+                opts.plotColors = struct();
+                opts.showConvergence = true;
                 opts.ESS = true;
             end
             FIM = opts.FIM;
             fimScale = opts.fimScale;
             mhPlotScale = opts.mhPlotScale;
             scatterFig = opts.scatterFig;
+            plotColors = opts.plotColors;
+            showConvergence = opts.showConvergence;
             ess = opts.ESS;
 
-            obj.plotMHResultsStatic(obj,mhResults,FIM,fimScale,mhPlotScale,scatterFig,ess)
+            obj.plotMHResultsStatic(obj,mhResults,FIM,fimScale,mhPlotScale,scatterFig,ess,showConvergence,plotColors)
         end
     end
     methods (Static)

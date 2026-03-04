@@ -9,7 +9,7 @@ To make changes, update the MATLAB code and republish this document.
 <title>example_2_SolveSSITModels_ODE</title>
 <meta name="generator" content="MATLAB 25.2">
 <link rel="schema.DC" href="http://purl.org/dc/elements/1.1/">
-<meta name="DC.date" content="2026-02-20">
+<meta name="DC.date" content="2026-03-03">
 <meta name="DC.source" content="example_2_SolveSSITModels_ODE.m">
 <style type="text/css">
 html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
@@ -95,28 +95,22 @@ table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px soli
 <a href="#5">Model:</a>
 </li>
 <li>
-<a href="#6">Make a movie of the ODE solution being plotted:</a>
+<a href="#6">Ex(2): Use deterministic, ordinary differential equations (ODEs)</a>
 </li>
 <li>
-<a href="#7">Ex(2): Use deterministic, ordinary differential equations (ODEs)</a>
+<a href="#7">STL1 Model:</a>
 </li>
 <li>
-<a href="#8">STL1 Model:</a>
+<a href="#8">Ex(3): Use deterministic, ordinary differential equations (ODEs)</a>
 </li>
 <li>
-<a href="#9">Make a movie of the ODE solution being plotted:</a>
+<a href="#9">4-state STL1 Model:</a>
 </li>
 <li>
-<a href="#10">Ex(3): Use deterministic, ordinary differential equations (ODEs)</a>
+<a href="#10">Make a movie of the ODE solution being plotted:</a>
 </li>
 <li>
-<a href="#11">4-state STL1 Model:</a>
-</li>
-<li>
-<a href="#12">Make a movie of the ODE solution being plotted:</a>
-</li>
-<li>
-<a href="#13">Save ODE models &amp; solutions</a>
+<a href="#11">Save ODE models &amp; solutions</a>
 </li>
 </ul>
 </div>
@@ -170,10 +164,10 @@ Reactions:
      w4: dr * mRNA
  
 Model Parameters:
-    {'kon' }    {[0.2000]}
-    {'koff'}    {[0.2000]}
-    {'kr'  }    {[    10]}
-    {'dr'  }    {[     5]}
+    {'kon' }    {[2.0000e-01]}
+    {'koff'}    {[2.0000e-01]}
+    {'kr'  }    {[        10]}
+    {'dr'  }    {[         5]}
 
 Species:
      offGene; IC = 1;  discrete stochastic
@@ -198,14 +192,14 @@ Input Signals:
      Hog1(t) = (a0+a1*exp(-r1*t)*(1-exp(-r2*t))*(t&gt;0))
  
 Model Parameters:
-    {'kon' }    {[0.2000]}
-    {'koff'}    {[0.2000]}
-    {'kr'  }    {[    10]}
-    {'dr'  }    {[     5]}
-    {'a0'  }    {[     5]}
-    {'a1'  }    {[    10]}
-    {'r1'  }    {[0.0040]}
-    {'r2'  }    {[0.0100]}
+    {'kon' }    {[2.0000e-01]}
+    {'koff'}    {[2.0000e-01]}
+    {'kr'  }    {[        10]}
+    {'dr'  }    {[         5]}
+    {'a0'  }    {[         5]}
+    {'a1'  }    {[        10]}
+    {'r1'  }    {[4.0000e-03]}
+    {'r2'  }    {[1.0000e-02]}
 
 Species:
      g1; IC = 1;  discrete stochastic
@@ -253,24 +247,24 @@ Input Signals:
      Hog1(t) = A*(((1-(exp(1)^(-r1*(t-t0))))*exp(1)^(-r2*(t-t0)))/(1+((1-(exp(1)^(-r1*(t-t0))))*exp(1)^(-r2*(t-t0)))/M))^n*(t&gt;t0)
  
 Model Parameters:
-    {'t0'  }    {[    3.1700]}
+    {'t0'  }    {[3.1700e+00]}
     {'k12' }    {[        78]}
     {'k21o'}    {[    192000]}
     {'k21i'}    {[      3200]}
-    {'k23' }    {[    0.4020]}
-    {'k34' }    {[    7.8000]}
-    {'k32' }    {[    1.6200]}
-    {'k43' }    {[    2.2800]}
-    {'dr'  }    {[    0.2940]}
-    {'kr1' }    {[    0.0468]}
-    {'kr2' }    {[    0.7200]}
-    {'kr3' }    {[   59.4000]}
-    {'kr4' }    {[    3.2400]}
-    {'r1'  }    {[    0.0041]}
-    {'r2'  }    {[    0.4260]}
+    {'k23' }    {[4.0200e-01]}
+    {'k34' }    {[7.8000e+00]}
+    {'k32' }    {[1.6200e+00]}
+    {'k43' }    {[2.2800e+00]}
+    {'dr'  }    {[2.9400e-01]}
+    {'kr1' }    {[4.6800e-02]}
+    {'kr2' }    {[7.2000e-01]}
+    {'kr3' }    {[5.9400e+01]}
+    {'kr4' }    {[3.2400e+00]}
+    {'r1'  }    {[4.1400e-03]}
+    {'r2'  }    {[4.2600e-01]}
     {'A'   }    {[9.3000e+09]}
     {'M'   }    {[6.4000e-04]}
-    {'n'   }    {[    3.1000]}
+    {'n'   }    {[3.1000e+00]}
 
 </pre>
 <h2 id="4">Ex(1): Use deterministic, ordinary differential equations (ODEs)</h2>
@@ -295,23 +289,20 @@ Model Parameters:
     Model_ODE.Solutions = Model_ODE.solve;
 
     <span class="comment">% Plot ODE solutions:</span>
-    Model_ODE.plotODE(Model_ODE.species, Model_ODE.tSpan,<span class="keyword">...</span>
-        {<span class="string">'linewidth'</span>,4}, Title=<span class="string">'Bursting Gene'</span>, TitleFontSize=32,<span class="keyword">...</span>
-        AxisLabelSize=24, TickLabelSize=24,<span class="keyword">...</span>
-        LegendFontSize=15, LegendLocation=<span class="string">'southeast'</span>,<span class="keyword">...</span>
+    Model_ODE.plotODE(speciesNames=Model_ODE.species,<span class="keyword">...</span>
+        timeVec=Model_ODE.tSpan, lineProps={<span class="string">'linewidth'</span>,4},<span class="keyword">...</span>
+        Title=<span class="string">'Busting Gene'</span>, TitleFontSize=32, AxisLabelSize=24,<span class="keyword">...</span>
+        TickLabelSize=24, LegendFontSize=15, LegendLocation=<span class="string">'southeast'</span>,<span class="keyword">...</span>
         XLabel=<span class="string">'Time'</span>, YLabel=<span class="string">'Molecule Count'</span>)
-</pre>
-<img vspace="5" hspace="5" src="example_2_SolveSSITModels_ODE_01.png" alt=""> <h2 id="6">Make a movie of the ODE solution being plotted:</h2>
-<p>makeODEmovie(Model_ODEsoln, Model_ODE.species, Model_ODE.tSpan, ... 'Model_ODE.mp4');</p>
-<pre class="codeinput">
+
 <span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
 </pre>
-<h2 id="7">Ex(2): Use deterministic, ordinary differential equations (ODEs)</h2>
+<img vspace="5" hspace="5" src="example_2_SolveSSITModels_ODE_01.png" alt=""> <h2 id="6">Ex(2): Use deterministic, ordinary differential equations (ODEs)</h2>
 <p>to average the time evolution of state space probabilities for the time-varying STL1 yeast model from example_1_CreateSSITModels</p>
 <pre class="codeinput">
 <span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
 </pre>
-<h2 id="8">STL1 Model:</h2>
+<h2 id="7">STL1 Model:</h2>
 <p>Create a copy of the time-varying STL1 yeast model for ODEs:</p>
 <pre class="codeinput">    STL1_ODE = STL1;
 
@@ -328,23 +319,21 @@ Model Parameters:
     STL1_ODE.Solutions = STL1_ODE.solve;
 
     <span class="comment">% Plot ODE solutions:</span>
-    STL1_ODE.plotODE(STL1_ODE.species, STL1_ODE.tSpan,<span class="keyword">...</span>
-        {<span class="string">'linewidth'</span>,4}, Title=<span class="string">'STL1'</span>, TitleFontSize=32,<span class="keyword">...</span>
+    STL1_ODE.plotODE(speciesNames=STL1_ODE.species,<span class="keyword">...</span>
+        timeVec=STL1_ODE.tSpan, lineProps={<span class="string">'linewidth'</span>,4},<span class="keyword">...</span>
+        Title=<span class="string">'STL1'</span>, TitleFontSize=32,<span class="keyword">...</span>
         AxisLabelSize=24, TickLabelSize=24,<span class="keyword">...</span>
         LegendFontSize=15, LegendLocation=<span class="string">'northwest'</span>,<span class="keyword">...</span>
         XLabel=<span class="string">'Time'</span>, YLabel=<span class="string">'Molecule Count'</span>)
-</pre>
-<img vspace="5" hspace="5" src="example_2_SolveSSITModels_ODE_02.png" alt=""> <h2 id="9">Make a movie of the ODE solution being plotted:</h2>
-<p>makeODEmovie(STL1_ODEsoln, STL1_ODE.species, STL1_ODE.tSpan, ... 'STL1_ODE.mp4');</p>
-<pre class="codeinput">
+
 <span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
 </pre>
-<h2 id="10">Ex(3): Use deterministic, ordinary differential equations (ODEs)</h2>
+<img vspace="5" hspace="5" src="example_2_SolveSSITModels_ODE_02.png" alt=""> <h2 id="8">Ex(3): Use deterministic, ordinary differential equations (ODEs)</h2>
 <p>to average the time evolution of state space probabilities for the 4-state time-varying STL1 yeast model from example_1_CreateSSITModels</p>
 <pre class="codeinput">
 <span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
 </pre>
-<h2 id="11">4-state STL1 Model:</h2>
+<h2 id="9">4-state STL1 Model:</h2>
 <p>Create a copy of the time-varying STL1 yeast model for ODEs:</p>
 <pre class="codeinput">    STL1_4state_ODE = STL1_4state;
 
@@ -365,22 +354,26 @@ Model Parameters:
     STL1_4state_ODE.Solutions = STL1_4state_ODE.solve;
 
     <span class="comment">% Plot ODE solutions for mRNA:</span>
-    STL1_4state_ODE.plotODE(STL1_4state_ODE.species(5),<span class="keyword">...</span>
-        STL1_4state_ODE.tSpan, {<span class="string">'linewidth'</span>,4}, TitleFontSize=26,<span class="keyword">...</span>
-        Title=<span class="string">'4-state STL1 (mRNA)'</span>, AxisLabelSize=20, TickLabelSize=20,<span class="keyword">...</span>
-        LegendFontSize=20, LegendLocation=<span class="string">'east'</span>,<span class="keyword">...</span>
-        Colors=[0.23,0.67,0.20], XLabel=<span class="string">'Time'</span>, YLabel=<span class="string">'Molecule Count'</span>)
+    STL1_4state_ODE.plotODE(speciesNames=STL1_4state_ODE.species(5),<span class="keyword">...</span>
+        timeVec=STL1_4state_ODE.tSpan, lineProps={<span class="string">'linewidth'</span>,4},<span class="keyword">...</span>
+        TitleFontSize=26, Title=<span class="string">'4-state STL1 (mRNA)'</span>,<span class="keyword">...</span>
+        AxisLabelSize=20, TickLabelSize=20, LegendFontSize=20,<span class="keyword">...</span>
+        LegendLocation=<span class="string">'east'</span>, Colors=[0.23,0.67,0.20],<span class="keyword">...</span>
+        XLabel=<span class="string">'Time'</span>, YLabel=<span class="string">'Molecule Count'</span>)
 
     <span class="comment">% Plot ODE solutions for the four gene states:</span>
-    STL1_4state_ODE.plotODE(STL1_4state_ODE.species(1:4),<span class="keyword">...</span>
-        STL1_4state_ODE.tSpan, {<span class="string">'linewidth'</span>,4}, TitleFontSize=26,<span class="keyword">...</span>
-        Title=<span class="string">'4-state STL1 (gene states)'</span>, AxisLabelSize=20,<span class="keyword">...</span>
-        TickLabelSize=20, LegendFontSize=20, LegendLocation=<span class="string">'east'</span>,<span class="keyword">...</span>
-        XLabel=<span class="string">'Time'</span>, YLabel=<span class="string">'Molecule Count'</span>)
+    STL1_4state_ODE.plotODE(speciesNames=STL1_4state_ODE.species(1:4),<span class="keyword">...</span>
+        timeVec=STL1_4state_ODE.tSpan, lineProps={<span class="string">'linewidth'</span>,4},<span class="keyword">...</span>
+        TitleFontSize=26, Title=<span class="string">'4-state STL1 (gene states)'</span>,<span class="keyword">...</span>
+        AxisLabelSize=20, TickLabelSize=20, LegendFontSize=20,<span class="keyword">...</span>
+        LegendLocation=<span class="string">'east'</span>, XLabel=<span class="string">'Time'</span>, YLabel=<span class="string">'Molecule Count'</span>,<span class="keyword">...</span>
+        makeMovie=true, videoFileName=<span class="string">'STL1_4state_ODE.mp4'</span>)
 </pre>
-<img vspace="5" hspace="5" src="example_2_SolveSSITModels_ODE_03.png" alt=""> <img vspace="5" hspace="5" src="example_2_SolveSSITModels_ODE_04.png" alt=""> <h2 id="12">Make a movie of the ODE solution being plotted:</h2>
-<p>makeODEmovie(STL1_4state_ODEsoln, STL1_4state_ODE.species, ... STL1_4state_ODE.tSpan, 'STL1_4state_ODE.mp4');</p>
-<h2 id="13">Save ODE models &amp; solutions</h2>
+<pre class="codeoutput">Video saved to ode_trajectories.mp4
+</pre>
+<img vspace="5" hspace="5" src="example_2_SolveSSITModels_ODE_03.png" alt=""> <img vspace="5" hspace="5" src="example_2_SolveSSITModels_ODE_04.png" alt=""> <img vspace="5" hspace="5" src="example_2_SolveSSITModels_ODE_05.png" alt=""> <h2 id="10">Make a movie of the ODE solution being plotted:</h2>
+<p>makeODEmovie(STL1_4state_ODE.Solutions, STL1_4state_ODE.species, ... STL1_4state_ODE.tSpan, 'STL1_4state_ODE.mp4');</p>
+<h2 id="11">Save ODE models &amp; solutions</h2>
 <pre class="codeinput">saveNames = unique({<span class="string">'Model_ODE'</span>
     <span class="string">'STL1_ODE'</span>
     <span class="string">'STL1_4state_ODE'</span>
@@ -446,15 +439,11 @@ STL1_4state.tSpan = linspace(0,50,101);
     Model_ODE.Solutions = Model_ODE.solve; 
 
     % Plot ODE solutions:
-    Model_ODE.plotODE(Model_ODE.species, Model_ODE.tSpan,...
-        {'linewidth',4}, Title='Bursting Gene', TitleFontSize=32,...
-        AxisLabelSize=24, TickLabelSize=24,...
-        LegendFontSize=15, LegendLocation='southeast',...
+    Model_ODE.plotODE(speciesNames=Model_ODE.species,...
+        timeVec=Model_ODE.tSpan, lineProps={'linewidth',4},...
+        Title='Busting Gene', TitleFontSize=32, AxisLabelSize=24,...
+        TickLabelSize=24, LegendFontSize=15, LegendLocation='southeast',...
         XLabel='Time', YLabel='Molecule Count')
-
-    %% Make a movie of the ODE solution being plotted:
-    % makeODEmovie(Model_ODEsoln, Model_ODE.species, Model_ODE.tSpan, ...
-    %             'Model_ODE.mp4');
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(2): Use deterministic, ordinary differential equations (ODEs) 
@@ -479,15 +468,12 @@ STL1_4state.tSpan = linspace(0,50,101);
     STL1_ODE.Solutions = STL1_ODE.solve; 
 
     % Plot ODE solutions:
-    STL1_ODE.plotODE(STL1_ODE.species, STL1_ODE.tSpan,...
-        {'linewidth',4}, Title='STL1', TitleFontSize=32,...
+    STL1_ODE.plotODE(speciesNames=STL1_ODE.species,...
+        timeVec=STL1_ODE.tSpan, lineProps={'linewidth',4},...
+        Title='STL1', TitleFontSize=32,...
         AxisLabelSize=24, TickLabelSize=24,...
         LegendFontSize=15, LegendLocation='northwest',...
         XLabel='Time', YLabel='Molecule Count')
-
-    %% Make a movie of the ODE solution being plotted:
-    % makeODEmovie(STL1_ODEsoln, STL1_ODE.species, STL1_ODE.tSpan, ...
-    %             'STL1_ODE.mp4');
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(3): Use deterministic, ordinary differential equations (ODEs) 
@@ -516,21 +502,23 @@ STL1_4state.tSpan = linspace(0,50,101);
     STL1_4state_ODE.Solutions = STL1_4state_ODE.solve; 
 
     % Plot ODE solutions for mRNA:
-    STL1_4state_ODE.plotODE(STL1_4state_ODE.species(5),...
-        STL1_4state_ODE.tSpan, {'linewidth',4}, TitleFontSize=26,...
-        Title='4-state STL1 (mRNA)', AxisLabelSize=20, TickLabelSize=20,...
-        LegendFontSize=20, LegendLocation='east',...
-        Colors=[0.23,0.67,0.20], XLabel='Time', YLabel='Molecule Count')
-
-    % Plot ODE solutions for the four gene states:
-    STL1_4state_ODE.plotODE(STL1_4state_ODE.species(1:4),...
-        STL1_4state_ODE.tSpan, {'linewidth',4}, TitleFontSize=26,...
-        Title='4-state STL1 (gene states)', AxisLabelSize=20,...
-        TickLabelSize=20, LegendFontSize=20, LegendLocation='east',...
+    STL1_4state_ODE.plotODE(speciesNames=STL1_4state_ODE.species(5),...
+        timeVec=STL1_4state_ODE.tSpan, lineProps={'linewidth',4},...
+        TitleFontSize=26, Title='4-state STL1 (mRNA)',...
+        AxisLabelSize=20, TickLabelSize=20, LegendFontSize=20,...
+        LegendLocation='east', Colors=[0.23,0.67,0.20],...
         XLabel='Time', YLabel='Molecule Count')
 
+    % Plot ODE solutions for the four gene states:
+    STL1_4state_ODE.plotODE(speciesNames=STL1_4state_ODE.species(1:4),...
+        timeVec=STL1_4state_ODE.tSpan, lineProps={'linewidth',4},...
+        TitleFontSize=26, Title='4-state STL1 (gene states)',...
+        AxisLabelSize=20, TickLabelSize=20, LegendFontSize=20,...
+        LegendLocation='east', XLabel='Time', YLabel='Molecule Count',...
+        makeMovie=true, videoFileName='STL1_4state_ODE.mp4')
+
     %% Make a movie of the ODE solution being plotted:
-    % makeODEmovie(STL1_4state_ODEsoln, STL1_4state_ODE.species, ...
+    % makeODEmovie(STL1_4state_ODE.Solutions, STL1_4state_ODE.species, ...
     %              STL1_4state_ODE.tSpan, 'STL1_4state_ODE.mp4');
 
 

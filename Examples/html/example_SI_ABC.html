@@ -1,0 +1,442 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<META http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      -->
+<title>example_SI_ABC</title>
+<meta name="generator" content="MATLAB 25.2">
+<link rel="schema.DC" href="http://purl.org/dc/elements/1.1/">
+<meta name="DC.date" content="2026-03-03">
+<meta name="DC.source" content="example_SI_ABC.m">
+<style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; }
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+span.typesection { color:#A0522D }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style>
+</head>
+<body>
+<div class="content">
+<h2>Contents</h2>
+<div>
+<ul>
+<li>
+<a href="#1">SSIT/Examples/example_SI_ABC.m</a>
+</li>
+<li>
+<a href="#2">Approximate Bayesian Computation (ABC)</a>
+</li>
+<li>
+<a href="#3">Set SSA options:</a>
+</li>
+<li>
+<a href="#4">Associate scRNA-seq data for gene TSC22D3:</a>
+</li>
+<li>
+<a href="#5">Set up a prior over parameters (logPriorLoss)</a>
+</li>
+<li>
+<a href="#6">Set ABC / MCMC options</a>
+</li>
+<li>
+<a href="#7">Run ABC search</a>
+</li>
+<li>
+<a href="#8">Inspect ABC results:</a>
+</li>
+<li>
+<a href="#9">Compare initial vs. final (ABC) parameter losses</a>
+</li>
+<li>
+<a href="#10">(Experimental data vs. data simulated by the SSA):</a>
+</li>
+<li>
+<a href="#11">Compare ABC posterior sample to MLE</a>
+</li>
+</ul>
+</div>
+<h2 id="1">SSIT/Examples/example_SI_ABC.m</h2>
+<pre class="codeinput">
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<h2 id="2">Approximate Bayesian Computation (ABC)</h2>
+<pre>in the SSIT using `runABCsearch'</pre>
+<p>This example: 1. Loads a template model for scRNA-seq genes with SSA solution scheme. 2. Associates the template model with scRNA-seq data for gene TSC22D3. 3. Defines a prior over parameters. 4. Runs ABC via Metropolis&ndash;Hastings using 'cdf_one_norm' loss. 5. Visualizes the ABC results.</p>
+<pre class="codeinput">
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<h2 id="3">Set SSA options:</h2>
+<p>Make copy of scRNAseq template model:</p>
+<pre class="codeinput">scRNAseq = Model_Template;
+
+<span class="comment">%Set solution scheme to SSA:</span>
+scRNAseq.solutionScheme = <span class="string">'SSA'</span>;
+
+<span class="comment">% Set number of simulations performed per experiment (small # for demo):</span>
+scRNAseq.ssaOptions.nSimsPerExpt=100;
+
+<span class="comment">% Equilibrate before starting (burn-in):</span>
+scRNAseq.tSpan = [-100,scRNAseq.tSpan];
+
+<span class="comment">% Run iterations in parallel with multiple cores:</span>
+scRNAseq.ssaOptions.useParallel = true;
+</pre>
+<pre class="codeoutput error">Unrecognized function or variable 'Model_Template'.
+
+Error in example_SI_ABC (line 17)
+scRNAseq = Model_Template;
+           ^^^^^^^^^^^^^^</pre>
+<h2 id="4">Associate scRNA-seq data for gene TSC22D3:</h2>
+<pre class="codeinput">scRNAseq = scRNAseq.loadData(<span class="string">'data/Raw_DEX_UpRegulatedGenes_ForSSIT.csv'</span>,<span class="keyword">...</span>
+                            {<span class="string">'rna'</span>,<span class="string">'TSC22D3'</span>});
+
+<span class="comment">% Choose which parameters to fit:</span>
+fitpars = 1:9;
+scRNAseq.fittingOptions.modelVarsToFit = [fitpars];
+</pre>
+<h2 id="5">Set up a prior over parameters (logPriorLoss)</h2>
+<p>logPriorLoss should return a <b>loss</b> (positive penalty); smaller is better. A convenient choice is a quadratic penalty in log10-parameter space, corresponding to a log-normal prior.</p>
+<pre class="codeinput">theta0 = cell2mat(scRNAseq.parameters([fitpars],2));
+log10_mu = log10(theta0(:));
+log10_sigma = 2 * ones(size(log10_mu));  <span class="comment">% std dev in log10-space</span>
+
+<span class="comment">% Define prior "loss" (default, @(x)allFitOptions.obj(exp(x))):</span>
+logPriorLoss = [];
+</pre>
+<h2 id="6">Set ABC / MCMC options</h2>
+<p>runABCsearch passes 'fitOptions' to maximizeLikelihood with the 'MetropolisHastings' algorithm. Tune these depending on your problem size.</p>
+<pre class="codeinput">fitOptions = struct();
+fitOptions.numberOfSamples       = 500;          <span class="comment">% Total MH iterations</span>
+fitOptions.burnIn                = 10;            <span class="comment">% Discard burn-in samples</span>
+fitOptions.thin                  = 1;            <span class="comment">% Keep every nth sample</span>
+proposalWidthScale               = 0.5;           <span class="comment">% Proposal scale</span>
+
+<span class="comment">% Proposal distribution:</span>
+fitOptions.proposalDistribution  = @(x)x+proposalWidthScale*randn(size(x));
+
+<span class="comment">% Log prior:</span>
+fitOptions.logPrior = @(z) -sum((z-log10_mu).^2./(2*log10_sigma.^2));
+
+<span class="comment">% Initial parameter guess (optional, default: current Model.parameters):</span>
+<span class="comment">%parGuess = [];</span>
+<span class="comment">% In this case, parGuess = []; is the same as the default:</span>
+parGuess = cell2mat(scRNAseq.parameters((fitpars),2));
+
+<span class="comment">% Choose loss function for ABC (default: 'cdf_one_norm'):</span>
+lossFunction = <span class="string">'cdf_one_norm'</span>;
+
+<span class="comment">% Enforce independence by downsampling SSA trajectories:</span>
+enforceIndependence = true;
+</pre>
+<h2 id="7">Run ABC search</h2>
+<p>This will: * repeatedly simulate SSA trajectories, * compute a CDF-based loss against the data, * add the prior penalty, and * perform MH sampling to approximate the posterior.</p>
+<p>Outputs: pars - "best" (minimum-loss) parameter set found minimumLossFunction - value of the loss at that point Results - MH/ABC diagnostics and chains ModelABC - model updated with 'pars'</p>
+<pre class="codeinput">
+<span class="comment">% Compile and store the given reaction propensities:</span>
+scRNAseq = scRNAseq.formPropensitiesGeneral(<span class="string">'scRNAseq'</span>);
+
+[parsABC, minimumLoss, ResultsABC, scRNAseq] = <span class="keyword">...</span>
+     scRNAseq.runABCsearch(parGuess, lossFunction, logPriorLoss,<span class="keyword">...</span>
+                           fitOptions, enforceIndependence);
+
+fprintf(<span class="string">'ABC completed.\n'</span>);
+fprintf(<span class="string">'Minimum loss value: %g\n'</span>, minimumLoss);
+disp(<span class="string">'Best-fit parameters (ABC):'</span>);
+disp(parsABC(:).');
+</pre>
+<h2 id="8">Inspect ABC results:</h2>
+<p>The 'ResultsABC' struct is returned by maximizeLikelihood with the 'MetropolisHastings' algorithm. ResultsABC.mhSamples - MCMC chain of parameter samples ResultsABC.mhValue - corresponding loss values ResultsABC.mhAcceptance - MH acceptance fraction Below we show a simple marginal histogram for each fitted parameter.</p>
+<pre class="codeinput">
+<span class="keyword">if</span> isfield(ResultsABC, <span class="string">'mhSamples'</span>)
+    parChain = ResultsABC.mhSamples;   <span class="comment">% size: [numberOfSamples x nPars]</span>
+    nPars    = size(parChain, 2);
+
+    figure;
+    <span class="keyword">for</span> k = 1:nPars
+        subplot(ceil(nPars/2), 2, k);
+        histogram(parChain(:,k), 40, <span class="string">'Normalization'</span>, <span class="string">'pdf'</span>);
+        hold <span class="string">on</span>;
+        xline(parGuess(k), <span class="string">'b'</span>, <span class="string">'LineWidth'</span>, 1.5);
+        xline(parsABC(k), <span class="string">'r'</span>, <span class="string">'LineWidth'</span>, 1.5);
+        xline(cell2mat(Model_TSC22D3.parameters(k,2)),<span class="string">'g'</span>,<span class="string">'LineWidth'</span>,1.5);
+        title(sprintf(<span class="string">'Parameter %d'</span>, k));
+        xlabel(<span class="string">'\theta_k'</span>);
+        ylabel(<span class="string">'Posterior density (approx.)'</span>);
+    <span class="keyword">end</span>
+    sgtitle(<span class="string">'ABC posterior marginals (approximate)'</span>);
+<span class="keyword">else</span>
+    warning(<span class="string">'ResultsABC.mhSamples not found.'</span>);
+<span class="keyword">end</span>
+</pre>
+<h2 id="9">Compare initial vs. final (ABC) parameter losses</h2>
+<h2 id="10">(Experimental data vs. data simulated by the SSA):</h2>
+<p>Minimum loss from ABC run:</p>
+<pre class="codeinput">minLoss = minimumLoss;
+nTimes  = sum(scRNAseq.fittingOptions.timesToFit);
+<span class="comment">% Set the number of species being fitting (in this case, only mRNA):</span>
+nSpecies = 1;
+<span class="comment">% Replicate groups / dose groups etc., if applicable:</span>
+nConds   = 1;
+
+avgLossPerCDF = minLoss / (nTimes * nSpecies * nConds);
+fprintf(<span class="string">'Average CDF L1 discrepancy per time/species: %.4f\n'</span>,avgLossPerCDF);
+
+L_init = scRNAseq.computeLossFunctionSSA(lossFunction,<span class="keyword">...</span>
+                                                theta0, enforceIndependence);
+L_min  = minimumLoss;
+
+fprintf(<span class="string">'Initial loss: %.3f,  Final (min) loss: %.3f\n'</span>, L_init, L_min);
+fprintf(<span class="string">'Relative improvement: %.1f%%\n'</span>, 100 * (L_init - L_min)/L_init);
+</pre>
+<h2 id="11">Compare ABC posterior sample to MLE</h2>
+<p>TODO: Overlay parameter values and compute predictive distributions.</p>
+<pre class="codeinput">
+<span class="comment">%load('seqModels/Model_TSC22D3.mat')</span>
+
+theta_TSC22D3 = cell2mat(Model_TSC22D3.parameters(1:9,2));
+
+L_MLE = scRNAseq.computeLossFunctionSSA(lossFunction,<span class="keyword">...</span>
+                                        theta_TSC22D3, enforceIndependence);
+L_min  = minimumLoss;
+
+fprintf(<span class="string">'MLE loss: %.3f,  Final (min) ABC loss: %.3f\n'</span>, L_MLE, L_min);
+fprintf(<span class="string">'Relative improvement: %.1f%%\n'</span>, 100 * (L_MLE - L_min)/L_MLE);
+</pre>
+<p class="footer">
+<br>
+<a href="https://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2025b</a>
+<br>
+</p>
+</div>
+<!--
+##### SOURCE BEGIN #####
+%% SSIT/Examples/example_SI_ABC.m
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Approximate Bayesian Computation (ABC)
+%  in the SSIT using `runABCsearch'
+%
+% This example:
+%   1. Loads a template model for scRNA-seq genes with SSA solution scheme.
+%   2. Associates the template model with scRNA-seq data for gene TSC22D3.
+%   3. Defines a prior over parameters.
+%   4. Runs ABC via Metropolis–Hastings using 'cdf_one_norm' loss.
+%   5. Visualizes the ABC results.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% Set SSA options:
+% Make copy of scRNAseq template model:
+scRNAseq = Model_Template;
+
+%Set solution scheme to SSA:
+scRNAseq.solutionScheme = 'SSA';
+
+% Set number of simulations performed per experiment (small # for demo):
+scRNAseq.ssaOptions.nSimsPerExpt=100;
+    
+% Equilibrate before starting (burn-in):
+scRNAseq.tSpan = [-100,scRNAseq.tSpan];
+
+% Run iterations in parallel with multiple cores:
+scRNAseq.ssaOptions.useParallel = true;
+
+%% Associate scRNA-seq data for gene TSC22D3:
+scRNAseq = scRNAseq.loadData('data/Raw_DEX_UpRegulatedGenes_ForSSIT.csv',...
+                            {'rna','TSC22D3'});
+
+% Choose which parameters to fit:
+fitpars = 1:9;
+scRNAseq.fittingOptions.modelVarsToFit = [fitpars]; 
+
+%% Set up a prior over parameters (logPriorLoss)
+% logPriorLoss should return a *loss* (positive penalty); smaller is better.
+% A convenient choice is a quadratic penalty in log10-parameter space,
+% corresponding to a log-normal prior.
+
+theta0 = cell2mat(scRNAseq.parameters([fitpars],2)); 
+log10_mu = log10(theta0(:));
+log10_sigma = 2 * ones(size(log10_mu));  % std dev in log10-space  
+
+% Define prior "loss" (default, @(x)allFitOptions.obj(exp(x))):
+logPriorLoss = [];
+
+%% Set ABC / MCMC options
+% runABCsearch passes 'fitOptions' to maximizeLikelihood with the
+% 'MetropolisHastings' algorithm. Tune these depending on your problem size.
+
+fitOptions = struct();
+fitOptions.numberOfSamples       = 500;          % Total MH iterations 
+fitOptions.burnIn                = 10;            % Discard burn-in samples
+fitOptions.thin                  = 1;            % Keep every nth sample
+proposalWidthScale               = 0.5;           % Proposal scale
+
+% Proposal distribution:
+fitOptions.proposalDistribution  = @(x)x+proposalWidthScale*randn(size(x));
+
+% Log prior:
+fitOptions.logPrior = @(z) -sum((z-log10_mu).^2./(2*log10_sigma.^2));
+
+% Initial parameter guess (optional, default: current Model.parameters):
+%parGuess = [];
+% In this case, parGuess = []; is the same as the default:
+parGuess = cell2mat(scRNAseq.parameters((fitpars),2));
+
+% Choose loss function for ABC (default: 'cdf_one_norm'):
+lossFunction = 'cdf_one_norm';
+
+% Enforce independence by downsampling SSA trajectories:
+enforceIndependence = true;
+
+%% Run ABC search
+% This will:
+%   * repeatedly simulate SSA trajectories,
+%   * compute a CDF-based loss against the data,
+%   * add the prior penalty, and
+%   * perform MH sampling to approximate the posterior.
+%
+% Outputs:
+%   pars                    - "best" (minimum-loss) parameter set found
+%   minimumLossFunction     - value of the loss at that point
+%   Results                 - MH/ABC diagnostics and chains
+%   ModelABC                - model updated with 'pars'
+
+% Compile and store the given reaction propensities:
+scRNAseq = scRNAseq.formPropensitiesGeneral('scRNAseq');
+
+[parsABC, minimumLoss, ResultsABC, scRNAseq] = ...
+     scRNAseq.runABCsearch(parGuess, lossFunction, logPriorLoss,...
+                           fitOptions, enforceIndependence);
+
+fprintf('ABC completed.\n');
+fprintf('Minimum loss value: %g\n', minimumLoss);
+disp('Best-fit parameters (ABC):');
+disp(parsABC(:).');
+
+%% Inspect ABC results: 
+% The 'ResultsABC' struct is returned by maximizeLikelihood with the
+% 'MetropolisHastings' algorithm. 
+%       ResultsABC.mhSamples        - MCMC chain of parameter samples
+%       ResultsABC.mhValue          - corresponding loss values
+%       ResultsABC.mhAcceptance     - MH acceptance fraction
+% Below we show a simple marginal histogram for each fitted parameter.
+
+if isfield(ResultsABC, 'mhSamples')
+    parChain = ResultsABC.mhSamples;   % size: [numberOfSamples x nPars] 
+    nPars    = size(parChain, 2);
+
+    figure;
+    for k = 1:nPars
+        subplot(ceil(nPars/2), 2, k);
+        histogram(parChain(:,k), 40, 'Normalization', 'pdf');
+        hold on;        
+        xline(parGuess(k), 'b', 'LineWidth', 1.5);
+        xline(parsABC(k), 'r', 'LineWidth', 1.5);
+        xline(cell2mat(Model_TSC22D3.parameters(k,2)),'g','LineWidth',1.5);
+        title(sprintf('Parameter %d', k));
+        xlabel('\theta_k');
+        ylabel('Posterior density (approx.)');
+    end
+    sgtitle('ABC posterior marginals (approximate)');
+else
+    warning('ResultsABC.mhSamples not found.');
+end
+
+%% Compare initial vs. final (ABC) parameter losses 
+%% (Experimental data vs. data simulated by the SSA):
+% Minimum loss from ABC run:
+minLoss = minimumLoss;  
+nTimes  = sum(scRNAseq.fittingOptions.timesToFit);
+% Set the number of species being fitting (in this case, only mRNA):
+nSpecies = 1;  
+% Replicate groups / dose groups etc., if applicable:
+nConds   = 1; 
+
+avgLossPerCDF = minLoss / (nTimes * nSpecies * nConds);
+fprintf('Average CDF L1 discrepancy per time/species: %.4f\n',avgLossPerCDF);
+
+L_init = scRNAseq.computeLossFunctionSSA(lossFunction,...
+                                                theta0, enforceIndependence);
+L_min  = minimumLoss;
+
+fprintf('Initial loss: %.3f,  Final (min) loss: %.3f\n', L_init, L_min);
+fprintf('Relative improvement: %.1f%%\n', 100 * (L_init - L_min)/L_init);
+
+
+%% Compare ABC posterior sample to MLE
+% TODO: Overlay parameter values and compute predictive distributions.
+%load('seqModels/Model_TSC22D3.mat')
+
+theta_TSC22D3 = cell2mat(Model_TSC22D3.parameters(1:9,2));
+
+L_MLE = scRNAseq.computeLossFunctionSSA(lossFunction,...
+                                        theta_TSC22D3, enforceIndependence);
+L_min  = minimumLoss;
+
+fprintf('MLE loss: %.3f,  Final (min) ABC loss: %.3f\n', L_MLE, L_min);
+fprintf('Relative improvement: %.1f%%\n', 100 * (L_MLE - L_min)/L_MLE);
+
+
+
+##### SOURCE END #####
+-->
+</body>
+</html>

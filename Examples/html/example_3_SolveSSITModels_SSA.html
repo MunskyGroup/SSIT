@@ -9,7 +9,7 @@ To make changes, update the MATLAB code and republish this document.
 <title>example_3_SolveSSITModels_SSA</title>
 <meta name="generator" content="MATLAB 25.2">
 <link rel="schema.DC" href="http://purl.org/dc/elements/1.1/">
-<meta name="DC.date" content="2026-02-20">
+<meta name="DC.date" content="2026-03-03">
 <meta name="DC.source" content="example_3_SolveSSITModels_SSA.m">
 <style type="text/css">
 html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
@@ -176,10 +176,10 @@ Reactions:
      w4: dr * mRNA
  
 Model Parameters:
-    {'kon' }    {[0.2000]}
-    {'koff'}    {[0.2000]}
-    {'kr'  }    {[    10]}
-    {'dr'  }    {[     5]}
+    {'kon' }    {[2.0000e-01]}
+    {'koff'}    {[2.0000e-01]}
+    {'kr'  }    {[        10]}
+    {'dr'  }    {[         5]}
 
 Species:
      offGene; IC = 1;  discrete stochastic
@@ -204,14 +204,14 @@ Input Signals:
      Hog1(t) = (a0+a1*exp(-r1*t)*(1-exp(-r2*t))*(t&gt;0))
  
 Model Parameters:
-    {'kon' }    {[0.2000]}
-    {'koff'}    {[0.2000]}
-    {'kr'  }    {[    10]}
-    {'dr'  }    {[     5]}
-    {'a0'  }    {[     5]}
-    {'a1'  }    {[    10]}
-    {'r1'  }    {[0.0040]}
-    {'r2'  }    {[0.0100]}
+    {'kon' }    {[2.0000e-01]}
+    {'koff'}    {[2.0000e-01]}
+    {'kr'  }    {[        10]}
+    {'dr'  }    {[         5]}
+    {'a0'  }    {[         5]}
+    {'a1'  }    {[        10]}
+    {'r1'  }    {[4.0000e-03]}
+    {'r2'  }    {[1.0000e-02]}
 
 Species:
      g1; IC = 1;  discrete stochastic
@@ -259,24 +259,24 @@ Input Signals:
      Hog1(t) = A*(((1-(exp(1)^(-r1*(t-t0))))*exp(1)^(-r2*(t-t0)))/(1+((1-(exp(1)^(-r1*(t-t0))))*exp(1)^(-r2*(t-t0)))/M))^n*(t&gt;t0)
  
 Model Parameters:
-    {'t0'  }    {[    3.1700]}
+    {'t0'  }    {[3.1700e+00]}
     {'k12' }    {[        78]}
     {'k21o'}    {[    192000]}
     {'k21i'}    {[      3200]}
-    {'k23' }    {[    0.4020]}
-    {'k34' }    {[    7.8000]}
-    {'k32' }    {[    1.6200]}
-    {'k43' }    {[    2.2800]}
-    {'dr'  }    {[    0.2940]}
-    {'kr1' }    {[    0.0468]}
-    {'kr2' }    {[    0.7200]}
-    {'kr3' }    {[   59.4000]}
-    {'kr4' }    {[    3.2400]}
-    {'r1'  }    {[    0.0041]}
-    {'r2'  }    {[    0.4260]}
+    {'k23' }    {[4.0200e-01]}
+    {'k34' }    {[7.8000e+00]}
+    {'k32' }    {[1.6200e+00]}
+    {'k43' }    {[2.2800e+00]}
+    {'dr'  }    {[2.9400e-01]}
+    {'kr1' }    {[4.6800e-02]}
+    {'kr2' }    {[7.2000e-01]}
+    {'kr3' }    {[5.9400e+01]}
+    {'kr4' }    {[3.2400e+00]}
+    {'r1'  }    {[4.1400e-03]}
+    {'r2'  }    {[4.2600e-01]}
     {'A'   }    {[9.3000e+09]}
     {'M'   }    {[6.4000e-04]}
-    {'n'   }    {[    3.1000]}
+    {'n'   }    {[3.1000e+00]}
 
 </pre>
 <h2 id="4">Ex(1): Use Gillepsie's Stochastic Simulation Algorithm (SSA)</h2>
@@ -314,7 +314,8 @@ Model Parameters:
     Model_SSA.Solutions = Model_SSA.solve;
 
     <span class="comment">% Plot SSA trajectories and means:</span>
-    Model_SSA.plotSSA(<span class="string">'all'</span>, 10, Model_SSA.species, {<span class="string">'linewidth'</span>,4}, <span class="keyword">...</span>
+    Model_SSA.plotSSA(speciesIdx=<span class="string">'all'</span>, numTraj=10,<span class="keyword">...</span>
+        speciesNames=Model_SSA.species, lineProps={<span class="string">'linewidth'</span>,4}, <span class="keyword">...</span>
         Title=<span class="string">"Bursting Gene"</span>, MeanOnly=true, TitleFontSize=32,<span class="keyword">...</span>
         AxisLabelSize=24, TickLabelSize=24, LegendFontSize=20,<span class="keyword">...</span>
         LegendLocation=<span class="string">'east'</span>, XLabel=<span class="string">'Time'</span>, YLabel=<span class="string">'Molecule Count'</span>);
@@ -359,7 +360,8 @@ Model Parameters:
     STL1_SSA.Solutions = STL1_SSA.solve;
 
     <span class="comment">% Plot SSA trajectories and means:</span>
-    STL1_SSA.plotSSA(<span class="string">'all'</span>, 100, STL1_SSA.species, {<span class="string">'linewidth'</span>,4}, <span class="keyword">...</span>
+    STL1_SSA.plotSSA(speciesIdx=<span class="string">'all'</span>, numTraj=100,<span class="keyword">...</span>
+        speciesNames=STL1_SSA.species, lineProps={<span class="string">'linewidth'</span>,4},<span class="keyword">...</span>
         Title=<span class="string">"STL1"</span>, MeanOnly=true, TitleFontSize=32,<span class="keyword">...</span>
         AxisLabelSize=24, TickLabelSize=24,<span class="keyword">...</span>
         LegendFontSize=20, LegendLocation=<span class="string">'east'</span>,<span class="keyword">...</span>
@@ -405,22 +407,25 @@ Model Parameters:
     STL1_4state_SSA.Solutions = STL1_4state_SSA.solve;
 
     <span class="comment">% Plot SSA trajectories and means (mRNA):</span>
-    STL1_4state_SSA.plotSSA(<span class="string">'all'</span>, 100, STL1_4state_SSA.species(5),<span class="keyword">...</span>
-        {<span class="string">'linewidth'</span>,4}, Title=<span class="string">"4-state STL1 (mRNA)"</span>, MeanOnly=false,<span class="keyword">...</span>
+    STL1_4state_SSA.plotSSA(speciesIdx=<span class="string">'all'</span>, numTraj=100,<span class="keyword">...</span>
+        speciesNames=STL1_4state_SSA.species(5), MeanOnly=false,<span class="keyword">...</span>
+        lineProps={<span class="string">'linewidth'</span>,4}, Title=<span class="string">"4-state STL1 (mRNA)"</span>,<span class="keyword">...</span>
         TitleFontSize=26, AxisLabelSize=20, TickLabelSize=20,<span class="keyword">...</span>
         LegendFontSize=20, LegendLocation=<span class="string">'northeast'</span>, HistTime=20,<span class="keyword">...</span>
         XLabel=<span class="string">'Time'</span>, YLabel=<span class="string">'Molecule Count'</span>, Colors=[0.23,0.67,0.20]);
 
     <span class="comment">% Plot SSA trajectories and means (gene states):</span>
-    STL1_4state_SSA.plotSSA(<span class="string">'all'</span>, 100, STL1_4state_SSA.species(1:4),<span class="keyword">...</span>
-        {<span class="string">'linewidth'</span>,4}, Title=<span class="string">"4-state STL1 (gene states)"</span>,<span class="keyword">...</span>
+    STL1_4state_SSA.plotSSA(speciesIdx=<span class="string">'all'</span>, numTraj=100,<span class="keyword">...</span>
+        speciesNames=STL1_4state_SSA.species(1:4),<span class="keyword">...</span>
+        lineProps={<span class="string">'linewidth'</span>,4}, Title=<span class="string">"4-state STL1 (gene states)"</span>,<span class="keyword">...</span>
         MeanOnly=true, TitleFontSize=26, AxisLabelSize=20,<span class="keyword">...</span>
         TickLabelSize=20, LegendFontSize=20, LegendLocation=<span class="string">'east'</span>,<span class="keyword">...</span>
-        XLabel=<span class="string">'Time'</span>, YLabel=<span class="string">'Molecule Count'</span>);
+        XLabel=<span class="string">'Time'</span>, YLabel=<span class="string">'Molecule Count'</span>, makeMovie=true);
 </pre>
 <pre class="codeoutput">1020 SSA Runs Completed
+Video saved to ssa_trajectories.mp4
 </pre>
-<img vspace="5" hspace="5" src="example_3_SolveSSITModels_SSA_05.png" alt=""> <img vspace="5" hspace="5" src="example_3_SolveSSITModels_SSA_06.png" alt=""> <img vspace="5" hspace="5" src="example_3_SolveSSITModels_SSA_07.png" alt=""> <img vspace="5" hspace="5" src="example_3_SolveSSITModels_SSA_08.png" alt=""> <h2 id="14">Make a video of the SSA trajectories being plotted:</h2>
+<img vspace="5" hspace="5" src="example_3_SolveSSITModels_SSA_05.png" alt=""> <img vspace="5" hspace="5" src="example_3_SolveSSITModels_SSA_06.png" alt=""> <img vspace="5" hspace="5" src="example_3_SolveSSITModels_SSA_07.png" alt=""> <img vspace="5" hspace="5" src="example_3_SolveSSITModels_SSA_08.png" alt=""> <img vspace="5" hspace="5" src="example_3_SolveSSITModels_SSA_09.png" alt=""> <h2 id="14">Make a video of the SSA trajectories being plotted:</h2>
 <p>makeSSAvideo(STL1_4state_SSAsoln, 'all', 100, ... STL1_4state_SSA.species, 'STL1_SSA_video_4state')</p>
 <h2 id="15">Save SSA models &amp; solutions</h2>
 <pre class="codeinput">saveNames = unique({<span class="string">'Model_SSA'</span>
@@ -501,7 +506,8 @@ STL1_4state.tSpan = linspace(0,50,101);
     Model_SSA.Solutions = Model_SSA.solve;
     
     % Plot SSA trajectories and means:
-    Model_SSA.plotSSA('all', 10, Model_SSA.species, {'linewidth',4}, ...
+    Model_SSA.plotSSA(speciesIdx='all', numTraj=10,...
+        speciesNames=Model_SSA.species, lineProps={'linewidth',4}, ...
         Title="Bursting Gene", MeanOnly=true, TitleFontSize=32,...
         AxisLabelSize=24, TickLabelSize=24, LegendFontSize=20,...
         LegendLocation='east', XLabel='Time', YLabel='Molecule Count');
@@ -544,7 +550,8 @@ STL1_4state.tSpan = linspace(0,50,101);
     STL1_SSA.Solutions = STL1_SSA.solve;
             
     % Plot SSA trajectories and means:
-    STL1_SSA.plotSSA('all', 100, STL1_SSA.species, {'linewidth',4}, ...
+    STL1_SSA.plotSSA(speciesIdx='all', numTraj=100,...
+        speciesNames=STL1_SSA.species, lineProps={'linewidth',4},...
         Title="STL1", MeanOnly=true, TitleFontSize=32,...
         AxisLabelSize=24, TickLabelSize=24,...
         LegendFontSize=20, LegendLocation='east',...
@@ -588,18 +595,20 @@ STL1_4state.tSpan = linspace(0,50,101);
     STL1_4state_SSA.Solutions = STL1_4state_SSA.solve;
             
     % Plot SSA trajectories and means (mRNA):
-    STL1_4state_SSA.plotSSA('all', 100, STL1_4state_SSA.species(5),...
-        {'linewidth',4}, Title="4-state STL1 (mRNA)", MeanOnly=false,...
+    STL1_4state_SSA.plotSSA(speciesIdx='all', numTraj=100,...
+        speciesNames=STL1_4state_SSA.species(5), MeanOnly=false,...
+        lineProps={'linewidth',4}, Title="4-state STL1 (mRNA)",...
         TitleFontSize=26, AxisLabelSize=20, TickLabelSize=20,...
         LegendFontSize=20, LegendLocation='northeast', HistTime=20,...
         XLabel='Time', YLabel='Molecule Count', Colors=[0.23,0.67,0.20]);  
 
     % Plot SSA trajectories and means (gene states):
-    STL1_4state_SSA.plotSSA('all', 100, STL1_4state_SSA.species(1:4),...
-        {'linewidth',4}, Title="4-state STL1 (gene states)",...
+    STL1_4state_SSA.plotSSA(speciesIdx='all', numTraj=100,...
+        speciesNames=STL1_4state_SSA.species(1:4),...
+        lineProps={'linewidth',4}, Title="4-state STL1 (gene states)",...
         MeanOnly=true, TitleFontSize=26, AxisLabelSize=20,...
         TickLabelSize=20, LegendFontSize=20, LegendLocation='east',...
-        XLabel='Time', YLabel='Molecule Count'); 
+        XLabel='Time', YLabel='Molecule Count', makeMovie=true); 
 
     %% Make a video of the SSA trajectories being plotted:
     % makeSSAvideo(STL1_4state_SSAsoln, 'all', 100, ...
