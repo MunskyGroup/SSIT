@@ -51,17 +51,17 @@ imwrite(Amovie,map,gifFile,'gif', ...
 % imwrite(Amovie,map,gifFile,'gif', ...
 %     'LoopCount',inf, ...
 %     'DelayTime',0.2);
-updateGif('images/SSITGUI_Wheels/Abstract.png',gifFile,sizeFrame);
-updateGif('images/SSITGUI_Wheels/Load.png',gifFile,sizeFrame);
+updateGif('images/SSITGUI_Wheels/Abstract.png',gifFile,sizeFrame,2);
+updateGif('images/SSITGUI_Wheels/Load.png',gifFile,sizeFrame,2);
 
-updateGif(A,gifFile);
+updateGif(A,gifFile,[],1);
 
 A.TabGroup.SelectedTab = A.ModelLoadingandBuildingTab;
 A = loadModelBP(A, [], 'tests/test_data/GRDusp1ModelTestLibrary.mat');
 A.ChooseSSITModel.Value = 'ModelDUSP1_100nM';
 A = ChooseSSITModelValue(A);
 
-updateGif(A,gifFile);
+updateGif(A,gifFile,[],1);
 
 %%
 updateGif('images/SSITGUI_Wheels/Solve.png',gifFile,sizeFrame);
@@ -70,7 +70,7 @@ A.TabGroup.SelectedTab = A.StochasticSimulationTab;
 A.PrintTimesEditField.Value = '[0:10:180]';
 A.PrintTimesEditField.ValueChangedFcn(A,[]);
 
-updateGif(A,gifFile);
+updateGif(A,gifFile,[],1);
 
 A.SsaRunButton.ButtonPushedFcn(A, []);
 updateGif(A,gifFile);
@@ -83,7 +83,7 @@ A.SSA_hist_YmaxEditField.Value = 0.4;
 A.SSA_hist_XmaxEditField.ValueChangedFcn(A,[]);
 
 A.SpeciestoShowListBox.ValueChangedFcn(A,[]);
-updateGif(A,gifFile);
+updateGif(A,gifFile,[],1);
 %%
 for x = 0:10:180
     A.SsaTimeSlider.Value = x;
@@ -94,8 +94,8 @@ end
 %% Switch to FSP.
 A.TabGroup.SelectedTab = A.FiniteStateProjectionTab;
 A.FspRunButtom.ButtonPushedFcn(A, []);
-updateGif(A,gifFile);
 A.SpeciestoShowListBox_2.Value = 'rna';
+updateGif(A,gifFile,[],1);
 for x = 0:10:180
     A.FspTimeSlider.Value = x;
     A.FspTimeSlider.ValueChangedFcn(A,[]);
@@ -103,13 +103,13 @@ for x = 0:10:180
 end
 
 %% Switch to FSP-Sens.
-updateGif('images/SSITGUI_Wheels/Sensitivity.png',gifFile,sizeFrame);
+updateGif('images/SSITGUI_Wheels/Sensitivity.png',gifFile,sizeFrame,2);
 
 A.TabGroup.SelectedTab = A.SensitivityAnalysisTab;
 A.SensRunButton.ButtonPushedFcn(A, []);
-updateGif(A,gifFile);
 A.SpeciesForSensPlot.Value = 'rna';
 A.SensParDropDown.Value = 'knuc2cyt';
+updateGif(A,gifFile,[],1);
 for x = 0:10:180
     A.SensPlotTimeSlider.Value = x;
     A.SensPlotTimeSlider.ValueChangedFcn(A,[]);
@@ -121,11 +121,12 @@ for x = 0:10:180
     A.SensPlotTimeSlider.ValueChangedFcn(A,[]);
     updateGif(A,gifFile);
 end
-function gifFile = updateGif(A,gifFile,sizeFrame)
+function gifFile = updateGif(A,gifFile,sizeFrame, delay)
 arguments
     A
     gifFile
     sizeFrame =[]
+    delay = 0.2
 end
 if isa(A,'SSITGUI')
     % --- capture again and append ---
@@ -147,7 +148,7 @@ end
 
 imwrite(Amovie,map,gifFile,'gif', ...
     'WriteMode','append', ...
-    'DelayTime',0.2);
+    'DelayTime',delay);
 end
 
 

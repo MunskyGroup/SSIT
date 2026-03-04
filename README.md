@@ -2,7 +2,7 @@
 
 ![SSIT](https://github.com/MunskyGroup/SSIT/blob/main/images/GraphicalAbstract.png)
 
-Authors: Alex Popinga, Dmitri Svetlov, Huy Vo, Joshua Cook, Eric Ron, Brian Munsky
+Authors: Alex Popinga, Jack Forman, Dmitri Svetlov, Huy Vo, Joshua Cook, Eric Ron, Brian Munsky
 
 [![License](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
 
@@ -186,7 +186,7 @@ The provided SSIT tools also make use a modified version of Expokit for the solu
 
 The SSIT is free to use or copy with citation of the authors and the above referenced packages (Expokit from Sidje) and (TensorToolbox from Bader et al).  If you use the SSIT for your research, we would appreciate it if you could cite us.
 
-- H. D. Vo, J. Cook, E. Ron, B. Munsky, 2023, Stochastic System Identification Toolbox, v1.0.0, https://doi.org/10.5281/zenodo.10023437
+* Alex N Popinga, Jack Forman, Dmitri Svetlov, Huy Vo, Brian Munsky.  "The Stochastic System Identification Toolkit (SSIT) to model, fit, predict, and design experiments." bioRxiv 2026.02.20.707039; doi: https://doi.org/10.64898/2026.02.20.707039
 
 To learn more about the history and use of the FSP, please explore the following papers. 
 
@@ -223,3 +223,26 @@ For use of FIM for experiment design, please read/cite one of the following:
 
 For more general insight on the use of quantitative models in biology, please read the q-bio Community written textbook:
 - B Munsky, WS Hlavacek, LS Tsimring (Editors), "Quantitative biology: theory, computational methods, and models, MIT Press, 2018. 
+
+## 📊 Repository Traffic
+
+
+
+
+
+
+
+
+<!-- TRAFFIC_STATS_START -->
+Total Clones: **697**  
+Unique Cloners: **333**  
+Total Views: **318**  
+Unique Visitors: **42**
+<!-- TRAFFIC_STATS_END -->
+
+
+
+
+
+
+ 
