@@ -32,8 +32,12 @@ STL1_4state_MH.summarizeModel
 % Create a copy of the STL1 model for PDO:
 STL1_4state_PDO = STL1_4state_MH;
 
-%%
-fimResults = STL1_4state_PDO.computeFIM(); 
+% Define indices of free parameters for FIM sub matrix. Here, Hog1 input 
+% parameters are experimentally known (thus fixed) and all others are free:
+freePars = 1:13;
+
+% Compute the FIM sub matrix for free parameters:
+fimResults = STL1_4state_PDO.computeFIM([],'log',[],freePars);
 
 % Get the number of cells using 'nCells':
 cellCounts = ...
@@ -73,11 +77,11 @@ nCellsOpt = STL1_4state_PDO.optimizeCellCounts(fimResults,nTotal,'E-opt');
  
 nCellsOptAvail = min(nCellsOpt,STL1_4state_PDO.dataSet.nCells)
 
-fimOpt = STL1_4state_PDO.evaluateExperiment(STL1_4state_fimResults_full,...
-                                            nCellsOpt,diag(sig_log10.^2));
+fimOpt = STL1_4state_PDO.evaluateExperiment(fimResults, nCellsOpt,...
+                                            diag(sig_log10.^2));
 
-fimOptAvail = STL1_4state_PDO.evaluateExperiment(...
-    STL1_4state_fimResults_full, nCellsOptAvail, diag(sig_log10.^2));
+fimOptAvail = STL1_4state_PDO.evaluateExperiment(fimResults,...
+                                    nCellsOptAvail, diag(sig_log10.^2));
 figOpt = figure;
 STL1_4state_PDO.plotMHResults(STL1_4state_MHResults, fimScale='log',...
                               FIM=[fimOpt,fimTotal], scatterFig=figOpt,...
