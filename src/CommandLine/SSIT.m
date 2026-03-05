@@ -6943,9 +6943,7 @@ end
             else
                 baseLabel = 'FIM';
             end
-
-
-            
+  
             % -------- Prepare plotting values --------
             if strcmp(scale,'log')
                 posValues = 1*(fimSym>=10^opts.LogThreshold)+...
@@ -6968,8 +6966,7 @@ end
                 C.HeatmapColormap = blueWhiteFlatRed(-x1,0,0,x1);
 
                 epsVal   = 1e-16;
-                % fimDisp  = log10(max(fimSym, epsVal));
-                eigDisp  = log10(max(eigVals, epsVal));
+                eigDisp  = log10(max(eigVals, epsVal))
                 fimLabel = ['log_{10} ' baseLabel];
                 eigLabel = 'log_{10} eigenvalues';
             elseif strcmp(scale,'lin')
@@ -6984,7 +6981,7 @@ end
         
             % -------- Figure for FIM matrix/diag/eigs --------
             if ~isempty(opts.FigureHandle) && ishghandle(opts.FigureHandle)
-                fig = opts.FigureHandle; figure(fig); clf;
+                fig = opts.FigureHandle; figure(fig); %clf;
             else
                 fig = figure;
             end
@@ -7067,7 +7064,7 @@ end
         
             % Figure
             if ~isempty(opts.EllipseFigure) && ishghandle(opts.EllipseFigure)
-                figEll = opts.EllipseFigure; figure(figEll); clf;
+                figEll = opts.EllipseFigure; figure(figEll);% clf;
             else
                 figEll = figure;
             end

@@ -28,9 +28,6 @@ STL1_4state_FSP.summarizeModel
 %  from example_1_CreateSSITModels
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% Make a copy of the bursting gene model with solved sensitivities:
-Model_FIM = Model_FSP;
-
 %% Compute FIMs using FSP sensitivity results
 % Compute the FIM:
 Model_FIM = Model_FSP;
@@ -119,14 +116,20 @@ cellCounts = 1000*ones(size(STL1_4state_FIM.tSpan));
                                        cellCounts)
 
 % Plot the FIMs (full):
+close all
+f1 = figure(11);
+f2 = figure(12);
 STL1_4state_FIM.plotFIMResults(STL1_4state_fimTotal_full, 'log',...
     STL1_4state_FIM.parameters, PlotEllipses=true,...
-    EllipsePairs=[1 6; 9 17; 2 3; 9 10; 8 13; 8 9]);
+    EllipsePairs=[1 6; 9 17; 2 3; 9 10; 8 13; 8 9],...
+    EllipseFigure=f1, FigureHandle=f2);
 
 % Plot the FIMs (free):
+f3 = figure(13);
 STL1_4state_FIM.plotFIMResults(STL1_4state_fimTotal_free, 'log',...
     STL1_4state_FIM.parameters(1:13), PlotEllipses=true,...
-    EllipsePairs=[1 6; 2 3; 9 10; 8 13; 8 9]);
+    EllipsePairs=[1 6; 2 3; 9 10; 8 13; 8 9],...
+    EllipseFigure=f1, FigureHandle=f3);
 
 %%
 % Note:  If detI(θ)=0, then at least one eigenvalue 𝜆𝑘=0. That means the 
