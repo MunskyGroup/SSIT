@@ -60,7 +60,7 @@ STL1.inputExpressions = {'Hog1','(a0+a1*exp(-r1*t)*(1-exp(-r2*t))*(t>0))'};
 
 % Add the new parameters from the TF/MAPK input signal:
 STL1.parameters = ({'kon',0.2; 'koff',0.2; 'kr',10; 'dr',5;...
-                    'a0',5; 'a1',10; 'r1',0.004; 'r2',.01}); 
+                    'a0',5; 'a1',10; 'r1',0.1; 'r2',.2}); 
 
 % Print a summary of STL1 Model:
 STL1.summarizeModel
