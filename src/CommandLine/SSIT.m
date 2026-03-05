@@ -6909,6 +6909,7 @@ end
                 opts.LegendFontSize (1,1) double {mustBePositive} = 14
                 opts.LegendLocation (1,1) string = "best"
                 opts.MatrixType (1,1) string {mustBeMember(opts.MatrixType,["fim","invfim"])} = "fim"
+                opts.LogThreshold (1,1) double = 0
             end
         
             % -------- Extract numeric FIM --------
@@ -6942,11 +6943,32 @@ end
             else
                 baseLabel = 'FIM';
             end
+
+
             
             % -------- Prepare plotting values --------
             if strcmp(scale,'log')
+                posValues = 1*(fimSym>=10^opts.LogThreshold)+...
+                    -1*(fimSym<=-10^opts.LogThreshold); 
+
+                logMag = max(0,log10(abs(fimSym)-opts.LogThreshold)).*posValues;
+                fimDisp = logMag;
+
+                x1 = max(abs(logMag),[],'all');
+                rangeColors = [-x1,-opts.LogThreshold,opts.LogThreshold,x1];
+
+                if opts.LogThreshold~=0
+                    cbTicks = [floor(rangeColors(1)):rangeColors(2),0,rangeColors(3):ceil(rangeColors(4))];
+                else
+                    cbTicks = [floor(rangeColors(1)):0,1:ceil(rangeColors(4))];
+                end
+                cbTickLabels = [arrayfun(@(v) sprintf('-10^{%g}', v), -cbTicks(1:end/2), 'UniformOutput', false),'~~',...
+                    arrayfun(@(v) sprintf('10^{%g}', v), cbTicks(end/2+1:end), 'UniformOutput', false)];
+
+                C.HeatmapColormap = blueWhiteFlatRed(-x1,0,0,x1);
+
                 epsVal   = 1e-16;
-                fimDisp  = log10(max(fimSym, epsVal));
+                % fimDisp  = log10(max(fimSym, epsVal));
                 eigDisp  = log10(max(eigVals, epsVal));
                 fimLabel = ['log_{10} ' baseLabel];
                 eigLabel = 'log_{10} eigenvalues';
@@ -6975,6 +6997,9 @@ end
             % (1) Heatmap
             subplot(2,2,[1 3]);
             imagesc(fimDisp); axis square;
+            if exist("posValues","var")
+                overlaySigns(posValues);
+            end
             cb = colorbar;
             if ~isempty(C) && isstruct(C) && isfield(C,'HeatmapColormap')
                 colormap(C.HeatmapColormap);
@@ -6988,6 +7013,11 @@ end
             ylabel('Parameter', 'FontSize', opts.AxisLabelSize);
             title(fimLabel, 'FontSize', opts.AxisLabelSize, 'FontWeight', 'bold');
             cb.Label.String = fimLabel; cb.Label.FontSize = opts.AxisLabelSize;
+            
+            if exist('cbTickLabels','var')
+                cb.TickLabels = cbTickLabels;
+                cb.Ticks = cbTicks;
+            end
         
             % (2) diag(FIM)
             subplot(2,2,2);
@@ -7159,14 +7189,74 @@ end
                     error('Colors.EllipseColors must be a cell array of color specs or a K×3 RGB numeric array.');
                 end
             end
+
+           function cmap = blueWhiteFlatRed(x1,x2,x3,x4,n)
+
+               if nargin < 5
+                   n = 256; % number of colormap entries
+               end
+
+               % Normalize positions
+               xs = linspace(x1,x4,n);
+
+               % Colors
+               blue  = [0 0 0.6];   % dark blue
+               white = [1 1 1];
+               red   = [0.6 0 0];   % dark red
+
+               cmap = zeros(n,3);
+
+               for i = 1:n
+                   x = xs(i);
+
+                   if x <= x2
+                       t = (x-x1)/(x2-x1);
+                       cmap(i,:) = (1-t)*blue + t*white;
+
+                   elseif x <= x3
+                       cmap(i,:) = white;
+
+                   else
+                       t = (x-x3)/(x4-x3);
+                       cmap(i,:) = (1-t)*white + t*red;
+                   end
+               end
+           end
+
+           function overlaySigns(M)
+               % overlaySigns  Add + / - markers on top of an imagesc plot
+               % M must contain values in {-1,0,1}. 0 shows no symbol.
+
+               [nr,nc] = size(M);
+
+               hold on
+               for i = 1:nr
+                   for j = 1:nc
+                       if M(i,j) == -1
+                           txt = '-';
+                       elseif M(i,j) == 1
+                           txt = '+';
+                       else
+                           continue
+                       end
+
+                       text(j,i,txt, ...
+                           'HorizontalAlignment','center', ...
+                           'VerticalAlignment','middle', ...
+                           'FontWeight','bold', ...
+                           'Color','k');
+                   end
+               end
+               hold off
+           end
        end
-            
-            % --------- Helper: numerically safe inverse of symmetric matrix ----------
-            function Ainv = safeInverseSym(A, epsShift)
-                % Symmetrize
-                A = 0.5 * (A + A.');
-                [V,D] = eig(A);
-                lam = diag(D);
+
+       % --------- Helper: numerically safe inverse of symmetric matrix ----------
+       function Ainv = safeInverseSym(A, epsShift)
+           % Symmetrize
+           A = 0.5 * (A + A.');
+           [V,D] = eig(A);
+           lam = diag(D);
                 % Shift tiny/negative eigenvalues
                 lamSafe = max(lam, epsShift);
                 Ainv = V * diag(1./lamSafe) * V.';
