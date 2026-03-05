@@ -120,14 +120,14 @@ if ~isCluster&&runExamples
         % 'example_9_LoadingandFittingData_MLE'
         % 'example_10_LoadingandFittingData_MH'
         % 'example_10b_LoadingandFittingData_MH_with_FIM'
-        % 'example_11_LoadingandFittingData_CrossValidation'
-        % 'example_12_ComplexModels_ModelReduction'
-        % 'example_13_ComplexModels_Hybrid'
-        % 'example_14_ComplexModels_PDO'
-        % 'example_15_ComplexModels_MultiModel'
-        % 'example_16_PipelinesAndClusterComputing'
+        % 'example_11_ComplexModels_PDO'
+        % 'example_12_PipelinesAndClusterComputing'
         % 'example_SI_ABC'
         % 'example_SI_Moments'
+        % 'example_SI_CrossValidation'
+        % 'example_SI_ModelReduction'
+        % 'example_SI_Hybrid'
+        % 'example_SI_MultiModel'
         };
     completed = zeros(1,length(ExampleFiles),'logical');
     for iEx = 1:length(ExampleFiles)
