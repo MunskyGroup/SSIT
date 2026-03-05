@@ -59,8 +59,17 @@ STL1_4state.tSpan = linspace(0,50,101);
     % Solve with FSP:
     [~,~,Model_FSP] = Model_FSP.solve; 
     
-    % Plot marginal distributions at t=20:  
-    Model_FSP.plotFSP(plotType='meansAndDevs',Title='Bursting Gene (FSP)')
+    % Means and standard deviations:
+    Model_FSP.plotFSP(speciesNames=Model_FSP.species,...
+        plotType='meansAndDevs', lineProps={'linewidth',4},...
+        Title='Bursting Gene', TitleFontSize=26,...
+        AxisLabelSize=20, TickLabelSize=20, YLabel='Molecule Count',...
+        XLabel='Time', LegendFontSize=20, LegendLocation='southeast');
+
+    % Marginal distributions:
+    Model_FSP.plotFSP(speciesNames=Model_FSP.species(3),...
+        plotType='marginals', indTimes=[1,12,24,50,101],...
+        lineProps={'linewidth',3}, XLim=[0,15], Colors=[0.93,0.69,0.13]);
                        
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(2): Use the stochastic Finite State Projection (FSP) 
@@ -96,8 +105,17 @@ STL1_4state.tSpan = linspace(0,50,101);
     % Solve with FSP:
     [~,~,STL1_FSP] = STL1_FSP.solve; 
     
-    % Plot marginal distributions at t=20:  
-    STL1_FSP.plotFSP(plotType='meansAndDevs',Title='STL1 (FSP)')
+    % Means and standard deviations:
+    STL1_FSP.plotFSP(speciesNames=STL1_FSP.species,...
+        plotType='meansAndDevs', lineProps={'linewidth',4},...
+        Title='STL1', TitleFontSize=26,...
+        AxisLabelSize=20, TickLabelSize=20, YLabel='Molecule Count',...
+        XLabel='Time', LegendFontSize=20, LegendLocation='southeast');
+
+    % Marginal distributions:
+    STL1_FSP.plotFSP(speciesNames=STL1_FSP.species(3),...
+        plotType='marginals', indTimes=[1,12,24,50,101],...
+        lineProps={'linewidth',3}, XLim=[0,15], Colors=[0.93,0.69,0.13]);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(3): Use the stochastic Finite State Projection (FSP) 
