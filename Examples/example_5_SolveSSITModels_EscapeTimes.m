@@ -44,7 +44,7 @@ STL1_4state.tSpan = linspace(0,50,101);
 
     % Plot the CDF and PDF
     Model_escape.plotFSP(plotType="escapeTimes",...
-        lineProps={'linewidth',3}, Title="Bursting Gene (mRNA)",...
+        lineProps={'linewidth',3}, Title="Bursting Gene",...
         Colors=[0.93,0.69,0.13], LegendLocation="southeast");
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -56,15 +56,18 @@ STL1_4state.tSpan = linspace(0,50,101);
     % Create a copy of the time-varying STL1 yeast model:
     STL1_escape = STL1;
     
-    % Solve for the escape time:
-    STL1_escape.fspOptions.escapeSinks.f = {'offGene','onGene'};
-    STL1_escape.fspOptions.escapeSinks.b = [0.5;0.5];
+    %% Specify a boundary for the escape calculation
+    % Calculate the time until the mRNA concentration reaches 5
+    STL1_escape.fspOptions.escapeSinks.f = {'mRNA'};
+    STL1_escape.fspOptions.verbose = false;
+    STL1_escape.fspOptions.escapeSinks.b = 5;
     STL1_escape = STL1_escape.formPropensitiesGeneral('STL1_escape');
     [~,~,STL1_escape] = STL1_escape.solve;
 
     % Plot the CDF and PDF
-    STL1_escape.plotFSP(plotType="escapeTimes", LegendLocation="east",...
-        lineProps={'linewidth',3}, Title="STL1 (offGene, onGene)");
+    STL1_escape.plotFSP(plotType="escapeTimes",...
+        lineProps={'linewidth',3}, Title="STL1",...
+        Colors=[0.93,0.69,0.13], LegendLocation="southeast");
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(3): Solve escape times for the 4-state time-varying STL1 yeast model

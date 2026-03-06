@@ -116,22 +116,21 @@ cellCounts = 1000*ones(size(STL1_4state_FIM.tSpan));
                                        cellCounts)
 
 % Plot the FIMs (full):
-close all
 f1 = figure(11);
 f2 = figure(12);
 STL1_4state_FIM.plotFIMResults(STL1_4state_fimTotal_full, 'log',...
-    STL1_4state_FIM.parameters, PlotEllipses=true,...
-    EllipsePairs=[1 6; 2 3; 9 10; 8 13; 8, 9; 3,4],...
-    EllipseFigure=f1, FigureHandle=f2,...
-    Colors=struct('EllipseColors',[0.2 0.6 0.9],'CenterSquare',[0.96,0.47,0.16]));
+    STL1_4state_FIM.parameters, PlotEllipses=true, EllipseFigure=f1,...
+    EllipsePairs=[1 6; 2 3; 4 5; 6 13], FigureHandle=f2,...
+    Colors=struct('EllipseColors',[0.2 0.6 0.9],...
+    'CenterSquare',[0.96,0.47,0.16]));
 
 % Plot the FIMs (free):
 f3 = figure(13);
 STL1_4state_FIM.plotFIMResults(STL1_4state_fimTotal_free, 'log',...
-    STL1_4state_FIM.parameters(1:13), PlotEllipses=true,...
-    EllipsePairs=[1 6; 2 3; 9 10; 8 13; 8, 9; 3,4],...
-    EllipseFigure=f1, FigureHandle=f3,...
-    Colors=struct('EllipseColors',[0.9 0.6 0.2],'CenterSquare',[0.96,0.47,0.16]));
+    STL1_4state_FIM.parameters(1:13),PlotEllipses=true,EllipseFigure=f1,...
+    EllipsePairs=[1 6; 2 3; 4 5; 6 13],FigureHandle=f3,...
+    Colors=struct('EllipseColors',[0.9 0.6 0.2],...
+    'CenterSquare',[0.96,0.47,0.16]));
 
 %%
 % Note:  If detI(θ)=0, then at least one eigenvalue 𝜆𝑘=0. That means the 
@@ -145,20 +144,20 @@ STL1_4state_FIM.plotFIMResults(STL1_4state_fimTotal_free, 'log',...
 % weakly constrained by your experiment.
 
 % Model_fimMetrics = 
-%          det: 3.9036e+21
-%        trace: 2.2181e+07
-%    minEigVal: 2.6411e+03
+%          det: 1.5614e+22
+%        trace: 1.4666e+06
+%    minEigVal: 2.6148e+05
 
 % STL1_fimMetrics = 
-%          det: 1.5059e+00
-%        trace: 4.5588e+05
-%    minEigVal: 6.7265e-12
+%          det: 7.1764e+00
+%        trace: 3.5113e+04
+%    minEigVal: 1.8524e-11
 
 %% Full FIM
 % STL1_4state_fimMetrics = 
-%          det: 3.1402e+00
-%        trace: 9.2817e+08
-%    minEigVal: 8.4878e-13
+%          det: -1.3466e+33
+%        trace: 2.9419e+06
+%    minEigVal: -8.1721e-13
 
 %% FIM sub matrix (free parameters):
 % STL1_4state_fimMetrics_free =  
