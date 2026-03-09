@@ -2043,7 +2043,11 @@ classdef SSIT
 
                     % Call code to write a GPU friendly SSA code.
                     if ~isfield(obj.ssaOptions,'computeFile')||isempty(obj.ssaOptions.computeFile)
-                        obj.ssaOptions.computeFile = 'TmpGPUSSACode';
+                        if ~strcmpi(obj.propensityFilePrefix,'default')
+                            obj.ssaOptions.computeFile = append(obj.propensityFilePrefix,'_TmpGPUSSACode');
+                        else
+                            obj.ssaOptions.computeFile = append(obj.propensityFilePrefix,'_TmpGPUSSACode_',num2str(randi(1000)));                            
+                        end
                         clear TmpGPUSSACode % Clear function from cache just in case.
                         ssit.ssa.WriteGPUSSA(k,w,S,obj.tSpan,obj.ssaOptions.computeFile);                        
                     end
@@ -2162,7 +2166,7 @@ classdef SSIT
                         bConstraints = max(obj.fspConstraints.f(states),[],2);
                         bConstraints = max(bConstraints,obj.fspConstraints.b);
                     catch
-                        bConstraints = [zeros(size(Solution.trajs,1),1);max(obj.fspConstraints.f(states),[],2)];
+                        bConstraints = [zeros(size(Solution.trajs,1),1);max(Solution.trajs,[],[2:3])];
                     end
 
                 case 'fspsens'
