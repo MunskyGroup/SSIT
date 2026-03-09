@@ -2048,8 +2048,9 @@ classdef SSIT
                         else
                             obj.ssaOptions.computeFile = append(obj.propensityFilePrefix,'_TmpGPUSSACode_',num2str(randi(1000)));                            
                         end
-                        clear TmpGPUSSACode % Clear function from cache just in case.
+                        clear(obj.ssaOptions.computeFile) % Clear function from cache just in case.
                         ssit.ssa.WriteGPUSSA(k,w,S,obj.tSpan,obj.ssaOptions.computeFile);                        
+                        disp(['SSA file generated: ',obj.ssaOptions.computeFile]);
                     end
                     % TODO -- Need to check that this does not lead to file
                     % confusion in the future since there could be multiple
