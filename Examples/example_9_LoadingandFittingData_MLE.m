@@ -85,7 +85,6 @@ STL1_4state_MLE.plotFits(plotType="all", lineProps={'linewidth',2},...
 
 %% Save models & MLEs:
 saveNames = unique({
-    'STL1_MLE'
     'STL1_4state_MLE'
     'STL1_4state_pars'
     'STL1_4state_likelihood'
