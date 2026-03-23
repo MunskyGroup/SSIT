@@ -131,7 +131,7 @@ To get started with the Command line Tools, navigate to the directory "Examples"
 
 Or you can start creating and solving models as follows.
 
-Example for generating an FSI model and fitting it to smFISH data for Dusp1 activation following glucocorticoid stimulation:
+Example for generating an FSP-CME model and fitting it to smFISH data for Dusp1 activation following glucocorticoid stimulation:
 
 **Define SSIT Model**
 
