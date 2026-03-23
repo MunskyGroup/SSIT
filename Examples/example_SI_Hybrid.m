@@ -80,12 +80,3 @@ STL1_hybrid.plotFSP(solution=STL1_hybrid_FSPsoln, plotType='marginals',...
     speciesNames=STL1_hybrid.species(5), indTimes=[1,12,24,50,101,200],...
     lineProps={'linewidth',3}, XLim=[0,100], Colors=[0.23,0.67,0.2],...
     AxisLabelSize=20, TickLabelSize=20)
-
-
-%% Save hybrid model & solution
-saveNames = unique({
-    'STL1_hybrid'
-    'STL1_hybrid_FSPsoln'
-    });
-    
-save('example_13_ComplexModels_Hybrid',saveNames{:})

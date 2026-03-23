@@ -6,18 +6,20 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Preliminaries
-% Use the solved 4-state STL1 model from example_4_SolveSSITModels_FSP 
+% Use the pre-fit 4-state STL1 model from 
+% example_9_LoadingandFittingData_MLE.m 
 %clear
 %close all
 
 % example_1_CreateSSITModels  
 % example_4_SolveSSITModels_FSP
+% example_9_LoadingandFittingData_MLE
 
 %% Load pre-solved model 
-% load('example_4_SolveSSITModels_FSP.mat')
+% load('example_9_LoadingandFittingData_MLE.mat')
 
 % View model summariy:
-STL1_4state_FSP.summarizeModel
+STL1_4state_MLE.summarizeModel
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Example script to show how multiple SSIT models and data sets can be fit
