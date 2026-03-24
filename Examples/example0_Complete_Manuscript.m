@@ -1,25 +1,30 @@
 % clear
 
-%% 2.1
-% Add SSIT source codes to Matlab search path.
+%% Instantiate SSIT
+% Add SSIT source codes to Matlab search path, create an SSIT model:
 addpath(genpath('../src'));
 STL1_4state = SSIT('Empty');
-STL1_4state.species = {'g1'; 'g2'; 'g3'; 'g4'; 'mRNA'};
-STL1_4state.initialCondition = [1;0;0;0;0];
 
-%% 2.2
+
+%% 2.1.1 Define Model Species:
+STL1_4state.species = {'g1'; 'g2'; 'g3'; 'g4'; 'mRNA'};
+
+% Set initial condition:
+STL1_4state.initialCondition = [1;0;0;0;0];  
+
+%% 2.1.2 Define a Time-Varying Input Signal:
 STL1_4state.inputExpressions = ...
     {'Hog1',['A*(((1-(exp(1)^(-r1*(t-t0))))*',...
      'exp(1)^(-r2*(t-t0)))/(1+((1-(exp(1)^(-r1*(t-t0))))*',...
      'exp(1)^(-r2*(t-t0)))/M))^n*(t>t0)']};
+
      
-%% 2.3
+%% 2.1.3 Define Reactions (Propensity Functions and Stoichiometry Matrix):
 STL1_4state.propensityFunctions = {...
           'k12*g1';'(max(0,k21o*(1-k21i*Hog1)))*g2';...
           'k23*g2';'k32*g3'; 'k34*g3';'k43*g4';...
           'kr1*g1';'kr2*g2';'kr3*g3';'kr4*g4'}; 
 
-%% 2.4
 STL1_4state.stoichiometry = [-1,1,0,0,0,0,0,0,0,0;...   % gene state 1
                               1,-1,-1,1,0,0,0,0,0,0;... % gene state 2
                               0,0,1,-1,-1,1,0,0,0,0;... % gene state 3        
@@ -27,29 +32,37 @@ STL1_4state.stoichiometry = [-1,1,0,0,0,0,0,0,0,0;...   % gene state 1
                               0,0,0,0,0,0,1,1,1,1]     % mRNA
                  % Reactions: 1,2,3,4,5,6,7,8,9,10
 
+% How to add single reaction:                 
 newReaction.stoichiometry = {'mRNA',-1};  % (Reaction: 11)
 newReaction.propensity = 'dr*mRNA';
 newReaction.parameters = {'dr',1};
 STL1_4state = STL1_4state.addReaction(newReaction);
 
-%% 2.5
+
+%% 2.1.4 Define Parameters (Reaction Rates):
 STL1_4state.parameters = ({'t0',3.17; 'k12',78; 'k21o',1.92e+05;...
     'k21i',3200; 'k23',0.402; 'k34',7.8; 'k32',1.62;...
     'k43',2.28; 'dr',0.294; 'kr1',4.68e-02; 'kr2',0.72;...
     'kr3', 59.4; 'kr4', 3.24; 'r1',4.14e-03; 'r2',0.426;...
     'A',9.3e+09; 'M',6.4e-04; 'n',3.1});
 
-%% 2.6
-STL1_4state.tSpan = linspace(0,50,101);
 
-%% 2.7
+%% 2.1.5 Print Model Summary:
 STL1_4state.summarizeModel
 
-%% 2.8
+
+%% 2.1.6 Save and Load a Model:
 save('example_1_CreateSSITModels','STL1_4state')
 load('example_1_CreateSSITModels.mat')
 
-%% 2.9
+
+%% 2.2 Set up for Solving Models:
+STL1_4state.initialCondition = [1;0;0;0;0];
+STL1_4state.tSpan = linspace(0,50,101);
+
+
+%% 2.2.2 Ordinary Differential Equations (ODEs):
+
 % Set solution scheme to 'ODE':
 STL1_4state.solutionScheme = 'ODE';
 
@@ -74,14 +87,17 @@ STL1_4state.Solutions = STL1_4state.solve;
         AxisLabelSize=20, TickLabelSize=20, LegendFontSize=20,...
         LegendLocation='east', XLabel='Time', YLabel='Molecule Count')
 
-%% 2.10
+
+%% 2.2.3 Moment Closure:
+
 % Compile and store the given reaction propensities:
 STL1_4state = STL1_4state.formPropensitiesGeneral('STL1_4state_moments');
 
-% Set solution scheme and solve.
+% Set solution scheme and solve:
 STL1_4state.solutionScheme = 'moments';
 [~,~,STL1_4state] = STL1_4state.solve;
 
+% Plot moment solutions:
 STL1_4state.plotMoments(solution=STL1_4state.Solutions.moments,...
     speciesNames=STL1_4state.species(5), plotType="meansanddevs",...
     lineProps={'linewidth',4}, Title='4-state STL1 (mRNA)',...
@@ -93,11 +109,13 @@ STL1_4state.plotMoments(solution=STL1_4state.Solutions.moments,...
     lineProps={'linewidth',4}, Title='4-state STL1 (gene states)',...
     TitleFontSize=24, LegendLocation='northeast', YLabel='Molecule Count')
 
-%% 2.11
+
+%% 2.2.4 Stochastic Simulation Algorithm (SSA):
+
 % Set solution scheme to SSA:
 STL1_4state.solutionScheme = 'SSA';
 
-% Set the number of simulations performed per experiment
+% Set the number of simulations performed per experiment:
 STL1_4state.ssaOptions.Nsims = 100;
 
 % Use a negative initial time to allow model to equilibrate (burn-in)
@@ -124,7 +142,9 @@ STL1_4state.plotSSA(speciesIdx='all', numTraj=100,...
     LegendFontSize=20, LegendLocation='northeast', HistTime=20,...
     XLabel='Time', YLabel='Molecule Count', Colors=[0.23,0.67,0.20]); 
 
-%% FSP
+
+%% 2.2.5 Finite State Projection (FSP)
+
 % Ensure the solution scheme is set to FSP (default):
 STL1_4state.solutionScheme = 'FSP';
 
@@ -136,7 +156,6 @@ STL1_4state.fspOptions.bounds = [0,0,0,0,0,1,1,1,1,200];
 
 % Approximate the steady state for the initial distribution:
 STL1_4state.fspOptions.initApproxSS = true;
-STL1_4state.tSpan = [0:5:60];
 STL1_4state.initialTime = 0;
 
 % Compile and store the given reaction propensities: 
@@ -146,24 +165,27 @@ STL1_4state = STL1_4state.formPropensitiesGeneral('STL1_4state_FSP');
 [~,~,STL1_4state] = STL1_4state.solve;
 
 % Plot means and standard deviations:
-STL1_4state.plotFSP(STL1_4state.Solutions, STL1_4state.species(5),...
-    'meansAndDevs', [], [], {'linewidth',4}, YLabel='Molecule Count',...
-    Title='4-state STL1 (mRNA)', TitleFontSize=24, LegendFontSize=18,...
-    LegendLocation='northeast', Colors=[0.23,0.67,0.2]);
+STL1_4state.plotFSP(speciesNames=STL1_4state.species(5),...
+    plotType='meansAndDevs', lineProps={'linewidth',4},...
+    Title='4-state STL1 (mRNA)', TitleFontSize=26, XLabel='Time',...
+    Colors=[0.23,0.67,0.2], AxisLabelSize=20, TickLabelSize=20,...
+    YLabel='Molecule Count',LegendFontSize=20,LegendLocation='northeast');
 
-% Plot marginal distributions:
-STL1_4state.plotFSP(STL1_4state.Solutions, STL1_4state.species(5),...
-    'marginals', [1,3,7,11], [], {'linewidth',3},...
-    Colors=[0.23,0.67,0.2], XLim=[0,100])
+%Plot marginal distributions:
+STL1_4state.plotFSP(speciesNames=STL1_4state.species(5),...
+    plotType='marginals', indTimes=[1,12,24,50,101],...
+    lineProps={'linewidth',3}, Colors=[0.23,0.67,0.2], XLim=[0,100])
 
-%% FSP Escape Times
-% Make copy of original model
+
+%% 2.2.6 Escape (First Passage) and Waiting Times:
+
+% Make copy of original model:
 STL1_4state_escape = STL1_4state;
 
 % Set the initial populations:
 STL1_4state_escape.initialCondition = [1;0;0;0;0];
 
-% Turn off steady state initial condition
+% Turn off steady state initial condition:
 STL1_4state_escape.fspOptions.initApproxSS = false;
 
 % Set the times at which distributions will be computed:
@@ -175,12 +197,15 @@ STL1_4state_escape.fspOptions.escapeSinks.f = {'mRNA'};
 STL1_4state_escape.fspOptions.escapeSinks.b = 100;
 [~,~,STL1_4state_escape] = STL1_4state_escape.solve;
 
-% Plot the CDF and PDF
-STL1_4state_escape.plotFSP(STL1_4state_escape.Solutions, [], "escapeTimes",...
-    [], [], {'linewidth',3}, TitleFontSize=24, Title="4-state STL1 (mRNA)",...
-    Colors=[0.23,0.67,0.2], LegendLocation="southeast", XLim=[0,50]);
+% Plot the CDF and PDF:
+STL1_4state_escape.plotFSP(STL1_4state_escape.Solutions, [],...
+    "escapeTimes", [], [], {'linewidth',3}, TitleFontSize=24,...
+    Title="4-state STL1 (mRNA)", Colors=[0.23,0.67,0.2],...
+    LegendLocation="southeast", XLim=[0,50]);
 
-%% Solve FSP sensitivities
+
+%% 2.2.7 Solve FSP sensitivities:
+
 % Set solution scheme to FSP sensitivity:
 STL1_4state.solutionScheme = 'fspSens';
 
@@ -195,11 +220,12 @@ index_PlotTime = 6;
 
 % Plot the results from the sensitivity analysis
 STL1_4state.plotFSP(STL1_4state.Solutions,...
-    STL1_4state.species(5), 'sens', index_PlotTime, [], {'linewidth',3}, ...
+    STL1_4state.species(5), 'sens', index_PlotTime, [], {'linewidth',3},...
     Colors=[0.23,0.67,0.2], AxisLabelSize=15, TickLabelSize=12, ...
     XLim=[0,10], Title="4-state STL1 (t=25)", TitleFontSize=24)
 
-%% FIM Analysis
+
+%% 2.2.8 Fisher Information Matrix (FIM) Analysis:
 
 % Set unobservable species:
 STL1_4state.pdoOptions.unobservedSpecies = '1:4';
@@ -210,7 +236,7 @@ sig_log10 = 2*ones(1,15);
 % Compile and store the given reaction propensities:
 STL1_4state = STL1_4state.formPropensitiesGeneral('STL1_4state_FIM');
 
-% Compute FIMs using FSP sensitivity results.
+% Compute FIMs using FSP sensitivity results:
 fimResults = STL1_4state.computeFIM;
 
 % Specify how many cells are to be measured at each time:
@@ -225,7 +251,8 @@ STL1_4state.evaluateExperiment(fimResults, cellCounts, diag(sig_log10.^2));
 STL1_4state.plotFIMResults(STL1_4stateTotalFIM, STL1_4state.parameters,...
     [STL1_4state.parameters{:,2}], EllipsePairs=[1 6; 9 10; 8 10; 8 9]);
 
-%% Experiment Design
+
+%% 2.2.9 Experiment Design (with various FIM Optimality Criteria):
 
 % Find the FIM-based designs for a total of 1000 cells 
 
@@ -285,6 +312,7 @@ fimOpt_tr = STL1_4state.evaluateExperiment(fimResults,nCellsOpt_tr,...
 % Plot the FIMs for 'tr[1:10]':
 STL1_4state.plotFIMResults(fimOpt_tr, STL1_4state.parameters,...
     [STL1_4state.parameters{:,2}], EllipsePairs=[1 6; 9 10; 8 10; 8 9]);
+
 
 
 %% Load and Plot Data

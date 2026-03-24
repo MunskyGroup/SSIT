@@ -154,8 +154,7 @@ STL1_4state.tSpan = linspace(0,50,101);
     
     %% Plots for FSP solutions:
     % Means only:
-    % STL1_4state_FSP.plotFSP(STL1_4state_FSPsoln,...
-    %     STL1_4state_FSP.species, 'means')
+    % STL1_4state_FSP.plotFSP(speciesNames=STL1_4state_FSP.species, 'means')
 
     % Means and standard deviations:
     STL1_4state_FSP.plotFSP(speciesNames=STL1_4state_FSP.species(5),...
