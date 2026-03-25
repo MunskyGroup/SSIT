@@ -8,9 +8,7 @@ STL1_4state = SSIT('Empty');
 
 %% 2.1.1 Define Model Species:
 STL1_4state.species = {'g1'; 'g2'; 'g3'; 'g4'; 'mRNA'};
-
-% Set initial condition:
-STL1_4state.initialCondition = [1;0;0;0;0];  
+ 
 
 %% 2.1.2 Define a Time-Varying Input Signal:
 STL1_4state.inputExpressions = ...
@@ -189,7 +187,7 @@ STL1_4state_escape.initialCondition = [1;0;0;0;0];
 STL1_4state_escape.fspOptions.initApproxSS = false;
 
 % Set the times at which distributions will be computed:
-STL1_4state_escape.tSpan = linspace(0,60,100);
+STL1_4state_escape.tSpan = linspace(0,100,200);
 STL1_4state_escape.initialTime = 0;
 
 % Solve for time to reach mRNA=100:
@@ -198,10 +196,9 @@ STL1_4state_escape.fspOptions.escapeSinks.b = 100;
 [~,~,STL1_4state_escape] = STL1_4state_escape.solve;
 
 % Plot the CDF and PDF:
-STL1_4state_escape.plotFSP(STL1_4state_escape.Solutions, [],...
-    "escapeTimes", [], [], {'linewidth',3}, TitleFontSize=24,...
-    Title="4-state STL1 (mRNA)", Colors=[0.23,0.67,0.2],...
-    LegendLocation="southeast", XLim=[0,50]);
+STL1_4state_escape.plotFSP(plotType="escapeTimes", XLim=[0,50],...
+    lineProps={'linewidth',3}, LegendLocation="southeast",...
+    TitleFontSize=24, Title="4-state STL1 (mRNA)", Colors=[0.23,0.67,0.2]);
 
 
 %% 2.2.7 Solve FSP sensitivities:
@@ -209,20 +206,16 @@ STL1_4state_escape.plotFSP(STL1_4state_escape.Solutions, [],...
 % Set solution scheme to FSP sensitivity:
 STL1_4state.solutionScheme = 'fspSens';
 
-% Compile and store the given reaction propensities:
-STL1_4state = STL1_4state.formPropensitiesGeneral('STL1_4state_sens');
 
 % Solve the sensitivity problem:
 [~,~,STL1_4state] = STL1_4state.solve;
 
-% Choose time at which to make sensitivity plots
-index_PlotTime = 6;  
 
 % Plot the results from the sensitivity analysis
-STL1_4state.plotFSP(STL1_4state.Solutions,...
-    STL1_4state.species(5), 'sens', index_PlotTime, [], {'linewidth',3},...
-    Colors=[0.23,0.67,0.2], AxisLabelSize=15, TickLabelSize=12, ...
-    XLim=[0,10], Title="4-state STL1 (t=25)", TitleFontSize=24)
+STL1_4state.plotFSP(speciesNames=STL1_4state.species(5),...
+    plotType='sens', indTimes=40, lineProps={'linewidth',3},...
+    Colors=[0.23,0.67,0.2], AxisLabelSize=15, TickLabelSize=12,...
+    XLim=[0,100], Title="4-state STL1 (t=25)", TitleFontSize=24)
 
 
 %% 2.2.8 Fisher Information Matrix (FIM) Analysis:
@@ -230,143 +223,132 @@ STL1_4state.plotFSP(STL1_4state.Solutions,...
 % Set unobservable species:
 STL1_4state.pdoOptions.unobservedSpecies = '1:4';
 
-% Add lognormal prior (so FIM is invertible). Prior log-standard deviation:
-sig_log10 = 2*ones(1,15);
-
-% Compile and store the given reaction propensities:
-STL1_4state = STL1_4state.formPropensitiesGeneral('STL1_4state_FIM');
-
 % Compute FIMs using FSP sensitivity results:
-fimResults = STL1_4state.computeFIM;
+fimResults = STL1_4state.computeFIM(STL1_4state.Solutions.sens, 'log');
+
+% Define indices of free parameters for FIM sub matrix. Here, Hog1 input 
+% parameters are experimentally known (thus fixed) and all others are free:
+freePars = 1:13;
+
+% Compute the FIM sub matrix for free parameters:
+fimResults_free = STL1_4state.computeFIM([],'log',[],freePars);
 
 % Specify how many cells are to be measured at each time:
 cellCounts = 1000*ones(size(STL1_4state.tSpan));
 
 % Evaluate the provided experiment design (in "cellCounts")
 % and produce an array of FIMs (one for each parameter set):
-[STL1_4stateTotalFIM, STL1_4state_mleCovEstimate, STL1_4stateMetrics] = ...
-STL1_4state.evaluateExperiment(fimResults, cellCounts, diag(sig_log10.^2));
+[totalFIM, STL1_4state_mleCovEstimate, fimMetrics] = ...
+STL1_4state.evaluateExperiment(fimResults, cellCounts);
 
-% Plot the FIMs:
-STL1_4state.plotFIMResults(STL1_4stateTotalFIM, STL1_4state.parameters,...
-    [STL1_4state.parameters{:,2}], EllipsePairs=[1 6; 9 10; 8 10; 8 9]);
+[freeFIM, STL1_4state_mleCovEstimate_free, fimMetrics_free] = ...
+    STL1_4state.evaluateExperiment(fimResults_free, cellCounts)
+
+% Plot the FIMs (full):
+f1 = figure(11);
+f2 = figure(12);
+STL1_4state.plotFIMResults(totalFIM, 'log', STL1_4state.parameters,...
+    PlotEllipses=true, EllipseFigure=f1,...
+    EllipsePairs=[1 6; 2 3; 4 5; 6 13], FigureHandle=f2,...
+    Colors=struct('EllipseColors',[0.2 0.6 0.9],...
+    'CenterSquare',[0.96,0.47,0.16]));
+
+% Plot the FIMs (free):
+f3 = figure(13);
+STL1_4state.plotFIMResults(freeFIM, 'log',...
+    STL1_4state.parameters(1:13), PlotEllipses=true, EllipseFigure=f1,...
+    EllipsePairs=[1 6; 2 3; 4 5; 6 13],FigureHandle=f3,...
+    Colors=struct('EllipseColors',[0.9 0.6 0.2],...
+    'CenterSquare',[0.96,0.47,0.16]));
 
 
 %% 2.2.9 Experiment Design (with various FIM Optimality Criteria):
-
 % Find the FIM-based designs for a total of 1000 cells 
-
-% Compile and store propensities:
-STL1_4state = STL1_4state.formPropensitiesGeneral('STL1_4state_design');
 
 % Compute the optimal number of cells from the FIM results using different 
 % design criteria:  `Trace' maximizes the trace of the FIM; 
-% `DetCovariance' minimizes the expected determinant of MLE covariance; 
-% `Smallest Eigenvalue' maximizes the smallest e.val of the FIM; and 
-% `TR[$<i_1>,<i_2>$,...]' maximizes the determinant of the FIM for the 
-% specified indices.  The latter is shown for different parameter 
-% combinations, where `Tr[9:10]' are the mRNA-specific parameters `dr' and 
-% `kr' (degradation and transcription, respectively).  All other parameters 
-% are assumed to be known and fixed.
+% `D-cov' minimizes the expected determinant of MLE covariance; 
+% `E-opt' maximizes the smallest e.val of the FIM; and 
+% `D-opt-sub[$<i_1>,<i_2>$,...]' maximizes the determinant of the FIM for  
+% the specified indices.  The latter is shown for different parameter 
+% combinations, where D-opt-sub[9:13]' are the mRNA-specific parameters 
+% `dr' and `kr1',`kr2',`kr3', and `kr4' (degradation and transcription 
+% reactions).  All other parameters are assumed to be known and fixed.
 nCol = sum(cellCounts);
 nTotal = nCol(1);
-nCellsOpt_detCov = ...
-    STL1_4state.optimizeCellCounts(fimResults,nTotal,'DetCovariance');
-nCellsOpt_trace = ...
-    STL1_4state.optimizeCellCounts(fimResults,nTotal,'Trace');
-nCellsOpt_tr = ...
-    STL1_4state.optimizeCellCounts(fimResults,nTotal,'tr[1:10]');
-nCellsOpt_tr1 = ...
-    STL1_4state.optimizeCellCounts(fimResults,nTotal,'tr[11:15]');
-nCellsOpt_trR = ...
-    STL1_4state.optimizeCellCounts(fimResults,nTotal,'tr[9:10]');
+nCellsOpt_Dcov = STL1_4state.optimizeCellCounts(fimResults,nTotal,'D-cov');
+nCellsOpt_Trace = STL1_4state.optimizeCellCounts(fimResults,nTotal,'Trace');
+nCellsOpt_Doptsub = STL1_4state.optimizeCellCounts(fimResults,nTotal,...
+                                                    'D-opt-sub[1:8]');
+nCellsOpt_DoptsubR = STL1_4state.optimizeCellCounts(fimResults,nTotal,...
+                                                    'D-opt-sub[9:13]');
+nCellsOpt_DoptsubI = STL1_4state.optimizeCellCounts(fimResults,nTotal,...
+                                                    'D-opt-sub[14:18]');
 
-%% Make a bar chart to compare the different designs
+% Make a bar chart to compare the different designs
 % Find which x positions correspond to time=30 and time=60 for off-setting:
-x = 1:13;
-t = STL1_4state.tSpan;               
-idx = ismember(t, [30 60]);        
-
-% Build custom x-locations for series that need separation
-x_m02 = x;  x_m03(idx) = x_m02(idx) - 0.5;
-x_p02 = x;  x_p02(idx) = x_p02(idx) + 0.5;
+t = STL1_4state.tSpan;
+x = 1:size(t,2);   
 
 f = figure;
-bar(x,      nCellsOpt_trace,  0.5); hold on
-bar(x_m02,  nCellsOpt_trR,    0.5);
-bar(x_p02,  nCellsOpt_tr1,    0.5);
-bar(x,      nCellsOpt_detCov, 0.5);
-bar(x_m02,  nCellsOpt_tr,     0.5);
+bar(x,  nCellsOpt_Trace,        0.4); hold on
+bar(x,  nCellsOpt_Dcov,         0.4);
+bar(x,  nCellsOpt_DoptsubI,     0.4);
+bar(x+0.2,  nCellsOpt_DoptsubR, 0.4);
+bar(x-0.2,  nCellsOpt_Doptsub,  0.4);
 
 set(gca,'XTick',x,'XTickLabel',t,'FontSize',16)
 title('4-state STL1 (FIM Optimal Designs)','FontSize',24)
 xlabel('Time (min)','FontSize',20)
 ylabel('Number of cells','FontSize',20)
-legend('Trace,Tr[1] Designs','Tr[9:10] Design','Tr[11:15] Design', ...
-       'DetCov,\lambda Designs','Tr[1:10] Design','Location','northeast')
+legend('Trace Design','D-cov Design', 'D-opt-sub[14:18] Design',...
+        'D-opt-sub[9:13] Design', 'D-opt-sub[1:8] Design',...
+        'Location', 'northeast')
 
 
-fimOpt_tr = STL1_4state.evaluateExperiment(fimResults,nCellsOpt_tr,...
-                                           diag(sig_log10.^2));
+%% 2.3.1 Data Loading and Handling
 
-% Plot the FIMs for 'tr[1:10]':
-STL1_4state.plotFIMResults(fimOpt_tr, STL1_4state.parameters,...
-    [STL1_4state.parameters{:,2}], EllipsePairs=[1 6; 9 10; 8 10; 8 9]);
-
+STL1_4state =STL1_4state.loadData('data/filtered_data_2M_NaCl_Step.csv',...
+                                 {'mRNA','RNA_STL1_total_TS3Full'},...
+                                {'Replica',1;'Condition','0.2M_NaCl_Step'});
 
 
-%% Load and Plot Data
-% Note: Ensure the search path is correct on the local machine: 
-STL1_4state = ...
-    STL1_4state.loadData('data/filtered_data_2M_NaCl_Step.csv',...
-    {'mRNA','RNA_STL1_total_TS3Full'},...
-    {'Replica',1;'Condition','0.2M_NaCl_Step'});
-
-% This plot is unnecessary, as the model parameters have not been fit to
-% the data yet. However, it illustrates the improvement to come later:
-STL1_4state.plotFits([], "all", [], {'linewidth',2},...
-    Title='4-state STL1', YLabel='Molecule Count',...
-    LegendLocation='northeast', LegendFontSize=12);
-
-
-%% Find MLE
+%% 2.3.3 Maximum Likelihood Estimation
 % Maximum allowable number of iterations to fit, etc.:
 fitOptions = optimset('Display','iter','MaxIter',2000);
 
 % Define which parameters to fit (in this case, all of them):
-STL1_4state.fittingOptions.modelVarsToFit = [1:15];
+STL1_4state.fittingOptions.modelVarsToFit = [1:13];
 
 % Search to Find the MLE:
 [~,~,~,STL1_4state] = STL1_4state.maximizeLikelihood([],fitOptions);
 
 % Make plots of the parameter fits from the MLE:
-STL1_4state.plotFits([], "all", [], {'linewidth',2},...
-    Title='4-state STL1', YLabel='Molecule Count',...
-    LegendLocation='northeast', LegendFontSize=12);
+STL1_4state.plotFits(plotType="all", lineProps={'linewidth',2},...
+    TitleFontSize=24, Title='4-state STL1 (MLE)', LegendFontSize=18,...
+    YLabel='Molecule Count', LegendLocation='northeast', AxisLabelSize=20);
 
-% Note: Should see an MLE of -26015 at the end:
-% Exiting: Maximum number of iterations has been exceeded
-%          - increase MaxIter option.
-%          Current function value: 26014.985315
+% Note: Should see an MLE of -24775.6 at the end:
 
-%% Specify Bayesian Prior and fit
+
+%% 2.3.4 Bayesian Inference
 
 % Make a copy of our 4-state STL1 model:
 STL1_4state_MH = STL1_4state;
 
 % Specify Prior as log-normal distribution with wide uncertainty
 % Prior log-mean:
-mu_log10 = [0.8,0,0.3,1.2,-1,1,3.5,0,2,3,0.5,3.5,3,-1,4];
+mu_log10 = [0.5,2,5,3.5,-0.4,1,0.2,0.4,-0.5,-1.3,-0.1,2,0.5]; 
 
 % Prior log-standard deviation:
-sig_log10 = 2*ones(1,15);  
+sig_log10 = 2*ones(1,13);  
 
 % Prior:
 STL1_4state_MH.fittingOptions.logPrior = ...
     @(x)-sum((log10(x)-mu_log10).^2./(2*sig_log10.^2));
 
 % Choose parameters to search:
-STL1_4state_MH.fittingOptions.modelVarsToFit = [1:15]; 
+STL1_4state_MH.fittingOptions.modelVarsToFit = [1:13]; 
 
 % Create first parameter guess:
 STL1_4state_MH_pars = [STL1_4state_MH.parameters{:,2}];      
@@ -382,13 +364,13 @@ for i=1:2
     STL1_4state_MH.parameters(:,2) = num2cell(STL1_4state_MH_pars);
 
     % Run Metropolis-Hastings    
-    proposalWidthScale = 0.005;
+    proposalWidthScale = 0.01;
     MHOptions.proposalDistribution  = ...
        @(x)x+proposalWidthScale*randn(size(x));
 
     % Set MH runtime options (number of samples, burnin, thin, etc.):
     MHOptions.numberOfSamples = 2000;
-    MHOptions.burnin = 200;
+    MHOptions.burnin = 500;
     MHOptions.thin = 2;
 
     % Run Metropolis-Hastings: 
@@ -397,20 +379,18 @@ for i=1:2
         'MetropolisHastings');
     
     % Store MH parameters in model:
-    STL1_4state_MH.parameters([1:15],2) = ...
+    STL1_4state_MH.parameters([1:13],2) = ...
         num2cell(STL1_4state_MH_pars);
 end
-% STL1_4state_MH.plotMHResults(STL1_4state_MH_MHResults,...
-%     paramSelect={'t0','k12','k21o','k21i','kr','dr'});
-STL1_4state_MH.plotMHResults(STL1_4state_MH_MHResults);
 
-STL1_4state_MH.plotFits([], "all", [], {'linewidth',2},...
-    Title='4-state STL1', YLabel='Molecule Count', ProbXLim = [0 80],...
-    LegendLocation='northeast', LegendFontSize=12,...
-    TimePoints=[0 8 10 15 30 55]);
+% Plot results:
+STL1_4state_MH.plotMHResults(STL1_4state_MHResults);
 
-% TODO - Need a wrapper for the MH Plotting functions to allow easier
-% choice of which scatter plots to show.
+STL1_4state_MH.plotFits(plotType="all",lineProps={'linewidth',2},...
+    Title='4-state STL1 (MH)', YLabel='Molecule Count',...
+    LegendLocation='northeast', LegendFontSize=18, ProbXLim = [0 80],...
+    TimePoints=[0 8 10 15 30 55], TitleFontSize=24, AxisLabelSize=20);
+
 
 %% ABC
 STL1_4state_ABC = STL1_4state;
