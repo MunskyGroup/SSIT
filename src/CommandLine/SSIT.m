@@ -1668,7 +1668,7 @@ classdef SSIT
             end
         end
 
-        function summarizeModel(obj)
+        function obj = summarizeModel(obj)
             %% SSIT.summarizeModel - Prints a summary of an SSIT model:
             %% Species, Reactions (with Stoichiometric updates),
             %% Model Parameters
@@ -1681,14 +1681,50 @@ classdef SSIT
             arguments
                 obj;
             end
-            % Show the model species
+            
+            % Determine number of species
             nS = size(obj.stoichiometry,1);
+        
+            % Validate / repair initial conditions if needed
+            icWasAdjusted = false;
+            icWarningMsg = '';
+        
+            if isempty(obj.initialCondition)
+                obj.initialCondition = ones(nS,1);
+                icWasAdjusted = true;
+                icWarningMsg = sprintf(['WARNING: initialCondition was empty. ', ...
+                                'All ', num2str(nS), ' species have been set to one.']);
+            else
+                % Force to column vector
+                ic = obj.initialCondition(:);
+        
+                if length(ic) < nS
+                    nMissing = nS - length(ic);
+                    obj.initialCondition = [ic; ones(nMissing,1)];
+                    icWasAdjusted = true;
+                    icWarningMsg = sprintf(['WARNING: initialCondition had fewer entries than the number of species. ', ...
+                                    num2str(nMissing), ' missing value(s) were filled with ones.']);
+                elseif length(ic) > nS
+                    obj.initialCondition = ic(1:nS);
+                    icWasAdjusted = true;
+                    icWarningMsg = sprintf(['WARNING: initialCondition had more entries than the number of species. ', ...
+                                    'Extra value(s) were ignored so that the length matches the ', ...
+                                    num2str(nS), ' species.']);
+                else
+                    obj.initialCondition = ic;
+                end
+            end
+        
+            % Show the model species
             disp('Species:')
             for i = 1:nS
-                if ~isempty(obj.hybridOptions.upstreamODEs)&&max(contains(obj.hybridOptions.upstreamODEs,obj.species{i}))
-                    disp(['     ',obj.species{i},'; IC = ',num2str(obj.initialCondition(i)),';  upstream ODE']);
+                if ~isempty(obj.hybridOptions.upstreamODEs) && ...
+                        max(contains(obj.hybridOptions.upstreamODEs,obj.species{i}))
+                    disp(['     ',obj.species{i},'; IC = ', ...
+                          num2str(obj.initialCondition(i)), ';  upstream ODE']);
                 else
-                    disp(['     ',obj.species{i},'; IC = ',num2str(obj.initialCondition(i)),';  discrete stochastic']);
+                    disp(['     ',obj.species{i},'; IC = ', ...
+                          num2str(obj.initialCondition(i)), ';  discrete stochastic']);
                 end
             end
             disp(' ')
@@ -1735,7 +1771,13 @@ classdef SSIT
             disp(' ')
             disp('Model Parameters:')
             disp(obj.parameters)
-
+    
+            % Print warning at end if ICs were auto-adjusted
+            if icWasAdjusted
+                fprintf('\n%s\n', icWarningMsg);
+                fprintf('Updated initialCondition:\n');
+                disp(obj.initialCondition)
+            end
         end
 
         function summarizeData(obj)
