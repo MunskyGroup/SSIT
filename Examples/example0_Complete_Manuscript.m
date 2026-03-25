@@ -6,18 +6,18 @@ addpath(genpath('../src'));
 STL1_4state = SSIT('Empty');
 
 
-%% 2.1.1 Define Model Species:
+%% 2.1.1 Define Model Species
 STL1_4state.species = {'g1'; 'g2'; 'g3'; 'g4'; 'mRNA'};
  
 
-%% 2.1.2 Define a Time-Varying Input Signal:
+%% 2.1.2 Define a Time-Varying Input Signal
 STL1_4state.inputExpressions = ...
     {'Hog1',['A*(((1-(exp(1)^(-r1*(t-t0))))*',...
      'exp(1)^(-r2*(t-t0)))/(1+((1-(exp(1)^(-r1*(t-t0))))*',...
      'exp(1)^(-r2*(t-t0)))/M))^n*(t>t0)']};
 
      
-%% 2.1.3 Define Reactions (Propensity Functions and Stoichiometry Matrix):
+%% 2.1.3 Define Reactions (Propensity Functions and Stoichiometry Matrix)
 STL1_4state.propensityFunctions = {...
           'k12*g1';'(max(0,k21o*(1-k21i*Hog1)))*g2';...
           'k23*g2';'k32*g3'; 'k34*g3';'k43*g4';...
@@ -37,7 +37,7 @@ newReaction.parameters = {'dr',1};
 STL1_4state = STL1_4state.addReaction(newReaction);
 
 
-%% 2.1.4 Define Parameters (Reaction Rates):
+%% 2.1.4 Define Parameters (Reaction Rates)
 STL1_4state.parameters = ({'t0',3.17; 'k12',78; 'k21o',1.92e+05;...
     'k21i',3200; 'k23',0.402; 'k34',7.8; 'k32',1.62;...
     'k43',2.28; 'dr',0.294; 'kr1',4.68e-02; 'kr2',0.72;...
@@ -45,21 +45,21 @@ STL1_4state.parameters = ({'t0',3.17; 'k12',78; 'k21o',1.92e+05;...
     'A',9.3e+09; 'M',6.4e-04; 'n',3.1});
 
 
-%% 2.1.5 Print Model Summary:
+%% 2.1.5 Print Model Summary
 STL1_4state.summarizeModel
 
 
-%% 2.1.6 Save and Load a Model:
+%% 2.1.6 Save and Load a Model
 save('example_1_CreateSSITModels','STL1_4state')
 load('example_1_CreateSSITModels.mat')
 
 
-%% 2.2 Set up for Solving Models:
+%% 2.2 Set up for Solving Models
 STL1_4state.initialCondition = [1;0;0;0;0];
 STL1_4state.tSpan = linspace(0,50,101);
 
 
-%% 2.2.2 Ordinary Differential Equations (ODEs):
+%% 2.2.2 Ordinary Differential Equations (ODEs)
 
 % Set solution scheme to 'ODE':
 STL1_4state.solutionScheme = 'ODE';
@@ -86,7 +86,7 @@ STL1_4state.Solutions = STL1_4state.solve;
         LegendLocation='east', XLabel='Time', YLabel='Molecule Count')
 
 
-%% 2.2.3 Moment Closure:
+%% 2.2.3 Moment Closure
 
 % Compile and store the given reaction propensities:
 STL1_4state = STL1_4state.formPropensitiesGeneral('STL1_4state_moments');
@@ -108,7 +108,7 @@ STL1_4state.plotMoments(solution=STL1_4state.Solutions.moments,...
     TitleFontSize=24, LegendLocation='northeast', YLabel='Molecule Count')
 
 
-%% 2.2.4 Stochastic Simulation Algorithm (SSA):
+%% 2.2.4 Stochastic Simulation Algorithm (SSA)
 
 % Set solution scheme to SSA:
 STL1_4state.solutionScheme = 'SSA';
@@ -175,7 +175,7 @@ STL1_4state.plotFSP(speciesNames=STL1_4state.species(5),...
     lineProps={'linewidth',3}, Colors=[0.23,0.67,0.2], XLim=[0,100])
 
 
-%% 2.2.6 Escape (First Passage) and Waiting Times:
+%% 2.2.6 Escape (First Passage) and Waiting Times
 
 % Make copy of original model:
 STL1_4state_escape = STL1_4state;
@@ -201,7 +201,7 @@ STL1_4state_escape.plotFSP(plotType="escapeTimes", XLim=[0,50],...
     TitleFontSize=24, Title="4-state STL1 (mRNA)", Colors=[0.23,0.67,0.2]);
 
 
-%% 2.2.7 Solve FSP sensitivities:
+%% 2.2.7 Solve FSP sensitivities
 
 % Set solution scheme to FSP sensitivity:
 STL1_4state.solutionScheme = 'fspSens';
@@ -218,7 +218,7 @@ STL1_4state.plotFSP(speciesNames=STL1_4state.species(5),...
     XLim=[0,100], Title="4-state STL1 (t=25)", TitleFontSize=24)
 
 
-%% 2.2.8 Fisher Information Matrix (FIM) Analysis:
+%% 2.2.8 Fisher Information Matrix (FIM) Analysis
 
 % Set unobservable species:
 STL1_4state.pdoOptions.unobservedSpecies = '1:4';
@@ -262,7 +262,7 @@ STL1_4state.plotFIMResults(freeFIM, 'log',...
     'CenterSquare',[0.96,0.47,0.16]));
 
 
-%% 2.2.9 Experiment Design (with various FIM Optimality Criteria):
+%% 2.2.9 Experiment Design (with various FIM Optimality Criteria)
 % Find the FIM-based designs for a total of 1000 cells 
 
 % Compute the optimal number of cells from the FIM results using different 
@@ -392,7 +392,7 @@ STL1_4state_MH.plotFits(plotType="all",lineProps={'linewidth',2},...
     TimePoints=[0 8 10 15 30 55], TitleFontSize=24, AxisLabelSize=20);
 
 
-%% ABC
+%% 2.3.5 Approximate Bayesian Computation
 STL1_4state_ABC = STL1_4state;
 % Set up a prior over parameters (logPriorLoss)
 logPriorLoss = @(x)sum((log10(x)-mu_log10).^2./(2*sig_log10.^2));
@@ -413,7 +413,8 @@ STL1_4state_ABC = STL1_4state_ABC.formPropensitiesGeneral('STL1_4state_ABC');
 
 STL1_4state_ABC.plotABC(STL1_4state_ABC.Solutions.ABC);
 
-%% Cross Validation
+
+%% 2.3.6 Cross Validation
 % Specify datafile name and species linking rules:
 DataFileName = 'data/filtered_data_2M_NaCl_Step.csv';
 LinkedSpecies = {'mRNA','RNA_STL1_total_TS3Full'};
@@ -447,11 +448,7 @@ fignum = 12; useRelative = true;
 CrossValidationModel.compareParameters(fignum,useRelative);
 
 
-%% Multi-Model
-% This looks very similar to the previous cross-validation model. I recommend
-% combining it with the above.
-
-%% Model Reduction
+%% 2.4.1 Model Reduction
 % None of the current model reductions are meant for use in time varying
 % problems, so I doubt that they would work for the Hog Model.  Also, with
 % my recent changes, the Hog1 model is a lot faster than before.
@@ -489,7 +486,8 @@ STL1_4state.plotFSP(fullSoln,...
     XLabel='Time', Colors=[0.23,0.67,0.2], YLabel='Molecule Count',...
     LegendFontSize=15, LegendLocation='northeast',YLim=[0,40]);
 
-%% Hybrid Models
+
+%% 2.4.2 Hybrid Models
 % This extended model is based on that published here: 
 % https://www.cell.com/fulltext/S0092-8674(09)00508-X?large_figure=true
 % The parameters are taken from the paper, except for k_h, which is set to
@@ -600,7 +598,7 @@ STL1_4state_Extended.plotFits([], "all", [], {'linewidth',2},...
 %     Title='4-state STL1', YLabel='Molecule Count',...
 %     LegendLocation='northeast', LegendFontSize=12);
 
-%% PDO
+%% 2.4.3 Data Distortion Handling (PDOs)
 % Make FIM plots w/ w/o PDO.  
 % Check if optimal expt design changes, and if so make that plot also.
 
@@ -621,6 +619,11 @@ STL1_4state_PDO_nuc = ...
      'Binomial', true, [], {'Replica',1}, LegendLocation="northwest",...
      Title="4-state STL1 (Binomial PDO: Nuclear mRNA)", FontSize=24,...
      XLabel="Total mRNA counts", YLabel="Nuclear mRNA counts");
+
+
+%% 2.4.4 Multi Models
+
+
 
 %%%%%%%%%%%%%%%%%%%%%%%%% Nucleus:%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% FIM + PDO analyses
