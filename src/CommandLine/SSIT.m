@@ -1526,30 +1526,25 @@ classdef SSIT
 
         end
 
-        function [pdo,obj] = generatePDO(obj,pdoOptions,paramsPDO,fspSoln,variablePDO,maxSize)
-            %% SSIT.generatePDO - This function generates the Probabilistic
-            %% Distortion Operator (PDO) according to user choice.
-            %
-            % Inputs:
-            %   * app
-            %   * paramsPDO - ()
-            %   * FSPoutputs - ()
-            %   * indsObserved - ()
-            %   * variablePDO - (logical), default: false
-            %   * maxSize - ()
-            %
-            % Output:
-            %
-            % Example:
+        function [pdo,obj] = generatePDO(obj,pdoOptions,paramsPDO,fspSoln,variablePDO,maxSize,opts)
             arguments
                 obj
                 pdoOptions = []
                 paramsPDO = []
                 fspSoln = []
-                variablePDO =[]
-                maxSize=[];
+                variablePDO = []
+                maxSize = []
+                opts.showPlot (1,1) logical = true
+                opts.Title (1,1) string = ""
+                opts.FontSize (1,1) double {mustBePositive} = 18
+                opts.XLabel (1,1) string = "True counts"
+                opts.YLabel (1,1) string = "Observed counts"
+                opts.XLim double = []
+                opts.YLim double = []
+                opts.Levels (1,1) double {mustBeInteger, mustBePositive} = 30
+                opts.CLim double = [-25 0]
             end
-
+        
             if isempty(pdoOptions)
                 pdoOptions = obj.pdoOptions;
             end
@@ -1560,32 +1555,40 @@ classdef SSIT
                     fspSoln = obj.solve;
                 end
             end
-
+        
             app.DistortionTypeDropDown.Value = pdoOptions.type;
             app.FIMTabOutputs.PDOProperties.props = pdoOptions.props;
-
-            % Separate into observed and unobserved species.
+        
             if isfield(obj.hybridOptions,'upstreamODEs')
                 speciesStochastic = setdiff(obj.species,obj.hybridOptions.upstreamODEs,'stable');
             else
                 speciesStochastic = obj.species;
             end
             Nd = length(speciesStochastic);
-
-            indsUnobserved=[];
-            indsObserved=[];
-            for i=1:Nd
-                if ~isempty(obj.pdoOptions.unobservedSpecies)&&max(contains(obj.pdoOptions.unobservedSpecies,speciesStochastic{i}))
-                    indsUnobserved=[indsUnobserved,i];
+        
+            indsUnobserved = [];
+            indsObserved = [];
+            for i = 1:Nd
+                if ~isempty(obj.pdoOptions.unobservedSpecies) && ...
+                        max(contains(obj.pdoOptions.unobservedSpecies,speciesStochastic{i}))
+                    indsUnobserved = [indsUnobserved,i];
                 else
-                    indsObserved=[indsObserved,i];
+                    indsObserved = [indsObserved,i];
                 end
             end
-            [~,pdo] = ssit.pdo.generatePDO(app,paramsPDO,fspSoln,indsObserved,variablePDO,maxSize);
-
-            if nargout>=2
-                obj.pdoOptions.PDO = pdo;
-            end
+        
+            [~,pdo] = ssit.pdo.generatePDO(app,paramsPDO,fspSoln,indsObserved,variablePDO,maxSize, ...
+                'showPlot', opts.showPlot, ...
+                'Title',    opts.Title, ...
+                'FontSize', opts.FontSize, ...
+                'XLabel',   opts.XLabel, ...
+                'YLabel',   opts.YLabel, ...
+                'XLim',     opts.XLim, ...
+                'YLim',     opts.YLim, ...
+                'Levels',   opts.Levels, ...
+                'CLim',     opts.CLim);
+        
+            obj.pdoOptions.PDO = pdo;
         end
 
         function [logL,P] = findPdoError(obj,pdoType,lambda,True,Distorted)

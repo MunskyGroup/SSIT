@@ -1,4 +1,4 @@
-function [app,pdo] = generatePDO(app,paramsPDO,FSPoutputs,indsObserved,variablePDO,maxSize,showPlot,opts)
+function [app,pdo] = generatePDO(app,paramsPDO,FSPoutputs,indsObserved,variablePDO,maxSize,opts)
 %% SSIT.generatePDO - This function generates the Probabilistic 
 %% Distortion Operator (PDO) according to user choice.
 % 
@@ -9,9 +9,9 @@ function [app,pdo] = generatePDO(app,paramsPDO,FSPoutputs,indsObserved,variableP
 %   * indsObserved - ()
 %   * variablePDO - (logical), default: false
 %   * maxSize - ()
-%   * showPlot - (logical), default: false
 %
 %   Optional plotting arguments:
+%   * opts.showPlot - (logical), default: true
 %   * opts.Title - (string) 
 %   * opts.FontSize - (double), default: 18
 %   * opts.XLabel - (string), default: "True counts"
@@ -30,9 +30,8 @@ arguments
     indsObserved = []
     variablePDO = false
     maxSize = []
-    showPlot (1,1) logical = false
-
     % Plotting opts (used only when showPlot==true)
+    opts.showPlot (1,1) logical = true
     opts.Title (1,1) string = ""
     opts.FontSize (1,1) double {mustBePositive} = 18
     opts.XLabel (1,1) string = "True counts"
@@ -476,7 +475,7 @@ end
 %   conditionalPmfs{ispec} is (nObserved x nTrue)
 %   x-axis = true counts (columns), y-axis = observed counts (rows)
 % --------------------------------------------------------------------
-if showPlot
+if opts.showPlot
     if isempty(indsObserved)
         indsToPlot = 1:nSpecies;
     else

@@ -398,7 +398,10 @@ STL1_4state_MH.plotFits(plotType="all", lineProps={'linewidth',2},...
 
 
 %% 2.3.5 Approximate Bayesian Computation
+
+% Create a copy of our model:
 STL1_4state_ABC = STL1_4state;
+
 % Set up a prior over parameters (logPriorLoss)
 logPriorLoss = @(x)sum((log10(x)-mu_log10).^2./(2*sig_log10.^2));
 
@@ -406,7 +409,7 @@ logPriorLoss = @(x)sum((log10(x)-mu_log10).^2./(2*sig_log10.^2));
 lossFunction = 'cdf_one_norm';
 
 % Set ABC / MCMC options
-ABCoptions = struct('numberOfSamples',100,'burnIn',0,'thin',1,...
+ABCoptions = struct('numberOfSamples',2000,'burnIn',500,'thin',2,...
     'proposalDistribution',@(x)x+0.03*randn(size(x)));
 
 % Compile and store reaction propensities:
@@ -420,8 +423,8 @@ STL1_4state_ABC.plotABC(STL1_4state_ABC.Solutions.ABC);
 
 
 %% 2.3.6 Cross Validation
-% Specify datafile name and species linking rules:
-%% Set Fitting Options:
+
+% Set Fitting Options:
 fitAlgorithm = 'fminsearch';
 fitOptions = optimset('Display','final','MaxIter',200); 
 % Note: 'MaxIter', 200 for fast run; Set to 'MaxIter', 2000 for accuracy
@@ -462,6 +465,31 @@ CrossValidationModel.parameters = crossValPars;
 % Make a figure to explore how much the parameters changed between replicas:
 fignum = 11; useRelative = true;
 CrossValidationModel.compareParameters(fignum,useRelative);
+
+
+%% 2.4 Prelim (Define and solve scRNA-seq template model):
+% Define Base Model Combination
+scRNAseq = SSIT;
+scRNAseq.species = {'onGene';'rna'};
+scRNAseq.initialCondition = [0;0];
+scRNAseq.propensityFunctions = ...
+    {'(kon_0+kon_1*Iupstream)*(2-onGene)';...
+    'koff_0/(1+akoff*Iupstream)*onGene';...
+    'kr_0*(2-onGene)+kr_1*onGene';'gr*rna'};
+scRNAseq.stoichiometry = [1,-1,0,0;0,0,1,-1];
+scRNAseq.inputExpressions = {'Iupstream',...
+                                'exp(-r1*t*(t>=0))*(1-exp(-r2*t*(t>=0)))'};
+scRNAseq.parameters = ({'r1',0.01; 'r2',0.1; 'kon_0',0.01;...
+                              'kon_1',0.01; 'koff_0',20; 'akoff',0.2;...
+                              'kr_0',1; 'kr_1',100; 'gr',1});
+
+scRNAseq.fspOptions.initApproxSS = true;
+scRNAseq.fittingOptions.modelVarsToFit = 1:9;
+scRNAseq.fittingOptions.logPrior = @(x)-sum(log10(x).^2/2);
+
+% We generate functions for model propensities
+scRNAseq = scRNAseq.formPropensitiesGeneral('scRNAseq_Template');
+[~,~,scRNAseq] = scRNAseq.solve;
 
 
 %% 2.4.1 Model Reduction
@@ -547,70 +575,18 @@ STL1_4state_Extended.plotFits(plotType="all", lineProps={'linewidth',2},...
     LegendLocation='northeast', LegendFontSize=12);
 
 
-%%
-% close all
-% % Plot ODE solutions for mRNA:
-% STL1_4state_Extended.plotODE(STL1_4state_Extended.species(6),...
-%     STL1_4state_Extended.tSpan, {'linewidth',4},...
-%     Title='4-state STL1 (mRNA)', TitleFontSize=24,...
-%     AxisLabelSize=18, TickLabelSize=18, LegendFontSize=15,...
-%     LegendLocation='east', Colors=[0.23,0.67,0.20],...
-%     XLabel='Time', YLabel='Molecule Count')
-
-
-% The following can be used to generate the plot of the hog signal
-% from the previous model
-% Compare to the other function for the hog model.
-% hold on
-% t = linspace(0,60,100);
-% % Need to adjust these parameters to match the actual data.
-% r1=STL1_4state.parameters{11,2};
-% r2=STL1_4state.parameters{12,2};
-% A=STL1_4state.parameters{13,2}; 
-% M=STL1_4state.parameters{14,2};
-% n=STL1_4state.parameters{15,2};
-% t0=STL1_4state.parameters{1,2};
-% 
-% Hog1 = A*(((1-(exp(1).^(-r1*(t-t0)))).*...
-%     exp(1).^(-r2*(t-t0)))./(1+((1-(exp(1).^(-r1*(t-t0)))).*...
-%     exp(1).^(-r2*(t-t0)))/M)).^n.*(t>t0);
-% 
-% plot(t,Hog1)
-
-% % Plot ODE solutions for mRNA:
-% STL1_4state_Extended.plotODE(STL1_4state_Extended.species(5),...
-%     STL1_4state_Extended.tSpan, {'linewidth',4},...
-%     Title='4-state STL1 (mRNA)', TitleFontSize=24,...
-%     AxisLabelSize=18, TickLabelSize=18, LegendFontSize=15,...
-%     LegendLocation='east', Colors=[0.23,0.67,0.20],...
-%     XLabel='Time', YLabel='Molecule Count')
-% 
-% STL1_4state.plotODE(STL1_4state.species(5),...
-%     STL1_4state.tSpan, {'linewidth',4},...
-%     Title='4-state STL1 (mRNA)', TitleFontSize=24,...
-%     AxisLabelSize=18, TickLabelSize=18, LegendFontSize=15,...
-%     LegendLocation='east', Colors=[0.23,0.67,0.20],...
-%     XLabel='Time', YLabel='Molecule Count')
-% %
-% % Set 'useHybrid' to true:
-% STL1_4state_Extended.useHybrid = true;
-% % Define which species will be solved by ODEs:
-% STL1_4state_Extended.hybridOptions.upstreamODEs = {'Hog1','D','G'};
-% 
-% STL1_4state_Extended.solutionScheme = 'fsp';
-% STL1_4state_Extended = STL1_4state_Extended.formPropensitiesGeneral('HybridHogModel');
-% [~,~,STL1_4state_Extended] = STL1_4state_Extended.solve;
-% 
-% % Plot the results
-% STL1_4state_Extended.plotFits([], "all", [], {'linewidth',2},...
-%     Title='4-state STL1', YLabel='Molecule Count',...
-%     LegendLocation='northeast', LegendFontSize=12);
-
 %% 2.4.3 Data Distortion Handling (PDOs)
-% Make FIM plots w/ w/o PDO.  
-% Check if optimal expt design changes, and if so make that plot also.
+% Handle data distortions with probability distortion operators (PDOs)
 
-% Make a copy of our model:
+% Set PDO to Binomial for RNA seq data (assuming 95% drop-out rate)
+scRNAseq.pdoOptions.type = 'Binomial';
+scRNAseq.pdoOptions.unobservedSpecies = 'onGene';
+scRNAseq.pdoOptions.props.CaptureProbabilityS1 = 0;    % Gene State is not measured
+scRNAseq.pdoOptions.props.CaptureProbabilityS2 = 0.05; % 95% drop out from RNA
+[~,scRNAseq] = scRNAseq.generatePDO();
+
+
+% Make a copy of our 4-state STL1 model:
 STL1_4state_PDO = STL1_4state_MH;
 
 % Change to binomial PDO: 
