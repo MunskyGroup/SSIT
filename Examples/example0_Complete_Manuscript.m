@@ -389,7 +389,7 @@ for i=1:2
 end
 
 % Plot results:
-STL1_4state_MH.plotMHResults(STL1_4state_MHResults);
+STL1_4state_MH.plotMHResults(STL1_4state_MH_MHResults);
 
 STL1_4state_MH.plotFits(plotType="all", lineProps={'linewidth',2},...
     Title='4-state STL1 (MH)', YLabel='Molecule Count',...
@@ -421,45 +421,50 @@ STL1_4state_ABC.plotABC(STL1_4state_ABC.Solutions.ABC);
 
 %% 2.3.6 Cross Validation
 % Specify datafile name and species linking rules:
+%% Set Fitting Options:
+fitAlgorithm = 'fminsearch';
+fitOptions = optimset('Display','final','MaxIter',200); 
+% Note: 'MaxIter', 200 for fast run; Set to 'MaxIter', 2000 for accuracy
+
+% Make a copy of our 4-state STL1 model:
+STL1_4state_CrossVal = STL1_4state_MH;
+
+% Specify datafile name and species linking rules:
 DataFileName = 'data/filtered_data_2M_NaCl_Step.csv';
 LinkedSpecies = {'mRNA','RNA_STL1_total_TS3Full'};
 
-% Set the global conditions (e.g., fit data at times before 50 min.):
-ConditionsGlobal = {[],[],'TAB.time<=50'};
+% Suppose we only wish to fit the data at times before 25 minutes.  
+% Set the global conditions:
+ConditionsGlobal = {[],[],'TAB.time<=25'};
 
 % Split up the replicas to be separate:
 ConditionsReplicas = {'TAB.Replica==1';'TAB.Replica==2'};
 
-% Specify constraints on rep-to-rep parameter variations. Here, we specify
-% that there is an expected 0.1 log10 deviation expected in some parameters
-% and smaller in others. No deviation at all is indicated by 0.
+% Specify constraints on rep-to-rep parameter variations. Here, we specify 
+% that there is an expected 0.1 log10 deviation expected in some parameters 
+% and smaller in others.  No deviation at all is indicated by 0.
 Log10Constraints = ...
-    [0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.02,0.02,0.02,0.02,0.02,0.1,0.1];
-
-% Compile and store reaction propensities:
-STL1_4state = STL1_4state.formPropensitiesGeneral('STL1_4state');
+    [0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.02,0.02,0.02,0.02,0.02]; 
 
 % Create full model:
 CrossValidationModel = SSITMultiModel.createCrossValMultiModel(...
-    STL1_4state, DataFileName, LinkedSpecies, ConditionsGlobal,...
+    STL1_4state_CrossVal, DataFileName, LinkedSpecies, ConditionsGlobal,...
     ConditionsReplicas, Log10Constraints);
+CrossValidationModel = CrossValidationModel.initializeStateSpaces;
 
 % Run the model fitting routines:
-[~,~,~,CrossValidationModel] = ...
-    CrossValidationModel.maximizeLikelihood([],fitOptions);
+crossValPars = CrossValidationModel.parameters;
+crossValPars = CrossValidationModel.maximizeLikelihood(...
+    crossValPars, fitOptions, fitAlgorithm);
+CrossValidationModel = CrossValidationModel.updateModels(crossValPars);
+CrossValidationModel.parameters = crossValPars;
 
 % Make a figure to explore how much the parameters changed between replicas:
-fignum = 12; useRelative = true;
+fignum = 11; useRelative = true;
 CrossValidationModel.compareParameters(fignum,useRelative);
 
 
 %% 2.4.1 Model Reduction
-% None of the current model reductions are meant for use in time varying
-% problems, so I doubt that they would work for the Hog Model.  Also, with
-% my recent changes, the Hog1 model is a lot faster than before.
-% I recommend removing this section and demonstrate on a different model in
-% the SI.
-
 % Make a copy of the STL1 model to set up for model reduction:
 STL1_ModRed = STL1_4state;
 STL1_ModRed.fspOptions.initApproxSS = true;
@@ -478,15 +483,15 @@ fullSoln = STL1_4state.solve(fspSets.stateSpace);
 fullModelSolveTime = toc
 
 % Plot the full and reduced FSP solutions:
-STL1_ModRed.plotFSP(redSoln,...
-    STL1_ModRed.species(5), 'meansAndDevs', [], [], {'linewidth',4},...
+STL1_ModRed.plotFSP(solution=redSoln, plotType='meansAndDevs',...
+    speciesNames=STL1_ModRed.species(5), lineProps={'linewidth',4},...
     Title='4-state STL1 (FSP Reduced)', TitleFontSize=24,...
     XLabel='Time', Colors=[0.23,0.67,0.2], YLabel='Molecule Count',...
     LegendFontSize=15, LegendLocation='northeast',YLim=[0,40]);
 
 % Plot the full and reduced FSP solutions:
-STL1_4state.plotFSP(fullSoln,...
-    STL1_ModRed.species(5), 'meansAndDevs', [], [], {'linewidth',4},...
+STL1_4state.plotFSP(solution=fullSoln, plotType='meansAndDevs',...
+    speciesNames=STL1_ModRed.species(5), lineProps={'linewidth',4},...
     Title='4-state STL1 (FSP Full)', TitleFontSize=24,...
     XLabel='Time', Colors=[0.23,0.67,0.2], YLabel='Molecule Count',...
     LegendFontSize=15, LegendLocation='northeast',YLim=[0,40]);
@@ -537,12 +542,10 @@ STL1_4state_Extended = ...
 [~,~,STL1_4state_Extended] = STL1_4state_Extended.solve;
 
 % Plot the results
-STL1_4state_Extended.plotFits([], "all", [], {'linewidth',2},...
+STL1_4state_Extended.plotFits(plotType="all", lineProps={'linewidth',2},...
     Title='4-state STL1', YLabel='Molecule Count',...
     LegendLocation='northeast', LegendFontSize=12);
 
-% TODO - need to update the plotting function to also allow for plots of
-% the upstream ODEs. This might be in the codes already.
 
 %%
 % close all
