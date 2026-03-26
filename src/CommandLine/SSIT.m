@@ -1536,7 +1536,7 @@ classdef SSIT
                 maxSize = []
                 opts.showPlot (1,1) logical = true
                 opts.Title (1,1) string = ""
-                opts.FontSize (1,1) double {mustBePositive} = 18
+                opts.FontSize (1,1) double {mustBePositive} = 24
                 opts.XLabel (1,1) string = "True counts"
                 opts.YLabel (1,1) string = "Observed counts"
                 opts.XLim double = []

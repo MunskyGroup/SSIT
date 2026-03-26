@@ -13,7 +13,7 @@ function [app,pdo] = generatePDO(app,paramsPDO,FSPoutputs,indsObserved,variableP
 %   Optional plotting arguments:
 %   * opts.showPlot - (logical), default: true
 %   * opts.Title - (string) 
-%   * opts.FontSize - (double), default: 18
+%   * opts.FontSize - (double), default: 26
 %   * opts.XLabel - (string), default: "True counts"
 %   * opts.YLabel - (string), default: "Observed counts"
 %   * opts.XLim - (double), default: []
@@ -33,7 +33,7 @@ arguments
     % Plotting opts (used only when showPlot==true)
     opts.showPlot (1,1) logical = true
     opts.Title (1,1) string = ""
-    opts.FontSize (1,1) double {mustBePositive} = 18
+    opts.FontSize (1,1) double {mustBePositive} = 26
     opts.XLabel (1,1) string = "True counts"
     opts.YLabel (1,1) string = "Observed counts"
     opts.XLim double = []
@@ -482,26 +482,29 @@ if opts.showPlot
         indsToPlot = indsObserved;
     end
 
-    % Only plot species with non-trivial matrices
+    % Only plot species with valid indices
     indsToPlot = indsToPlot(:)';
     indsToPlot = indsToPlot(indsToPlot >= 1 & indsToPlot <= nSpecies);
 
     % Make one figure with a tiled layout
     fg = figure;
     tl = tiledlayout(fg, 'flow');
+
+    % Overall title only
     if strlength(opts.Title) > 0
-        title(tl, opts.Title, 'FontSize', opts.FontSize);
+        title(tl,opts.Title, 'FontSize',opts.FontSize, 'FontWeight','bold');
     end
 
     for ii = 1:numel(indsToPlot)
         ispec = indsToPlot(ii);
         P = conditionalPmfs{ispec};
 
+        ax = nexttile;
+
         % Skip scalar/singleton PDOs
         if isempty(P) || (isscalar(P) && numel(P)==1)
-            nexttile;
-            axis off;
-            text(0.1, 0.5, sprintf('S%d: (trivial PDO)', ispec), 'FontSize', opts.FontSize);
+            axis(ax,'off');
+            text(ax,0.1,0.5,'(trivial PDO)','FontSize',opts.FontSize);
             continue
         end
 
@@ -509,32 +512,34 @@ if opts.showPlot
         Z = log10(max(P, realmin));
         Z = max(opts.CLim(1), min(opts.CLim(2), Z));  % clamp for nicer contrast
 
-        nexttile;
-        contourf(0:size(P,2)-1, 0:size(P,1)-1, Z, opts.Levels, 'LineColor','none');
-        colorbar;
-        xlabel(opts.XLabel);
-        ylabel(opts.YLabel);
+        h = contourf(ax, 0:size(P,2)-1, 0:size(P,1)-1, Z, ...
+            opts.Levels, 'LineColor','none', 'DisplayName','PDO');
 
-        if ~isempty(opts.XLim); xlim(opts.XLim); end
-        if ~isempty(opts.YLim); ylim(opts.YLim); end
+        xlabel(ax, opts.XLabel, 'FontSize', opts.FontSize);
+        ylabel(ax, opts.YLabel, 'FontSize', opts.FontSize);
 
-        set(gca, 'FontSize', max(10, round(0.8*opts.FontSize)));
+        if ~isempty(opts.XLim); xlim(ax, opts.XLim); end
+        if ~isempty(opts.YLim); ylim(ax, opts.YLim); end
 
-        % Per-panel title
+        set(ax, 'FontSize', max(10, round(0.8*opts.FontSize)));
+
+        % Only use per-panel title if no overall title was given
         if strlength(opts.Title) == 0
-            title(sprintf('PDO'), 'FontSize', opts.FontSize);
-        else
-            title(sprintf('S%d', ispec), 'FontSize', opts.FontSize);
+            title(ax, 'PDO', 'FontSize', opts.FontSize);
         end
 
-        % Use a colorbar label that will render reliably:       
-        C = colorbar;
-        C.Label.String = 'log_{10} C_{x \rightarrow y}';  % (string only; interpreter may be ignored in R2025b)
+        % Simple legend
+        legend('Location', 'northwest', 'FontSize', opts.FontSize);
+
+        % Colorbar
+        C = colorbar(ax);
+        C.Label.String = 'log_{10} C_{x \rightarrow y}';
         if isprop(C.Label,'Interpreter')
             C.Label.Interpreter = 'tex';
-        end                   
+        end
     end
 end
+
 if variablePDO
     app.FIMTabOutputs.distortionOperator = ssit.pdo.TensorProductDistortionOperator(conditionalPmfs(indsObserved),dCdLam(indsObserved,:));
 else
