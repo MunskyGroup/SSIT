@@ -604,8 +604,58 @@ STL1_4state_PDO_nuc = ...
      XLabel="Total mRNA counts", YLabel="Nuclear mRNA counts");
 
 
-%% 2.4.4 Multi Models
+%% 2.4.4 Multi Model
 
+% Generate library of individual gene models
+% Specify datafile name:
+DataFileName = 'data/Raw_DEX_UpRegulatedGenes_ForSSIT.csv';
+
+% Get name of each gene for species linking:
+TAB = readtable(DataFileName);
+geneNames = fields(TAB);
+geneNames = geneNames(2:end-4); % the genes are in columns 2 -> N-4
+
+if ~exist('seqModels','dir'); mkdir('seqModels'); end
+
+% Link species 'rna' to RNA count for each gene:
+for iGene = 1:length(geneNames)
+    linkedSpecies = {'rna',geneNames{iGene}};
+    Model = Model_Template.loadData(DataFileName,linkedSpecies);
+    modelName = ['Model_',geneNames{iGene}];
+    assignin('base',modelName,Model);
+    save(['seqModels/',modelName],modelName);
+end
+
+% Fit a multi-model for the four genes (constrain parameters of the 
+% upstream input signal):
+
+% Select which models to include in multimodel.
+Models = {Model_DUSP1,Model_RUNX1,Model_BIRC3,Model_TSC22D3};
+modelNames = {'Model_DUSP1','Model_RUNX1','Model_BIRC3','Model_TSC22D3'};
+
+% Define how parameters are assigned to sub-models (all genes are
+% assumed to use the same upstream signal, but have different gene bursting
+% parameters):
+ParInds = {[1,2,3:9],[1,2,7*1+(3:9)],[1,2,7*2+(3:9)],[1,2,7*3+(3:9)]};
+
+% Define constraint on model parameters (should be of similar
+% magnitudes for each gene unless otherwise demanded by the differences in
+% the data):
+Constraint = @(x) -var(log10([x(3:9);x(7*1+(3:9));x(7*2+(3:9));x(7*3+(3:9))]));
+
+% Create and initialize multimodel
+combinedModel = SSITMultiModel(Models, ParInds, Constraint);
+combinedModel = combinedModel.initializeStateSpaces();
+
+% Fit the multimodel:
+% Because there are a lot of parameters, this could take a few rounds to
+% get a good MLE. You should be able to get a best posterior of about XXX.
+fitOptions = optimset('Display','iter','MaxIter',1000);
+fitOptions.suppressExpansion = true;
+for i = 1:10
+    [~,~,~,combinedModel] = combinedModel.maximizeLikelihood([],fitOptions);
+    save('seqModels/CombinedModel4Genes','combinedModel');
+end
 
 
 %%%%%%%%%%%%%%%%%%%%%%%%% Nucleus:%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
