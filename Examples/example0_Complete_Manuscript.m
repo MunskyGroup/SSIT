@@ -285,6 +285,7 @@ nCellsOpt_DoptsubR = STL1_4state.optimizeCellCounts(fimResults,nTotal,...
 nCellsOpt_DoptsubI = STL1_4state.optimizeCellCounts(fimResults,nTotal,...
                                                     'D-opt-sub[14:18]');
 
+
 % Make a bar chart to compare the different designs
 % Find which x positions correspond to time=30 and time=60 for off-setting:
 t = STL1_4state.tSpan;
@@ -296,13 +297,14 @@ bar(x,  nCellsOpt_Dcov,         0.4);
 bar(x,  nCellsOpt_DoptsubI,     0.4);
 bar(x+0.2,  nCellsOpt_DoptsubR, 0.4);
 bar(x-0.2,  nCellsOpt_Doptsub,  0.4);
+bar(x,  nCellsOpt,  0.4);
 
 set(gca,'XTick',x,'XTickLabel',t,'FontSize',16)
 title('4-state STL1 (FIM Optimal Designs)','FontSize',24)
 xlabel('Time (min)','FontSize',20)
 ylabel('Number of cells','FontSize',20)
 legend('Trace Design','D-cov Design', 'D-opt-sub[14:18] Design',...
-        'D-opt-sub[9:13] Design', 'D-opt-sub[1:8] Design',...
+        'D-opt-sub[9:13] Design', 'D-opt-sub[1:8] Design', 'D-opt-sub[1:13]',...
         'Location', 'northeast')
 
 
@@ -687,16 +689,42 @@ for iGene = 1:4
 end
 
 
-%%%%%%%%%%%%%%%%%%%%%%%%% Nucleus:%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% FIM + PDO analyses
-%   * Analyze FIM with PDO for nuclear mRNA counts
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% 2.5 Pipeline Scripts
+% Save model for later use:
+saveFile = 'generatedModel.mat';
+save(saveFile,'STL1_4state')
 
-%% Intensity
-sig_log10 = 0.05*ones(1,15);
+% Call Pipeline to Fit Model
+% Specify pipeline to apply to model and arguments
+% ("../src/exampleData/examplePxipelines/fittingPipelineExample.m") 
+Pipeline = 'fittingPipelineExample';
+pipelineArgs.maxIter = 1000;
+pipelineArgs.display = 'iter';
+pipelineArgs.makePlot = false;
+
+% Get command to run job in background
+% Generate the command to run from terminal:
+cmd = SSIT.generateCommandLinePipeline(saveFile,'STL1_4state',...
+    Pipeline,pipelineArgs=pipelineArgs,saveFileOut=saveFile)
+
+
+%% BONUS: FIM + PDO analyses
+% Free parameters:
+freePars = 1:13;
+sig_log10 = 0.05*ones(1,13);
+
+% Make copy of our 4-state model for intensity measurements and load data:
+STL1_4state_intens = STL1_4state;
+STL1_4state_intens =STL1_4state_intens.loadData(...
+                        'data/filtered_data_2M_NaCl_Step.csv',...
+                       {'mRNA','STL1_avg_int_TS3Full'},...
+                       {'Replica',1;'Condition','0.2M_NaCl_Step'});
+
+% Make copy of our 4-state STL1 model:
+STL1_4state_PDO_intens = STL1_4state_intens;
+
+% Make parameter guess for Affine Poisson PDO and calibrate:
 parGuess = [0, 1500, 5];
-
-STL1_4state_PDO_intens = STL1_4state_PDO;
 STL1_4state_PDO_intens = STL1_4state_PDO_intens.calibratePDO( ...
     'data/filtered_data_2M_NaCl_Step.csv', {'mRNA'},...
     {'RNA_STL1_total_TS3Full'}, {'STL1_avg_int_TS3Full'}, 'AffinePoiss',...
@@ -704,20 +732,54 @@ STL1_4state_PDO_intens = STL1_4state_PDO_intens.calibratePDO( ...
     Title="4-state STL1 (Affine PDO: Average intensity)", FontSize=24,...
     XLabel="True mRNA counts",YLabel="Average intensities (binned)");
 
+% Compute the FIM sub matrices for free parameters:
+FIMintens = STL1_4state_intens.computeFIM([],'log',[],freePars);
+FIMintensPDO = STL1_4state_PDO_intens.computeFIM([],'log',[],freePars);
 
-fimsPDOintens = STL1_4state_PDO_intens.computeFIM([],'log');
-fimPDOintens = STL1_4state_PDO_intens.evaluateExperiment(fimsPDOintens,...
-                                          nCellsOpt_tr,diag(sig_log10.^2));
+% Get the number of cells using 'nCells' (same for both):
+nTotal = sum(STL1_4state_intens.dataSet.nCells);
 
-nCellsOptPDOintens = STL1_4state_PDO_intens.optimizeCellCounts(...
-                               fimsPDOintens,nTotal,'Smallest Eigenvalue');
+% Optimize cell count:
+nCellsOpt_intens = STL1_4state_intens.optimizeCellCounts(FIMintens,...
+                                                nTotal, 'D-opt-sub[1:13]');
+nCellsOpt_intensPDO = STL1_4state_PDO_intens.optimizeCellCounts(...
+                                  FIMintensPDO, nTotal, 'D-opt-sub[1:13]');
 
-figintens = figure;
-STL1_4state_PDO_intens.plotMHResults(STL1_4state_MH_MHResults,...
-                     [fimPDOintens,fimTotal,fimOpt_tr],'log',[],figintens);
+% Evaluate experiment:
+FIMintensopt = STL1_4state_intens.evaluateExperiment(FIMintens,...
+                     nCellsOpt_intens,diag(sig_log10.^2));
+FIMintensPDOopt = STL1_4state_PDO_intens.evaluateExperiment(...
+                    FIMintensPDO, nCellsOpt_intensPDO, diag(sig_log10.^2));
 
-%% Plot legend
-axs = findall(figintens, 'Type', 'axes');
+%%
+% Plot the FIMs (full):
+f20 = figure(20);
+f21 = figure(21);
+STL1_4state_intens.plotFIMResults(FIMintensopt, 'log',...
+    STL1_4state_intens.parameters, PlotEllipses=true, EllipseFigure=f20,...
+    EllipsePairs=[9 13; 4 13; 9 11; 10 11; 8 9; 12 13; 9 10; 10 12; 5 9], FigureHandle=f21,...
+    Colors=struct('EllipseColors',[0.2 0.6 0.9],...
+    'CenterSquare',[0.96,0.47,0.16]));
+
+% Plot the FIMs (free):
+f23 = figure(23);
+STL1_4state_PDO_intens.plotFIMResults(FIMintensPDOopt, 'log',...
+    STL1_4state_PDO_intens.parameters(1:13), PlotEllipses=true,...
+    EllipseFigure=f20, EllipsePairs=[9 13; 4 13; 9 11; 10 11; 8 9; 12 13; 9 10; 10 12; 5 9],...
+    FigureHandle=f23, Colors=struct('EllipseColors',[0 0 0],...
+    'CenterSquare',[0.96,0.47,0.16]));
+
+% Plot the FIMs (free):
+f24 = figure(24);
+STL1_4state.plotFIMResults(freeFIM, 'log',...
+    STL1_4state.parameters(1:13), PlotEllipses=true, EllipseFigure=f20,...
+    EllipsePairs=[9 13; 4 13; 9 11; 10 11; 8 9; 12 13; 9 10; 10 12; 5 9],FigureHandle=f24,...
+    Colors=struct('EllipseColors',[0.9 0.6 0.2],...
+    'CenterSquare',[0.96,0.47,0.16]));
+
+
+% Plot legend
+axs = findall(f20, 'Type', 'axes');
 ax  = axs(1);        
 hold(ax,'on');
 
@@ -725,8 +787,8 @@ hold(ax,'on');
 near = @(c,tol,tgt) (numel(c)==3) && all(abs(c(:)'-tgt)<=tol);
 isMagenta = @(c) near(c,0.15,[1 0 1]);
 isCyan    = @(c) near(c,0.15,[0 1 1]);
-isBlue    = @(c) near(c,0.15,[0 0 1]);
-isGreen   = @(c) near(c,0.15,[0 1 0]);
+isBlack    = @(c) near(c,0.15,[0 0 0]);
+isOrange   = @(c) near(c,0.15,[1 1 0]);
 
 % MCMC 90% credible interval (magenta dashed):
 hMHell = findobj(ax,'Type','line','LineStyle','--');
@@ -737,8 +799,8 @@ hFIM = findobj(ax,'Type','line','LineStyle','-');
 
 % Classify FIM ellipses by color:
 hFIM_cyan  = hFIM(arrayfun(@(h) isCyan(h.Color),  hFIM));
-hFIM_blue  = hFIM(arrayfun(@(h) isBlue(h.Color),  hFIM));
-hFIM_green = hFIM(arrayfun(@(h) isGreen(h.Color), hFIM));
+hFIM_black  = hFIM(arrayfun(@(h) isBlack(h.Color),  hFIM));
+hFIM_orange = hFIM(arrayfun(@(h) isOrange(h.Color), hFIM));
 
 % Find MCMC samples (scatter) and MLE (square marker):
 hSamples = findobj(ax,'Type','scatter');
@@ -753,13 +815,13 @@ L = []; names = {};
 if ~isempty(hSamples),L(end+1)=hSamples(1);names{end+1}='MH samples';end
 if ~isempty(hMLE),L(end+1)=hMLE(1); names{end+1}='MLE';end
 if ~isempty(hMHell),L(end+1)=hMHell(1);names{end+1}='MH 90% CI';end
-if ~isempty(hFIM_cyan),L(end+1)=hFIM_cyan(1);names{end+1}='FIM PDO';end
-if ~isempty(hFIM_blue),L(end+1)=hFIM_blue(1);names{end+1}='FIM total';end
-if ~isempty(hFIM_green),L(end+1)=hFIM_green(1);names{end+1}='FIM optimal';end
+if ~isempty(hFIM_cyan),L(end+1)=hFIM_cyan(1);names{end+1}='FIM (intens. with PDO)';end
+if ~isempty(hFIM_black),L(end+1)=hFIM_black(1);names{end+1}='FIM (intens. without PDO)';end
+if ~isempty(hFIM_orange),L(end+1)=hFIM_orange(1);names{end+1}='FIM (spot count)';end
 
 % Fallback: if color classification failed, just take first three FIM lines
 if numel(L)<5
-    remainingFIM = setdiff(hFIM, [hFIM_cyan; hFIM_blue; hFIM_green]);
+    remainingFIM = setdiff(hFIM, [hFIM_cyan; hFIM_black; hFIM_orange]);
     for k = 1:min(3, numel(remainingFIM))
         L(end+1) = remainingFIM(k);
         names{end+1} = sprintf('FIM #%d', k);
@@ -768,8 +830,3 @@ end
 
 lgd = legend(ax, L, names, 'Location','best');
 lgd.FontSize = 12;
-
-%% Pipeline
-% Brian will write a pipeline to fit 500 genes in the scSEQ data.  Jack is
-% working on compiling these now to create a simplified version of existing
-% data set.

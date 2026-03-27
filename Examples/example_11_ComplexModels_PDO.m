@@ -39,10 +39,6 @@ freePars = 1:13;
 % Compute the FIM sub matrix for free parameters:
 fimResults = STL1_4state_PDO.computeFIM([],'log',[],freePars);
 
-% Get the number of cells using 'nCells':
-cellCounts = ...
-    STL1_4state_PDO.dataSet.nCells*ones(size(STL1_4state_PDO.tSpan));
-
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Section 2.5: Complex models
 %   * Apply an Affine Poisson conditional probability distribution 
