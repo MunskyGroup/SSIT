@@ -480,8 +480,8 @@ scRNAseq.stoichiometry = [1,-1,0,0;0,0,1,-1];
 scRNAseq.inputExpressions = {'Iupstream',...
                                 'exp(-r1*t*(t>=0))*(1-exp(-r2*t*(t>=0)))'};
 scRNAseq.parameters = ({'r1',0.01; 'r2',0.1; 'kon_0',0.01;...
-                              'kon_1',0.01; 'koff_0',20; 'akoff',0.2;...
-                              'kr_0',1; 'kr_1',100; 'gr',1});
+                              'kon_1',0.01; 'koff_0',100; 'akoff',10;...
+                              'kr_0',1; 'kr_1',1500; 'gr',1});
 
 scRNAseq.fspOptions.initApproxSS = true;
 scRNAseq.fittingOptions.modelVarsToFit = 1:9;
@@ -656,6 +656,34 @@ fitOptions.suppressExpansion = true;
 for i = 1:10
     [~,~,~,combinedModel] = combinedModel.maximizeLikelihood([],fitOptions);
     save('seqModels/CombinedModel4Genes','combinedModel');
+end
+
+% Update upstream signal in all models, fix those parameters, and save
+for iGene = 1:length(geneNames)
+    modelName = ['Model_',geneNames{iGene}];
+    eval([modelName,'.parameters(:,2) = num2cell(combinedModel.parameters(1:9));']);
+    eval([modelName,'.fittingOptions.modelVarsToFit = 3:9;';]);
+    save(['seqModels/',modelName],modelName);
+end
+
+% Update the four models used in multimodel demo with multimodel-fitted
+%  parameters (Model_DUSP1, Model_RUNX1, Model_BIRC3, Model_TSC22D3):
+for iGene = 1:4
+    modelName = modelNames{iGene};
+
+    Models{iGene}.parameters(:,2) = ...
+        combinedModel.SSITModels{iGene}.parameters(:,2);
+
+    % Update the workspace variable Model_XXXX
+    assignin('base', modelName, Models{iGene});
+
+    % Save Model_XXXX into seqModels/Model_XXXX.mat
+    m = struct();
+    m.(modelName) = Models{iGene};
+    save(fullfile('seqModels',[modelName '.mat']),'-struct','m',modelName);
+
+    % Make fit plots:
+    Models{iGene}.makeFitPlot
 end
 
 
