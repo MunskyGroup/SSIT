@@ -1534,7 +1534,7 @@ classdef SSIT
                 fspSoln = []
                 variablePDO = []
                 maxSize = []
-                opts.showPlot (1,1) logical = true
+                opts.showPlot (1,1) logical = false
                 opts.Title (1,1) string = ""
                 opts.FontSize (1,1) double {mustBePositive} = 24
                 opts.XLabel (1,1) string = "True counts"

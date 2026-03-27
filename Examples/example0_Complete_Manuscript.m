@@ -583,7 +583,8 @@ scRNAseq.pdoOptions.type = 'Binomial';
 scRNAseq.pdoOptions.unobservedSpecies = 'onGene';
 scRNAseq.pdoOptions.props.CaptureProbabilityS1 = 0;    % Gene State is not measured
 scRNAseq.pdoOptions.props.CaptureProbabilityS2 = 0.05; % 95% drop out from RNA
-[~,scRNAseq] = scRNAseq.generatePDO(Title='RNA Seq (Binomial PDO: 95% Drop Out)');
+[~,scRNAseq] = scRNAseq.generatePDO(showPlot=true,...
+    Title='RNA Seq (Binomial PDO: 95% Drop Out)');
 
 % Make a copy of our 4-state STL1 model:
 STL1_4state_PDO = STL1_4state_MH;

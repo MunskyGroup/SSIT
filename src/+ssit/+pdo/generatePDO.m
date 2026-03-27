@@ -11,7 +11,7 @@ function [app,pdo] = generatePDO(app,paramsPDO,FSPoutputs,indsObserved,variableP
 %   * maxSize - ()
 %
 %   Optional plotting arguments:
-%   * opts.showPlot - (logical), default: true
+%   * opts.showPlot - (logical), default: false
 %   * opts.Title - (string) 
 %   * opts.FontSize - (double), default: 26
 %   * opts.XLabel - (string), default: "True counts"
@@ -31,7 +31,7 @@ arguments
     variablePDO = false
     maxSize = []
     % Plotting opts (used only when showPlot==true)
-    opts.showPlot (1,1) logical = true
+    opts.showPlot (1,1) logical = false
     opts.Title (1,1) string = ""
     opts.FontSize (1,1) double {mustBePositive} = 26
     opts.XLabel (1,1) string = "True counts"
