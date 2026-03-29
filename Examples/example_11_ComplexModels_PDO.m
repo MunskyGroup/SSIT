@@ -2,7 +2,7 @@
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Section 2.4: Complex models
-%   * Use a probability distribution operator (PDO) to handle distortion 
+%   * Use probability distribution operators (PDOs) to handle distortion 
 %     of data
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -24,6 +24,7 @@
 % example_10_LoadingandFittingData_MH
 
 %% Load pre-run results:
+% load('example_7_FIM.mat')
 % load('example_10_LoadingandFittingData_MH.mat')
 
 % View model summary:
@@ -31,70 +32,6 @@ STL1_4state_MH.summarizeModel
 
 % Create a copy of the STL1 model for PDO:
 STL1_4state_PDO = STL1_4state_MH;
-
-% Define indices of free parameters for FIM sub matrix. Here, Hog1 input 
-% parameters are experimentally known (thus fixed) and all others are free:
-freePars = 1:13;
-
-% Compute the FIM sub matrix for free parameters:
-fimResults = STL1_4state_PDO.computeFIM([],'log',[],freePars);
-
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Section 2.5: Complex models
-%   * Apply an Affine Poisson conditional probability distribution 
-%     operator (PDO) to transform parameter probabilities computed   
-%     from average intensity data according to parameter probabilities 
-%     computed from mRNA spot count data
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-figNew = figure;
-plotColors = struct('scatter', [0.2, 0.6, 1], ...
-           'ellipseFIM', 'r', ...
-           'ellipseMH', 'g--', ...
-           'marker', [0.1, 0.1, 0.1]);
-
-sig_log10 = 2*ones(1,13);
-
-fimTotal = STL1_4state_PDO.evaluateExperiment(fimResults,...
-           STL1_4state_PDO.dataSet.nCells,diag(sig_log10.^2));
-
-STL1_4state_PDO.plotMHResults(STL1_4state_MHResults,FIM=fimTotal,...
-                              fimScale='log',scatterFig=figNew,...
-                              plotColors=plotColors)
-
-% Find and store the total number of cells in your data set (already
-% computed by SSIT when data was loaded in 
-% example_8_LoadingandFittingData_DataLoading:
-nTotal = sum(STL1_4state_PDO.dataSet.nCells);
-
-%% Compute the optimal number of cells from the FIM results using the min. 
-% inv determinant <x^{-1}> (all other parameters are known and fixed)
-nCellsOpt = STL1_4state_PDO.optimizeCellCounts(fimResults,nTotal,'E-opt');
- 
-nCellsOptAvail = min(nCellsOpt,STL1_4state_PDO.dataSet.nCells)
-
-fimOpt = STL1_4state_PDO.evaluateExperiment(fimResults, nCellsOpt,...
-                                            diag(sig_log10.^2));
-
-fimOptAvail = STL1_4state_PDO.evaluateExperiment(fimResults,...
-                                    nCellsOptAvail, diag(sig_log10.^2));
-figOpt = figure;
-STL1_4state_PDO.plotMHResults(STL1_4state_MHResults, fimScale='log',...
-                              FIM=[fimOpt,fimTotal], scatterFig=figOpt,...
-                              plotColors=plotColors);
-figOptAvail = figure;
-STL1_4state_PDO.plotMHResults(STL1_4state_MHResults,...
-                            FIM=[fimOptAvail,fimTotal], fimScale='log',...
-                            scatterFig=figOptAvail, plotColors=plotColors);
- 
-f = figure;
-set(f,'Position',[616   748   412   170])
-bar([1:size(nCellsOpt,2)],nTotal,0.45)
-hold on
-bar([1:size(nCellsOpt,2)]+0.5,nCellsOpt,0.45)
-set(gca,'xtick',[1:size(nCellsOpt,2)]+0.25,'xticklabel',...
-    STL1_4state_PDO.dataSet.times,'fontsize',16,'ylim',[0,7000])
-legend('Intuitive Design','Optimal Design')
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% PDO Calculations
@@ -135,8 +72,7 @@ STL1_4state_PDO_nuc = ...
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Make guesses for the PDO hyperparameters λ, in this case: λ₁, λ₂, λ₃
 % Model: μ(x) = max(λ₁, λ₂ + λ₃·x)
-% Soon: Neural networks and hierarchical Bayes may be used to estimate λ
-parGuess = [0, 2500, 5];
+parGuess = [0, 2000, 0];
 
 STL1_4state_PDO_intens = STL1_4state_PDO;
 STL1_4state_PDO_intens = STL1_4state_PDO_intens.calibratePDO( ...
@@ -148,119 +84,67 @@ STL1_4state_PDO_intens = STL1_4state_PDO_intens.calibratePDO( ...
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% FIM + PDO analyses
-%   * Ex(1): Analyze FIM with PDO for cytoplasmic & nuclear mRNA counts
+%   * Analyze FIM with PDO for cytoplasmic & nuclear mRNA counts
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Free parameters:
+freePars = 1:13;
+sig_log10 = 0.1*ones(1,13);
+
+% Get the number of cells using 'nCells' (same for both):
+nTotal = sum(STL1_4state_PDO.dataSet.nCells);
 
 % Cytoplasm:
-fimsPDO_cyt = STL1_4state_PDO_cyt.computeFIM([],'log');
+fimsPDO_cyt = STL1_4state_PDO_cyt.computeFIM([],'log',[],freePars);
+nCellsOptPDO_cyt = STL1_4state_PDO_cyt.optimizeCellCounts(fimsPDO_cyt,...
+                                                nTotal, 'Trace');
 fimPDO_cyt = STL1_4state_PDO_cyt.evaluateExperiment(fimsPDO_cyt,...
-                                            nCellsOpt, diag(sig_log10.^2));
-
-nCellsOptPDO_cyt = STL1_4state_PDO_cyt.optimizeCellCounts(...
-                         fimsPDO_cyt, nTotal, 'E-opt');
-figPDO_cyt = figure;
-STL1_4state_PDO_cyt.plotMHResults(STL1_4state_MHResults, fimScale='log',...
-                  FIM=[fimPDO_cyt,fimTotal,fimOpt], scatterFig=figPDO_cyt);
+                                     nCellsOptPDO_cyt, diag(sig_log10.^2));
 
 % Nucleus:
-fimsPDO_nuc = STL1_4state_PDO_nuc.computeFIM([],'log');
+fimsPDO_nuc = STL1_4state_PDO_nuc.computeFIM([],'log',[],freePars);
+nCellsOptPDO_nuc = STL1_4state_PDO_nuc.optimizeCellCounts(fimsPDO_nuc,...
+                                                nTotal, 'Trace');
 fimPDO_nuc = STL1_4state_PDO_nuc.evaluateExperiment(fimsPDO_nuc,...
-                                            nCellsOpt, diag(sig_log10.^2));
+                                     nCellsOptPDO_nuc, diag(sig_log10.^2));
 
-nCellsOptPDO_nuc = STL1_4state_PDO_nuc.optimizeCellCounts(...
-                       fimsPDO_nuc, nTotal, 'E-opt');
-figPDO_nuc = figure;
-STL1_4state_PDO_nuc.plotMHResults(STL1_4state_MHResults, fimScale='log',...
-                  FIM=[fimPDO_nuc,fimTotal,fimOpt], scatterFig=figPDO_nuc);
+% Plot the FIMs (cyt):
+f20 = figure(20);
+f21 = figure(21);
+STL1_4state_PDO_cyt.plotFIMResults(fimPDO_cyt, 'log',...
+    STL1_4state_PDO_cyt.parameters, PlotEllipses=true, EllipseFigure=f20,...
+    EllipsePairs=[9 13; 4 13; 9 11; 10 11; 8 9; 12 13; 9 10; 10 12; 5 9],...
+    FigureHandle=f21, Colors=struct('EllipseColors',[0.2 0.6 0.9],...
+    'CenterSquare',[0.96,0.47,0.16]));
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%   * Ex(2): Analyze FIM with PDO for average intensity data
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-fimsPDOintens = STL1_4state_PDO_intens.computeFIM([],'log');
-fimPDOintens = STL1_4state_PDO_intens.evaluateExperiment(fimsPDOintens,...
-                                            nCellsOpt,diag(sig_log10.^2));
+% Plot the FIMs (nuc):
+f23 = figure(23);
+STL1_4state_PDO_nuc.plotFIMResults(fimPDO_nuc, 'log',...
+    STL1_4state_PDO_nuc.parameters(1:13), PlotEllipses=true,...
+    EllipseFigure=f20, FigureHandle=f23,...
+    EllipsePairs=[9 13; 4 13; 9 11; 10 11; 8 9; 12 13; 9 10; 10 12; 5 9],...
+    Colors=struct('EllipseColors',[0 0 0],'CenterSquare',[0.96,0.47,0.16]));
 
-nCellsOptPDOintens = STL1_4state_PDO_intens.optimizeCellCounts(...
-                           fimsPDOintens,nTotal,'E-opt');
-
-figintens = figure;
-STL1_4state_PDO_intens.plotMHResults(STL1_4state_MHResults,...
-   FIM=[fimPDOintens,fimTotal,fimOpt],fimScale='log',scatterFig=figintens);
-
-%% Plot legend
-axs = findall(figPDO_cyt, 'Type', 'axes');
-ax  = axs(1);        
-hold(ax,'on');
-
-% Helpers:
-near = @(c,tol,tgt) (numel(c)==3) && all(abs(c(:)'-tgt)<=tol);
-isMagenta = @(c) near(c,0.15,[1 0 1]);
-isCyan    = @(c) near(c,0.15,[0 1 1]);
-isBlue    = @(c) near(c,0.15,[0 0 1]);
-isGreen   = @(c) near(c,0.15,[0 1 0]);
-
-% MCMC 90% credible interval (magenta dashed):
-hMHell = findobj(ax,'Type','line','LineStyle','--');
-hMHell = hMHell(arrayfun(@(h) isMagenta(h.Color), hMHell));
-
-% FIM ellipses (solid lines):
-hFIM = findobj(ax,'Type','line','LineStyle','-');
-
-% Classify FIM ellipses by color:
-hFIM_cyan  = hFIM(arrayfun(@(h) isCyan(h.Color),  hFIM));
-hFIM_blue  = hFIM(arrayfun(@(h) isBlue(h.Color),  hFIM));
-hFIM_green = hFIM(arrayfun(@(h) isGreen(h.Color), hFIM));
-
-% Find MCMC samples (scatter) and MLE (square marker):
-hSamples = findobj(ax,'Type','scatter');
-if isempty(hSamples)
-    cand = findobj(ax,'Type','line','Marker','o');
-    hSamples = cand(~arrayfun(@(h) strcmp(get(h,'MarkerFaceColor'),'none'), cand));
-end
-hMLE = findobj(ax,'Type','line','Marker','s');
-
-% Build legend in a sensible order:
-L = []; names = {};
-if ~isempty(hSamples),L(end+1)=hSamples(1);names{end+1}='MCMC samples';end
-if ~isempty(hMLE),L(end+1)=hMLE(1); names{end+1}='MLE';end
-if ~isempty(hMHell),L(end+1)=hMHell(1);names{end+1}='MCMC 90% CI';end
-if ~isempty(hFIM_cyan),L(end+1)=hFIM_cyan(1);names{end+1}='FIM PDO';end
-if ~isempty(hFIM_blue),L(end+1)=hFIM_blue(1);names{end+1}='FIM total';end
-if ~isempty(hFIM_green),L(end+1)=hFIM_green(1);names{end+1}='FIM optimal';end
-
-% Fallback: if color classification failed, just take first three FIM lines
-if numel(L)<5
-    remainingFIM = setdiff(hFIM, [hFIM_cyan; hFIM_blue; hFIM_green]);
-    for k = 1:min(3, numel(remainingFIM))
-        L(end+1) = remainingFIM(k);
-        names{end+1} = sprintf('FIM #%d', k);
-    end
-end
-
-lgd = legend(ax, L, names, 'Location','best');
-lgd.FontSize = 12;
+% Plot the FIMs (free):
+f24 = figure(24);
+STL1_4state_FIM.plotFIMResults(STL1_4state_fimTotal_free, 'log',...
+    STL1_4state_FIM.parameters(1:13), PlotEllipses=true, EllipseFigure=f20,...
+    EllipsePairs=[9 13; 4 13; 9 11; 10 11; 8 9; 12 13; 9 10; 10 12; 5 9],...
+    FigureHandle=f24, Colors=struct('EllipseColors',[0.9 0.6 0.2],...
+    'CenterSquare',[0.96,0.47,0.16]));
 
 
 %% Save PDO models + results:
 saveNames = unique({'STL1_4state_PDO'
-    'fimTotal'
-    'nTotal'
-    'nCellsOpt'
-    'nCellsOptAvail'
-    'fimOpt'
-    'fimOptAvail'
     'STL1_4state_PDO_cyt'
     'STL1_4state_PDO_nuc'
     'STL1_4state_PDO_intens'
     'fimsPDO_cyt'
     'fimsPDO_nuc'
-    'fimsPDOintens'
     'fimPDO_cyt'
     'fimPDO_nuc'
-    'fimPDOintens'
     'nCellsOptPDO_cyt'
     'nCellsOptPDO_nuc'
-    'nCellsOptPDOintens'
     });
     
 save('example_15_PDO',saveNames{:})
