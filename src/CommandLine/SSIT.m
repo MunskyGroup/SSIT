@@ -151,6 +151,8 @@ classdef SSIT
         % Chosen sets of solution schemes to get and store (choose members
         % from ('FSP','SSA','ode').  Default is empty.
         odeIntegrator = 'ode23s'
+        % Normalized initial conditions y0 = [P',S'] for Sensitivity Sol'n
+        y0 = [];
         % Chosen integrator for ODEs {'ode23s' (default), 'ode15s', 'ode45'}.
         solutionSchemes = {};
         % Settings for model reduction tools
@@ -2204,7 +2206,8 @@ classdef SSIT
                         obj.useHybrid,obj.hybridOptions,...
                         obj.fspConstraints.fEscape,obj.fspConstraints.bEscape,...
                         obj.fspOptions.constantJacobian,obj.fspOptions.constantJacobianTime,...
-                        obj.odeIntegrator);
+                        obj.odeIntegrator,...
+                        obj.y0);
                     %                     app.SensFspTabOutputs.solutions = Solution.sens;
                     %                     app.SensPrintTimesEditField.Value = mat2str(obj.tSpan);
                     %                     Solution.plotable = exportSensResults(app);

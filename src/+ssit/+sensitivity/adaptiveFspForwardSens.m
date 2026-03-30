@@ -12,7 +12,8 @@ function [outputs, constraintBounds, stateSpace] = adaptiveFspForwardSens(output
     stateSpace, ...
     initApproxSS, ...
     useReducedModel,...
-    odeIntegrator)
+    odeIntegrator,...
+    y0)
 arguments
     outputTimes
     initialStates
@@ -36,6 +37,7 @@ arguments
     initApproxSS = false;
     useReducedModel = false;
     odeIntegrator = 'ode23s';
+    y0 = [];
 end
 % Compute and outputs the solution and sensitivitiy vectors of the CME at the user-input timepoints.
 %
@@ -241,11 +243,17 @@ while (tNow < tFinal)
         %     y0(JnotSinks) = eigVec/sum(eigVec);
         % end
     else
-        y0 = zeros(length(probabilityVec)*(parameterCount+1), 1);
-        y0(1:stateCount+constraintCount) = probabilityVec;
-        for j = 1:parameterCount
-            y0(j*(stateCount+constraintCount)+1:(j+1)*(stateCount+constraintCount)) = ...
-                sensitivityVecs(:,j);
+        % QUESTION  - Is this the right place to put this y0 check? earlier
+        % for initApproxSS case?
+
+        % Conditional definition of y0 to allow for y0 passthrough
+        if isempty(y0)
+            y0 = zeros(length(probabilityVec)*(parameterCount+1), 1);
+            y0(1:stateCount+constraintCount) = probabilityVec;
+            for j = 1:parameterCount
+                y0(j*(stateCount+constraintCount)+1:(j+1)*(stateCount+constraintCount)) = ...
+                    sensitivityVecs(:,j);
+            end
         end
     end
 
