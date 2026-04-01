@@ -98,6 +98,8 @@ jobs:
         run: node scripts/aggregate.js
 
       - name: Commit Changes
+        env:
+          TOKEN: ${{ secrets.PAT_TOKEN }}
         run: |
           git config user.name "automation-bot"
           git config user.email "bot@users.noreply.github.com"
