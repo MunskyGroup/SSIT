@@ -99,12 +99,12 @@ jobs:
 
       - name: Commit Changes
         env:
-          TOKEN: ${{ secrets.PAT_TOKEN }}
+          TOKEN: ${{ secrets.PAT_TOKEN_SSIT_BOT }}
         run: |
           git config user.name "automation-bot-SSIT"
           git config user.email "brian.munsky+automation-bot@gmail.com"
           git add .
           git commit -m "Update traffic stats" || echo "No changes"
           
-          git remote set-url origin https://${{ secrets.PAT_TOKEN }}@github.com/MunskyGroup/SSIT.git
+          git remote set-url origin https://${{ secrets. }}@github.com/MunskyGroup/SSIT.git
           git push
