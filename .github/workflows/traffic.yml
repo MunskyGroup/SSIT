@@ -6,21 +6,24 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: write  # required for checkout & file operations
 
 jobs:
   collect:
     runs-on: ubuntu-latest
 
     steps:
+      # Step 1: Checkout the repository
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      # Step 2: Setup Node.js
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
           node-version: 20
 
+      # Step 3: Fetch traffic data
       - name: Fetch Traffic Data
         env:
           GH_TRAFFIC_TOKEN: ${{ secrets.GH_TRAFFIC_TOKEN }}
@@ -28,16 +31,13 @@ jobs:
           TOKEN="${GH_TRAFFIC_TOKEN}"
           if [ -z "$TOKEN" ]; then
             echo "Error: GH_TRAFFIC_TOKEN is required for GitHub Traffic API access." >&2
-            echo "Set repo secret GH_TRAFFIC_TOKEN to a PAT from a user with push access to this repo." >&2
             exit 1
           fi
 
           fetch_traffic() {
             local url="$1"
             local outFile="$2"
-            local httpCode
-            local responseFile
-            responseFile="${outFile}.tmp"
+            local responseFile="${outFile}.tmp"
 
             httpCode=$(curl -sSL \
               -H "Authorization: Bearer ${TOKEN}" \
@@ -55,56 +55,46 @@ jobs:
             echo "GitHub Traffic API request failed (${httpCode}) for ${url}" >&2
             cat "${responseFile}" >&2 || true
             rm -f "${responseFile}"
-
-            if [ "$httpCode" = "401" ]; then
-              echo "Token is invalid or expired. Regenerate GH_TRAFFIC_TOKEN." >&2
-            elif [ "$httpCode" = "403" ]; then
-              echo "Token is valid but cannot access traffic insights." >&2
-              echo "For fine-grained PATs, grant repository permission: Administration (read)." >&2
-              echo "Also ensure the token owner has push access and authorize SSO for the token if your org enforces SAML." >&2
-            fi
-
             exit 1
           }
 
           fetch_traffic "https://api.github.com/repos/${{ github.repository }}/traffic/clones" "clones.json"
           fetch_traffic "https://api.github.com/repos/${{ github.repository }}/traffic/views" "views.json"
 
+      # Step 4: Validate and merge traffic data
       - name: Validate and Merge Traffic Data
         run: |
           node -e '
           const fs = require("fs");
           const clones = JSON.parse(fs.readFileSync("clones.json", "utf8"));
           const views = JSON.parse(fs.readFileSync("views.json", "utf8"));
-          if (!Array.isArray(clones.clones)) {
-            throw new Error("clones.json missing clones array");
-          }
-          if (!Array.isArray(views.views)) {
-            throw new Error("views.json missing views array");
-          }
+          if (!Array.isArray(clones.clones)) throw new Error("clones.json missing clones array");
+          if (!Array.isArray(views.views)) throw new Error("views.json missing views array");
           fs.mkdirSync("data", { recursive: true });
           const date = new Date().toISOString().slice(0, 10);
-          fs.writeFileSync(
-            `data/traffic-${date}.json`,
-            JSON.stringify({ clones: clones.clones, views: views.views }, null, 2)
-          );
+          fs.writeFileSync(`data/traffic-${date}.json`,
+            JSON.stringify({ clones: clones.clones, views: views.views }, null, 2));
           '
 
+      # Step 5: Clean temporary files
       - name: Save Historical Data
-        run: |
-          rm -f clones.json views.json
+        run: rm -f clones.json views.json
 
+      # Step 6: Update README stats
       - name: Update README Stats
         run: node scripts/aggregate.js
 
+      # Step 7: Commit & push changes using the bot PAT
       - name: Commit Changes
         env:
-          TOKEN: ${{ secrets.PAT_TOKEN_SSIT_BOT }}
+          BOT_TOKEN: ${{ secrets.PAT_TOKEN_SSIT_BOT }}
         run: |
           git config user.name "automation-bot-SSIT"
           git config user.email "brian.munsky+automation-bot@gmail.com"
+
           git add .
           git commit -m "Update traffic stats" || echo "No changes"
-          
-          git remote set-url origin https://${{ secrets.PAT_TOKEN_SSIT_BOT }}@github.com/MunskyGroup/SSIT.git
-          git push
+
+          # Use PAT to push to main
+          git remote set-url origin https://$BOT_TOKEN@github.com/MunskyGroup/SSIT.git
+          git push origin main
