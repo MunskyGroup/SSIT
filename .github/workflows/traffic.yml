@@ -106,5 +106,5 @@ jobs:
           git add .
           git commit -m "Update traffic stats" || echo "No changes"
           
-          git remote set-url origin https://${{ secrets. }}@github.com/MunskyGroup/SSIT.git
+          git remote set-url origin https://${{ secrets.PAT_TOKEN_SSIT_BOT }}@github.com/MunskyGroup/SSIT.git
           git push
