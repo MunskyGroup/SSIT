@@ -101,8 +101,8 @@ jobs:
         env:
           TOKEN: ${{ secrets.PAT_TOKEN }}
         run: |
-          git config user.name "automation-bot"
-          git config user.email "bot@users.noreply.github.com"
+          git config user.name "automation-bot-SSIT"
+          git config user.email "brian.munsky+automation-bot@gmail.com"
           git add .
           git commit -m "Update traffic stats" || echo "No changes"
           
