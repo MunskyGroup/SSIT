@@ -8,7 +8,7 @@ Authors: Alex Popinga, Jack Forman, Dmitri Svetlov, Huy Vo, Joshua Cook, Eric Ro
 
 The SSIT allows users to specify and solve the **Chemical Master Equation** (CME) for discrete stochastic models, especially those used for the analysis of single-cell gene regulaton.  
 
-To learn more about the capabilities and use of the SSIT, please read our pre-print on the [bioRxiv!](https://www.biorxiv.org/content/10.64898/2026.02.20.707039v2)
+**[To learn more about the capabilities and use of the SSIT, please read our pre-print on the bioRxiv!](https://www.biorxiv.org/content/10.64898/2026.02.20.707039v2)**
 
 Functionality includes:
   
