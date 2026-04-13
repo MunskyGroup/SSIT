@@ -1213,20 +1213,22 @@ classdef SSIT
                     end
                     obj.stoichiometry(specNum,rxnNum) = specChange;
                 end
-                for iPar = 1:size(newRxn(iRxn).parameters,1)
-                    parName = newRxn(iRxn).parameters{iPar,1};
-                    parValue = newRxn(iRxn).parameters{iPar,2};
-                    if ~isempty(obj.parameters)
-                        parNum = find(strcmp(obj.parameters(:,1),parName));
-                    else
-                        parNum=[];
-                    end
-                    if isempty(parNum)
-                        disp(['Adding parameter ',parName,' with value ',num2str(parValue)]);
-                        obj = obj.addParameter({parName,parValue});
-                    else
-                        disp(['Updating parameter ',parName,' to new value ',num2str(parValue)]);
-                        obj.parameters{parNum,2} = parValue;
+                if isfield(newRxn(iRxn),'parameters')
+                    for iPar = 1:size(newRxn(iRxn).parameters,1)
+                        parName = newRxn(iRxn).parameters{iPar,1};
+                        parValue = newRxn(iRxn).parameters{iPar,2};
+                        if ~isempty(obj.parameters)
+                            parNum = find(strcmp(obj.parameters(:,1),parName));
+                        else
+                            parNum=[];
+                        end
+                        if isempty(parNum)
+                            disp(['Adding parameter ',parName,' with value ',num2str(parValue)]);
+                            obj = obj.addParameter({parName,parValue});
+                        else
+                            disp(['Updating parameter ',parName,' to new value ',num2str(parValue)]);
+                            obj.parameters{parNum,2} = parValue;
+                        end
                     end
                 end
             end
