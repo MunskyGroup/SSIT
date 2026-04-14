@@ -14,7 +14,7 @@ function [sens,constraintBounds, stateSpace] = computeSensitivity(...
     fEscape,bEscape,...
     constantJacobian,constantJacobianTime,...
     odeIntegrator, ...
-    y0)
+    initialSensitivities)
 arguments
     parameters
     propensitiesGeneral
@@ -44,8 +44,8 @@ arguments
     bEscape = []
     constantJacobian = false
     constantJacobianTime = NaN
-    odeIntegrator = 'ode23s';
-    y0 = [];
+    odeIntegrator = 'ode23s'
+    initialSensitivities = [];
 end
 
 app.SensParDropDown.Items = parameters(:,1);
@@ -60,7 +60,13 @@ if (strcmp(method, 'forward'))
         computableSensitivities = ones(1,n_pars,'logical');
         relTol=1.0e-10 ;
         absTol=1.0e-6 ;
-        initialSensitivities = zeros(size(initialStates,2)*n_pars);
+        % Defining an empty initial sensitivities matrix if none was provided
+        if isempty(initialSensitivities)
+            % Note that a provided sensitivity vector should be of these
+            % dimensions: [(# of States), (# of Params)]
+            stateCount = stateSpace.getNumStates()
+            initialSensitivities = zeros(stateCount,n_pars);
+        end
         [Outputs,constraintBounds,stateSpace] = ssit.sensitivity.adaptiveFspForwardSens(tout, initialStates,...
             initialProbabilities, initialSensitivities,...
             stoichMatrix,...
@@ -71,8 +77,7 @@ if (strcmp(method, 'forward'))
             verbose, useMex, relTol, absTol, stateSpace, ...
             initApproxSS, ...
             useReducedModel, ...
-            odeIntegrator, ...
-            y0);
+            odeIntegrator);
 
         sens = struct(...
             'format', 'forward',...

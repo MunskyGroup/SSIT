@@ -144,6 +144,8 @@ classdef SSIT
         initialProbs = 1;
         % Initial time, default: 0;
         initialTime = 0;
+        % Initial sensitivity, default: [] (empty);
+        initialSensitivities = [];
         % Times at which to find solutions, default: linspace(0,10,21);
         tSpan = linspace(0,10,21);
         % Chosen solution scheme ('FSP','SSA','ode'), default: 'FSP'
@@ -151,8 +153,6 @@ classdef SSIT
         % Chosen sets of solution schemes to get and store (choose members
         % from ('FSP','SSA','ode').  Default is empty.
         odeIntegrator = 'ode23s'
-        % Normalized initial conditions y0 = [P',S'] for Sensitivity Sol'n
-        y0 = [];
         % Chosen integrator for ODEs {'ode23s' (default), 'ode15s', 'ode45'}.
         solutionSchemes = {};
         % Settings for model reduction tools
@@ -2207,7 +2207,7 @@ classdef SSIT
                         obj.fspConstraints.fEscape,obj.fspConstraints.bEscape,...
                         obj.fspOptions.constantJacobian,obj.fspOptions.constantJacobianTime,...
                         obj.odeIntegrator,...
-                        obj.y0);
+                        obj.initialSensitivities);
                     %                     app.SensFspTabOutputs.solutions = Solution.sens;
                     %                     app.SensPrintTimesEditField.Value = mat2str(obj.tSpan);
                     %                     Solution.plotable = exportSensResults(app);

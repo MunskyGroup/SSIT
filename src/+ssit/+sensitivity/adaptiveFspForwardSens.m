@@ -12,8 +12,7 @@ function [outputs, constraintBounds, stateSpace] = adaptiveFspForwardSens(output
     stateSpace, ...
     initApproxSS, ...
     useReducedModel,...
-    odeIntegrator,...
-    y0)
+    odeIntegrator)
 arguments
     outputTimes
     initialStates
@@ -37,7 +36,6 @@ arguments
     initApproxSS = false;
     useReducedModel = false;
     odeIntegrator = 'ode23s';
-    y0 = [];
 end
 % Compute and outputs the solution and sensitivitiy vectors of the CME at the user-input timepoints.
 %
@@ -108,9 +106,11 @@ parameterCount = sum(computableSensitivities);
 % if (reactionCount ~= size(propensityDerivatives,1))
 %     error('Number of rows of propensityDerivatives cell must be the same as number of propensities');
 % end
-if (size(initialProbabilities, 1)*parameterCount ~= size(initialSensitivities,1))
-    error('Input probabilities and sensitivities must have compatible size.');
-end
+
+% THIS CHECK IS NO LONGER RELEVANT - Wren 4/13/26
+% if (size(initialProbabilities, 1)*parameterCount ~= size(initialSensitivities,2))
+%     error('Input probabilities and sensitivities must have compatible size.');
+% end
 
 tFinal = max(outputTimes);
 tOutputCount = length(outputTimes);
@@ -145,12 +145,22 @@ for j=1:size(initialStates,2)
 end
 probabilityVec(J) = initialProbabilities;
 
-sensitivityVecs = zeros((stateCount + constraintCount)*parameterCount, 1);
+% PAST METHOD FOR SENS VEC CONSTRUCTION
+% sensitivityVecs = zeros((stateCount + constraintCount)*parameterCount, 1);
+% for i = 1:parameterCount
+%     sensitivityVecs(1 + (i-1)*length(initialProbabilities):i*length(initialProbabilities)) ...
+%         = initialSensitivities(1 + (i-1)*length(initialProbabilities):i*length(initialProbabilities));
+% end
+% sensitivityVecs = reshape(sensitivityVecs, stateCount + constraintCount, parameterCount);
+% NOTE - this method places paramCount*constraintCount zeros all at the end
+% of the combined matrix instead of at the end of each sensitivity vector,
+% displacing data
+
+% NEW METHOD FOR SENS VEC CONSTRUCTION - Wren 04/13/26
+sensitivityVecs = zeros(stateCount+constraintCount, parameterCount);
 for i = 1:parameterCount
-    sensitivityVecs(1 + (i-1)*length(initialProbabilities):i*length(initialProbabilities)) ...
-        = initialSensitivities(1 + (i-1)*length(initialProbabilities):i*length(initialProbabilities));
+    sensitivityVecs(1:stateCount,i) = initialSensitivities(:,i);
 end
-sensitivityVecs = reshape(sensitivityVecs, stateCount + constraintCount, parameterCount);
 
 tInit =min(outputTimes);
 tNow = tInit;
@@ -246,14 +256,12 @@ while (tNow < tFinal)
         % QUESTION  - Is this the right place to put this y0 check? earlier
         % for initApproxSS case?
 
-        % Conditional definition of y0 to allow for y0 passthrough
-        if isempty(y0)
-            y0 = zeros(length(probabilityVec)*(parameterCount+1), 1);
-            y0(1:stateCount+constraintCount) = probabilityVec;
-            for j = 1:parameterCount
-                y0(j*(stateCount+constraintCount)+1:(j+1)*(stateCount+constraintCount)) = ...
-                    sensitivityVecs(:,j);
-            end
+        % Construction of y0 vector
+        y0 = zeros(length(probabilityVec)*(parameterCount+1), 1);
+        y0(1:stateCount+constraintCount) = probabilityVec;
+        for j = 1:parameterCount
+            y0(j*(stateCount+constraintCount)+1:(j+1)*(stateCount+constraintCount)) = ...
+                sensitivityVecs(:,j);
         end
     end
 
