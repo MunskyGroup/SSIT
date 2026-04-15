@@ -5575,9 +5575,14 @@ end
                 
                             grid on; box on;
                         end
-                
-                        sgtitle(sprintf('Marginal Distributions — %s', selNames{jj}), ...
+                                       
+                        if strlength(opts.Title)>0
+                            sgtitle(sprintf(string(opts.Title), selNames{jj}), ...
                                 'FontSize', opts.TitleFontSize);
+                        else
+                            sgtitle(sprintf('Marginal Distributions — %s', selNames{jj}), ...
+                                'FontSize', opts.TitleFontSize);
+                        end
                     end
         
                 case "joints"
