@@ -87,7 +87,7 @@
 %  EXPOKIT: Software Package for Computing Matrix Exponentials.
 %  ACM - Transactions On Mathematical Software, 24(1):130-156, 1998
 
-function [w, err, hump, Time_array_out, P_array, P_lost, tryagain, te, ye] = mexpv_modified_2( t, A, v, tol, m, N_prt, Time_array,fspTol,SINKS,tNow,fspErrorCondition)
+function [w, err, hump, Time_array_out, P_array, P_lost, tryagain, te, ye] = mexpv_modified_2( t, A, v, tol, m, N_prt, Time_array,fspTol,SINKS,tNow,fspErrorCondition,resetSparsity)
 
 [n] = size(A,1);
 if nargin == 3
@@ -135,6 +135,9 @@ end
 if nargin ==9
     tol=min(tol,fspTol/10);
 end
+if nargin<12
+    resetSparsity = 0;
+end
 %%
 
 anorm = norm(A,'inf');
@@ -171,29 +174,110 @@ if tNow==Time_array(1)
     i_prt=2;
 end
 
+%% Convert A to sparse structure
+[nr,nc] = size(A);
+assert(nr==nc,'A must be square');
+
+% MATLAB sparse is CSC internally: [ir, jc, pr]
+[row_idx, col_ptr, val] = find_csc_like(A);  % helper below
+
+% Build CSR (0-based indexing)
+n = nr;
+nnzA = numel(val);
+
+row_counts = accumarray(row_idx+1, 1, [n,1]);  % row_idx currently 0-based
+row_ptr = zeros(n+1,1);
+row_ptr(2:end) = cumsum(row_counts);
+
+col_ind = zeros(nnzA,1);
+val_csr = zeros(nnzA,1);
+
+next = row_ptr(1:end-1);  % insertion offsets per row
+for c = 1:n
+    k0 = col_ptr(c) + 1;      % convert 0-based -> MATLAB indexing
+    ak1 = col_ptr(c+1);        % already count endpoint in MATLAB indexing
+    for k = k0:ak1
+        r = row_idx(k) + 1;   % 1-based row for MATLAB arrays
+        dst = next(r) + 1;    % destination in MATLAB indexing
+        col_ind(dst) = c - 1; % store 0-based col index
+        val_csr(dst) = val(k);
+        next(r) = next(r) + 1;
+    end
+end
+
+Acsr = struct( ...
+    'row_ptr', row_ptr, ...
+    'col_ind', col_ind, ...
+    'val',     val_csr);
+%%
+
 while tNow < t_out && i_prt<=length(Time_array)
     istep = istep + 1;
     t_step = min(Time_array(i_prt)-tNow,t_new);
-    V = zeros(n,m+1);
-    H = zeros(m+2,m+2);
-    
-    V(:,1) = (1/beta)*w;
-    for j = 1:m
-        p = A*V(:,j);
-        for i = 1:j
-            H(i,j) = p'*V(:,i);    %8.832
-            p = p-H(i,j)*V(:,i);
-        end
-        s = norm(p);
-        if s < btol
-            k1 = 0;
-            mb = j;
-            t_step = Time_array(i_prt)-tNow;
-            break;
-        end
-        H(j+1,j) = s;
-        V(:,j+1) = (1/s)*p;
+    k1_in = k1;
+    mb_in = mb;
+    t_step_in = t_step;
+    if resetSparsity
+        w(w<1e-10) = 0;
     end
+
+    % V = zeros(n,m+1);
+    % H = zeros(m+2,m+2);
+    % V(:,1) = (1/beta)*w;
+    % for j = 1:m
+    %     p = A*V(:,j);
+    %     for i = 1:j
+    %         H(i,j) = p'*V(:,i);    %8.832
+    %         p = p-H(i,j)*V(:,i);
+    %     end
+    %     s = norm(p);
+    %     if s < btol
+    %         k1 = 0;
+    %         mb = j;
+    %         t_step = Time_array(i_prt)-tNow;
+    %         break;
+    %     end
+    %     H(j+1,j) = s;
+    %     V(:,j+1) = (1/s)*p;
+    % end
+   
+    % tic
+    % [H2,V2,k12,mb2,t_step2] = ExpensiveTask(n,m,w,beta,A,btol,...
+    %     Time_array(i_prt),tNow,k1_in,mb_in,t_step_in);
+    % toc
+
+    % tic
+    try
+        [H,V,k1,mb,t_step] = mexFunctionExpokit(n,m,w,beta,Acsr,btol,...
+            Time_array(i_prt),tNow,resetSparsity,k1_in,mb_in,t_step_in);
+    catch
+        [H,V,k1,mb,t_step] = ExpensiveTask(n,m,w,beta,Acsr,btol,...
+            Time_array(i_prt),tNow,resetSparsity,k1_in,mb_in,t_step_in);        
+    end
+    % toc
+
+
+    % % [H2,V2,k1_mat,mb_mat,t_step_mat] = ExpensiveTask(n,m,w,beta,A,btol,...
+    % %     Time_array(i_prt),tNow,resetSparsity,k1_in,mb_in,t_step_in);
+    % 
+    % Hdiff = abs(H-H2);
+    % Vdiff = abs(V-V2);
+    % [maxHdiff, idxH] = max(Hdiff(:));
+    % [maxVdiff, idxV] = max(Vdiff(:));
+    % [rowH, colH] = ind2sub(size(Hdiff), idxH);
+    % [rowV, colV] = ind2sub(size(Vdiff), idxV);
+    % fprintf('max|H diff| = %.3e at (%d,%d): mex=%.16e matlab=%.16e\n', ...
+    %     maxHdiff, rowH, colH, H(rowH,colH), H2(rowH,colH));
+    % fprintf('max|V diff| = %.3e at (%d,%d): mex=%.16e matlab=%.16e\n', ...
+    %     maxVdiff, rowV, colV, V(rowV,colV), V2(rowV,colV));
+    % % fprintf('outputs mex=[k1=%g mb=%g t_step=%.16e], matlab=[k1=%g mb=%g t_step=%.16e]\n', ...
+    % %     k1_mex, mb_mex, t_step_mex, k1_mat, mb_mat, t_step_mat);
+    % % 
+    % % k1 = k1_mex;
+    % % mb = mb_mex;
+    % % t_step = t_step_mex;
+
+   
     if k1 ~= 0
         H(m+2,m+1) = 1;
         avnorm = norm(A*V(:,m+1));
@@ -306,3 +390,14 @@ P_lost = w(SINKS);
 
 %% Changes by Brian Munsky
 tryagain=0;
+end
+
+function [ir0, jc0, pr] = find_csc_like(S)
+    % Returns 0-based CSC arrays similar to C sparse storage.
+    [i,j,v] = find(S);                    % column-major order
+    n = size(S,2);
+    counts = accumarray(j,1,[n,1]);
+    jc0 = [0; cumsum(counts)];            % 0-based column pointer
+    ir0 = i - 1;                          % 0-based row indices
+    pr = v;
+end
