@@ -60,8 +60,12 @@ function build_expokit(varargin)
     % ----------------------------------------------------------------
     % Assemble and run the mex command
     % ----------------------------------------------------------------
-    % cmd = [src_files, {common_cflags}, blas_inc, blas_link];
-    cmd = [{'-R2018a'}, src_files, {common_cflags}, blas_inc, blas_link];
+        % Place compiled binary in the solver package folder under src.
+        out_dir = fullfile('src', '+ssit', '+fsp_ode_solvers');
+
+        % cmd = [src_files, {common_cflags}, blas_inc, blas_link];
+        cmd = [{'-R2018a', '-output', 'mexFunctionExpokit', '-outdir', out_dir}, ...
+            src_files, {common_cflags}, blas_inc, blas_link];
     fprintf('Building MEX: mex');
     for k = 1:numel(cmd), fprintf(' %s', cmd{k}); end
     fprintf('\n');

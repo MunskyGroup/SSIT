@@ -248,11 +248,11 @@ while tNow < t_out && i_prt<=length(Time_array)
 
     % tic
     try
-        [H,V,k1,mb,t_step] = mexFunctionExpokit(n,m,w,beta,Acsr,btol,...
+        [H,V,k1,mb,t_step] = ssit.fsp_ode_solvers.mexFunctionExpokit(n,m,w,beta,Acsr,btol,...
             Time_array(i_prt),tNow,resetSparsity,k1_in,mb_in,t_step_in);
     catch
-        [H,V,k1,mb,t_step] = ExpensiveTask(n,m,w,beta,Acsr,btol,...
-            Time_array(i_prt),tNow,resetSparsity,k1_in,mb_in,t_step_in);        
+        [H,V,k1,mb,t_step] = ssit.fsp_ode_solvers.ExpensiveTask(n,m,w,beta,A,btol,...
+            Time_array(i_prt),tNow,k1_in,mb_in,t_step_in);        
     end
     % toc
 
