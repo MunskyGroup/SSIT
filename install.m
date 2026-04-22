@@ -29,18 +29,17 @@ if ~strcmpi(weAreIn(J(end)+1:end),'SSIT')
     end
 end
 
+% Set the path to include all SSIT codes.  
+addpath(genpath('src'));
+
 % Install MEX codes
 disp('Installing MEX codes for Expokit')
 try
-    build_expokit
+    ssit.fsp_ode_solvers.build_expokit
     disp('MEX code for Expokit installed')   
 catch ME
     disp('MEX code installation failure. Analyses will default to native MATLAB version.')
 end
-
-
-% Set the path to include all SSIT codes.  
-addpath(genpath('src'));
 
 if ~exist("tmpPropensityFunctions","dir")
     disp('Creating director "tmpPropensityFunctions".')

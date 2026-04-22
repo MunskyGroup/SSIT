@@ -7,7 +7,7 @@ jobs:
     continue-on-error: true
     strategy:
       matrix:
-        release: [R2023a
+        release: [R2025a
         #, R2023b TODO: There is currently a bug affecting one test on R2023b
         ]  
     steps:
@@ -17,10 +17,6 @@ jobs:
         uses: matlab-actions/setup-matlab@v1
         with:
           release: ${{ matrix.release }}
-      - name: Add paths
-        uses: matlab-actions/run-command@v1
-        with:
-          command: addpath(genpath("src"))
       - name: Install (setup)
         uses: matlab-actions/run-command@v1
         with:

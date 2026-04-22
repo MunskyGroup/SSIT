@@ -9,7 +9,7 @@ function build_expokit(varargin)
 
     debug_flag = any(strcmpi(varargin, 'debug'));
 
-    src_files = {'mexFunctionExpokit.c', 'expokitC.c'};
+    src_files = {'src/+ssit/+fsp_ode_solvers/mexFunctionExpokit.c', 'src/+ssit/+fsp_ode_solvers/expokitC.c'};
 
     % ----------------------------------------------------------------
     % Optimisation flags shared across platforms
