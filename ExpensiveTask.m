@@ -21,7 +21,6 @@ H = zeros(m+2,m+2);
 V(:,1) = (1/beta)*w;
 for j = 1:m
     p = A*V(:,j);
-    p(abs(p)<1e-10) = 0;
     for i = 1:j
         H(i,j) = p'*V(:,i);    %8.832
         p = p-H(i,j)*V(:,i);

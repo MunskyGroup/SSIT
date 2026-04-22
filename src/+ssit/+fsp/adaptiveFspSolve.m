@@ -448,7 +448,7 @@ while (tNow < maxOutputTime)
             end
 
             if odeSolver == "expokit"
-                solver = ssit.fsp_ode_solvers.Expokit(30,absTol);
+                solver = ssit.fsp_ode_solvers.Expokit(min(300,max(30,ceil(length(jac)/300))),absTol);
             elseif odeSolver == "expokitPiecewise"
                 if constantJacobian
                     solver = ssit.fsp_ode_solvers.Expokit(30,absTol);
@@ -515,6 +515,10 @@ while (tNow < maxOutputTime)
         end
 
         if fspStopStatus.error_bound>0
+            % [X,J] = sort(fspStopStatus.sinks(1:end-fspErrorCondition.nEscapeSinks),'ascend');
+            % csX = cumsum(X);
+            % J2 = find(max((csX>fspStopStatus.error_bound(end)),(X>fspStopStatus.error_bound(end))),1,"first");
+            % constraintsToRelax = sort(J(1:J2));         
             constraintsToRelax = find(fspStopStatus.sinks(1:end-fspErrorCondition.nEscapeSinks)*...
                 (fspErrorCondition.nSinks-fspErrorCondition.nEscapeSinks) >=...
                 fspStopStatus.error_bound(end));
