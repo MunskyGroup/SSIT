@@ -5,16 +5,29 @@
 %  in the SSIT using `runABCsearch'
 %
 % This example:
-%   1. Loads a template model for scRNA-seq genes with SSA solution scheme.
+%   1. Defines a model for scRNA-seq genes with SSA solution scheme.
 %   2. Associates the template model with scRNA-seq data for gene TSC22D3.
 %   3. Defines a prior over parameters.
 %   4. Runs ABC via Metropolis–Hastings using 'cdf_one_norm' loss.
 %   5. Visualizes the ABC results.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+%% Define scRNA-seq model:
+scRNAseq = SSIT;
+scRNAseq.species = {'onGene';'rna'};
+scRNAseq.initialCondition = [0;0];
+scRNAseq.propensityFunctions = ...
+    {'(kon_0+kon_1*Iupstream)*(2-onGene)';...
+    'koff_0/(1+akoff*Iupstream)*onGene';...
+    'kr_0*(2-onGene)+kr_1*onGene';'gr*rna'};
+scRNAseq.stoichiometry = [1,-1,0,0;0,0,1,-1];
+scRNAseq.inputExpressions = {'Iupstream',...
+                             'exp(-r1*t*(t>=0))*(1-exp(-r2*t*(t>=0)))'};
+scRNAseq.parameters = ({'r1',0.01; 'r2',0.1; 'kon_0',0.01;...
+                        'kon_1',0.01; 'koff_0',20; 'akoff',0.2;...
+                        'kr_0',1; 'kr_1',100; 'gr',1});
+
 %% Set SSA options:
-% Make copy of scRNAseq template model:
-scRNAseq = Model_Template;
 
 %Set solution scheme to SSA:
 scRNAseq.solutionScheme = 'SSA';
