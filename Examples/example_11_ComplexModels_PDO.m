@@ -24,8 +24,8 @@
 % example_10_LoadingandFittingData_MH
 
 %% Load pre-run results:
-% load('example_7_FIM.mat')
-% load('example_10_LoadingandFittingData_MH.mat')
+load('example_7_FIM.mat')
+load('example_10_LoadingandFittingData_MH.mat')
 
 % View model summary:
 STL1_4state_MH.summarizeModel

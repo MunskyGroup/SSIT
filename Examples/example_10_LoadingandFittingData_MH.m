@@ -19,7 +19,7 @@
 % example_9_LoadingandFittingData_MLE
 
 %% Load pre-computed FSP solutions + loaded data + MLEs:
-% load('example_9_LoadingandFittingData_MLE.mat')
+load('example_9_LoadingandFittingData_MLE.mat')
 
 % View summary of 4-state STL1 model:
 STL1_4state_MLE.summarizeModel

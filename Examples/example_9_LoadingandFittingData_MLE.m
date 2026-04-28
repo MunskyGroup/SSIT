@@ -18,7 +18,7 @@
 % example_8_LoadingandFittingData_DataLoading
 
 %% Load pre-computed FSP solutions & loaded data:
-% load('example_8_LoadingandFittingData.mat')
+load('example_8_LoadingandFittingData.mat')
  
 % View model summary:
 % Model_data.summarizeModel

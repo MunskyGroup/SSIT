@@ -13,6 +13,9 @@ addpath(genpath('../src'));
 
 % example_1_CreateSSITModels 
 
+% Load the model created in example_1_CreateSSITModels
+load('example_1_CreateSSITModels.mat')
+
 % View model summaries:
 STL1_4state.summarizeModel
 

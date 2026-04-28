@@ -15,8 +15,8 @@
 % example_1_CreateSSITModels  
 % example_4_SolveSSITModels_FSP
 
-%% Load pre-computed sensitivities:
-% load('example_4_SolveSSITModels_FSP.mat')
+%% Load pre-computed FSP solutions:
+load('example_4_SolveSSITModels_FSP.mat')
 
 % View model summaries:
 Model_FSP.summarizeModel
