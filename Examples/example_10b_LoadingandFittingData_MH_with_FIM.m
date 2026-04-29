@@ -9,6 +9,22 @@
 %     simple example, the default proposal distribution (above) is fine.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+%% Preliminaries
+% Use the STL1 model from example_1_CreateSSITModels, FSP solutions from 
+% example_4_SolveSSITModels_FSP, data loaded in 
+% example_8_LoadingandFittingData_DataLoading, and MLE computed in
+% example_9_LoadingandFittingData_MLE
+% clear
+% close all
+
+% example_1_CreateSSITModels  
+% example_4_SolveSSITModels_FSP
+% example_8_LoadingandFittingData_DataLoading
+% example_9_LoadingandFittingData_MLE
+
+%% Load pre-computed FSP solutions + loaded data + MLEs:
+load('example_9_LoadingandFittingData_MLE.mat')
+
 % Make a new copy of our 4-state STL1 model:
 STL1_4state_MH_FIM = STL1_4state_MLE;
 

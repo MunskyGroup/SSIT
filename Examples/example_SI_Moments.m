@@ -14,7 +14,7 @@
 % example_2_SolveSSITModels_ODE
 
 % Load the models created in example_1_CreateSSITModels:
-% load('example_2_SolveSSITModels_ODE.mat')
+load('example_2_SolveSSITModels_ODE.mat')
 
 % View model summaries:
 Model_ODE.summarizeModel

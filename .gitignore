@@ -117,5 +117,6 @@ src/SSITconfig.mat
 /images/SSITGUI_Wheels
 Examples/pseudoCodeSED.m
 Default_*
+Default_TmpGPUSSACode_*
 *_TmpGPUSSACode*
 mexFunctionExpokit.mexmaca64

@@ -20,7 +20,7 @@
 % example_10_LoadingandFittingData_MH
 
 %% Load model fitted using Metropolis-Hastings:
-% load('example_10_LoadingandFittingData_MH.mat')
+load('example_10_LoadingandFittingData_MH.mat')
 
 % View summary of 4-state STL1 model:
 STL1_4state_MH.summarizeModel
