@@ -1951,9 +1951,11 @@ classdef SSIT
                 [Solution, bConstraints, obj] = obj.solveHelper(stateSpace,saveFile,fspSoln);
             catch
                 obj.propensitiesGeneral = [];
-                newPropFileName = [obj.propensityFilePrefix,'_',char(randi([97 122]))];
-                disp(['(Re)Forming Propensity Function Files under new name: ',newPropFileName]);
-                obj = obj.formPropensitiesGeneral(newPropFileName);
+                if strcmpi(obj.solutionScheme,'fsp')||strcmpi(obj.solutionScheme,'fspsens')
+                    newPropFileName = [obj.propensityFilePrefix,'_',char(randi([97 122]))];
+                    disp(['(Re)Forming Propensity Function Files under new name: ',newPropFileName]);
+                    obj = obj.formPropensitiesGeneral(newPropFileName);
+                end
                 [Solution, bConstraints, obj] = obj.solveHelper(stateSpace,saveFile,fspSoln);               
             end
         end
