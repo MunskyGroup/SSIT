@@ -123,29 +123,74 @@ if tNow==Time_array(1)
     Time_array_out=tNow;
     i_prt=2;
 end
+
+%% Convert A to sparse structure
+[nr,nc] = size(A);
+assert(nr==nc,'A must be square');
+
+% MATLAB sparse is CSC internally: [ir, jc, pr]
+[row_idx, col_ptr, val] = find_csc_like(A);  % helper below
+
+% Build CSR (0-based indexing)
+n = nr;
+nnzA = numel(val);
+
+row_counts = accumarray(row_idx+1, 1, [n,1]);  % row_idx currently 0-based
+row_ptr = zeros(n+1,1);
+row_ptr(2:end) = cumsum(row_counts);
+
+col_ind = zeros(nnzA,1);
+val_csr = zeros(nnzA,1);
+
+next = row_ptr(1:end-1);  % insertion offsets per row
+for c = 1:n
+    k0 = col_ptr(c) + 1;      % convert 0-based -> MATLAB indexing
+    ak1 = col_ptr(c+1);        % already count endpoint in MATLAB indexing
+    for k = k0:ak1
+        r = row_idx(k) + 1;   % 1-based row for MATLAB arrays
+        dst = next(r) + 1;    % destination in MATLAB indexing
+        col_ind(dst) = c - 1; % store 0-based col index
+        val_csr(dst) = val(k);
+        next(r) = next(r) + 1;
+    end
+end
+
+Acsr = struct( ...
+    'row_ptr', row_ptr, ...
+    'col_ind', col_ind, ...
+    'val',     val_csr);
 %%
 while tNow < t_out && i_prt<=length(Time_array)
   nstep = nstep + 1;
   t_step = min(Time_array(i_prt)-tNow,t_new);
-  V = zeros(n,m+1); 
-  H = zeros(m+2,m+2);
-
-  V(:,1) = (1/beta)*w;
-  for j = 1:m
-     p = A*V(:,j);
-     for i = 1:j
-        H(i,j) = dot(V(:,i),p);
-        p = p-H(i,j)*V(:,i);
-     end
-     s = norm(p); 
-     if s < btol
-        k1 = 0;
-        mb = j;
-        t_step = t_out-tNow;
-        break;
-     end
-     H(j+1,j) = s;
-     V(:,j+1) = (1/s)*p;
+  k1_in = k1;
+  mb_in = mb;
+  t_step_in = t_step;
+  % V = zeros(n,m+1); 
+  % H = zeros(m+2,m+2);
+  % V(:,1) = (1/beta)*w;
+  % for j = 1:m
+  %    p = A*V(:,j);
+  %    for i = 1:j
+  %       H(i,j) = dot(V(:,i),p);
+  %       p = p-H(i,j)*V(:,i);
+  %    end
+  %    s = norm(p); 
+  %    if s < btol
+  %       k1 = 0;
+  %       mb = j;
+  %       t_step = t_out-tNow;
+  %       break;
+  %    end
+  %    H(j+1,j) = s;
+  %    V(:,j+1) = (1/s)*p;
+  % end
+  try
+      [H,V,k1,mb,t_step] = ssit.fsp_ode_solvers.mexFunctionExpokit(n,m,w,beta,Acsr,btol,...
+          Time_array(i_prt),tNow,0,k1_in,mb_in,t_step_in);
+  catch
+      [H,V,k1,mb,t_step] = ssit.fsp_ode_solvers.ExpensiveTask(n,m,w,beta,A,btol,...
+          Time_array(i_prt),tNow,k1_in,mb_in,t_step_in);
   end
   if k1 ~= 0
      H(m+2,m+1) = 1;
@@ -238,3 +283,13 @@ hump = hump / normv;
 te = max(Time_array); ye = w;
 P_lost = w(SINKS);
 tryagain=0;
+end
+function [ir0, jc0, pr] = find_csc_like(S)
+% Returns 0-based CSC arrays similar to C sparse storage.
+[i,j,v] = find(S);                    % column-major order
+n = size(S,2);
+counts = accumarray(j,1,[n,1]);
+jc0 = [0; cumsum(counts)];            % 0-based column pointer
+ir0 = i - 1;                          % 0-based row indices
+pr = v;
+end
