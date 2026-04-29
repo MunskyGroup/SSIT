@@ -3672,8 +3672,8 @@ classdef SSIT
             obj.fittingOptions.modelVarsToFit = parIndices;  % Choose which parameters to vary.
             pars0 = [obj.parameters{obj.fittingOptions.modelVarsToFit,2}];
 
-            fspSoln = obj.solve();
-            stateSpace = fspSoln.stateSpace;
+            solvedModel = obj.solve();
+            stateSpace = solvedModel.Solutions.stateSpace;
 
             Ngrid=length(scalingRange);
             fitErrors = zeros(Ngrid,Ngrid);
