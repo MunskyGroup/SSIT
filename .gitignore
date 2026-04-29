@@ -116,3 +116,5 @@ src/SSITconfig.mat
 /Models/ZZ_IgnoredModels/*
 /images/SSITGUI_Wheels
 Examples/pseudoCodeSED.m
+Default_TmpGPUSSACode_*
+*_TmpGPUSSACode*
