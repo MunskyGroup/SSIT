@@ -2290,6 +2290,10 @@ classdef SSIT
 
                     if ~isempty(obj.propensitiesGeneralMeanJac)
                         JAC = @(t,v)obj.propensitiesGeneralMeanJac(t,v,[obj.parameters{:,2}]);
+                        % Check if JAC is constant
+                        if sum(abs(JAC(rand,rand(size(initMeans)))-JAC(rand,rand(size(initMeans)))),"all")==0
+                            JAC = JAC(rand,rand(size(initMeans)));
+                        end
                         options = odeset('Jacobian',JAC);
                     else
                         options = [];
@@ -2322,6 +2326,10 @@ classdef SSIT
 
                     if ~isempty(obj.propensitiesGeneralMomentsJac)
                         JAC = @(t,v)obj.propensitiesGeneralMomentsJac(t,v,[obj.parameters{:,2}]);
+                        % Check if JAC is constant
+                        if sum(abs(JAC(rand,rand(size(initMeans)))-JAC(rand,rand(size(initMeans)))),"all")==0
+                            JAC = JAC(rand,rand(size(initMeans)));
+                        end 
                         options = odeset('Jacobian',JAC);
                     else
                         options = [];

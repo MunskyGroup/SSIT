@@ -270,7 +270,7 @@ else
     try
         matlabFunction(RHS,'Vars',{t,v,ParameterX},'File',momentOdeFileName,'Sparse',true); % save moment equation as a matlab function
     catch
-        matlabFunction(RHS,'Vars',{t,v,ParameterX},'File',momentOdeFileName,'Sparse',true); % save moment equation as a matlab function
+        matlabFunction(RHS,'Vars',{t,v,ParameterX},'File',momentOdeFileName,'Sparse',false); % save moment equation as a matlab function
     end
     % matlabFunctionSSIT(RHS,{t,v,ParameterX},momentOdeFileName); % save moment equation as a matlab function
     
@@ -280,7 +280,7 @@ else
             try
                 matlabFunction(jac,'Vars',{t,v,ParameterX},'File',jacobianFileName,'Sparse',true); % save moment equation as a matlab function
             catch
-                matlabFunction(jac,'Vars',{t,v,ParameterX},'File',jacobianFileName,'Sparse',true); % save moment equation as a matlab function
+                matlabFunction(jac,'Vars',{t,v,ParameterX},'File',jacobianFileName,'Sparse',false); % save moment equation as a matlab function
             end
             % matlabFunctionSSIT(jac,{t,v,ParameterX},jacobianFileName); % save moment equation as a matlab function
             jacCreated = true;
