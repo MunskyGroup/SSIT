@@ -2099,6 +2099,17 @@ classdef SSIT
                         end
                         clear(obj.ssaOptions.computeFile) % Clear function from cache just in case.
                         
+
+                        Jslash = strfind(obj.ssaOptions.computeFile,filesep);
+                        for islash = 1:length(Jslash)
+                            mkdir(obj.ssaOptions.computeFile(1:Jslash(islash)-1));
+                        end
+                        if ~isempty(Jslash)
+                            addpath(obj.ssaOptions.computeFile(1:Jslash(end)-1))
+                        else
+                            Jslash=0; 
+                        end
+
                         try
                             ssit.ssa.WriteSSA_MatlabCpp_Hybrid(k,w,S,obj.tSpan,[obj.ssaOptions.computeFile]);
                             disp(['C-Based SSA file generated: ',obj.ssaOptions.computeFile]);
@@ -2106,12 +2117,17 @@ classdef SSIT
                             ssit.ssa.WriteGPUSSA(k,w,S,obj.tSpan,obj.ssaOptions.computeFile);
                             disp(['MATLAB-Based SSA file generated: ',obj.ssaOptions.computeFile]);
                         end
+                    else
+                        Jslash = strfind(obj.ssaOptions.computeFile,filesep);
+                        if isempty(Jslash)
+                            Jslash=0; 
+                        end
                     end
                     % TODO -- Need to check that this does not lead to file
                     % confusion in the future since there could be multiple
                     % copies of this file on the search path.
 
-                    fun = str2func(obj.ssaOptions.computeFile);
+                    fun = str2func(obj.ssaOptions.computeFile(Jslash(end)+1:end));
                     % Convert the function name string to a function handle.
 
                     % Run SSA on GPU, in parallel, or in series as

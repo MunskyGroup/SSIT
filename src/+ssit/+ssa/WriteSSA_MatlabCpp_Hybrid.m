@@ -1,8 +1,12 @@
-function WriteGPUSSA(k,w,S,tprint,fun_name)
+function WriteSSA_MatlabCpp_Hybrid(k,w,S,tprint,fun_name)
 Nspec = size(S,1);
 Nrxn = size(S,2);
 Nt = length(tprint);
 funName = char(fun_name);
+Jslash = strfind(funName,filesep);
+if isempty(Jslash)
+    Jslash = 0;
+end
 
 gpuIn = cell(1,Nspec);
 ssaIn = cell(1,Nspec);
@@ -23,7 +27,7 @@ if fileID < 0
 end
 cleanupObj = onCleanup(@() fclose(fileID));
 
-fprintf(fileID,'function [X]=%s(x0,N_run,parametersIn,useGPU)\n',funName);
+fprintf(fileID,'function [X]=%s(x0,N_run,parametersIn,useGPU)\n',funName(Jslash(end)+1:end));
 fprintf(fileID,'%% This is an automatically generated MATLAB SSA Program.\n');
 fprintf(fileID,'arguments\n');
 fprintf(fileID,'   x0\n');
@@ -43,9 +47,9 @@ for i = 1:Nspec
     fprintf(fileID,'   x%d_0_GPU = x0(%d)*gpuArray.ones(1,N_run);\n',i,i);
 end
 fprintf(fileID,'   %s_SSA_GPU = @(%s)%s_SSA(%s,parametersIn);\n',...
-    funName,strjoin(gpuIn,','),funName,strjoin(gpuIn,','));
+    funName(Jslash(end)+1:end),strjoin(gpuIn,','),funName(Jslash(end)+1:end),strjoin(gpuIn,','));
 fprintf(fileID,'   [%s] = arrayfun(@%s_SSA_GPU,%s);\n',...
-    strjoin(ssaOut,','),funName,strjoin(gpuIn,','));
+    strjoin(ssaOut,','),funName(Jslash(end)+1:end),strjoin(gpuIn,','));
 for i = 1:Nspec
     for j = 1:Nt
         fprintf(fileID,'   X(%d,%d,:) = gather(x%d_%d);\n',i,j,i,j);
@@ -88,7 +92,7 @@ fprintf(fileID,'end\n');
 fprintf(fileID,'end\n\n');
 
 fprintf(fileID,'function [%s] = %s_SSA(%s,parametersIn)\n',...
-    strjoin(ssaOut,','),funName,strjoin(ssaIn,','));
+    strjoin(ssaOut,','),funName(Jslash(end)+1:end),strjoin(ssaIn,','));
 fprintf(fileID,'%% First we define the parameters.\n');
 for i = 1:length(k)
     fprintf(fileID,'k%d=parametersIn(%d);\n',i,i);

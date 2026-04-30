@@ -961,6 +961,19 @@ end
 
 load('SSITconfig.mat','pathToPropensityFuns');
 
+if ~exist(pathToPropensityFuns,'dir')
+    disp('Path to propensity is missing or misnamed.')
+    disp('This often occurs when using shared folders.')
+    disp('Attempting to overwrite using default location.')
+    pref = which('SSIT'); 
+    J = strfind(pref,filesep);
+    pref = pref(1:J(end-3)-1);
+    J = strfind(pathToPropensityFuns,[filesep,'SSIT',filesep]);
+    pathToPropensityFuns = [pref,pathToPropensityFuns(J:end)];
+    save('SSITconfig.mat','pathToPropensityFuns','-append');
+    disp(['New path to propensity functions saved at: ',pathToPropensityFuns])
+end
+
 % ifn = sum(contains({dir('tmpPropensityFunctions').name},[prefixName,'_fun']))+1;
 % files = dir(fullfile('tmpPropensityFunctions', [prefixName '_fun*']));
 files = dir(fullfile(pathToPropensityFuns, [prefixName '_fun*']));
