@@ -2299,7 +2299,22 @@ classdef SSIT
                         options = [];
                     end
 
-                    [~,soln] =  odeIntegrat(RHS,obj.tSpan,initMeans,options);
+                    try
+                        [~,soln] =  odeIntegrat(RHS,obj.tSpan,initMeans,options);
+                    catch
+                        % Some versions of matlab fail on sparse matrices
+                        % in RHS and JAC.
+                        RHS = @(t,v)full(obj.propensitiesGeneralMean(t,v,[obj.parameters{:,2}]));
+                        if ~isempty(obj.propensitiesGeneralMeanJac)
+                            JAC = @(t,v)full(obj.propensitiesGeneralMeanJac(t,v,[obj.parameters{:,2}]));
+                            % Check if JAC is constant
+                            if sum(abs(JAC(rand,rand(size(initMeans)))-JAC(rand,rand(size(initMeans)))),"all")==0
+                                JAC = JAC(rand,rand(size(initMeans)));
+                            end
+                            options = odeset('Jacobian',JAC);
+                        end
+                        [~,soln] =  odeIntegrat(RHS,obj.tSpan,initMeans,options);
+                    end
                     Solution.ode = soln;
 
                     bConstraints = max(obj.fspConstraints.f(Solution.ode),[],2);
