@@ -63,8 +63,14 @@ nR = size(S,2);   % number of reactions
 nP = length(parString); % number of parameters
 nI = size(inputExpressions,1);
 
-t = sym('t','real');
+%% Check matlab version.
+% Sparsity in jacobian fails in LU decomposition step for some ODE solvers
+% in R2024a (and potentially others).
+odeStr = fileread(which('ode23s.m'));
+useSparse = ~contains(odeStr, 'matlab.internal.decomposition.builtin.luSolve');
+
 %% Create symbolic variables for species
+t = sym('t','real');
 x = sym('x',[nS,1],'real');
 
 %% Create symbolic variables for parameters
@@ -140,7 +146,7 @@ if ~includeSecondMom
     RHS = S*w; % rhs of ode that describes the means
     %% Finalize RHS and saves as a matlab function.
     try
-        matlabFunction(RHS,'Vars',{t,x,ParameterX},'File',momentOdeFileName,'Sparse',true); % save moment equation as a matlab function
+        matlabFunction(RHS,'Vars',{t,x,ParameterX},'File',momentOdeFileName,'Sparse',useSparse); % save moment equation as a matlab function
     catch
         matlabFunction(RHS,'Vars',{t,x,ParameterX},'File',momentOdeFileName,'Sparse',false); % save moment equation as a matlab function
     end
@@ -151,7 +157,7 @@ if ~includeSecondMom
         if ~containsSpecialFuns
             jac = jacobian(RHS,x);
             try
-                matlabFunction(jac,'Vars',{t,x,ParameterX},'File',jacobianFileName,'Sparse',true); % save moment equation as a matlab function
+                matlabFunction(jac,'Vars',{t,x,ParameterX},'File',jacobianFileName,'Sparse',useSparse); % save moment equation as a matlab function
             catch
                 matlabFunction(jac,'Vars',{t,x,ParameterX},'File',jacobianFileName,'Sparse',false); % save moment equation as a matlab function
             end
@@ -268,7 +274,7 @@ else
     end
     %% Finalize RHS and saves as a matlab function.
     try
-        matlabFunction(RHS,'Vars',{t,v,ParameterX},'File',momentOdeFileName,'Sparse',true); % save moment equation as a matlab function
+        matlabFunction(RHS,'Vars',{t,v,ParameterX},'File',momentOdeFileName,'Sparse',useSparse); % save moment equation as a matlab function
     catch
         matlabFunction(RHS,'Vars',{t,v,ParameterX},'File',momentOdeFileName,'Sparse',false); % save moment equation as a matlab function
     end
@@ -278,7 +284,7 @@ else
         if ~containsSpecialFuns
             jac = jacobian(RHS,v);
             try
-                matlabFunction(jac,'Vars',{t,v,ParameterX},'File',jacobianFileName,'Sparse',true); % save moment equation as a matlab function
+                matlabFunction(jac,'Vars',{t,v,ParameterX},'File',jacobianFileName,'Sparse',useSparse); % save moment equation as a matlab function
             catch
                 matlabFunction(jac,'Vars',{t,v,ParameterX},'File',jacobianFileName,'Sparse',false); % save moment equation as a matlab function
             end
