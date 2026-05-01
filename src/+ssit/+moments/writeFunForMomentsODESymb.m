@@ -69,6 +69,26 @@ nI = size(inputExpressions,1);
 odeStr = fileread(which('ode23s.m'));
 useSparse = ~contains(odeStr, 'matlab.internal.decomposition.builtin.luSolve');
 
+% Also check odesolve.m if it exists
+try
+    odesolveFile = which('odesolve.m');
+    if isempty(odesolveFile)
+        % Try to find it in MATLAB root
+        odesolveFile = fullfile(matlabroot, 'toolbox', 'matlab', 'funfun', 'private', 'odesolve.m');
+        if ~isfile(odesolveFile)
+            odesolveFile = [];
+        end
+    end
+    if ~isempty(odesolveFile) && isfile(odesolveFile)
+        odesolveStr = fileread(odesolveFile);
+        if contains(odesolveStr, 'matlab.internal.decomposition.builtin.luSolve(Factors,piv,b);')
+            useSparse = false;
+        end
+    end
+catch
+    % If odesolve.m cannot be found or read, continue with ode23s check
+end
+
 %% Create symbolic variables for species
 t = sym('t','real');
 x = sym('x',[nS,1],'real');
