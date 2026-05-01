@@ -7,7 +7,7 @@ jobs:
     continue-on-error: true
     strategy:
       matrix:
-        release: [R2025a
+        release: [R2024a
         #, R2023b TODO: There is currently a bug affecting one test on R2023b
         ]  
     steps:
