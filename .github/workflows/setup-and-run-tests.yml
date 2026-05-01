@@ -18,10 +18,10 @@ jobs:
         with:
           release: ${{ matrix.release }}
           products: |
-            Symbolic_Computing_Toolbox
+            Symbolic_Toolbox
             Global_Optimization_Toolbox
             Parallel_Computing_Toolbox
-            SimBiology_Toolbox
+            SimBiology
       - name: Install (setup)
         uses: matlab-actions/run-command@v2
         with:
