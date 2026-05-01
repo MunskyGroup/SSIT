@@ -39,6 +39,12 @@ try
     disp('MEX code for Expokit installed')   
 catch ME
     disp('MEX code installation failure. Analyses will default to native MATLAB version.')
+    disp(['Error details: ' ME.message])
+    if ~isempty(ME.cause)
+        for k = 1:numel(ME.cause)
+            disp(['Cause: ' ME.cause{k}.message])
+        end
+    end
 end
 
 if ~exist("tmpPropensityFunctions","dir")
