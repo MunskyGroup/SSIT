@@ -289,12 +289,14 @@ For more general insight on the use of quantitative models in biology, please re
 
 
 
+
 <!-- TRAFFIC_STATS_START -->
-Total Clones: **2123**  
-Unique Cloners: **1071**  
-Total Views: **926**  
-Unique Visitors: **198**
+Total Clones: **2444**  
+Unique Cloners: **1171**  
+Total Views: **949**  
+Unique Visitors: **203**
 <!-- TRAFFIC_STATS_END -->
+
 
 
 
