@@ -320,6 +320,7 @@ classdef FspMatrix
                 aNaN = isnan(A);
                 if sum(aNaN,"all")>0
                     warning('NaNs detected and set to zero in jacobian.  Results may be inaccurate.')
+                    warning('off')
                     A(aNaN)=0;
                 end
             end
