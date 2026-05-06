@@ -216,15 +216,14 @@ expr = strrep(expr,'.-','-');
 expr = regexprep(expr,'\<pi\>','3.14159265358979323846');
 expr = regexprep(expr,'\binf\b','INFINITY','ignorecase');
 
-% Convert simple power operators a^b to std::pow(a,b) repeatedly.
-powPattern = '([A-Za-z_]\w*|\([^()]*\)|\d+(?:\.\d+)?(?:[eE][+\-]?\d+)?)\s*\^\s*([A-Za-z_]\w*|\([^()]*\)|\d+(?:\.\d+)?(?:[eE][+\-]?\d+)?)';
+% Convert power operators a^b to std::pow(a,b) from innermost to outermost.
+% This handles nested parentheses by processing deepest powers first.
 while contains(expr,'^')
-    newExpr = regexprep(expr,powPattern,'std::pow($1,$2)');
-    if strcmp(newExpr,expr)
-        error('WriteCppSSA:unsupportedPower', ...
-            'Unable to convert power operator in expression: %s',expr);
-    end
-    expr = newExpr;
+    % Match power operators with various base formats:
+    % - simple identifiers/numbers: k21, 2, 3.14
+    % - std::function calls: std::pow(...)
+    % - balanced parentheses: (complex expression)
+    expr = convertNearestPower(expr);
 end
 
 % Prefix common math functions with std:: where needed.
@@ -239,11 +238,128 @@ expr = regexprep(expr,'(?<![\w:])max\s*\(','std::max(');
 expr = regexprep(expr,'(?<![\w:])min\s*\(','std::min(');
 end
 
+function expr = convertNearestPower(expr)
+% Find and convert the nearest (rightmost, deepest) power operator to std::pow.
+% This allows handling of nested parentheses by working from inside-out.
+
+% Find all positions of ^ operator
+caretPos = strfind(expr, '^');
+if isempty(caretPos)
+    return;
+end
+
+% Process the last/rightmost ^ first (deepest nesting)
+pos = caretPos(end);
+
+% Extract left operand: backtrack from ^ to find complete expression
+leftEnd = pos - 1;
+while leftEnd > 0 && isspace(expr(leftEnd))
+    leftEnd = leftEnd - 1;
+end
+
+if leftEnd < 1
+    error('WriteCppSSA:invalidPower','Invalid power expression in: %s', expr);
+end
+
+% If it ends with ), backtrack to find matching (
+if expr(leftEnd) == ')'
+    parenCount = 1;
+    leftStart = leftEnd - 1;
+    while leftStart > 0 && parenCount > 0
+        if expr(leftStart) == ')'
+            parenCount = parenCount + 1;
+        elseif expr(leftStart) == '('
+            parenCount = parenCount - 1;
+        end
+        leftStart = leftStart - 1;
+    end
+    leftStart = leftStart + 1; % Point to the '('
+    
+    % Verify this is part of a valid construct (function or grouping)
+    if leftStart > 1
+        % Check if it's a function call like std::pow(...) or sqrt(...) or just (...)
+        searchBack = leftStart - 1;
+        while searchBack > 0 && isspace(expr(searchBack))
+            searchBack = searchBack - 1;
+        end
+        if searchBack > 0 && (isCharAlphanumeric(expr(searchBack)) || expr(searchBack) == '_' || expr(searchBack) == ':')
+            % It's a function call, backtrack to find the start of the function name
+            while searchBack > 0 && (isCharAlphanumeric(expr(searchBack)) || expr(searchBack) == '_' || expr(searchBack) == ':')
+                searchBack = searchBack - 1;
+            end
+            leftStart = searchBack + 1;
+        end
+    end
+else
+    % It's an identifier or number, backtrack to find the start
+    leftStart = leftEnd;
+    while leftStart > 1 && (isCharAlphanumeric(expr(leftStart-1)) || expr(leftStart-1) == '_' || expr(leftStart-1) == '.')
+        leftStart = leftStart - 1;
+    end
+end
+
+leftOperand = expr(leftStart:leftEnd);
+
+% Extract right operand: move forward from ^ to find complete expression
+rightStart = pos + 1;
+while rightStart <= length(expr) && isspace(expr(rightStart))
+    rightStart = rightStart + 1;
+end
+
+if rightStart > length(expr)
+    error('WriteCppSSA:invalidPower','Invalid power expression in: %s', expr);
+end
+
+% If it starts with (, find matching )
+if expr(rightStart) == '('
+    parenCount = 1;
+    rightEnd = rightStart + 1;
+    while rightEnd <= length(expr) && parenCount > 0
+        if expr(rightEnd) == '('
+            parenCount = parenCount + 1;
+        elseif expr(rightEnd) == ')'
+            parenCount = parenCount - 1;
+        end
+        rightEnd = rightEnd + 1;
+    end
+    rightEnd = rightEnd - 1; % Point to the ')'
+else
+    % It's an identifier or number, find the end
+    rightEnd = rightStart;
+    while rightEnd <= length(expr) && (isCharAlphanumeric(expr(rightEnd)) || expr(rightEnd) == '_' || expr(rightEnd) == '.')
+        rightEnd = rightEnd + 1;
+    end
+    rightEnd = rightEnd - 1;
+end
+
+rightOperand = expr(rightStart:rightEnd);
+
+% Recursively convert any inner power operators in the operands
+% Must loop until all powers are converted
+while contains(leftOperand, '^')
+    leftOperand = convertNearestPower(leftOperand);
+end
+while contains(rightOperand, '^')
+    rightOperand = convertNearestPower(rightOperand);
+end
+
+% Replace the power expression with std::pow call
+newPowExpr = sprintf('std::pow(%s,%s)', leftOperand, rightOperand);
+expr = [expr(1:leftStart-1), newPowExpr, expr(rightEnd+1:end)];
+end
+
+function tf = isCharAlphanumeric(c)
+% Check if a single character is alphanumeric (0-9, a-z, A-Z)
+tf = (c >= '0' && c <= '9') || (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
+end
+
 function writeCFallbackSource(cSourceFile,k,w,S,tprint)
 % Write a C MEX fallback for environments where C++ MEX linking is broken.
 Nspec = size(S,1);
 Nrxn = size(S,2);
 Nt = length(tprint);
+
+
 
 fid = fopen(cSourceFile,'w');
 if fid < 0
@@ -257,6 +373,20 @@ fprintf(fid,'#include <math.h>\n');
 fprintf(fid,'#include <stdint.h>\n');
 fprintf(fid,'#include <time.h>\n');
 fprintf(fid,'#include <stdlib.h>\n\n');
+
+fprintf(fid,'/* Safe power function that handles negative bases */\n');
+fprintf(fid,'static inline double safepow(double base, double exponent) {\n');
+fprintf(fid,'    if (base < 0.0) {\n');
+fprintf(fid,'        int is_even_int = (exponent == floor(exponent)) && (((int)exponent) %% 2 == 0);\n');
+fprintf(fid,'        int is_odd_int = (exponent == floor(exponent)) && (((int)exponent) %% 2 != 0);\n');
+fprintf(fid,'        if (is_even_int || (exponent != floor(exponent))) {\n');
+fprintf(fid,'            return pow(fabs(base), exponent);\n');
+fprintf(fid,'        } else if (is_odd_int) {\n');
+fprintf(fid,'            return -pow(fabs(base), exponent);\n');
+fprintf(fid,'        }\n');
+fprintf(fid,'    }\n');
+fprintf(fid,'    return pow(base, exponent);\n');
+fprintf(fid,'}\n\n');
 
 fprintf(fid,'static uint64_t splitmix64(uint64_t x) {\n');
 fprintf(fid,'    x += 0x9e3779b97f4a7c15ULL;\n');
@@ -397,16 +527,128 @@ expr = strrep(expr,'.-','-');
 expr = regexprep(expr,'\<pi\>','3.14159265358979323846');
 expr = regexprep(expr,'\binf\b','HUGE_VAL','ignorecase');
 
-powPattern = '([A-Za-z_]\w*|\([^()]*\)|\d+(?:\.\d+)?(?:[eE][+\-]?\d+)?)\s*\^\s*([A-Za-z_]\w*|\([^()]*\)|\d+(?:\.\d+)?(?:[eE][+\-]?\d+)?)';
+% Convert power operators a^b to pow(a,b) from innermost to outermost.
+% This handles nested parentheses by processing deepest powers first.
 while contains(expr,'^')
-    newExpr = regexprep(expr,powPattern,'pow($1,$2)');
-    if strcmp(newExpr,expr)
-        error('WriteCppSSA:unsupportedPower', ...
-            'Unable to convert power operator in expression: %s',expr);
-    end
-    expr = newExpr;
+    % Match power operators with various base formats:
+    % - simple identifiers/numbers: k21, 2, 3.14
+    % - function calls: pow(...), sqrt(...)
+    % - balanced parentheses: (complex expression)
+    expr = convertNearestPowerC(expr);
 end
 
 % For C fallback, keep plain C math functions (exp/log/sqrt/sin/etc.).
 expr = regexprep(expr,'(?<![\w:])abs\s*\(','fabs(');
 end
+
+function expr = convertNearestPowerC(expr)
+% Find and convert the nearest (rightmost, deepest) power operator to pow (C version).
+% This allows handling of nested parentheses by working from inside-out.
+
+% Find all positions of ^ operator
+caretPos = strfind(expr, '^');
+if isempty(caretPos)
+    return;
+end
+
+% Process the last/rightmost ^ first (deepest nesting)
+pos = caretPos(end);
+
+% Extract left operand: backtrack from ^ to find complete expression
+leftEnd = pos - 1;
+while leftEnd > 0 && isspace(expr(leftEnd))
+    leftEnd = leftEnd - 1;
+end
+
+if leftEnd < 1
+    error('WriteCppSSA:invalidPower','Invalid power expression in: %s', expr);
+end
+
+% If it ends with ), backtrack to find matching (
+if expr(leftEnd) == ')'
+    parenCount = 1;
+    leftStart = leftEnd - 1;
+    while leftStart > 0 && parenCount > 0
+        if expr(leftStart) == ')'
+            parenCount = parenCount + 1;
+        elseif expr(leftStart) == '('
+            parenCount = parenCount - 1;
+        end
+        leftStart = leftStart - 1;
+    end
+    leftStart = leftStart + 1; % Point to the '('
+    
+    % Verify this is part of a valid construct (function or grouping)
+    if leftStart > 1
+        % Check if it's a function call like pow(...) or sqrt(...) or just (...)
+        searchBack = leftStart - 1;
+        while searchBack > 0 && isspace(expr(searchBack))
+            searchBack = searchBack - 1;
+        end
+        if searchBack > 0 && (isCharAlphanumeric(expr(searchBack)) || expr(searchBack) == '_')
+            % It's a function call, backtrack to find the start of the function name
+            while searchBack > 0 && (isCharAlphanumeric(expr(searchBack)) || expr(searchBack) == '_')
+                searchBack = searchBack - 1;
+            end
+            leftStart = searchBack + 1;
+        end
+    end
+else
+    % It's an identifier or number, backtrack to find the start
+    leftStart = leftEnd;
+    while leftStart > 1 && (isCharAlphanumeric(expr(leftStart-1)) || expr(leftStart-1) == '_' || expr(leftStart-1) == '.')
+        leftStart = leftStart - 1;
+    end
+end
+
+leftOperand = expr(leftStart:leftEnd);
+
+% Extract right operand: move forward from ^ to find complete expression
+rightStart = pos + 1;
+while rightStart <= length(expr) && isspace(expr(rightStart))
+    rightStart = rightStart + 1;
+end
+
+if rightStart > length(expr)
+    error('WriteCppSSA:invalidPower','Invalid power expression in: %s', expr);
+end
+
+% If it starts with (, find matching )
+if expr(rightStart) == '('
+    parenCount = 1;
+    rightEnd = rightStart + 1;
+    while rightEnd <= length(expr) && parenCount > 0
+        if expr(rightEnd) == '('
+            parenCount = parenCount + 1;
+        elseif expr(rightEnd) == ')'
+            parenCount = parenCount - 1;
+        end
+        rightEnd = rightEnd + 1;
+    end
+    rightEnd = rightEnd - 1; % Point to the ')'
+else
+    % It's an identifier or number, find the end
+    rightEnd = rightStart;
+    while rightEnd <= length(expr) && (isCharAlphanumeric(expr(rightEnd)) || expr(rightEnd) == '_' || expr(rightEnd) == '.')
+        rightEnd = rightEnd + 1;
+    end
+    rightEnd = rightEnd - 1;
+end
+
+rightOperand = expr(rightStart:rightEnd);
+
+% Recursively convert any inner power operators in the operands
+% Must loop until all powers are converted
+while contains(leftOperand, '^')
+    leftOperand = convertNearestPowerC(leftOperand);
+end
+while contains(rightOperand, '^')
+    rightOperand = convertNearestPowerC(rightOperand);
+end
+
+% Replace the power expression with safepow call (handles negative bases)
+newPowExpr = sprintf('safepow(%s,%s)', leftOperand, rightOperand);
+expr = [expr(1:leftStart-1), newPowExpr, expr(rightEnd+1:end)];
+end
+
+
