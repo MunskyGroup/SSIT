@@ -384,7 +384,6 @@ fprintf(fid,'/* Auto-generated C fallback by ssit.ssa.WriteCppSSA */\n');
 fprintf(fid,'#include "mex.h"\n');
 fprintf(fid,'#include <math.h>\n');
 fprintf(fid,'#include <stdint.h>\n');
-fprintf(fid,'#include <stdio.h>\n');
 fprintf(fid,'#include <time.h>\n');
 fprintf(fid,'#include <stdlib.h>\n\n');
 
@@ -489,9 +488,6 @@ fprintf(fid,'    if ((x == NULL) || (xprev == NULL) || (props == NULL)) mexErrMs
 
 fprintf(fid,'    const uint64_t baseSeed = splitmix64((((uint64_t)time(NULL)) << 32) ^ (uint64_t)clock() ^ (uint64_t)(uintptr_t)x0 ^ (uint64_t)(uintptr_t)parametersIn);\n\n');
 
-fprintf(fid,'    FILE *debugFile = fopen("ssa_debug.txt", "w");\n');
-fprintf(fid,'    if (!debugFile) { mexErrMsgIdAndTxt("SSA:debug", "Could not open debug file"); }\n\n');
-
 fprintf(fid,'    {\n');
 fprintf(fid,'    mwSize run, it, i, is, ir;\n');
 fprintf(fid,'    for (run = 0; run < N_run; ++run) {\n');
@@ -499,12 +495,8 @@ fprintf(fid,'        uint64_t rngState = splitmix64(baseSeed + ((uint64_t)run * 
 fprintf(fid,'        for (i = 0; i < NSPEC; ++i) { x[i] = x0[i]; xprev[i] = x0[i]; }\n');
 fprintf(fid,'        {\n');
 fprintf(fid,'        double t = tprint[0];\n');
-fprintf(fid,'        fprintf(debugFile, "PHASE1_DEBUG_INIT: run=0 initialized, t=%%.17g\\n", t);\n');
-fprintf(fid,'        fflush(debugFile);\n');
 fprintf(fid,'        for (it = 0; it < NT; ++it) {\n');
 fprintf(fid,'            const double tstop = tprint[it];\n');
-fprintf(fid,'            fprintf(debugFile, "PHASE1_DEBUG_LOOP: it=%%lu, t=%%.17g, tstop=%%.17g, enter_while=%%d\\n", (unsigned long)it, t, tstop, (int)(t < tstop));\n');
-fprintf(fid,'            fflush(debugFile);\n');
 fprintf(fid,'            while (t < tstop) {\n');
 fprintf(fid,'                for (is = 0; is < NSPEC; ++is) xprev[is] = x[is];\n');
 
@@ -521,11 +513,6 @@ for ir = 1:Nrxn
     fprintf(fid,'                props[%d] = %s;\n',ir-1,expr);
 end
 
-fprintf(fid,'                if (run == 0 && it == 0) {\n');
-fprintf(fid,'                    fprintf(debugFile, "PHASE1_DEBUG_INSIDE: safepow(-500.0, 0.5)=%%.17g, props[0]=%%.17g\\n", safepow(-500.0, 0.5), props[0]);\n');
-fprintf(fid,'                    fflush(debugFile);\n');
-fprintf(fid,'                }\n');
-fprintf(fid,'\n');
 fprintf(fid,'                {\n');
 fprintf(fid,'                double w0 = 0.0;\n');
 fprintf(fid,'                for (ir = 0; ir < NRXN; ++ir) w0 += props[ir];\n');
@@ -545,8 +532,6 @@ fprintf(fid,'        }\n');
 fprintf(fid,'        }\n');
 fprintf(fid,'    }\n');
 fprintf(fid,'    }\n\n');
-
-fprintf(fid,'    if (debugFile) fclose(debugFile);\n\n');
 
 fprintf(fid,'    mxFree(props);\n');
 fprintf(fid,'    mxFree(xprev);\n');
