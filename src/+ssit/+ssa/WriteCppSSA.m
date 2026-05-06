@@ -389,10 +389,25 @@ fprintf(fid,'#include <stdlib.h>\n\n');
 
 fprintf(fid,'/* Safe power function that handles negative bases */\n');
 fprintf(fid,'static inline double safepow(double base, double exponent) {\n');
-fprintf(fid,'    /* For negative bases, MATLAB''s ^ operator uses complex arithmetic for non-integer exponents. */\n');
-fprintf(fid,'    /* As a fallback, we use the absolute value for negative bases. */\n');
 fprintf(fid,'    if (base < 0.0) {\n');
-fprintf(fid,'        return pow(fabs(base), exponent);\n');
+fprintf(fid,'        double frac_part = exponent - floor(exponent);\n');
+fprintf(fid,'        if (frac_part > 1e-10 && frac_part < 1.0 - 1e-10) {\n');
+fprintf(fid,'            /* Non-integer exponent: use absolute value */\n');
+fprintf(fid,'            return pow(fabs(base), exponent);\n');
+fprintf(fid,'        } else {\n');
+fprintf(fid,'            /* Integer-like exponent: check if even or odd */\n');
+fprintf(fid,'            double mod2 = fmod(fabs(exponent), 2.0);\n');
+fprintf(fid,'            if (mod2 < 1e-10) {\n');
+fprintf(fid,'                /* Even integer: return positive */\n');
+fprintf(fid,'                return pow(fabs(base), exponent);\n');
+fprintf(fid,'            } else if (mod2 > 1.0 - 1e-10) {\n');
+fprintf(fid,'                /* Odd integer: return negative */\n');
+fprintf(fid,'                return -pow(fabs(base), exponent);\n');
+fprintf(fid,'            } else {\n');
+fprintf(fid,'                /* Unexpected case: treat as integer */\n');
+fprintf(fid,'                return pow(fabs(base), exponent);\n');
+fprintf(fid,'            }\n');
+fprintf(fid,'        }\n');
 fprintf(fid,'    }\n');
 fprintf(fid,'    return pow(base, exponent);\n');
 fprintf(fid,'}\n\n');
@@ -498,12 +513,11 @@ for ir = 1:Nrxn
     fprintf(fid,'                props[%d] = %s;\n',ir-1,expr);
 end
 
+fprintf(fid,'                {\n');
 fprintf(fid,'                double w0 = 0.0;\n');
 fprintf(fid,'                for (ir = 0; ir < NRXN; ++ir) w0 += props[ir];\n');
-fprintf(fid,'                if (run == 0 && it == 0) mexPrintf("DEBUG: props[16]=%%.17g, props[17]=%%.17g, w0=%%.17g, k34=%%.17g, x11=%%.17g\\n", props[16], props[17], w0, parametersIn[33], x[10]);\n');
 fprintf(fid,'                if (w0 <= 0.0) { t = tstop; break; }\n');
 fprintf(fid,'                t += -log(randu01(&rngState)) / w0;\n');
-fprintf(fid,'                {\n');
 fprintf(fid,'                {\n');
 fprintf(fid,'                const double r2w0 = randu01(&rngState) * w0;\n');
 fprintf(fid,'                mwSize mu = 0;\n');
