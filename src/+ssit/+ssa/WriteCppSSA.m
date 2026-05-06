@@ -174,7 +174,11 @@ fprintf(fid,'}\n');
 clear cleanupObj;
 
 try
-    mex('-R2018a','-O',sourceFile,'-output',mexName);
+    if isunix && ~ismac
+        mex('-R2018a','-O',sourceFile,'-lm','-output',mexName);
+    else
+        mex('-R2018a','-O',sourceFile,'-output',mexName);
+    end
 catch ME
     % Some MATLAB/macOS arm64 setups fail C++ MEX link with adapter symbols
     % under -R2018a even for classic mexFunction entry points. Retry -R2017b.
@@ -185,12 +189,21 @@ catch ME
 
     if needsFallback
         try
-            mex('-R2017b','-O',sourceFile,'-output',mexName);
+            if isunix && ~ismac
+                mex('-R2017b','-O',sourceFile,'-lm','-output',mexName);
+            else
+                mex('-R2017b','-O',sourceFile,'-output',mexName);
+            end
         catch ME2
             cSourceFile = [mexName,'_ssa_mex.c'];
             writeCFallbackSource(cSourceFile,k,w,S,tprint);
             try
-                mex('-O',cSourceFile,'-output',mexName);
+                % On Linux, explicitly link against the math library
+                if isunix && ~ismac
+                    mex('-O',cSourceFile,'-lm','-output',mexName);
+                else
+                    mex('-O',cSourceFile,'-output',mexName);
+                end
             catch ME3
                 error('WriteCppSSA:mexCompileFailed', ...
                     ['Generated %s but compilation failed with both -R2018a and -R2017b; ', ...
