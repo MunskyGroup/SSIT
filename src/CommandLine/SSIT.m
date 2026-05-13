@@ -360,14 +360,17 @@ classdef SSIT
                 if size(dataSettings,2)<3
                     dataSettings{1,3} = {};
                 end
+                if size(dataSettings,2)<4
+                    dataSettings{1,4} = {};
+                end
                 if exist('MultiModelObj','var')
                     nModels = length(MultiModelObj.SSITModels);
                     for iModel = 1:nModels
                         MultiModelObj.SSITModels{iModel} =  MultiModelObj.SSITModels{iModel}.loadData( ...
-                            dataSettings{iModel,1},dataSettings{iModel,2},dataSettings{iModel,3});
+                            dataSettings{iModel,1},dataSettings{iModel,2},dataSettings{iModel,3},dataSettings{iModel,4});
                     end
                 else
-                    obj = obj.loadData(dataSettings{1,1},dataSettings{1,2},dataSettings{1,3});
+                    obj = obj.loadData(dataSettings{1,1},dataSettings{1,2},dataSettings{1,3},dataSettings{1,4});
                 end
 
             end
@@ -1828,16 +1831,40 @@ classdef SSIT
             else
                 disp('Filtering conditions:')
                 for iFi = 1:size(DATA.conditions,1)
-                    if ~isempty(DATA.conditions{iFi,1})
-                        if isnumeric(DATA.conditions{iFi,2})
-                            disp(['  Conditon ',num2str(iFi),': ',DATA.conditions{iFi,1},' ',DATA.conditions{iFi,3},' ',num2str(DATA.conditions{iFi,2})])
-                        else
-                            disp(['   ',DATA.conditions{iFi,1},' ',DATA.conditions{iFi,3},' ',DATA.conditions{iFi,2}])
+            
+                    % Case 1: two-column condition, e.g. {'dex_conc',100}
+                    if size(DATA.conditions,2) == 2
+                        if ~isempty(DATA.conditions{iFi,1})
+                            if isnumeric(DATA.conditions{iFi,2})
+                                disp(['  Condition ',num2str(iFi),': ', ...
+                                    DATA.conditions{iFi,1},' == ', ...
+                                    num2str(DATA.conditions{iFi,2})])
+                            else
+                                disp(['  Condition ',num2str(iFi),': ', ...
+                                    DATA.conditions{iFi,1},' == ', ...
+                                    DATA.conditions{iFi,2}])
+                            end
                         end
-                    else
-                        str = DATA.conditions{iFi,3};
-                        str = strrep(str,'TAB.','');
-                        disp(['  Conditon ',num2str(iFi),': ', str])     
+            
+                    % Case 2: three-column condition, e.g. {'dex_conc',100,'>'}
+                    elseif size(DATA.conditions,2) >= 3
+                        if ~isempty(DATA.conditions{iFi,1})
+                            if isnumeric(DATA.conditions{iFi,2})
+                                disp(['  Condition ',num2str(iFi),': ', ...
+                                    DATA.conditions{iFi,1},' ', ...
+                                    DATA.conditions{iFi,3},' ', ...
+                                    num2str(DATA.conditions{iFi,2})])
+                            else
+                                disp(['  Condition ',num2str(iFi),': ', ...
+                                    DATA.conditions{iFi,1},' ', ...
+                                    DATA.conditions{iFi,3},' ', ...
+                                    DATA.conditions{iFi,2}])
+                            end
+                        else
+                            str = DATA.conditions{iFi,3};
+                            str = strrep(str,'TAB.','');
+                            disp(['  Condition ',num2str(iFi),': ', str])
+                        end
                     end
                 end
             end
@@ -2836,7 +2863,7 @@ classdef SSIT
         end
 
         %% Data Loading and Fitting
-        function [obj] = loadData(obj,dataFileName,linkedSpecies,conditions)
+        function [obj] = loadData(obj,dataFileName,linkedSpecies,conditions,savedColumns)
             % SSIT.loadData - Reads data from given file and associates
             % it with specified model species and experimental conditions.
             %
@@ -2854,16 +2881,22 @@ classdef SSIT
             %                the data in the 'Rep_num' column that is
             %                exactly equal to '1' will be kept in the
             %                data set
+            %   * savedColumns - optional string, char, or cell array of column names
+            %     from the data file to preserve after filtering. These
+            %     columns are not used for fitting, but are stored row-by-row
+            %     in obj.dataSet.savedColumns and obj.dataSet.savedData.
+            %     Example: savedColumns = {'replica'};
             %
             % Example:
             %   Model = Model.loadData("/data/dataFile.csv",...
             %    {'RNA','x1';'Protein','x2'},...
-            %    {'Drug_Conc',100});
+            %    {'Drug_Conc',100},{'replica'});
             arguments
                 obj
                 dataFileName
                 linkedSpecies
                 conditions = {};
+                savedColumns = {};
             end
             obj.dataSet =[];
             if ischar(dataFileName)||isstring(dataFileName)
@@ -2905,6 +2938,32 @@ classdef SSIT
                 end
             end
             obj.dataSet.conditions = conditions;
+
+            % Preserve optional extra columns after filtering (savedColumns).
+            % These are stored separately from TAB2 because TAB2 is later converted
+            % into a numeric sparse tensor for fitting.
+            if ischar(savedColumns) || isstring(savedColumns)
+                savedColumns = cellstr(savedColumns);
+            end
+            
+            if ~isempty(savedColumns)
+                dataNames = TAB.Properties.VariableNames;
+            
+                for k = 1:numel(savedColumns)
+                    if ~any(strcmp(dataNames, savedColumns{k}))
+                        error('SSIT:loadData:MissingColumn', ...
+                            'Requested extra column "%s" was not found in the data file.', ...
+                            savedColumns{k});
+                    end
+                end
+            
+                obj.dataSet.savedColumns = savedColumns;
+                obj.dataSet.savedData = TAB(:, savedColumns);
+            else
+                obj.dataSet.savedColumns = {};
+                obj.dataSet.savedData = table;
+            end
+
             obj.dataSet.dataFileName = dataFileName;
             % obj.dataSet.DATA = table2cell(TAB);
 
