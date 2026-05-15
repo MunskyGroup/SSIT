@@ -3487,12 +3487,14 @@ classdef SSIT
                 nSims = 100; % Number of simulations at which to calculate log(L)
             end
 
+            species2save = setdiff(obj.species,[obj.hybridOptions.upstreamODEs,obj.pdoOptions.unobservedSpecies]);
+
             logLSpreadVector = zeros(nSims,1);
             objTMP = obj;
             for iSim = 1:nSims
 
                 % Generate and reformat data using FSP solution.
-                A = obj.sampleDataFromFSP([],[],obj.dataSet.nCells);                
+                A = obj.sampleDataFromFSP([],[],obj.dataSet.nCells,species2save);                
                 objTMP.dataSet.DATA = table2cell(A);
                 
                 if iSim==1
@@ -3507,6 +3509,9 @@ classdef SSIT
 
                 % Convert to data tensor
                 X = table2array(A);
+
+                % Apply PDO to the data tensor
+                
 
                 objTMP.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor = ...
                     sptensor(X+1,ones(size(X,1),1));
