@@ -79,6 +79,7 @@ catch me
     me
     return
 end
+
 % Test GUI installation (if not on cluster)
 if ~isCluster
     try
@@ -108,8 +109,9 @@ if runTests
     cleanupTest = onCleanup(@() cd(origDir));  % guarantee return
     cd('tests')
     set(0, 'DefaultFigureVisible', 'off');
+    disp('Starting Tests....')
     testResults.tests = runtests({'poissonTest','poisson2Dtest','poissonTVtest',...
-        'miscelaneousTests','multiModelTests','modelReductionTest','testGui'})
+        'miscelaneousTests','multiModelTests','modelReductionTest','testGui'});
     set(0, 'DefaultFigureVisible', 'on');
     clear cleanupTest
 else
