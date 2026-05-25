@@ -103,6 +103,8 @@ else
     savepath 'src/pathdef.m';
 end
 
+runTests
+
 if runTests
     % Run Tests
     origDir = pwd;              % save current directory
