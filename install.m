@@ -11,6 +11,7 @@ end
 if isCluster
     % runTests = false;
     % Turn off figures.
+    setenv('QT_QPA_PLATFORM','offscreen');
     set(0,'DefaultFigureVisible','off')
     runExamples = false;
     tests2run = {'poissonTest','poisson2Dtest','poissonTVtest',...
