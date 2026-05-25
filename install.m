@@ -9,8 +9,15 @@ arguments
 end
 
 if isCluster
-    runTests = false;
+    % runTests = false;
+    % Turn off figures.
+    set(0,'DefaultFigureVisible','off')
     runExamples = false;
+    tests2run = {'poissonTest','poisson2Dtest','poissonTVtest',...
+        'miscelaneousTests','multiModelTests','modelReductionTest'};
+else
+    tests2run = {'poissonTest','poisson2Dtest','poissonTVtest',...
+        'miscelaneousTests','multiModelTests','modelReductionTest','testGui'};
 end
     
 % Check that 
@@ -103,8 +110,6 @@ else
     savepath 'src/pathdef.m';
 end
 
-runTests
-
 if runTests
     % Run Tests
     origDir = pwd;              % save current directory
@@ -112,8 +117,7 @@ if runTests
     cd('tests')
     set(0, 'DefaultFigureVisible', 'off');
     disp('Starting Tests....')
-    testResults.tests = runtests({'poissonTest','poisson2Dtest','poissonTVtest',...
-        'miscelaneousTests','multiModelTests','modelReductionTest','testGui'});
+    testResults.tests = runtests(tests2run);
     set(0, 'DefaultFigureVisible', 'on');
     clear cleanupTest
 else
