@@ -2133,9 +2133,7 @@ classdef SSIT
                     % Run SSA on GPU, in parallel, or in series as
                     % requested.
                     if obj.ssaOptions.useGPU
-                        k_cell = num2cell(k);
-                        Solution.trajs = fun(x0, nSims, k_cell{:}, 'GPU');
-                        % Solution.trajs=fun(x0,nSims,k,'GPU');
+                        Solution.trajs=fun(x0,nSims,k,'GPU');
                     elseif obj.ssaOptions.useParallel
                         Solution.trajs=fun(x0,nSims,k,'Parallel');
                     else

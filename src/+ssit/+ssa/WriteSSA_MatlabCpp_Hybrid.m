@@ -103,8 +103,8 @@ fprintf(fileID,'   error(''Unknown useGPU mode: %%s'',useGPU);\n');
 fprintf(fileID,'end\n');
 fprintf(fileID,'end\n\n');
 
-fprintf(fileID,'function [%s] = %s_SSA(%s,parametersIn)\n',...
-    strjoin(ssaOut,','),funName(Jslash(end)+1:end),strjoin(ssaIn,','));
+fprintf(fileID,'function [%s] = %s_SSA(%s%s)\n',...
+    strjoin(ssaOut,','),funName(Jslash(end)+1:end),strjoin(ssaIn,','),sk);
 fprintf(fileID,'%% First we define the parameters.\n');
 % for i = 1:length(k)
 %     fprintf(fileID,'k%d=parametersIn(%d);\n',i,i);
