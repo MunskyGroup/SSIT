@@ -57,7 +57,7 @@ for i = 1:Nspec
 end
 
 fprintf(fileID,'elseif strcmp(useGPU,''Parallel'')\n');
-fprintf(fileID,'   ssaCpuFun = str2func([mfilename,''_SSA'']);\n');
+fprintf(fileID,'   ssaCpuFun = str2func([mfilename,''_SSA_mex'']);\n');
 fprintf(fileID,'   x0Col = x0(:);\n');
 fprintf(fileID,'   p = gcp(''nocreate'');\n');
 fprintf(fileID,'   if isempty(p)\n');
@@ -83,7 +83,7 @@ fprintf(fileID,'      X(:,:,iStart:iEnd) = groupResults{ig};\n');
 fprintf(fileID,'   end\n');
 
 fprintf(fileID,'elseif strcmp(useGPU,''Series'')\n');
-fprintf(fileID,'   ssaCpuFun = str2func([mfilename,''_SSA'']);\n');
+fprintf(fileID,'   ssaCpuFun = str2func([mfilename,''_SSA_mex'']);\n');
 fprintf(fileID,'   x0Col = x0(:);\n');
 fprintf(fileID,'   X = ssaCpuFun(x0Col,N_run,parametersIn);\n');
 fprintf(fileID,'else\n');
@@ -152,4 +152,4 @@ fprintf(fileID,'end\n');
 clear cleanupObj;
 
 % Compile CPU SSA kernel used by Parallel/Series branches.
-ssit.ssa.WriteCppSSA(k,w,S,tprint,[funName,'_SSA']);
+ssit.ssa.WriteCppSSA(k,w,S,tprint,[funName,'_SSA_mex']);
