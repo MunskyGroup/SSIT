@@ -50,11 +50,18 @@ end
 %     funName(Jslash(end)+1:end),strjoin(gpuIn,','),funName(Jslash(end)+1:end),strjoin(gpuIn,','));
 % fprintf(fileID,'   [%s] = arrayfun(@%s_SSA_GPU,%s,parametersIn);\n',...
 %     strjoin(ssaOut,','),funName(Jslash(end)+1:end),strjoin(gpuIn,','));
+
+sk = [];
+for i = 1:length(k)
+    fprintf(fileID,'   k%d=parametersIn(%d);\n',i,i);
+    sk = [sk,',k',num2str(i)];
+end
+
 fprintf(fileID,...
-    '   [%s] = arrayfun(@%s_SSA,%s,parametersIn);\n',...
+    '   [%s] = arrayfun(@%s_SSA,%s%s);\n',...
     strjoin(ssaOut,','),...
     funName(Jslash(end)+1:end),...
-    strjoin(gpuIn,','));
+    strjoin(gpuIn,','),sk);
 for i = 1:Nspec
     for j = 1:Nt
         fprintf(fileID,'   X(%d,%d,:) = gather(x%d_%d);\n',i,j,i,j);
@@ -99,10 +106,10 @@ fprintf(fileID,'end\n\n');
 fprintf(fileID,'function [%s] = %s_SSA(%s,parametersIn)\n',...
     strjoin(ssaOut,','),funName(Jslash(end)+1:end),strjoin(ssaIn,','));
 fprintf(fileID,'%% First we define the parameters.\n');
-for i = 1:length(k)
-    fprintf(fileID,'k%d=parametersIn(%d);\n',i,i);
-end
-fprintf(fileID,'\n');
+% for i = 1:length(k)
+%     fprintf(fileID,'k%d=parametersIn(%d);\n',i,i);
+% end
+% fprintf(fileID,'\n');
 
 fprintf(fileID,'%% Initialize the time and state.\n');
 fprintf(fileID,'t=%.17g;\n',tprint(1));
