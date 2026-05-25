@@ -152,4 +152,4 @@ fprintf(fileID,'end\n');
 clear cleanupObj;
 
 % Compile CPU SSA kernel used by Parallel/Series branches.
-ssit.ssa.WriteCppSSA(k,w,S,tprint,[funName,'_SSA_mex']);
+ssit.ssa.WriteCppSSA(k,w,S,tprint,[funName,'_SSA']);
