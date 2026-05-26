@@ -270,11 +270,14 @@ classdef SSITMultiModel
                 end
                 FIMlocal.fims{i} = SMM.SSITModels{i}.computeFIM(sensSoln,scale,MHSamplesMod);
                
-                J = SMM.SSITModels{i}.fittingOptions.modelVarsToFit;
+                % J = SMM.SSITModels{i}.fittingOptions.modelVarsToFit;
                 for iT = 1:length(SMM.SSITModels{i}.tSpan)
+                    % FIMlocal.totalFIM(SMM.parameterIndices{i},SMM.parameterIndices{i}) = ...
+                    %     FIMlocal.totalFIM(SMM.parameterIndices{i},SMM.parameterIndices{i}) +...
+                    %     SMM.SSITModels{i}.dataSet.nCells(iT)*FIMlocal.fims{i}{iT}(J,J);
                     FIMlocal.totalFIM(SMM.parameterIndices{i},SMM.parameterIndices{i}) = ...
                         FIMlocal.totalFIM(SMM.parameterIndices{i},SMM.parameterIndices{i}) +...
-                        SMM.SSITModels{i}.dataSet.nCells(iT)*FIMlocal.fims{i}{iT}(J,J);
+                        SMM.SSITModels{i}.dataSet.nCells(iT)*FIMlocal.fims{i}{iT};
                 end
             end
             SMM.FIM = FIMlocal;

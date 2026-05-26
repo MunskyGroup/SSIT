@@ -506,8 +506,16 @@ classdef SSIT
             % Example: Model = Model.formPropensitiesGeneral('Model_1')
             arguments
                 obj
-                prefixName = 'default';
+                prefixName = [];
                 computeSens = true;
+            end
+
+            if isempty(prefixName)
+                if ~isempty(obj.propensityFilePrefix)
+                    prefixName = obj.propensityFilePrefix;
+                else
+                    prefixName = 'default';
+                end
             end
             % This function starts the process to write m-file for each
             % propensity function.
@@ -2632,7 +2640,8 @@ classdef SSIT
                 for it=length(sensSoln.data):-1:1
                     if isempty(indsUnobserved)
                         %F = ssit.fim.computeSingleCellFim(sensSoln.data{it}.p, sensSoln.data{it}.S, obj.pdoOptions.PDO);
-                        Sfree = sensSoln.data{it}.S(freeLocal);
+                        Sfree = sensSoln.data{it}.S(fitParsGlobal);
+                        Sfree = Sfree(freeLocal);
                         F = ssit.fim.computeSingleCellFim(sensSoln.data{it}.p, Sfree, obj.pdoOptions.PDO);
                     else
                         % Remove unobservable species.
