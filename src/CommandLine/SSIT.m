@@ -517,6 +517,16 @@ classdef SSIT
                     prefixName = 'default';
                 end
             end
+            % Fix incompatible forward and back slashes in
+            % directory names for windows to mac transitions.
+            if ~strcmp(filesep,'\')
+                prefixName(prefixName=='\') = filesep;
+            end
+            if ~strcmp(filesep,'/')
+                prefixName(prefixName=='/') = filesep;
+            end
+            obj.propensityFilePrefix = prefixName;
+
             % This function starts the process to write m-file for each
             % propensity function.
 
