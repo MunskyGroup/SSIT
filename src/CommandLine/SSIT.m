@@ -2125,6 +2125,15 @@ classdef SSIT
                     x0 = obj.initialCondition;
                     % initial condition.
 
+                    % Fix incompatible forward and back slashes in
+                    % directory names for windows to mac transitions.
+                    if ~strcmp(filesep,'\')
+                        obj.propensityFilePrefix(obj.propensityFilePrefix=='\') = filesep;
+                    end
+                    if ~strcmp(filesep,'/')
+                        obj.propensityFilePrefix(obj.propensityFilePrefix=='/') = filesep;
+                    end
+
                     % Call code to write a GPU friendly SSA code.
                     if ~isfield(obj.ssaOptions,'computeFile')||isempty(obj.ssaOptions.computeFile)
                         if ~strcmpi(obj.propensityFilePrefix,'default')
