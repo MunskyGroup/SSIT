@@ -13,13 +13,69 @@
 #include <math.h>
 #include <stdlib.h>
 #include <string.h>   /* memset, memcpy */
+#include <stddef.h>   /* ptrdiff_t */
 
 #ifdef __APPLE__
 #  include <Accelerate/Accelerate.h>
+#elif defined(_WIN32)
+#  include "blas.h"
 #elif defined(MKL_BLAS)
 #  include <mkl_cblas.h>
 #else
 #  include <cblas.h>   /* OpenBLAS or any other CBLAS implementation */
+#endif
+
+#if defined(_MSC_VER)
+#  define SSIT_RESTRICT __restrict
+#else
+#  define SSIT_RESTRICT restrict
+#endif
+
+#if defined(__GNUC__) || defined(__clang__)
+#  define SSIT_UNLIKELY(x) __builtin_expect(!!(x), 0)
+#else
+#  define SSIT_UNLIKELY(x) (x)
+#endif
+
+#if defined(_WIN32)
+/*
+ * MATLAB on Windows ships BLAS via blas.h/lmwblas (Fortran-style entry points).
+ * Provide light wrappers so the rest of this file can keep cblas-like calls.
+ */
+static double ssit_ddot(int n, const double *x, int incx, const double *y, int incy)
+{
+    ptrdiff_t N = (ptrdiff_t)n;
+    ptrdiff_t INCX = (ptrdiff_t)incx;
+    ptrdiff_t INCY = (ptrdiff_t)incy;
+    return ddot(&N, x, &INCX, y, &INCY);
+}
+
+static void ssit_daxpy(int n, double alpha, const double *x, int incx, double *y, int incy)
+{
+    ptrdiff_t N = (ptrdiff_t)n;
+    ptrdiff_t INCX = (ptrdiff_t)incx;
+    ptrdiff_t INCY = (ptrdiff_t)incy;
+    daxpy(&N, &alpha, x, &INCX, y, &INCY);
+}
+
+static double ssit_dnrm2(int n, const double *x, int incx)
+{
+    ptrdiff_t N = (ptrdiff_t)n;
+    ptrdiff_t INCX = (ptrdiff_t)incx;
+    return dnrm2(&N, x, &INCX);
+}
+
+static void ssit_dscal(int n, double alpha, double *x, int incx)
+{
+    ptrdiff_t N = (ptrdiff_t)n;
+    ptrdiff_t INCX = (ptrdiff_t)incx;
+    dscal(&N, &alpha, x, &INCX);
+}
+#else
+#  define ssit_ddot  cblas_ddot
+#  define ssit_daxpy cblas_daxpy
+#  define ssit_dnrm2 cblas_dnrm2
+#  define ssit_dscal cblas_dscal
 #endif
 
 /* ------------------------------------------------------------------ */
@@ -36,9 +92,9 @@ typedef struct {
 /*  Sparse matrix-vector product  y = A * x                           */
 /*  All pointers are restrict: no aliasing between A's arrays and x/y */
 /* ------------------------------------------------------------------ */
-static void csr_matvec(const CSRMatrix * restrict A,
-                       const double    * restrict x,
-                       double          * restrict y)
+static void csr_matvec(const CSRMatrix * SSIT_RESTRICT A,
+                       const double    * SSIT_RESTRICT x,
+                       double          * SSIT_RESTRICT y)
 {
     const int     n       = A->n;
     const int    *row_ptr = A->row_ptr;
@@ -109,15 +165,15 @@ void expokitC(
 
         /* Modified Gram-Schmidt orthogonalisation */
         for (int i = 0; i <= j; i++) {
-            double hij = cblas_ddot(n, p, 1, &V[i * n], 1);
+            double hij = ssit_ddot(n, p, 1, &V[i * n], 1);
             H[i + j * ldH] = hij;
-            cblas_daxpy(n, -hij, &V[i * n], 1, p, 1);
+            ssit_daxpy(n, -hij, &V[i * n], 1, p, 1);
         }
 
-        double s = cblas_dnrm2(n, p, 1);
+        double s = ssit_dnrm2(n, p, 1);
 
         /* Invariant subspace detected – early exit */
-        if (__builtin_expect(s < btol, 0)) {
+        if (SSIT_UNLIKELY(s < btol)) {
             *k1     = 0;
             *mb     = j + 1;
             *t_step = Time_array_i_prt - tNow;
@@ -132,7 +188,7 @@ void expokitC(
          * One memcpy + one cblas_dscal is typically faster than a
          * scalar loop for large n.                                   */
         memcpy(&V[(j + 1) * n], p, (size_t)n * sizeof(double));
-        cblas_dscal(n, 1.0 / s, &V[(j + 1) * n], 1);
+        ssit_dscal(n, 1.0 / s, &V[(j + 1) * n], 1);
     }
 
     free(p);
