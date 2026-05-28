@@ -632,11 +632,11 @@ classdef SSIT
                 PropensitiesGeneral = ...
                     ssit.Propensity.createAsHybridVec(sm, obj.stoichiometry,...
                     obj.parameters, obj.species, obj.hybridOptions.upstreamODEs,...
-                    logicTerms, [prefixName,'_fsp'], computeSens);
+                    logicTerms, [prefixName,'_fsp'], computeSens, pathToPropensityFuns);
             else
                 PropensitiesGeneral = ...
                     ssit.Propensity.createAsHybridVec(sm, obj.stoichiometry,...
-                    obj.parameters, obj.species, [], logicTerms, [prefixName,'_fsp'], computeSens);
+                    obj.parameters, obj.species, [], logicTerms, [prefixName,'_fsp'], computeSens, pathToPropensityFuns);
             end
             % else
             %     PropensitiesGeneral = [];
@@ -7486,6 +7486,7 @@ end
                 opts.plotColors = struct();
                 opts.showConvergence = true;
                 opts.ESS = true;
+                opts.names = {};
             end
             FIM = opts.FIM;
             fimScale = opts.fimScale;
@@ -7494,12 +7495,13 @@ end
             plotColors = opts.plotColors;
             showConvergence = opts.showConvergence;
             ess = opts.ESS;
+            names = opts.names;
 
-            obj.plotMHResultsStatic(obj,mhResults,FIM,fimScale,mhPlotScale,scatterFig,ess,showConvergence,plotColors)
+            obj.plotMHResultsStatic(obj,mhResults,FIM,fimScale,mhPlotScale,scatterFig,ess,showConvergence,plotColors,names)
         end
     end
     methods (Static)
-        function plotMHResultsStatic(obj,mhResults,FIM,fimScale,mhPlotScale,scatterFig,ess,showConvergence,plotColors)
+        function plotMHResultsStatic(obj,mhResults,FIM,fimScale,mhPlotScale,scatterFig,ess,showConvergence,plotColors,names)
             arguments
                 obj
                 mhResults = [];
@@ -7510,6 +7512,7 @@ end
                 ess = true;  % display min(mhResults.ess(:)) in title    
                 showConvergence = true
                 plotColors = struct() % Optional: fields like scatter, ellipseFIM, ellipseMH, etc.
+                names = {};
             end
 
             if isfield(plotColors, 'scatter')
@@ -7544,7 +7547,12 @@ end
             if strcmp(obj.fittingOptions.modelVarsToFit,'all')
                 obj.fittingOptions.modelVarsToFit = ones(1,size(obj.parameters,1),'logical');
             end
-            parNames = obj.parameters(obj.fittingOptions.modelVarsToFit,1);
+
+            if isempty(names)
+                parNames = obj.parameters(obj.fittingOptions.modelVarsToFit,1);
+            else
+                parNames = names;
+            end
             Np = length(parNames);
 
             if ~isempty(FIM)
@@ -7635,6 +7643,18 @@ end
                 fprintf('\nMH sample means and standard deviations (log10 scale):\n');
                 for p = 1:Np
                     fprintf('%15s: mean = % .4f, std = %.4f\n', parNames{p}, mhMeans(p), mhStds(p));
+                end
+
+                % Compute and display parameter means and standard deviations
+                mhMeans = mean(exp(smplDone));   % log10 scale
+                mhStds  = std(exp(smplDone));
+
+                fprintf('\nMH sample means and standard deviations (lin scale):\n');
+                for p = 1:Np
+                    fprintf('%15s: mean = %12s, std = %12s\n', ...
+                        parNames{p}, ...
+                        sprintf('%0.4e', mhMeans(p)), ...
+                        sprintf('%0.4e', mhStds(p)));
                 end
 
             end

@@ -152,7 +152,7 @@ classdef Propensity
     end
     methods (Access = public, Static)
 
-        function obj = createAsHybridVec(symbolicExpression, stoichMatrix, nonXTpars, species, upstreamODEs, logicTerms, prefixName, computeSens)
+        function obj = createAsHybridVec(symbolicExpression, stoichMatrix, nonXTpars, species, upstreamODEs, logicTerms, prefixName, computeSens, pathToPropensityFuns)
             arguments
                 symbolicExpression
                 stoichMatrix
@@ -162,6 +162,7 @@ classdef Propensity
                 logicTerms = {};
                 prefixName = 'default';
                 computeSens = false;
+                pathToPropensityFuns = [];
             end
 
             % Construct an vector of Hybrid Propensity from a symbolic expression.
@@ -215,7 +216,9 @@ classdef Propensity
 
             varODEs = sym('varODEs',[length(upstreamODEs),1],'real');
 
-            load('SSITconfig.mat','pathToPropensityFuns');
+            if isempty(pathToPropensityFuns)
+                load('SSITconfig.mat','pathToPropensityFuns');
+            end
 
             % % Delete previous propensity function m-files
             % if ~exist([pwd,filesep,'tmpPropensityFunctions'],'dir')
@@ -354,7 +357,7 @@ classdef Propensity
                     if ~isempty(logicTerms{iRxn})&&(isfield(logicTerms{iRxn},'logT')||isfield(logicTerms{iRxn},'logJ'))
                         obj{iRxn}.anonymousT = true;
                         % hybridFactor = sym2propfun(expr_t, true, false, nonXTpars(:,1), speciesStoch, varODEs, logicTerms(iRxn));
-                        hybridFactor = sym2mFun(expr_t, true, false, nonXTpars(:,1), speciesStoch, varODEs, false, true, prefixNameLocal, logicTerms(iRxn));
+                        hybridFactor = sym2mFun(expr_t, true, false, nonXTpars(:,1), speciesStoch, varODEs, false, true, prefixNameLocal, logicTerms(iRxn), pathToPropensityFuns);
                         anyLogical(iRxn) = true;
                     % elseif sum(contains(string(symvar(expr_t)),'logX'))
                     %     obj{iRxn}.anonymousT = true;
@@ -407,10 +410,10 @@ classdef Propensity
                         % [obj{iRxn}.(timeFunName),expr_dt_vec_dodei] = ...
                         %     sym2propfun(signHybridFactor*expr_t, true, false, nonXTpars(:,1), speciesStoch, varODEs, logicTerms(iRxn), true);
                         [obj{iRxn}.(timeFunName),expr_dt_vec_dodei] = ...
-                            sym2mFun(signHybridFactor*expr_t, true, false, nonXTpars(:,1), speciesStoch, varODEs, true, true, prefixNameLocal, logicTerms(iRxn));
+                            sym2mFun(signHybridFactor*expr_t, true, false, nonXTpars(:,1), speciesStoch, varODEs, true, true, prefixNameLocal, logicTerms(iRxn), pathToPropensityFuns);
                     else
                         [~,expr_dt_vec_dodei] = ...
-                            sym2mFun(signHybridFactor*expr_t, true, false, nonXTpars(:,1), speciesStoch, varODEs, true, false, prefixNameLocal);
+                            sym2mFun(signHybridFactor*expr_t, true, false, nonXTpars(:,1), speciesStoch, varODEs, true, false, prefixNameLocal, {}, pathToPropensityFuns);
                     end
 
                     % Then for the state varying factors.
@@ -418,10 +421,10 @@ classdef Propensity
                         % obj{iRxn}.stateDependentFactor =...
                         %     sym2propfun(signHybridFactor*expr_x, false, true, nonXTpars(:,1), speciesStoch, [], logicTerms(iRxn));                    
                         obj{iRxn}.stateDependentFactor =...
-                            sym2mFun(signHybridFactor*expr_x, false, true, nonXTpars(:,1), speciesStoch, [], false, true, prefixNameLocal, logicTerms(iRxn));                    
+                            sym2mFun(signHybridFactor*expr_x, false, true, nonXTpars(:,1), speciesStoch, [], false, true, prefixNameLocal, logicTerms(iRxn), pathToPropensityFuns);                    
                     else
                         obj{iRxn}.stateDependentFactor =...
-                            sym2mFun(signHybridFactor*expr_x, false, true, nonXTpars(:,1), speciesStoch, [], false, true, prefixNameLocal);
+                            sym2mFun(signHybridFactor*expr_x, false, true, nonXTpars(:,1), speciesStoch, [], false, true, prefixNameLocal, {}, pathToPropensityFuns);
                     end
 
                     expr_t_vec(iRxn) = signHybridFactor*expr_t;
@@ -447,7 +450,7 @@ classdef Propensity
                     % [obj{iRxn}.(jntFactorName),expr_dt_vec_dodei] = ...
                     %     sym2propfun(expr_tx, true, true, nonXTpars(:,1), speciesStoch, varODEs, logicTerms(iRxn), true);
                     [obj{iRxn}.(jntFactorName),expr_dt_vec_dodei] = ...
-                        sym2mFun(expr_tx, true, true, nonXTpars(:,1), speciesStoch, varODEs, true, true, prefixNameLocal, logicTerms(iRxn));
+                        sym2mFun(expr_tx, true, true, nonXTpars(:,1), speciesStoch, varODEs, true, true, prefixNameLocal, logicTerms(iRxn), pathToPropensityFuns);
                     obj{iRxn}.isTimeDependent = true;
                     expr_t_vec(iRxn) = sym(NaN);
                     expr_x_vec(iRxn) = sym(NaN);
@@ -471,41 +474,41 @@ classdef Propensity
             % propensity functions so that these can be found all at once.
             if any(anyLogical)
                 % hybridFactorVector = sym2propfun(expr_t_vec, true, false, nonXTpars(:,1), speciesStoch, varODEs, logicTerms);
-                hybridFactorVector = sym2mFun(expr_t_vec, true, false, nonXTpars(:,1), speciesStoch, varODEs, false, true, prefixNameLocal, logicTerms);
+                hybridFactorVector = sym2mFun(expr_t_vec, true, false, nonXTpars(:,1), speciesStoch, varODEs, false, true, prefixNameLocal, logicTerms, pathToPropensityFuns);
                 % xFactorVector = sym2propfun(expr_x_vec, false, true, nonXTpars(:,1), speciesStoch, varODEs, logicTerms);
-                xFactorVector = sym2mFun(expr_x_vec, false, true, nonXTpars(:,1), speciesStoch, varODEs, false, true, prefixNameLocal, logicTerms);
+                xFactorVector = sym2mFun(expr_x_vec, false, true, nonXTpars(:,1), speciesStoch, varODEs, false, true, prefixNameLocal, logicTerms, pathToPropensityFuns);
                 if ~isempty(expr_dt_vec_dode)
                     % obj{1}.DhybridFactorDodesVec = sym2propfun(expr_dt_vec_dode, true, false, nonXTpars(:,1), speciesStoch, varODEs, logicTerms);
-                    obj{1}.DhybridFactorDodesVec = sym2mFun(expr_dt_vec_dode, true, false, nonXTpars(:,1), speciesStoch, varODEs, false, true, prefixNameLocal, logicTerms);
+                    obj{1}.DhybridFactorDodesVec = sym2mFun(expr_dt_vec_dode, true, false, nonXTpars(:,1), speciesStoch, varODEs, false, true, prefixNameLocal, logicTerms, pathToPropensityFuns);
                 end
                 if computeSens
                     % obj{1}.sensStateFactorVec = sym2propfun(expr_x_vec_sens, false, true, nonXTpars(:,1), speciesStoch, varODEs, logicTerms);
-                    obj{1}.sensStateFactorVec = sym2mFun(expr_x_vec_sens, false, true, nonXTpars(:,1), speciesStoch, varODEs, false, true, prefixNameLocal, logicTerms);
+                    obj{1}.sensStateFactorVec = sym2mFun(expr_x_vec_sens, false, true, nonXTpars(:,1), speciesStoch, varODEs, false, true, prefixNameLocal, logicTerms, pathToPropensityFuns);
                     for iRxn = 1:n_reactions
                         obj{iRxn}.sensStateFactor = cell(1,n_pars);
                         for ipar = 1:n_pars
                             % obj{iRxn}.sensStateFactor{ipar} =  sym2propfun(expr_x_vec_sens(iRxn,ipar), false, true, nonXTpars(:,1), speciesStoch, varODEs, logicTerms);
                             % obj{1}.sensTimeFactorVec{ipar} = sym2propfun(expr_t_vec_sens(:,ipar), true, false, nonXTpars(:,1), speciesStoch, varODEs, logicTerms);
-                            obj{iRxn}.sensStateFactor{ipar} =  sym2mFun(expr_x_vec_sens(iRxn,ipar), false, true, nonXTpars(:,1), speciesStoch, varODEs, false, true, prefixNameLocal, logicTerms);
-                            obj{1}.sensTimeFactorVec{ipar} = sym2mFun(expr_t_vec_sens(:,ipar), true, false, nonXTpars(:,1), speciesStoch, varODEs, false, true, prefixNameLocal, logicTerms);
+                            obj{iRxn}.sensStateFactor{ipar} =  sym2mFun(expr_x_vec_sens(iRxn,ipar), false, true, nonXTpars(:,1), speciesStoch, varODEs, false, true, prefixNameLocal, logicTerms, pathToPropensityFuns);
+                            obj{1}.sensTimeFactorVec{ipar} = sym2mFun(expr_t_vec_sens(:,ipar), true, false, nonXTpars(:,1), speciesStoch, varODEs, false, true, prefixNameLocal, logicTerms, pathToPropensityFuns);
                         end
                     end
                 end
             else
-                hybridFactorVector = sym2mFun(expr_t_vec, true, false, nonXTpars(:,1), speciesStoch, varODEs, false, true, [prefixNameLocal,'_t']);
-                xFactorVector = sym2mFun(expr_x_vec, false, true, nonXTpars(:,1), speciesStoch, varODEs, false, true, [prefixNameLocal,'_x']);
+                hybridFactorVector = sym2mFun(expr_t_vec, true, false, nonXTpars(:,1), speciesStoch, varODEs, false, true, [prefixNameLocal,'_t'], {}, pathToPropensityFuns);
+                xFactorVector = sym2mFun(expr_x_vec, false, true, nonXTpars(:,1), speciesStoch, varODEs, false, true, [prefixNameLocal,'_x'], {}, pathToPropensityFuns);
                 if ~isempty(expr_dt_vec_dode)
-                    obj{1}.DhybridFactorDodesVec = sym2mFun(expr_dt_vec_dode, true, false, nonXTpars(:,1), speciesStoch, varODEs, false, true, [prefixNameLocal,'_dt']);
+                    obj{1}.DhybridFactorDodesVec = sym2mFun(expr_dt_vec_dode, true, false, nonXTpars(:,1), speciesStoch, varODEs, false, true, [prefixNameLocal,'_dt'], {}, pathToPropensityFuns);
                 end
                 if computeSens
-                    obj{1}.sensStateFactorVec = sym2mFun(expr_x_vec_sens, false, true, nonXTpars(:,1), speciesStoch, varODEs, false, true, [prefixNameLocal,'_s']);
+                    obj{1}.sensStateFactorVec = sym2mFun(expr_x_vec_sens, false, true, nonXTpars(:,1), speciesStoch, varODEs, false, true, [prefixNameLocal,'_s'], {}, pathToPropensityFuns);
                     poolobj = gcp("nocreate");
                     if ~isempty(poolobj)&&n_reactions>0
                         parfor iRxn = 1:n_reactions
                             obj{iRxn}.sensStateFactor = cell(1,n_pars);
                             for ipar = 1:n_pars
                                 prefixNameLocal = [prefixName,'_',num2str(iRxn),'_',num2str(ipar)];
-                                obj{iRxn}.sensStateFactor{ipar} =  sym2mFun(expr_x_vec_sens(iRxn,ipar), false, true, nonXTpars(:,1), speciesStoch, varODEs, false, true, prefixNameLocal);
+                                obj{iRxn}.sensStateFactor{ipar} =  sym2mFun(expr_x_vec_sens(iRxn,ipar), false, true, nonXTpars(:,1), speciesStoch, varODEs, false, true, prefixNameLocal, {}, pathToPropensityFuns);
                             end
                         end
                     else
@@ -513,13 +516,13 @@ classdef Propensity
                             obj{iRxn}.sensStateFactor = cell(1,n_pars);
                             for ipar = 1:n_pars
                                 prefixNameLocal = [prefixName,'_',num2str(iRxn),'_',num2str(ipar)];
-                                obj{iRxn}.sensStateFactor{ipar} =  sym2mFun(expr_x_vec_sens(iRxn,ipar), false, true, nonXTpars(:,1), speciesStoch, varODEs, false, true, prefixNameLocal);
+                                obj{iRxn}.sensStateFactor{ipar} =  sym2mFun(expr_x_vec_sens(iRxn,ipar), false, true, nonXTpars(:,1), speciesStoch, varODEs, false, true, prefixNameLocal, {}, pathToPropensityFuns);
                             end
                         end
                     end
                     for ipar = 1:n_pars
                         prefixNameLocal = [prefixName,'_v_',num2str(1),'_',num2str(ipar)];
-                        obj{1}.sensTimeFactorVec{ipar} = sym2mFun(expr_t_vec_sens(:,ipar), true, false, nonXTpars(:,1), speciesStoch, varODEs, false, true, prefixNameLocal);
+                        obj{1}.sensTimeFactorVec{ipar} = sym2mFun(expr_t_vec_sens(:,ipar), true, false, nonXTpars(:,1), speciesStoch, varODEs, false, true, prefixNameLocal, {}, pathToPropensityFuns);
                     end
                 end
             end
@@ -870,7 +873,7 @@ else
     exprHandle = str2func([fhandle_var exprStr]);
 end
 end
-function [exprHandle,exprJac] = sym2mFun(symbolicExpression, time_dep, state_dep, nonXTpars, species, varODEs, jacobian, writeFiles, prefixName, logicTerms)
+function [exprHandle,exprJac] = sym2mFun(symbolicExpression, time_dep, state_dep, nonXTpars, species, varODEs, jacobian, writeFiles, prefixName, logicTerms, pathToPropensityFuns)
 arguments
     symbolicExpression
     time_dep
@@ -882,6 +885,7 @@ arguments
     writeFiles = true
     prefixName = []
     logicTerms = {};
+    pathToPropensityFuns = [];
 end
 % This function writes an executable m-file for the provided expression.
 varNames = string(symvar(symbolicExpression));
@@ -954,12 +958,18 @@ end
 
 
 if isempty(prefixName)
-    prefixName = pwd;
-    j = find(prefixName==filesep,1,'last');
-    prefixName = prefixName(j+1:end);
+    persistent cachedPrefixFolder cachedPrefixName
+    currentFolder = pwd;
+    if isempty(cachedPrefixFolder) || ~strcmp(cachedPrefixFolder,currentFolder)
+        [~,cachedPrefixName] = fileparts(currentFolder);
+        cachedPrefixFolder = currentFolder;
+    end
+    prefixName = cachedPrefixName;
 end
 
-load('SSITconfig.mat','pathToPropensityFuns');
+if isempty(pathToPropensityFuns)
+    load('SSITconfig.mat','pathToPropensityFuns');
+end
 
 if ~exist(pathToPropensityFuns,'dir')
     disp('Path to propensity is missing or misnamed.')
