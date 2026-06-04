@@ -9,8 +9,8 @@ for iM = 1:length(Models)
 end
 
 function Model = Generate_Model_from_Benchmark_Library(Name)
-arguments 
-    Name 
+arguments
+    Name
 end
 
 switch Name
@@ -46,7 +46,7 @@ tic
 benchmarks.initialFSPSolve = toc;
 
 tic
-[~,~,Model] = Model.solve;
+[fspSoln,~,Model] = Model.solve;
 benchmarks.subsequentFSPSolve = toc;
 
 % SSA Solutions
@@ -57,17 +57,54 @@ tic
 benchmarks.initialSSASolve_1run = toc;
 
 Model.ssaOptions.Nsims = opts.nSims;
+Model.ssaOptions.useParallel = false;
 tic
 [~,~,Model] = Model.solve;
-benchmarks.(['subsequentSSASolve_',num2str(opts.nSims),'runs']) = toc;
-opts.nSims;
+benchmarks.(['subsequentSSASolve_',num2str(opts.nSims),'runs_serial']) = toc;
+
+Model.ssaOptions.Nsims = opts.nSims;
+Model.ssaOptions.useParallel = true;
+tic
+[~,~,Model] = Model.solve;
+benchmarks.(['subsequentSSASolve_',num2str(opts.nSims),'runs_parallel']) = toc;
 
 %% ODE Solver
 Model.solutionScheme = 'ode';
 tic
 [~,~,Model] = Model.solve;
-benchmarks.i
+benchmarks.initialODEsolve = toc;
 
+tic
+[~,~,Model] = Model.solve;
+benchmarks.subsequentODEsolve = toc;
 
+%% Model Reduction FSP
+Model.solutionScheme = 'fsp';
+
+Model.tSpan = linspace(min(Model.tSpan),max(Model.tSpan),150);
+[~,~,Model] = Model.solve;
+
+for redOrder = [20,30,40,50]
+    Model2 = Model;
+    Model2.modelReductionOptions.useModReduction = true;
+    Model2.fspOptions.fspTol = inf;
+    Model2.modelReductionOptions.reductionType = 'POD2';
+
+    Model2.modelReductionOptions.reductionOrder = redOrder;
+
+    tic
+    Model2 = Model2.computeModelReductionTransformMatrices();
+    benchmarks.(['PODModelReductionTime_',num2str(redOrder)]) = toc;
+
+    tic
+    [fspSoln2] = Model2.solve();
+    benchmarks.(['ReducedModelSolveTime_',num2str(redOrder)]) = toc;
+
+    dims = 1:fspSoln2.fsp{end}.p.dim;
+    for i = 1:length(dims)
+        PODfinalError(i) = sum(sum(abs((double(fspSoln2.fsp{end}.p.data - fspSoln.fsp{end}.p.data))),setdiff(dims,i)));
+    end
+    benchmarks.(['ReducedModelError_',num2str(redOrder)]) = sum(PODfinalError);
+end
 
 end
