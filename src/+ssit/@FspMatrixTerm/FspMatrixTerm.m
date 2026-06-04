@@ -81,10 +81,15 @@ classdef FspMatrixTerm
             obj.isFactorizable = propensity.isFactorizable;
             obj.numConstraints = numConstraints;
             obj.modRedTransformMatrices = modRedTransformMatrices;
+            if isfield(propensity,'specialEvent')
+                specialEvent = propensity.specialEvent; % Extract special event if it exists
+            else
+                specialEvent = [];
+            end
 
             if ((~obj.isTimeDependent) || (obj.isFactorizable))
                 % Generate generator matrix for this term
-                obj.matrix = ssit.FspMatrixTerm.GenerateMatrixTermTimeInvariant(propensity, parameters, stateSet, numConstraints, varNames, false); % The matrix data is generated only once
+                obj.matrix = ssit.FspMatrixTerm.GenerateMatrixTermTimeInvariant(propensity, parameters, stateSet, numConstraints, varNames, false, []); % The matrix data is generated only once
                 if computeSens
                     n_pars = size(parameters,1);
                     obj.matrixSens = cell(1,n_pars);
@@ -107,6 +112,8 @@ classdef FspMatrixTerm
             else
                 obj.matrix = stateSet; % The data has to be generated with every matrix-vector multiplication
             end
+            
+
         end
 
         function w = multiply(obj, t, v, parameters)
@@ -209,7 +216,7 @@ classdef FspMatrixTerm
             end
 
             A_fsp = ssit.FspMatrixTerm.buildAFSP(n_states,prop_val,reachableIndices,propensity,...
-                state_set,numConstraints,[]);            
+                state_set,numConstraints,[],parameters);            
 
         end
 
@@ -269,7 +276,7 @@ classdef FspMatrixTerm
         end
 
         function A_fsp = buildAFSP(n_states,prop_val,reachableIndices,propensity,...
-                state_set,numConstraints,modRedTransformMatrices)
+                state_set,numConstraints,modRedTransformMatrices,parameters)
             arguments
                 n_states
                 prop_val
@@ -278,60 +285,68 @@ classdef FspMatrixTerm
                 state_set
                 numConstraints
                 modRedTransformMatrices = []
+                parameters = [];
             end
 
-            % Filling in values for MATLAB's sparse matrix format (which is coo)
-            i = zeros(n_states*2, 1);
-            j = i;
-            aij = zeros(length(i), 1);
+            if ~isempty(propensity.specialEvent)
+                A_fsp = propensity.specialEvent.stateTransitionFun(state_set.states,...
+                    parameters(propensity.specialEvent.parameterIndices),...
+                    prop_val,...
+                    propensity.specialEvent.args,...
+                    numConstraints);
+            else
 
-            % Coordinates and values for diagonal entries
-            j(1:n_states) = 1:n_states;
-            i(1:n_states) = 1:n_states;
-            aij(1:n_states) = -1.0*prop_val;
+                % Filling in values for MATLAB's sparse matrix format (which is coo)
+                i = zeros(n_states*2, 1);
+                j = i;
+                aij = zeros(length(i), 1);
 
-            offset = n_states;
-            j((1:n_states) + offset) = 1:n_states;
-            i((1:n_states) + offset) = reachableIndices(1:n_states);
-            aij((1:n_states) + offset) = prop_val(:);
+                % Coordinates and values for diagonal entries
+                j(1:n_states) = 1:n_states;
+                i(1:n_states) = 1:n_states;
+                aij(1:n_states) = -1.0*prop_val;
 
-            % Coordinates and values for sink states
-            ireaction = propensity.reactionIndex;
-            n_constrs_failed = sum(state_set.outboundTransitions(:, 1 + numConstraints*(ireaction-1):numConstraints*ireaction), 2);
-            isinks = zeros(nnz(state_set.outboundTransitions(:, 1 + state_set.numConstraints*(ireaction-1):state_set.numConstraints*ireaction-1)), 1);
-            jsinks = isinks;
-            aijsinks = zeros(length(jsinks), 1);
-            k = 1;
-            for c = 1:state_set.numConstraints
-                ninsert = nnz(state_set.outboundTransitions(:, c + state_set.numConstraints*(ireaction-1)));
-                isinks(k:k+ninsert-1,1) = n_states + c;
-                jsinks(k:k+ninsert-1,1) = find(state_set.outboundTransitions(:,c + state_set.numConstraints*(ireaction-1)));
-                aijsinks(k:k+ninsert-1,1) = prop_val(jsinks(k:k+ninsert-1))./n_constrs_failed(jsinks(k:k+ninsert-1));
+                offset = n_states;
+                j((1:n_states) + offset) = 1:n_states;
+                i((1:n_states) + offset) = reachableIndices(1:n_states);
+                aij((1:n_states) + offset) = prop_val(:);
 
-                k = k + ninsert;
-            end
+                % Coordinates and values for sink states
+                ireaction = propensity.reactionIndex;
+                n_constrs_failed = sum(state_set.outboundTransitions(:, 1 + numConstraints*(ireaction-1):numConstraints*ireaction), 2);
+                isinks = zeros(nnz(state_set.outboundTransitions(:, 1 + state_set.numConstraints*(ireaction-1):state_set.numConstraints*ireaction-1)), 1);
+                jsinks = isinks;
+                aijsinks = zeros(length(jsinks), 1);
+                k = 1;
+                for c = 1:state_set.numConstraints
+                    ninsert = nnz(state_set.outboundTransitions(:, c + state_set.numConstraints*(ireaction-1)));
+                    isinks(k:k+ninsert-1,1) = n_states + c;
+                    jsinks(k:k+ninsert-1,1) = find(state_set.outboundTransitions(:,c + state_set.numConstraints*(ireaction-1)));
+                    aijsinks(k:k+ninsert-1,1) = prop_val(jsinks(k:k+ninsert-1))./n_constrs_failed(jsinks(k:k+ninsert-1));
 
-            % eliminate out-of-bound coordinates
-            indices_keep = find( (i > 0) & ( j > 0) );
-            i = i(indices_keep);
-            j = j(indices_keep);
-            aij = aij(indices_keep);
+                    k = k + ninsert;
+                end
 
-            A_fsp = sparse([i;isinks], [j;jsinks], [aij;aijsinks], n_states + numConstraints, n_states + numConstraints);
-            if ~isempty(modRedTransformMatrices)
-                A_fsp = modRedTransformMatrices.phi_inv*...
-                    A_fsp(1:end-numConstraints,1:end-numConstraints)*...
-                    modRedTransformMatrices.phi;
-                if ~isempty(modRedTransformMatrices.phiScale)
-                    A_fsp = A_fsp - diag(diag(A_fsp));
-                    A_fsp = A_fsp.*modRedTransformMatrices.phiScale;
-                    A_fsp = A_fsp - diag(sum(A_fsp));
+                % eliminate out-of-bound coordinates
+                indices_keep = find( (i > 0) & ( j > 0) );
+                i = i(indices_keep);
+                j = j(indices_keep);
+                aij = aij(indices_keep);
+
+                A_fsp = sparse([i;isinks], [j;jsinks], [aij;aijsinks], n_states + numConstraints, n_states + numConstraints);
+                if ~isempty(modRedTransformMatrices)
+                    A_fsp = modRedTransformMatrices.phi_inv*...
+                        A_fsp(1:end-numConstraints,1:end-numConstraints)*...
+                        modRedTransformMatrices.phi;
+                    if ~isempty(modRedTransformMatrices.phiScale)
+                        A_fsp = A_fsp - diag(diag(A_fsp));
+                        A_fsp = A_fsp.*modRedTransformMatrices.phiScale;
+                        A_fsp = A_fsp - diag(sum(A_fsp));
+                    end
                 end
             end
 
         end
-
-
 
     end
 end

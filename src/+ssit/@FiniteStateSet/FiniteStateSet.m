@@ -43,7 +43,7 @@ classdef FiniteStateSet
     end
     
     methods
-        function obj = FiniteStateSet(states, stoichMatrix)
+        function obj = FiniteStateSet(states, stoichMatrix, specialEvents)
             % Construct an instance of class FiniteStateSet.
             %
             % Parameters
@@ -69,13 +69,13 @@ classdef FiniteStateSet
             % >>> stoichMatrix = [-1 1 0;1 -1 0;0 0 1;0 0 -1]';
             % >>> stateSpace = ssit.FiniteStateSet(states, stoichMatrix);         
             
-            if size(stoichMatrix, 1) ~= size(states, 1)
+            if ~isempty(stoichMatrix)&&(size(stoichMatrix, 1) ~= size(states, 1))
                 error('Stoichiometry matrix and state dimensions mismatch.');
             end
             
             obj.states = states;
             obj.stoichMatrix = stoichMatrix;
-            obj.reachableIndices = zeros(size(states,2), size(stoichMatrix, 2));
+            obj.reachableIndices = zeros(size(states,2), size(stoichMatrix, 2)+length(specialEvents));
             key_set = state2key(uint64(states));
 
             if max([key_set{:}])>1e19
@@ -91,7 +91,7 @@ classdef FiniteStateSet
             end
         end
         
-        function obj = expand(obj, fConstraints, bConstraints)
+        function obj = expand(obj, fConstraints, bConstraints, specialEvents)
             % Expand to all reachable states that satisfy the constraints given by the system
             %       ``f(x) <= b (1)``
             %
@@ -125,10 +125,12 @@ classdef FiniteStateSet
             %
             
             nConstraints = numel(bConstraints);
-            nReactions = size(obj.stoichMatrix, 2);
+            nRegularRxns = size(obj.stoichMatrix, 2);
+            nReactions = nRegularRxns + length(specialEvents);
             obj.numConstraints = nConstraints;
             obj.reachableIndices(obj.reachableIndices<=0) = 0;
             obj.outboundTransitions = zeros(size(obj.states, 2), nReactions*nConstraints, 'uint8');
+            nSpecies = size(obj.states,1);
             
             % We will narrow the search to states reachable from the subset states(:, exploration_range)
             activeNodes = 1:size(obj.states,2);
@@ -145,13 +147,30 @@ classdef FiniteStateSet
                 
                 % search reachable states from current states
                 for k = 1:nReactions
-                    
                     % We only compute candidates from states that cannot
                     % reach existing states through the current reaction
                     % channel
                     idxToSearch = activeNodes(obj.reachableIndices(activeNodes, k) == 0);
 
-                    candidates = obj.states(:,idxToSearch) + repmat(obj.stoichMatrix(:, k), 1, length(idxToSearch));
+                    if k<=nRegularRxns
+                        candidates = obj.states(:,idxToSearch) + repmat(obj.stoichMatrix(:, k), 1, length(idxToSearch));
+                    else
+                        if ~isfield(specialEvents(k-nRegularRxns),'type')||strcmp(specialEvents(k-nRegularRxns).type,'decay')
+                            modifier = -1;
+                        elseif strcmp(specialEvents(k-nRegularRxns).type,'production')
+                            modifier = 1;
+                        else
+                            error('Special Event Type not recognized -- must be "production" or "decay"')
+                        end                         
+                        candidates = zeros(nSpecies,length(idxToSearch)*nSpecies);
+                        for iSp = 1:nSpecies
+                            v = zeros(nSpecies,1);
+                            v(iSp) = modifier;
+                            candidates(:,(iSp-1)*length(idxToSearch)+1:iSp*length(idxToSearch)) = ...
+                                obj.states(:,idxToSearch) + repmat(v, 1, length(idxToSearch));
+                        end
+                    end
+                        
 
                     fVal = fConstraints(candidates);
                     

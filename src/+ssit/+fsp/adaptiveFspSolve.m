@@ -14,7 +14,8 @@ function [solutions, constraintBoundsFinal, stateSpace] = adaptiveFspSolve(...
     useHybrid,hybridOptions,...
     fEscape,bEscape,...
     constantJacobian,constantJacobianTime,...
-    odeIntegrator)
+    odeIntegrator,...
+    specialEvents)
 % Approximate the transient solution of the chemical master equation using
 % an adaptively expanding finite state projection (FSP).
 %
@@ -143,6 +144,7 @@ arguments
     constantJacobian = false;
     constantJacobianTime = NaN;
     odeIntegrator = 'ode23s';
+    specialEvents = [];
 end
 
 maxOutputTime = max(outputTimes);
@@ -196,8 +198,12 @@ end
 % Set up the initial state subset, or recompute it if constaint functions
 % have changed.
 if isempty(stateSpace)||stateSpace.numConstraints~=constraintCount||size(stateSpace.states,1)~=length(speciesNames)
-    stateSpace = ssit.FiniteStateSet(initStates, stoichMatrix);
-    stateSpace = stateSpace.expand(constraintFunctions, constraintBoundsFinal);
+    if ~isempty(specialEvents)
+        stateSpace = ssit.FiniteStateSet(initStates, stoichMatrix, specialEvents);
+    else
+        stateSpace = ssit.FiniteStateSet(initStates, stoichMatrix, specialEvents);
+    end
+    stateSpace = stateSpace.expand(constraintFunctions, constraintBoundsFinal, specialEvents);
 else
     constraintBoundsFinal = max(constraintBoundsFinal,max(constraintFunctions(stateSpace.states),[],2));
 end
@@ -212,11 +218,11 @@ while expandSS
     % Generate the FSP matrix
     stateCount = stateSpace.getNumStates();
     if useHybrid
-        AfspFull = ssit.FspMatrix(propensities, parameters, stateSpace, constraintCount, speciesNames, modRedTransformMatrices);
+        AfspFull = ssit.FspMatrix(propensities, parameters, stateSpace, constraintCount, speciesNames, modRedTransformMatrices, false);
     elseif useReducedModel
-        AfspRed = ssit.FspMatrix(propensities, parameters, stateSpace, constraintCount, speciesNames, modRedTransformMatrices);
+        AfspRed = ssit.FspMatrix(propensities, parameters, stateSpace, constraintCount, speciesNames, modRedTransformMatrices, false);
     else
-        AfspFull = ssit.FspMatrix(propensities, parameters, stateSpace, constraintCount, speciesNames);
+        AfspFull = ssit.FspMatrix(propensities, parameters, stateSpace, constraintCount, speciesNames, [], false);
     end
 
     % Use Approximate steady state as initial distribution if requested.
@@ -534,15 +540,15 @@ while (tNow < maxOutputTime)
         constraintBoundsFinal(constraintsToRelax) = 1.2*constraintBoundsFinal(constraintsToRelax);
 
         if min(constraintsToRelax)<=size(stoichMatrix,1)
-            stateSpace = ssit.FiniteStateSet(initStates, stoichMatrix);
-            stateSpace = stateSpace.expand(constraintFunctions, constraintBoundsFinal);
+            stateSpace = ssit.FiniteStateSet(initStates, stoichMatrix, specialEvents);
+            stateSpace = stateSpace.expand(constraintFunctions, constraintBoundsFinal, specialEvents);
             warning('Regenerate State Space')
         else
             try
-                stateSpace = stateSpace.expand(constraintFunctions, constraintBoundsFinal);
+                stateSpace = stateSpace.expand(constraintFunctions, constraintBoundsFinal, specialEvents);
             catch
-                stateSpace = ssit.FiniteStateSet(initStates, stoichMatrix);
-                stateSpace = stateSpace.expand(constraintFunctions, constraintBoundsFinal);
+                stateSpace = ssit.FiniteStateSet(initStates, stoichMatrix,specialEvents);
+                stateSpace = stateSpace.expand(constraintFunctions, constraintBoundsFinal, specialEvents);
             end
         end
 

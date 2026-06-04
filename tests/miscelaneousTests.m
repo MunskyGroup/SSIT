@@ -19,6 +19,109 @@ classdef miscelaneousTests < matlab.unittest.TestCase
 
     methods (Test)
 
+        function specialEventBinomialDecayFSP(tc)
+            % Initialize the model for special events testing
+            ModelBC = SSIT('Empty');
+            ModelBC.species = {'rna'};
+            ModelBC.initialCondition = 100;
+            rates = [rand(1,2),20*rand];
+            ModelBC.fspOptions.fspTol = 1e-4;
+            ModelBC.stoichiometry = 1;
+            ModelBC.propensityFunctions = {'k'};
+            ModelBC.parameters = {'k_div',rates(1);'p_div',rates(2);'k',rates(3)};
+            ModelBC.specialEvents = struct(...
+                'timing','Exp',... % {'Exp','Fixed'}
+                'stateTransitionFun',@ssit.special_events.binomialDivision,...
+                'stateTransitionFunParameters',{{'p_div'}},...
+                'rateFun','k_div',... 
+                'fixedTimes','[]',...
+                'args',struct('lineage','primary'));
+            ModelBC = ModelBC.formPropensitiesGeneral('BinomialDecay');
+            [~,~,ModelBC] = ModelBC.solve;
+            tic
+            [~,~,ModelBC] = ModelBC.solve;
+            time_BinomialDecay = toc;
+            traj = zeros(1,length(ModelBC.tSpan));
+            for i =1:length(traj)
+                P = double(ModelBC.Solutions.fsp{i}.p.data);
+                traj(i) = [0:length(P)-1]*P;
+            end
+            trajExact = 100*exp(-rates(1)*(1-rates(2))*ModelBC.tSpan)+...
+                rates(3)/(rates(1)*(1-rates(2)))*(1-exp(-rates(1)*(1-rates(2))*ModelBC.tSpan));
+            modelDiffMeans = sum(abs(traj-trajExact)./trajExact)/length(traj);
+            tc.verifyEqual(modelDiffMeans<0.001, true, ...
+                'Binomial Decay Model FSP provides inaccurate mean results.');
+            tc.verifyEqual(time_BinomialDecay<1, true, ...
+                ['Binomial Decay Model FSP is too slow: T = ',num2str(time_BinomialDecay),' s']);
+
+
+            % Now to test the model for when both daughters are tracked.
+            ModelBC.specialEvents = struct(...
+                'timing','Exp',... % {'Exp','Fixed'}
+                'stateTransitionFun',@ssit.special_events.binomialDivision,...
+                'stateTransitionFunParameters',{{'p_div'}},...
+                'rateFun','k_div',... 
+                'fixedTimes','[]',...
+                'args',struct('lineage','bothCoupled'));
+            ModelBC = ModelBC.formPropensitiesGeneral('BinomialDecay');
+            [~,~,ModelBC] = ModelBC.solve;
+            tic
+            [~,~,ModelBC] = ModelBC.solve;
+            time_BinomialDecay = toc;
+            traj = zeros(1,length(ModelBC.tSpan));
+            for i =1:length(traj)
+                P = double(ModelBC.Solutions.fsp{i}.p.data);
+                traj(i) = [0:length(P)-1]*P;
+            end
+            % When following BOTH daughters, the average number of lost
+            % molecules is half.
+            rates(2) = 0.5;
+            trajExact = 100*exp(-rates(1)*(1-rates(2))*ModelBC.tSpan)+...
+                rates(3)/(rates(1)*(1-rates(2)))*(1-exp(-rates(1)*(1-rates(2))*ModelBC.tSpan));
+            modelDiffMeans = sum(abs(traj-trajExact)./trajExact)/length(traj);
+            tc.verifyEqual(modelDiffMeans<0.001, true, ...
+                'Binomial Decay Model for both Daughters FSP provides inaccurate mean results.');
+            tc.verifyEqual(time_BinomialDecay<1, true, ...
+                ['Binomial Decay Model for both Daughters FSP is too slow: T = ',num2str(time_BinomialDecay),' s']);
+        end
+        function specialEventGeometricBurst(tc)
+            % Initialize the model for special events testing
+            ModelGB = SSIT('Empty');
+            ModelGB.species = {'rna','rna2'};
+            ModelGB.initialCondition = [100;30];
+            rates = [10*rand,1,0.1*rand];
+            ModelGB.fspOptions.fspTol = 1e-4;
+            ModelGB.stoichiometry = [-1,0;0,-1];
+            ModelGB.propensityFunctions = {'g*rna';'g*rna2'};
+            ModelGB.parameters = {'k_burst',rates(1);'beta',rates(2);'g',rates(3)};
+            ModelGB.specialEvents = struct(...
+                'timing','Exp',... % {'Exp','Fixed'}
+                'stateTransitionFun',@ssit.special_events.geometricBurst,...
+                'stateTransitionFunParameters',{{'beta','beta'}},...
+                'rateFun','k_burst',... 
+                'fixedTimes','[]',...
+                'type','production',...
+                'args',struct());
+            ModelGB = ModelGB.formPropensitiesGeneral('GeometricBursts2D');
+            [~,~,ModelGB] = ModelGB.solve;
+            tic
+            [~,~,ModelGB] = ModelGB.solve;
+            time_GeometricBurst = toc;
+            traj = zeros(1,length(ModelGB.tSpan));
+            for i =1:length(traj)
+                P = double(ModelGB.Solutions.fsp{i}.p.data);
+                traj(i) = [0:length(P)-1]*P;
+            end
+            trajExact = 100*exp(-rates(3)*ModelGB.tSpan)+...
+                (rates(1)*rates(2))/rates(3)*(1-exp(-rates(3)*ModelGB.tSpan));
+            modelDiffMeans = sum(abs(traj-trajExact)./trajExact)/length(traj);
+            tc.verifyEqual(modelDiffMeans<0.001, true, ...
+                'Geometric Burst Model FSP provides inaccurate mean results.');
+            tc.verifyEqual(time_GeometricBurst<1, true, ...
+                ['Geometric Burst Model FSP is too slow: T = ',num2str(time_GeometricBurst),' s']);
+
+        end
+
         function loadModelFromSBML(tc)
             % Tests the loading of a model from SBML.
             tc.Model = tc.Model.createModelFromSBML('../SBML_test_cases/00010/00010-sbml-l1v2.xml',true);

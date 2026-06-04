@@ -27,8 +27,8 @@ classdef poissonTest < matlab.unittest.TestCase
 
             delete 'testData.csv'
             testCase1.Poiss.ssaOptions.nSimsPerExpt = 1000;
-            testCase1.Poiss.ssaOptions.Nexp = 1;
-            testCase1.Poiss.sampleDataFromFSP(testCase1.PoissSolution,'testData.csv');
+            testCase1.Poiss.ssaOptions.Nexp = 2;
+            TMPdata = testCase1.Poiss.sampleDataFromFSP(testCase1.PoissSolution,'testData.csv');
 
             testCase1.Poiss = testCase1.Poiss.loadData('testData.csv',{'rna','exp1_s1'});
 
