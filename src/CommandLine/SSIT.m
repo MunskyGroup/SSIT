@@ -2501,11 +2501,12 @@ classdef SSIT
             
             if isempty(nCells)
                 if ~isnan(obj.ssaOptions.nSimsPerExpt)
-                    nSims = obj.ssaOptions.nSimsPerExpt*obj.ssaOptions.Nexp;
+                    % nSims = obj.ssaOptions.nSimsPerExpt*obj.ssaOptions.Nexp;
                 else
-                    nSims = obj.ssaOptions.Nsims;
+                    % nSims = obj.ssaOptions.Nsims;
+                    obj.ssaOptions.nSimsPerExpt = obj.ssaOptions.Nsims;
                 end
-                nCells = nSims*ones(1,Nt);
+                nCells = obj.ssaOptions.nSimsPerExpt*ones(1,Nt);
             end
             if isempty(fspSoln)
                 fspSoln = obj.Solutions;
@@ -2528,7 +2529,7 @@ classdef SSIT
 
             nSpSave = length(species2save);
             Solution.trajs = NaN*ones(nSpSave,...
-                length(obj.tSpan),max(nCells));% Creates an empty Trajectories matrix
+                length(obj.tSpan),max(nCells)*obj.ssaOptions.Nexp);% Creates an empty Trajectories matrix
             % from the size of the time array and number of simulations.
             % NaNs are put in empty elements for the case where there are
             % different numbers of cells at different time points.
@@ -2538,14 +2539,14 @@ classdef SSIT
                 clear w
                 w(:) = PP(:); w(w<0)=0;
                 % TODO - there has to be another way of doing this.
-                [I1,I2,I3,I4,I5,I6,I7,I8,I9,I10,I11] =  ind2sub(size(PP),randsample(length(w), nCells(iT), true, w ));
+                [I1,I2,I3,I4,I5,I6,I7,I8,I9,I10,I11] =  ind2sub(size(PP),randsample(length(w), nCells(iT)*obj.ssaOptions.Nexp, true, w ));
                 for iSp = 1:nSpSave
-                    eval(['Solution.trajs(iSp,iT,1:nCells(iT)) = I',num2str(indsSpecies2save(iSp)),'-1;']);
+                    eval(['Solution.trajs(iSp,iT,1:nCells(iT)*obj.ssaOptions.Nexp) = I',num2str(indsSpecies2save(iSp)),'-1;']);
                 end
             end
             if ~isempty(obj.pdoOptions.PDO)
                 Solution.trajsDistorted = NaN*ones(nSpSave,...
-                length(obj.tSpan),max(nCells)); % Creates an empty Trajectories matrix from the size of the time array and number of simulations
+                length(obj.tSpan),max(nCells)*obj.ssaOptions.Nexp); % Creates an empty Trajectories matrix from the size of the time array and number of simulations
                 for iS = 1:nSpSave
                     PDO = obj.pdoOptions.PDO.conditionalPmfs{iS};
                     nDpossible = size(PDO,1);
@@ -2562,20 +2563,19 @@ classdef SSIT
                 A = table;
                 k = 0;
                 for iT=1:Nt
-                    A.time(k+1:k+nCells(iT)/obj.ssaOptions.Nexp) = obj.tSpan(iT);
+                    A.time(k+1:k+nCells(iT)) = obj.tSpan(iT);
                     for ie = 1:obj.ssaOptions.Nexp
                         for s = 1:size(Solution.trajs,1)
                             warning('off')
-
-                            A.(['exp',num2str(ie),'_s',num2str(s)])(k+1:k+nCells(iT)/obj.ssaOptions.Nexp) = ...
-                                Solution.trajs(s,iT,1:nCells(iT)/obj.ssaOptions.Nexp);
+                            A.(['exp',num2str(ie),'_s',num2str(s)])(k+1:k+nCells(iT)) = ...
+                                Solution.trajs(s,iT,nCells(iT)*(ie-1)+(1:nCells(iT)));
                             if ~isempty(obj.pdoOptions.PDO)
                                 A.(['exp',num2str(ie),'_s',num2str(s),'_Distorted'])(k+1:k+nCells(iT)/obj.ssaOptions.Nexp) = ...
-                                    Solution.trajsDistorted(s,iT,1:nCells(iT));
+                                    Solution.trajsDistorted(s,iT,nCells(iT)*(ie-1)+(1:nCells(iT)));
                             end
                         end
-                        k = k + nCells(iT)/obj.ssaOptions.Nexp;
                     end
+                    k = k + nCells(iT);
                end
 
                 if ~isempty(saveFile)
