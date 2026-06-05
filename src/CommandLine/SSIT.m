@@ -2033,7 +2033,14 @@ classdef SSIT
             %   [soln,bounds] = F.solve;  % Returns the sensitivity and the
             %                             % bounds for the FSP projection
             % See also: SSIT.makePlot for information on how to visualize
-            % the solution data.   
+            % the solution data. 
+
+            if ~isempty(obj.specialEvents)&&~strcmpi(obj.solutionScheme(1:3),'fsp')
+                error('Special Events are currently supported only for FSP analyses')
+            elseif strcmpi(obj.solutionScheme(1:3),'fspsens')&&~strcmpi(obj.sensOptions.solutionMethod,'finiteDifference')
+                warning('Special Events are only supported for FSP sensitivity using finite difference.')
+                obj.sensOptions.solutionMethod='finiteDifference';
+            end
             
             try
                 if nargout>=2
