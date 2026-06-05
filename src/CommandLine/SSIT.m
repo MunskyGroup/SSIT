@@ -2036,7 +2036,11 @@ classdef SSIT
             % the solution data.   
             
             try
-                [Solution, bConstraints, obj] = obj.solveHelper(stateSpace,saveFile,fspSoln);
+                if nargout>=2
+                    [Solution, bConstraints, obj] = obj.solveHelper(stateSpace,saveFile,fspSoln);
+                else
+                    Solution = obj.solveHelper(stateSpace,saveFile,fspSoln);
+                end
             catch
                 obj.propensitiesGeneral = [];
                 if strcmpi(obj.solutionScheme,'fsp')||strcmpi(obj.solutionScheme,'fspsens')
@@ -2044,7 +2048,11 @@ classdef SSIT
                     disp(['(Re)Forming Propensity Function Files under new name: ',newPropFileName]);
                     obj = obj.formPropensitiesGeneral(newPropFileName);
                 end
-                [Solution, bConstraints, obj] = obj.solveHelper(stateSpace,saveFile,fspSoln);               
+                if nargout>=2
+                    [Solution, bConstraints, obj] = obj.solveHelper(stateSpace,saveFile,fspSoln);
+                else
+                    Solution = obj.solveHelper(stateSpace,saveFile,fspSoln);
+                end
             end
         end
 
@@ -2333,11 +2341,14 @@ classdef SSIT
                     end
                     
                     states = reshape(Solution.trajs,[size(Solution.trajs,1),size(Solution.trajs,2)*size(Solution.trajs,3)]);
-                    try
-                        bConstraints = max(obj.fspConstraints.f(states),[],2);
-                        bConstraints = max(bConstraints,obj.fspConstraints.b);
-                    catch
-                        bConstraints = [zeros(size(Solution.trajs,1),1);max(Solution.trajs,[],[2:3])];
+                    
+                    if nargout>=2
+                        try
+                            bConstraints = max(obj.fspConstraints.f(states),[],2);
+                            bConstraints = max(bConstraints,obj.fspConstraints.b);
+                        catch
+                            bConstraints = [zeros(size(Solution.trajs,1),1);max(Solution.trajs,[],[2:3])];
+                        end
                     end
 
                 case 'fspsens'
@@ -2416,8 +2427,10 @@ classdef SSIT
                     end
                     Solution.ode = soln;
 
-                    bConstraints = max(obj.fspConstraints.f(Solution.ode),[],2);
-                    bConstraints = max(bConstraints,obj.fspConstraints.b);
+                    if nargout>=2
+                        bConstraints = max(obj.fspConstraints.f(Solution.ode),[],2);
+                        bConstraints = max(bConstraints,obj.fspConstraints.b);
+                    end
 
                 case {'moments','momentsgaussian'}
                     % Initial condition is assumed to be a delta
@@ -2468,9 +2481,11 @@ classdef SSIT
                         end                             
                         Solution.momentsCOV(:,:,it) =  EXTX - MU'*MU;
                     end
-                   
-                    bConstraints = max(obj.fspConstraints.f((reshape(Solution.moments(1:nSp,:),[nSp,length(obj.tSpan)]))),[],2);
-                    bConstraints = max(bConstraints,obj.fspConstraints.b);
+
+                    if nargout>=2
+                        bConstraints = max(obj.fspConstraints.f((reshape(Solution.moments(1:nSp,:),[nSp,length(obj.tSpan)]))),[],2);
+                        bConstraints = max(bConstraints,obj.fspConstraints.b);
+                    end
             end
 
             if nargout>=3
@@ -3623,24 +3638,30 @@ classdef SSIT
 
             logLSpreadVector = zeros(nSims,1);
             objTMP = obj;
+
+            % Generate a bunch of simulated data for each requested
+            % replica.
+            obj.ssaOptions.Nexp = nSims;
+            A = obj.sampleDataFromFSP([],[],obj.dataSet.nCells,species2save);
+
             for iSim = 1:nSims
 
-                % Generate and reformat data using FSP solution.
-                A = obj.sampleDataFromFSP([],[],obj.dataSet.nCells,species2save);                
-                objTMP.dataSet.DATA = table2cell(A);
+                % Pick and reformat data using FSP solution.
+                Ai = A(:,[1,(iSim-1)*length(species2save)+2:iSim*length(species2save)+1]);      
+                objTMP.dataSet.DATA = table2cell(Ai);
                 
                 if iSim==1
-                    times = unique(A.time);
+                    times = unique(Ai.time);
                     numTimes = length(times);
-                    timeAr = A.time;
+                    timeAr = Ai.time;
                     for i = 1:numTimes
-                        timeAr(A.time==times(i)) = i-1;
+                        timeAr(Ai.time==times(i)) = i-1;
                     end
                 end
-                A.time = timeAr;
+                Ai.time = timeAr;
 
                 % Convert to data tensor
-                X = table2array(A);
+                X = table2array(Ai);
 
                 % Apply PDO to the data tensor
                 
