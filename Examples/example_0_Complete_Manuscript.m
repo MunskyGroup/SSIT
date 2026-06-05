@@ -529,7 +529,7 @@ STL1_4state.plotFSP(solution=fullSoln, plotType='meansAndDevs',...
 
 %% 2.4.2 Hybrid Models
 % This extended model is based on that published here: 
-% https://www.cell.com/fulltext/S0092-8674(09)00508-X?large_figure=true
+% https://www.cell.com/fulltext/S0092-8674(09)00508-X
 % The parameters are taken from the paper, except for k_h, which is set to
 % match the approximate magnitude of Hog1 in the above model.
 
