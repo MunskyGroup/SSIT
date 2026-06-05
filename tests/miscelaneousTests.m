@@ -197,7 +197,68 @@ classdef miscelaneousTests < matlab.unittest.TestCase
             
         end
 
-         function test2DSpeedVsSimBiol(tc)
+         function testODESpeedVsSimBiol(tc)
+            close all
+            FourDNonLinearTV = SSIT;
+            FourDNonLinearTV.species = {'rna','prot','phosProt','GFP'};
+            FourDNonLinearTV.initialCondition = [0;0;0;0];
+            FourDNonLinearTV.propensityFunctions = {'kr';'gr*rna*(1/(1+(phosProt/M)^eta))';...
+                'kp*rna';'gp*prot';...
+                'kx*prot';'gx*phosProt';...
+                'kg*rna';'ggfp*GFP'};
+            FourDNonLinearTV.stoichiometry = [1,-1,0,0,0,0,0,0;...
+                0,0,1,-1,-1,0,0,0;...
+                0,0,0,0,1,-1,0,0;...
+                0,0,0,0,0,0,1,-1];
+            FourDNonLinearTV.parameters = ({'kr',20;'gr',1;'kp',18;'gp',1;'M',20;'eta',5;...
+                'kx',2;'gx',1;'kg',12;'ggfp',0.5});
+            FourDNonLinearTV.tSpan = linspace(0,10,40);
+            FourDNonLinearTV.solutionScheme = 'ode';
+            FourDNonLinearTV = FourDNonLinearTV.formPropensitiesGeneral('TwoDTV',false);
+            
+            FourDNonLinearTV.odeIntegrator = 'ode15s';
+
+            [odeSoln1] = FourDNonLinearTV.solve;
+            parVector = [FourDNonLinearTV.parameters{:,2}];
+
+            Ntests = 100;
+            parVectorSets = repmat(parVector,Ntests,1).*(1+0.1*randn(Ntests,size(parVector,2)));
+            results = zeros(Ntests,4);
+            resultsSB = zeros(Ntests,4);
+
+            sbModel = FourDNonLinearTV.exportSimBiol;
+            csObj = getconfigset(sbModel,'active');
+            set(csObj,'Stoptime',max(FourDNonLinearTV.tSpan));
+            
+            [~,~,~] = sbiosimulate(sbModel);
+            tic
+            for i=1:Ntests
+                for j=1:length(parVector)
+                    sbModel.Parameters(j).Value = parVectorSets(i,j);
+                end
+                [~,x,~] = sbiosimulate(sbModel);
+                resultsSB(i,:) = x(end,:);
+            end
+            simBiolSolveTime100pars = toc
+
+            tic
+            for i=1:Ntests
+                FourDNonLinearTV.parameters(:,2) = num2cell(parVectorSets(i,:));
+                [odeSoln1] = FourDNonLinearTV.solve;
+                results(i,:) = odeSoln1.ode(end,:);
+            end
+            SSITSolveTime100pars = toc
+
+            tc.verifyEqual(SSITSolveTime100pars<(5*simBiolSolveTime100pars), true, ...
+                'SSIT ODE Solution is > 5x slower than SimBiology.');
+
+            meanError = mean(abs((resultsSB-results)./(mean(results))),"all");
+            
+            tc.verifyEqual(meanError<0.01, true, ...
+                'Average SSIT ODE Solution is not within 1 percent of SimBiology.');
+         end
+
+         function testODESpeedVsSimBiolTV(tc)
             close all
             FourDNonLinearTV = SSIT;
             FourDNonLinearTV.species = {'rna','prot','phosProt','GFP'};
@@ -257,6 +318,99 @@ classdef miscelaneousTests < matlab.unittest.TestCase
             
             tc.verifyEqual(meanError<0.01, true, ...
                 'Average SSIT ODE Solution is not within 1 percent of SimBiology.');
+         end
+
+         function testSSASpeedVsSimBiol(tc)
+             % Crete SimBiology Model
+             model = sbiomodel('GeneSwitch');
+
+             % Compartment
+             c = addcompartment(model,'cell',1);
+
+             % Species
+             species = {'GeneOn',1;
+                 'GeneOff',0;
+                 'RNA',0;
+                 'Prot',0;
+                 'PhosProt',0;
+                 'GFP',0};
+
+             for i = 1:size(species,1)
+                 addspecies(c,species{i,1},species{i,2});
+             end
+
+             % Parameters
+             params = {'kr',20;
+                 'gr',1;
+                 'kp',18;
+                 'gp',1;
+                 'kx',2;
+                 'gx',1;
+                 'kg',12;
+                 'ggfp',0.5;
+                 'kon',1;
+                 'koff',1e-4};
+
+             for i = 1:size(params,1)
+                 addparameter(model,params{i,1},params{i,2});
+             end
+
+             % Reactions and corresponding rate constants
+             rxns = {
+                 'GeneOn -> GeneOn + RNA'           ,'kr'
+                 'RNA -> null'                      ,'gr'
+                 'RNA -> RNA + Prot'                ,'kp'
+                 'Prot -> null'                     ,'gp'
+                 'Prot -> PhosProt'                 ,'kx'
+                 'PhosProt -> null'                 ,'gx'
+                 'RNA -> RNA + GFP'                 ,'kg'
+                 'GFP -> null'                      ,'ggfp'
+                 'GeneOn + 3 PhosProt -> GeneOff'   ,'koff'
+                 'GeneOff -> GeneOn'                ,'kon'
+                 };
+
+             for i = 1:size(rxns,1)
+                 r = addreaction(model,rxns{i,1});
+                 kl = addkineticlaw(r,'MassAction');
+                 kl.ParameterVariableNames = {rxns{i,2}};
+             end
+
+             % SSA configuration
+             cs = getconfigset(model,'active');
+             cs.SolverType = 'ssa';
+             v = linspace(0,100,21);
+             cs.StopTime  = max(v);
+             % Force output at specified times
+             cs.RuntimeOptions.StatesToLog = 'all';
+             % cs.SolverOptions.OutputTimes = v;
+             
+             % [t,x,names] = sbiosimulate(model);
+             nRuns = 2;
+             simData = sbioensemblerun(model,nRuns);
+             nRuns = 1000;
+             tic
+             simData = sbioensemblerun(model,nRuns);
+             simBiologyTime = toc
+
+             SSIT_Model = SSIT();
+             SSIT_Model = SSIT_Model.createModelFromSimBiol(model);
+             SSIT_Model.tSpan = v;
+             SSIT_Model.ssaOptions.Nsims = 1;
+             SSIT_Model.solutionScheme = 'ssa';
+             [~,~,SSIT_Model] = SSIT_Model.solve;
+
+             SSIT_Model.ssaOptions.Nsims = nRuns;
+             tic
+             [~,~,SSIT_Model] = SSIT_Model.solve;
+             ssitTime = toc
+
+            tc.verifyEqual(ssitTime<(5*simBiologyTime), true, ...
+                'SSIT ODE Solution is > 5x slower than SimBiology.');
+
+            % meanError = mean(abs((resultsSB-results)./(mean(results))),"all");
+            % 
+            % tc.verifyEqual(meanError<0.01, true, ...
+            %     'Average SSIT ODE Solution is not within 1 percent of SimBiology.');
          end
 
          function testMoments(tc)
