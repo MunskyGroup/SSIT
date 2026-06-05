@@ -1,6 +1,6 @@
 % Benchmark Examples
 
-Models = {'Toggle'};
+Models = {'ToggleTV'};
 clear benchmarks
 for iM = 1:length(Models)
     Model = Generate_Model_from_Benchmark_Library(Models{iM});
@@ -26,6 +26,20 @@ switch Name
             'g*LamCI'};
         Model.initialCondition = [0;0];
         Model.customConstraintFuns = {'(LacI-3).^2.*(LamCI-3).^2'};
+    case 'ToggleTV'
+        Model = SSIT;
+        Model.parameters = {'kb',10;'ka',80;'M',20;'g',1};
+        Model.species = {'LacI';'LamCI'};
+        Model.stoichiometry = [1,1,-1,0, 0;...
+            0,0,0,1,-1];
+        Model.propensityFunctions = {'kb*(1+Isig)';...
+            'ka*M^3/(M^3+LamCI^3)';...
+            'g*LacI';...
+            'kb+ka*M^3/(M^3+LacI^3)';...
+            'g*LamCI'};
+        Model.inputExpressions = {'Isig','(cos(t/3))'};
+        Model.initialCondition = [0;0];
+        Model.customConstraintFuns = {'(LacI-3).^2.*(LamCI-3).^2'};
 end
 
 end
@@ -44,6 +58,8 @@ benchmarks.writeFSPcodes = toc;
 tic
 [~,~,Model] = Model.solve;
 benchmarks.initialFSPSolve = toc;
+
+benchmarks.FSPdimension = size(Model.Solutions.stateSpace.states,2);
 
 tic
 [fspSoln,~,Model] = Model.solve;
@@ -97,8 +113,12 @@ for redOrder = [20,30,40,50]
     benchmarks.(['PODModelReductionTime_',num2str(redOrder)]) = toc;
 
     tic
+    [~,~,Model2] = Model2.solve();
+    benchmarks.(['ReducedModelInitialSolveTime_',num2str(redOrder)]) = toc;
+
+    tic
     [fspSoln2] = Model2.solve();
-    benchmarks.(['ReducedModelSolveTime_',num2str(redOrder)]) = toc;
+    benchmarks.(['ReducedModelSubsequentSolveTime_',num2str(redOrder)]) = toc;
 
     dims = 1:fspSoln2.fsp{end}.p.dim;
     for i = 1:length(dims)
@@ -106,5 +126,4 @@ for redOrder = [20,30,40,50]
     end
     benchmarks.(['ReducedModelError_',num2str(redOrder)]) = sum(PODfinalError);
 end
-
 end
