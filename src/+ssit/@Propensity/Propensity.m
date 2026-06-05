@@ -324,7 +324,7 @@ classdef Propensity
                             Jx(j) = max(strcmp(string(fvars(j)),speciesStoch));
                         end
                         % Jx = strcmp(TMP,speciesStoch);
-                        if (sum(Jx) > 1)
+                        if (sum(Jx) >= 1)
                             obj{iRxn}.isFactorizable = false;
                             break;
                         end
