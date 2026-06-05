@@ -44,6 +44,11 @@ classdef FiniteStateSet
     
     methods
         function obj = FiniteStateSet(states, stoichMatrix, specialEvents)
+            arguments
+                states
+                stoichMatrix
+                specialEvents = []
+            end
             % Construct an instance of class FiniteStateSet.
             %
             % Parameters
@@ -54,6 +59,9 @@ classdef FiniteStateSet
             %
             % stoichMatrix: 2-D array
             %   stoichiometry matrix.
+            %
+            % specialEvents: structure containing options for special
+            %   events like geometric bursts or division.
             %
             % Returns
             % -------
