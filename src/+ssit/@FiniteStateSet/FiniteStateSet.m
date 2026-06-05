@@ -92,6 +92,12 @@ classdef FiniteStateSet
         end
         
         function obj = expand(obj, fConstraints, bConstraints, specialEvents)
+            arguments
+                obj
+                fConstraints
+                bConstraints
+                specialEvents = [];
+            end
             % Expand to all reachable states that satisfy the constraints given by the system
             %       ``f(x) <= b (1)``
             %
@@ -107,6 +113,9 @@ classdef FiniteStateSet
             %
             %   bConstraints: column vector
             %       the right hand side of the inequality (1).
+            %
+            %   specialEvents: (optional) structure containing parameters and
+            %       arguments for special events.
             %
             % Returns
             % -------
@@ -169,9 +178,9 @@ classdef FiniteStateSet
                             candidates(:,(iSp-1)*length(idxToSearch)+1:iSp*length(idxToSearch)) = ...
                                 obj.states(:,idxToSearch) + repmat(v, 1, length(idxToSearch));
                         end
+                        idxToSearch = repmat(idxToSearch,1,nSpecies);
                     end
                         
-
                     fVal = fConstraints(candidates);
                     
                     % compute the keys associated with the candidates
@@ -190,13 +199,16 @@ classdef FiniteStateSet
 
                     newStatesCheck = ~stateFound;
                     i_accept_new = find((constraintsCheck == 1) & (newStatesCheck));
-                   
+
+                    % Remove duplicates if any.
+                    [~,ia] = unique(candidates(:,i_accept_new)','stable','rows');
+                    i_accept_new = i_accept_new(ia);
+
                     if (~isempty(i_accept_new))                                                
                          obj.reachableIndices(idxToSearch(i_accept_new), k) = size(obj.states, 2) + (1:length(i_accept_new));
                          
                          for gh = length(i_accept_new):-1:1
                              obj.state2indMap(keySet(i_accept_new(gh)))=(size(obj.states, 2)  + gh);
-                             % obj.state2indMap(keySet{i_accept_new(gh)})=(size(obj.states, 2)  + gh);
                          end
 
                         obj.states = [obj.states candidates(:,i_accept_new)];
@@ -204,9 +216,7 @@ classdef FiniteStateSet
                                                  zeros(length(i_accept_new), nReactions) ];
                         obj.outboundTransitions = [obj.outboundTransitions; 
                                                    zeros(length(i_accept_new), nConstraints*nReactions)];
-                    end
-
-                                        
+                    end                                     
                 end
                 % if size(obj.states,2)~=obj.state2indMap.Count
                 if size(obj.states,2)~=length(obj.state2indMap.keys)

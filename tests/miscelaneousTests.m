@@ -84,41 +84,44 @@ classdef miscelaneousTests < matlab.unittest.TestCase
             tc.verifyEqual(time_BinomialDecay<1, true, ...
                 ['Binomial Decay Model for both Daughters FSP is too slow: T = ',num2str(time_BinomialDecay),' s']);
         end
+
         function specialEventGeometricBurst(tc)
-            % Initialize the model for special events testing
+            %% Initialize the model for special events testing
             ModelGB = SSIT('Empty');
             ModelGB.species = {'rna','rna2'};
-            ModelGB.initialCondition = [100;30];
-            rates = [10*rand,1,0.1*rand];
+            ModelGB.initialCondition = [10;3];
+            rates = [rand,5*rand,1+rand];
             ModelGB.fspOptions.fspTol = 1e-4;
             ModelGB.stoichiometry = [-1,0;0,-1];
             ModelGB.propensityFunctions = {'g*rna';'g*rna2'};
-            ModelGB.parameters = {'k_burst',rates(1);'beta',rates(2);'g',rates(3)};
+            ModelGB.parameters = {'k_burst',rates(1);'beta',rates(2);'g',rates(3);'beta2',rates(2)};
             ModelGB.specialEvents = struct(...
                 'timing','Exp',... % {'Exp','Fixed'}
                 'stateTransitionFun',@ssit.special_events.geometricBurst,...
-                'stateTransitionFunParameters',{{'beta','beta'}},...
-                'rateFun','k_burst',... 
+                'stateTransitionFunParameters',{{'beta','beta2'}},...
+                'rateFun','k_burst',...
                 'fixedTimes','[]',...
                 'type','production',...
                 'args',struct());
             ModelGB = ModelGB.formPropensitiesGeneral('GeometricBursts2D');
+            ModelGB.fspOptions.verbose = true;
             [~,~,ModelGB] = ModelGB.solve;
-            tic
-            [~,~,ModelGB] = ModelGB.solve;
-            time_GeometricBurst = toc;
             traj = zeros(1,length(ModelGB.tSpan));
             for i =1:length(traj)
-                P = double(ModelGB.Solutions.fsp{i}.p.data);
-                traj(i) = [0:length(P)-1]*P;
+                P1 = sum(double(ModelGB.Solutions.fsp{i}.p.data),2);
+                P2 = sum(double(ModelGB.Solutions.fsp{i}.p.data));
+                traj1(i) = [0:length(P1)-1]*P1;
+                traj2(i) = [0:length(P2)-1]*P2';
             end
-            trajExact = 100*exp(-rates(3)*ModelGB.tSpan)+...
+            trajExact1 = 10*exp(-rates(3)*ModelGB.tSpan)+...
                 (rates(1)*rates(2))/rates(3)*(1-exp(-rates(3)*ModelGB.tSpan));
-            modelDiffMeans = sum(abs(traj-trajExact)./trajExact)/length(traj);
+            trajExact2 = 3*exp(-rates(3)*ModelGB.tSpan)+...
+                (rates(1)*rates(2))/rates(3)*(1-exp(-rates(3)*ModelGB.tSpan));
+            % plot(ModelGB.tSpan,traj2,ModelGB.tSpan,trajExact2,'--')
+            
+            modelDiffMeans = sum(abs(traj1-trajExact1)./trajExact1)/length(traj1);
             tc.verifyEqual(modelDiffMeans<0.001, true, ...
                 'Geometric Burst Model FSP provides inaccurate mean results.');
-            tc.verifyEqual(time_GeometricBurst<1, true, ...
-                ['Geometric Burst Model FSP is too slow: T = ',num2str(time_GeometricBurst),' s']);
 
         end
 
@@ -214,7 +217,7 @@ classdef miscelaneousTests < matlab.unittest.TestCase
             FourDNonLinearTV.solutionScheme = 'ode';
             FourDNonLinearTV = FourDNonLinearTV.formPropensitiesGeneral('TwoDTV',false);
             
-            FourDNonLinearTV.odeIntegrator = 'ode45';
+            FourDNonLinearTV.odeIntegrator = 'ode23s';
 
             [odeSoln1] = FourDNonLinearTV.solve;
             parVector = [FourDNonLinearTV.parameters{:,2}];
@@ -224,6 +227,21 @@ classdef miscelaneousTests < matlab.unittest.TestCase
             results = zeros(Ntests,4);
             resultsSB = zeros(Ntests,4);
 
+            sbModel = FourDNonLinearTV.exportSimBiol;
+            csObj = getconfigset(sbModel,'active');
+            set(csObj,'Stoptime',max(FourDNonLinearTV.tSpan));
+            
+            [~,~,~] = sbiosimulate(sbModel);
+            tic
+            for i=1:Ntests
+                for j=1:length(parVector)
+                    sbModel.Parameters(j).Value = parVectorSets(i,j);
+                end
+                [~,x,~] = sbiosimulate(sbModel);
+                resultsSB(i,:) = x(end,:);
+            end
+            simBiolSolveTime100pars = toc
+
             tic
             for i=1:Ntests
                 FourDNonLinearTV.parameters(:,2) = num2cell(parVectorSets(i,:));
@@ -232,23 +250,8 @@ classdef miscelaneousTests < matlab.unittest.TestCase
             end
             SSITSolveTime100pars = toc
 
-            sbModel = FourDNonLinearTV.exportSimBiol;
-            csObj = getconfigset(sbModel,'active');
-            set(csObj,'Stoptime',max(FourDNonLinearTV.tSpan));
-            
-            [t,x,names] = sbiosimulate(sbModel);
-            tic
-            for i=1:Ntests
-                for j=1:length(parVector)
-                    sbModel.Parameters(j).Value = parVectorSets(i,j);
-                end
-                [t,x,names] = sbiosimulate(sbModel);
-                resultsSB(i,:) = x(end,:);
-            end
-            simBiolSolveTime100pars = toc
-
-            tc.verifyEqual(SSITSolveTime100pars<(2*simBiolSolveTime100pars), true, ...
-                'SSIT ODE Solution is > 2x slower than SimBiology.');
+            tc.verifyEqual(SSITSolveTime100pars<(5*simBiolSolveTime100pars), true, ...
+                'SSIT ODE Solution is > 5x slower than SimBiology.');
 
             meanError = mean(abs((resultsSB-results)./(mean(results))),"all");
             

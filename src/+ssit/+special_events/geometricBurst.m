@@ -18,16 +18,25 @@ end
 [nSpecies,nStates] = size(states);
 A = zeros(nStates,nStates);
 B = zeros(nSpecies,nStates);
+uniqueStates = cell(1,nSpecies);
+uniqueStatesInds = cell(1,nSpecies);
+for i = 1:nSpecies
+    [uniqueStates{i},uniqueStatesInds{i}] = unique(states(i,:));
+end
 for j = 1:nStates
     vi = geopdf(states-states(:,j), repmat(1./(burstParameters+1),1,nStates));
-    B(:,j) = prop_val(j)*(1-sum(vi,2));
+    for i = 1:nSpecies
+        statesConsistent = min(states([1:i-1,i+1:end],:)==states([1:i-1,i+1:end],j),[],1);
+        B(i,j) = 1 - sum(vi(i,statesConsistent));
+    end
     v = prod(vi,1);
     v(abs(v)<=1e-12) = 0;
     v(j) = v(j) - 1;
+
     A(:,j) = prop_val(j)*v;
 end
 A = sparse(A);
-A(nStates+nSpecies+1:nStates+nSpecies*2,:) = B;
+A(nStates+nSpecies+1:nStates+nSpecies*2,:) = prop_val(j)*B;
 A(nStates+numConstraints,nStates+numConstraints) = 0;
 
 

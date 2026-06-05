@@ -81,11 +81,11 @@ classdef FspMatrixTerm
             obj.isFactorizable = propensity.isFactorizable;
             obj.numConstraints = numConstraints;
             obj.modRedTransformMatrices = modRedTransformMatrices;
-            if isfield(propensity,'specialEvent')
-                specialEvent = propensity.specialEvent; % Extract special event if it exists
-            else
-                specialEvent = [];
-            end
+            % if isfield(propensity,'specialEvent')
+            %     specialEvent = propensity.specialEvent; % Extract special event if it exists
+            % else
+            %     specialEvent = [];
+            % end
 
             if ((~obj.isTimeDependent) || (obj.isFactorizable))
                 % Generate generator matrix for this term

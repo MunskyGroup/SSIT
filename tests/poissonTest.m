@@ -395,7 +395,8 @@ classdef poissonTest < matlab.unittest.TestCase
             testCase.Poiss.dataSet.nCells(end) = 60;           
 
             % Call to compute likelihood
-            testCase.Poiss.estimateLikelihoodSpread;
+            testCase.Poiss.ssaOptions.Nexp = 1;
+            [logLSpread,logLSpreadVector] = testCase.Poiss.estimateLikelihoodSpread(100);
                
         end
 
