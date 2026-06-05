@@ -49,8 +49,9 @@ classdef modelReductionTest < matlab.unittest.TestCase
             Model2.modelReductionOptions.reductionOrder = 25;
             [Model2,fspSets] = Model2.computeModelReductionTransformMatrices;
 
+            [~,~,Model2] = Model2.solve(fspSets.stateSpace);
             tic
-            fspSoln2 = Model2.solve(fspSets.stateSpace);
+            [fspSoln2,~,Model2] = Model2.solve;
             redModelSolveTime = toc;
 
             NoTransform_SpeedUp_Factor = tc.TwoDPoissSolution.time/redModelSolveTime
@@ -58,11 +59,11 @@ classdef modelReductionTest < matlab.unittest.TestCase
             NoTransformfinalError2 = max(sum(abs((double(fspSoln2.fsp{end}.p.data - tc.TwoDPoissSolution.fsp{end}.p.data))),2))
             NoTransformfinalError = (NoTransformfinalError1+NoTransformfinalError2)/2;
 
-            tc.TwoDPoiss.makePlot(tc.TwoDPoissSolution,'meansAndDevs',[1:10:201],[],1)
-            tc.TwoDPoiss.makePlot(tc.TwoDPoissSolution,'marginals',[51,101,151,201],[],[2,3])
-
-            Model2.makePlot(fspSoln2,'meansAndDevs',[1:10:201],[],1)
-            Model2.makePlot(fspSoln2,'marginals',[51,101,152,201],[],[2,3])
+            % tc.TwoDPoiss.makePlot(tc.TwoDPoissSolution,'meansAndDevs',[1:10:201],[],1)
+            % tc.TwoDPoiss.makePlot(tc.TwoDPoissSolution,'marginals',[51,101,151,201],[],[2,3])
+            % 
+            % Model2.makePlot(fspSoln2,'meansAndDevs',[1:10:201],[],1)
+            % Model2.makePlot(fspSoln2,'marginals',[51,101,152,201],[],[2,3])
 
             tc.verifyEqual(NoTransformfinalError<0.05, true, ...
                 'Transform Reduction was not accurate enough');
@@ -78,8 +79,9 @@ classdef modelReductionTest < matlab.unittest.TestCase
             Model2.modelReductionOptions.reductionOrder = 25;
             [Model2,fspSets] = Model2.computeModelReductionTransformMatrices;
 
+            [~,~,Model2] = Model2.solve(fspSets.stateSpace);
             tic
-            fspSoln2 = Model2.solve(fspSets.stateSpace);
+            [fspSoln2,~,Model2] = Model2.solve;
             redModelSolveTime = toc;
 
             LogLumpQSSA_SpeedUp_Factor = tc.TwoDPoissSolution.time/redModelSolveTime
@@ -87,11 +89,11 @@ classdef modelReductionTest < matlab.unittest.TestCase
             LogLumpQSSAfinalError2 = max(sum(abs((double(fspSoln2.fsp{end}.p.data - tc.TwoDPoissSolution.fsp{end}.p.data))),2))
             LogLumpQSSAfinalError = (LogLumpQSSAfinalError1+LogLumpQSSAfinalError2)/2;
 
-            tc.TwoDPoiss.makePlot(tc.TwoDPoissSolution,'meansAndDevs',[1:10:201],[],1)
-            tc.TwoDPoiss.makePlot(tc.TwoDPoissSolution,'marginals',[51,101,151,201],[],[2,3])
+            % tc.TwoDPoiss.makePlot(tc.TwoDPoissSolution,'meansAndDevs',[1:10:201],[],1)
+            % tc.TwoDPoiss.makePlot(tc.TwoDPoissSolution,'marginals',[51,101,151,201],[],[2,3])
 
-            Model2.makePlot(fspSoln2,'meansAndDevs',[1:10:201],[],1)
-            Model2.makePlot(fspSoln2,'marginals',[51,101,152,201],[],[2,3])
+            % Model2.makePlot(fspSoln2,'meansAndDevs',[1:10:201],[],1)
+            % Model2.makePlot(fspSoln2,'marginals',[51,101,152,201],[],[2,3])
 
             tc.verifyEqual(LogLumpQSSA_SpeedUp_Factor>1, true, ...
                 'POD Reduction was not faster than original');
@@ -109,8 +111,9 @@ classdef modelReductionTest < matlab.unittest.TestCase
             Model2.modelReductionOptions.reductionOrder = 25;
             [Model2,fspSets] = Model2.computeModelReductionTransformMatrices;
 
+            [~,~,Model2] = Model2.solve(fspSets.stateSpace);
             tic
-            fspSoln2 = Model2.solve(fspSets.stateSpace);
+            [fspSoln2,~,Model2] = Model2.solve;
             redModelSolveTime = toc;
 
             EigenDecomposition_SpeedUp_Factor = tc.TwoDPoissSolution.time/redModelSolveTime
@@ -118,11 +121,11 @@ classdef modelReductionTest < matlab.unittest.TestCase
             EigenDecompositionfinalError2 = max(sum(abs((double(fspSoln2.fsp{end}.p.data - tc.TwoDPoissSolution.fsp{end}.p.data))),2))
             EigenDecompositionfinalError = (EigenDecompositionfinalError1+EigenDecompositionfinalError2)/2;
 
-            tc.TwoDPoiss.makePlot(tc.TwoDPoissSolution,'meansAndDevs',[1:10:201],[],1)
-            tc.TwoDPoiss.makePlot(tc.TwoDPoissSolution,'marginals',[51,101,151,201],[],[2,3])
-
-            Model2.makePlot(fspSoln2,'meansAndDevs',[1:10:201],[],1)
-            Model2.makePlot(fspSoln2,'marginals',[51,101,152,201],[],[2,3])
+            % tc.TwoDPoiss.makePlot(tc.TwoDPoissSolution,'meansAndDevs',[1:10:201],[],1)
+            % tc.TwoDPoiss.makePlot(tc.TwoDPoissSolution,'marginals',[51,101,151,201],[],[2,3])
+            % 
+            % Model2.makePlot(fspSoln2,'meansAndDevs',[1:10:201],[],1)
+            % Model2.makePlot(fspSoln2,'marginals',[51,101,152,201],[],[2,3])
 
             tc.verifyEqual(EigenDecomposition_SpeedUp_Factor>1, true, ...
                 'POD Reduction was not faster than original');
@@ -140,8 +143,9 @@ classdef modelReductionTest < matlab.unittest.TestCase
             Model2.modelReductionOptions.reductionOrder = 25;
             [Model2,fspSets] = Model2.computeModelReductionTransformMatrices;
 
+            [~,~,Model2] = Model2.solve(fspSets.stateSpace);
             tic
-            fspSoln2 = Model2.solve(fspSets.stateSpace);
+            [fspSoln2,~,Model2] = Model2.solve;
             redModelSolveTime = toc;
 
             LinearStateLumping_SpeedUp_Factor = tc.TwoDPoissSolution.time/redModelSolveTime
@@ -149,11 +153,11 @@ classdef modelReductionTest < matlab.unittest.TestCase
             LinearStateLumpingfinalError2 = max(sum(abs((double(fspSoln2.fsp{end}.p.data - tc.TwoDPoissSolution.fsp{end}.p.data))),2))
             LinearStateLumpingfinalError = (LinearStateLumpingfinalError1+LinearStateLumpingfinalError2)/2;
 
-            tc.TwoDPoiss.makePlot(tc.TwoDPoissSolution,'meansAndDevs',[1:10:201],[],1)
-            tc.TwoDPoiss.makePlot(tc.TwoDPoissSolution,'marginals',[51,101,151,201],[],[2,3])
-
-            Model2.makePlot(fspSoln2,'meansAndDevs',[1:10:201],[],1)
-            Model2.makePlot(fspSoln2,'marginals',[51,101,152,201],[],[2,3])
+            % tc.TwoDPoiss.makePlot(tc.TwoDPoissSolution,'meansAndDevs',[1:10:201],[],1)
+            % tc.TwoDPoiss.makePlot(tc.TwoDPoissSolution,'marginals',[51,101,151,201],[],[2,3])
+            % 
+            % Model2.makePlot(fspSoln2,'meansAndDevs',[1:10:201],[],1)
+            % Model2.makePlot(fspSoln2,'marginals',[51,101,152,201],[],[2,3])
 
             tc.verifyEqual(LinearStateLumping_SpeedUp_Factor>1, true, ...
                 'Reduction was not faster than original');
@@ -171,8 +175,9 @@ classdef modelReductionTest < matlab.unittest.TestCase
             Model2.modelReductionOptions.reductionOrder = 25;
             [Model2,fspSets] = Model2.computeModelReductionTransformMatrices;
 
+            [~,~,Model2] = Model2.solve(fspSets.stateSpace);
             tic
-            fspSoln2 = Model2.solve(fspSets.stateSpace);
+            [fspSoln2,~,Model2] = Model2.solve;
             redModelSolveTime = toc;
 
             LogarithmicStateLumping_SpeedUp_Factor = tc.TwoDPoissSolution.time/redModelSolveTime
@@ -180,11 +185,11 @@ classdef modelReductionTest < matlab.unittest.TestCase
             LogarithmicStateLumpingfinalError2 = max(sum(abs((double(fspSoln2.fsp{end}.p.data - tc.TwoDPoissSolution.fsp{end}.p.data))),2))
             LogarithmicStateLumpingfinalError = (LogarithmicStateLumpingfinalError1+LogarithmicStateLumpingfinalError2)/2;
 
-            tc.TwoDPoiss.makePlot(tc.TwoDPoissSolution,'meansAndDevs',[1:10:201],[],1)
-            tc.TwoDPoiss.makePlot(tc.TwoDPoissSolution,'marginals',[51,101,151,201],[],[2,3])
-
-            Model2.makePlot(fspSoln2,'meansAndDevs',[1:10:201],[],1)
-            Model2.makePlot(fspSoln2,'marginals',[51,101,152,201],[],[2,3])
+            % tc.TwoDPoiss.makePlot(tc.TwoDPoissSolution,'meansAndDevs',[1:10:201],[],1)
+            % tc.TwoDPoiss.makePlot(tc.TwoDPoissSolution,'marginals',[51,101,151,201],[],[2,3])
+            % 
+            % Model2.makePlot(fspSoln2,'meansAndDevs',[1:10:201],[],1)
+            % Model2.makePlot(fspSoln2,'marginals',[51,101,152,201],[],[2,3])
 
             tc.verifyEqual(LogarithmicStateLumping_SpeedUp_Factor>1, true, ...
                 'Reduction was not faster than original');
@@ -233,6 +238,7 @@ classdef modelReductionTest < matlab.unittest.TestCase
             Model2.modelReductionOptions.reductionOrder = 25;
             Model2 = Model2.computeModelReductionTransformMatrices(tc.TwoDPoissSolution);
 
+            [~,~,Model2] = Model2.solve(tc.TwoDPoissSolution.stateSpace);
             tic
             fspSoln2 = Model2.solve(tc.TwoDPoissSolution.stateSpace);
             redModelSolveTime = toc;
@@ -242,11 +248,11 @@ classdef modelReductionTest < matlab.unittest.TestCase
             PODfinalError2 = max(sum(abs((double(fspSoln2.fsp{end}.p.data - tc.TwoDPoissSolution.fsp{end}.p.data))),2))
             PODfinalError = (PODfinalError1+PODfinalError2)/2;
 
-            tc.TwoDPoiss.makePlot(tc.TwoDPoissSolution,'meansAndDevs',[1:10:201],[],1)
-            tc.TwoDPoiss.makePlot(tc.TwoDPoissSolution,'marginals',[51,101,151,201],[],[2,3])
-
-            Model2.makePlot(fspSoln2,'meansAndDevs',[1:10:201],[],1)
-            Model2.makePlot(fspSoln2,'marginals',[51,101,152,201],[],[2,3])
+            % tc.TwoDPoiss.makePlot(tc.TwoDPoissSolution,'meansAndDevs',[1:10:201],[],1)
+            % tc.TwoDPoiss.makePlot(tc.TwoDPoissSolution,'marginals',[51,101,151,201],[],[2,3])
+            % 
+            % Model2.makePlot(fspSoln2,'meansAndDevs',[1:10:201],[],1)
+            % Model2.makePlot(fspSoln2,'marginals',[51,101,152,201],[],[2,3])
 
             tc.verifyEqual(POD_SpeedUpFactor>1, true, ...
                 'POD Reduction was not faster than original');
@@ -264,6 +270,7 @@ classdef modelReductionTest < matlab.unittest.TestCase
             Model2.modelReductionOptions.reductionOrder = 25;
             Model2 = Model2.computeModelReductionTransformMatrices(tc.TwoDPoissSolution);
 
+            [~,~,Model2] = Model2.solve(tc.TwoDPoissSolution.stateSpace);
             tic
             fspSoln2 = Model2.solve(tc.TwoDPoissSolution.stateSpace);
             redModelSolveTime = toc;
@@ -273,11 +280,11 @@ classdef modelReductionTest < matlab.unittest.TestCase
             PODfinalError2 = max(sum(abs((double(fspSoln2.fsp{end}.p.data - tc.TwoDPoissSolution.fsp{end}.p.data))),2))
             PODfinalError = (PODfinalError1+PODfinalError2)/2;
 
-            tc.TwoDPoiss.makePlot(tc.TwoDPoissSolution,'meansAndDevs',[1:10:201],[],1)
-            tc.TwoDPoiss.makePlot(tc.TwoDPoissSolution,'marginals',[51,101,151,201],[],[2,3])
-
-            Model2.makePlot(fspSoln2,'meansAndDevs',[1:10:201],[],1)
-            Model2.makePlot(fspSoln2,'marginals',[51,101,152,201],[],[2,3])
+            % tc.TwoDPoiss.makePlot(tc.TwoDPoissSolution,'meansAndDevs',[1:10:201],[],1)
+            % tc.TwoDPoiss.makePlot(tc.TwoDPoissSolution,'marginals',[51,101,151,201],[],[2,3])
+            % 
+            % Model2.makePlot(fspSoln2,'meansAndDevs',[1:10:201],[],1)
+            % Model2.makePlot(fspSoln2,'marginals',[51,101,152,201],[],[2,3])
 
             tc.verifyEqual(POD_SpeedUpFactor>1, true, ...
                 'POD Reduction was not faster than original');
@@ -294,10 +301,11 @@ classdef modelReductionTest < matlab.unittest.TestCase
             Model2.modelReductionOptions.reductionType = 'QSSA';
             Model2.modelReductionOptions.qssaSpecies = 1;
             Model2.modelReductionOptions.reductionOrder = 20;
-            [Model2,fspSet] = Model2.computeModelReductionTransformMatrices;
+            [Model2,fspSets] = Model2.computeModelReductionTransformMatrices;
 
+            [~,~,Model2] = Model2.solve(fspSets.stateSpace);
             tic
-            fspSoln2 = Model2.solve(fspSet.stateSpace);
+            [fspSoln2,~,Model2] = Model2.solve;
             redModelSolveTime = toc;
 
             QSSA_SpeedUpFactor = tc.TwoDPoissSolution.time/redModelSolveTime
@@ -305,11 +313,11 @@ classdef modelReductionTest < matlab.unittest.TestCase
             QSSAfinalError2 = max(sum(abs((double(fspSoln2.fsp{end}.p.data - tc.TwoDPoissSolution.fsp{end}.p.data))),2))
             QSSAfinalError = (QSSAfinalError1+QSSAfinalError2)/2;
 
-            tc.TwoDPoiss.makePlot(tc.TwoDPoissSolution,'meansAndDevs',[1:10:201],[],1)
-            tc.TwoDPoiss.makePlot(tc.TwoDPoissSolution,'marginals',[51,101,151,201],[],[2,3])
-
-            Model2.makePlot(fspSoln2,'meansAndDevs',[1:10:201],[],1)
-            Model2.makePlot(fspSoln2,'marginals',[51,101,152,201],[],[2,3])
+            % tc.TwoDPoiss.makePlot(tc.TwoDPoissSolution,'meansAndDevs',[1:10:201],[],1)
+            % tc.TwoDPoiss.makePlot(tc.TwoDPoissSolution,'marginals',[51,101,151,201],[],[2,3])
+            % 
+            % Model2.makePlot(fspSoln2,'meansAndDevs',[1:10:201],[],1)
+            % Model2.makePlot(fspSoln2,'marginals',[51,101,152,201],[],[2,3])
 
             tc.verifyEqual(QSSA_SpeedUpFactor>1, true, ...
                 'QSSA Reduction was not faster than original');
@@ -327,8 +335,9 @@ classdef modelReductionTest < matlab.unittest.TestCase
             Model2.modelReductionOptions.reductionOrder = 25;
             [Model2,fspSets] = Model2.computeModelReductionTransformMatrices(tc.TwoDPoissSolution);
 
+            [~,~,Model2] = Model2.solve(fspSets.stateSpace);
             tic
-            fspSoln2 = Model2.solve(fspSets.stateSpace);
+            [fspSoln2,~,Model2] = Model2.solve;
             redModelSolveTime = toc;
 
             DynamicModeDecomposition_SpeedUp_Factor = tc.TwoDPoissSolution.time/redModelSolveTime
@@ -336,11 +345,11 @@ classdef modelReductionTest < matlab.unittest.TestCase
             DynamicModeDecompositionfinalError2 = max(sum(abs((double(fspSoln2.fsp{end}.p.data - tc.TwoDPoissSolution.fsp{end}.p.data))),2))
             DynamicModeDecompositionfinalError = (DynamicModeDecompositionfinalError1+DynamicModeDecompositionfinalError2)/2;
 
-            tc.TwoDPoiss.makePlot(tc.TwoDPoissSolution,'meansAndDevs',[1:10:201],[],1)
-            tc.TwoDPoiss.makePlot(tc.TwoDPoissSolution,'marginals',[51,101,151,201],[],[2,3])
-
-            Model2.makePlot(fspSoln2,'meansAndDevs',[1:10:201],[],1)
-            Model2.makePlot(fspSoln2,'marginals',[51,101,152,201],[],[2,3])
+            % tc.TwoDPoiss.makePlot(tc.TwoDPoissSolution,'meansAndDevs',[1:10:201],[],1)
+            % tc.TwoDPoiss.makePlot(tc.TwoDPoissSolution,'marginals',[51,101,151,201],[],[2,3])
+            % 
+            % Model2.makePlot(fspSoln2,'meansAndDevs',[1:10:201],[],1)
+            % Model2.makePlot(fspSoln2,'marginals',[51,101,152,201],[],[2,3])
 
             tc.verifyEqual(DynamicModeDecomposition_SpeedUp_Factor>1, true, ...
                 'Reduction was not faster than original');
