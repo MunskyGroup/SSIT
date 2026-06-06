@@ -24,32 +24,42 @@ switch Name
         Model.initialCondition = [0;0];
         Model.tSpan = linspace(0,100);
         Model.fspTol = 1e-6;
-	case 'Pap'
-		Model = SSIT;
-        Model.parameters = {'x1',0;'x2',0;'x3',0;'x4',0;'x5',0};
-        Model.species = {'G1';'G2';'G3';'G4';'LRP';'PapI'};
-        Model.stoichiometry = [-1,1,-1,1,0,0,0,0,0,0;...
-           					    1,-1,0,0,-1,1,0,0,0,0;...
-           					    0,0,1,-1,0,0,-1,1,0,0;...
-           					    0,0,0,0,1,-1,1,-1,0,0;...
-           					    -1,1,-1,1,-1,1,-1,1,0,0;...
-           					    0,0,0,0,0,0,0,0,1,-1];
-        Model.propensityFunctions = {'LRP*x1';'(0.25+2.25/(1+x5))*x2';'LRP*x1';...
-        	'(1+0.2/(1+x5))*x3';'0.01*(LRP-1)*x2';'(0.25+2.25/(1+x5))*x4';'10*x2';'x4'};
-        Model.initialCondition = [1;1;0;0;0;0];
+    case 'Pap'
+        Model = SSIT; 
+        Model.parameters = {};    
+        Model.species = {'G1';'G2';'G3';'G4';'LRP';'PapI'}; 
+        % Species order:
+        % G1   = DNA
+        % G2   = LRP.DNA
+        % G3   = DNA.LRP
+        % G4   = LRP.DNA.LRP
+        % LRP  = free LRP
+        % PapI = r    
+        Model.stoichiometry = [
+            -1,  1, -1,  1,  0,  0,  0,  0,  0,  0
+             1, -1,  0,  0, -1,  1,  0,  0,  0,  0
+             0,  0,  1, -1,  0,  0, -1,  1,  0,  0
+             0,  0,  0,  0,  1, -1,  1, -1,  0,  0
+            -1,  1, -1,  1, -1,  1, -1,  1,  0,  0
+             0,  0,  0,  0,  0,  0,  0,  0,  1, -1
+        ];    
+        Model.propensityFunctions = {
+            'LRP*G1'
+            '(0.25 + 2.25/(1 + PapI))*G2'
+            'LRP*G1'
+            '(1.0 + 0.2/(1 + PapI))*G3'
+            '0.01*LRP*G2'
+            '(1.0 + 0.2/(1 + PapI))*G4'
+            '0.01*LRP*G3'
+            '(0.25 + 2.25/(1 + PapI))*G4'
+            '10*G2'
+            'PapI'
+        };    
+        % Physically valid starting point:
+        % one free DNA template, two free LRP molecules, zero PapI.
+        Model.initialCondition = [1;0;0;0;2;0];   
         Model.tSpan = linspace(0,10);
-        Model.fspTol = 1e-6;
-
-        % 1: LRP + G1 -> G2
-        % 2: G2 -> LRP + G1
-        % 3: LRP + G1 -> G3
-        % 4: G3 -> G1 + LRP
-        % 5: G2 -> G4
-        % 6: G4 -> G2 + LRP
-        % 7: G3 -> G4
-        % 8: G4 -> G3 + LRP
-        % 9: G2 -> G2 + PapI
-        % 10: PapI -> 0
+        Model.fspTol = 1e-5;
 	case 'Goutsias'
 		Model = SSIT;
         Model.parameters = {'k1',0.043;'k2',0.0007;'k3',0.0715;'k4',0.0039;'k5',0.012e9;...
@@ -81,20 +91,24 @@ switch Name
         Model.species = {'M';'P'};
         Model.stoichiometry = [1,0,-1,0;...
            					   0,1,0,-1];
-        Model.propensityFunctions = {'t1';'t2*M';'t3*M';'t4'};
+        Model.propensityFunctions = {'t1';'t2*M';'t3*M';'t4*P'};
         Model.initialCondition = [0;0];
-	case 'MichaelisMenten'
-	    Model = SSIT;
-        Model.parameters = {'k1',1;'k2',1;'k3',0.1};
-        Model.species = {'S';'E';'ES'; 'P'};
-        Model.stoichiometry = [-1,1,0;...
-           					   -1,1,1;...
-           					    1,-1,-1;...
-           					    0,0,1];
-        Model.propensityFunctions = {'k1*S*E';'k2*ES';'k3*ES'};
-        Model.initialCondition = [1;1;0;0];
-        Model.tSpan = linspace(0,10);
+        Model.tSpan = linspace(0,100);
         Model.fspTol = 1e-6;
+    case 'MichaelisMenten'
+        Model = SSIT;
+        Model.parameters = {'k1',1;'k2',1;'k3',0.1};    
+        Model.species = {'S';'E';'ES';'P'};  
+        Model.stoichiometry = [
+            -1,  1,  0
+            -1,  1,  1
+             1, -1, -1
+             0,  0,  1
+        ];   
+        Model.propensityFunctions = {'k1*S*E';'k2*ES';'k3*ES'};    
+        Model.initialCondition = [100;1000;0;0];  
+        Model.tSpan = linspace(0,70);
+        Model.fspTol = 1e-5;
 	case 'MAPK'
 		Model = SSIT;
         Model.parameters = {'k1',0;};
@@ -420,27 +434,44 @@ switch Name
         Model.initialCondition = [100;0;0;0;100;100;0];
         Model.tSpan = linspace(0,1000);
         Model.fspTol = 1e-4;
-	case 'TripleRepressor'
-		Model = SSIT;
-        Model.parameters = {};
-        Model.species = {'G0A';'G1A';'G0B'; 'G1B';'G0C';'G1C';'MA';'MB';'MC';'PA';'PB';'PC'};
-        Model.stoichiometry = [-1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;...
-           					    1,-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0;...
-           					    0,0,-1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0;...
-           					    0,0,1,-1,0,0,0,0,0,0,0,0,0,0,0,0,0,0;...
-           					    0,0,0,0,-1,1,0,0,0,0,0,0,0,0,0,0,0,0;...
-           					    0,0,0,0,1,-1,0,0,0,0,0,0,0,0,0,0,0,0;...
-           					    0,0,0,0,0,0,1,0,0,-1,0,0,0,0,0,0,0,0;...
-           					    0,0,0,0,0,0,0,1,0,0,-1,0,0,0,0,0,0,0;...
-           					    0,0,0,0,0,0,0,0,1,0,0,-1,0,0,0,0,0,0;...
-           					    0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,-1,0,0;...
-           					    0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,-1,0;...
-           					    0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,0,0,-1];
-        Model.propensityFunctions = {'(10+1.5*x7)*(1-x1)';'(7+2*x9)*x1';'(9+4*x8)*(1-x2)';...
-        	'(10+4*x7)*x2';'(11+1.5*x9)*(1-x3)';'(9+2*x8)*x3';'1.5*x1';'x2';'1.1*x3';...
-        	'0.5*x4';'0.3*x5';'0.425*x6';'9.5*x4';'11*x5';'10*x6';'14.5*x7';'15x8';'11*x9'};
-        Model.initialCondition = [1;0;0;0;0;0;0;0;0;0;0;0];
-        Model.tSpan;
+    case 'TripleRepressor'
+        Model = SSIT;
+        Model.parameters = {}; 
+        Model.species = {'G1A';'G1B';'G1C';'MA';'MB';'MC';'PA';'PB';'PC'};    
+        Model.stoichiometry = [
+             1, -1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0
+             0,  0,  1, -1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0
+             0,  0,  0,  0,  1, -1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0
+             0,  0,  0,  0,  0,  0,  1,  0,  0, -1,  0,  0,  0,  0,  0,  0,  0,  0
+             0,  0,  0,  0,  0,  0,  0,  1,  0,  0, -1,  0,  0,  0,  0,  0,  0,  0
+             0,  0,  0,  0,  0,  0,  0,  0,  1,  0,  0, -1,  0,  0,  0,  0,  0,  0
+             0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  0,  0, -1,  0,  0
+             0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  0,  0, -1,  0
+             0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  0,  0, -1
+        ];    
+        Model.propensityFunctions = {
+            '(10 + 1.5*PA)*(1 - G1A)'
+            '(7 + 2*PC)*G1A'
+            '(9 + 4*PB)*(1 - G1B)'
+            '(10 + 4*PA)*G1B'
+            '(11 + 1.5*PC)*(1 - G1C)'
+            '(9 + 2*PB)*G1C'
+            '1.5*G1A'
+            'G1B'
+            '1.1*G1C'
+            '0.5*MA'
+            '0.3*MB'
+            '0.425*MC'
+            '9.5*MA'
+            '11*MB'
+            '10*MC'
+            '14.5*PA'
+            '15*PB'
+            '11*PC'
+        };   
+        Model.initialCondition = [0;0;0;0;0;0;0;0;0];
+        Model.tSpan = linspace(0,200);
+        Model.fspTol = 1e-6;
 	end
 end
 
