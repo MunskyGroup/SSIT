@@ -1,6 +1,6 @@
 % Benchmark Examples
-
-Models = {'Goutsias'};
+clear all
+Models = {'MAPK'};
 clear benchmarks
 for iM = 1:length(Models)
     Model = Generate_Model_from_Benchmark_Library(Models{iM});
@@ -21,7 +21,7 @@ switch Name
         Model.stoichiometry = [-1,1,0, 0;...
            					    0, 0,-1,1];
         Model.propensityFunctions = {'d1*U';'a1/(1+V^b)';'d2*V';'a2/(1+U^g)'};
-        Model.initialCondition = [0;0];
+        Model.initialCondition = [100;0];
         Model.tSpan = linspace(0,100);
         %Model.fspTol = 1e-6;
     case 'Pap'
@@ -111,12 +111,19 @@ switch Name
         %Model.fspTol = 1e-5;
 	case 'MAPK'
 		Model = SSIT;
-        Model.parameters = {'k1',0;};
+        Nmapk = 50;
+        Model.parameters = {'a1',1/Nmapk;'d1',150;'k1',150;'a2',1/Nmapk;...
+            'd2',150;'k2',150;'a3',1/Nmapk;'d3',150;'k3',150;'a4',1/Nmapk;...
+            'd4',150;'k4',150;'a5',1/Nmapk;'d5',150;'k5',150;'a6',1/Nmapk;...
+            'd6',150;'k6',150;'a7',1/Nmapk;'d7',150;'k7',150;'a8',1/Nmapk;...
+            'd8',150;'k8',150;'a9',1/Nmapk;'d9',150;'k9',150;'a10',1/Nmapk;...
+            'd10',150;'k10', 150};
         species = {'E1';'E2';'KKPase';'KPase';'KKK';'KKKp';'KK';...
             'KKp';'KKpp';'K';'Kp';'Kpp';'KKK_E1';'KKKp_E2';'KK_KKKp';...
             'KKp_KKPase';'KKp_KKKp';'KKpp_KKPase';'KKpp_K';'Kp_KPase';...
             'Kp_KKpp';'Kpp_KPase'};
 
+        Model.initialCondition = [];
         x0 = zeros(numel(species),1);     
         x0(strcmp(species,'E1'))     = 50;
         x0(strcmp(species,'E2'))     = 50;
@@ -216,6 +223,10 @@ switch Name
         'Number of propensities and stoichiometries must match.');
         assert(numel(propensities) == 30, ...
         'Expected 30 MAPK reactions.');
+
+        % IMPORTANT: remove default (birth-death) SSIT reactions
+        Model.stoichiometry = zeros(numel(Model.species),0);
+        Model.propensityFunctions = {};
 
         % Add reactions to model
         for i = 1:numel(propensities)
@@ -403,7 +414,11 @@ switch Name
             {'COR3',-1;'Cro2',1;'OR3',1}
             {'COR3',-1;'Cro2',1;'OR3',1}
             {'COR3',-1;'Cro2',1;'OR3',1}
-        };        
+        };  
+        % IMPORTANT: remove default (birth-death) SSIT reactions
+        Model.stoichiometry = zeros(numel(Model.species),0);
+        Model.propensityFunctions = {};
+
         % Add reactions to model
         for i = 1:numel(propensities)        
             newReaction = struct();
