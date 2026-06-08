@@ -18,7 +18,7 @@
 % example_8_LoadingandFittingData_DataLoading
 
 %% Load pre-computed FSP solutions & loaded data:
-% load('example_8_LoadingandFittingData.mat')
+load('example_8_LoadingandFittingData.mat')
  
 % View model summary:
 % Model_data.summarizeModel
@@ -71,21 +71,20 @@ for l=1:length(STL1_4state_pars)
 end
 
 % Make plots of the parameter fits from the MLEs:
-% Model_MLE.plotFits([], "all", [], {'linewidth',2},...
+% Model_MLE.plotFits(plotType="all", lineProps={'linewidth',2},...
 %     Title='Bursting Gene', YLabel='Molecule Count',...
 %     LegendLocation='northeast', LegendFontSize=12);
 % 
-% STL1_MLE.plotFits([], "all", [], {'linewidth',2},...
+% STL1_MLE.plotFits(plotType="all", lineProps={'linewidth',2},...
 %     Title='STL1', YLabel='Molecule Count',...
 %     LegendLocation='northeast', LegendFontSize=12);
 
-STL1_4state_MLE.plotFits(plotType="all",lineProps={'linewidth',2},...
+STL1_4state_MLE.plotFits(plotType="all", lineProps={'linewidth',2},...
     TitleFontSize=24, Title='4-state STL1 (MLE)', LegendFontSize=18,...
     YLabel='Molecule Count', LegendLocation='northeast', AxisLabelSize=20);
 
 %% Save models & MLEs:
 saveNames = unique({
-    'STL1_MLE'
     'STL1_4state_MLE'
     'STL1_4state_pars'
     'STL1_4state_likelihood'

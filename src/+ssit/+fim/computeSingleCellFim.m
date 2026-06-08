@@ -56,8 +56,8 @@ for iPar = 1:parCountModel+parCountPDO
         si = double(Sy(iPar).data);
         sj = double(Sy(jPar).data);
         p = double(py.data);
-        si=padarray(si,max(0,size(p)-size(si)),'post');
-        sj=padarray(sj,max(0,size(p)-size(sj)),'post');
+        si = paddata(si, max(0, size(p) - size(si)));
+        sj = paddata(sj, max(0, size(p)- size(sj)));
         if isempty(si)||isempty(sj)
             F(iPar, jPar) = 0;
         else

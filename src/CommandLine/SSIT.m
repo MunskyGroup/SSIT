@@ -79,6 +79,22 @@ classdef SSIT
         %   example:  Model.inputExpressions = ...
         %             {'Drug','(a0+a1*exp(-r1*t)*(1-exp(-r2*t))*(t>0))'};
         inputExpressions = {};
+        % List of special event propensity functions
+        %   default: []
+        %   example: Model.specialEvents = struct(...
+        %                   'timing','Exp',... % {'Exp','Fixed'}
+        %                   'stateTransitionFun','binomialDivision',... %
+        %                            Name of a function that defines state
+        %                            transitions given species and
+        %                            parameters.
+        %                   'rateFun','0.01',... % Rate of special event.
+        %                            Can be a constant or function of the
+        %                            species. Only for 'Exp' timing.                  
+        %                   'fixedTimes','[]',... % Time of special event.
+        %                            Can be constant vector of times or a
+        %                            function of time.
+        specialEvents = [];
+               
         % Struct containing user-supplied constraint functions for FSP
         %   default: {};
         %   example: Model.customConstraintFuns = {'offGene+onGene'};
@@ -362,14 +378,17 @@ classdef SSIT
                 if size(dataSettings,2)<3
                     dataSettings{1,3} = {};
                 end
+                if size(dataSettings,2)<4
+                    dataSettings{1,4} = {};
+                end
                 if exist('MultiModelObj','var')
                     nModels = length(MultiModelObj.SSITModels);
                     for iModel = 1:nModels
                         MultiModelObj.SSITModels{iModel} =  MultiModelObj.SSITModels{iModel}.loadData( ...
-                            dataSettings{iModel,1},dataSettings{iModel,2},dataSettings{iModel,3});
+                            dataSettings{iModel,1},dataSettings{iModel,2},dataSettings{iModel,3},dataSettings{iModel,4});
                     end
                 else
-                    obj = obj.loadData(dataSettings{1,1},dataSettings{1,2},dataSettings{1,3});
+                    obj = obj.loadData(dataSettings{1,1},dataSettings{1,2},dataSettings{1,3},dataSettings{1,4});
                 end
 
             end
@@ -505,9 +524,27 @@ classdef SSIT
             % Example: Model = Model.formPropensitiesGeneral('Model_1')
             arguments
                 obj
-                prefixName = 'default';
+                prefixName = [];
                 computeSens = true;
             end
+
+            if isempty(prefixName)
+                if ~isempty(obj.propensityFilePrefix)
+                    prefixName = obj.propensityFilePrefix;
+                else
+                    prefixName = 'default';
+                end
+            end
+            % Fix incompatible forward and back slashes in
+            % directory names for windows to mac transitions.
+            if ~strcmp(filesep,'\')
+                prefixName(prefixName=='\') = filesep;
+            end
+            if ~strcmp(filesep,'/')
+                prefixName(prefixName=='/') = filesep;
+            end
+            obj.propensityFilePrefix = prefixName;
+
             % This function starts the process to write m-file for each
             % propensity function.
 
@@ -584,13 +621,27 @@ classdef SSIT
             obj = clearPropensityFiles(obj,prefixName,'fsp');
 
             n_reactions = length(obj.propensityFunctions);
+            n_reactions_special = length(obj.specialEvents);
+            reactionTypes = [zeros(n_reactions,1);ones(n_reactions_special,1)]; 
+            
+            % if n_reactions == 0
+            %     disp('No reactions defined -- skipping propensity function generation')
+            %     obj.propensitiesGeneral = [];
+            %     obj.propensityFilePrefix = prefixName;
+            %     return
+            % end
+            
             % Propensity for hybrid models will include
             % solutions from the upstream ODEs.
             sm = cell(1,n_reactions);
             logicTerms = cell(1,n_reactions);
             logCounter = 0;
-            for i = 1:n_reactions
-                st = obj.propensityFunctions{i};
+            for i = 1:n_reactions+n_reactions_special
+                if i <= n_reactions
+                    st = obj.propensityFunctions{i};
+                elseif strcmp(obj.specialEvents(i-n_reactions).timing,'Exp')
+                    st = obj.specialEvents(i-n_reactions).rateFun;
+                end
                 for jI = 1:size(obj.inputExpressions,1)
                     st = regexprep(st,['\<',obj.inputExpressions{jI,1},'\>'],['(',obj.inputExpressions{jI,2},')']);
                 end
@@ -613,12 +664,25 @@ classdef SSIT
                 PropensitiesGeneral = ...
                     ssit.Propensity.createAsHybridVec(sm, obj.stoichiometry,...
                     obj.parameters, obj.species, obj.hybridOptions.upstreamODEs,...
-                    logicTerms, [prefixName,'_fsp'], computeSens);
+                    logicTerms, [prefixName,'_fsp'], computeSens, pathToPropensityFuns, reactionTypes);
             else
                 PropensitiesGeneral = ...
                     ssit.Propensity.createAsHybridVec(sm, obj.stoichiometry,...
-                    obj.parameters, obj.species, [], logicTerms, [prefixName,'_fsp'], computeSens);
+                    obj.parameters, obj.species, [], ...
+                    logicTerms, [prefixName,'_fsp'], computeSens, pathToPropensityFuns, reactionTypes);
             end
+
+            for i = n_reactions+1:n_reactions+n_reactions_special
+                PropensitiesGeneral{i}.specialEvent = obj.specialEvents(i-n_reactions);
+                specialEventPars = NaN*ones(1,length(PropensitiesGeneral{i}.specialEvent.stateTransitionFunParameters));
+                for iSE=1:length(PropensitiesGeneral{i}.specialEvent.stateTransitionFunParameters)
+                    specialEventPars(iSE) = find(strcmp(obj.parameters(:,1),...
+                        PropensitiesGeneral{i}.specialEvent.stateTransitionFunParameters{iSE}));
+                end
+                PropensitiesGeneral{i}.specialEvent.parameterIndices = specialEventPars;
+            end
+
+
             % else
             %     PropensitiesGeneral = [];
             % end
@@ -1215,20 +1279,22 @@ classdef SSIT
                     end
                     obj.stoichiometry(specNum,rxnNum) = specChange;
                 end
-                for iPar = 1:size(newRxn(iRxn).parameters,1)
-                    parName = newRxn(iRxn).parameters{iPar,1};
-                    parValue = newRxn(iRxn).parameters{iPar,2};
-                    if ~isempty(obj.parameters)
-                        parNum = find(strcmp(obj.parameters(:,1),parName));
-                    else
-                        parNum=[];
-                    end
-                    if isempty(parNum)
-                        disp(['Adding parameter ',parName,' with value ',num2str(parValue)]);
-                        obj = obj.addParameter({parName,parValue});
-                    else
-                        disp(['Updating parameter ',parName,' to new value ',num2str(parValue)]);
-                        obj.parameters{parNum,2} = parValue;
+                if isfield(newRxn(iRxn),'parameters')
+                    for iPar = 1:size(newRxn(iRxn).parameters,1)
+                        parName = newRxn(iRxn).parameters{iPar,1};
+                        parValue = newRxn(iRxn).parameters{iPar,2};
+                        if ~isempty(obj.parameters)
+                            parNum = find(strcmp(obj.parameters(:,1),parName));
+                        else
+                            parNum=[];
+                        end
+                        if isempty(parNum)
+                            disp(['Adding parameter ',parName,' with value ',num2str(parValue)]);
+                            obj = obj.addParameter({parName,parValue});
+                        else
+                            disp(['Updating parameter ',parName,' to new value ',num2str(parValue)]);
+                            obj.parameters{parNum,2} = parValue;
+                        end
                     end
                 end
             end
@@ -1528,30 +1594,25 @@ classdef SSIT
 
         end
 
-        function [pdo,obj] = generatePDO(obj,pdoOptions,paramsPDO,fspSoln,variablePDO,maxSize)
-            %% SSIT.generatePDO - This function generates the Probabilistic
-            %% Distortion Operator (PDO) according to user choice.
-            %
-            % Inputs:
-            %   * app
-            %   * paramsPDO - ()
-            %   * FSPoutputs - ()
-            %   * indsObserved - ()
-            %   * variablePDO - (logical), default: false
-            %   * maxSize - ()
-            %
-            % Output:
-            %
-            % Example:
+        function [pdo,obj] = generatePDO(obj,pdoOptions,paramsPDO,fspSoln,variablePDO,maxSize,opts)
             arguments
                 obj
                 pdoOptions = []
                 paramsPDO = []
                 fspSoln = []
-                variablePDO =[]
-                maxSize=[];
+                variablePDO = []
+                maxSize = []
+                opts.showPlot (1,1) logical = false
+                opts.Title (1,1) string = ""
+                opts.FontSize (1,1) double {mustBePositive} = 24
+                opts.XLabel (1,1) string = "True counts"
+                opts.YLabel (1,1) string = "Observed counts"
+                opts.XLim double = []
+                opts.YLim double = []
+                opts.Levels (1,1) double {mustBeInteger, mustBePositive} = 30
+                opts.CLim double = [-25 0]
             end
-
+        
             if isempty(pdoOptions)
                 pdoOptions = obj.pdoOptions;
             end
@@ -1562,32 +1623,40 @@ classdef SSIT
                     fspSoln = obj.solve;
                 end
             end
-
+        
             app.DistortionTypeDropDown.Value = pdoOptions.type;
             app.FIMTabOutputs.PDOProperties.props = pdoOptions.props;
-
-            % Separate into observed and unobserved species.
+        
             if isfield(obj.hybridOptions,'upstreamODEs')
                 speciesStochastic = setdiff(obj.species,obj.hybridOptions.upstreamODEs,'stable');
             else
                 speciesStochastic = obj.species;
             end
             Nd = length(speciesStochastic);
-
-            indsUnobserved=[];
-            indsObserved=[];
-            for i=1:Nd
-                if ~isempty(obj.pdoOptions.unobservedSpecies)&&max(contains(obj.pdoOptions.unobservedSpecies,speciesStochastic{i}))
-                    indsUnobserved=[indsUnobserved,i];
+        
+            indsUnobserved = [];
+            indsObserved = [];
+            for i = 1:Nd
+                if ~isempty(obj.pdoOptions.unobservedSpecies) && ...
+                        max(contains(obj.pdoOptions.unobservedSpecies,speciesStochastic{i}))
+                    indsUnobserved = [indsUnobserved,i];
                 else
-                    indsObserved=[indsObserved,i];
+                    indsObserved = [indsObserved,i];
                 end
             end
-            [~,pdo] = ssit.pdo.generatePDO(app,paramsPDO,fspSoln,indsObserved,variablePDO,maxSize);
-
-            if nargout>=2
-                obj.pdoOptions.PDO = pdo;
-            end
+        
+            [~,pdo] = ssit.pdo.generatePDO(app,paramsPDO,fspSoln,indsObserved,variablePDO,maxSize, ...
+                'showPlot', opts.showPlot, ...
+                'Title',    opts.Title, ...
+                'FontSize', opts.FontSize, ...
+                'XLabel',   opts.XLabel, ...
+                'YLabel',   opts.YLabel, ...
+                'XLim',     opts.XLim, ...
+                'YLim',     opts.YLim, ...
+                'Levels',   opts.Levels, ...
+                'CLim',     opts.CLim);
+        
+            obj.pdoOptions.PDO = pdo;
         end
 
         function [logL,P] = findPdoError(obj,pdoType,lambda,True,Distorted)
@@ -1670,7 +1739,7 @@ classdef SSIT
             end
         end
 
-        function summarizeModel(obj)
+        function obj = summarizeModel(obj)
             %% SSIT.summarizeModel - Prints a summary of an SSIT model:
             %% Species, Reactions (with Stoichiometric updates),
             %% Model Parameters
@@ -1683,14 +1752,50 @@ classdef SSIT
             arguments
                 obj;
             end
-            % Show the model species
+            
+            % Determine number of species
             nS = size(obj.stoichiometry,1);
+        
+            % Validate / repair initial conditions if needed
+            icWasAdjusted = false;
+            icWarningMsg = '';
+        
+            if isempty(obj.initialCondition)
+                obj.initialCondition = ones(nS,1);
+                icWasAdjusted = true;
+                icWarningMsg = sprintf(['WARNING: initialCondition was empty. ', ...
+                                'All ', num2str(nS), ' species have been set to one.']);
+            else
+                % Force to column vector
+                ic = obj.initialCondition(:);
+        
+                if length(ic) < nS
+                    nMissing = nS - length(ic);
+                    obj.initialCondition = [ic; ones(nMissing,1)];
+                    icWasAdjusted = true;
+                    icWarningMsg = sprintf(['WARNING: initialCondition had fewer entries than the number of species. ', ...
+                                    num2str(nMissing), ' missing value(s) were filled with ones.']);
+                elseif length(ic) > nS
+                    obj.initialCondition = ic(1:nS);
+                    icWasAdjusted = true;
+                    icWarningMsg = sprintf(['WARNING: initialCondition had more entries than the number of species. ', ...
+                                    'Extra value(s) were ignored so that the length matches the ', ...
+                                    num2str(nS), ' species.']);
+                else
+                    obj.initialCondition = ic;
+                end
+            end
+        
+            % Show the model species
             disp('Species:')
             for i = 1:nS
-                if ~isempty(obj.hybridOptions.upstreamODEs)&&max(contains(obj.hybridOptions.upstreamODEs,obj.species{i}))
-                    disp(['     ',obj.species{i},'; IC = ',num2str(obj.initialCondition(i)),';  upstream ODE']);
+                if ~isempty(obj.hybridOptions.upstreamODEs) && ...
+                        max(contains(obj.hybridOptions.upstreamODEs,obj.species{i}))
+                    disp(['     ',obj.species{i},'; IC = ', ...
+                          num2str(obj.initialCondition(i)), ';  upstream ODE']);
                 else
-                    disp(['     ',obj.species{i},'; IC = ',num2str(obj.initialCondition(i)),';  discrete stochastic']);
+                    disp(['     ',obj.species{i},'; IC = ', ...
+                          num2str(obj.initialCondition(i)), ';  discrete stochastic']);
                 end
             end
             disp(' ')
@@ -1737,7 +1842,13 @@ classdef SSIT
             disp(' ')
             disp('Model Parameters:')
             disp(obj.parameters)
-
+    
+            % Print warning at end if ICs were auto-adjusted
+            if icWasAdjusted
+                fprintf('\n%s\n', icWarningMsg);
+                fprintf('Updated initialCondition:\n');
+                disp(obj.initialCondition)
+            end
         end
 
         function summarizeData(obj)
@@ -1783,16 +1894,40 @@ classdef SSIT
             else
                 disp('Filtering conditions:')
                 for iFi = 1:size(DATA.conditions,1)
-                    if ~isempty(DATA.conditions{iFi,1})
-                        if isnumeric(DATA.conditions{iFi,2})
-                            disp(['  Conditon ',num2str(iFi),': ',DATA.conditions{iFi,1},' ',DATA.conditions{iFi,3},' ',num2str(DATA.conditions{iFi,2})])
-                        else
-                            disp(['   ',DATA.conditions{iFi,1},' ',DATA.conditions{iFi,3},' ',DATA.conditions{iFi,2}])
+            
+                    % Case 1: two-column condition, e.g. {'dex_conc',100}
+                    if size(DATA.conditions,2) == 2
+                        if ~isempty(DATA.conditions{iFi,1})
+                            if isnumeric(DATA.conditions{iFi,2})
+                                disp(['  Condition ',num2str(iFi),': ', ...
+                                    DATA.conditions{iFi,1},' == ', ...
+                                    num2str(DATA.conditions{iFi,2})])
+                            else
+                                disp(['  Condition ',num2str(iFi),': ', ...
+                                    DATA.conditions{iFi,1},' == ', ...
+                                    DATA.conditions{iFi,2}])
+                            end
                         end
-                    else
-                        str = DATA.conditions{iFi,3};
-                        str = strrep(str,'TAB.','');
-                        disp(['  Conditon ',num2str(iFi),': ', str])     
+            
+                    % Case 2: three-column condition, e.g. {'dex_conc',100,'>'}
+                    elseif size(DATA.conditions,2) >= 3
+                        if ~isempty(DATA.conditions{iFi,1})
+                            if isnumeric(DATA.conditions{iFi,2})
+                                disp(['  Condition ',num2str(iFi),': ', ...
+                                    DATA.conditions{iFi,1},' ', ...
+                                    DATA.conditions{iFi,3},' ', ...
+                                    num2str(DATA.conditions{iFi,2})])
+                            else
+                                disp(['  Condition ',num2str(iFi),': ', ...
+                                    DATA.conditions{iFi,1},' ', ...
+                                    DATA.conditions{iFi,3},' ', ...
+                                    DATA.conditions{iFi,2}])
+                            end
+                        else
+                            str = DATA.conditions{iFi,3};
+                            str = strrep(str,'TAB.','');
+                            disp(['  Condition ',num2str(iFi),': ', str])
+                        end
                     end
                 end
             end
@@ -1900,16 +2035,33 @@ classdef SSIT
             %   [soln,bounds] = F.solve;  % Returns the sensitivity and the
             %                             % bounds for the FSP projection
             % See also: SSIT.makePlot for information on how to visualize
-            % the solution data.   
+            % the solution data. 
+
+            if ~isempty(obj.specialEvents)&&~strcmpi(obj.solutionScheme(1:3),'fsp')
+                error('Special Events are currently supported only for FSP analyses')
+            elseif strcmpi(obj.solutionScheme(1:3),'fspsens')&&~strcmpi(obj.sensOptions.solutionMethod,'finiteDifference')
+                warning('Special Events are only supported for FSP sensitivity using finite difference.')
+                obj.sensOptions.solutionMethod='finiteDifference';
+            end
             
             try
-                [Solution, bConstraints, obj] = obj.solveHelper(stateSpace,saveFile,fspSoln);
+                if nargout>=2
+                    [Solution, bConstraints, obj] = obj.solveHelper(stateSpace,saveFile,fspSoln);
+                else
+                    Solution = obj.solveHelper(stateSpace,saveFile,fspSoln);
+                end
             catch
                 obj.propensitiesGeneral = [];
-                newPropFileName = [obj.propensityFilePrefix,'_',char(randi([97 122]))];
-                disp(['(Re)Forming Propensity Function Files under new name: ',newPropFileName]);
-                obj = obj.formPropensitiesGeneral(newPropFileName);
-                [Solution, bConstraints, obj] = obj.solveHelper(stateSpace,saveFile,fspSoln);               
+                if strcmpi(obj.solutionScheme,'fsp')||strcmpi(obj.solutionScheme,'fspsens')
+                    newPropFileName = [obj.propensityFilePrefix,'_',char(randi([97 122]))];
+                    disp(['(Re)Forming Propensity Function Files under new name: ',newPropFileName]);
+                    obj = obj.formPropensitiesGeneral(newPropFileName);
+                end
+                if nargout>=2
+                    [Solution, bConstraints, obj] = obj.solveHelper(stateSpace,saveFile,fspSoln);
+                else
+                    Solution = obj.solveHelper(stateSpace,saveFile,fspSoln);
+                end
             end
         end
 
@@ -1939,7 +2091,8 @@ classdef SSIT
                 if isempty(propensityGeneral)
                     disp('Forming Propensity Functions.')
                     obj = formPropensitiesGeneral(obj);
-                elseif ~isempty(obj.hybridOptions)&&~strcmp(obj.solutionScheme,'ode')&&length(obj.hybridOptions.upstreamODEs)~=length(propensityGeneral{1}.ODEstoichVector)
+                elseif ~isempty(obj.hybridOptions)&&~strcmp(obj.solutionScheme,'ode')&&...
+                        isfield(propensityGeneral{1},'ODEstoichVector')&&length(obj.hybridOptions.upstreamODEs)~=length(propensityGeneral{1}.ODEstoichVector)
                     disp('(Re)Forming Propensity Functions Due to Detected Change in Hybrid Model Dimension.')
                     obj = formPropensitiesGeneral(obj,'hybrid',true);
                 end
@@ -2001,7 +2154,8 @@ classdef SSIT
                         obj.fspConstraints.fEscape,obj.fspConstraints.bEscape, ...
                         obj.fspOptions.constantJacobian,...
                         obj.fspOptions.constantJacobianTime,...
-                        obj.odeIntegrator);
+                        obj.odeIntegrator,...
+                        obj.specialEvents);
                     obj.fspOptions.stateSpace = Solution.stateSpace;
                     obj.fspOptions.bounds = bConstraints;
 
@@ -2043,6 +2197,15 @@ classdef SSIT
                     x0 = obj.initialCondition;
                     % initial condition.
 
+                    % Fix incompatible forward and back slashes in
+                    % directory names for windows to mac transitions.
+                    if ~strcmp(filesep,'\')
+                        obj.propensityFilePrefix(obj.propensityFilePrefix=='\') = filesep;
+                    end
+                    if ~strcmp(filesep,'/')
+                        obj.propensityFilePrefix(obj.propensityFilePrefix=='/') = filesep;
+                    end
+
                     % Call code to write a GPU friendly SSA code.
                     if ~isfield(obj.ssaOptions,'computeFile')||isempty(obj.ssaOptions.computeFile)
                         if ~strcmpi(obj.propensityFilePrefix,'default')
@@ -2051,14 +2214,36 @@ classdef SSIT
                             obj.ssaOptions.computeFile = append(obj.propensityFilePrefix,'_TmpGPUSSACode_',num2str(randi(1000)));                            
                         end
                         clear(obj.ssaOptions.computeFile) % Clear function from cache just in case.
-                        ssit.ssa.WriteGPUSSA(k,w,S,obj.tSpan,obj.ssaOptions.computeFile);                        
-                        disp(['SSA file generated: ',obj.ssaOptions.computeFile]);
+                        
+
+                        Jslash = strfind(obj.ssaOptions.computeFile,filesep);
+                        for islash = 1:length(Jslash)
+                            mkdir(obj.ssaOptions.computeFile(1:Jslash(islash)-1));
+                        end
+                        if ~isempty(Jslash)
+                            addpath(obj.ssaOptions.computeFile(1:Jslash(end)-1))
+                        else
+                            Jslash=0; 
+                        end
+
+                        try
+                            ssit.ssa.WriteSSA_MatlabCpp_Hybrid(k,w,S,obj.tSpan,[obj.ssaOptions.computeFile]);
+                            disp(['C-Based SSA file generated: ',obj.ssaOptions.computeFile]);
+                        catch
+                            ssit.ssa.WriteGPUSSA(k,w,S,obj.tSpan,obj.ssaOptions.computeFile);
+                            disp(['MATLAB-Based SSA file generated: ',obj.ssaOptions.computeFile]);
+                        end
+                    else
+                        Jslash = strfind(obj.ssaOptions.computeFile,filesep);
+                        if isempty(Jslash)
+                            Jslash=0; 
+                        end
                     end
                     % TODO -- Need to check that this does not lead to file
                     % confusion in the future since there could be multiple
                     % copies of this file on the search path.
 
-                    fun = str2func(obj.ssaOptions.computeFile);
+                    fun = str2func(obj.ssaOptions.computeFile(Jslash(end)+1:end));
                     % Convert the function name string to a function handle.
 
                     % Run SSA on GPU, in parallel, or in series as
@@ -2165,11 +2350,14 @@ classdef SSIT
                     end
                     
                     states = reshape(Solution.trajs,[size(Solution.trajs,1),size(Solution.trajs,2)*size(Solution.trajs,3)]);
-                    try
-                        bConstraints = max(obj.fspConstraints.f(states),[],2);
-                        bConstraints = max(bConstraints,obj.fspConstraints.b);
-                    catch
-                        bConstraints = [zeros(size(Solution.trajs,1),1);max(Solution.trajs,[],[2:3])];
+                    
+                    if nargout>=2
+                        try
+                            bConstraints = max(obj.fspConstraints.f(states),[],2);
+                            bConstraints = max(bConstraints,obj.fspConstraints.b);
+                        catch
+                            bConstraints = [zeros(size(Solution.trajs,1),1);max(Solution.trajs,[],[2:3])];
+                        end
                     end
 
                 case 'fspsens'
@@ -2222,16 +2410,37 @@ classdef SSIT
 
                     if ~isempty(obj.propensitiesGeneralMeanJac)
                         JAC = @(t,v)obj.propensitiesGeneralMeanJac(t,v,[obj.parameters{:,2}]);
+                        % Check if JAC is constant
+                        if sum(abs(JAC(rand,rand(size(initMeans)))-JAC(rand,rand(size(initMeans)))),"all")==0
+                            JAC = JAC(rand,rand(size(initMeans)));
+                        end
                         options = odeset('Jacobian',JAC);
                     else
                         options = [];
                     end
 
-                    [~,soln] =  odeIntegrat(RHS,obj.tSpan,initMeans,options);
+                    try
+                        [~,soln] =  odeIntegrat(RHS,obj.tSpan,initMeans,options);
+                    catch
+                        % Some versions of matlab fail on sparse matrices
+                        % in RHS and JAC.
+                        RHS = @(t,v)full(obj.propensitiesGeneralMean(t,v,[obj.parameters{:,2}]));
+                        if ~isempty(obj.propensitiesGeneralMeanJac)
+                            JAC = @(t,v)full(obj.propensitiesGeneralMeanJac(t,v,[obj.parameters{:,2}]));
+                            % Check if JAC is constant
+                            if sum(abs(JAC(rand,rand(size(initMeans)))-JAC(rand,rand(size(initMeans)))),"all")==0
+                                JAC = JAC(rand,rand(size(initMeans)));
+                            end
+                            options = odeset('Jacobian',JAC);
+                        end
+                        [~,soln] =  odeIntegrat(RHS,obj.tSpan,initMeans,options);
+                    end
                     Solution.ode = soln;
 
-                    bConstraints = max(obj.fspConstraints.f(Solution.ode),[],2);
-                    bConstraints = max(bConstraints,obj.fspConstraints.b);
+                    if nargout>=2
+                        bConstraints = max(obj.fspConstraints.f(Solution.ode),[],2);
+                        bConstraints = max(bConstraints,obj.fspConstraints.b);
+                    end
 
                 case {'moments','momentsgaussian'}
                     % Initial condition is assumed to be a delta
@@ -2254,6 +2463,10 @@ classdef SSIT
 
                     if ~isempty(obj.propensitiesGeneralMomentsJac)
                         JAC = @(t,v)obj.propensitiesGeneralMomentsJac(t,v,[obj.parameters{:,2}]);
+                        % Check if JAC is constant
+                        if sum(abs(JAC(rand,rand(size(initMeans)))-JAC(rand,rand(size(initMeans)))),"all")==0
+                            JAC = JAC(rand,rand(size(initMeans)));
+                        end 
                         options = odeset('Jacobian',JAC);
                     else
                         options = [];
@@ -2262,9 +2475,9 @@ classdef SSIT
                     [~,soln] =  odeIntegrat(RHS,obj.tSpan,initCond,options);
                     Solution.moments = soln';
 
-                    Solution.momenstsMean = soln(:,1:nSp);
+                    Solution.momentsMean = soln(:,1:nSp);
                     Nt = length(obj.tSpan);
-                    Solution.momenstsCOV = zeros(nSp,nSp,Nt);
+                    Solution.momentsCOV = zeros(nSp,nSp,Nt);
                     for it = 1:Nt
                         MU = soln(it,1:nSp);
                         EXTX = zeros(nSp,nSp);
@@ -2276,11 +2489,13 @@ classdef SSIT
                                 EXTX(j,i) = EXTX(i,j);
                             end
                         end                             
-                        Solution.momenstsCOV(:,:,it) =  EXTX - MU'*MU;
+                        Solution.momentsCOV(:,:,it) =  EXTX - MU'*MU;
                     end
-                   
-                    bConstraints = max(obj.fspConstraints.f((reshape(Solution.moments(1:nSp,:),[nSp,length(obj.tSpan)]))),[],2);
-                    bConstraints = max(bConstraints,obj.fspConstraints.b);
+
+                    if nargout>=2
+                        bConstraints = max(obj.fspConstraints.f((reshape(Solution.moments(1:nSp,:),[nSp,length(obj.tSpan)]))),[],2);
+                        bConstraints = max(bConstraints,obj.fspConstraints.b);
+                    end
             end
 
             if nargout>=3
@@ -2311,11 +2526,12 @@ classdef SSIT
             
             if isempty(nCells)
                 if ~isnan(obj.ssaOptions.nSimsPerExpt)
-                    nSims = obj.ssaOptions.nSimsPerExpt*obj.ssaOptions.Nexp;
+                    % nSims = obj.ssaOptions.nSimsPerExpt*obj.ssaOptions.Nexp;
                 else
-                    nSims = obj.ssaOptions.Nsims;
+                    % nSims = obj.ssaOptions.Nsims;
+                    obj.ssaOptions.nSimsPerExpt = obj.ssaOptions.Nsims;
                 end
-                nCells = nSims*ones(1,Nt);
+                nCells = obj.ssaOptions.nSimsPerExpt*ones(1,Nt);
             end
             if isempty(fspSoln)
                 fspSoln = obj.Solutions;
@@ -2338,7 +2554,7 @@ classdef SSIT
 
             nSpSave = length(species2save);
             Solution.trajs = NaN*ones(nSpSave,...
-                length(obj.tSpan),max(nCells));% Creates an empty Trajectories matrix
+                length(obj.tSpan),max(nCells)*obj.ssaOptions.Nexp);% Creates an empty Trajectories matrix
             % from the size of the time array and number of simulations.
             % NaNs are put in empty elements for the case where there are
             % different numbers of cells at different time points.
@@ -2348,14 +2564,14 @@ classdef SSIT
                 clear w
                 w(:) = PP(:); w(w<0)=0;
                 % TODO - there has to be another way of doing this.
-                [I1,I2,I3,I4,I5,I6,I7,I8,I9,I10,I11] =  ind2sub(size(PP),randsample(length(w), nCells(iT), true, w ));
+                [I1,I2,I3,I4,I5,I6,I7,I8,I9,I10,I11] =  ind2sub(size(PP),randsample(length(w), nCells(iT)*obj.ssaOptions.Nexp, true, w ));
                 for iSp = 1:nSpSave
-                    eval(['Solution.trajs(iSp,iT,1:nCells(iT)) = I',num2str(indsSpecies2save(iSp)),'-1;']);
+                    eval(['Solution.trajs(iSp,iT,1:nCells(iT)*obj.ssaOptions.Nexp) = I',num2str(indsSpecies2save(iSp)),'-1;']);
                 end
             end
             if ~isempty(obj.pdoOptions.PDO)
                 Solution.trajsDistorted = NaN*ones(nSpSave,...
-                length(obj.tSpan),max(nCells)); % Creates an empty Trajectories matrix from the size of the time array and number of simulations
+                length(obj.tSpan),max(nCells)*obj.ssaOptions.Nexp); % Creates an empty Trajectories matrix from the size of the time array and number of simulations
                 for iS = 1:nSpSave
                     PDO = obj.pdoOptions.PDO.conditionalPmfs{iS};
                     nDpossible = size(PDO,1);
@@ -2376,17 +2592,16 @@ classdef SSIT
                     for ie = 1:obj.ssaOptions.Nexp
                         for s = 1:size(Solution.trajs,1)
                             warning('off')
-
                             A.(['exp',num2str(ie),'_s',num2str(s)])(k+1:k+nCells(iT)) = ...
-                                Solution.trajs(s,iT,1:nCells(iT));
+                                Solution.trajs(s,iT,nCells(iT)*(ie-1)+(1:nCells(iT)));
                             if ~isempty(obj.pdoOptions.PDO)
-                                A.(['exp',num2str(ie),'_s',num2str(s),'_Distorted'])(k+1:k+nCells(iT)) = ...
-                                    Solution.trajsDistorted(s,iT,1:nCells(iT));
+                                A.(['exp',num2str(ie),'_s',num2str(s),'_Distorted'])(k+1:k+nCells(iT)/obj.ssaOptions.Nexp) = ...
+                                    Solution.trajsDistorted(s,iT,nCells(iT)*(ie-1)+(1:nCells(iT)));
                             end
                         end
                     end
                     k = k + nCells(iT);
-                end
+               end
 
                 if ~isempty(saveFile)
                     writetable(A,saveFile)
@@ -2514,7 +2729,8 @@ classdef SSIT
                 for it=length(sensSoln.data):-1:1
                     if isempty(indsUnobserved)
                         %F = ssit.fim.computeSingleCellFim(sensSoln.data{it}.p, sensSoln.data{it}.S, obj.pdoOptions.PDO);
-                        Sfree = sensSoln.data{it}.S(freeLocal);
+                        Sfree = sensSoln.data{it}.S(fitParsGlobal);
+                        Sfree = Sfree(freeLocal);
                         F = ssit.fim.computeSingleCellFim(sensSoln.data{it}.p, Sfree, obj.pdoOptions.PDO);
                     else
                         % Remove unobservable species.
@@ -2790,7 +3006,7 @@ classdef SSIT
         end
 
         %% Data Loading and Fitting
-        function [obj] = loadData(obj,dataFileName,linkedSpecies,conditions)
+        function [obj] = loadData(obj,dataFileName,linkedSpecies,conditions,savedColumns)
             % SSIT.loadData - Reads data from given file and associates
             % it with specified model species and experimental conditions.
             %
@@ -2808,16 +3024,22 @@ classdef SSIT
             %                the data in the 'Rep_num' column that is
             %                exactly equal to '1' will be kept in the
             %                data set
+            %   * savedColumns - optional string, char, or cell array of column names
+            %     from the data file to preserve after filtering. These
+            %     columns are not used for fitting, but are stored row-by-row
+            %     in obj.dataSet.savedColumns and obj.dataSet.savedData.
+            %     Example: savedColumns = {'replica'};
             %
             % Example:
             %   Model = Model.loadData("/data/dataFile.csv",...
             %    {'RNA','x1';'Protein','x2'},...
-            %    {'Drug_Conc',100});
+            %    {'Drug_Conc',100},{'replica'});
             arguments
                 obj
                 dataFileName
                 linkedSpecies
                 conditions = {};
+                savedColumns = {};
             end
             obj.dataSet =[];
             if ischar(dataFileName)||isstring(dataFileName)
@@ -2859,6 +3081,32 @@ classdef SSIT
                 end
             end
             obj.dataSet.conditions = conditions;
+
+            % Preserve optional extra columns after filtering (savedColumns).
+            % These are stored separately from TAB2 because TAB2 is later converted
+            % into a numeric sparse tensor for fitting.
+            if ischar(savedColumns) || isstring(savedColumns)
+                savedColumns = cellstr(savedColumns);
+            end
+            
+            if ~isempty(savedColumns)
+                dataNames = TAB.Properties.VariableNames;
+            
+                for k = 1:numel(savedColumns)
+                    if ~any(strcmp(dataNames, savedColumns{k}))
+                        error('SSIT:loadData:MissingColumn', ...
+                            'Requested extra column "%s" was not found in the data file.', ...
+                            savedColumns{k});
+                    end
+                end
+            
+                obj.dataSet.savedColumns = savedColumns;
+                obj.dataSet.savedData = TAB(:, savedColumns);
+            else
+                obj.dataSet.savedColumns = {};
+                obj.dataSet.savedData = table;
+            end
+
             obj.dataSet.dataFileName = dataFileName;
             % obj.dataSet.DATA = table2cell(TAB);
 
@@ -3396,26 +3644,37 @@ classdef SSIT
                 nSims = 100; % Number of simulations at which to calculate log(L)
             end
 
+            species2save = setdiff(obj.species,[obj.hybridOptions.upstreamODEs,obj.pdoOptions.unobservedSpecies]);
+
             logLSpreadVector = zeros(nSims,1);
             objTMP = obj;
+
+            % Generate a bunch of simulated data for each requested
+            % replica.
+            obj.ssaOptions.Nexp = nSims;
+            A = obj.sampleDataFromFSP([],[],obj.dataSet.nCells,species2save);
+
             for iSim = 1:nSims
 
-                % Generate and reformat data using FSP solution.
-                A = obj.sampleDataFromFSP([],[],obj.dataSet.nCells);                
-                objTMP.dataSet.DATA = table2cell(A);
+                % Pick and reformat data using FSP solution.
+                Ai = A(:,[1,(iSim-1)*length(species2save)+2:iSim*length(species2save)+1]);      
+                objTMP.dataSet.DATA = table2cell(Ai);
                 
                 if iSim==1
-                    times = unique(A.time);
+                    times = unique(Ai.time);
                     numTimes = length(times);
-                    timeAr = A.time;
+                    timeAr = Ai.time;
                     for i = 1:numTimes
-                        timeAr(A.time==times(i)) = i-1;
+                        timeAr(Ai.time==times(i)) = i-1;
                     end
                 end
-                A.time = timeAr;
+                Ai.time = timeAr;
 
                 % Convert to data tensor
-                X = table2array(A);
+                X = table2array(Ai);
+
+                % Apply PDO to the data tensor
+                
 
                 objTMP.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor = ...
                     sptensor(X+1,ones(size(X,1),1));
@@ -4181,7 +4440,7 @@ classdef SSIT
             %                                      at final time
             arguments
                 obj
-                solution
+                solution = [];
                 plotType = 'means';
                 indTimes = [];
                 includePDO = false;
@@ -4192,6 +4451,10 @@ classdef SSIT
                 movieSpecies = []
                 senseVars = []
                 plotTitle = ''
+            end
+            if isempty(solution)&&isfield(obj.Solutions,'fsp')
+                % clear solution
+                solution = obj.Solutions;
             end
             if isempty(figureNums)
                 h =  findobj('type','figure');
@@ -5531,9 +5794,14 @@ end
                 
                             grid on; box on;
                         end
-                
-                        sgtitle(sprintf('Marginal Distributions — %s', selNames{jj}), ...
+                                       
+                        if strlength(opts.Title)>0
+                            sgtitle(sprintf(string(opts.Title), selNames{jj}), ...
                                 'FontSize', opts.TitleFontSize);
+                        else
+                            sgtitle(sprintf('Marginal Distributions — %s', selNames{jj}), ...
+                                'FontSize', opts.TitleFontSize);
+                        end
                     end
         
                 case "joints"
@@ -7298,6 +7566,7 @@ end
                 opts.plotColors = struct();
                 opts.showConvergence = true;
                 opts.ESS = true;
+                opts.names = {};
             end
             FIM = opts.FIM;
             fimScale = opts.fimScale;
@@ -7306,12 +7575,13 @@ end
             plotColors = opts.plotColors;
             showConvergence = opts.showConvergence;
             ess = opts.ESS;
+            names = opts.names;
 
-            obj.plotMHResultsStatic(obj,mhResults,FIM,fimScale,mhPlotScale,scatterFig,ess,showConvergence,plotColors)
+            obj.plotMHResultsStatic(obj,mhResults,FIM,fimScale,mhPlotScale,scatterFig,ess,showConvergence,plotColors,names)
         end
     end
     methods (Static)
-        function plotMHResultsStatic(obj,mhResults,FIM,fimScale,mhPlotScale,scatterFig,ess,showConvergence,plotColors)
+        function plotMHResultsStatic(obj,mhResults,FIM,fimScale,mhPlotScale,scatterFig,ess,showConvergence,plotColors,names)
             arguments
                 obj
                 mhResults = [];
@@ -7322,6 +7592,7 @@ end
                 ess = true;  % display min(mhResults.ess(:)) in title    
                 showConvergence = true
                 plotColors = struct() % Optional: fields like scatter, ellipseFIM, ellipseMH, etc.
+                names = {};
             end
 
             if isfield(plotColors, 'scatter')
@@ -7356,7 +7627,12 @@ end
             if strcmp(obj.fittingOptions.modelVarsToFit,'all')
                 obj.fittingOptions.modelVarsToFit = ones(1,size(obj.parameters,1),'logical');
             end
-            parNames = obj.parameters(obj.fittingOptions.modelVarsToFit,1);
+
+            if isempty(names)
+                parNames = obj.parameters(obj.fittingOptions.modelVarsToFit,1);
+            else
+                parNames = names;
+            end
             Np = length(parNames);
 
             if ~isempty(FIM)
@@ -7447,6 +7723,18 @@ end
                 fprintf('\nMH sample means and standard deviations (log10 scale):\n');
                 for p = 1:Np
                     fprintf('%15s: mean = % .4f, std = %.4f\n', parNames{p}, mhMeans(p), mhStds(p));
+                end
+
+                % Compute and display parameter means and standard deviations
+                mhMeans = mean(exp(smplDone));   % log10 scale
+                mhStds  = std(exp(smplDone));
+
+                fprintf('\nMH sample means and standard deviations (lin scale):\n');
+                for p = 1:Np
+                    fprintf('%15s: mean = %12s, std = %12s\n', ...
+                        parNames{p}, ...
+                        sprintf('%0.4e', mhMeans(p)), ...
+                        sprintf('%0.4e', mhStds(p)));
                 end
 
             end

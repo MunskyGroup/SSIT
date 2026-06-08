@@ -1,8 +1,8 @@
 %% example_SI_Epidemics
 % Example script to demonstrate modeling epidemic data using SI, SIS, SIR, 
 % and SEIS epidemiological models
-clear; clc; close all
-addpath(genpath('../../src'));
+%clear; clc; close all
+addpath(genpath('../src'));
 
 %% Define SI Model
 % Set up a simple model where susceptible (S) individuals become infected 
@@ -114,23 +114,23 @@ SEIR.tSpan = linspace(0,20,200);
 
 %% Compute Ordinary Differential Equations (ODEs)
 
-% Set solution scheme to 'ode':
-SI.solutionScheme = 'ode';
-SIS.solutionScheme = 'ode';
-SIR.solutionScheme = 'ode';
-SEIR.solutionScheme = 'ode';
+% Set solution scheme to 'ODE':
+SI.solutionScheme = 'ODE';
+SIS.solutionScheme = 'ODE';
+SIR.solutionScheme = 'ODE';
+SEIR.solutionScheme = 'ODE';
     
-% Solve ODEs
-SI_ODEsoln = SI.solve; 
-SIS_ODEsoln = SIS.solve; 
-SIR_ODEsoln = SIR.solve; 
-SEIR_ODEsoln = SEIR.solve; 
+% Solve ODEs    
+SI.Solutions = SI.solve; 
+SIS.Solutions = SIS.solve; 
+SIR.Solutions = SIR.solve; 
+SEIR.Solutions = SEIR.solve; 
 
 % Plot ODE solutions
-plotODE(SI_ODEsoln,SI.species,SI.tSpan)
-plotODE(SIS_ODEsoln,SIS.species,SIS.tSpan)
-plotODE(SIR_ODEsoln,SIR.species,SIR.tSpan)
-plotODE(SEIR_ODEsoln,SEIR.species,SEIR.tSpan)
+SI.plotODE(speciesNames=SI.species, timeVec=SI.tSpan)
+SIS.plotODE(speciesNames=SIS.species, timeVec=SIS.tSpan)
+SIR.plotODE(speciesNames=SIR.species, timeVec=SIR.tSpan)
+SEIR.plotODE(speciesNames=SEIR.species, timeVec=SEIR.tSpan)
 
 %% Solve CME using FSP
 % Next, we can solve the model using the FSP.  In this example, we show how
@@ -141,32 +141,27 @@ SI.solutionScheme = 'FSP';
 SIS.solutionScheme = 'FSP'; 
 SIR.solutionScheme = 'FSP'; 
 SEIR.solutionScheme = 'FSP'; 
+
 % Set FSP 1-norm error tolerance
 SI.fspOptions.fspTol = 1e-5; 
 SIS.fspOptions.fspTol = 1e-5; 
 SIR.fspOptions.fspTol = 1e-5; 
 SEIR.fspOptions.fspTol = 1e-5; 
+
 % Guess initial bounds on FSP StateSpace
 SI.fspOptions.bounds(1:2) = [201,201]; 
 SIS.fspOptions.bounds(1:3) = [201,201,201]; 
 SIR.fspOptions.bounds(1:3) = [201,201,201]; 
 SEIR.fspOptions.bounds(1:4) = [201,201,201,201];  
+
 % Solve Model
+[SI_FSPsoln,SI.fspOptions.bounds] = SI.solve; 
 [SIS_FSPsoln,SIS.fspOptions.bounds] = SIS.solve; 
 [SIR_FSPsoln,SIR.fspOptions.bounds] = SIR.solve;
 [SEIR_FSPsoln,SEIR.fspOptions.bounds] = SEIR.solve;
 
 % Plot marginal distributions
-SIS.makePlot(SIS_FSPsoln,'marginals',[1:20:200],false,[1,2],...
-             {'linewidth',2})  
-SIS.makePlot(SIS_FSPsoln,'margmovie',[],false,[101],{'linewidth',2},...
-            'SIS.mp4',[1,1,0.015],[1,2]) 
-SIR.makePlot(SIR_FSPsoln,'marginals',[1:20:200],false,[1,2,3],...
-             {'linewidth',2})  
-SIR.makePlot(SIR_FSPsoln,'margmovie',[],false,[101],{'linewidth',2},...
-            'SIR.mp4',[1,1,0.015],[1,2,3]) 
-SEIR.makePlot(SEIR_FSPsoln,'marginals',[1:20:200],false,[1,2,3,4],...
-             {'linewidth',2})  
-SEIR.makePlot(SEIR_FSPsoln,'margmovie',[],false,[101],{'linewidth',2},...
-            'SEIR.mp4',[1,1,0.015],[1,2,3,4]) 
-
+SI.plotFSP(solution=SI_FSPsoln, plotType='marginals', indTimes=[1:5:50])
+SIS.plotFSP(solution=SIS_FSPsoln, plotType='marginals', indTimes=[1:5:50])
+SIR.plotFSP(solution=SIR_FSPsoln, plotType='marginals', indTimes=[1:5:50])
+SEIR.plotFSP(solution=SEIR_FSPsoln,plotType='marginals',indTimes=[1:5:50])

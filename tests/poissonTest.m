@@ -27,8 +27,8 @@ classdef poissonTest < matlab.unittest.TestCase
 
             delete 'testData.csv'
             testCase1.Poiss.ssaOptions.nSimsPerExpt = 1000;
-            testCase1.Poiss.ssaOptions.Nexp = 1;
-            testCase1.Poiss.sampleDataFromFSP(testCase1.PoissSolution,'testData.csv');
+            testCase1.Poiss.ssaOptions.Nexp = 2;
+            TMPdata = testCase1.Poiss.sampleDataFromFSP(testCase1.PoissSolution,'testData.csv');
 
             testCase1.Poiss = testCase1.Poiss.loadData('testData.csv',{'rna','exp1_s1'});
 
@@ -144,7 +144,7 @@ classdef poissonTest < matlab.unittest.TestCase
             testCase.verifyEqual(errMean+errVar<0.01, true, ...
                 'Solution Mean and Variance not within 1% Tolerance');
             
-            var2 = squeeze(model.Solutions.momenstsCOV(1,1,:))';
+            var2 = squeeze(model.Solutions.momentsCOV(1,1,:))';
             errVar2 = max(abs((var2-mn)./mn));
             testCase.verifyEqual(errVar2<0.01, true, ...
                 'Solution Mean and Variance not within 1% Tolerance');
@@ -244,6 +244,7 @@ classdef poissonTest < matlab.unittest.TestCase
 
             % Test ABC for a short run.
             fitOptions.numberOfSamples=100;
+            fitOptions.progress=false;
             [~,~,Results] = testCase.Poiss.runABCsearch([],[],[],fitOptions);
             
 
@@ -394,7 +395,8 @@ classdef poissonTest < matlab.unittest.TestCase
             testCase.Poiss.dataSet.nCells(end) = 60;           
 
             % Call to compute likelihood
-            testCase.Poiss.estimateLikelihoodSpread;
+            testCase.Poiss.ssaOptions.Nexp = 1;
+            [logLSpread,logLSpreadVector] = testCase.Poiss.estimateLikelihoodSpread(100);
                
         end
 
@@ -465,14 +467,14 @@ classdef poissonTest < matlab.unittest.TestCase
                 
             end
 
-            Model.makePlot(SensSoln,'marginals',21,[],[5]);
-            subplot(2,1,1)
-            hold on
-            plot(analytical1);
-            subplot(2,1,2)
-            hold on
-            plot(analytical2);
-            Model.makePlot(SensSoln2,'marginals',21,[],[5]);
+            % Model.makePlot(SensSoln,'marginals',21,[],[5]);
+            % subplot(2,1,1)
+            % hold on
+            % plot(analytical1);
+            % subplot(2,1,2)
+            % hold on
+            % plot(analytical2);
+            % Model.makePlot(SensSoln2,'marginals',21,[],[5]);
 
             testCase.verifyEqual(max(diff1+diff2)<0.001, true, ...
                 'Sensitivity Calculation is not within 0.1% Tolerance');            
@@ -610,7 +612,7 @@ classdef poissonTest < matlab.unittest.TestCase
             MHFitOptions.thin=1;
             MHFitOptions.numberOfSamples=1000;
             MHFitOptions.burnIn=0;
-            MHFitOptions.progress=true;
+            MHFitOptions.progress=false;
             MHFitOptions.useFIMforMetHast =true;
             MHFitOptions.CovFIMscale = 1.0;
             MHFitOptions.numChains = 1;
@@ -628,21 +630,21 @@ classdef poissonTest < matlab.unittest.TestCase
 
             % Find and plot total FIM for each parameter sample
             Nc = Model.dataSet.nCells;
-            figure
+            % figure
             FIM = Model.totalFim(fimResults,Nc);
-            Model.plotMHResults(MHResults,FIM=FIM)
+            % Model.plotMHResults(MHResults,FIM=FIM)
 
             % Find optimal experiment design given parameters sets
             NcOptExperiment = Model.optimizeCellCounts(fimResults,sum(Nc),'D-opt',[],[],10000*ones(size(Nc)));
             FIMOptExpt = Model.totalFim(fimResults,NcOptExperiment);
-            Model.plotMHResults(MHResults,FIM=[FIM,FIMOptExpt])         
+            % Model.plotMHResults(MHResults,FIM=[FIM,FIMOptExpt])         
 
             % Find optimal experiment design given parameters sets but
             % where there is a base of 10 cells at every time point.
             NcBase = Nc;
             NcOptExperimentBase = Model.optimizeCellCounts(fimResults,sum(Nc),'D-opt',[],NcBase,10000*ones(size(Nc)));
             FIMOptExptBase = Model.totalFim(fimResults,NcOptExperimentBase+NcBase);
-            Model.plotMHResults(MHResults,FIM=[FIM,FIMOptExpt,FIMOptExptBase])
+            % Model.plotMHResults(MHResults,FIM=[FIM,FIMOptExpt,FIMOptExptBase])
 
         end 
         

@@ -5,8 +5,11 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Preliminaries:
+% Clear from memory and close windows:
 % clear
 % close all
+% Add SSIT source codes to Matlab search path:
+addpath(genpath('../src'));
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(1): Create a simple Bursting Gene model in SSIT
@@ -88,7 +91,9 @@ STL1_4state.stoichiometry = [-1,1,0,0,0,0,0,0,0,0,0;...   % gene state 1
 
 % Add a lag to the time-varying TF/MAPK input signal:
 STL1_4state.inputExpressions = ...
-    {'Hog1','A*(((1-(exp(1)^(-r1*(t-t0))))*exp(1)^(-r2*(t-t0)))/(1+((1-(exp(1)^(-r1*(t-t0))))*exp(1)^(-r2*(t-t0)))/M))^n*(t>t0)'};
+    {'Hog1',['A*(((1-(exp(1)^(-r1*(t-t0))))*',...
+     'exp(1)^(-r2*(t-t0)))/(1+((1-(exp(1)^(-r1*(t-t0))))*',...
+     'exp(1)^(-r2*(t-t0)))/M))^n*(t>t0)']};
 
 % Set propensity functions:
 STL1_4state.propensityFunctions = {...

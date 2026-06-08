@@ -9,8 +9,16 @@ arguments
 end
 
 if isCluster
-    runTests = false;
+    % runTests = false;
+    % Turn off figures.
+    setenv('QT_QPA_PLATFORM','offscreen');
+    set(0,'DefaultFigureVisible','off')
     runExamples = false;
+    tests2run = {'poissonTest','poisson2Dtest','poissonTVtest',...
+        'miscelaneousTests','multiModelTests','modelReductionTest'};
+else
+    tests2run = {'poissonTest','poisson2Dtest','poissonTVtest',...
+        'miscelaneousTests','multiModelTests','modelReductionTest','testGui'};
 end
     
 % Check that 
@@ -20,7 +28,7 @@ if ~strcmpi(weAreIn(J(end)+1:end),'SSIT')
     if isCluster
         error('Not in correct SSIT directory -- cannot install')
     else
-        abort = questdlg({'You appear not to be in the SSIT Directory.';'Your current directory is';weAreIn;'Do you wish to abort?'}, ...
+        abort = questdlg({'You appear not to be in the SSIT Directory (or you changed its name).';'Your current directory is';weAreIn;'Do you wish to abort?'}, ...
             'Confirm Action', ...
             'Yes','No','Yes');
         if strcmpi(abort,'Yes')
@@ -31,6 +39,21 @@ end
 
 % Set the path to include all SSIT codes.  
 addpath(genpath('src'));
+
+% Install MEX codes
+disp('Installing MEX codes for Expokit')
+try
+    ssit.fsp_ode_solvers.build_expokit;
+    disp('MEX code for Expokit installed')   
+catch ME
+    disp('MEX code installation failure. Analyses will default to native MATLAB version.')
+    disp(['Error details: ' ME.message])
+    if ~isempty(ME.cause)
+        for k = 1:numel(ME.cause)
+            disp(['Cause: ' ME.cause{k}.message])
+        end
+    end
+end
 
 if ~exist("tmpPropensityFunctions","dir")
     disp('Creating director "tmpPropensityFunctions".')
@@ -64,6 +87,7 @@ catch me
     me
     return
 end
+
 % Test GUI installation (if not on cluster)
 if ~isCluster
     try
@@ -93,8 +117,8 @@ if runTests
     cleanupTest = onCleanup(@() cd(origDir));  % guarantee return
     cd('tests')
     set(0, 'DefaultFigureVisible', 'off');
-    testResults.tests = runtests({'poissonTest','poisson2Dtest','poissonTVtest',...
-        'miscelaneousTests','multiModelTests','modelReductionTest','testGui'})
+    disp('Starting Tests....')
+    testResults.tests = runtests(tests2run);
     set(0, 'DefaultFigureVisible', 'on');
     clear cleanupTest
 else
