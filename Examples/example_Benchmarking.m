@@ -74,7 +74,7 @@ switch Name
         Model.propensityFunctions = {'k1*RNA';'k2*M';'k3*DNAD';'k4*RNA';'k5*DNA*D';...
         	'k6*DNAD';'k7*DNAD*D';'k8*DNA2D';'(k9/2)*M*(M-1)';'k10*D'};
         Model.initialCondition = [0;2;0;2;6;0];
-        Model.tSpan = linspace(0,300);
+        Model.tSpan = linspace(0,100);
         %Model.fspTol = 1e-6;
 	case 'BirthDeath'
 		Model = SSIT;
@@ -288,7 +288,7 @@ switch Name
         Model.propensityFunctions = {'k1*GeneA';'k2*GeneB';'k3*A';'k4*B';...
             '(k5/2)*A*(A-1)*GeneB';'(k6/2)*B*(B-1)*GeneA';'k7*bGeneB';'k8*bGeneA'};  
         Model.initialCondition = [1;0;1;0;0;0];
-        Model.tSpan = linspace(0,100);
+        Model.tSpan = linspace(0,30);
         %Model.fspTol = 1e-6;
 	case 'Phage'
 		Model = SSIT;
@@ -428,7 +428,7 @@ switch Name
             Model = Model.addReaction(newReaction);       
         end
         Model.initialCondition = [1;1;1;0;0;0;0;0;0;0;0];
-        Model.tSpan = linspace(0,100);
+        Model.tSpan = linspace(0,30);
         %Model.fspTol = 1e-6;
 	case 'p53'
 		Model = SSIT;
@@ -503,7 +503,7 @@ tic
 disp('FSP subsequent solve:')
 benchmarks.subsequentFSPSolve = toc
 
-% SSA Solutions
+%% SSA Solutions
 Model.solutionScheme = 'ssa';
 Model.ssaOptions.Nsims = 1;
 tic
