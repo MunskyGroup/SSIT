@@ -19,7 +19,7 @@ classdef miscelaneousTests < matlab.unittest.TestCase
 
     methods (Test)
 
-        function specialEventBinomialDecayFSP(tc)
+        function specialEventBinomialDivisionFSP(tc)
             % Initialize the model for special events testing
             ModelBC = SSIT('Empty');
             ModelBC.species = {'rna'};
@@ -61,7 +61,7 @@ classdef miscelaneousTests < matlab.unittest.TestCase
                 'stateTransitionFun',@ssit.special_events.binomialDivision,...
                 'stateTransitionFunParameters',{{'p_div'}},...
                 'rateFun','k_div',... 
-                'fixedTimes','[]',...
+                'fixedTimes',[],...
                 'args',struct('lineage','bothCoupled'));
             ModelBC = ModelBC.formPropensitiesGeneral('BinomialDecay');
             [~,~,ModelBC] = ModelBC.solve;
@@ -85,6 +85,52 @@ classdef miscelaneousTests < matlab.unittest.TestCase
                 ['Binomial Decay Model for both Daughters FSP is too slow: T = ',num2str(time_BinomialDecay),' s']);
         end
 
+        function specialEventAllelicDivisionFSP(tc)
+            % Initialize the model for special events testing
+            ModelBC = SSIT('Empty');
+            ModelBC.species = {'geneON','rna'};
+            ModelBC.initialCondition = [16;23];
+            ModelBC.fspOptions.fspTol = 1e-4;
+            ModelBC.stoichiometry = [-1 0; 0 1];
+            ModelBC.propensityFunctions = {'koff*geneON','k*geneON'};
+            ModelBC.parameters = {'k_div',1;'p_div',0.5;'koff',0;'k',0;'fracOnD1',0};
+            ModelBC.specialEvents = struct(...
+                'timing','Exp',... % {'Exp','Fixed'}
+                'stateTransitionFun',@ssit.special_events.binomialDivision,...
+                'stateTransitionFunParameters',{{'fracOnD1','p_div'}},...
+                'rateFun','k_div*(rna>=23)',... 
+                'fixedTimes',[],...
+                'args',struct('lineage','bothCoupled'));
+            ModelBC = ModelBC.formPropensitiesGeneral('AllelicDecay');
+            [~,~,ModelBC] = ModelBC.solve;
+            tic
+            [~,~,ModelBC] = ModelBC.solve;
+            time_BinomialDecay = toc;
+            trajG = zeros(1,length(ModelBC.tSpan));
+            trajR = zeros(1,length(ModelBC.tSpan));
+            for i =1:length(trajG)
+                P = double(ModelBC.Solutions.fsp{i}.p.data);
+                P = sum(P,1)';
+                trajR(i) = [0:length(P)-1]*P;
+                P = double(ModelBC.Solutions.fsp{i}.p.data);
+                P = sum(P,2);
+                trajG(i) = [0:length(P)-1]*P;
+            end
+
+            subplot(2,1,1)
+            plot(ModelBC.tSpan,trajG);
+            subplot(2,1,2)
+            plot(ModelBC.tSpan,trajR);
+            % trajExact = 100*exp(-rates(1)*(1-rates(2))*ModelBC.tSpan)+...
+            %     rates(3)/(rates(1)*(1-rates(2)))*(1-exp(-rates(1)*(1-rates(2))*ModelBC.tSpan));
+            % modelDiffMeans = sum(abs(traj-trajExact)./trajExact)/length(traj);
+            % tc.verifyEqual(modelDiffMeans<0.001, true, ...
+            %     'Binomial Decay Model FSP provides inaccurate mean results.');
+            % tc.verifyEqual(time_BinomialDecay<1, true, ...
+            %     ['Binomial Decay Model FSP is too slow: T = ',num2str(time_BinomialDecay),' s']);
+         
+        end
+
         function specialEventGeometricBurst(tc)
             %% Initialize the model for special events testing
             ModelGB = SSIT('Empty');
@@ -100,7 +146,7 @@ classdef miscelaneousTests < matlab.unittest.TestCase
                 'stateTransitionFun',@ssit.special_events.geometricBurst,...
                 'stateTransitionFunParameters',{{'beta','beta2'}},...
                 'rateFun','k_burst',...
-                'fixedTimes','[]',...
+                'fixedTimes',[],...
                 'type','production',...
                 'args',struct());
             ModelGB = ModelGB.formPropensitiesGeneral('GeometricBursts2D');
@@ -139,7 +185,7 @@ classdef miscelaneousTests < matlab.unittest.TestCase
                 'stateTransitionFun',@ssit.special_events.geometricBurst,...
                 'stateTransitionFunParameters',{{'beta','beta2'}},...
                 'rateFun','k_burst*(t>7)',...
-                'fixedTimes','[]',...
+                'fixedTimes',[],...
                 'type','production',...
                 'args',struct());
             ModelGB = ModelGB.formPropensitiesGeneral('GeometricBursts2D');
