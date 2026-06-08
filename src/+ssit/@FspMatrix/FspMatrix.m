@@ -127,14 +127,26 @@ classdef FspMatrix
             %
             %   w: column vector.
             %       the output vector.
-            wt = obj.terms{1}.propensity.hybridFactorVector(t,parameters);
-            w = 0*v;
-            % w = obj.terms{1}.multiply(t,v,parameters);
+            
+            % Identify Fixed Special Events to exclude them
+            isFixedSpecialEvent = zeros(1,length(obj.terms),'logical');
             for i = 1:length(obj.terms)
-                if obj.terms{i}.isTimeDependent&&~obj.terms{i}.isFactorizable
-                    w = w + obj.terms{i}.multiply(t,v,parameters);
+                isFixedSpecialEvent(i) = ~isempty(obj.terms{i}.propensity.specialEvent)&&...
+                    isfield(obj.terms{i}.propensity.specialEvent.args,'FixedTime')&&...
+                    obj.terms{i}.propensity.specialEvent.args.FixedTime;
+            end
+
+            regularEvents = find(~isFixedSpecialEvent);
+            
+            wt = obj.terms{regularEvents(1)}.propensity.hybridFactorVector(t,parameters);
+            w = 0*v;
+            % w = obj.terms{regularEvents(1)}.multiply(t,v,parameters);
+            for i = 1:length(regularEvents)
+                idx = regularEvents(i);
+                if obj.terms{idx}.isTimeDependent&&~obj.terms{idx}.isFactorizable
+                    w = w + obj.terms{idx}.multiply(t,v,parameters);
                 else
-                    w = w + wt(i)*(obj.terms{i}.matrix*v);
+                    w = w + wt(idx)*(obj.terms{idx}.matrix*v);
                 end
             end
         end
@@ -203,24 +215,36 @@ classdef FspMatrix
                 end
             end
 
-            if obj.terms{1}.isFactorizable
-                if isTimeDep
-                    wt = obj.terms{1}.propensity.hybridFactorVector(t,parameters);
-                    A = wt(1)*obj.terms{1}.matrix;
-                else
-                    wt = obj.terms{1}.propensity.hybridFactorVector(0,parameters);
-                    A = wt(1)*obj.terms{1}.matrix;
-                end
-            else
-                wt = obj.terms{1}.propensity.hybridFactorVector(t,parameters);
-                A = ssit.FspMatrixTerm.generateTimeVaryingMatrixTerm(t, obj.terms{1}.propensity, obj.terms{1}.matrix, parameters, obj.terms{1}.numConstraints, modRedTransformMatrices);
+            isFixedSpecialEvent = zeros(1,length(obj.terms),'logical');
+            for i = 1:length(obj.terms)
+                isFixedSpecialEvent(i) = ~isempty(obj.terms{i}.propensity.specialEvent)&&...
+                    isfield(obj.terms{i}.propensity.specialEvent.args,'FixedTime')&&...
+                    obj.terms{i}.propensity.specialEvent.args.FixedTime;
             end
 
-            for i = 2:length(obj.terms)
-                if obj.terms{i}.isFactorizable
-                    A = A + wt(i)*obj.terms{i}.matrix;
+            regularEvents = find(~isFixedSpecialEvent);
+
+            if obj.terms{regularEvents(1)}.isFactorizable
+                if isTimeDep
+                    wt = obj.terms{regularEvents(1)}.propensity.hybridFactorVector(t,parameters);
+                    A = wt(1)*obj.terms{regularEvents(1)}.matrix;
                 else
-                    A = A + ssit.FspMatrixTerm.generateTimeVaryingMatrixTerm(t, obj.terms{i}.propensity, obj.terms{i}.matrix, parameters, obj.terms{i}.numConstraints, modRedTransformMatrices);
+                    wt = obj.terms{regularEvents(1)}.propensity.hybridFactorVector(0,parameters);
+                    A = wt(1)*obj.terms{regularEvents(1)}.matrix;
+                end
+            else
+                wt = obj.terms{regularEvents(1)}.propensity.hybridFactorVector(t,parameters);
+                A = ssit.FspMatrixTerm.generateTimeVaryingMatrixTerm(t, obj.terms{regularEvents(1)}.propensity, ...
+                    obj.terms{regularEvents(1)}.matrix, parameters, ...
+                    obj.terms{regularEvents(1)}.numConstraints, modRedTransformMatrices);
+            end
+
+            for i = 2:length(regularEvents)
+                if obj.terms{regularEvents(i)}.isFactorizable
+                    A = A + wt(regularEvents(i))*obj.terms{regularEvents(i)}.matrix;
+                else
+                    A = A + ssit.FspMatrixTerm.generateTimeVaryingMatrixTerm(t, obj.terms{regularEvents(i)}.propensity, ...
+                        obj.terms{regularEvents(i)}.matrix, parameters, obj.terms{regularEvents(i)}.numConstraints, modRedTransformMatrices);
                 end
             end
             
@@ -238,11 +262,11 @@ classdef FspMatrix
                 for ipar = 1:npar
                     % Aisens = dwit/dpar * Aix + wit * dAix/dpar
                     
-                    objSens1.terms{1}.propensity.hybridFactorVector = ...
-                        obj.terms{1}.propensity.sensTimeFactorVec{ipar};
-                    for iterm = 1:length(obj.terms)
-                        objSens2.terms{iterm}.matrix = obj.terms{iterm}.matrixSens{ipar};
-                        objSens2.terms{iterm}.propensity.stateDependentFactor = obj.terms{iterm}.propensity.sensStateFactor{ipar};
+                    objSens1.terms{regularEvents(1)}.propensity.hybridFactorVector = ...
+                        obj.terms{regularEvents(1)}.propensity.sensTimeFactorVec{ipar};
+                    for iterm = 1:length(regularEvents)
+                        objSens2.terms{regularEvents(iterm)}.matrix = obj.terms{regularEvents(iterm)}.matrixSens{ipar};
+                        objSens2.terms{regularEvents(iterm)}.propensity.stateDependentFactor = obj.terms{regularEvents(iterm)}.propensity.sensStateFactor{ipar};
                     end
                     
                     Asens{ipar} = createSingleMatrix(objSens1, t, parameters, modRedTransformMatrices, false) ...

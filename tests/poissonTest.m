@@ -467,14 +467,14 @@ classdef poissonTest < matlab.unittest.TestCase
                 
             end
 
-            Model.makePlot(SensSoln,'marginals',21,[],[5]);
-            subplot(2,1,1)
-            hold on
-            plot(analytical1);
-            subplot(2,1,2)
-            hold on
-            plot(analytical2);
-            Model.makePlot(SensSoln2,'marginals',21,[],[5]);
+            % Model.makePlot(SensSoln,'marginals',21,[],[5]);
+            % subplot(2,1,1)
+            % hold on
+            % plot(analytical1);
+            % subplot(2,1,2)
+            % hold on
+            % plot(analytical2);
+            % Model.makePlot(SensSoln2,'marginals',21,[],[5]);
 
             testCase.verifyEqual(max(diff1+diff2)<0.001, true, ...
                 'Sensitivity Calculation is not within 0.1% Tolerance');            
@@ -630,21 +630,21 @@ classdef poissonTest < matlab.unittest.TestCase
 
             % Find and plot total FIM for each parameter sample
             Nc = Model.dataSet.nCells;
-            figure
+            % figure
             FIM = Model.totalFim(fimResults,Nc);
-            Model.plotMHResults(MHResults,FIM=FIM)
+            % Model.plotMHResults(MHResults,FIM=FIM)
 
             % Find optimal experiment design given parameters sets
             NcOptExperiment = Model.optimizeCellCounts(fimResults,sum(Nc),'D-opt',[],[],10000*ones(size(Nc)));
             FIMOptExpt = Model.totalFim(fimResults,NcOptExperiment);
-            Model.plotMHResults(MHResults,FIM=[FIM,FIMOptExpt])         
+            % Model.plotMHResults(MHResults,FIM=[FIM,FIMOptExpt])         
 
             % Find optimal experiment design given parameters sets but
             % where there is a base of 10 cells at every time point.
             NcBase = Nc;
             NcOptExperimentBase = Model.optimizeCellCounts(fimResults,sum(Nc),'D-opt',[],NcBase,10000*ones(size(Nc)));
             FIMOptExptBase = Model.totalFim(fimResults,NcOptExperimentBase+NcBase);
-            Model.plotMHResults(MHResults,FIM=[FIM,FIMOptExpt,FIMOptExptBase])
+            % Model.plotMHResults(MHResults,FIM=[FIM,FIMOptExpt,FIMOptExptBase])
 
         end 
         

@@ -39,7 +39,8 @@ classdef OdeSuite < ssit.fsp_ode_solvers.OdeSolver
 %         obj.numODEs = numODEs;
         end
         
-        function [tExport, solutionsNow, fspStopStatus] = solve(obj, tStart, tOut, initSolution, rhs, jac, fspErrorCondition)
+        function [tExport, solutionsNow, fspStopStatus] = solve(obj, tStart,...
+                tOut, initSolution, rhs, jac, fspErrorCondition, fixedEvents)
         %SOLVE Advance the solution of the FSP-truncated CME up until
         %either the final time point or when the FSP error is exceeded for
         %the current set of states.
@@ -105,27 +106,77 @@ classdef OdeSuite < ssit.fsp_ode_solvers.OdeSolver
             ode_opts = odeset('Events', odeEvent, 'relTol',obj.relTol,...
                 'absTol', obj.absTol,'Vectorized','off','MaxStep',maxStep);
         end
-        tSpan = sort(unique([tStart; tOut]));
-       
-        [tExport, solutionsNow, te, ye, ~] =  obj.solver(rhs, tSpan, initSolution, ode_opts);
-        % tic
-        % [tExport, solutionsNow, te, ye, ~] =  ode23s(rhs, tSpan, initSolution, ode_opts);
-        % toc23 = toc
-        % tic
-        % [tExport, solutionsNow, te, ye, ~] =  ode15s(rhs, tSpan, initSolution, ode_opts);
-        % toc15 = toc
-        % tic
-        % [tExport, solutionsNow, te, ye, ~] =  ode45(rhs, tSpan, initSolution, ode_opts);
-        % toc45 = toc
-        % [tExport, solutionsNow, te, ye, ~] =  ode45(rhs, tSpan, initSolution, ode_opts);
+               
+        % Initialize output storage
+        tExportAll = [];
+        solutionsAll = [];
+        tCurrentStart = tStart;
+        currentSolution = initSolution;
         
-        if ~isempty(te)&&(length(tExport)<2||te(end)<tExport(2))
-            solutionsNow = solutionsNow(1);
-            tExport = tExport(1);
+        isStub = true;
+        while isStub
+
+            % Identify fixed event times within integration interval
+            fixedEventTimesInInterval = [];
+            if ~isempty(fixedEvents) && isfield(fixedEvents, 'times')
+                fixedEventTimesInInterval = fixedEvents.times(fixedEvents.times > tCurrentStart & fixedEvents.times < tOut(end));
+            end
+
+            % Integrate in segments between fixed events
+            if ~isempty(fixedEventTimesInInterval)&&fixedEventTimesInInterval(1)<tOut(end)
+                tSpan = sort(unique([tCurrentStart; tOut; fixedEventTimesInInterval']));
+                tSpan = tSpan(tSpan<=fixedEventTimesInInterval(1)&tSpan<=tOut(end));
+            else
+                % No fixed events: integrate normally
+                tSpan = sort(unique([tCurrentStart; tOut]));
+            end
+            tSpan = tSpan(tSpan>=tCurrentStart);
+
+            if length(tSpan)==2
+                tSpan = [tSpan(1),mean(tSpan),tSpan(2)];
+            end
+            [tExport, solutionsNow, te, ye, ~] =  obj.solver(rhs, tSpan, currentSolution, ode_opts);
+
+            if ~isempty(te)&&(length(tExport)<2||te(end)<tSpan(2))
+                solutionsAll = {};
+                tExportAll = tExport(1);
+                break
+            else
+
+                % Apply fixed time special event if applicable
+                if ~isempty(fixedEventTimesInInterval)
+                    if tExport(end) == fixedEventTimesInInterval(1)
+                        fixedEventIdx = find(abs(fixedEventTimesInInterval(1) - fixedEvents.times) < 1e-10, 1, 'first');
+                        if ~isempty(fixedEventIdx)
+                            matrixIdx = fixedEvents.matrixInds(fixedEventIdx);
+                            currentSolution = fixedEvents.matrices{matrixIdx} * solutionsNow(end, :)';
+                            solutionsNow(end, :) = currentSolution';
+                        end
+                    end
+                end
+                tExportAll = [tExportAll;tExport];
+                solutionsAll = [solutionsAll;solutionsNow];
+            end
+
+            if isempty(fixedEventTimesInInterval)||(tExport(end)>=tOut(2))
+                isStub = false;
+            else
+                isStub = true;
+                % Start next segment at slightly later time (just after
+                % fixed event)
+                tCurrentStart = tExport(end)*(1+1e-10);
+            end
         end
-        
-        ikeep = ismember(tExport, tSpan) & (tExport > tStart);
-        solutionsNow = solutionsNow(ikeep, :)';
+
+        % Sort to return results only at requested times.
+        ikeep = ismember(tExportAll, tOut) & (tExportAll > tStart);
+        if ~isempty(ikeep)&&sum(ikeep)>0
+            tExportAll = tExportAll(ikeep);
+            solutionsAll = solutionsAll(ikeep,:)';
+        end
+
+        tExport = tExportAll;
+        solutionsNow = solutionsAll;
         solutionsNow = mat2cell(solutionsNow, size(solutionsNow,1), ones(1, size(solutionsNow,2)));
         
         if (~isempty(te))

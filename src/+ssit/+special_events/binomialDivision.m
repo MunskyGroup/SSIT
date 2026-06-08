@@ -25,7 +25,7 @@ end
 %                   independent.
 %   numConstraints -- number of FSP constraints.
 [nSpecies,nStates] = size(states);
-A = zeros(nStates,nStates);
+A = zeros(nStates+numConstraints);
 for j = 1:nStates
     switch args.lineage
         case 'primary'
@@ -44,11 +44,23 @@ for j = 1:nStates
             end
     end
     v(abs(v)<=1e-12) = 0;
-    v(j) = v(j) - 1;
-    A(:,j) = prop_val(j)*v;
+    % v(j) = v(j) - 1;
+    % A(:,j) = prop_val(j)*v;
+
+    if isfield(args,'FixedTime')&&args.FixedTime
+        A(1:nStates,j) = v;
+        % A(nStates+nSpecies+1:nStates+nSpecies*2,j) = B;
+    else
+        v(j) = v(j) - 1;
+        A(1:nStates,j) = prop_val(j)*v;
+        % A(nStates+nSpecies+1:nStates+nSpecies*2,j) = prop_val(j)*B;
+    end
+
+
+
 end
 A = sparse(A);
 % TODO - this approach may not allow for proper downward FSP expansion as
 % transitions into sinks are being set to zero.
-A(end+numConstraints,end+numConstraints) = 0;
+% A(end+numConstraints,end+numConstraints) = 0;
 

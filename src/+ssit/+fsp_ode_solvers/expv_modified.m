@@ -41,7 +41,8 @@
 %  EXPOKIT: Software Package for Computing Matrix Exponentials. 
 %  ACM - Transactions On Mathematical Software, 24(1):130-156, 1998
 
-function [w, err, hump, Time_array_out, P_array, P_lost, tryagain, te, ye] = expv_modified( t, A, v, tol, m, N_prt, Time_array,fspTol,SINKS,tNow,fspErrorCondition)
+function [w, err, hump, Time_array_out, P_array, P_lost, tryagain, te, ye] = ...
+    expv_modified( t, A, v, tol, m, N_prt, Time_array,fspTol,SINKS,tNow,fspErrorCondition,resetSparsity,fixedEvents)
 arguments
     t
     A
@@ -54,6 +55,8 @@ arguments
     SINKS = []
     tNow = 0
     fspErrorCondition = struct('tInit',0);
+    resetSparsity = false
+    fixedEvents = {}
 end
 n = size(A,1);
 % if nargin == 3
@@ -187,7 +190,7 @@ while tNow < t_out && i_prt<=length(Time_array)
   % end
   try
       [H,V,k1,mb,t_step] = ssit.fsp_ode_solvers.mexFunctionExpokit(n,m,w,beta,Acsr,btol,...
-          Time_array(i_prt),tNow,0,k1_in,mb_in,t_step_in);
+          Time_array(i_prt),tNow,double(resetSparsity),k1_in,mb_in,t_step_in);
   catch
       [H,V,k1,mb,t_step] = ssit.fsp_ode_solvers.ExpensiveTask(n,m,w,beta,A,btol,...
           Time_array(i_prt),tNow,k1_in,mb_in,t_step_in);

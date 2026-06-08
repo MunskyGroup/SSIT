@@ -198,11 +198,7 @@ end
 % Set up the initial state subset, or recompute it if constaint functions
 % have changed.
 if isempty(stateSpace)||stateSpace.numConstraints~=constraintCount||size(stateSpace.states,1)~=length(speciesNames)
-    if ~isempty(specialEvents)
-        stateSpace = ssit.FiniteStateSet(initStates, stoichMatrix, specialEvents);
-    else
-        stateSpace = ssit.FiniteStateSet(initStates, stoichMatrix, specialEvents);
-    end
+    stateSpace = ssit.FiniteStateSet(initStates, stoichMatrix, specialEvents);
     stateSpace = stateSpace.expand(constraintFunctions, constraintBoundsFinal, specialEvents);
 else
     constraintBoundsFinal = max(constraintBoundsFinal,max(constraintFunctions(stateSpace.states),[],2));
@@ -224,6 +220,23 @@ while expandSS
     else
         AfspFull = ssit.FspMatrix(propensities, parameters, stateSpace, constraintCount, speciesNames, [], false);
     end
+
+    % % Set up structure for when fixed-time special events are set to occur. 
+    if useReducedModel
+        FixedEvents = UpdateFixedEvents(AfspRed);
+
+    else
+        FixedEvents = UpdateFixedEvents(AfspFull);
+    end
+    if initApproxSS&&~isempty(FixedEvents)&&min(FixedEvents.times)<(outputTimes(1)-1e-6)
+        error('Fixed Events cannot occur before intitial time if initialing at steady state')
+    end
+    if initApproxSS&&useReducedModel
+        error('Fixed Events not yet compatible with ReducedModels')
+        %TODO - it should be relatively easy to add fixed events into
+        %reduced models, but I have left this error for now.
+    end
+
 
     % Use Approximate steady state as initial distribution if requested.
     if initApproxSS
@@ -471,7 +484,8 @@ while (tNow < maxOutputTime)
         solVec, ...
         matvec, ...
         jac,...
-        fspErrorCondition);
+        fspErrorCondition,...
+        FixedEvents);
 
     j = 0;
     while (j < length(solutionsNow))
@@ -560,6 +574,10 @@ while (tNow < maxOutputTime)
             AfspFull = AfspFull.regenerate(propensities, parameters, stateSpace, constraintCount,speciesNames);
         end
 
+        % Update fixed events.
+        FixedEvents = UpdateFixedEvents(AfspFull);
+
+
         stateCountOld = stateCount;
         stateCount = stateSpace.getNumStates;
 
@@ -597,3 +615,29 @@ end
 end
 
 
+function FixedEvents = UpdateFixedEvents(AfspFull)
+% Set up structure for when fixed-time special events are set to occur.
+isFixedSpecialEvent = zeros(1,length(AfspFull.terms),'logical');
+for i = 1:length(AfspFull.terms)
+    isFixedSpecialEvent(i) = ~isempty(AfspFull.terms{i}.propensity.specialEvent)&&...
+        isfield(AfspFull.terms{i}.propensity.specialEvent.args,'FixedTime')&&...
+        AfspFull.terms{i}.propensity.specialEvent.args.FixedTime;
+end
+indsFixedEvents = find(isFixedSpecialEvent);
+if isempty(indsFixedEvents)
+    FixedEvents=[];
+else
+    FixedEvents.matrices = cell(1,length(indsFixedEvents));
+    FixedEvents.times = [];
+    FixedEvents.matrixInds = [];
+    for i = 1:sum(isFixedSpecialEvent)
+        FixedEvents.matrices{i} = AfspFull.terms{indsFixedEvents(i)}.matrix;
+        FixedEvents.times = [FixedEvents.times,AfspFull.terms{indsFixedEvents(i)}.propensity.specialEvent.fixedTimes];
+        FixedEvents.matrixInds = [FixedEvents.matrixInds,i*ones(size(AfspFull.terms{indsFixedEvents(i)}.propensity.specialEvent.fixedTimes))];
+    end
+    % Sort fixed events in increasing order of time.
+    [FixedEvents.times,ia] = sort(FixedEvents.times);
+    FixedEvents.matrixInds = FixedEvents.matrixInds(ia);
+end
+
+end
