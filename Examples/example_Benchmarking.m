@@ -118,20 +118,20 @@ switch Name
             'd6',150;'k6',150;'a7',1/Nmapk;'d7',150;'k7',150;'a8',1/Nmapk;...
             'd8',150;'k8',150;'a9',1/Nmapk;'d9',150;'k9',150;'a10',1/Nmapk;...
             'd10',150;'k10', 150};
-        species = {'E1';'E2';'KKPase';'KPase';'KKK';'KKKp';'KK';...
+        Model.species = {'E1';'E2';'KKPase';'KPase';'KKK';'KKKp';'KK';...
             'KKp';'KKpp';'K';'Kp';'Kpp';'KKK_E1';'KKKp_E2';'KK_KKKp';...
             'KKp_KKPase';'KKp_KKKp';'KKpp_KKPase';'KKpp_K';'Kp_KPase';...
             'Kp_KKpp';'Kpp_KPase'};
 
         Model.initialCondition = [];
-        x0 = zeros(numel(species),1);     
-        x0(strcmp(species,'E1'))     = 50;
-        x0(strcmp(species,'E2'))     = 50;
-        x0(strcmp(species,'KKPase')) = 50;
-        x0(strcmp(species,'KPase'))  = 50;
-        x0(strcmp(species,'KKK'))    = 50;
-        x0(strcmp(species,'KK'))     = 50;
-        x0(strcmp(species,'K'))      = 50;
+        x0 = zeros(numel(Model.species),1);     
+        x0(strcmp(Model.species,'E1'))     = 50;
+        x0(strcmp(Model.species,'E2'))     = 50;
+        x0(strcmp(Model.species,'KKPase')) = 50;
+        x0(strcmp(Model.species,'KPase'))  = 50;
+        x0(strcmp(Model.species,'KKK'))    = 50;
+        x0(strcmp(Model.species,'KK'))     = 50;
+        x0(strcmp(Model.species,'K'))      = 50;
         Model.initialCondition = x0;
 
         % MAPK reactions:
