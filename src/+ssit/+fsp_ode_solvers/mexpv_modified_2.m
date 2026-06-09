@@ -258,14 +258,14 @@ while tNow < t_out && i_prt<=length(Time_array)
     % toc
 
     % tic
+    orthDepth = min(m,15);
     try
         [H,V,k1,mb,t_step] = ssit.fsp_ode_solvers.mexFunctionExpokit(n,m,w,beta,Acsr,btol,...
-            Time_array(i_prt),tNow,double(resetSparsity),k1_in,mb_in,t_step_in);
+            Time_array(i_prt),tNow,double(resetSparsity),k1_in,mb_in,t_step_in,orthDepth);
     catch
         [H,V,k1,mb,t_step] = ssit.fsp_ode_solvers.ExpensiveTask(n,m,w,beta,A,btol,...
-            Time_array(i_prt),tNow,k1_in,mb_in,t_step_in);        
+            Time_array(i_prt),tNow,k1_in,mb_in,t_step_in,orthDepth);
     end
-    % toc
 
 
     % % [H2,V2,k1_mat,mb_mat,t_step_mat] = ExpensiveTask(n,m,w,beta,A,btol,...

@@ -128,7 +128,8 @@ void expokitC(
     double  *t_step,
     double   Time_array_i_prt,
     double   tNow,
-    int      resetSparsity)
+    int      resetSparsity,
+    int      orthDepth)         /* reorthogonalization depth: 0=full, k=limited window */
 {
     /* ---- zero output arrays ---------------------------------------- */
     memset(V, 0, (size_t)n * (size_t)(m + 1) * sizeof(double));
@@ -163,8 +164,9 @@ void expokitC(
         //     if (fabs(p[i]) < 1e-10) p[i] = 0.0;
         // }
 
-        /* Modified Gram-Schmidt orthogonalisation */
-        for (int i = 0; i <= j; i++) {
+        /* Modified Gram-Schmidt orthogonalisation (with optional limited depth) */
+        int i_start = (orthDepth == 0) ? 0 : (j >= orthDepth - 1) ? (j - orthDepth + 1) : 0;
+        for (int i = i_start; i <= j; i++) {
             double hij = ssit_ddot(n, p, 1, &V[i * n], 1);
             H[i + j * ldH] = hij;
             ssit_daxpy(n, -hij, &V[i * n], 1, p, 1);
