@@ -1,6 +1,6 @@
 % Benchmark Examples
 clear all
-Models = {'Toggle'};
+Models = {'GeneExpression'};
 clear benchmarks
 for iM = 1:length(Models)
     [Model,verificationCode] = Generate_Model_from_Benchmark_Library(Models{iM});
@@ -27,7 +27,7 @@ switch Name
            					    0, 0,-1,1];
         Model.propensityFunctions = {'d1*U';'a1/(1+V^b)';'d2*V';'a2/(1+U^g)'};
         Model.initialCondition = [100;0];
-        Model.tSpan = linspace(0,100,11);
+        Model.tSpan = linspace(0,200,11);
     case 'Pap'
         Model = SSIT('Empty'); 
         Model.parameters = {'LRPtot',100;'k1',1;'k2a',0.25;'k2b',2.25;...
@@ -551,7 +551,7 @@ tic
 benchmarks.subsequentODEsolve = toc
 
 %% Model Reduction FSP
-if runReductions
+if opts.runReductions
     Model.solutionScheme = 'fsp';
 
     Model.tSpan = linspace(min(Model.tSpan),max(Model.tSpan),150);
