@@ -1,31 +1,35 @@
 % Benchmark Examples
 clear all
-Models = {'MAPK'};
+Models = {'Toggle'};
 clear benchmarks
 for iM = 1:length(Models)
-    Model = Generate_Model_from_Benchmark_Library(Models{iM});
+    [Model,verificationCode] = Generate_Model_from_Benchmark_Library(Models{iM});
     Model.propensityFilePrefix = Models{iM};
     benchmarks.(Models{iM}) = run_benchmarks(Model);
+    if ~isempty(verificationCode)
+        eval(verificationCode)
+    end
 end
 
-function Model = Generate_Model_from_Benchmark_Library(Name)
+function [Model,verificationCode] = Generate_Model_from_Benchmark_Library(Name)
 arguments
     Name
 end
 
+verificationCode =[];
+
 switch Name
     case 'Toggle'
-        Model = SSIT;
+        Model = SSIT('Empty');
         Model.parameters = {'d1',1;'a1',5000;'b',2.5;'d2',1;'a2',1600;'g',1.5};
         Model.species = {'U';'V'};
         Model.stoichiometry = [-1,1,0, 0;...
            					    0, 0,-1,1];
         Model.propensityFunctions = {'d1*U';'a1/(1+V^b)';'d2*V';'a2/(1+U^g)'};
         Model.initialCondition = [100;0];
-        Model.tSpan = linspace(0,100);
-        %Model.fspTol = 1e-6;
+        Model.tSpan = linspace(0,100,11);
     case 'Pap'
-        Model = SSIT; 
+        Model = SSIT('Empty'); 
         Model.parameters = {'LRPtot',100;'k1',1;'k2a',0.25;'k2b',2.25;...
             'k3',1;'k4a',1;'k4b',0.2;'k5',0.01;'k6a',1;'k6b',0.2;...
             'k7',0.01;'k8a',0.25;'k8b',2.25;'k9',10;'k10',1};    
@@ -62,8 +66,8 @@ switch Name
         %Model.fspTol = 1e-5;
 	case 'Goutsias'
 		Model = SSIT;
-        Model.parameters = {'k1',0.043;'k2',0.0007;'k3',0.0715;'k4',0.0039;'k5',0.012e9;...
-        	'k6',0.4791;'k7',0.00012e9;'k8',0.8765e-11;'k9',0.05e9;'k10',0.5};
+        Model.parameters = {'k1',0.043;'k2',0.0007;'k3',0.0715;'k4',0.0039;'k5',0.012e9/(6.0221415e23*1e-15);...
+        	'k6',0.4791;'k7',0.00012e9/(6.0221415e23*1e-15);'k8',0.8765e-11;'k9',0.05e9/(6.0221415e23*1e-15);'k10',0.5};
         Model.species = {'RNA','M','DNAD','DNA','D','DNA2D'};
         Model.stoichiometry = [0,0,1,-1,0,0,0,0,0,0;...
         					   1,-1,0,0,0,0,0,0,-2,2;...
@@ -74,7 +78,9 @@ switch Name
         Model.propensityFunctions = {'k1*RNA';'k2*M';'k3*DNAD';'k4*RNA';'k5*DNA*D';...
         	'k6*DNAD';'k7*DNAD*D';'k8*DNA2D';'(k9/2)*M*(M-1)';'k10*D'};
         Model.initialCondition = [0;2;0;2;6;0];
-        Model.tSpan = linspace(0,100);
+        Model.tSpan = linspace(0,300,11);
+        verificationCode = "Model.plotFSP(plotType = 'marginals',indTimes=length(Model.tSpan),speciesNames='D')";     
+
         %Model.fspTol = 1e-6;
 	case 'BirthDeath'
 		Model = SSIT;
@@ -96,7 +102,7 @@ switch Name
         Model.tSpan = linspace(0,100);
         %Model.fspTol = 1e-6;
     case 'MichaelisMenten'
-        Model = SSIT;
+        Model = SSIT('Empty');
         Model.parameters = {'k1',1;'k2',1;'k3',0.1};    
         Model.species = {'S';'E';'ES';'P'};  
         Model.stoichiometry = [
@@ -110,7 +116,7 @@ switch Name
         Model.tSpan = linspace(0,70);
         %Model.fspTol = 1e-5;
 	case 'MAPK'
-		Model = SSIT;
+		Model = SSIT('Empty');
         Nmapk = 50;
         Model.parameters = {'a1',1/Nmapk;'d1',150;'k1',150;'a2',1/Nmapk;...
             'd2',150;'k2',150;'a3',1/Nmapk;'d3',150;'k3',150;'a4',1/Nmapk;...
@@ -241,7 +247,7 @@ switch Name
         Model.tSpan = linspace(0,10);
         %Model.fspTol = 1e-1;
 	case 'EnzymaticFutile'
-        Model = SSIT;
+        Model = SSIT('Empty');
         Model.parameters = {'kplus1',40;'kplus2',1e4;'kminus1',200;...
             'kminus2',100;'kplus3',1e4;'kminus3',5000};  
         Model.species = {
@@ -273,7 +279,7 @@ switch Name
         Model.tSpan = linspace(0,1);
         %Model.fspTol = 1e-6;
     case 'Toggle2'
-        Model = SSIT;
+        Model = SSIT('Empty');
         Model.parameters = {'k1',40;'k2',20;'k3',1;'k4',1;'k5',1e-5;...
             'k6',3.5e-5;'k7',1;'k8',1};  
         Model.species = {'GeneA';'A';'GeneB';'B';'bGeneB';'bGeneA'};
@@ -288,7 +294,7 @@ switch Name
         Model.propensityFunctions = {'k1*GeneA';'k2*GeneB';'k3*A';'k4*B';...
             '(k5/2)*A*(A-1)*GeneB';'(k6/2)*B*(B-1)*GeneA';'k7*bGeneB';'k8*bGeneA'};  
         Model.initialCondition = [1;0;1;0;0;0];
-        Model.tSpan = linspace(0,30);
+        Model.tSpan = linspace(0,30,11);
         %Model.fspTol = 1e-6;
 	case 'Phage'
 		Model = SSIT;
@@ -450,7 +456,7 @@ switch Name
         Model.tSpan = linspace(0,1000);
         %Model.fspTol = 1e-4;
     case 'TripleRepressor'
-        Model = SSIT;
+        Model = SSIT('Empty');
         Model.parameters = {'kOnA0',10;'kOnA_PA',1.5;'kOffA0',7;...
             'kOffA_PC',2;'kOnB0',9;'kOnB_PB',4;'kOffB0',10;'kOffB_PA',4;...
             'kOnC0',11;'kOnC_PC',1.5;'kOffC0',9;'kOffC_PB',2;'kTxA',1.5;...
@@ -485,23 +491,33 @@ function benchmarks = run_benchmarks(Model,opts)
 arguments
     Model
     opts.nSims = 1000;
+    opts.runReductions = false;
+    opts.verbose = false;
+    opts.runParallel = false;
 end
 % FSP solutions
 Model.solutionScheme = 'fsp';
+Model = Model.addFSPConstraints(anticorrelatedPairs='all',correlatedPairs='all');
+
 tic
 Model = Model.formPropensitiesGeneral(Model.propensityFilePrefix);
 disp('FSP propensity function formed:')
 benchmarks.writeFSPcodes = toc
+
+Model.fspOptions.verbose = opts.verbose;
 
 tic
 [~,~,Model] = Model.solve;
 disp('FSP initial solve:')
 benchmarks.initialFSPSolve = toc
 
+
 tic
 [fspSoln,~,Model] = Model.solve;
 disp('FSP subsequent solve:')
 benchmarks.subsequentFSPSolve = toc
+
+benchmarks.fspSize = size(Model.Solutions.stateSpace.states,2);
 
 %% SSA Solutions
 Model.solutionScheme = 'ssa';
@@ -516,11 +532,13 @@ tic
 [~,~,Model] = Model.solve;
 benchmarks.(['subsequentSSASolve_',num2str(opts.nSims),'runs_serial']) = toc;
 
-Model.ssaOptions.Nsims = opts.nSims;
-Model.ssaOptions.useParallel = true;
-tic
-[~,~,Model] = Model.solve;
-benchmarks.(['subsequentSSASolve_',num2str(opts.nSims),'runs_parallel']) = toc;
+if opts.runParallel
+    Model.ssaOptions.Nsims = opts.nSims;
+    Model.ssaOptions.useParallel = true;
+    tic
+    [~,~,Model] = Model.solve;
+    benchmarks.(['subsequentSSASolve_',num2str(opts.nSims),'runs_parallel']) = toc;
+end
 
 %% ODE Solver
 Model.solutionScheme = 'ode';
@@ -533,32 +551,34 @@ tic
 benchmarks.subsequentODEsolve = toc
 
 %% Model Reduction FSP
-Model.solutionScheme = 'fsp';
+if runReductions
+    Model.solutionScheme = 'fsp';
 
-Model.tSpan = linspace(min(Model.tSpan),max(Model.tSpan),150);
-[~,~,Model] = Model.solve;
+    Model.tSpan = linspace(min(Model.tSpan),max(Model.tSpan),150);
+    [~,~,Model] = Model.solve;
 
-for redOrder = [20,30,40,50]
-    Model2 = Model;
-    Model2.modelReductionOptions.useModReduction = true;
-    Model2.fspOptions.fspTol = inf;
-    Model2.modelReductionOptions.reductionType = 'POD2';
+    for redOrder = [20,30,40,50]
+        Model2 = Model;
+        Model2.modelReductionOptions.useModReduction = true;
+        Model2.fspOptions.fspTol = inf;
+        Model2.modelReductionOptions.reductionType = 'POD2';
 
-    Model2.modelReductionOptions.reductionOrder = redOrder;
+        Model2.modelReductionOptions.reductionOrder = redOrder;
 
-    tic
-    Model2 = Model2.computeModelReductionTransformMatrices();
-    benchmarks.(['PODModelReductionTime_',num2str(redOrder)]) = toc
+        tic
+        Model2 = Model2.computeModelReductionTransformMatrices();
+        benchmarks.(['PODModelReductionTime_',num2str(redOrder)]) = toc
 
-    tic
-    [fspSoln2] = Model2.solve();
-    benchmarks.(['ReducedModelSolveTime_',num2str(redOrder)]) = toc
+        tic
+        [fspSoln2] = Model2.solve();
+        benchmarks.(['ReducedModelSolveTime_',num2str(redOrder)]) = toc
 
-    dims = 1:fspSoln2.fsp{end}.p.dim;
-    for i = 1:length(dims)
-        PODfinalError(i) = sum(sum(abs((double(fspSoln2.fsp{end}.p.data - fspSoln.fsp{end}.p.data))),setdiff(dims,i)));
+        dims = 1:fspSoln2.fsp{end}.p.dim;
+        for i = 1:length(dims)
+            PODfinalError(i) = sum(sum(abs((double(fspSoln2.fsp{end}.p.data - fspSoln.fsp{end}.p.data))),setdiff(dims,i)));
+        end
+        benchmarks.(['ReducedModelError_',num2str(redOrder)]) = sum(PODfinalError);
     end
-    benchmarks.(['ReducedModelError_',num2str(redOrder)]) = sum(PODfinalError);
 end
 
 end

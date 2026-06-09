@@ -705,6 +705,34 @@ classdef SSIT
             % path(oldPath);   % restore path
         end
         %%
+
+        function obj = addFSPConstraints(obj,opts)
+            arguments
+                obj
+                opts.anticorrelatedPairs = {}
+                opts.correlatedPairs = {}
+            end
+            % Adds several common custom constraints to the FSP model to
+            % help narrow the statespace for pairs of species that are
+            % correlated or anticorrelated
+            if (isstring(opts.anticorrelatedPairs)||ischar(opts.anticorrelatedPairs))&&strcmpi(opts.anticorrelatedPairs,'all')
+                for i = 1:length(obj.species)
+                    for j = i+1:length(obj.species)
+                        obj.customConstraintFuns = [obj.customConstraintFuns;['(',obj.species{i},'-3).^3*(',obj.species{j},'-3).^3']];
+                    end
+                end
+            end
+            if (isstring(opts.correlatedPairs)||ischar(opts.correlatedPairs))&&strcmpi(opts.correlatedPairs,'all')
+                for i = 1:length(obj.species)
+                    for j = i+1:length(obj.species)
+                        obj.customConstraintFuns = [obj.customConstraintFuns;[obj.species{i},'-',obj.species{j}]];
+                        obj.customConstraintFuns = [obj.customConstraintFuns;[obj.species{j},'-',obj.species{i}]];
+                    end
+                end
+            end
+
+        end
+
         function constraints = get.fspConstraints(obj)
             % Makes a list of FSP constraints that can be used by the FSP
             % solver.
