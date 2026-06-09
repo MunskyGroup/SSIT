@@ -1,14 +1,11 @@
 % Benchmark Examples
 clear all
-Models = {'GeneExpression'};
+Models = {'Toggle2'};
 clear benchmarks
 for iM = 1:length(Models)
     [Model,verificationCode] = Generate_Model_from_Benchmark_Library(Models{iM});
     Model.propensityFilePrefix = Models{iM};
-    benchmarks.(Models{iM}) = run_benchmarks(Model);
-    if ~isempty(verificationCode)
-        eval(verificationCode)
-    end
+    benchmarks.(Models{iM}) = run_benchmarks(Model,verbose=true,verificationCode=verificationCode);
 end
 
 function [Model,verificationCode] = Generate_Model_from_Benchmark_Library(Name)
@@ -62,7 +59,7 @@ switch Name
         % Physically valid starting point:
         % one free DNA template, two free LRP molecules, zero PapI.
         Model.initialCondition = [1;0;0;0;2;0];   
-        Model.tSpan = linspace(0,10);
+        Model.tSpan = linspace(0,10,11);
         %Model.fspTol = 1e-5;
 	case 'Goutsias'
 		Model = SSIT;
@@ -89,7 +86,7 @@ switch Name
         Model.stoichiometry = [1,-1];
         Model.propensityFunctions = {'bk';'dk*X'};
         Model.initialCondition = 0;
-        Model.tSpan = linspace(0,10);
+        Model.tSpan = linspace(0,10,11);
         %Model.fspTol = 1e-6;
 	case 'GeneExpression'
 		Model = SSIT;
@@ -99,7 +96,7 @@ switch Name
            					   0,1,0,-1];
         Model.propensityFunctions = {'t1';'t2*M';'t3*M';'t4*P'};
         Model.initialCondition = [0;0];
-        Model.tSpan = linspace(0,100);
+        Model.tSpan = linspace(0,100,11);
         %Model.fspTol = 1e-6;
     case 'MichaelisMenten'
         Model = SSIT('Empty');
@@ -113,7 +110,7 @@ switch Name
         ];   
         Model.propensityFunctions = {'k1*S*E';'k2*ES';'k3*ES'};    
         Model.initialCondition = [100;1000;0;0];  
-        Model.tSpan = linspace(0,70);
+        Model.tSpan = linspace(0,70,11);
         %Model.fspTol = 1e-5;
 	case 'MAPK'
 		Model = SSIT('Empty');
@@ -244,7 +241,7 @@ switch Name
             Model = Model.addReaction(newReaction);
         
         end
-        Model.tSpan = linspace(0,10);
+        Model.tSpan = linspace(0,10,11);
         %Model.fspTol = 1e-1;
 	case 'EnzymaticFutile'
         Model = SSIT('Empty');
@@ -258,6 +255,8 @@ switch Name
             'Efminus'   % free reverse enzyme
             'Ebminus'   % bound reverse enzyme complex
         };    
+        Model.initialCondition = [30;2;0;90;2;0];
+        
         Model.stoichiometry = [
             -1,  1,  0,  0,  0,  1
             -1,  1,  1,  0,  0,  0
@@ -266,6 +265,13 @@ switch Name
              0,  0,  0, -1,  1,  1
              0,  0,  0,  1, -1, -1
         ];  
+
+        [~,J] = sort(Model.initialCondition);
+        Model.species = Model.species(J);
+        Model.initialCondition = Model.initialCondition(J);
+        Model.stoichiometry = Model.stoichiometry(J,:);
+
+
         Model.propensityFunctions = {
             'kplus1*X*Efplus'       % X + Efplus -> Ebplus
             'kminus1*Ebplus'        % Ebplus -> X + Efplus
@@ -275,8 +281,7 @@ switch Name
             'kminus2*Ebminus'       % Ebminus -> X + Efminus 
         };  
 
-        Model.initialCondition = [30;2;0;90;2;0];
-        Model.tSpan = linspace(0,1);
+        Model.tSpan = linspace(0,1,11);
         %Model.fspTol = 1e-6;
     case 'Toggle2'
         Model = SSIT('Empty');
@@ -434,7 +439,7 @@ switch Name
             Model = Model.addReaction(newReaction);       
         end
         Model.initialCondition = [1;1;1;0;0;0;0;0;0;0;0];
-        Model.tSpan = linspace(0,30);
+        Model.tSpan = linspace(0,30,11);
         %Model.fspTol = 1e-6;
 	case 'p53'
 		Model = SSIT;
@@ -453,7 +458,7 @@ switch Name
         	'km+k2*(p53^(1.8)/(kD^(1.8)+p53^(1.8)))';'k0*RNAnuc';'drc*RNAcyt';'kT*RNAcyt';...
         	'ki*MDM2cyt';'dmn*MDM2nuc*MDM2nuc';'k3*MDM2nuc*ARF';'ka';'da*ARF'};
         Model.initialCondition = [100;0;0;0;100;100;0];
-        Model.tSpan = linspace(0,1000);
+        Model.tSpan = linspace(0,1000,11);
         %Model.fspTol = 1e-4;
     case 'TripleRepressor'
         Model = SSIT('Empty');
@@ -482,7 +487,7 @@ switch Name
             'kDegMA*MA';'kDegMB*MB';'kDegMC*MC';'kTlA*MA';'kTlB*MB';...
             'kTlC*MC';'kDegPA*PA';'kDegPB*PB';'kDegPC*PC'};  
         Model.initialCondition = [0;0;0;0;0;0;0;0;0];
-        Model.tSpan = linspace(0,200);
+        Model.tSpan = linspace(0,200,11);
         %Model.fspTol = 1e-6;
 	end
 end
@@ -494,6 +499,7 @@ arguments
     opts.runReductions = false;
     opts.verbose = false;
     opts.runParallel = false;
+    opts.verificationCode = '';
 end
 % FSP solutions
 Model.solutionScheme = 'fsp';
@@ -506,6 +512,7 @@ benchmarks.writeFSPcodes = toc
 
 Model.fspOptions.verbose = opts.verbose;
 
+
 tic
 [~,~,Model] = Model.solve;
 disp('FSP initial solve:')
@@ -516,6 +523,10 @@ tic
 [fspSoln,~,Model] = Model.solve;
 disp('FSP subsequent solve:')
 benchmarks.subsequentFSPSolve = toc
+
+if ~isempty(opts.verificationCode)
+    eval(opts.verificationCode)
+end
 
 benchmarks.fspSize = size(Model.Solutions.stateSpace.states,2);
 
