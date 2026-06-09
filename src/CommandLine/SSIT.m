@@ -718,7 +718,7 @@ classdef SSIT
             if (isstring(opts.anticorrelatedPairs)||ischar(opts.anticorrelatedPairs))&&strcmpi(opts.anticorrelatedPairs,'all')
                 for i = 1:length(obj.species)
                     for j = i+1:length(obj.species)
-                        obj.customConstraintFuns = [obj.customConstraintFuns;['(',obj.species{i},'-3).^3*(',obj.species{j},'-3).^3']];
+                        obj.customConstraintFuns = [obj.customConstraintFuns;['(',obj.species{i},'-3).^2.*(',obj.species{j},'-3).^2']];
                     end
                 end
             end
