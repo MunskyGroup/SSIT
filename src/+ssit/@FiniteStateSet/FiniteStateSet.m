@@ -43,7 +43,12 @@ classdef FiniteStateSet
     end
     
     methods
-        function obj = FiniteStateSet(states, stoichMatrix)
+        function obj = FiniteStateSet(states, stoichMatrix, specialEvents)
+            arguments
+                states
+                stoichMatrix
+                specialEvents = []
+            end
             % Construct an instance of class FiniteStateSet.
             %
             % Parameters
@@ -54,6 +59,9 @@ classdef FiniteStateSet
             %
             % stoichMatrix: 2-D array
             %   stoichiometry matrix.
+            %
+            % specialEvents: structure containing options for special
+            %   events like geometric bursts or division.
             %
             % Returns
             % -------
@@ -69,13 +77,13 @@ classdef FiniteStateSet
             % >>> stoichMatrix = [-1 1 0;1 -1 0;0 0 1;0 0 -1]';
             % >>> stateSpace = ssit.FiniteStateSet(states, stoichMatrix);         
             
-            if size(stoichMatrix, 1) ~= size(states, 1)
+            if ~isempty(stoichMatrix)&&(size(stoichMatrix, 1) ~= size(states, 1))
                 error('Stoichiometry matrix and state dimensions mismatch.');
             end
             
             obj.states = states;
             obj.stoichMatrix = stoichMatrix;
-            obj.reachableIndices = zeros(size(states,2), size(stoichMatrix, 2));
+            obj.reachableIndices = zeros(size(states,2), size(stoichMatrix, 2)+length(specialEvents));
             key_set = state2key(uint64(states));
 
             if max([key_set{:}])>1e19
@@ -91,7 +99,13 @@ classdef FiniteStateSet
             end
         end
         
-        function obj = expand(obj, fConstraints, bConstraints)
+        function obj = expand(obj, fConstraints, bConstraints, specialEvents)
+            arguments
+                obj
+                fConstraints
+                bConstraints
+                specialEvents = [];
+            end
             % Expand to all reachable states that satisfy the constraints given by the system
             %       ``f(x) <= b (1)``
             %
@@ -107,6 +121,9 @@ classdef FiniteStateSet
             %
             %   bConstraints: column vector
             %       the right hand side of the inequality (1).
+            %
+            %   specialEvents: (optional) structure containing parameters and
+            %       arguments for special events.
             %
             % Returns
             % -------
@@ -125,10 +142,12 @@ classdef FiniteStateSet
             %
             
             nConstraints = numel(bConstraints);
-            nReactions = size(obj.stoichMatrix, 2);
+            nRegularRxns = size(obj.stoichMatrix, 2);
+            nReactions = nRegularRxns + length(specialEvents);
             obj.numConstraints = nConstraints;
             obj.reachableIndices(obj.reachableIndices<=0) = 0;
             obj.outboundTransitions = zeros(size(obj.states, 2), nReactions*nConstraints, 'uint8');
+            nSpecies = size(obj.states,1);
             
             % We will narrow the search to states reachable from the subset states(:, exploration_range)
             activeNodes = 1:size(obj.states,2);
@@ -145,14 +164,31 @@ classdef FiniteStateSet
                 
                 % search reachable states from current states
                 for k = 1:nReactions
-                    
                     % We only compute candidates from states that cannot
                     % reach existing states through the current reaction
                     % channel
                     idxToSearch = activeNodes(obj.reachableIndices(activeNodes, k) == 0);
 
-                    candidates = obj.states(:,idxToSearch) + repmat(obj.stoichMatrix(:, k), 1, length(idxToSearch));
-
+                    if k<=nRegularRxns
+                        candidates = obj.states(:,idxToSearch) + repmat(obj.stoichMatrix(:, k), 1, length(idxToSearch));
+                    else
+                        if ~isfield(specialEvents(k-nRegularRxns),'type')||strcmp(specialEvents(k-nRegularRxns).type,'decay')
+                            modifier = -1;
+                        elseif strcmp(specialEvents(k-nRegularRxns).type,'production')
+                            modifier = 1;
+                        else
+                            error('Special Event Type not recognized -- must be "production" or "decay"')
+                        end                         
+                        candidates = zeros(nSpecies,length(idxToSearch)*nSpecies);
+                        for iSp = 1:nSpecies
+                            v = zeros(nSpecies,1);
+                            v(iSp) = modifier;
+                            candidates(:,(iSp-1)*length(idxToSearch)+1:iSp*length(idxToSearch)) = ...
+                                obj.states(:,idxToSearch) + repmat(v, 1, length(idxToSearch));
+                        end
+                        idxToSearch = repmat(idxToSearch,1,nSpecies);
+                    end
+                        
                     fVal = fConstraints(candidates);
                     
                     % compute the keys associated with the candidates
@@ -171,13 +207,16 @@ classdef FiniteStateSet
 
                     newStatesCheck = ~stateFound;
                     i_accept_new = find((constraintsCheck == 1) & (newStatesCheck));
-                   
+
+                    % Remove duplicates if any.
+                    [~,ia] = unique(candidates(:,i_accept_new)','stable','rows');
+                    i_accept_new = i_accept_new(ia);
+
                     if (~isempty(i_accept_new))                                                
                          obj.reachableIndices(idxToSearch(i_accept_new), k) = size(obj.states, 2) + (1:length(i_accept_new));
                          
                          for gh = length(i_accept_new):-1:1
                              obj.state2indMap(keySet(i_accept_new(gh)))=(size(obj.states, 2)  + gh);
-                             % obj.state2indMap(keySet{i_accept_new(gh)})=(size(obj.states, 2)  + gh);
                          end
 
                         obj.states = [obj.states candidates(:,i_accept_new)];
@@ -185,9 +224,7 @@ classdef FiniteStateSet
                                                  zeros(length(i_accept_new), nReactions) ];
                         obj.outboundTransitions = [obj.outboundTransitions; 
                                                    zeros(length(i_accept_new), nConstraints*nReactions)];
-                    end
-
-                                        
+                    end                                     
                 end
                 % if size(obj.states,2)~=obj.state2indMap.Count
                 if size(obj.states,2)~=length(obj.state2indMap.keys)

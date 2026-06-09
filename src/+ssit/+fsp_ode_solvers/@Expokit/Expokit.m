@@ -21,7 +21,8 @@ classdef Expokit
         obj.version = version;
         end
         
-        function [tExport, solutionsNow, fspStopStatus] = solve(obj, tStart, tOut, initSolution, rhs, jac, fspErrorCondition)
+        function [tExport, solutionsNow, fspStopStatus] = solve(obj, tStart, ...
+                tOut, initSolution, rhs, jac, fspErrorCondition, fixedEvents)
         %SOLVE Advance the solution of the FSP-truncated CME up until
         %either the final time point or when the FSP error is exceeded for
         %the current set of states.
@@ -86,13 +87,13 @@ classdef Expokit
                 SINKS = [length(initSolution)-nSinks+1:length(initSolution)-fspErrorCondition.nEscapeSinks];
                 fspSINKS = [length(initSolution)-nSinks+1 : length(initSolution)];
                 [~, ~, ~, tExport, solutionsNow, ~, tryAgain, te, ye] = ssit.fsp_ode_solvers.mexpv_modified_2(tOut(end), jac, initSolution, expvTol, m,...
-                    [], tOut, fspTol, SINKS, tStart, fspErrorCondition);
+                    [], tOut, fspTol, SINKS, tStart, fspErrorCondition, true, fixedEvents);
                 if tryAgain==0;break;end
                 if m>300
                 SINKS = [length(initSolution)-nSinks+1:length(initSolution)-fspErrorCondition.nEscapeSinks];
                     warning('Expokit expansion truncated at 300');
                     [~, ~, ~, tExport, solutionsNow, ~, tryAgain, te, ye] = ssit.fsp_ode_solvers.mexpv_modified_2(tOut(end), jac, initSolution, expvTol, m,...
-                        [], tOut, fspTol, SINKS, tStart, fspErrorCondition);
+                        [], tOut, fspTol, SINKS, tStart, fspErrorCondition, true, fixedEvents);
                 end
                 m=m+5;
             end
@@ -101,13 +102,13 @@ classdef Expokit
                 SINKS = [];
                 [~, ~, ~, tExport, solutionsNow, ~, tryAgain, te, ye] = ...
                     ssit.fsp_ode_solvers.expv_modified(tOut(end), jac, initSolution, 1e-16, m,...
-                    [], tOut,fspTol,SINKS,tStart,fspErrorCondition);
+                    [], tOut,fspTol,SINKS,tStart,fspErrorCondition, false, fixedEvents);
                 if tryAgain==0;break;end
                 if m>300
                     warning('Expokit expansion truncated at 300');
                     [~, ~, ~, tExport, solutionsNow, ~, tryAgain, te, ye] = ...
                         expv_modified(tOut(end), jac, initSolution, expvTol, m,...
-                        [], tOut,fspTol,[],tStart,fspErrorCondition);
+                        [], tOut,fspTol,[],tStart,fspErrorCondition, false, fixedEvents);
                 end
                 m=m+5;
             end

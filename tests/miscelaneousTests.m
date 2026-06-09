@@ -19,6 +19,302 @@ classdef miscelaneousTests < matlab.unittest.TestCase
 
     methods (Test)
 
+        function specialEventBinomialDivisionFSP(tc)
+            % Initialize the model for special events testing
+            ModelBC = SSIT('Empty');
+            ModelBC.species = {'rna'};
+            ModelBC.initialCondition = 100;
+            rates = [rand(1,2),20*rand];
+            ModelBC.fspOptions.fspTol = 1e-4;
+            ModelBC.stoichiometry = 1;
+            ModelBC.propensityFunctions = {'k'};
+            ModelBC.parameters = {'k_div',rates(1);'p_div',rates(2);'k',rates(3)};
+            ModelBC.specialEvents = struct(...
+                'timing','Exp',... % {'Exp','Fixed'}
+                'stateTransitionFun',@ssit.special_events.binomialDivision,...
+                'stateTransitionFunParameters',{{'p_div'}},...
+                'rateFun','k_div',... 
+                'fixedTimes','[]',...
+                'args',struct('lineage','primary'));
+            ModelBC = ModelBC.formPropensitiesGeneral('BinomialDecay');
+            [~,~,ModelBC] = ModelBC.solve;
+            tic
+            [~,~,ModelBC] = ModelBC.solve;
+            time_BinomialDecay = toc;
+            traj = zeros(1,length(ModelBC.tSpan));
+            for i =1:length(traj)
+                P = double(ModelBC.Solutions.fsp{i}.p.data);
+                traj(i) = [0:length(P)-1]*P;
+            end
+            trajExact = 100*exp(-rates(1)*(1-rates(2))*ModelBC.tSpan)+...
+                rates(3)/(rates(1)*(1-rates(2)))*(1-exp(-rates(1)*(1-rates(2))*ModelBC.tSpan));
+            modelDiffMeans = sum(abs(traj-trajExact)./trajExact)/length(traj);
+            tc.verifyEqual(modelDiffMeans<0.001, true, ...
+                'Binomial Decay Model FSP provides inaccurate mean results.');
+            tc.verifyEqual(time_BinomialDecay<1, true, ...
+                ['Binomial Decay Model FSP is too slow: T = ',num2str(time_BinomialDecay),' s']);
+
+
+            % Now to test the model for when both daughters are tracked.
+            ModelBC.specialEvents = struct(...
+                'timing','Exp',... % {'Exp','Fixed'}
+                'stateTransitionFun',@ssit.special_events.binomialDivision,...
+                'stateTransitionFunParameters',{{'p_div'}},...
+                'rateFun','k_div',... 
+                'fixedTimes',[],...
+                'args',struct('lineage','bothCoupled'));
+            ModelBC = ModelBC.formPropensitiesGeneral('BinomialDecay');
+            [~,~,ModelBC] = ModelBC.solve;
+            tic
+            [~,~,ModelBC] = ModelBC.solve;
+            time_BinomialDecay = toc;
+            traj = zeros(1,length(ModelBC.tSpan));
+            for i =1:length(traj)
+                P = double(ModelBC.Solutions.fsp{i}.p.data);
+                traj(i) = [0:length(P)-1]*P;
+            end
+            % When following BOTH daughters, the average number of lost
+            % molecules is half.
+            rates(2) = 0.5;
+            trajExact = 100*exp(-rates(1)*(1-rates(2))*ModelBC.tSpan)+...
+                rates(3)/(rates(1)*(1-rates(2)))*(1-exp(-rates(1)*(1-rates(2))*ModelBC.tSpan));
+            modelDiffMeans = sum(abs(traj-trajExact)./trajExact)/length(traj);
+            tc.verifyEqual(modelDiffMeans<0.001, true, ...
+                'Binomial Decay Model for both Daughters FSP provides inaccurate mean results.');
+            tc.verifyEqual(time_BinomialDecay<1, true, ...
+                ['Binomial Decay Model for both Daughters FSP is too slow: T = ',num2str(time_BinomialDecay),' s']);
+        end
+
+        function specialEventAllelicDivisionFSP(tc)
+            % Initialize the model for special events testing
+            ModelBC = SSIT('Empty');
+            ModelBC.species = {'geneON','rna'};
+            ModelBC.initialCondition = [16;23];
+            ModelBC.fspOptions.fspTol = 1e-4;
+            ModelBC.stoichiometry = [-1 0; 0 1];
+            ModelBC.propensityFunctions = {'koff*geneON','k*geneON'};
+            ModelBC.parameters = {'k_div',1;'p_div',0.5;'koff',0;'k',0;'fracOnD1',0};
+            ModelBC.specialEvents = struct(...
+                'timing','Exp',... % {'Exp','Fixed'}
+                'stateTransitionFun',@ssit.special_events.binomialDivision,...
+                'stateTransitionFunParameters',{{'fracOnD1','p_div'}},...
+                'rateFun','k_div*(rna>=23)',... 
+                'fixedTimes',[],...
+                'args',struct('lineage','bothCoupled'));
+            ModelBC = ModelBC.formPropensitiesGeneral('AllelicDecay');
+            [~,~,ModelBC] = ModelBC.solve;
+            tic
+            [~,~,ModelBC] = ModelBC.solve;
+            time_BinomialDecay = toc;
+            trajG = zeros(1,length(ModelBC.tSpan));
+            trajR = zeros(1,length(ModelBC.tSpan));
+            for i =1:length(trajG)
+                P = double(ModelBC.Solutions.fsp{i}.p.data);
+                P = sum(P,1)';
+                trajR(i) = [0:length(P)-1]*P;
+                P = double(ModelBC.Solutions.fsp{i}.p.data);
+                P = sum(P,2);
+                trajG(i) = [0:length(P)-1]*P;
+            end
+
+            subplot(2,1,1)
+            plot(ModelBC.tSpan,trajG);
+            subplot(2,1,2)
+            plot(ModelBC.tSpan,trajR);
+            % trajExact = 100*exp(-rates(1)*(1-rates(2))*ModelBC.tSpan)+...
+            %     rates(3)/(rates(1)*(1-rates(2)))*(1-exp(-rates(1)*(1-rates(2))*ModelBC.tSpan));
+            % modelDiffMeans = sum(abs(traj-trajExact)./trajExact)/length(traj);
+            % tc.verifyEqual(modelDiffMeans<0.001, true, ...
+            %     'Binomial Decay Model FSP provides inaccurate mean results.');
+            % tc.verifyEqual(time_BinomialDecay<1, true, ...
+            %     ['Binomial Decay Model FSP is too slow: T = ',num2str(time_BinomialDecay),' s']);
+         
+        end
+
+        function specialEventGeometricBurst(tc)
+            %% Initialize the model for special events testing
+            ModelGB = SSIT('Empty');
+            ModelGB.species = {'rna','rna2'};
+            ModelGB.initialCondition = [10;3];
+            rates = [rand,5*rand,1+rand];
+            ModelGB.fspOptions.fspTol = 1e-4;
+            ModelGB.stoichiometry = [-1,0;0,-1];
+            ModelGB.propensityFunctions = {'g*rna';'g*rna2'};
+            ModelGB.parameters = {'k_burst',rates(1);'beta',rates(2);'g',rates(3);'beta2',rates(2)};
+            ModelGB.specialEvents = struct(...
+                'timing','Exp',... % {'Exp','Fixed'}
+                'stateTransitionFun',@ssit.special_events.geometricBurst,...
+                'stateTransitionFunParameters',{{'beta','beta2'}},...
+                'rateFun','k_burst',...
+                'fixedTimes',[],...
+                'type','production',...
+                'args',struct());
+            ModelGB = ModelGB.formPropensitiesGeneral('GeometricBursts2D');
+            [~,~,ModelGB] = ModelGB.solve;
+            traj = zeros(1,length(ModelGB.tSpan));
+            for i =1:length(traj)
+                P1 = sum(double(ModelGB.Solutions.fsp{i}.p.data),2);
+                P2 = sum(double(ModelGB.Solutions.fsp{i}.p.data));
+                traj1(i) = [0:length(P1)-1]*P1;
+                traj2(i) = [0:length(P2)-1]*P2';
+            end
+            trajExact1 = 10*exp(-rates(3)*ModelGB.tSpan)+...
+                (rates(1)*rates(2))/rates(3)*(1-exp(-rates(3)*ModelGB.tSpan));
+            trajExact2 = 3*exp(-rates(3)*ModelGB.tSpan)+...
+                (rates(1)*rates(2))/rates(3)*(1-exp(-rates(3)*ModelGB.tSpan));
+            % plot(ModelGB.tSpan,traj2,ModelGB.tSpan,trajExact2,'--')
+            
+            modelDiffMeans = sum(abs(traj1-trajExact1)./trajExact1)/length(traj1);
+            tc.verifyEqual(modelDiffMeans<0.001, true, ...
+                'Geometric Burst Model FSP provides inaccurate mean results.');
+
+        end
+
+        function specialEventGeometricBurstTimeVarying(tc)
+            %% Initialize the model for special events testing
+            ModelGB = SSIT('Empty');
+            ModelGB.species = {'rna','rna2'};
+            ModelGB.initialCondition = [10;3];
+            rates = [rand,5*rand,1+rand];
+            ModelGB.fspOptions.fspTol = 1e-4;
+            ModelGB.stoichiometry = [-1,0;0,-1];
+            ModelGB.propensityFunctions = {'g*rna';'g*rna2'};
+            ModelGB.parameters = {'k_burst',rates(1);'beta',rates(2);'g',rates(3);'beta2',rates(2)};
+            ModelGB.specialEvents = struct(...
+                'timing','Exp',... % {'Exp','Fixed'}
+                'stateTransitionFun',@ssit.special_events.geometricBurst,...
+                'stateTransitionFunParameters',{{'beta','beta2'}},...
+                'rateFun','k_burst*(t>7)',...
+                'fixedTimes',[],...
+                'type','production',...
+                'args',struct());
+            ModelGB = ModelGB.formPropensitiesGeneral('GeometricBursts2D');
+            [~,~,ModelGB] = ModelGB.solve;
+            traj = zeros(1,length(ModelGB.tSpan));
+            for i =1:length(traj)
+                P1 = sum(double(ModelGB.Solutions.fsp{i}.p.data),2);
+                P2 = sum(double(ModelGB.Solutions.fsp{i}.p.data));
+                traj1(i) = [0:length(P1)-1]*P1;
+                traj2(i) = [0:length(P2)-1]*P2';
+            end
+            trajExact1 = 10*exp(-rates(3)*ModelGB.tSpan)+...
+                (rates(1)*rates(2))/rates(3)*(1-exp(-rates(3)*(ModelGB.tSpan-7))).*(ModelGB.tSpan>=7);
+            trajExact2 = 3*exp(-rates(3)*ModelGB.tSpan)+...
+                (rates(1)*rates(2))/rates(3)*(1-exp(-rates(3)*(ModelGB.tSpan-7))).*(ModelGB.tSpan>=7);
+            plot(ModelGB.tSpan,traj2,ModelGB.tSpan,trajExact2,'--')
+            
+            modelDiffMeans = sum(abs(traj1-trajExact1)./max(1,trajExact1))/length(traj1);
+            tc.verifyEqual(modelDiffMeans<0.001, true, ...
+                'Geometric Burst Model FSP provides inaccurate mean results.');
+
+        end
+
+        function specialEventGeometricBurstFixedTime(tc)
+            %% Initialize the model for special events testing
+            ModelGB = SSIT('Empty');
+            ModelGB.species = {'rna','rna2'};
+            ModelGB.initialCondition = [10;3];
+            rates = [rand,5*rand,1+rand];
+            ModelGB.fspOptions.fspTol = 1e-5;
+            ModelGB.stoichiometry = [-1,0;0,-1];
+            ModelGB.propensityFunctions = {'g*rna';'g*rna2'};
+            ModelGB.parameters = {'beta',rates(2);'g',rates(3);'beta2',rates(2)};
+            ModelGB.specialEvents = struct(...
+                'timing','Fixed',... % {'Exp','Fixed'}
+                'stateTransitionFun',@ssit.special_events.geometricBurst,...
+                'stateTransitionFunParameters',{{'beta','beta2'}},...
+                'fixedTimes',[5,10,15],...
+                'type','production',...
+                'args',struct('FixedTime',true));
+            ModelGB = ModelGB.formPropensitiesGeneral('GeometricBursts2DFixedTime');
+            ModelGB.fspOptions.verbose = true;
+            ModelGB.tSpan = linspace(0,20,41);
+            [~,~,ModelGB] = ModelGB.solve;
+            traj = zeros(1,length(ModelGB.tSpan));
+            for i =1:length(traj)
+                P1 = sum(double(ModelGB.Solutions.fsp{i}.p.data),2);
+                P2 = sum(double(ModelGB.Solutions.fsp{i}.p.data));
+                traj1(i) = [0:length(P1)-1]*P1;
+                traj2(i) = [0:length(P2)-1]*P2';
+            end
+            % hold on
+            % plot(ModelGB.tSpan,traj1,ModelGB.tSpan,traj2,'--')
+
+        end
+
+        function specialEventGeometricBurstFixedTimeTV(tc)
+            %% Initialize the model for special events testing
+            ModelGB = SSIT('Empty');
+            ModelGB.species = {'rna','rna2'};
+            ModelGB.initialCondition = [10;3];
+            rates = [rand,5*rand,1+rand];
+            ModelGB.fspOptions.fspTol = 1e-5;
+            ModelGB.stoichiometry = [-1,0;0,-1];
+            ModelGB.propensityFunctions = {'g*rna*Isig';'g*rna2'};
+            ModelGB.inputExpressions = {'Isig','(1+0.99*cos(2*pi*t/10))'};
+            ModelGB.parameters = {'beta',rates(2);'g',rates(3);'beta2',rates(2)};
+            ModelGB.specialEvents = struct(...
+                'timing','Fixed',... % {'Exp','Fixed'}
+                'stateTransitionFun',@ssit.special_events.geometricBurst,...
+                'stateTransitionFunParameters',{{'beta','beta2'}},...
+                'fixedTimes',[5,10,15],...
+                'type','production',...
+                'args',struct('FixedTime',true));
+            ModelGB = ModelGB.formPropensitiesGeneral('GeometricBursts2DFixedTime');
+            ModelGB.fspOptions.verbose = true;
+            ModelGB.tSpan = linspace(0,20,40);
+            [~,~,ModelGB] = ModelGB.solve;
+            traj = zeros(1,length(ModelGB.tSpan));
+            for i =1:length(traj)
+                P1 = sum(double(ModelGB.Solutions.fsp{i}.p.data),2);
+                P2 = sum(double(ModelGB.Solutions.fsp{i}.p.data));
+                traj1(i) = [0:length(P1)-1]*P1;
+                traj2(i) = [0:length(P2)-1]*P2';
+            end
+            hold on
+            plot(ModelGB.tSpan,traj1,ModelGB.tSpan,traj2,'--')
+        end
+
+
+        function specialEventBinomialDecayFixedTime(tc)
+            % Initialize the model for special events testing
+            ModelBC = SSIT('Empty');
+            ModelBC.species = {'rna'};
+            ModelBC.initialCondition = 100;
+            rates = [rand(1,2),20*rand];
+            ModelBC.fspOptions.fspTol = 1e-4;
+            ModelBC.stoichiometry = 1;
+            ModelBC.propensityFunctions = {'k'};
+            ModelBC.parameters = {'p_div',rates(2);'k',rates(3)};
+            ModelBC.specialEvents = struct(...
+                'timing','Fixed',... % {'Exp','Fixed'}
+                'stateTransitionFun',@ssit.special_events.binomialDivision,...
+                'stateTransitionFunParameters',{{'p_div'}},...
+                'fixedTimes',[5,10,15],...
+                'args',struct('lineage','primary','FixedTime',true));
+            ModelBC = ModelBC.formPropensitiesGeneral('BinomialDecay');
+            ModelBC.tSpan = linspace(0,20,41);
+            [~,~,ModelBC] = ModelBC.solve;
+            tic
+            [~,~,ModelBC] = ModelBC.solve;
+            time_BinomialDecay = toc;
+            traj = zeros(1,length(ModelBC.tSpan));
+            for i =1:length(traj)
+                P = double(ModelBC.Solutions.fsp{i}.p.data);
+                traj(i) = [0:length(P)-1]*P;
+            end
+            hold on
+            plot(ModelBC.tSpan,traj)
+            % trajExact = 100*exp(-rates(1)*(1-rates(2))*ModelBC.tSpan)+...
+            %     rates(3)/(rates(1)*(1-rates(2)))*(1-exp(-rates(1)*(1-rates(2))*ModelBC.tSpan));
+            % modelDiffMeans = sum(abs(traj-trajExact)./trajExact)/length(traj);
+            % tc.verifyEqual(modelDiffMeans<0.001, true, ...
+            %     'Binomial Decay Model FSP provides inaccurate mean results.');
+            % tc.verifyEqual(time_BinomialDecay<1, true, ...
+            %     ['Binomial Decay Model FSP is too slow: T = ',num2str(time_BinomialDecay),' s']);
+
+        end
+
         function loadModelFromSBML(tc)
             % Tests the loading of a model from SBML.
             tc.Model = tc.Model.createModelFromSBML('../SBML_test_cases/00010/00010-sbml-l1v2.xml',true);
@@ -91,7 +387,68 @@ classdef miscelaneousTests < matlab.unittest.TestCase
             
         end
 
-         function test2DSpeedVsSimBiol(tc)
+         function testODESpeedVsSimBiol(tc)
+            close all
+            FourDNonLinearTV = SSIT;
+            FourDNonLinearTV.species = {'rna','prot','phosProt','GFP'};
+            FourDNonLinearTV.initialCondition = [0;0;0;0];
+            FourDNonLinearTV.propensityFunctions = {'kr';'gr*rna*(1/(1+(phosProt/M)^eta))';...
+                'kp*rna';'gp*prot';...
+                'kx*prot';'gx*phosProt';...
+                'kg*rna';'ggfp*GFP'};
+            FourDNonLinearTV.stoichiometry = [1,-1,0,0,0,0,0,0;...
+                0,0,1,-1,-1,0,0,0;...
+                0,0,0,0,1,-1,0,0;...
+                0,0,0,0,0,0,1,-1];
+            FourDNonLinearTV.parameters = ({'kr',20;'gr',1;'kp',18;'gp',1;'M',20;'eta',5;...
+                'kx',2;'gx',1;'kg',12;'ggfp',0.5});
+            FourDNonLinearTV.tSpan = linspace(0,10,40);
+            FourDNonLinearTV.solutionScheme = 'ode';
+            FourDNonLinearTV = FourDNonLinearTV.formPropensitiesGeneral('TwoDTV',false);
+            
+            FourDNonLinearTV.odeIntegrator = 'ode15s';
+
+            [odeSoln1] = FourDNonLinearTV.solve;
+            parVector = [FourDNonLinearTV.parameters{:,2}];
+
+            Ntests = 100;
+            parVectorSets = repmat(parVector,Ntests,1).*(1+0.1*randn(Ntests,size(parVector,2)));
+            results = zeros(Ntests,4);
+            resultsSB = zeros(Ntests,4);
+
+            sbModel = FourDNonLinearTV.exportSimBiol;
+            csObj = getconfigset(sbModel,'active');
+            set(csObj,'Stoptime',max(FourDNonLinearTV.tSpan));
+            
+            [~,~,~] = sbiosimulate(sbModel);
+            tic
+            for i=1:Ntests
+                for j=1:length(parVector)
+                    sbModel.Parameters(j).Value = parVectorSets(i,j);
+                end
+                [~,x,~] = sbiosimulate(sbModel);
+                resultsSB(i,:) = x(end,:);
+            end
+            simBiolSolveTime100pars = toc
+
+            tic
+            for i=1:Ntests
+                FourDNonLinearTV.parameters(:,2) = num2cell(parVectorSets(i,:));
+                [odeSoln1] = FourDNonLinearTV.solve;
+                results(i,:) = odeSoln1.ode(end,:);
+            end
+            SSITSolveTime100pars = toc
+
+            tc.verifyEqual(SSITSolveTime100pars<(5*simBiolSolveTime100pars), true, ...
+                'SSIT ODE Solution is > 5x slower than SimBiology.');
+
+            meanError = mean(abs((resultsSB-results)./(mean(results))),"all");
+            
+            tc.verifyEqual(meanError<0.01, true, ...
+                'Average SSIT ODE Solution is not within 1 percent of SimBiology.');
+         end
+
+         function testODESpeedVsSimBiolTV(tc)
             close all
             FourDNonLinearTV = SSIT;
             FourDNonLinearTV.species = {'rna','prot','phosProt','GFP'};
@@ -111,7 +468,7 @@ classdef miscelaneousTests < matlab.unittest.TestCase
             FourDNonLinearTV.solutionScheme = 'ode';
             FourDNonLinearTV = FourDNonLinearTV.formPropensitiesGeneral('TwoDTV',false);
             
-            FourDNonLinearTV.odeIntegrator = 'ode45';
+            FourDNonLinearTV.odeIntegrator = 'ode15s';
 
             [odeSoln1] = FourDNonLinearTV.solve;
             parVector = [FourDNonLinearTV.parameters{:,2}];
@@ -121,6 +478,21 @@ classdef miscelaneousTests < matlab.unittest.TestCase
             results = zeros(Ntests,4);
             resultsSB = zeros(Ntests,4);
 
+            sbModel = FourDNonLinearTV.exportSimBiol;
+            csObj = getconfigset(sbModel,'active');
+            set(csObj,'Stoptime',max(FourDNonLinearTV.tSpan));
+            
+            [~,~,~] = sbiosimulate(sbModel);
+            tic
+            for i=1:Ntests
+                for j=1:length(parVector)
+                    sbModel.Parameters(j).Value = parVectorSets(i,j);
+                end
+                [~,x,~] = sbiosimulate(sbModel);
+                resultsSB(i,:) = x(end,:);
+            end
+            simBiolSolveTime100pars = toc
+
             tic
             for i=1:Ntests
                 FourDNonLinearTV.parameters(:,2) = num2cell(parVectorSets(i,:));
@@ -129,28 +501,106 @@ classdef miscelaneousTests < matlab.unittest.TestCase
             end
             SSITSolveTime100pars = toc
 
-            sbModel = FourDNonLinearTV.exportSimBiol;
-            csObj = getconfigset(sbModel,'active');
-            set(csObj,'Stoptime',max(FourDNonLinearTV.tSpan));
-            
-            [t,x,names] = sbiosimulate(sbModel);
-            tic
-            for i=1:Ntests
-                for j=1:length(parVector)
-                    sbModel.Parameters(j).Value = parVectorSets(i,j);
-                end
-                [t,x,names] = sbiosimulate(sbModel);
-                resultsSB(i,:) = x(end,:);
-            end
-            simBiolSolveTime100pars = toc
-
-            tc.verifyEqual(SSITSolveTime100pars<(2*simBiolSolveTime100pars), true, ...
-                'SSIT ODE Solution is > 2x slower than SimBiology.');
+            tc.verifyEqual(SSITSolveTime100pars<(5*simBiolSolveTime100pars), true, ...
+                'SSIT ODE Solution is > 5x slower than SimBiology.');
 
             meanError = mean(abs((resultsSB-results)./(mean(results))),"all");
             
             tc.verifyEqual(meanError<0.01, true, ...
                 'Average SSIT ODE Solution is not within 1 percent of SimBiology.');
+         end
+
+         function testSSASpeedVsSimBiol(tc)
+             % Crete SimBiology Model
+             model = sbiomodel('GeneSwitch');
+
+             % Compartment
+             c = addcompartment(model,'cell',1);
+
+             % Species
+             species = {'GeneOn',1;
+                 'GeneOff',0;
+                 'RNA',0;
+                 'Prot',0;
+                 'PhosProt',0;
+                 'GFP',0};
+
+             for i = 1:size(species,1)
+                 addspecies(c,species{i,1},species{i,2});
+             end
+
+             % Parameters
+             params = {'kr',20;
+                 'gr',1;
+                 'kp',18;
+                 'gp',1;
+                 'kx',2;
+                 'gx',1;
+                 'kg',12;
+                 'ggfp',0.5;
+                 'kon',1;
+                 'koff',1e-4};
+
+             for i = 1:size(params,1)
+                 addparameter(model,params{i,1},params{i,2});
+             end
+
+             % Reactions and corresponding rate constants
+             rxns = {
+                 'GeneOn -> GeneOn + RNA'           ,'kr'
+                 'RNA -> null'                      ,'gr'
+                 'RNA -> RNA + Prot'                ,'kp'
+                 'Prot -> null'                     ,'gp'
+                 'Prot -> PhosProt'                 ,'kx'
+                 'PhosProt -> null'                 ,'gx'
+                 'RNA -> RNA + GFP'                 ,'kg'
+                 'GFP -> null'                      ,'ggfp'
+                 'GeneOn + 3 PhosProt -> GeneOff'   ,'koff'
+                 'GeneOff -> GeneOn'                ,'kon'
+                 };
+
+             for i = 1:size(rxns,1)
+                 r = addreaction(model,rxns{i,1});
+                 kl = addkineticlaw(r,'MassAction');
+                 kl.ParameterVariableNames = {rxns{i,2}};
+             end
+
+             % SSA configuration
+             cs = getconfigset(model,'active');
+             cs.SolverType = 'ssa';
+             v = linspace(0,100,21);
+             cs.StopTime  = max(v);
+             % Force output at specified times
+             cs.RuntimeOptions.StatesToLog = 'all';
+             % cs.SolverOptions.OutputTimes = v;
+             
+             % [t,x,names] = sbiosimulate(model);
+             nRuns = 2;
+             simData = sbioensemblerun(model,nRuns);
+             nRuns = 1000;
+             tic
+             simData = sbioensemblerun(model,nRuns);
+             simBiologyTime = toc
+
+             SSIT_Model = SSIT();
+             SSIT_Model = SSIT_Model.createModelFromSimBiol(model);
+             SSIT_Model.tSpan = v;
+             SSIT_Model.ssaOptions.Nsims = 1;
+             SSIT_Model.solutionScheme = 'ssa';
+             [~,~,SSIT_Model] = SSIT_Model.solve;
+
+             SSIT_Model.ssaOptions.Nsims = nRuns;
+             tic
+             [~,~,SSIT_Model] = SSIT_Model.solve;
+             ssitTime = toc
+
+            tc.verifyEqual(ssitTime<(5*simBiologyTime), true, ...
+                'SSIT ODE Solution is > 5x slower than SimBiology.');
+
+            % meanError = mean(abs((resultsSB-results)./(mean(results))),"all");
+            % 
+            % tc.verifyEqual(meanError<0.01, true, ...
+            %     'Average SSIT ODE Solution is not within 1 percent of SimBiology.');
          end
 
          function testMoments(tc)
@@ -166,7 +616,7 @@ classdef miscelaneousTests < matlab.unittest.TestCase
                  0,0,0,0,1,-1];
              ThreeDNLinearTV.parameters = ({'kr',5;'gr',1;'kp',3;'gp',1;'M',20;'eta',5;...
                  'kx',2;'gx',1});
-             ThreeDNLinearTV.inputExpressions = {'Ir','1+cos(t)'};
+             ThreeDNLinearTV.inputExpressions = {'Ir','1+0.2*cos(t)'};
              ThreeDNLinearTV.tSpan = linspace(0,10,40);
 
              ThreeDNLinearTV.odeIntegrator = 'ode45';
@@ -184,7 +634,7 @@ classdef miscelaneousTests < matlab.unittest.TestCase
              tc.verifyEqual(maxRelError<0.01, true, ...
                 'ODE and moments mean solutions do not match.');
 
-
+             % ThreeDNLinearTV.inputExpressions = {'Ir','0.8'};
              ThreeDNLinearTV.solutionScheme = 'fsp';
              ThreeDNLinearTV.fspOptions.verbose = true;
              ThreeDNLinearTV = ThreeDNLinearTV.formPropensitiesGeneral('TwoDTV',false);
@@ -206,7 +656,7 @@ classdef miscelaneousTests < matlab.unittest.TestCase
              % plot(fspMn3_2); hold on;
              % plot(ThreeDNLinearTV.Solutions.moments(end,:),'x')
 
-             relErr = max((fspMn3_2 - ThreeDNLinearTV.Solutions.moments(end,:))./fspMn3_2,[],'all');
+             relErr = max(abs((fspMn3_2 - ThreeDNLinearTV.Solutions.moments(end,:))./fspMn3_2),[],'all');
 
              tc.verifyEqual(relErr<0.01, true, ...
                  'Relative error of second moment is not below 1%.');

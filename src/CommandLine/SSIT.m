@@ -79,6 +79,22 @@ classdef SSIT
         %   example:  Model.inputExpressions = ...
         %             {'Drug','(a0+a1*exp(-r1*t)*(1-exp(-r2*t))*(t>0))'};
         inputExpressions = {};
+        % List of special event propensity functions
+        %   default: []
+        %   example: Model.specialEvents = struct(...
+        %                   'timing','Exp',... % {'Exp','Fixed'}
+        %                   'stateTransitionFun','binomialDivision',... %
+        %                            Name of a function that defines state
+        %                            transitions given species and
+        %                            parameters.
+        %                   'rateFun','0.01',... % Rate of special event.
+        %                            Can be a constant or function of the
+        %                            species. Only for 'Exp' timing.                  
+        %                   'fixedTimes','[]',... % Time of special event.
+        %                            Can be constant vector of times or a
+        %                            function of time.
+        specialEvents = [];
+               
         % Struct containing user-supplied constraint functions for FSP
         %   default: {};
         %   example: Model.customConstraintFuns = {'offGene+onGene'};
@@ -603,13 +619,27 @@ classdef SSIT
             obj = clearPropensityFiles(obj,prefixName,'fsp');
 
             n_reactions = length(obj.propensityFunctions);
+            n_reactions_special = length(obj.specialEvents);
+            reactionTypes = [zeros(n_reactions,1);ones(n_reactions_special,1)]; 
+            
+            % if n_reactions == 0
+            %     disp('No reactions defined -- skipping propensity function generation')
+            %     obj.propensitiesGeneral = [];
+            %     obj.propensityFilePrefix = prefixName;
+            %     return
+            % end
+            
             % Propensity for hybrid models will include
             % solutions from the upstream ODEs.
             sm = cell(1,n_reactions);
             logicTerms = cell(1,n_reactions);
             logCounter = 0;
-            for i = 1:n_reactions
-                st = obj.propensityFunctions{i};
+            for i = 1:n_reactions+n_reactions_special
+                if i <= n_reactions
+                    st = obj.propensityFunctions{i};
+                elseif strcmp(obj.specialEvents(i-n_reactions).timing,'Exp')
+                    st = obj.specialEvents(i-n_reactions).rateFun;
+                end
                 for jI = 1:size(obj.inputExpressions,1)
                     st = regexprep(st,['\<',obj.inputExpressions{jI,1},'\>'],['(',obj.inputExpressions{jI,2},')']);
                 end
@@ -632,12 +662,25 @@ classdef SSIT
                 PropensitiesGeneral = ...
                     ssit.Propensity.createAsHybridVec(sm, obj.stoichiometry,...
                     obj.parameters, obj.species, obj.hybridOptions.upstreamODEs,...
-                    logicTerms, [prefixName,'_fsp'], computeSens, pathToPropensityFuns);
+                    logicTerms, [prefixName,'_fsp'], computeSens, pathToPropensityFuns, reactionTypes);
             else
                 PropensitiesGeneral = ...
                     ssit.Propensity.createAsHybridVec(sm, obj.stoichiometry,...
-                    obj.parameters, obj.species, [], logicTerms, [prefixName,'_fsp'], computeSens, pathToPropensityFuns);
+                    obj.parameters, obj.species, [], ...
+                    logicTerms, [prefixName,'_fsp'], computeSens, pathToPropensityFuns, reactionTypes);
             end
+
+            for i = n_reactions+1:n_reactions+n_reactions_special
+                PropensitiesGeneral{i}.specialEvent = obj.specialEvents(i-n_reactions);
+                specialEventPars = NaN*ones(1,length(PropensitiesGeneral{i}.specialEvent.stateTransitionFunParameters));
+                for iSE=1:length(PropensitiesGeneral{i}.specialEvent.stateTransitionFunParameters)
+                    specialEventPars(iSE) = find(strcmp(obj.parameters(:,1),...
+                        PropensitiesGeneral{i}.specialEvent.stateTransitionFunParameters{iSE}));
+                end
+                PropensitiesGeneral{i}.specialEvent.parameterIndices = specialEventPars;
+            end
+
+
             % else
             %     PropensitiesGeneral = [];
             % end
@@ -662,6 +705,34 @@ classdef SSIT
             % path(oldPath);   % restore path
         end
         %%
+
+        function obj = addFSPConstraints(obj,opts)
+            arguments
+                obj
+                opts.anticorrelatedPairs = {}
+                opts.correlatedPairs = {}
+            end
+            % Adds several common custom constraints to the FSP model to
+            % help narrow the statespace for pairs of species that are
+            % correlated or anticorrelated
+            if (isstring(opts.anticorrelatedPairs)||ischar(opts.anticorrelatedPairs))&&strcmpi(opts.anticorrelatedPairs,'all')
+                for i = 1:length(obj.species)
+                    for j = i+1:length(obj.species)
+                        obj.customConstraintFuns = [obj.customConstraintFuns;['(',obj.species{i},'-3).^2.*(',obj.species{j},'-3).^2']];
+                    end
+                end
+            end
+            if (isstring(opts.correlatedPairs)||ischar(opts.correlatedPairs))&&strcmpi(opts.correlatedPairs,'all')
+                for i = 1:length(obj.species)
+                    for j = i+1:length(obj.species)
+                        obj.customConstraintFuns = [obj.customConstraintFuns;[obj.species{i},'-',obj.species{j}]];
+                        obj.customConstraintFuns = [obj.customConstraintFuns;[obj.species{j},'-',obj.species{i}]];
+                    end
+                end
+            end
+
+        end
+
         function constraints = get.fspConstraints(obj)
             % Makes a list of FSP constraints that can be used by the FSP
             % solver.
@@ -1990,10 +2061,21 @@ classdef SSIT
             %   [soln,bounds] = F.solve;  % Returns the sensitivity and the
             %                             % bounds for the FSP projection
             % See also: SSIT.makePlot for information on how to visualize
-            % the solution data.   
+            % the solution data. 
+
+            if ~isempty(obj.specialEvents)&&~strcmpi(obj.solutionScheme(1:3),'fsp')
+                error('Special Events are currently supported only for FSP analyses')
+            elseif strcmpi(obj.solutionScheme(1:3),'fspsens')&&~strcmpi(obj.sensOptions.solutionMethod,'finiteDifference')
+                warning('Special Events are only supported for FSP sensitivity using finite difference.')
+                obj.sensOptions.solutionMethod='finiteDifference';
+            end
             
             try
-                [Solution, bConstraints, obj] = obj.solveHelper(stateSpace,saveFile,fspSoln);
+                if nargout>=2
+                    [Solution, bConstraints, obj] = obj.solveHelper(stateSpace,saveFile,fspSoln);
+                else
+                    Solution = obj.solveHelper(stateSpace,saveFile,fspSoln);
+                end
             catch
                 obj.propensitiesGeneral = [];
                 if strcmpi(obj.solutionScheme,'fsp')||strcmpi(obj.solutionScheme,'fspsens')
@@ -2001,7 +2083,11 @@ classdef SSIT
                     disp(['(Re)Forming Propensity Function Files under new name: ',newPropFileName]);
                     obj = obj.formPropensitiesGeneral(newPropFileName);
                 end
-                [Solution, bConstraints, obj] = obj.solveHelper(stateSpace,saveFile,fspSoln);               
+                if nargout>=2
+                    [Solution, bConstraints, obj] = obj.solveHelper(stateSpace,saveFile,fspSoln);
+                else
+                    Solution = obj.solveHelper(stateSpace,saveFile,fspSoln);
+                end
             end
         end
 
@@ -2031,7 +2117,8 @@ classdef SSIT
                 if isempty(propensityGeneral)
                     disp('Forming Propensity Functions.')
                     obj = formPropensitiesGeneral(obj);
-                elseif ~isempty(obj.hybridOptions)&&~strcmp(obj.solutionScheme,'ode')&&length(obj.hybridOptions.upstreamODEs)~=length(propensityGeneral{1}.ODEstoichVector)
+                elseif ~isempty(obj.hybridOptions)&&~strcmp(obj.solutionScheme,'ode')&&...
+                        isfield(propensityGeneral{1},'ODEstoichVector')&&length(obj.hybridOptions.upstreamODEs)~=length(propensityGeneral{1}.ODEstoichVector)
                     disp('(Re)Forming Propensity Functions Due to Detected Change in Hybrid Model Dimension.')
                     obj = formPropensitiesGeneral(obj,'hybrid',true);
                 end
@@ -2093,7 +2180,8 @@ classdef SSIT
                         obj.fspConstraints.fEscape,obj.fspConstraints.bEscape, ...
                         obj.fspOptions.constantJacobian,...
                         obj.fspOptions.constantJacobianTime,...
-                        obj.odeIntegrator);
+                        obj.odeIntegrator,...
+                        obj.specialEvents);
                     obj.fspOptions.stateSpace = Solution.stateSpace;
                     obj.fspOptions.bounds = bConstraints;
 
@@ -2288,11 +2376,14 @@ classdef SSIT
                     end
                     
                     states = reshape(Solution.trajs,[size(Solution.trajs,1),size(Solution.trajs,2)*size(Solution.trajs,3)]);
-                    try
-                        bConstraints = max(obj.fspConstraints.f(states),[],2);
-                        bConstraints = max(bConstraints,obj.fspConstraints.b);
-                    catch
-                        bConstraints = [zeros(size(Solution.trajs,1),1);max(Solution.trajs,[],[2:3])];
+                    
+                    if nargout>=2
+                        try
+                            bConstraints = max(obj.fspConstraints.f(states),[],2);
+                            bConstraints = max(bConstraints,obj.fspConstraints.b);
+                        catch
+                            bConstraints = [zeros(size(Solution.trajs,1),1);max(Solution.trajs,[],[2:3])];
+                        end
                     end
 
                 case 'fspsens'
@@ -2371,8 +2462,10 @@ classdef SSIT
                     end
                     Solution.ode = soln;
 
-                    bConstraints = max(obj.fspConstraints.f(Solution.ode),[],2);
-                    bConstraints = max(bConstraints,obj.fspConstraints.b);
+                    if nargout>=2
+                        bConstraints = max(obj.fspConstraints.f(Solution.ode),[],2);
+                        bConstraints = max(bConstraints,obj.fspConstraints.b);
+                    end
 
                 case {'moments','momentsgaussian'}
                     % Initial condition is assumed to be a delta
@@ -2423,9 +2516,11 @@ classdef SSIT
                         end                             
                         Solution.momentsCOV(:,:,it) =  EXTX - MU'*MU;
                     end
-                   
-                    bConstraints = max(obj.fspConstraints.f((reshape(Solution.moments(1:nSp,:),[nSp,length(obj.tSpan)]))),[],2);
-                    bConstraints = max(bConstraints,obj.fspConstraints.b);
+
+                    if nargout>=2
+                        bConstraints = max(obj.fspConstraints.f((reshape(Solution.moments(1:nSp,:),[nSp,length(obj.tSpan)]))),[],2);
+                        bConstraints = max(bConstraints,obj.fspConstraints.b);
+                    end
             end
 
             if nargout>=3
@@ -2456,11 +2551,12 @@ classdef SSIT
             
             if isempty(nCells)
                 if ~isnan(obj.ssaOptions.nSimsPerExpt)
-                    nSims = obj.ssaOptions.nSimsPerExpt*obj.ssaOptions.Nexp;
+                    % nSims = obj.ssaOptions.nSimsPerExpt*obj.ssaOptions.Nexp;
                 else
-                    nSims = obj.ssaOptions.Nsims;
+                    % nSims = obj.ssaOptions.Nsims;
+                    obj.ssaOptions.nSimsPerExpt = obj.ssaOptions.Nsims;
                 end
-                nCells = nSims*ones(1,Nt);
+                nCells = obj.ssaOptions.nSimsPerExpt*ones(1,Nt);
             end
             if isempty(fspSoln)
                 fspSoln = obj.Solutions;
@@ -2483,7 +2579,7 @@ classdef SSIT
 
             nSpSave = length(species2save);
             Solution.trajs = NaN*ones(nSpSave,...
-                length(obj.tSpan),max(nCells));% Creates an empty Trajectories matrix
+                length(obj.tSpan),max(nCells)*obj.ssaOptions.Nexp);% Creates an empty Trajectories matrix
             % from the size of the time array and number of simulations.
             % NaNs are put in empty elements for the case where there are
             % different numbers of cells at different time points.
@@ -2493,14 +2589,14 @@ classdef SSIT
                 clear w
                 w(:) = PP(:); w(w<0)=0;
                 % TODO - there has to be another way of doing this.
-                [I1,I2,I3,I4,I5,I6,I7,I8,I9,I10,I11] =  ind2sub(size(PP),randsample(length(w), nCells(iT), true, w ));
+                [I1,I2,I3,I4,I5,I6,I7,I8,I9,I10,I11] =  ind2sub(size(PP),randsample(length(w), nCells(iT)*obj.ssaOptions.Nexp, true, w ));
                 for iSp = 1:nSpSave
-                    eval(['Solution.trajs(iSp,iT,1:nCells(iT)) = I',num2str(indsSpecies2save(iSp)),'-1;']);
+                    eval(['Solution.trajs(iSp,iT,1:nCells(iT)*obj.ssaOptions.Nexp) = I',num2str(indsSpecies2save(iSp)),'-1;']);
                 end
             end
             if ~isempty(obj.pdoOptions.PDO)
                 Solution.trajsDistorted = NaN*ones(nSpSave,...
-                length(obj.tSpan),max(nCells)); % Creates an empty Trajectories matrix from the size of the time array and number of simulations
+                length(obj.tSpan),max(nCells)*obj.ssaOptions.Nexp); % Creates an empty Trajectories matrix from the size of the time array and number of simulations
                 for iS = 1:nSpSave
                     PDO = obj.pdoOptions.PDO.conditionalPmfs{iS};
                     nDpossible = size(PDO,1);
@@ -2521,17 +2617,16 @@ classdef SSIT
                     for ie = 1:obj.ssaOptions.Nexp
                         for s = 1:size(Solution.trajs,1)
                             warning('off')
-
                             A.(['exp',num2str(ie),'_s',num2str(s)])(k+1:k+nCells(iT)) = ...
-                                Solution.trajs(s,iT,1:nCells(iT));
+                                Solution.trajs(s,iT,nCells(iT)*(ie-1)+(1:nCells(iT)));
                             if ~isempty(obj.pdoOptions.PDO)
-                                A.(['exp',num2str(ie),'_s',num2str(s),'_Distorted'])(k+1:k+nCells(iT)) = ...
-                                    Solution.trajsDistorted(s,iT,1:nCells(iT));
+                                A.(['exp',num2str(ie),'_s',num2str(s),'_Distorted'])(k+1:k+nCells(iT)/obj.ssaOptions.Nexp) = ...
+                                    Solution.trajsDistorted(s,iT,nCells(iT)*(ie-1)+(1:nCells(iT)));
                             end
                         end
                     end
                     k = k + nCells(iT);
-                end
+               end
 
                 if ~isempty(saveFile)
                     writetable(A,saveFile)
@@ -3578,24 +3673,30 @@ classdef SSIT
 
             logLSpreadVector = zeros(nSims,1);
             objTMP = obj;
+
+            % Generate a bunch of simulated data for each requested
+            % replica.
+            obj.ssaOptions.Nexp = nSims;
+            A = obj.sampleDataFromFSP([],[],obj.dataSet.nCells,species2save);
+
             for iSim = 1:nSims
 
-                % Generate and reformat data using FSP solution.
-                A = obj.sampleDataFromFSP([],[],obj.dataSet.nCells,species2save);                
-                objTMP.dataSet.DATA = table2cell(A);
+                % Pick and reformat data using FSP solution.
+                Ai = A(:,[1,(iSim-1)*length(species2save)+2:iSim*length(species2save)+1]);      
+                objTMP.dataSet.DATA = table2cell(Ai);
                 
                 if iSim==1
-                    times = unique(A.time);
+                    times = unique(Ai.time);
                     numTimes = length(times);
-                    timeAr = A.time;
+                    timeAr = Ai.time;
                     for i = 1:numTimes
-                        timeAr(A.time==times(i)) = i-1;
+                        timeAr(Ai.time==times(i)) = i-1;
                     end
                 end
-                A.time = timeAr;
+                Ai.time = timeAr;
 
                 % Convert to data tensor
-                X = table2array(A);
+                X = table2array(Ai);
 
                 % Apply PDO to the data tensor
                 
@@ -4364,7 +4465,7 @@ classdef SSIT
             %                                      at final time
             arguments
                 obj
-                solution
+                solution = [];
                 plotType = 'means';
                 indTimes = [];
                 includePDO = false;
@@ -4375,6 +4476,10 @@ classdef SSIT
                 movieSpecies = []
                 senseVars = []
                 plotTitle = ''
+            end
+            if isempty(solution)&&isfield(obj.Solutions,'fsp')
+                % clear solution
+                solution = obj.Solutions;
             end
             if isempty(figureNums)
                 h =  findobj('type','figure');

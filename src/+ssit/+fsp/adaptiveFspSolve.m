@@ -14,7 +14,8 @@ function [solutions, constraintBoundsFinal, stateSpace] = adaptiveFspSolve(...
     useHybrid,hybridOptions,...
     fEscape,bEscape,...
     constantJacobian,constantJacobianTime,...
-    odeIntegrator)
+    odeIntegrator,...
+    specialEvents)
 % Approximate the transient solution of the chemical master equation using
 % an adaptively expanding finite state projection (FSP).
 %
@@ -143,6 +144,7 @@ arguments
     constantJacobian = false;
     constantJacobianTime = NaN;
     odeIntegrator = 'ode23s';
+    specialEvents = [];
 end
 
 maxOutputTime = max(outputTimes);
@@ -196,8 +198,8 @@ end
 % Set up the initial state subset, or recompute it if constaint functions
 % have changed.
 if isempty(stateSpace)||stateSpace.numConstraints~=constraintCount||size(stateSpace.states,1)~=length(speciesNames)
-    stateSpace = ssit.FiniteStateSet(initStates, stoichMatrix);
-    stateSpace = stateSpace.expand(constraintFunctions, constraintBoundsFinal);
+    stateSpace = ssit.FiniteStateSet(initStates, stoichMatrix, specialEvents);
+    stateSpace = stateSpace.expand(constraintFunctions, constraintBoundsFinal, specialEvents);
 else
     constraintBoundsFinal = max(constraintBoundsFinal,max(constraintFunctions(stateSpace.states),[],2));
 end
@@ -212,12 +214,29 @@ while expandSS
     % Generate the FSP matrix
     stateCount = stateSpace.getNumStates();
     if useHybrid
-        AfspFull = ssit.FspMatrix(propensities, parameters, stateSpace, constraintCount, speciesNames, modRedTransformMatrices);
+        AfspFull = ssit.FspMatrix(propensities, parameters, stateSpace, constraintCount, speciesNames, modRedTransformMatrices, false);
     elseif useReducedModel
-        AfspRed = ssit.FspMatrix(propensities, parameters, stateSpace, constraintCount, speciesNames, modRedTransformMatrices);
+        AfspRed = ssit.FspMatrix(propensities, parameters, stateSpace, constraintCount, speciesNames, modRedTransformMatrices, false);
     else
-        AfspFull = ssit.FspMatrix(propensities, parameters, stateSpace, constraintCount, speciesNames);
+        AfspFull = ssit.FspMatrix(propensities, parameters, stateSpace, constraintCount, speciesNames, [], false);
     end
+
+    % % Set up structure for when fixed-time special events are set to occur. 
+    if useReducedModel
+        FixedEvents = UpdateFixedEvents(AfspRed);
+
+    else
+        FixedEvents = UpdateFixedEvents(AfspFull);
+    end
+    if initApproxSS&&~isempty(FixedEvents)&&min(FixedEvents.times)<(outputTimes(1)-1e-6)
+        error('Fixed Events cannot occur before intitial time if initialing at steady state')
+    end
+    if initApproxSS&&useReducedModel
+        error('Fixed Events not yet compatible with ReducedModels')
+        %TODO - it should be relatively easy to add fixed events into
+        %reduced models, but I have left this error for now.
+    end
+
 
     % Use Approximate steady state as initial distribution if requested.
     if initApproxSS
@@ -465,7 +484,8 @@ while (tNow < maxOutputTime)
         solVec, ...
         matvec, ...
         jac,...
-        fspErrorCondition);
+        fspErrorCondition,...
+        FixedEvents);
 
     j = 0;
     while (j < length(solutionsNow))
@@ -534,15 +554,15 @@ while (tNow < maxOutputTime)
         constraintBoundsFinal(constraintsToRelax) = 1.2*constraintBoundsFinal(constraintsToRelax);
 
         if min(constraintsToRelax)<=size(stoichMatrix,1)
-            stateSpace = ssit.FiniteStateSet(initStates, stoichMatrix);
-            stateSpace = stateSpace.expand(constraintFunctions, constraintBoundsFinal);
+            stateSpace = ssit.FiniteStateSet(initStates, stoichMatrix, specialEvents);
+            stateSpace = stateSpace.expand(constraintFunctions, constraintBoundsFinal, specialEvents);
             warning('Regenerate State Space')
         else
             try
-                stateSpace = stateSpace.expand(constraintFunctions, constraintBoundsFinal);
+                stateSpace = stateSpace.expand(constraintFunctions, constraintBoundsFinal, specialEvents);
             catch
-                stateSpace = ssit.FiniteStateSet(initStates, stoichMatrix);
-                stateSpace = stateSpace.expand(constraintFunctions, constraintBoundsFinal);
+                stateSpace = ssit.FiniteStateSet(initStates, stoichMatrix,specialEvents);
+                stateSpace = stateSpace.expand(constraintFunctions, constraintBoundsFinal, specialEvents);
             end
         end
 
@@ -553,6 +573,10 @@ while (tNow < maxOutputTime)
             stateSpace = stateSpace.expand(constraintFunctions, constraintBoundsFinal);
             AfspFull = AfspFull.regenerate(propensities, parameters, stateSpace, constraintCount,speciesNames);
         end
+
+        % Update fixed events.
+        FixedEvents = UpdateFixedEvents(AfspFull);
+
 
         stateCountOld = stateCount;
         stateCount = stateSpace.getNumStates;
@@ -591,3 +615,29 @@ end
 end
 
 
+function FixedEvents = UpdateFixedEvents(AfspFull)
+% Set up structure for when fixed-time special events are set to occur.
+isFixedSpecialEvent = zeros(1,length(AfspFull.terms),'logical');
+for i = 1:length(AfspFull.terms)
+    isFixedSpecialEvent(i) = ~isempty(AfspFull.terms{i}.propensity.specialEvent)&&...
+        isfield(AfspFull.terms{i}.propensity.specialEvent.args,'FixedTime')&&...
+        AfspFull.terms{i}.propensity.specialEvent.args.FixedTime;
+end
+indsFixedEvents = find(isFixedSpecialEvent);
+if isempty(indsFixedEvents)
+    FixedEvents=[];
+else
+    FixedEvents.matrices = cell(1,length(indsFixedEvents));
+    FixedEvents.times = [];
+    FixedEvents.matrixInds = [];
+    for i = 1:sum(isFixedSpecialEvent)
+        FixedEvents.matrices{i} = AfspFull.terms{indsFixedEvents(i)}.matrix;
+        FixedEvents.times = [FixedEvents.times,AfspFull.terms{indsFixedEvents(i)}.propensity.specialEvent.fixedTimes];
+        FixedEvents.matrixInds = [FixedEvents.matrixInds,i*ones(size(AfspFull.terms{indsFixedEvents(i)}.propensity.specialEvent.fixedTimes))];
+    end
+    % Sort fixed events in increasing order of time.
+    [FixedEvents.times,ia] = sort(FixedEvents.times);
+    FixedEvents.matrixInds = FixedEvents.matrixInds(ia);
+end
+
+end

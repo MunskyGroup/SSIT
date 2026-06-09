@@ -35,7 +35,7 @@ void expokitC(int n, int m, double *w, double beta,
               double *V, double *H,
               int *k1, int *mb, double *t_step,
               double Time_array_i_prt, double tNow,
-              int resetSparsity);
+              int resetSparsity, int orthDepth);
 
 /* ------------------------------------------------------------------ */
 /*  Helpers                                                            */
@@ -134,6 +134,7 @@ static void parse_csr_struct(const mxArray *A_in, int n, CSRMatrix *A_out)
 /*    9  k1              scalar int  (initial / seed value)            */
 /*   10  mb              scalar int  (initial / seed value)            */
 /*   11  t_step          scalar double (initial / seed value)          */
+/*   12  orthDepth       scalar int  (reorth depth: 0=full, k=limited) */
 /*                                                                     */
 /*  Outputs (plhs, 0-based):                                          */
 /*    0  H        (m+2) x (m+2)                                        */
@@ -146,9 +147,9 @@ void mexFunction(int nlhs, mxArray *plhs[],
                  int nrhs, const mxArray *prhs[])
 {
     /* ---- argument count check -------------------------------------- */
-    if (nrhs != 12)
+    if (nrhs != 13)
         mexErrMsgIdAndTxt("mexFunctionExpokit:InvalidNumInputs",
-                          "Expected exactly 12 inputs, got %d.", nrhs);
+                          "Expected exactly 13 inputs, got %d.", nrhs);
     if (nlhs > 5)
         mexErrMsgIdAndTxt("mexFunctionExpokit:InvalidNumOutputs",
                           "Expected at most 5 outputs.");
@@ -164,6 +165,7 @@ void mexFunction(int nlhs, mxArray *plhs[],
     check_scalar(prhs[9], "k1");
     check_scalar(prhs[10], "mb");
     check_scalar(prhs[11], "t_step");
+    check_scalar(prhs[12], "orthDepth");
 
     int    n               = (int)mxGetScalar(prhs[0]);
     int    m               = (int)mxGetScalar(prhs[1]);
@@ -175,6 +177,7 @@ void mexFunction(int nlhs, mxArray *plhs[],
     int    k1              = (int)mxGetScalar(prhs[9]);
     int    mb_val          = (int)mxGetScalar(prhs[10]);
     double t_step          = mxGetScalar(prhs[11]);
+    int    orthDepth       = (int)mxGetScalar(prhs[12]);
 
     /* w must be a real double vector of length n */
     if (!mxIsDouble(prhs[2]) || mxIsComplex(prhs[2]) ||
@@ -201,7 +204,7 @@ void mexFunction(int nlhs, mxArray *plhs[],
     /* ---- call kernel ----------------------------------------------- */
     expokitC(n, m, w, beta, &A_csr, btol, V, H,
              &k1, &mb_val, &t_step,
-             Time_array_i_prt, tNow, resetSparsity);
+             Time_array_i_prt, tNow, resetSparsity, orthDepth);
 
     /* ---- write scalar outputs -------------------------------------- */
     *mxGetDoubles(plhs[2]) = (double)k1;

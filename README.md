@@ -47,8 +47,8 @@ The SSIT allows users to specify and solve the **Chemical Master Equation** (CME
 
 # Dependencies
 For all basic functionalities:
-- MATLAB R2023a or later
-- Symbolic Computing Toolbox.
+- MATLAB R2023b or later
+- Symbolic Computing Toolbox
 - Image Processing Toolbox
 - Global Optimization Toolbox (for model fitting only)
 - Parallel Computing Toolbox (optional). 
@@ -315,12 +315,38 @@ For more general insight on the use of quantitative models in biology, please re
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
 <!-- TRAFFIC_STATS_START -->
-Total Clones: **3065**  
-Unique Cloners: **1435**  
-Total Views: **1102**  
-Unique Visitors: **249**
+Total Clones: **3562**  
+Unique Cloners: **1621**  
+Total Views: **1159**  
+Unique Visitors: **268**
 <!-- TRAFFIC_STATS_END -->
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

@@ -1,5 +1,5 @@
 function [H,V,k1,mb,t_step] = ExpensiveTask(n,m,w,beta,A,btol, ...
-    Time_array_i_prt,tNow,k1,mb,t_step)
+    Time_array_i_prt,tNow,k1,mb,t_step,orthDepth)
 
 arguments
     n  % positive integer
@@ -13,6 +13,11 @@ arguments
     k1
     mb
     t_step
+    orthDepth = 0
+end
+
+if orthDepth == 0
+    orthDepth = m;
 end
 
 V = zeros(n,m+1);
@@ -21,7 +26,7 @@ H = zeros(m+2,m+2);
 V(:,1) = (1/beta)*w;
 for j = 1:m
     p = A*V(:,j);
-    for i = 1:j
+    for i = 1:max(1,j-orthDepth+1):j
         H(i,j) = p'*V(:,i);    %8.832
         p = p-H(i,j)*V(:,i);
     end

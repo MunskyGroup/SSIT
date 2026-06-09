@@ -1,32 +1,35 @@
 % Benchmark Examples
-
-Models = {'Toggle'};
+clear all
+Models = {'Toggle2'};
 clear benchmarks
 for iM = 1:length(Models)
-    Model = Generate_Model_from_Benchmark_Library(Models{iM});
+    [Model,verificationCode] = Generate_Model_from_Benchmark_Library(Models{iM});
     Model.propensityFilePrefix = Models{iM};
-    benchmarks.(Models{iM}) = run_benchmarks(Model);
+    benchmarks.(Models{iM}) = run_benchmarks(Model,verbose=true,verificationCode=verificationCode);
 end
 
-function Model = Generate_Model_from_Benchmark_Library(Name)
+function [Model,verificationCode] = Generate_Model_from_Benchmark_Library(Name)
 arguments
     Name
 end
 
+verificationCode =[];
+
 switch Name
     case 'Toggle'
-        Model = SSIT;
+        Model = SSIT('Empty');
         Model.parameters = {'d1',1;'a1',5000;'b',2.5;'d2',1;'a2',1600;'g',1.5};
         Model.species = {'U';'V'};
         Model.stoichiometry = [-1,1,0, 0;...
            					    0, 0,-1,1];
         Model.propensityFunctions = {'d1*U';'a1/(1+V^b)';'d2*V';'a2/(1+U^g)'};
-        Model.initialCondition = [0;0];
-        Model.tSpan = linspace(0,100);
-        Model.fspTol = 1e-6;
+        Model.initialCondition = [100;0];
+        Model.tSpan = linspace(0,200,11);
     case 'Pap'
-        Model = SSIT; 
-        Model.parameters = {};    
+        Model = SSIT('Empty'); 
+        Model.parameters = {'LRPtot',100;'k1',1;'k2a',0.25;'k2b',2.25;...
+            'k3',1;'k4a',1;'k4b',0.2;'k5',0.01;'k6a',1;'k6b',0.2;...
+            'k7',0.01;'k8a',0.25;'k8b',2.25;'k9',10;'k10',1};    
         Model.species = {'G1';'G2';'G3';'G4';'LRP';'PapI'}; 
         % Species order:
         % G1   = DNA
@@ -43,27 +46,25 @@ switch Name
             -1,  1, -1,  1, -1,  1, -1,  1,  0,  0
              0,  0,  0,  0,  0,  0,  0,  0,  1, -1
         ];    
-        Model.propensityFunctions = {
-            'LRP*G1'
-            '(0.25 + 2.25/(1 + PapI))*G2'
-            'LRP*G1'
-            '(1.0 + 0.2/(1 + PapI))*G3'
-            '0.01*LRP*G2'
-            '(1.0 + 0.2/(1 + PapI))*G4'
-            '0.01*LRP*G3'
-            '(0.25 + 2.25/(1 + PapI))*G4'
-            '10*G2'
-            'PapI'
-        };    
+        Model.propensityFunctions = {'k1*LRPtot*G1';...
+            '(k2a + k2b/(1 + PapI))*G2';...
+            'k3*LRPtot*G1';...
+            '(k4a + k4b/(1 + PapI))*G3';...
+            'k5*(LRPtot - 1)*G2';...
+            '(k6a + k6b/(1 + PapI))*G4';...
+            'k7*(LRPtot - 1)*G3';...
+            '(k8a + k8b/(1 + PapI))*G4';...
+            'k9*G2';...
+            'k10*PapI'};    
         % Physically valid starting point:
         % one free DNA template, two free LRP molecules, zero PapI.
         Model.initialCondition = [1;0;0;0;2;0];   
-        Model.tSpan = linspace(0,10);
-        Model.fspTol = 1e-5;
+        Model.tSpan = linspace(0,10,11);
+        %Model.fspTol = 1e-5;
 	case 'Goutsias'
 		Model = SSIT;
-        Model.parameters = {'k1',0.043;'k2',0.0007;'k3',0.0715;'k4',0.0039;'k5',0.012e9;...
-        	'k6',0.4791;'k7',0.00012e9;'k8',0.8765e-11;'k9',0.05e9;'k10',0.5};
+        Model.parameters = {'k1',0.043;'k2',0.0007;'k3',0.0715;'k4',0.0039;'k5',0.012e9/(6.0221415e23*1e-15);...
+        	'k6',0.4791;'k7',0.00012e9/(6.0221415e23*1e-15);'k8',0.8765e-11;'k9',0.05e9/(6.0221415e23*1e-15);'k10',0.5};
         Model.species = {'RNA','M','DNAD','DNA','D','DNA2D'};
         Model.stoichiometry = [0,0,1,-1,0,0,0,0,0,0;...
         					   1,-1,0,0,0,0,0,0,-2,2;...
@@ -74,8 +75,10 @@ switch Name
         Model.propensityFunctions = {'k1*RNA';'k2*M';'k3*DNAD';'k4*RNA';'k5*DNA*D';...
         	'k6*DNAD';'k7*DNAD*D';'k8*DNA2D';'(k9/2)*M*(M-1)';'k10*D'};
         Model.initialCondition = [0;2;0;2;6;0];
-        Model.tSpan = linspace(0,300);
-        Model.fspTol = 1e-6;
+        Model.tSpan = linspace(0,300,11);
+        verificationCode = "Model.plotFSP(plotType = 'marginals',indTimes=length(Model.tSpan),speciesNames='D')";     
+
+        %Model.fspTol = 1e-6;
 	case 'BirthDeath'
 		Model = SSIT;
         Model.parameters = {'bk',1000;'dk',1};
@@ -83,8 +86,8 @@ switch Name
         Model.stoichiometry = [1,-1];
         Model.propensityFunctions = {'bk';'dk*X'};
         Model.initialCondition = 0;
-        Model.tSpan = linspace(0,10);
-        Model.fspTol = 1e-6;
+        Model.tSpan = linspace(0,10,11);
+        %Model.fspTol = 1e-6;
 	case 'GeneExpression'
 		Model = SSIT;
         Model.parameters = {'t1',50;'t2',4;'t3',0.5;'t4',0.2};
@@ -93,10 +96,10 @@ switch Name
            					   0,1,0,-1];
         Model.propensityFunctions = {'t1';'t2*M';'t3*M';'t4*P'};
         Model.initialCondition = [0;0];
-        Model.tSpan = linspace(0,100);
-        Model.fspTol = 1e-6;
+        Model.tSpan = linspace(0,100,11);
+        %Model.fspTol = 1e-6;
     case 'MichaelisMenten'
-        Model = SSIT;
+        Model = SSIT('Empty');
         Model.parameters = {'k1',1;'k2',1;'k3',0.1};    
         Model.species = {'S';'E';'ES';'P'};  
         Model.stoichiometry = [
@@ -107,24 +110,31 @@ switch Name
         ];   
         Model.propensityFunctions = {'k1*S*E';'k2*ES';'k3*ES'};    
         Model.initialCondition = [100;1000;0;0];  
-        Model.tSpan = linspace(0,70);
-        Model.fspTol = 1e-5;
+        Model.tSpan = linspace(0,70,11);
+        %Model.fspTol = 1e-5;
 	case 'MAPK'
-		Model = SSIT;
-        Model.parameters = {'k1',0;};
-        species = {'E1';'E2';'KKPase';'KPase';'KKK';'KKKp';'KK';...
+		Model = SSIT('Empty');
+        Nmapk = 50;
+        Model.parameters = {'a1',1/Nmapk;'d1',150;'k1',150;'a2',1/Nmapk;...
+            'd2',150;'k2',150;'a3',1/Nmapk;'d3',150;'k3',150;'a4',1/Nmapk;...
+            'd4',150;'k4',150;'a5',1/Nmapk;'d5',150;'k5',150;'a6',1/Nmapk;...
+            'd6',150;'k6',150;'a7',1/Nmapk;'d7',150;'k7',150;'a8',1/Nmapk;...
+            'd8',150;'k8',150;'a9',1/Nmapk;'d9',150;'k9',150;'a10',1/Nmapk;...
+            'd10',150;'k10', 150};
+        Model.species = {'E1';'E2';'KKPase';'KPase';'KKK';'KKKp';'KK';...
             'KKp';'KKpp';'K';'Kp';'Kpp';'KKK_E1';'KKKp_E2';'KK_KKKp';...
             'KKp_KKPase';'KKp_KKKp';'KKpp_KKPase';'KKpp_K';'Kp_KPase';...
             'Kp_KKpp';'Kpp_KPase'};
 
-        x0 = zeros(numel(species),1);     
-        x0(strcmp(species,'E1'))     = 50;
-        x0(strcmp(species,'E2'))     = 50;
-        x0(strcmp(species,'KKPase')) = 50;
-        x0(strcmp(species,'KPase'))  = 50;
-        x0(strcmp(species,'KKK'))    = 50;
-        x0(strcmp(species,'KK'))     = 50;
-        x0(strcmp(species,'K'))      = 50;
+        Model.initialCondition = [];
+        x0 = zeros(numel(Model.species),1);     
+        x0(strcmp(Model.species,'E1'))     = 50;
+        x0(strcmp(Model.species,'E2'))     = 50;
+        x0(strcmp(Model.species,'KKPase')) = 50;
+        x0(strcmp(Model.species,'KPase'))  = 50;
+        x0(strcmp(Model.species,'KKK'))    = 50;
+        x0(strcmp(Model.species,'KK'))     = 50;
+        x0(strcmp(Model.species,'K'))      = 50;
         Model.initialCondition = x0;
 
         % MAPK reactions:
@@ -217,6 +227,10 @@ switch Name
         assert(numel(propensities) == 30, ...
         'Expected 30 MAPK reactions.');
 
+        % IMPORTANT: remove default (birth-death) SSIT reactions
+        Model.stoichiometry = zeros(numel(Model.species),0);
+        Model.propensityFunctions = {};
+
         % Add reactions to model
         for i = 1:numel(propensities)
         
@@ -227,10 +241,10 @@ switch Name
             Model = Model.addReaction(newReaction);
         
         end
-        Model.tSpan = linspace(0,10);
-        Model.fspTol = 1e-1;
+        Model.tSpan = linspace(0,10,11);
+        %Model.fspTol = 1e-1;
 	case 'EnzymaticFutile'
-        Model = SSIT;
+        Model = SSIT('Empty');
         Model.parameters = {'kplus1',40;'kplus2',1e4;'kminus1',200;...
             'kminus2',100;'kplus3',1e4;'kminus3',5000};  
         Model.species = {
@@ -241,6 +255,8 @@ switch Name
             'Efminus'   % free reverse enzyme
             'Ebminus'   % bound reverse enzyme complex
         };    
+        Model.initialCondition = [30;2;0;90;2;0];
+        
         Model.stoichiometry = [
             -1,  1,  0,  0,  0,  1
             -1,  1,  1,  0,  0,  0
@@ -249,6 +265,13 @@ switch Name
              0,  0,  0, -1,  1,  1
              0,  0,  0,  1, -1, -1
         ];  
+
+        [~,J] = sort(Model.initialCondition);
+        Model.species = Model.species(J);
+        Model.initialCondition = Model.initialCondition(J);
+        Model.stoichiometry = Model.stoichiometry(J,:);
+
+
         Model.propensityFunctions = {
             'kplus1*X*Efplus'       % X + Efplus -> Ebplus
             'kminus1*Ebplus'        % Ebplus -> X + Efplus
@@ -258,11 +281,10 @@ switch Name
             'kminus2*Ebminus'       % Ebminus -> X + Efminus 
         };  
 
-        Model.initialCondition = [30;2;0;90;2;0];
-        Model.tSpan = linspace(0,1);
-        Model.fspTol = 1e-6;
+        Model.tSpan = linspace(0,1,11);
+        %Model.fspTol = 1e-6;
     case 'Toggle2'
-        Model = SSIT;
+        Model = SSIT('Empty');
         Model.parameters = {'k1',40;'k2',20;'k3',1;'k4',1;'k5',1e-5;...
             'k6',3.5e-5;'k7',1;'k8',1};  
         Model.species = {'GeneA';'A';'GeneB';'B';'bGeneB';'bGeneA'};
@@ -277,8 +299,8 @@ switch Name
         Model.propensityFunctions = {'k1*GeneA';'k2*GeneB';'k3*A';'k4*B';...
             '(k5/2)*A*(A-1)*GeneB';'(k6/2)*B*(B-1)*GeneA';'k7*bGeneB';'k8*bGeneA'};  
         Model.initialCondition = [1;0;1;0;0;0];
-        Model.tSpan = linspace(0,100);
-        Model.fspTol = 1e-6;
+        Model.tSpan = linspace(0,30,11);
+        %Model.fspTol = 1e-6;
 	case 'Phage'
 		Model = SSIT;
         Model.parameters = {'k1',0.0069;'k2',0.0069;'k3',0.069;'k4',0.0929;'k5',0.0026;...
@@ -403,7 +425,11 @@ switch Name
             {'COR3',-1;'Cro2',1;'OR3',1}
             {'COR3',-1;'Cro2',1;'OR3',1}
             {'COR3',-1;'Cro2',1;'OR3',1}
-        };        
+        };  
+        % IMPORTANT: remove default (birth-death) SSIT reactions
+        Model.stoichiometry = zeros(numel(Model.species),0);
+        Model.propensityFunctions = {};
+
         % Add reactions to model
         for i = 1:numel(propensities)        
             newReaction = struct();
@@ -413,8 +439,8 @@ switch Name
             Model = Model.addReaction(newReaction);       
         end
         Model.initialCondition = [1;1;1;0;0;0;0;0;0;0;0];
-        Model.tSpan = linspace(0,100);
-        Model.fspTol = 1e-6;
+        Model.tSpan = linspace(0,30,11);
+        %Model.fspTol = 1e-6;
 	case 'p53'
 		Model = SSIT;
         Model.parameters = {'kp',0.5;'k1',9.963e-6;'dp',1.925e-5;'km',1.5e-3;...
@@ -432,11 +458,16 @@ switch Name
         	'km+k2*(p53^(1.8)/(kD^(1.8)+p53^(1.8)))';'k0*RNAnuc';'drc*RNAcyt';'kT*RNAcyt';...
         	'ki*MDM2cyt';'dmn*MDM2nuc*MDM2nuc';'k3*MDM2nuc*ARF';'ka';'da*ARF'};
         Model.initialCondition = [100;0;0;0;100;100;0];
-        Model.tSpan = linspace(0,1000);
-        Model.fspTol = 1e-4;
+        Model.tSpan = linspace(0,1000,11);
+        %Model.fspTol = 1e-4;
     case 'TripleRepressor'
-        Model = SSIT;
-        Model.parameters = {}; 
+        Model = SSIT('Empty');
+        Model.parameters = {'kOnA0',10;'kOnA_PA',1.5;'kOffA0',7;...
+            'kOffA_PC',2;'kOnB0',9;'kOnB_PB',4;'kOffB0',10;'kOffB_PA',4;...
+            'kOnC0',11;'kOnC_PC',1.5;'kOffC0',9;'kOffC_PB',2;'kTxA',1.5;...
+            'kTxB',1;'kTxC',1.1;'kDegMA',0.5;'kDegMB',0.3;...
+            'kDegMC',0.425;'kTlA',9.5;'kTlB',11;'kTlC',10;'kDegPA',14.5;...
+            'kDegPB',15;'kDegPC',11};
         Model.species = {'G1A';'G1B';'G1C';'MA';'MB';'MC';'PA';'PB';'PC'};    
         Model.stoichiometry = [
              1, -1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0
@@ -449,57 +480,62 @@ switch Name
              0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  0,  0, -1,  0
              0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  0,  0, -1
         ];    
-        Model.propensityFunctions = {
-            '(10 + 1.5*PA)*(1 - G1A)'
-            '(7 + 2*PC)*G1A'
-            '(9 + 4*PB)*(1 - G1B)'
-            '(10 + 4*PA)*G1B'
-            '(11 + 1.5*PC)*(1 - G1C)'
-            '(9 + 2*PB)*G1C'
-            '1.5*G1A'
-            'G1B'
-            '1.1*G1C'
-            '0.5*MA'
-            '0.3*MB'
-            '0.425*MC'
-            '9.5*MA'
-            '11*MB'
-            '10*MC'
-            '14.5*PA'
-            '15*PB'
-            '11*PC'
-        };   
+        Model.propensityFunctions = {'(kOnA0 + kOnA_PA*PA)*(1 - G1A)';...
+            '(kOffA0 + kOffA_PC*PC)*G1A';'(kOnB0 + kOnB_PB*PB)*(1 - G1B)';...
+            '(kOffB0 + kOffB_PA*PA)*G1B';'(kOnC0 + kOnC_PC*PC)*(1 - G1C)';...
+            '(kOffC0 + kOffC_PB*PB)*G1C';'kTxA*G1A';'kTxB*G1B';'kTxC*G1C';...
+            'kDegMA*MA';'kDegMB*MB';'kDegMC*MC';'kTlA*MA';'kTlB*MB';...
+            'kTlC*MC';'kDegPA*PA';'kDegPB*PB';'kDegPC*PC'};  
         Model.initialCondition = [0;0;0;0;0;0;0;0;0];
-        Model.tSpan = linspace(0,200);
-        Model.fspTol = 1e-6;
+        Model.tSpan = linspace(0,200,11);
+        %Model.fspTol = 1e-6;
 	end
 end
 
 function benchmarks = run_benchmarks(Model,opts)
 arguments
     Model
-    opts.nSims = 100000;
+    opts.nSims = 1000;
+    opts.runReductions = false;
+    opts.verbose = false;
+    opts.runParallel = false;
+    opts.verificationCode = '';
 end
 % FSP solutions
 Model.solutionScheme = 'fsp';
+Model = Model.addFSPConstraints(anticorrelatedPairs='all',correlatedPairs='all');
+
 tic
 Model = Model.formPropensitiesGeneral(Model.propensityFilePrefix);
-benchmarks.writeFSPcodes = toc;
+disp('FSP propensity function formed:')
+benchmarks.writeFSPcodes = toc
+
+Model.fspOptions.verbose = opts.verbose;
+
 
 tic
 [~,~,Model] = Model.solve;
-benchmarks.initialFSPSolve = toc;
+disp('FSP initial solve:')
+benchmarks.initialFSPSolve = toc
+
 
 tic
 [fspSoln,~,Model] = Model.solve;
-benchmarks.subsequentFSPSolve = toc;
+disp('FSP subsequent solve:')
+benchmarks.subsequentFSPSolve = toc
 
-% SSA Solutions
+if ~isempty(opts.verificationCode)
+    eval(opts.verificationCode)
+end
+
+benchmarks.fspSize = size(Model.Solutions.stateSpace.states,2);
+
+%% SSA Solutions
 Model.solutionScheme = 'ssa';
 Model.ssaOptions.Nsims = 1;
 tic
 [~,~,Model] = Model.solve;
-benchmarks.initialSSASolve_1run = toc;
+benchmarks.initialSSASolve_1run = toc
 
 Model.ssaOptions.Nsims = opts.nSims;
 Model.ssaOptions.useParallel = false;
@@ -507,49 +543,53 @@ tic
 [~,~,Model] = Model.solve;
 benchmarks.(['subsequentSSASolve_',num2str(opts.nSims),'runs_serial']) = toc;
 
-Model.ssaOptions.Nsims = opts.nSims;
-Model.ssaOptions.useParallel = true;
-tic
-[~,~,Model] = Model.solve;
-benchmarks.(['subsequentSSASolve_',num2str(opts.nSims),'runs_parallel']) = toc;
+if opts.runParallel
+    Model.ssaOptions.Nsims = opts.nSims;
+    Model.ssaOptions.useParallel = true;
+    tic
+    [~,~,Model] = Model.solve;
+    benchmarks.(['subsequentSSASolve_',num2str(opts.nSims),'runs_parallel']) = toc;
+end
 
 %% ODE Solver
 Model.solutionScheme = 'ode';
 tic
 [~,~,Model] = Model.solve;
-benchmarks.initialODEsolve = toc;
+benchmarks.initialODEsolve = toc
 
 tic
 [~,~,Model] = Model.solve;
-benchmarks.subsequentODEsolve = toc;
+benchmarks.subsequentODEsolve = toc
 
 %% Model Reduction FSP
-Model.solutionScheme = 'fsp';
+if opts.runReductions
+    Model.solutionScheme = 'fsp';
 
-Model.tSpan = linspace(min(Model.tSpan),max(Model.tSpan),150);
-[~,~,Model] = Model.solve;
+    Model.tSpan = linspace(min(Model.tSpan),max(Model.tSpan),150);
+    [~,~,Model] = Model.solve;
 
-for redOrder = [20,30,40,50]
-    Model2 = Model;
-    Model2.modelReductionOptions.useModReduction = true;
-    Model2.fspOptions.fspTol = inf;
-    Model2.modelReductionOptions.reductionType = 'POD2';
+    for redOrder = [20,30,40,50]
+        Model2 = Model;
+        Model2.modelReductionOptions.useModReduction = true;
+        Model2.fspOptions.fspTol = inf;
+        Model2.modelReductionOptions.reductionType = 'POD2';
 
-    Model2.modelReductionOptions.reductionOrder = redOrder;
+        Model2.modelReductionOptions.reductionOrder = redOrder;
 
-    tic
-    Model2 = Model2.computeModelReductionTransformMatrices();
-    benchmarks.(['PODModelReductionTime_',num2str(redOrder)]) = toc;
+        tic
+        Model2 = Model2.computeModelReductionTransformMatrices();
+        benchmarks.(['PODModelReductionTime_',num2str(redOrder)]) = toc
 
-    tic
-    [fspSoln2] = Model2.solve();
-    benchmarks.(['ReducedModelSolveTime_',num2str(redOrder)]) = toc;
+        tic
+        [fspSoln2] = Model2.solve();
+        benchmarks.(['ReducedModelSolveTime_',num2str(redOrder)]) = toc
 
-    dims = 1:fspSoln2.fsp{end}.p.dim;
-    for i = 1:length(dims)
-        PODfinalError(i) = sum(sum(abs((double(fspSoln2.fsp{end}.p.data - fspSoln.fsp{end}.p.data))),setdiff(dims,i)));
+        dims = 1:fspSoln2.fsp{end}.p.dim;
+        for i = 1:length(dims)
+            PODfinalError(i) = sum(sum(abs((double(fspSoln2.fsp{end}.p.data - fspSoln.fsp{end}.p.data))),setdiff(dims,i)));
+        end
+        benchmarks.(['ReducedModelError_',num2str(redOrder)]) = sum(PODfinalError);
     end
-    benchmarks.(['ReducedModelError_',num2str(redOrder)]) = sum(PODfinalError);
 end
 
 end

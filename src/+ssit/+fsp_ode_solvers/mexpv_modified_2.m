@@ -87,7 +87,7 @@
 %  EXPOKIT: Software Package for Computing Matrix Exponentials.
 %  ACM - Transactions On Mathematical Software, 24(1):130-156, 1998
 
-function [w, err, hump, Time_array_out, P_array, P_lost, tryagain, te, ye] = mexpv_modified_2( t, A, v, tol, m, N_prt, Time_array,fspTol,SINKS,tNow,fspErrorCondition,resetSparsity)
+function [w, err, hump, Time_array_out, P_array, P_lost, tryagain, te, ye] = mexpv_modified_2( t, A, v, tol, m, N_prt, Time_array,fspTol,SINKS,tNow,fspErrorCondition,resetSparsity,fixedEvents)
 
 [n] = size(A,1);
 if nargin == 3
@@ -137,6 +137,9 @@ if nargin ==9
 end
 if nargin<12
     resetSparsity = 0;
+end
+if nargin<13
+    fixedEvents = {};
 end
 %%
 
@@ -211,9 +214,17 @@ Acsr = struct( ...
     'val',     val_csr);
 %%
 
+if ~isempty(fixedEvents)
+    indNextFixedTime = find(fixedEvents.times>tNow,1,"first");
+    nextFixedTime = fixedEvents.times(indNextFixedTime);
+else
+    nextFixedTime = inf;
+end
+
 while tNow < t_out && i_prt<=length(Time_array)
     istep = istep + 1;
-    t_step = min(Time_array(i_prt)-tNow,t_new);
+    % step to next print time, next step size, or next fixed event time
+    t_step = min([Time_array(i_prt)-tNow,t_new,nextFixedTime-tNow]);
     k1_in = k1;
     mb_in = mb;
     t_step_in = t_step;
@@ -247,14 +258,14 @@ while tNow < t_out && i_prt<=length(Time_array)
     % toc
 
     % tic
+    orthDepth = min(m,15);
     try
         [H,V,k1,mb,t_step] = ssit.fsp_ode_solvers.mexFunctionExpokit(n,m,w,beta,Acsr,btol,...
-            Time_array(i_prt),tNow,resetSparsity,k1_in,mb_in,t_step_in);
+            Time_array(i_prt),tNow,double(resetSparsity),k1_in,mb_in,t_step_in,orthDepth);
     catch
         [H,V,k1,mb,t_step] = ssit.fsp_ode_solvers.ExpensiveTask(n,m,w,beta,A,btol,...
-            Time_array(i_prt),tNow,k1_in,mb_in,t_step_in);        
+            Time_array(i_prt),tNow,k1_in,mb_in,t_step_in,orthDepth);
     end
-    % toc
 
 
     % % [H2,V2,k1_mat,mb_mat,t_step_mat] = ExpensiveTask(n,m,w,beta,A,btol,...
@@ -348,6 +359,16 @@ while tNow < t_out && i_prt<=length(Time_array)
     roundoff = abs(1.0d0-wnorm)/n;
     
     tNow = tNow + t_step;
+
+
+    if tNow == nextFixedTime
+        disp('fixed time reached')
+        % implement fixed time effect
+        w = fixedEvents.matrices{fixedEvents.matrixInds(indNextFixedTime)}*w;
+        indNextFixedTime = find(fixedEvents.times>tNow,1,"first");
+        nextFixedTime = fixedEvents.times(indNextFixedTime);
+    end
+
     %% Changes by Brian Munsky
     tolCalc = fspTol*(tNow-fspErrorCondition.tInit)/(fspErrorCondition.tFinal-fspErrorCondition.tInit);
     if sum(w(SINKS)) > tolCalc

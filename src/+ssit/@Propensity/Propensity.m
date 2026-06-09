@@ -83,6 +83,8 @@ classdef Propensity
         DstateFactorDstate % function handle for jacobian with respect to the states.
         DhybridFactorDodesVec % function handle for jacobian with respect to the upstream odes.
 
+        specialEvent % Structure to store codes and rules to define special reaction events
+
     end
 
     methods (Access = public)
@@ -152,7 +154,9 @@ classdef Propensity
     end
     methods (Access = public, Static)
 
-        function obj = createAsHybridVec(symbolicExpression, stoichMatrix, nonXTpars, species, upstreamODEs, logicTerms, prefixName, computeSens, pathToPropensityFuns)
+        function obj = createAsHybridVec(symbolicExpression, stoichMatrix, ...
+                nonXTpars, species, upstreamODEs, logicTerms, prefixName, ...
+                computeSens, pathToPropensityFuns, isSpecialEvents)
             arguments
                 symbolicExpression
                 stoichMatrix
@@ -163,6 +167,7 @@ classdef Propensity
                 prefixName = 'default';
                 computeSens = false;
                 pathToPropensityFuns = [];
+                isSpecialEvents = [];
             end
 
             % Construct an vector of Hybrid Propensity from a symbolic expression.
@@ -210,7 +215,8 @@ classdef Propensity
                 jntFactorName = 'jointDependentFactor';
             end
 
-            n_reactions = size(stoichMatrix,2);
+            % n_reactions = size(stoichMatrix,2);
+            n_reactions  = length(symbolicExpression);
             n_pars = size(nonXTpars,1);
             speciesStoch = setdiff(species,upstreamODEs,'stable');
 
@@ -260,8 +266,18 @@ classdef Propensity
                 hybridFactor =[];
                 prefixNameLocal = [prefixName,'_',num2str(iRxn)];
 
-                obj{iRxn} = ssit.Propensity(stoichMatrix(jStochastic,iRxn), iRxn);
-                obj{iRxn}.ODEstoichVector = stoichMatrix(jODE,iRxn);
+                if isSpecialEvents(iRxn)
+                    obj{iRxn} = ssit.Propensity(ones(length(jStochastic),1), iRxn);
+                    if ~isempty(jODE)
+                        error('Special Events nor compatible with hybrid models')
+                    else
+                        obj{iRxn}.ODEstoichVector = NaN;
+                    end
+
+                else
+                    obj{iRxn} = ssit.Propensity(stoichMatrix(jStochastic,iRxn), iRxn);
+                    obj{iRxn}.ODEstoichVector = stoichMatrix(jODE,iRxn);
+                end
 
                 if ~isempty(jODE)&&~isempty(obj{iRxn}.stoichVector)&&max(abs(obj{iRxn}.stoichVector))~=0&&max(abs(obj{iRxn}.ODEstoichVector))~=0
                     warning(['Reaction ',num2str(iRxn),' changes both ODE and stochastic species. Removing effect on upstream species.'])
@@ -308,7 +324,7 @@ classdef Propensity
                             Jx(j) = max(strcmp(string(fvars(j)),speciesStoch));
                         end
                         % Jx = strcmp(TMP,speciesStoch);
-                        if (sum(Jx) > 1)
+                        if (sum(Jx) >= 1)
                             obj{iRxn}.isFactorizable = false;
                             break;
                         end
