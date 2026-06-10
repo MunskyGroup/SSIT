@@ -362,7 +362,7 @@ while tNow < t_out && i_prt<=length(Time_array)
 
 
     if tNow == nextFixedTime
-        disp('fixed time reached')
+        % disp('fixed time reached')
         % implement fixed time effect
         w = fixedEvents.matrices{fixedEvents.matrixInds(indNextFixedTime)}*w;
         indNextFixedTime = find(fixedEvents.times>tNow,1,"first");

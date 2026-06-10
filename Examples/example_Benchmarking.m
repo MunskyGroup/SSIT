@@ -1,6 +1,6 @@
 % Benchmark Examples
 clear all
-Models = {'Toggle2'};
+Models = {'TripleRepressor'};
 clear benchmarks
 for iM = 1:length(Models)
     [Model,verificationCode] = Generate_Model_from_Benchmark_Library(Models{iM});
@@ -487,7 +487,8 @@ switch Name
             'kDegMA*MA';'kDegMB*MB';'kDegMC*MC';'kTlA*MA';'kTlB*MB';...
             'kTlC*MC';'kDegPA*PA';'kDegPB*PB';'kDegPC*PC'};  
         Model.initialCondition = [0;0;0;0;0;0;0;0;0];
-        Model.tSpan = linspace(0,200,11);
+        Model.tSpan = 0;
+        Model.fspOptions.initApproxSS = true;
         %Model.fspTol = 1e-6;
 	end
 end

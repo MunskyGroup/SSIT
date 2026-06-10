@@ -270,8 +270,14 @@ while expandSS
         try
             % Compute the least negative EVP.
             warning('off')
-            [eigVec,eigVal] = eigs(jacR,1,'smallestabs');
             
+            if ~exist('eigVec','var')
+                [eigVec,eigVal]  = eigs(jacR,1,'lr');
+            elseif size(jacR,1)>length(eigVec)
+                opts.v0 = [eigVec;zeros(size(jacR,1)-length(eigVec),1)];
+                [eigVec,eigVal]  = eigs(jacR,1,'lr',opts);
+            end
+
             % Check that largest EVP is within tolerance to accept as
             % steady state. Otherwise expand further.
             if eigVal>-1e-5
@@ -305,11 +311,11 @@ while expandSS
         % Expand steady state state space if needed.
         if expandSS
             if (verbose)
-                fprintf('Expand for Steady State calculation. FSP with size %d \n',...
+                fprintf(['Expand for Steady State calculation. Largest Eval:',num2str(eigVal),' FSP with size %d \n'],...
                     stateSpace.getNumStates);
             end
             % Compute flow out from QSS vector.  Then relax bounds.
-            exitWeights = jacB*eigVec;
+            exitWeights = abs(jacB*eigVec);
             [~,constraintsToRelax] = max(exitWeights);
             constraintsToRelax = unique([constraintsToRelax;find(exitWeights/sum(exitWeights)>0.1)]);
             constraintBoundsFinal(constraintsToRelax) = 1.2*constraintBoundsFinal(constraintsToRelax);
