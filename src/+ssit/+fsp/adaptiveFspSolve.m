@@ -317,8 +317,9 @@ while expandSS
             % Compute flow out from QSS vector.  Then relax bounds.
             exitWeights = abs(jacB*eigVec);
             [~,constraintsToRelax] = max(exitWeights);
-            constraintsToRelax = unique([constraintsToRelax;find(exitWeights/sum(exitWeights)>0.1)]);
-            constraintBoundsFinal(constraintsToRelax) = 1.2*constraintBoundsFinal(constraintsToRelax);
+            % constraintsToRelax = unique([constraintsToRelax;find(exitWeights/sum(exitWeights)>0.1)]);
+            constraintsToRelax = unique([constraintsToRelax;find(exitWeights/sum(exitWeights)>1/length(exitWeights))]);
+            constraintBoundsFinal(constraintsToRelax) = 1.4*constraintBoundsFinal(constraintsToRelax);
             stateSpace = stateSpace.expand(constraintFunctions, constraintBoundsFinal);
         else
             if useReducedModel
