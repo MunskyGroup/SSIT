@@ -15,7 +15,8 @@ function [solutions, constraintBoundsFinal, stateSpace] = adaptiveFspSolve(...
     fEscape,bEscape,...
     constantJacobian,constantJacobianTime,...
     odeIntegrator,...
-    specialEvents)
+    specialEvents,...
+    minEval4SS)
 % Approximate the transient solution of the chemical master equation using
 % an adaptively expanding finite state projection (FSP).
 %
@@ -145,6 +146,7 @@ arguments
     constantJacobianTime = NaN;
     odeIntegrator = 'ode23s';
     specialEvents = [];
+    minEval4SS = 1e-3;
 end
 
 maxOutputTime = max(outputTimes);
@@ -280,7 +282,7 @@ while expandSS
 
             % Check that largest EVP is within tolerance to accept as
             % steady state. Otherwise expand further.
-            if eigVal>-1e-5
+            if eigVal>-minEval4SS
                 eigVec = eigVec/sum(eigVec);
             else
                 expandSS = true;
