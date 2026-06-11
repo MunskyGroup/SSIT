@@ -1248,12 +1248,46 @@ classdef SSIT
 
         end
 
-        function [obj] = addParameter(obj,newParameters)
+        function [obj] = addParameter(obj,newParameters,opts)
             % addParameter - add new parameter to reaction model
             % example:
             %     F = SSIT;
             %     F = F.addParameter({'kr',0.1})
-            obj.parameters =  [obj.parameters;newParameters];
+            arguments
+                obj
+                newParameters
+                opts.verbose = false
+                opts.verify = false
+            end
+            [overlap,ia,ib] = intersect(obj.parameters(:,1),newParameters(:,1));
+            inew = setdiff(1:size(newParameters,1),ib);
+            if opts.verify
+                if ~isempty(overlap)
+                    answer = questdlg(['Existing parameters contain ',string(join(overlap)),' Do you wish to overwrite?'],...
+                        'Overwrite Old Parameters', ...
+                        'Overwrite All','Add New Only','Abort','Abort');
+                    switch answer
+                        case 'Overwrite All'
+                        case 'Add New Only'
+                            if isempty(inew)
+                                disp('No new parameters to add.');
+                                return
+                            end
+                            obj = obj.addParameter(newParameters(inew,:));
+                            return
+                        case 'Abort'
+                            if opts.verbose; disp('Aborting.'); end
+                            return
+                    end
+                end
+            end
+            obj.parameters =  [obj.parameters;newParameters(inew,:)];
+            if opts.verbose&&~isempty(inew); disp(append('Added parameters: ',string(join(newParameters(inew,1))),'.')); end
+            if ~isempty(ia)
+                obj.parameters(ia,2) = newParameters(ib,2);
+                if opts.verbose; disp(append('Overwriting parameters: ',string(join(newParameters(ib,1))),'.')); end
+            end
+
         end
 
         function [obj] = changeParameter(obj,parChanges)
