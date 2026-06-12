@@ -1248,6 +1248,22 @@ classdef SSIT
 
         end
 
+        function [obj] = removeSpecies(obj,namesSpecies)
+            % removeSpecies - remove one or more species from model.
+            % example:
+            %     F = SSIT;
+            %     F = F.addSpecies('x2');
+            %     F = F.removeSpecies('x2');
+            arguments
+                obj
+                namesSpecies
+            end
+            J = ~ismember(obj.species,namesSpecies);
+            obj.species = obj.species(J);
+            obj.initialCondition = obj.initialCondition(J,:);
+            obj.stoichiometry = obj.stoichiometry(J,:);
+        end
+        
         function [obj] = addParameter(obj,newParameters,opts)
             % addParameter - add new parameter to reaction model
             % example:
@@ -1290,6 +1306,23 @@ classdef SSIT
 
         end
 
+        function par = getParameter(obj,parName)
+            % Return value of parameter by name.
+            % Example:
+            %     k = SSIT.getParameter('k')
+            arguments
+                obj
+                parName
+            end
+            j = find(strcmp(obj.parameters,parName));
+            if ~isempty(j)
+            par = obj.parameters{j,2};
+            else
+                disp(['Parameter ',parName,' not found']);
+            end
+
+        end
+        
         function [obj] = changeParameter(obj,parChanges)
             % changeParameter - change one or more parameter values by
             % name. 
@@ -1380,6 +1413,7 @@ classdef SSIT
             inds(numRxn) = false;
             obj.stoichiometry = obj.stoichiometry(:,inds);
             obj.propensityFunctions = obj.propensityFunctions(inds);
+            obj.Solutions = [];
         end
 
         function [obj] = calibratePDO(obj,dataFileName,measuredSpecies,...
@@ -5648,6 +5682,7 @@ end
                 opts.YLabel (1,1) string = "Molecule Count / Concentration"
                 opts.XLim double = []
                 opts.YLim double = []
+                opts.includePDO = false
             end
 
             solution = opts.solution;
@@ -5716,6 +5751,17 @@ end
                 fspSelIdx = selIdx;
             end
         
+            % ----- Apply PDO if requested -----
+            if opts.includePDO&&~isempty(obj.pdoOptions.PDO)
+                [~,indsObserved] = setdiff(obj.species,obj.pdoOptions.unobservedSpecies);
+                [~,indsUnObserved] = setdiff([1:length(obj.species)],indsObserved);
+                for iT = length(solution.fsp):-1:1
+                    p = solution.fsp{iT}.p.sumOver(indsUnObserved);
+                    solution.fsp{iT}.p = obj.pdoOptions.PDO.computeObservationDist(p);
+                end
+                fspSelIdx = find(strcmp(obj.species(indsObserved),obj.species(fspSelIdx)));
+            end
+
             % ----- Export FSP to plottable struct -----
             rawSol = solution;   % <- copy to compute escape CDF if needed
             if plotType=="sens"
