@@ -283,7 +283,7 @@ while expandSS
             % Check that largest EVP is within tolerance to accept as
             % steady state. Otherwise expand further.
             % if eigVal>-minEscapeRate
-            eigVec = eigVec/sum(eigVec);
+            eigVec = abs(eigVec)/sum(abs(eigVec));
             if sum(abs(jacB*eigVec))>minEscapeRate
             % else
                 expandSS = true;
@@ -294,7 +294,7 @@ while expandSS
                 [eigVec,eigVal] = eigs(jacR,1);
                 % Check that largest EVP is within tolerance to accept as
                 % steady state. Otherwise expand further.
-                eigVec = eigVec/sum(eigVec);
+                eigVec = abs(eigVec)/sum(abs(eigVec));
                 if sum(abs(jacB*eigVec))>minEscapeRate
                 % if eigVal>-1e-5
                     % eigVec = eigVec/sum(eigVec);
