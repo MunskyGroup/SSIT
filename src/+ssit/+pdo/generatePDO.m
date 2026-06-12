@@ -448,6 +448,83 @@ switch app.DistortionTypeDropDown.Value
         end
 
 
+
+    case 'FCM'
+        % In this PDO, there is assumed to be both a background
+        % fluorescence that is log-normally distributed, and a fluorescence
+        % per molecule that is normally distributed with variance equal to
+        % the mean. 
+        % Also, after the distortion the FCM data are binned into
+        % logarithmically distributed bind.
+        if length(indsObserved)>1
+            error('This PDO is only defined for a single observed  species.')
+        end
+        for ispec = 1:nSpecies
+            if maxSize(ispec)>1&&ismember(indsObserved,ispec)
+                % Get Parameters for Background
+                if isfield(app.FIMTabOutputs.PDOProperties.props,'logmeanBgd')
+                    mnBgd = app.FIMTabOutputs.PDOProperties.props.logmeanBgd;
+                else
+                    mnBgd = 0;
+                end
+                if isfield(app.FIMTabOutputs.PDOProperties.props,'logvarBgd')
+                    varBgd = app.FIMTabOutputs.PDOProperties.props.logvarBgd;
+                else
+                    varBgd = 0;
+                end
+                % Convert to Log-Normal PDF
+                TT2 = [1:2500]';
+                PBGD = [0; 1./TT2/sqrt(varBgd*2*pi).*exp(-(log(TT2)-mnBgd).^2/2/varBgd)];
+
+                % Get Fluorophore Mean and Variance
+                mnFluor = app.FIMTabOutputs.PDOProperties.props.meanFluor;
+                if isfield(app.FIMTabOutputs.PDOProperties.props,'varFluor')
+                    varFluor = app.FIMTabOutputs.PDOProperties.props.varFluor;
+                else
+                    varFluor = mnFluor;
+                end
+
+                if isfield(app.FIMTabOutputs.PDOProperties.props,'pdoOutputRange')
+                    NpG = app.FIMTabOutputs.PDOProperties.props.pdoOutputRange(ispec);
+                else
+                    NpG = inf;
+                end
+                for j = maxSize(ispec):-1:1
+                    mu = mnFluor*(j-1);
+                    sig = sqrt(varFluor*(j-1))+1e-6;
+                    
+                    Np = min(NpG,ceil(mu+4*sig+20));
+
+                    P = zeros(Np+1,1);
+                    edges = [0:max(9,Np)];
+                    P(1) = cdf('norm',.5,mu,sig);
+                    P(2:9) = cdf('norm',edges(2:9)+.5,mu,sig)-cdf('norm',edges(2:9)-.5,mu,sig);
+                    P(10:end) = pdf('norm',edges(10:end),mu,sig);
+                    P = conv(PBGD,P);
+                    C(1:Np+2501,j) = P;
+                end
+
+                binEdges = (app.FIMTabOutputs.PDOProperties.props.binCenters(2:end)+...
+                    app.FIMTabOutputs.PDOProperties.props.binCenters(1:end-1))/2;
+                kmax = find(binEdges<size(C,1)-1,1,"last");
+                D = zeros(length(binEdges)+1,size(C,1));
+                D(1,1:round(binEdges(1))+1) = 1;
+                for j = 1:kmax-1
+                    D(j+1,round(binEdges(j))+2:round(binEdges(j+1))+1) = 1;
+                end
+                D(kmax+1,round(binEdges(kmax))+2:size(C,1)) = 1;
+                conditionalPmfs{ispec} = D*C;
+
+            else
+                conditionalPmfs{ispec} = 1;
+            end
+
+        end
+
+        if variablePDO
+            error('This PDO not yet defined for derivatives.')
+        end
+
     case 'Custom Function'
         for ispec = 1:nSpecies
             if maxSize(ispec)>1
