@@ -16,7 +16,7 @@ function [solutions, constraintBoundsFinal, stateSpace] = adaptiveFspSolve(...
     constantJacobian,constantJacobianTime,...
     odeIntegrator,...
     specialEvents,...
-    minEval4SS)
+    minEscapeRate)
 % Approximate the transient solution of the chemical master equation using
 % an adaptively expanding finite state projection (FSP).
 %
@@ -146,7 +146,7 @@ arguments
     constantJacobianTime = NaN;
     odeIntegrator = 'ode23s';
     specialEvents = [];
-    minEval4SS = 1e-3;
+    minEscapeRate = 3.6e-3;
 end
 
 maxOutputTime = max(outputTimes);
@@ -282,9 +282,10 @@ while expandSS
 
             % Check that largest EVP is within tolerance to accept as
             % steady state. Otherwise expand further.
-            if eigVal>-minEval4SS
-                eigVec = eigVec/sum(eigVec);
-            else
+            % if eigVal>-minEscapeRate
+            eigVec = eigVec/sum(eigVec);
+            if sum(abs(jacB*eigVec))>minEscapeRate
+            % else
                 expandSS = true;
             end
         catch
@@ -293,9 +294,11 @@ while expandSS
                 [eigVec,eigVal] = eigs(jacR,1);
                 % Check that largest EVP is within tolerance to accept as
                 % steady state. Otherwise expand further.
-                if eigVal>-1e-5
-                    eigVec = eigVec/sum(eigVec);
-                else
+                eigVec = eigVec/sum(eigVec);
+                if sum(abs(jacB*eigVec))>minEscapeRate
+                % if eigVal>-1e-5
+                    % eigVec = eigVec/sum(eigVec);
+                % else
                     expandSS = true;
                 end
             catch
@@ -313,14 +316,14 @@ while expandSS
         % Expand steady state state space if needed.
         if expandSS
             if (verbose)
-                fprintf(['Expand for Steady State calculation. Largest Eval:',num2str(eigVal),' FSP with size %d \n'],...
+                fprintf(['Expand for Steady State calculation. Escape Rate: ',num2str(sum(jacB*eigVec)),' FSP with size %d \n'],...
                     stateSpace.getNumStates);
             end
             % Compute flow out from QSS vector.  Then relax bounds.
             exitWeights = abs(jacB*eigVec);
             [~,constraintsToRelax] = max(exitWeights);
             % constraintsToRelax = unique([constraintsToRelax;find(exitWeights/sum(exitWeights)>0.1)]);
-            constraintsToRelax = unique([constraintsToRelax;find(exitWeights/sum(exitWeights)>1/length(exitWeights))]);
+            constraintsToRelax = unique([constraintsToRelax;find(exitWeights/sum(exitWeights)>4/length(exitWeights)|exitWeights>=0.05*minEscapeRate)]);
             constraintBoundsFinal(constraintsToRelax) = 1.4*constraintBoundsFinal(constraintsToRelax);
             stateSpace = stateSpace.expand(constraintFunctions, constraintBoundsFinal);
         else

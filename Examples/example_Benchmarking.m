@@ -475,8 +475,10 @@ switch Name
         Model.initialCondition = [0;0;0;0;0;0;0;0;0];
         Model.tSpan = 0;
         Model.fspOptions.initApproxSS = true;
-        %Model.fspTol = 1e-6;
-	end
+
+        verificationCode = "Model.plotFSP(plotType='marginals')";     
+
+end
 end
 
 function benchmarks = run_benchmarks(Model,opts)
@@ -505,7 +507,6 @@ tic
 disp('FSP initial solve:')
 benchmarks.initialFSPSolve = toc
 
-
 tic
 [fspSoln,~,Model] = Model.solve;
 disp('FSP subsequent solve:')
@@ -528,7 +529,7 @@ Model.ssaOptions.Nsims = opts.nSims;
 Model.ssaOptions.useParallel = false;
 tic
 [~,~,Model] = Model.solve;
-benchmarks.(['subsequentSSASolve_',num2str(opts.nSims),'runs_serial']) = toc;
+benchmarks.(['subsequentSSASolve_',num2str(opts.nSims),'runs_serial']) = toc
 
 if opts.runParallel
     Model.ssaOptions.Nsims = opts.nSims;
@@ -539,14 +540,16 @@ if opts.runParallel
 end
 
 %% ODE Solver
-Model.solutionScheme = 'ode';
-tic
-[~,~,Model] = Model.solve;
-benchmarks.initialODEsolve = toc
+if length(Model.tSpan)>1
+    Model.solutionScheme = 'ode';
+    tic
+    [~,~,Model] = Model.solve;
+    benchmarks.initialODEsolve = toc
 
-tic
-[~,~,Model] = Model.solve;
-benchmarks.subsequentODEsolve = toc
+    tic
+    [~,~,Model] = Model.solve;
+    benchmarks.subsequentODEsolve = toc
+end
 
 %% Model Reduction FSP
 if opts.runReductions
