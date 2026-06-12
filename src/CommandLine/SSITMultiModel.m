@@ -19,21 +19,63 @@ classdef SSITMultiModel
         function SMM = SSITMultiModel(SSITMods,parIndices,parConstraints,stateSpaces)
             % SSITMultiModel Construct an instance of this class.
             arguments
-                SSITMods = [];
-                parIndices = [];
+                SSITMods = {};
+                parIndices = {};
                 parConstraints = [];
                 stateSpaces = [];
             end   
             SMM.SSITModels=SSITMods;
+
+            % Update so (SSIT).fittingOptions.modelVarsToFit corresponds to
+            % actual parameter indices and not the default 'all'.
+            for i = 1:length(SMM.SSITModels)
+                if ischar(SMM.SSITModels{i}.fittingOptions.modelVarsToFit)&&strcmpi(SMM.SSITModels{i}.fittingOptions.modelVarsToFit,'all')
+                    SMM.SSITModels{i}.fittingOptions.modelVarsToFit = [1:size(SMM.SSITModels{i}.parameters,1)];
+                end
+            end
+
+            % Check if the indices in multimodel have been supplied and if
+            % not check with user how they want to proceed.
+            if ~isempty(SSITMods)&&isempty(parIndices)
+                answer = questdlg('Parameter indices are required. Do you wish to use defaults?',...
+                    'Parameter Indices', ...
+                    'All Independent','All Identical','Abort','Abort');
+                switch answer
+                    case 'All Independent' 
+                        k = 0;
+                        for i = 1:length(SSITMods)
+                            parIndices{i} = k+[1:length(SSITMods{i}.fittingOptions.modelVarsToFit)];
+                            k = max(parIndices{i});
+                        end
+                    case 'All Identical' 
+                        for i = 1:length(SSITMods)
+                            parIndices{i} = [1:length(SSITMods{1}.fittingOptions.modelVarsToFit)];
+                        end
+                    case 'Abort'
+                        return
+                end
+
+            end
+            
             SMM.parameterIndices = parIndices;
             SMM.parameterConstraints = parConstraints;
+            
+            % Update statespaces if they are provide or are available.
             if ~isempty(stateSpaces)
                 SMM.fspStateSpaces = stateSpaces;
             else
                 nMod = length(SSITMods);
                 SMM.fspStateSpaces = cell(1,nMod);
+                for i = 1:nMod
+                    if isfield(SMM.SSITModels{i}.Solutions,'stateSpace')
+                        SMM.fspStateSpaces{i} = SMM.SSITModels{i}.Solutions.stateSpace;
+                    end
+                end
             end
             for i = 1:nMod
+                % if ischar(SMM.SSITModels{i}.fittingOptions.modelVarsToFit)&&strcmpi(SMM.SSITModels{i}.fittingOptions.modelVarsToFit,'all')
+                %     SMM.SSITModels{i}.fittingOptions.modelVarsToFit = [1:size(SMM.SSITModels{i}.parameters,1)];
+                % end
                 SMM.parameters(1,SMM.parameterIndices{i}) = ...
                     [SMM.SSITModels{i}.parameters{SMM.SSITModels{i}.fittingOptions.modelVarsToFit,2}];
             end
@@ -162,7 +204,6 @@ classdef SSITMultiModel
             end
         end
 
-
         function SMM = updateModels(SMM,parameters,makeplot, fignums)
             % Updates parameters of the models to provided values and makes
             % plots of the results.
@@ -192,6 +233,24 @@ classdef SSITMultiModel
                end
             end
             SMM.parameters = parameters;
+        end
+
+        function SMM = updateSolutions(SMM)
+            % Runs SSIT for each model and stores solution using current
+            % parameter values in multimodel. 
+            SMM = updateModels(SMM);
+            p = gcp("nocreate");
+            if isempty(p)
+                for i = 1:length(SMM.SSITModels)
+                    [~,~,SMM.SSITModels{i}] = SMM.SSITModels{i}.solve;
+                end
+            else
+                SSITModelsL = SMM.SSITModels;
+                parfor i = 1:length(SMM.SSITModels)
+                    [~,~,SSITModelsL{i}] = SSITModelsL{i}.solve;
+                end
+                SMM.SSITModels = SSITModelsL;
+            end
         end
 
         function objFuns = get.logLikelihoodFunctions(SMM)
@@ -435,6 +494,7 @@ classdef SSITMultiModel
             end
 
         end
+
         function compareParameters(SMM,fignum,relative)
             % This function makes a heatmap plot to compare parameters in a
             % multi model.  This only make sense when all of the sub-models
@@ -560,5 +620,24 @@ classdef SSITMultiModel
             parConstraints = -sum(deviation2 ./ (2 * Log10Constraints(indsFree).^2));
         end
 
+        function output = MMexecute(SMM,code)
+            % Wrapper to allow for executuion of codes on all models in a
+            % SSITMultiModel. When executed with code STRING containing
+            % wildcard Model, replaces Model and runs STRING for all models
+            % {i} in the SMM.
+            % 
+            % Example: 
+            % SMMmeansSpecies7 = SMM.MMexecute('P = double(Model.Solutions.fsp{end}.p.sumOver(1:6).data); output(i) = [0:length(P)-1]*P;') 
+            arguments
+                SMM
+                code = 'P = double(Model.Solutions.fsp{end}.p.sumOver(1:6).data); output(i) = [0:length(P)-1]*P;'
+            end
+            output = [];
+            code = strrep(code,'XXX','Model');
+            for i = 1:length(SMM.SSITModels)
+                Model = SMM.SSITModels{i};
+                eval(code);
+            end
+        end
     end
 end
