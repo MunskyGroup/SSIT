@@ -65,12 +65,15 @@ switch redType
             bins{i} = unique(floor(linspace(1,spmax(i)+1,redOrder+1)))-1;
         end
 
+        % map each state to its corresponding bin
         phi_map = zeros(nStates,nSpecies);
-        for j=1:nStates
-            for i=1:nSpecies
-                phi_map(j,i) = find(fspSoln.stateSpace.states(i,j)<=bins{i},1,"first");
-            end
+        for i = 1:nSpecies
+            phi_map(:,i) = discretize( ...
+                fspSoln.stateSpace.states(i,:), ...
+                [-Inf; bins{i}(:)], ...
+                'IncludedEdge','right')';
         end
+
         binns = max(phi_map);
         cprod = [1,cumprod(binns(1:end-1))]';
         phi_inds = (phi_map-1)*cprod+1;
@@ -101,11 +104,13 @@ switch redType
 
         % map each state to its corresponding bin
         phi_map = zeros(nStates,nSpecies);
-        for j=1:nStates
-            for i=1:nSpecies
-                phi_map(j,i) = find(fspSoln.stateSpace.states(i,j)<=bins{i},1,"first");
-            end
+        for i = 1:nSpecies
+            phi_map(:,i) = discretize( ...
+                fspSoln.stateSpace.states(i,:), ...
+                [-Inf; bins{i}(:)], ...
+                'IncludedEdge','right')';
         end
+
         binns = max(phi_map);
         cprod = [1,cumprod(binns(1:end-1))]';
         phi_inds = (phi_map-1)*cprod+1;
@@ -170,13 +175,15 @@ switch redType
             end
         end
 
-        % create map from state to corresponding bins
+        % map each state to its corresponding bin
         phi_map = zeros(nStates,nSpecies);
-        for j=1:nStates
-            for i=1:nSpecies
-                phi_map(j,i) = find(fspSoln.stateSpace.states(i,j)<=bins{i},1,"first");
-            end
+        for i = 1:nSpecies
+            phi_map(:,i) = discretize( ...
+                fspSoln.stateSpace.states(i,:), ...
+                [-Inf; bins{i}(:)], ...
+                'IncludedEdge','right')';
         end
+
         binns = max(phi_map);
         cprod = [1,cumprod(binns(1:end-1))]';
         phi_inds = (phi_map-1)*cprod+1;
@@ -273,13 +280,15 @@ switch redType
             end
         end
 
-        % create map from state to corresponding bins
+        % map each state to its corresponding bin
         phi_map = zeros(nStates,nSpecies);
-        for j=1:nStates
-            for i=1:nSpecies
-                phi_map(j,i) = find(fspSoln.stateSpace.states(i,j)<=bins{i},1,"first");
-            end
+        for i = 1:nSpecies
+            phi_map(:,i) = discretize( ...
+                fspSoln.stateSpace.states(i,:), ...
+                [-Inf; bins{i}(:)], ...
+                'IncludedEdge','right')';
         end
+
         binns = max(phi_map);
         cprod = [1,cumprod(binns(1:end-1))]';
         phi_inds = (phi_map-1)*cprod+1;
