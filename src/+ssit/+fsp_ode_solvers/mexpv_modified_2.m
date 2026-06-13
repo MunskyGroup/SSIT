@@ -258,7 +258,12 @@ while tNow < t_out && i_prt<=length(Time_array)
     % toc
 
     % tic
-    orthDepth = min(m,15);
+    if nr<500
+        orthDepth = m;%min(m,15);
+    else
+        orthDepth = min(m,15);
+    end
+
     try
         [H,V,k1,mb,t_step] = ssit.fsp_ode_solvers.mexFunctionExpokit(n,m,w,beta,Acsr,btol,...
             Time_array(i_prt),tNow,double(resetSparsity),k1_in,mb_in,t_step_in,orthDepth);
@@ -266,28 +271,6 @@ while tNow < t_out && i_prt<=length(Time_array)
         [H,V,k1,mb,t_step] = ssit.fsp_ode_solvers.ExpensiveTask(n,m,w,beta,A,btol,...
             Time_array(i_prt),tNow,k1_in,mb_in,t_step_in,orthDepth);
     end
-
-
-    % % [H2,V2,k1_mat,mb_mat,t_step_mat] = ExpensiveTask(n,m,w,beta,A,btol,...
-    % %     Time_array(i_prt),tNow,resetSparsity,k1_in,mb_in,t_step_in);
-    % 
-    % Hdiff = abs(H-H2);
-    % Vdiff = abs(V-V2);
-    % [maxHdiff, idxH] = max(Hdiff(:));
-    % [maxVdiff, idxV] = max(Vdiff(:));
-    % [rowH, colH] = ind2sub(size(Hdiff), idxH);
-    % [rowV, colV] = ind2sub(size(Vdiff), idxV);
-    % fprintf('max|H diff| = %.3e at (%d,%d): mex=%.16e matlab=%.16e\n', ...
-    %     maxHdiff, rowH, colH, H(rowH,colH), H2(rowH,colH));
-    % fprintf('max|V diff| = %.3e at (%d,%d): mex=%.16e matlab=%.16e\n', ...
-    %     maxVdiff, rowV, colV, V(rowV,colV), V2(rowV,colV));
-    % % fprintf('outputs mex=[k1=%g mb=%g t_step=%.16e], matlab=[k1=%g mb=%g t_step=%.16e]\n', ...
-    % %     k1_mex, mb_mex, t_step_mex, k1_mat, mb_mat, t_step_mat);
-    % % 
-    % % k1 = k1_mex;
-    % % mb = mb_mex;
-    % % t_step = t_step_mex;
-
    
     if k1 ~= 0
         H(m+2,m+1) = 1;

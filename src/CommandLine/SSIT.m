@@ -730,7 +730,6 @@ classdef SSIT
                     end
                 end
             end
-
         end
 
         function constraints = get.fspConstraints(obj)
@@ -765,6 +764,9 @@ classdef SSIT
             else
                 constraints.b = obj.fspOptions.bounds;
             end
+            
+            % update constraints based on initial condition.
+            constraints.b = max(constraints.b,constraints.f(obj.initialCondition)); 
 
             % Define polynomial constraints for first passage time sinks
             % (i.e., states corresponding to boundaries that we are trying
@@ -1275,7 +1277,11 @@ classdef SSIT
                 opts.verbose = false
                 opts.verify = false
             end
-            [overlap,ia,ib] = intersect(obj.parameters(:,1),newParameters(:,1));
+            if ~isempty(obj.parameters)
+                [overlap,ia,ib] = intersect(obj.parameters(:,1),newParameters(:,1));
+            else
+                overlap = []; ia =[]; ib = [];
+            end
             inew = setdiff(1:size(newParameters,1),ib);
             if opts.verify
                 if ~isempty(overlap)
