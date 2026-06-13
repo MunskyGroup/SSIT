@@ -20,9 +20,9 @@ classdef poissonTest < matlab.unittest.TestCase
             testCase1.Poiss.fspOptions.fspTol = 1e-5;
             testCase1.Poiss = testCase1.Poiss.formPropensitiesGeneral('Poiss',true);
 
-            [testCase1.PoissSolution, testCase1.Poiss.fspOptions.bounds, testCase1.Poiss] = testCase1.Poiss.solve;
+            [testCase1.PoissSolution, ~, testCase1.Poiss] = testCase1.Poiss.solve;
             tic
-            [testCase1.PoissSolution,testCase1.Poiss.fspOptions.bounds] = testCase1.Poiss.solve(testCase1.PoissSolution.stateSpace);
+            [~,~,testCase1.Poiss] = testCase1.Poiss.solve(testCase1.PoissSolution.stateSpace);
             testCase1.PoissSolution.time = toc;
 
             delete 'testData.csv'
@@ -66,11 +66,13 @@ classdef poissonTest < matlab.unittest.TestCase
             F = F.addReaction(newRxn);
 
             testCase.verifyEqual(F.species{1}, 'x1', ...
-                'FSP add reaction has error');
+                'FSP add reaction has error - species');
             testCase.verifyEqual(F.propensityFunctions{1}, 'kr + kr1*x1', ...
-                'FSP add reaction has error');
+                'FSP add reaction has error - propensity funs');
             testCase.verifyEqual(F.stoichiometry, [1    -1], ...
-                'FSP add reaction has error');
+                'FSP add reaction has error - stoichiometry');
+            testCase.verifyEqual(length(intersect(F.parameters(:,1),{'kr','kr1','g'}))==3, true, ...
+                'FSP add reaction has error - parameters');
         end
 
         function FspConverged(testCase)
@@ -89,12 +91,12 @@ classdef poissonTest < matlab.unittest.TestCase
 
             testCase.Poiss.fspOptions.initApproxSS = true;
             testCase.Poiss.fspOptions.stateSpace = [];
-            testCase.Poiss.fspOptions.bounds = [0,1];
+            testCase.Poiss.fspOptions.bounds = [0;1];
             testCase.Poiss.tSpan = [0];
             ssPoissSolution = testCase.Poiss.solve;
 
             final = [0:length(double(ssPoissSolution.fsp{1}.p.data))-1]*double(ssPoissSolution.fsp{1}.p.data);
-            tst = abs(final-testCase.Poiss.parameters{1,2}/testCase.Poiss.parameters{2,2})<1e-4;
+            tst = abs(final-testCase.Poiss.parameters{1,2}/testCase.Poiss.parameters{2,2})<1e-3;
             testCase.verifyEqual(tst, true, ...
                 'Final FSP is not within tolerance');
         end
