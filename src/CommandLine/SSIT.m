@@ -732,6 +732,29 @@ classdef SSIT
             end
         end
 
+        function obj = ssaInitializeConstraints(obj,n)
+            % Initialize FSP constraints using a set of n SSA runs.
+            arguments
+                obj
+                n = 100
+            end
+            obj2 = obj;
+            obj2.solutionScheme = 'ssa';
+            obj2.ssaOptions.Nsims = n;
+
+            if obj2.fspOptions.initApproxSS
+                obj2.tSpan = linspace(0,1000,101);
+            end
+            X = obj2.solve;
+
+            obj.solutionScheme = 'fsp';
+            obj.fspOptions.bounds = ...
+                max(abs(obj.fspConstraints.f(reshape(X.trajs,size(X.trajs,1),[]))),[],2);
+            obj.fspOptions.bounds(1:length(obj.species),1) = 0;
+            obj.fspOptions.bounds(length(obj.species)+1:2*length(obj.species),1) = ...
+                max(0.99,obj.fspOptions.bounds(length(obj.species)+1:2*length(obj.species),1));
+
+        end
         function constraints = get.fspConstraints(obj)
             % Makes a list of FSP constraints that can be used by the FSP
             % solver.
