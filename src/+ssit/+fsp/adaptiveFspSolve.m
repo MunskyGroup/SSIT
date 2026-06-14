@@ -479,7 +479,7 @@ while (tNow < maxOutputTime)
             end
 
             if odeSolver == "expokit"
-                solver = ssit.fsp_ode_solvers.Expokit(min(300,max(30,ceil(length(jac)/300))),absTol);
+                solver = ssit.fsp_ode_solvers.Expokit(min(50,max(30,ceil(length(jac)/300))),absTol);
             elseif odeSolver == "expokitPiecewise"
                 if constantJacobian
                     solver = ssit.fsp_ode_solvers.Expokit(30,absTol);
