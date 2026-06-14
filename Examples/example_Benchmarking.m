@@ -1,14 +1,43 @@
 % Benchmark Examples
-clear all
-Models = {'TripleRepressor'};
-clear benchmarks
+Models = {'Toggle'};
+% NAME      Model Time      Computation Time (Repeat Time)
+% Toggle:   (tf = 30)       ~ 21  (13) s
+%           (tf = 100)      ~ 66  (56) s
+% Pap:      (tf=10)         ~ 3.5 (0.066) s
+%           (tf=100)        ~ 3.7 (0.018) s
+% Goutsias: (tf=100)        ~ 5.5 (0.37) s 
+%           (tf=300)        ~ 59  (30) s
+% BirthDeath: (tf=10)       ~ 4.2 (0.44) s 
+% GeneExpression: (tf=10)   ~ 132 (82) s 
+% MichaelisMenten: (tf=70)  ~ 7.3 (3.3) s 
+% Toggle2:  (tf=30)         ~ 4.7 (0.38) s 
+% Phage:    (tf=30)         ~ 5.5 (0.32) s 
+
+% LONGER EXAMPLES
+% NAME      Model Time      Computation Time (Repeat Time)
+% Goutsias: (tf=1000)       ~ 3200 (3200) s 
+% TripleRepressor:  (tf=SS) ~ 1820 (250) s
+
+
+%%
+% clear benchmarks
 for iM = 1:length(Models)
-    [Model,verificationCode] = Generate_Model_from_Benchmark_Library(Models{iM});
+    [Model,verificationCode,timeSets] = Generate_Model_from_Benchmark_Library(Models{iM});
     Model.propensityFilePrefix = Models{iM};
-    benchmarks.(Models{iM}) = run_benchmarks(Model,verbose=true,verificationCode=verificationCode);
+    for iT = 1:length(timeSets)
+        if timeSets(iT)>0
+            Model.tSpan = linspace(0,timeSets(iT),11);
+        else
+            Model.tSpan = 0;
+        end
+        benchmarks.([Models{iM},'_',num2str(timeSets(iT))]) = ...
+            run_benchmarks(Model,verbose=true, ...
+            verificationCode=verificationCode, ...
+            ssaInitialize=true);
+    end
 end
 
-function [Model,verificationCode] = Generate_Model_from_Benchmark_Library(Name)
+function [Model,verificationCode,timeSets] = Generate_Model_from_Benchmark_Library(Name)
 arguments
     Name
 end
@@ -24,7 +53,9 @@ switch Name
            					    0, 0,-1,1];
         Model.propensityFunctions = {'d1*U';'a1/(1+V^b)';'d2*V';'a2/(1+U^g)'};
         Model.initialCondition = [100;0];
-        Model.tSpan = linspace(0,100,11);
+        timeSets = [30,100];
+        verificationCode = "Model.plotFSP(plotType = 'marginals',indTimes=length(Model.tSpan))";
+
     case 'Pap'
         Model = SSIT('Empty'); 
         Model.parameters = {'LRPtot',100;'k1',1;'k2a',0.25;'k2b',2.25;...
@@ -60,7 +91,10 @@ switch Name
         % one free DNA template, two free LRP molecules, zero PapI.
         Model.initialCondition = [1;0;0;0;2;0];   
         Model.tSpan = linspace(0,10,11);
+        timeSets = [10,100];
         %Model.fspTol = 1e-5;
+        verificationCode = "Model.plotFSP(plotType = 'marginals',indTimes=length(Model.tSpan),speciesNames='PapI')";
+
 	case 'Goutsias'
 		Model = SSIT('Empty');
         Model.parameters = {'k1',0.043;'k2',0.0007;'k3',0.0715;'k4',0.0039;'k5',0.012e9/(6.0221415e23*1e-15);...
@@ -76,10 +110,14 @@ switch Name
         	'k6*DNAD';'k7*DNAD*D';'k8*DNA2D';'(k9/2)*M*(M-1)';'k10*D'};
         Model.customConstraintFuns = {'(DNAD + DNA + DNA2D - 2).^2'};
         Model.initialCondition = [6;2;2;0;0;0];
-        Model.tSpan = linspace(0,1000,11);
+        Model.tSpan = linspace(0,100,11);
         verificationCode = "Model.plotFSP(plotType = 'marginals',indTimes=length(Model.tSpan),speciesNames='D')";     
+        timeSets = [100,300];
+    case 'Goutsias_1000'
+        [Model,verificationCode] = Generate_Model_from_Benchmark_Library('Goutsias');
+        timeSets = 1000;
+        Model.tSpan = linspace(0,1000,11);
 
-        %Model.fspTol = 1e-6;
 	case 'BirthDeath'
 		Model = SSIT('Empty');
         Model.parameters = {'bk',1000;'dk',1};
@@ -87,7 +125,8 @@ switch Name
         Model.stoichiometry = [1,-1];
         Model.propensityFunctions = {'bk';'dk*X'};
         Model.initialCondition = 0;
-        Model.tSpan = linspace(0,10,11);
+        timeSets = 10;
+        verificationCode = "Model.plotFSP(plotType = 'marginals',indTimes=length(Model.tSpan),speciesNames='X')";     
         %Model.fspTol = 1e-6;
 	case 'GeneExpression'
 		Model = SSIT('Empty');
@@ -97,7 +136,8 @@ switch Name
            					   0,1,0,-1];
         Model.propensityFunctions = {'t1';'t2*M';'t3*M';'t4*P'};
         Model.initialCondition = [0;0];
-        Model.tSpan = linspace(0,100);
+        timeSets = 100;
+        verificationCode = "Model.plotFSP(plotType = 'marginals',indTimes=length(Model.tSpan))";     
         %Model.fspTol = 1e-6;
     case 'MichaelisMenten'
         Model = SSIT('Empty');
@@ -111,8 +151,196 @@ switch Name
         ];   
         Model.propensityFunctions = {'k1*S*E';'k2*ES';'k3*ES'};    
         Model.initialCondition = [100;1000;0;0];  
-        Model.tSpan = linspace(0,70,11);
-        %Model.fspTol = 1e-5;
+        timeSets = 70;
+        verificationCode = "Model.plotFSP(plotType = 'marginals',indTimes=length(Model.tSpan))";     
+    case 'Toggle2'
+        Model = SSIT('Empty');
+        Model.parameters = {'k1',40;'k2',20;'k3',1;'k4',1;'k5',1e-5;...
+            'k6',3.5e-5;'k7',1;'k8',1};  
+        Model.species = {'GeneA';'GeneB';'A';'B';'bGeneB';'bGeneA'};
+        Model.stoichiometry = [
+             0,  0,  0,  0,  0, -1,  0,  1            
+             0,  0,  0,  0, -1,  0,  1,  0
+             1,  0, -1,  0, -2,  0,  2,  0
+             0,  1,  0, -1,  0, -2,  0,  2
+             0,  0,  0,  0,  1,  0, -1,  0
+             0,  0,  0,  0,  0,  1,  0, -1
+        ];
+        Model.propensityFunctions = {'k1*GeneA';'k2*GeneB';'k3*A';'k4*B';...
+            '(k5/2)*A*(A-1)*GeneB';'(k6/2)*B*(B-1)*GeneA';'k7*bGeneB';'k8*bGeneA'};  
+        Model.initialCondition = [1;1;0;0;0;0];
+        timeSets = 30;
+        verificationCode = "Model.plotFSP(plotType = 'marginals',indTimes=length(Model.tSpan),speciesNames={'A','B'})";     
+	case 'Phage'
+		Model = SSIT('Empty');
+        Model.parameters = {'k1',0.0069;'k2',0.0069;'k3',0.069;'k4',0.0929;'k5',0.0026;...
+        	'k6',0.0025;'k7',0.021;'k8',0.021;'k9',0.021;'k10',0.021;'k11',0.021;...
+        	'k12',0.021;'k13',0.00898;'k14',0.00011;'k15',0.01242;'k16',0.00011;...
+        	'k17',0.00898;'k18',0.2297;'k19',0.0029;'k20',0.0021;'k21',0.0029;...
+        	'k22',0.2297;'k23',0.2297;'k24',0.2297;'k25',0.0029;'k26',0.0021;...
+        	'k27',1.13;'k28',0.0106;'k29',0.0106;'k30',0.0106;'k31',1.13;'k32',0.0202;...
+        	'k33',0.0202;'k34',0.0040;'k35',0.0040;'k36',0.0040;'k37',0.1413;...
+        	'k38',0.1413;'k39',0.1413;'k40',0.1413;'k41',0.0279;'k42',0.053;...
+        	'k43',0.0328;'k44',0.053;'k45',0.0279;'k46',0.0022;'k47',0.0022;...
+        	'k48',0.0008;'k49',0.0008;'k50',0.003};
+        Model.species = {'OR1';'OR2';'OR3';'COR1';'COR2';'COR3';'ROR1';'ROR2';'ROR3';...
+        	'CI2';'Cro2'};
+        propensities = {
+            'k1*OR3*OR2'
+            'k2*OR3*COR2'
+            'k3*OR3*ROR2'
+            'k4*OR1*OR2'
+            'k5*CI2'
+            'k6*Cro2'
+        
+            'k7*CI2*OR1'
+            'k8*CI2*OR2'
+            'k9*CI2*OR3'
+            'k10*Cro2*OR1'
+            'k11*Cro2*OR2'
+            'k12*Cro2*OR3'
+        
+            'k13*ROR1*OR2'
+            'k14*ROR1*ROR2*OR3'
+            'k15*ROR1*ROR2*ROR3'
+            'k16*ROR1*ROR2*COR3'
+            'k17*ROR1*COR2'
+        
+            'k18*ROR2*OR1*OR3'
+            'k19*ROR2*ROR1*OR3'
+            'k20*ROR2*OR1*ROR3'
+            'k21*ROR2*ROR1*ROR3'
+            'k22*ROR2*COR1*OR3'
+            'k23*ROR2*OR1*COR3'
+            'k24*ROR2*COR1*COR3'
+            'k25*ROR2*ROR1*COR3'
+            'k26*ROR2*COR1*ROR3'
+        
+            'k27*ROR3*OR2'
+            'k28*ROR3*ROR2*OR1'
+            'k29*ROR3*ROR2*ROR1'
+            'k30*ROR3*ROR2*COR1'
+            'k31*ROR3*COR2'
+        
+            'k32*COR1*OR2'
+            'k33*COR1*ROR2'
+            'k34*COR1*COR2*OR3'
+            'k35*COR1*COR2*ROR3'
+            'k36*COR1*COR2*COR3'
+        
+            'k37*COR2*OR1*OR3'
+            'k38*COR2*ROR1*OR3'
+            'k39*COR2*OR1*ROR3'
+            'k40*COR2*ROR1*ROR3'
+            'k41*COR2*COR1*OR3'
+            'k42*COR2*OR1*COR3'
+            'k43*COR2*COR1*COR3'
+            'k44*COR2*ROR1*COR3'
+            'k45*COR2*COR1*ROR3'
+        
+            'k46*COR3*OR2'
+            'k47*COR3*ROR2'
+            'k48*COR3*COR2*OR1'
+            'k49*COR3*COR2*ROR1'
+            'k50*COR3*COR2*COR1'
+        };
+        stoichiometries = {
+            {'CI2',1}
+            {'CI2',1}
+            {'CI2',1}
+            {'Cro2',1}
+            {'CI2',-1}
+            {'Cro2',-1}
+            {'CI2',-1;'OR1',-1;'ROR1',1}
+            {'CI2',-1;'OR2',-1;'ROR2',1}
+            {'CI2',-1;'OR3',-1;'ROR3',1}
+            {'Cro2',-1;'OR1',-1;'COR1',1}
+            {'Cro2',-1;'OR2',-1;'COR2',1}
+            {'Cro2',-1;'OR3',-1;'COR3',1}
+            {'ROR1',-1;'CI2',1;'OR1',1}
+            {'ROR1',-1;'CI2',1;'OR1',1}
+            {'ROR1',-1;'CI2',1;'OR1',1}
+            {'ROR1',-1;'CI2',1;'OR1',1}
+            {'ROR1',-1;'CI2',1;'OR1',1}
+            {'ROR2',-1;'CI2',1;'OR2',1}
+            {'ROR2',-1;'CI2',1;'OR2',1}
+            {'ROR2',-1;'CI2',1;'OR2',1}
+            {'ROR2',-1;'CI2',1;'OR2',1}
+            {'ROR2',-1;'CI2',1;'OR2',1}
+            {'ROR2',-1;'CI2',1;'OR2',1}
+            {'ROR2',-1;'CI2',1;'OR2',1}
+            {'ROR2',-1;'CI2',1;'OR2',1}
+            {'ROR2',-1;'CI2',1;'OR2',1}
+            {'ROR3',-1;'CI2',1;'OR3',1}
+            {'ROR3',-1;'CI2',1;'OR3',1}
+            {'ROR3',-1;'CI2',1;'OR3',1}
+            {'ROR3',-1;'CI2',1;'OR3',1}
+            {'ROR3',-1;'CI2',1;'OR3',1}
+            {'COR1',-1;'Cro2',1;'OR1',1}
+            {'COR1',-1;'Cro2',1;'OR1',1}
+            {'COR1',-1;'Cro2',1;'OR1',1}
+            {'COR1',-1;'Cro2',1;'OR1',1}
+            {'COR1',-1;'Cro2',1;'OR1',1}
+            {'COR2',-1;'Cro2',1;'OR2',1}
+            {'COR2',-1;'Cro2',1;'OR2',1}
+            {'COR2',-1;'Cro2',1;'OR2',1}
+            {'COR2',-1;'Cro2',1;'OR2',1}
+            {'COR2',-1;'Cro2',1;'OR2',1}
+            {'COR2',-1;'Cro2',1;'OR2',1}
+            {'COR2',-1;'Cro2',1;'OR2',1}
+            {'COR2',-1;'Cro2',1;'OR2',1}
+            {'COR2',-1;'Cro2',1;'OR2',1}
+            {'COR3',-1;'Cro2',1;'OR3',1}
+            {'COR3',-1;'Cro2',1;'OR3',1}
+            {'COR3',-1;'Cro2',1;'OR3',1}
+            {'COR3',-1;'Cro2',1;'OR3',1}
+            {'COR3',-1;'Cro2',1;'OR3',1}
+        };  
+
+        % Add reactions to model
+        for i = 1:numel(propensities)        
+            newReaction = struct();
+            newReaction.propensity = propensities{i};
+            newReaction.stoichiometry = stoichiometries{i};
+
+            Model = Model.addReaction(newReaction);       
+        end
+        Model.initialCondition = [1;1;1;0;0;0;0;0;0;0;0];
+        timeSets = 30;
+        verificationCode = "Model.plotFSP(plotType = 'marginals',indTimes=length(Model.tSpan),speciesNames={'Cro2','CI2'})";
+
+    case 'TripleRepressor'
+        Model = SSIT('Empty');
+        Model.parameters = {'kOnA0',10;'kOnA_PA',1.5;'kOffA0',7;...
+            'kOffA_PC',2;'kOnB0',9;'kOnB_PB',4;'kOffB0',10;'kOffB_PA',4;...
+            'kOnC0',11;'kOnC_PC',1.5;'kOffC0',9;'kOffC_PB',2;'kTxA',1.5;...
+            'kTxB',1;'kTxC',1.1;'kDegMA',0.5;'kDegMB',0.3;...
+            'kDegMC',0.425;'kTlA',9.5;'kTlB',11;'kTlC',10;'kDegPA',14.5;...
+            'kDegPB',15;'kDegPC',11};
+        Model.species = {'G1A';'G1B';'G1C';'MA';'MB';'MC';'PA';'PB';'PC'};    
+        Model.stoichiometry = [
+             1, -1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0
+             0,  0,  1, -1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0
+             0,  0,  0,  0,  1, -1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0
+             0,  0,  0,  0,  0,  0,  1,  0,  0, -1,  0,  0,  0,  0,  0,  0,  0,  0
+             0,  0,  0,  0,  0,  0,  0,  1,  0,  0, -1,  0,  0,  0,  0,  0,  0,  0
+             0,  0,  0,  0,  0,  0,  0,  0,  1,  0,  0, -1,  0,  0,  0,  0,  0,  0
+             0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  0,  0, -1,  0,  0
+             0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  0,  0, -1,  0
+             0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  0,  0, -1
+        ];    
+        Model.propensityFunctions = {'(kOnA0 + kOnA_PA*PA)*(1 - G1A)';...
+            '(kOffA0 + kOffA_PC*PC)*G1A';'(kOnB0 + kOnB_PB*PB)*(1 - G1B)';...
+            '(kOffB0 + kOffB_PA*PA)*G1B';'(kOnC0 + kOnC_PC*PC)*(1 - G1C)';...
+            '(kOffC0 + kOffC_PB*PB)*G1C';'kTxA*G1A';'kTxB*G1B';'kTxC*G1C';...
+            'kDegMA*MA';'kDegMB*MB';'kDegMC*MC';'kTlA*MA';'kTlB*MB';...
+            'kTlC*MC';'kDegPA*PA';'kDegPB*PB';'kDegPC*PC'};  
+        Model.initialCondition = [0;0;0;0;0;0;0;0;0];
+        Model.tSpan = 0;
+        Model.fspOptions.initApproxSS = true;
+
+        verificationCode = "Model.plotFSP(plotType='marginals')";     
+
 	case 'MAPK'
 		Model = SSIT('Empty');
         Nmapk = 50;
@@ -272,161 +500,6 @@ switch Name
 
         Model.tSpan = linspace(0,1);
         %Model.fspTol = 1e-6;
-    case 'Toggle2'
-        Model = SSIT('Empty');
-        Model.parameters = {'k1',40;'k2',20;'k3',1;'k4',1;'k5',1e-5;...
-            'k6',3.5e-5;'k7',1;'k8',1};  
-        Model.species = {'GeneA';'GeneB';'A';'B';'bGeneB';'bGeneA'};
-        Model.stoichiometry = [
-             0,  0,  0,  0,  0, -1,  0,  1            
-             0,  0,  0,  0, -1,  0,  1,  0
-             1,  0, -1,  0, -2,  0,  2,  0
-             0,  1,  0, -1,  0, -2,  0,  2
-             0,  0,  0,  0,  1,  0, -1,  0
-             0,  0,  0,  0,  0,  1,  0, -1
-        ];
-        Model.propensityFunctions = {'k1*GeneA';'k2*GeneB';'k3*A';'k4*B';...
-            '(k5/2)*A*(A-1)*GeneB';'(k6/2)*B*(B-1)*GeneA';'k7*bGeneB';'k8*bGeneA'};  
-        Model.initialCondition = [1;1;0;0;0;0];
-        Model.tSpan = linspace(0,30,11);
-        %Model.fspTol = 1e-6;
-	case 'Phage'
-		Model = SSIT('Empty');
-        Model.parameters = {'k1',0.0069;'k2',0.0069;'k3',0.069;'k4',0.0929;'k5',0.0026;...
-        	'k6',0.0025;'k7',0.021;'k8',0.021;'k9',0.021;'k10',0.021;'k11',0.021;...
-        	'k12',0.021;'k13',0.00898;'k14',0.00011;'k15',0.01242;'k16',0.00011;...
-        	'k17',0.00898;'k18',0.2297;'k19',0.0029;'k20',0.0021;'k21',0.0029;...
-        	'k22',0.2297;'k23',0.2297;'k24',0.2297;'k25',0.0029;'k26',0.0021;...
-        	'k27',1.13;'k28',0.0106;'k29',0.0106;'k30',0.0106;'k31',1.13;'k32',0.0202;...
-        	'k33',0.0202;'k34',0.0040;'k35',0.0040;'k36',0.0040;'k37',0.1413;...
-        	'k38',0.1413;'k39',0.1413;'k40',0.1413;'k41',0.0279;'k42',0.053;...
-        	'k43',0.0328;'k44',0.053;'k45',0.0279;'k46',0.0022;'k47',0.0022;...
-        	'k48',0.0008;'k49',0.0008;'k50',0.003};
-        Model.species = {'OR1';'OR2';'OR3';'COR1';'COR2';'COR3';'ROR1';'ROR2';'ROR3';...
-        	'CI2';'Cro2'};
-        propensities = {
-            'k1*OR3*OR2'
-            'k2*OR3*COR2'
-            'k3*OR3*ROR2'
-            'k4*OR1*OR2'
-            'k5*CI2'
-            'k6*Cro2'
-        
-            'k7*CI2*OR1'
-            'k8*CI2*OR2'
-            'k9*CI2*OR3'
-            'k10*Cro2*OR1'
-            'k11*Cro2*OR2'
-            'k12*Cro2*OR3'
-        
-            'k13*ROR1*OR2'
-            'k14*ROR1*ROR2*OR3'
-            'k15*ROR1*ROR2*ROR3'
-            'k16*ROR1*ROR2*COR3'
-            'k17*ROR1*COR2'
-        
-            'k18*ROR2*OR1*OR3'
-            'k19*ROR2*ROR1*OR3'
-            'k20*ROR2*OR1*ROR3'
-            'k21*ROR2*ROR1*ROR3'
-            'k22*ROR2*COR1*OR3'
-            'k23*ROR2*OR1*COR3'
-            'k24*ROR2*COR1*COR3'
-            'k25*ROR2*ROR1*COR3'
-            'k26*ROR2*COR1*ROR3'
-        
-            'k27*ROR3*OR2'
-            'k28*ROR3*ROR2*OR1'
-            'k29*ROR3*ROR2*ROR1'
-            'k30*ROR3*ROR2*COR1'
-            'k31*ROR3*COR2'
-        
-            'k32*COR1*OR2'
-            'k33*COR1*ROR2'
-            'k34*COR1*COR2*OR3'
-            'k35*COR1*COR2*ROR3'
-            'k36*COR1*COR2*COR3'
-        
-            'k37*COR2*OR1*OR3'
-            'k38*COR2*ROR1*OR3'
-            'k39*COR2*OR1*ROR3'
-            'k40*COR2*ROR1*ROR3'
-            'k41*COR2*COR1*OR3'
-            'k42*COR2*OR1*COR3'
-            'k43*COR2*COR1*COR3'
-            'k44*COR2*ROR1*COR3'
-            'k45*COR2*COR1*ROR3'
-        
-            'k46*COR3*OR2'
-            'k47*COR3*ROR2'
-            'k48*COR3*COR2*OR1'
-            'k49*COR3*COR2*ROR1'
-            'k50*COR3*COR2*COR1'
-        };
-        stoichiometries = {
-            {'CI2',1}
-            {'CI2',1}
-            {'CI2',1}
-            {'Cro2',1}
-            {'CI2',-1}
-            {'Cro2',-1}
-            {'CI2',-1;'OR1',-1;'ROR1',1}
-            {'CI2',-1;'OR2',-1;'ROR2',1}
-            {'CI2',-1;'OR3',-1;'ROR3',1}
-            {'Cro2',-1;'OR1',-1;'COR1',1}
-            {'Cro2',-1;'OR2',-1;'COR2',1}
-            {'Cro2',-1;'OR3',-1;'COR3',1}
-            {'ROR1',-1;'CI2',1;'OR1',1}
-            {'ROR1',-1;'CI2',1;'OR1',1}
-            {'ROR1',-1;'CI2',1;'OR1',1}
-            {'ROR1',-1;'CI2',1;'OR1',1}
-            {'ROR1',-1;'CI2',1;'OR1',1}
-            {'ROR2',-1;'CI2',1;'OR2',1}
-            {'ROR2',-1;'CI2',1;'OR2',1}
-            {'ROR2',-1;'CI2',1;'OR2',1}
-            {'ROR2',-1;'CI2',1;'OR2',1}
-            {'ROR2',-1;'CI2',1;'OR2',1}
-            {'ROR2',-1;'CI2',1;'OR2',1}
-            {'ROR2',-1;'CI2',1;'OR2',1}
-            {'ROR2',-1;'CI2',1;'OR2',1}
-            {'ROR2',-1;'CI2',1;'OR2',1}
-            {'ROR3',-1;'CI2',1;'OR3',1}
-            {'ROR3',-1;'CI2',1;'OR3',1}
-            {'ROR3',-1;'CI2',1;'OR3',1}
-            {'ROR3',-1;'CI2',1;'OR3',1}
-            {'ROR3',-1;'CI2',1;'OR3',1}
-            {'COR1',-1;'Cro2',1;'OR1',1}
-            {'COR1',-1;'Cro2',1;'OR1',1}
-            {'COR1',-1;'Cro2',1;'OR1',1}
-            {'COR1',-1;'Cro2',1;'OR1',1}
-            {'COR1',-1;'Cro2',1;'OR1',1}
-            {'COR2',-1;'Cro2',1;'OR2',1}
-            {'COR2',-1;'Cro2',1;'OR2',1}
-            {'COR2',-1;'Cro2',1;'OR2',1}
-            {'COR2',-1;'Cro2',1;'OR2',1}
-            {'COR2',-1;'Cro2',1;'OR2',1}
-            {'COR2',-1;'Cro2',1;'OR2',1}
-            {'COR2',-1;'Cro2',1;'OR2',1}
-            {'COR2',-1;'Cro2',1;'OR2',1}
-            {'COR2',-1;'Cro2',1;'OR2',1}
-            {'COR3',-1;'Cro2',1;'OR3',1}
-            {'COR3',-1;'Cro2',1;'OR3',1}
-            {'COR3',-1;'Cro2',1;'OR3',1}
-            {'COR3',-1;'Cro2',1;'OR3',1}
-            {'COR3',-1;'Cro2',1;'OR3',1}
-        };  
-
-        % Add reactions to model
-        for i = 1:numel(propensities)        
-            newReaction = struct();
-            newReaction.propensity = propensities{i};
-            newReaction.stoichiometry = stoichiometries{i};
-
-            Model = Model.addReaction(newReaction);       
-        end
-        Model.initialCondition = [1;1;1;0;0;0;0;0;0;0;0];
-        Model.tSpan = linspace(0,30,11);
-        %Model.fspTol = 1e-6;
 	case 'p53'
 		Model = SSIT('Empty');
         Model.parameters = {'kp',0.5;'k1',9.963e-6;'dp',1.925e-5;'km',1.5e-3;...
@@ -444,40 +517,32 @@ switch Name
         	'km+k2*(p53^(1.8)/(kD^(1.8)+p53^(1.8)))';'k0*RNAnuc';'drc*RNAcyt';'kT*RNAcyt';...
         	'ki*MDM2cyt';'dmn*MDM2nuc*MDM2nuc';'k3*MDM2nuc*ARF';'ka';'da*ARF'};
         Model.initialCondition = [100;100;100;0;0;0;0];
-        Model.tSpan = linspace(0,1000);
+        Model.tSpan = linspace(0,10,11);
+
+        % Model.solutionScheme = 'ssa';
+        % Model.ssaOptions.Nsims = 100;
+        % [~,~,Model] = Model.solve;
+        % 
+        % Model.solutionScheme = 'fsp';
+        % Model = Model.addFSPConstraints(anticorrelatedPairs='all',correlatedPairs='all');
+        % Model.fspOptions.bounds = ...
+        %     max(abs(Model.fspConstraints.f(reshape(Model.Solutions.trajs,size(Model.Solutions.trajs,1),[]))),[],2);
+        % Model.fspOptions.bounds(1:7) = -Model.fspOptions.bounds(1:7);
+        % 
+        % Model.modelReductionOptions.useModReduction = true;
+        % Model.modelReductionOptions.reductionType = 'Logarithmic State Lumping';
+        % Model.modelReductionOptions.reductionOrder = 25;
+        % 
+        % Model = Model.formPropensitiesGeneral('p53');
+        % [Model,fspSets] = Model.computeModelReductionTransformMatrices;
+        % 
+        % [~,~,Model] = Model.solve;
+        % verificationCode = "Model.plotFSP(plotType = 'marginals',indTimes=length(Model.tSpan))";
+
         %Model.fspTol = 1e-4;
-    case 'TripleRepressor'
-        Model = SSIT('Empty');
-        Model.parameters = {'kOnA0',10;'kOnA_PA',1.5;'kOffA0',7;...
-            'kOffA_PC',2;'kOnB0',9;'kOnB_PB',4;'kOffB0',10;'kOffB_PA',4;...
-            'kOnC0',11;'kOnC_PC',1.5;'kOffC0',9;'kOffC_PB',2;'kTxA',1.5;...
-            'kTxB',1;'kTxC',1.1;'kDegMA',0.5;'kDegMB',0.3;...
-            'kDegMC',0.425;'kTlA',9.5;'kTlB',11;'kTlC',10;'kDegPA',14.5;...
-            'kDegPB',15;'kDegPC',11};
-        Model.species = {'G1A';'G1B';'G1C';'MA';'MB';'MC';'PA';'PB';'PC'};    
-        Model.stoichiometry = [
-             1, -1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0
-             0,  0,  1, -1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0
-             0,  0,  0,  0,  1, -1,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0
-             0,  0,  0,  0,  0,  0,  1,  0,  0, -1,  0,  0,  0,  0,  0,  0,  0,  0
-             0,  0,  0,  0,  0,  0,  0,  1,  0,  0, -1,  0,  0,  0,  0,  0,  0,  0
-             0,  0,  0,  0,  0,  0,  0,  0,  1,  0,  0, -1,  0,  0,  0,  0,  0,  0
-             0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  0,  0, -1,  0,  0
-             0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  0,  0, -1,  0
-             0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  0,  1,  0,  0, -1
-        ];    
-        Model.propensityFunctions = {'(kOnA0 + kOnA_PA*PA)*(1 - G1A)';...
-            '(kOffA0 + kOffA_PC*PC)*G1A';'(kOnB0 + kOnB_PB*PB)*(1 - G1B)';...
-            '(kOffB0 + kOffB_PA*PA)*G1B';'(kOnC0 + kOnC_PC*PC)*(1 - G1C)';...
-            '(kOffC0 + kOffC_PB*PB)*G1C';'kTxA*G1A';'kTxB*G1B';'kTxC*G1C';...
-            'kDegMA*MA';'kDegMB*MB';'kDegMC*MC';'kTlA*MA';'kTlB*MB';...
-            'kTlC*MC';'kDegPA*PA';'kDegPB*PB';'kDegPC*PC'};  
-        Model.initialCondition = [0;0;0;0;0;0;0;0;0];
-        Model.tSpan = 0;
-        Model.fspOptions.initApproxSS = true;
-
-        verificationCode = "Model.plotFSP(plotType='marginals')";     
-
+end
+if ~exist("timeSets","var")
+    timeSets = Model.tSpan(end);
 end
 end
 
@@ -489,6 +554,7 @@ arguments
     opts.verbose = false;
     opts.runParallel = false;
     opts.verificationCode = '';
+    opts.ssaInitialize = false;
 end
 % FSP solutions
 Model.solutionScheme = 'fsp';
@@ -501,8 +567,10 @@ benchmarks.writeFSPcodes = toc
 
 Model.fspOptions.verbose = opts.verbose;
 
-
 tic
+if opts.ssaInitialize
+    Model = Model.ssaInitializeConstraints(100);
+end
 [~,~,Model] = Model.solve;
 disp('FSP initial solve:')
 benchmarks.initialFSPSolve = toc
