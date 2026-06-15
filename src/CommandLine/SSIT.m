@@ -718,7 +718,9 @@ classdef SSIT
             if (isstring(opts.anticorrelatedPairs)||ischar(opts.anticorrelatedPairs))&&strcmpi(opts.anticorrelatedPairs,'all')
                 for i = 1:length(obj.species)
                     for j = i+1:length(obj.species)
-                        obj.customConstraintFuns = [obj.customConstraintFuns;['(',obj.species{i},'-3).^2.*(',obj.species{j},'-3).^2']];
+                        % obj.customConstraintFuns = [obj.customConstraintFuns;['(',obj.species{i},'-3).^2.*(',obj.species{j},'-3).^2']];
+                        % obj.customConstraintFuns = [obj.customConstraintFuns;['log(max(',obj.species{i},'-3,1))+log(max(',obj.species{j},'-3,1))']];
+                        obj.customConstraintFuns = [obj.customConstraintFuns;['log(',obj.species{i},'+1)+log(',obj.species{j},'+1)']];
                     end
                 end
             end
@@ -753,8 +755,10 @@ classdef SSIT
             obj.fspOptions.bounds(1:length(obj.species),1) = 0;
             obj.fspOptions.bounds(length(obj.species)+1:2*length(obj.species),1) = ...
                 max(0.99,obj.fspOptions.bounds(length(obj.species)+1:2*length(obj.species),1));
+            obj.fspOptions.bounds(2*length(obj.species)+1:end) = max(0.9,obj.fspOptions.bounds(2*length(obj.species)+1:end));
 
         end
+        
         function constraints = get.fspConstraints(obj)
             % Makes a list of FSP constraints that can be used by the FSP
             % solver.
@@ -789,7 +793,7 @@ classdef SSIT
             end
             
             % update constraints based on initial condition.
-            constraints.b = max(constraints.b,constraints.f(obj.initialCondition)); 
+            constraints.b = max([constraints.b,constraints.f(obj.initialCondition)],[],2); 
 
             % Define polynomial constraints for first passage time sinks
             % (i.e., states corresponding to boundaries that we are trying
@@ -916,6 +920,37 @@ classdef SSIT
                 otherwise
                     error('visualization of FSP StateSpace only supported 2D and 3D models.')
             end
+        end
+
+        function obj = continueFSP(obj,opts)
+            % This method replaces the initial condition with a previous
+            % solution of the SSIT.
+            arguments
+                obj
+                opts.fspSoln = []
+                opts.resetError = true
+            end
+            if ~isempty(opts.fspSoln)
+                F = opts.fspSoln.fsp{end};
+            elseif isfield(obj.Solutions,'fsp')
+                F = obj.Solutions.fsp{end};
+            else
+                error('SSIT.continueFSP -- A previous FSP solution is needed.')
+            end
+            obj.initialCondition = F.p.data.subs'-1;
+            P = F.p.data.vals;
+            if opts.resetError
+                obj.initialProbs(1:length(F.p.data.vals),1) = P/sum(P);
+            else
+                obj.initialProbs(1:length(F.p.data.vals),1) = P;
+                obj.fspOptions.fspTol = obj.fspOptions.fspTol*2;             
+            end
+            obj.Solutions = [];
+
+            % Shift the tSpan over.
+            obj.tSpan = obj.tSpan + max(obj.tSpan(end)-obj.tSpan(1));
+            obj.initialTime = obj.tSpan(1);
+        
         end
         %% Model Building Functions
         function [obj] = pregenModel(obj,modelFile)
@@ -1975,7 +2010,7 @@ classdef SSIT
         end
 
         function summarizeData(obj)
-            %% SSIT.summarizeData - Prints a summary of the data in SSIT model:
+            % SSIT.summarizeData - Prints a summary of the data in SSIT model:
             %
             % Input:  SSIT model
             %
@@ -1992,7 +2027,7 @@ classdef SSIT
                 return
             end
 
-            %% Header
+            % Header
             disp('------------------------------------------------------------')
             disp(['Data file: ', DATA.dataFileName])
             disp('------------------------------------------------------------')
@@ -2076,6 +2111,7 @@ classdef SSIT
 
 
         end
+
         function generateModelLibrary(obj,DataFileName,ModelSpecies,DataSpecies,...
                 Folder,ModelNames,Individual,Constraints,ModelPrefix)
             arguments
@@ -2167,25 +2203,25 @@ classdef SSIT
                 obj.sensOptions.solutionMethod='finiteDifference';
             end
             
-            try
+            % try
                 if nargout>=2
                     [Solution, bConstraints, obj] = obj.solveHelper(stateSpace,saveFile,fspSoln);
                 else
                     Solution = obj.solveHelper(stateSpace,saveFile,fspSoln);
                 end
-            catch
-                obj.propensitiesGeneral = [];
-                if strcmpi(obj.solutionScheme,'fsp')||strcmpi(obj.solutionScheme,'fspsens')
-                    newPropFileName = [obj.propensityFilePrefix,'_',char(randi([97 122]))];
-                    disp(['(Re)Forming Propensity Function Files under new name: ',newPropFileName]);
-                    obj = obj.formPropensitiesGeneral(newPropFileName);
-                end
-                if nargout>=2
-                    [Solution, bConstraints, obj] = obj.solveHelper(stateSpace,saveFile,fspSoln);
-                else
-                    Solution = obj.solveHelper(stateSpace,saveFile,fspSoln);
-                end
-            end
+            % catch
+            %     obj.propensitiesGeneral = [];
+            %     if strcmpi(obj.solutionScheme,'fsp')||strcmpi(obj.solutionScheme,'fspsens')
+            %         newPropFileName = [obj.propensityFilePrefix,'_',char(randi([97 122]))];
+            %         disp(['(Re)Forming Propensity Function Files under new name: ',newPropFileName]);
+            %         obj = obj.formPropensitiesGeneral(newPropFileName);
+            %     end
+            %     if nargout>=2
+            %         [Solution, bConstraints, obj] = obj.solveHelper(stateSpace,saveFile,fspSoln);
+            %     else
+            %         Solution = obj.solveHelper(stateSpace,saveFile,fspSoln);
+            %     end
+            % end
         end
 
         function [Solution, bConstraints, obj] = solveHelper(obj,stateSpace,saveFile,fspSoln)
@@ -8046,7 +8082,8 @@ end
 
             % Add path to SSIT.
             pth = which('SSIT');
-            pth = append('addpath(genpath(''',pth(1:end-19),'''));addpath(''tmpPropensityFunctions'');');
+            pth = append('addpath(genpath(''',pth(1:end-19),['''));' ...
+                'addpath(''',pth(1:end-22),'tmpPropensityFunctions'');']);
 
             % Add path to matlab executable
             matlabpath = fullfile(matlabroot, 'bin', 'matlab');
