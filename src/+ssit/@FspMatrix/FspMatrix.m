@@ -249,7 +249,7 @@ classdef FspMatrix
             end
             
             ANaN = isnan(A);
-            if sum(ANaN(:))>0
+            if any(ANaN,"all")
                 warning('NaNs detected and set to zero. Errors may be present.')
                 A(ANaN) = 0;
             end

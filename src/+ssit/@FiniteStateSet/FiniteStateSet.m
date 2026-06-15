@@ -21,10 +21,10 @@ classdef FiniteStateSet
     %       i via the j-th reaction.
     %
     %   outboundTransitions: 2-D array
-    %       array of size (number of states) x (number of constraints *
-    %       number of reactions). The (i,j)-th element equals 1 if
-    %       states(:,i) + stoichMatrix(:, k) violates the c-th constraint,
-    %       where j = c + (number of constraints - 1)*k.
+    %       sparse array of size (number of states) x (number of
+    %       constraints * number of reactions). The (i,j)-th element
+    %       equals 1 if states(:,i) + stoichMatrix(:, k) violates the
+    %       c-th constraint, where j = c + (number of constraints - 1)*k.
     %
     %   state2indMap: containers.Map
     %       MATLAB map object for fast state lookup. `state2indMap(x)`
@@ -83,8 +83,8 @@ classdef FiniteStateSet
             
             obj.states = states;
             obj.stoichMatrix = stoichMatrix;
-            obj.reachableIndices = zeros(size(states,2), size(stoichMatrix, 2)+length(specialEvents));
-            key_set = state2key(uint64(states));
+            obj.reachableIndices = zeros(size(states,2), size(stoichMatrix, 2)+length(specialEvents), 'int32');
+            key_set = num2cell(uint64(states), 1)';
 
             if max([key_set{:}])>1e19
                 disp({'WARNING - State index is above machine precision.';'Results may be inaccurate';'Try re-ordering species from low to high expected values'});
@@ -94,7 +94,7 @@ classdef FiniteStateSet
             obj.state2indMap = dictionary(key_set, 1:size(states,2));
             % obj.state2indMap = containers.Map(key_set, 1:size(states,2));
             % if size(obj.states,2)~=obj.state2indMap.Count
-            if size(obj.states,2)~=length(obj.state2indMap.keys)
+            if size(obj.states,2)~=obj.state2indMap.numEntries
                 error('HERE')
             end
         end
@@ -146,17 +146,34 @@ classdef FiniteStateSet
             nReactions = nRegularRxns + length(specialEvents);
             obj.numConstraints = nConstraints;
             obj.reachableIndices(obj.reachableIndices<=0) = 0;
-            obj.outboundTransitions = zeros(size(obj.states, 2), nReactions*nConstraints, 'uint8');
+            obj.outboundTransitions = sparse(size(obj.states, 2), nReactions*nConstraints);
             nSpecies = size(obj.states,1);
+            outboundRows = {};
+            outboundCols = {};
             
             % We will narrow the search to states reachable from the subset states(:, exploration_range)
             activeNodes = 1:size(obj.states,2);
             
             stop = false;
 
-            if size(obj.states,2)~=length(obj.state2indMap.keys)
+            if size(obj.states,2)~=obj.state2indMap.numEntries
                 error('Stateset does not match index map.')
             end
+
+            specialModifiers = zeros(1, length(specialEvents));
+            for eventIndex = 1:length(specialEvents)
+                if ~isfield(specialEvents(eventIndex),'type') || strcmp(specialEvents(eventIndex).type,'decay')
+                    specialModifiers(eventIndex) = -1;
+                elseif strcmp(specialEvents(eventIndex).type,'production')
+                    specialModifiers(eventIndex) = 1;
+                else
+                    error('Special Event Type not recognized -- must be "production" or "decay"')
+                end
+            end
+
+            regularChunkSize = max(1, floor(1e6 / max(nSpecies, 1)));
+            specialChunkSize = max(1, floor(1e6 / max(nSpecies * nSpecies, 1)));
+            useDirectMask = [];
 
 
             while (~stop)
@@ -168,66 +185,107 @@ classdef FiniteStateSet
                     % reach existing states through the current reaction
                     % channel
                     idxToSearch = activeNodes(obj.reachableIndices(activeNodes, k) == 0);
+                    if isempty(idxToSearch)
+                        continue
+                    end
 
                     if k<=nRegularRxns
-                        candidates = obj.states(:,idxToSearch) + repmat(obj.stoichMatrix(:, k), 1, length(idxToSearch));
+                        chunkSize = regularChunkSize;
                     else
-                        if ~isfield(specialEvents(k-nRegularRxns),'type')||strcmp(specialEvents(k-nRegularRxns).type,'decay')
-                            modifier = -1;
-                        elseif strcmp(specialEvents(k-nRegularRxns).type,'production')
-                            modifier = 1;
-                        else
-                            error('Special Event Type not recognized -- must be "production" or "decay"')
-                        end                         
-                        candidates = zeros(nSpecies,length(idxToSearch)*nSpecies);
-                        for iSp = 1:nSpecies
-                            v = zeros(nSpecies,1);
-                            v(iSp) = modifier;
-                            candidates(:,(iSp-1)*length(idxToSearch)+1:iSp*length(idxToSearch)) = ...
-                                obj.states(:,idxToSearch) + repmat(v, 1, length(idxToSearch));
-                        end
-                        idxToSearch = repmat(idxToSearch,1,nSpecies);
+                        chunkSize = specialChunkSize;
                     end
+
+                    pendingNewStates = zeros(nSpecies, 0, 'like', obj.states);
+                    pendingCount = 0;
+
+                    for idxStart = 1:chunkSize:length(idxToSearch)
+                        idxEnd = min(idxStart + chunkSize - 1, length(idxToSearch));
+                        currentIdx = idxToSearch(idxStart:idxEnd);
+                        nCurrent = length(currentIdx);
+
+                        if k<=nRegularRxns
+                            candidates = bsxfun(@plus, obj.states(:,currentIdx), obj.stoichMatrix(:, k));
+                            reactionIdx = currentIdx;
+                        else
+                            modifier = specialModifiers(k-nRegularRxns);
+                            candidates = zeros(nSpecies, nCurrent*nSpecies, 'like', obj.states);
+                            reactionIdx = repmat(currentIdx, 1, nSpecies);
+                            currentStates = obj.states(:,currentIdx);
+                            for iSp = 1:nSpecies
+                                colRange = (iSp-1)*nCurrent + (1:nCurrent);
+                                candidates(:,colRange) = currentStates;
+                                candidates(iSp,colRange) = candidates(iSp,colRange) + modifier;
+                            end
+                        end
+
+                        if isempty(useDirectMask)
+                            testCols = min(1, size(candidates,2));
+                            try
+                                testMask = fConstraints(candidates(:,1:testCols), bConstraints);
+                                useDirectMask = islogical(testMask) && isequal(size(testMask), [nConstraints, testCols]);
+                            catch
+                                useDirectMask = false;
+                            end
+                        end
+
+                        if useDirectMask
+                            outboundMask = fConstraints(candidates, bConstraints);
+                        else
+                            fVal = fConstraints(candidates);
+                            outboundMask = bsxfun(@gt, fVal, bConstraints);
+                        end
+                        [violatedConstraints, violatedCandidates] = find(outboundMask);
+                        if ~isempty(violatedConstraints)
+                            outboundRows{end+1,1} = reactionIdx(violatedCandidates(:));
+                            outboundRows{end,1} = outboundRows{end,1}(:);
+                            outboundCols{end+1,1} = violatedConstraints(:) + (k-1)*nConstraints;
+                            outboundCols{end,1} = outboundCols{end,1}(:);
+                        end
+                        constraintsCheck = reshape(~any(outboundMask, 1), 1, []);
+
+                        % compute the keys associated with the candidates
+                        keySet = num2cell(uint64(candidates), 1)';
+
+                        % check whether the candidate states already exist
+                        stateFound = isKey(obj.state2indMap, keySet);
+                        stateFound = reshape(stateFound, 1, []);
+                        if any(stateFound)
+                            stateLocations = obj.state2indMap(keySet(stateFound));
+                            obj.reachableIndices(reactionIdx(stateFound), k) = stateLocations;
+                        end
                         
-                    fVal = fConstraints(candidates);
-                    
-                    % compute the keys associated with the candidates
-                    keySet = state2key(candidates);
-                    
-                    % check whether the candidate states already exist
-                    stateFound = isKey(obj.state2indMap, keySet);
-                    % stateLocations = cell2mat(values( obj.state2indMap, keySet(stateFound) ));
-                    stateLocations = obj.state2indMap(keySet(stateFound));
-                    
-                    obj.reachableIndices(idxToSearch(stateFound), k) = stateLocations;
+                        obj.reachableIndices(reactionIdx(~constraintsCheck), k) = -1;
 
-                    obj.outboundTransitions(idxToSearch, 1 + (k-1)*nConstraints:k*nConstraints) = uint8(fVal > repmat(bConstraints, 1, size(fVal,2)))';
-                    constraintsCheck = (sum(obj.outboundTransitions(idxToSearch, 1 + (k-1)*nConstraints:k*nConstraints), 2)==0)';
-                    obj.reachableIndices(idxToSearch(constraintsCheck==0), k) = -1;
+                        newStatesCheck = ~stateFound;
+                        i_accept_new = find(constraintsCheck & newStatesCheck);
 
-                    newStatesCheck = ~stateFound;
-                    i_accept_new = find((constraintsCheck == 1) & (newStatesCheck));
+                        % Remove duplicates if any.
+                        if ~isempty(i_accept_new)
+                            [~,ia] = unique(candidates(:,i_accept_new)','stable','rows');
+                            i_accept_new = i_accept_new(ia);
+                        end
 
-                    % Remove duplicates if any.
-                    [~,ia] = unique(candidates(:,i_accept_new)','stable','rows');
-                    i_accept_new = i_accept_new(ia);
+                        if (~isempty(i_accept_new))
+                             newStateStart = size(obj.states, 2) + pendingCount;
+                             obj.reachableIndices(reactionIdx(i_accept_new), k) = newStateStart + (1:length(i_accept_new));
+                             for gh = length(i_accept_new):-1:1
+                                 obj.state2indMap(keySet(i_accept_new(gh)))=(newStateStart  + gh);
+                             end
 
-                    if (~isempty(i_accept_new))                                                
-                         obj.reachableIndices(idxToSearch(i_accept_new), k) = size(obj.states, 2) + (1:length(i_accept_new));
-                         
-                         for gh = length(i_accept_new):-1:1
-                             obj.state2indMap(keySet(i_accept_new(gh)))=(size(obj.states, 2)  + gh);
-                         end
+                            pendingBlock = candidates(:,i_accept_new);
+                            pendingNewStates = [pendingNewStates pendingBlock];
+                            pendingCount = pendingCount + size(pendingBlock, 2);
+                        end
+                    end
 
-                        obj.states = [obj.states candidates(:,i_accept_new)];
-                        obj.reachableIndices = [ obj.reachableIndices; 
-                                                 zeros(length(i_accept_new), nReactions) ];
-                        obj.outboundTransitions = [obj.outboundTransitions; 
-                                                   zeros(length(i_accept_new), nConstraints*nReactions)];
-                    end                                     
+                    if pendingCount > 0
+                        obj.states = [obj.states pendingNewStates];
+                        obj.reachableIndices = [ obj.reachableIndices;
+                                                 zeros(pendingCount, nReactions, 'int32') ];
+                    end
                 end
                 % if size(obj.states,2)~=obj.state2indMap.Count
-                if size(obj.states,2)~=length(obj.state2indMap.keys)
+                if size(obj.states,2)~=obj.state2indMap.numEntries
                     error('Stateset does not match index map.')
                 end
                 
@@ -236,6 +294,14 @@ classdef FiniteStateSet
                 else
                     activeNodes = (n_states_old+1: size(obj.states,2));
                 end
+            end
+
+            if isempty(outboundRows)
+                obj.outboundTransitions = sparse(size(obj.states, 2), nReactions*nConstraints);
+            else
+                rowIdx = double(vertcat(outboundRows{:}));
+                colIdx = double(vertcat(outboundCols{:}));
+                obj.outboundTransitions = spones(sparse(rowIdx, colIdx, 1, size(obj.states, 2), nReactions*nConstraints));
             end
         end
                 
@@ -247,32 +313,4 @@ classdef FiniteStateSet
             d = size(obj.states, 1);
         end
     end
-end
-
-function keys =  state2key( states )
-% Hash function to convert a N-dimensional integer vector into a unique
-% string "i1  i2  i3 ..."
-
-% N = size(states, 2);
-% keys = cell(1,N);
-% 
-% for n = 1:N
-%     % str = num2str(states(:,n)');    
-%     keys{n} = num2str(states(:,n)');  %states(:,n);
-% end
-% keys = cell(1,N);
-% str = int2str(states');
-% for i=1:5
-%     str = strrep(str,'  ',' ');
-% end
-% str = strrep(str,' ',',');
-
-% J = states(1,:)>=0;
-% keys(J) = cellstr(int2str(states(:,J)'));  
-% keys(~J) = cellstr(int2str(states(:,~J)'));  
-% str = int2str(states');  
-% keys = cellstr(str)';
-N = size(states, 2);
-keys = mat2cell(uint64(states)',ones(1,N))';
-
 end
