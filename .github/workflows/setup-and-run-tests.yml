@@ -16,7 +16,6 @@ jobs:
         with:
           products: >
             Global_Optimization_Toolbox
-            Image_Processing_Toolbox
             SimBiology
             Symbolic_Math_Toolbox        
           release: ${{ matrix.release }}
