@@ -19,10 +19,6 @@ jobs:
             SimBiology
             Symbolic_Math_Toolbox        
           release: ${{ matrix.release }}
-      - name: Add paths
-        uses: matlab-actions/run-command@v3
-        with:
-          command: addpath(genpath("src"))
       - name: Install (setup)
         uses: matlab-actions/run-command@v3
         with:
