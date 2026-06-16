@@ -17,6 +17,7 @@ jobs:
         with:
           products: >
             Global_Optimization_Toolbox
+            Parallel_Computing_Toolbox
             SimBiology
             Symbolic_Math_Toolbox        
           release: ${{ matrix.release }}
