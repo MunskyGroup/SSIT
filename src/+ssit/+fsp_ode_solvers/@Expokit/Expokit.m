@@ -73,7 +73,8 @@ classdef Expokit
         %   - errorBound: the error bound at ``tExit``. 
         %
         %
-        m = min(ceil(size(jac,1)/2),obj.m);
+        % m = min(ceil(size(jac,1)/2),obj.m);
+        m = min(size(jac,1),obj.m);
         tryAgain=1;
         if ~exist('m','var'); m=15; end
         fspTol = fspErrorCondition.fspTol;
@@ -116,30 +117,27 @@ classdef Expokit
         solutionsNow = solutionsNow(ikeep, :)';
         solutionsNow = mat2cell(solutionsNow, size(solutionsNow,1), ones(1, size(solutionsNow,2)));
         
+        sinks = ye(SINKS);
         if (~isempty(te))
-            sinks = ye(SINKS);
             errorBound = fspErrorCondition.fspTol*(te-fspErrorCondition.tInit)/(fspErrorCondition.tFinal-fspErrorCondition.tInit);
-            if te==max(tOut)
-                err = sum(sinks);
-            else
-                err = sum(sinks*(fspErrorCondition.nSinks-fspErrorCondition.nEscapeSinks));
-            end
+            err = sum(sinks);
             if err>=errorBound
                 fspStopStatus = struct('i_expand', true, ...
                     't_break', te, ...
-                    'sinks', ye(fspSINKS), ...
+                    'sinks', ye(length(initSolution)-nSinks+1:length(initSolution)), ...
                     'error_bound', errorBound);
             else
                 fspStopStatus = struct('i_expand', false,...
-                    't_break', [], ...
-                    'sinks', [],...
-                    'error_bound', []);
+                    't_break', te, ...
+                    'sinks', ye(length(initSolution)-nSinks+1:length(initSolution)),...
+                    'error_bound', errorBound);
             end
         else
+            errorBound = fspErrorCondition.fspTol;
             fspStopStatus = struct('i_expand', false,...
-                't_break', [], ...
-                'sinks', [],...
-                'error_bound', []);
+                't_break', max(tOut), ...
+                'sinks', ye(length(initSolution)-nSinks+1:length(initSolution)),...
+                'error_bound', errorBound);
         end        
         end
     end

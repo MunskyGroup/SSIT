@@ -82,8 +82,11 @@ classdef FiniteStateSet
                 disp({'WARNING - State index is above machine precision.';'Results may be inaccurate';'Try re-ordering species from low to high expected values'});
             end
             
-            obj.state2indMap = containers.Map(key_set, 1:size(states,2));
-            if size(obj.states,2)~=obj.state2indMap.Count
+            % obj.state2indMap = dictionary(string(key_set), 1:size(states,2));
+            obj.state2indMap = dictionary(key_set, 1:size(states,2));
+            % obj.state2indMap = containers.Map(key_set, 1:size(states,2));
+            % if size(obj.states,2)~=obj.state2indMap.Count
+            if size(obj.states,2)~=length(obj.state2indMap.keys)
                 error('HERE')
             end
         end
@@ -132,7 +135,7 @@ classdef FiniteStateSet
             
             stop = false;
 
-            if size(obj.states,2)~=obj.state2indMap.Count
+            if size(obj.states,2)~=length(obj.state2indMap.keys)
                 error('Stateset does not match index map.')
             end
 
@@ -157,7 +160,8 @@ classdef FiniteStateSet
                     
                     % check whether the candidate states already exist
                     stateFound = isKey(obj.state2indMap, keySet);
-                    stateLocations = cell2mat(values( obj.state2indMap, keySet(stateFound) ));
+                    % stateLocations = cell2mat(values( obj.state2indMap, keySet(stateFound) ));
+                    stateLocations = obj.state2indMap(keySet(stateFound));
                     
                     obj.reachableIndices(idxToSearch(stateFound), k) = stateLocations;
 
@@ -172,7 +176,8 @@ classdef FiniteStateSet
                          obj.reachableIndices(idxToSearch(i_accept_new), k) = size(obj.states, 2) + (1:length(i_accept_new));
                          
                          for gh = length(i_accept_new):-1:1
-                             obj.state2indMap(keySet{i_accept_new(gh)})=(size(obj.states, 2)  + gh);
+                             obj.state2indMap(keySet(i_accept_new(gh)))=(size(obj.states, 2)  + gh);
+                             % obj.state2indMap(keySet{i_accept_new(gh)})=(size(obj.states, 2)  + gh);
                          end
 
                         obj.states = [obj.states candidates(:,i_accept_new)];
@@ -184,7 +189,8 @@ classdef FiniteStateSet
 
                                         
                 end
-                if size(obj.states,2)~=obj.state2indMap.Count
+                % if size(obj.states,2)~=obj.state2indMap.Count
+                if size(obj.states,2)~=length(obj.state2indMap.keys)
                     error('Stateset does not match index map.')
                 end
                 
@@ -208,19 +214,28 @@ end
 
 function keys =  state2key( states )
 % Hash function to convert a N-dimensional integer vector into a unique
-% integer id using recursive Cantor pairing.
-%
-% References
-% ----------
-% A. Gupta, J. Mikelson, and M. Khammash, "A finite state projection algorithm for the stationary solution of the chemical master equation," The Journal of Chemical Physics, vol. 147, no. 15, p. 154101, Oct. 2017, doi: 10.1063/1.5006484.
-% L. Meri, "Some remarks on the Cantor pairing function,” Le Matematiche, vol. 62, Dec. 2007.
- 
-d = size(states, 1);
-keys = states(1, :);
-for i = 2:d
-    keys = (keys + states(i, :)).*(keys + states(i, :) + 1)./2 + states(i, :);
-end
-keys = num2cell(keys);
-end
+% string "i1  i2  i3 ..."
 
+% N = size(states, 2);
+% keys = cell(1,N);
+% 
+% for n = 1:N
+%     % str = num2str(states(:,n)');    
+%     keys{n} = num2str(states(:,n)');  %states(:,n);
+% end
+% keys = cell(1,N);
+% str = int2str(states');
+% for i=1:5
+%     str = strrep(str,'  ',' ');
+% end
+% str = strrep(str,' ',',');
 
+% J = states(1,:)>=0;
+% keys(J) = cellstr(int2str(states(:,J)'));  
+% keys(~J) = cellstr(int2str(states(:,~J)'));  
+% str = int2str(states');  
+% keys = cellstr(str)';
+N = size(states, 2);
+keys = mat2cell(uint64(states)',ones(1,N))';
+
+end

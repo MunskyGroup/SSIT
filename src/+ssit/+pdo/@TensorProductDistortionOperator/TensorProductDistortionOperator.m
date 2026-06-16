@@ -139,5 +139,3 @@ classdef TensorProductDistortionOperator < ssit.pdo.AbstractDistortionOperator
         end
     end
 end
-
-

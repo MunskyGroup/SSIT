@@ -7,16 +7,19 @@ arguments
     Data=[];
 end
 if isempty(app)
-    app.ReactionsTabOutputs.varNames=species;
+    app.SSITModel.species=species;
     app.FspConstraintTable.Data=Data;
     app.DataLoadingAndFittingTabOutputs.boundIndex=[];
-end   
+end
 
-
-nSpecies = length(app.ReactionsTabOutputs.varNames);
-spNames = app.ReactionsTabOutputs.varNames{1};
-for i = 2:nSpecies
-    spNames = [spNames,',',app.ReactionsTabOutputs.varNames{i}];
+nSpecies = length(app.SSITModel.species);
+if nSpecies>=1
+    spNames = app.SSITModel.species{1};
+    for i = 2:nSpecies
+        spNames = [spNames,',',app.SSITModel.species{i}];
+    end
+else
+    spNames='';
 end
 
 % Updates bounds with the constraints added to the app
@@ -24,7 +27,7 @@ new_index = size(app.FspConstraintTable.Data,1);
 fstr = '[';
 if isempty(app.DataLoadingAndFittingTabOutputs.boundIndex)
     for i=1:size(app.FspConstraintTable.Data,1)
-        Cons = app.FspConstraintTable.Data{i,1};                     % Assigns a variable to represent the value of functions of the constraints function        
+        Cons = app.FspConstraintTable.Data{i,1};                     % Assigns a variable to represent the value of functions of the constraints function
         app.FspTabOutputs.fConstraints{i} = str2func(['@(',spNames,')',Cons]);
         app.FspTabOutputs.bounds(i) = (app.FspConstraintTable.Data{i,3});
         fstr = [ fstr ' ' Cons ';'];
@@ -41,7 +44,10 @@ elseif new_index >= app.DataLoadingAndFittingTabOutputs.boundIndex % these allow
     app.DataLoadingAndFittingTabOutputs.boundIndex = new_index;
     fstr = [fstr ' ]'];
 elseif new_index < app.DataLoadingAndFittingTabOutputs.boundIndex
-    for i=1:size(app.FspConstraintTable.Data,1)
+    nConstr = size(app.FspConstraintTable.Data,1);
+    B_fun2 = cell(1,nConstr);
+    Bounds2 = zeros(1,nConstr);
+    for i=1:nConstr
         Cons = app.FspConstraintTable.Data{i,1};                     % Assigns a variable to represent the value of functions of the constraints function
         B_fun2{i} = str2func(['@(',spNames,')',Cons]);
         Bounds2(i) = (app.FspConstraintTable.Data{i,3});
@@ -59,7 +65,7 @@ end
 function str2 = convertFormat(str1,numSpecies)
 % Convert a string of the form 'x1 * x2' into 'x(1).*x(2)'
 str2 = str1;
-for i = 1:numSpecies
+for i = numSpecies:-1:1
     str2 = strrep(str2, ['x', num2str(i)], ['x(', num2str(i), ',:)']);
 end
 

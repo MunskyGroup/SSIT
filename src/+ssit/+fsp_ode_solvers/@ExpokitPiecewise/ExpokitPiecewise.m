@@ -74,8 +74,8 @@ classdef ExpokitPiecewise
         m = obj.m;
         if ~exist('m','var'); m=15; end
         fspTol = fspErrorCondition.fspTol;
+        expvTol = min(fspTol/1e2,1e-5);
         nSinks = fspErrorCondition.nSinks;
-%         nEscapeSinks = fspErrorCondition.nEscapeSinks;
         
         solutionsNow = zeros(size(initSolution,1),length(tOut)-1);
         for iStep = 1:length(tOut)-1
@@ -83,47 +83,43 @@ classdef ExpokitPiecewise
             tOutStep = tOut(iStep:iStep+1);
             tryAgain=1;
             while tryAgain==1
-                [~, ~, ~, tExportStep, solutionsNowStep, ~, tryAgain, te, ye] = ssit.fsp_ode_solvers.mexpv_modified_2(tOutStep(end), jac(tStartStep), initSolution, fspTol/1e5, m,...
-                    [], tOutStep, fspTol, [length(initSolution)-nSinks+1:length(initSolution)], tStartStep, fspErrorCondition);
+                SINKS = length(initSolution)-nSinks+1:length(initSolution)-fspErrorCondition.nEscapeSinks;
+                [~, ~, ~, tExportStep, solutionsNowStep, ~, tryAgain, te, ye] = ssit.fsp_ode_solvers.mexpv_modified_2(tOutStep(end), jac(tStartStep), initSolution, expvTol, m,...
+                    [], tOutStep, fspTol, SINKS, tStartStep, fspErrorCondition);
  
                 if tryAgain==0;break;end
                 if m>300
                     warning('Expokit expansion truncated at 300');
-                    [~, ~, ~, tExportStep, solutionsNowStep, ~, tryAgain, te, ye] = ssit.fsp_ode_solvers.mexpv_modified_2(tOutStep(end), jac(tStartStep), initSolution, fspTol/1e5, m,...
-                        [], tOutStep, fspTol, [length(initSolution)-nSinks+1:length(initSolution)], tStartStep, fspErrorCondition);
+                    [~, ~, ~, tExportStep, solutionsNowStep, ~, tryAgain, te, ye] = ssit.fsp_ode_solvers.mexpv_modified_2(tOutStep(end), jac(tStartStep), initSolution, expvTol, m,...
+                        [], tOutStep, fspTol, SINKS, tStartStep, fspErrorCondition);
                 end
                 m=m+5;
             end
 
-            if length(tExportStep)>1&&tExportStep(2)==tOutStep(2)
-%                 ikeep = tExportStep(2)==tOutStep(2);
-                solutionsNow(:,iStep:iStep+1) = solutionsNowStep';
+            if length(tExportStep)==2&&te==tOutStep(2)
+                solutionsNow(:,iStep+1) = solutionsNowStep(2,:);
                 initSolution = solutionsNowStep(2, :)';
+                stepsFailed = false;
             else
-                iStep=iStep-1;
+                stepsFailed = true;
                 break
             end
         end
-        if iStep == length(tOut)-1
+        if ~stepsFailed
             tExport = tOut(1:end);
         else
-            tExport = tOut(1:iStep+1);
-            solutionsNow = solutionsNow(:,1:iStep+1);
+            tExport = tOut(1:iStep);
+            solutionsNow = solutionsNow(:,1:iStep);
         end
 
         ikeep = ismember(tExport, tOut) & (tExport > tStart);
         solutionsNow = solutionsNow(:,ikeep);
         solutionsNow = mat2cell(solutionsNow, size(solutionsNow,1), ones(1, size(solutionsNow,2)));
         
+        sinks = ye(SINKS);
         if (~isempty(te))
-            sinks = ye(end+1-fspErrorCondition.nSinks:end);
-            te = max(te,fspErrorCondition.tInit+(tOut(2)-fspErrorCondition.tInit)/1e8);
             errorBound = fspErrorCondition.fspTol*(te-fspErrorCondition.tInit)/(fspErrorCondition.tFinal-fspErrorCondition.tInit);
-            if te==max(tOut)
-                err = sum(sinks);
-            else
-                err = sum(sinks*fspErrorCondition.nSinks);
-            end
+            err = sum(sinks);
             if err>=errorBound
                 fspStopStatus = struct('i_expand', true, ...
                     't_break', te, ...
@@ -131,16 +127,17 @@ classdef ExpokitPiecewise
                     'error_bound', errorBound);
             else
                 fspStopStatus = struct('i_expand', false,...
-                    't_break', [], ...
-                    'sinks', [],...
-                    'error_bound', []);
+                    't_break', te, ...
+                    'sinks', sinks,...
+                    'error_bound', errorBound);
             end
         else
+            errorBound = fspErrorCondition.fspTol;
             fspStopStatus = struct('i_expand', false,...
-                't_break', [], ...
-                'sinks', [],...
-                'error_bound', []);
-        end        
+                't_break', max(tOut), ...
+                'sinks', sinks,...
+                'error_bound', errorBound);
+        end
         end
     end
 end

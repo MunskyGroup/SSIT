@@ -13,7 +13,8 @@ function [solutions, constraintBoundsFinal, stateSpace] = adaptiveFspSolve(...
     useReducedModel,modRedTransformMatrices,...
     useHybrid,hybridOptions,...
     fEscape,bEscape,...
-    constantJacobian,constantJacobianTime)
+    constantJacobian,constantJacobianTime,...
+    odeIntegrator)
 % Approximate the transient solution of the chemical master equation using
 % an adaptively expanding finite state projection (FSP).
 %
@@ -141,13 +142,14 @@ arguments
     bEscape = []
     constantJacobian = false;
     constantJacobianTime = NaN;
+    odeIntegrator = 'ode23s';
 end
 
 maxOutputTime = max(outputTimes);
 outputTimeCount = length(outputTimes);
 outputTimes = unique(outputTimes);
 if (outputTimeCount ~= length(outputTimes))
-    disp('Warning: input tspan contains repeated elements. Converted tspan to vector of unique values');
+    disp('Warning: input tspan contains repeated elements. Truncating tspan to vector of unique values');
     outputTimeCount = length(outputTimes);
 end
 
@@ -181,22 +183,6 @@ solutions = cell(outputTimeCount, 1);
 % First guess of FSP should include the initial condition.
 constraintBoundsFinal = max([constraintBoundsFinal,constraintFunctions(initStates)],[],2);
 
-% Set up the initial state subset
-if isempty(stateSpace)
-    stateSpace = ssit.FiniteStateSet(initStates, stoichMatrix);
-    stateSpace = stateSpace.expand(constraintFunctions, constraintBoundsFinal);
-end
-
-% Generate the FSP matrix
-stateCount = stateSpace.getNumStates();
-if useHybrid
-    AfspFull = ssit.FspMatrix(propensities, parameters, stateSpace, constraintCount, speciesNames, modRedTransformMatrices);    
-elseif useReducedModel
-    AfspRed = ssit.FspMatrix(propensities, parameters, stateSpace, constraintCount, speciesNames, modRedTransformMatrices);
-else
-    AfspFull = ssit.FspMatrix(propensities, parameters, stateSpace, constraintCount, speciesNames);
-end
-
 % Check that the model propensities are time-invariant
 isTimeInvariant = true;
 for i = 1:length(propensities)
@@ -207,67 +193,142 @@ for i = 1:length(propensities)
     end
 end
 
-% Use Approximate steady state as initial distribution if requested.
-if initApproxSS
+% Set up the initial state subset, or recompute it if constaint functions
+% have changed.
+if isempty(stateSpace)||stateSpace.numConstraints~=constraintCount||size(stateSpace.states,1)~=length(speciesNames)
+    stateSpace = ssit.FiniteStateSet(initStates, stoichMatrix);
+    stateSpace = stateSpace.expand(constraintFunctions, constraintBoundsFinal);
+else
+    constraintBoundsFinal = max(constraintBoundsFinal,max(constraintFunctions(stateSpace.states),[],2));
+end
+
+% Define initial probability mass function.
+% If using a SS approximation for initial condition, this may require
+% iteration.
+expandSS = true;
+while expandSS
+    expandSS = false;
+
+    % Generate the FSP matrix
+    stateCount = stateSpace.getNumStates();
     if useHybrid
-        FUN = @(v)odeStoichs*generate_propensity_vector(0, v, zeros(length(jStochastic),1), propensities, parameters);
-        OPTIONS = optimoptions('fsolve','display','none',...
-            'OptimalityTolerance',1e-8,'MaxIterations',2000);
-        x0b = fsolve(FUN,initODEs,OPTIONS);
-        FUN = @(t,v)odeStoichs*generate_propensity_vector(0, v, zeros(length(jStochastic),1), propensities, parameters);
-        [~,ode_solutions] = ode45(FUN,max(outputTimes)*[0,500,1000],x0b);
-        initODEs = ode_solutions(end,:)';
-
-        jac = AfspFull.createJacHybridMatrix(0, initODEs, parameters, length(hybridOptions.upstreamODEs), true);
-
+        AfspFull = ssit.FspMatrix(propensities, parameters, stateSpace, constraintCount, speciesNames, modRedTransformMatrices);
+    elseif useReducedModel
+        AfspRed = ssit.FspMatrix(propensities, parameters, stateSpace, constraintCount, speciesNames, modRedTransformMatrices);
     else
-        if useReducedModel
-            AfspFull = ssit.FspMatrix(propensities, parameters, stateSpace, constraintCount, speciesNames);
-        end
-
-        jac = AfspFull.createSingleMatrix(outputTimes(1)-1e-6,parameters);
+        AfspFull = ssit.FspMatrix(propensities, parameters, stateSpace, constraintCount, speciesNames);
     end
-    jac = jac(1:end-constraintCount,1:end-constraintCount);
 
-    try
-        warning('off')
-        [eigVec,~] = eigs(jac,1,'smallestabs');
-    catch
+    % Use Approximate steady state as initial distribution if requested.
+    if initApproxSS
+        if useHybrid
+            FUN = @(v)odeStoichs*generate_propensity_vector(0, v, zeros(length(jStochastic),1), propensities, parameters);
+            OPTIONS = optimoptions('fsolve','display','none',...
+                'OptimalityTolerance',1e-8,'MaxIterations',2000);
+            % x0b = fsolve(FUN,initODEs,OPTIONS);
+            x0b = initODEs;
+            FUN = @(t,v)odeStoichs*generate_propensity_vector(0, v, zeros(length(jStochastic),1), propensities, parameters);
+
+            odeFun = str2func(odeIntegrator);
+            [~,ode_solutions] = odeFun(FUN,(max(outputTimes)-min(outputTimes))*[0,500,1000],x0b);
+
+            initODEs = ode_solutions(end,:)';
+
+            jac = AfspFull.createJacHybridMatrix(0, initODEs, parameters, length(hybridOptions.upstreamODEs), true);
+
+        else
+            if useReducedModel
+                AfspFull = ssit.FspMatrix(propensities, parameters, stateSpace, constraintCount, speciesNames);
+            end
+
+            jac = AfspFull.createSingleMatrix(outputTimes(1)-1e-6,parameters);
+        end
+        % Partition the Jacobian (Infinitesimal Generator) into
+        % [JacR,0;JacB,0];
+        jacR = jac(1:end-constraintCount,1:end-constraintCount);
+        jacB = jac(end-constraintCount+1:end,1:end-constraintCount);
+
         try
-            [eigVec,~] = eigs(jac,1);
+            % Compute the least negative EVP.
+            warning('off')
+            [eigVec,eigVal] = eigs(jacR,1,'smallestabs');
+            
+            % Check that largest EVP is within tolerance to accept as
+            % steady state. Otherwise expand further.
+            if eigVal>-1e-5
+                eigVec = eigVec/sum(eigVec);
+            else
+                expandSS = true;
+            end
         catch
             try
-                eigVec = null(full(jac));
+                % Compute the least negative EVP.
+                [eigVec,eigVal] = eigs(jacR,1);
+                % Check that largest EVP is within tolerance to accept as
+                % steady state. Otherwise expand further.
+                if eigVal>-1e-5
+                    eigVec = eigVec/sum(eigVec);
+                else
+                    expandSS = true;
+                end
             catch
-                disp('Could not find null space. Using uniform.')
-                eigVec = ones(size(jac,1),1);
+                % If sparse eig function does not work, try null().
+                try
+                    eigVec = null(full(jacR));
+                catch
+                    % If nothing works, use uniform and give warning.
+                    disp('Could not find null space. Using uniform.')
+                    eigVec = ones(size(jac,1),1);
+                end
             end
         end
-    end
-    if useReducedModel
-        solVec = eigVec/sum(eigVec);
-        solVec = modRedTransformMatrices.phi_inv*solVec;
-    else
-        solVec = [eigVec/sum(eigVec);zeros(constraintCount,1)];
-    end
-    
-else % otherwise use user supplied IC.
-    if useReducedModel
-        solVec = zeros(stateCount, 1);
-        solVec(1:size(initStates,2)) = initProbs;
-        solVec = modRedTransformMatrices.phi_inv*solVec;
-    else
-        solVec = zeros(stateCount + constraintCount, 1);
-        solVec(1:size(initStates,2)) = initProbs;
+
+        % Expand steady state state space if needed.
+        if expandSS
+            if (verbose)
+                fprintf('Expand for Steady State calculation. FSP with size %d \n',...
+                    stateSpace.getNumStates);
+            end
+            % Compute flow out from QSS vector.  Then relax bounds.
+            exitWeights = jacB*eigVec;
+            [~,constraintsToRelax] = max(exitWeights);
+            constraintsToRelax = unique([constraintsToRelax;find(exitWeights/sum(exitWeights)>0.1)]);
+            constraintBoundsFinal(constraintsToRelax) = 1.2*constraintBoundsFinal(constraintsToRelax);
+            stateSpace = stateSpace.expand(constraintFunctions, constraintBoundsFinal);
+        else
+            if useReducedModel
+                solVec = eigVec/sum(eigVec);
+                solVec = modRedTransformMatrices.phi_inv*solVec;
+            else
+                solVec = [eigVec/sum(eigVec);zeros(constraintCount,1)];
+            end
+        end
+
+    else % otherwise use user supplied IC.
+        % Find initial states  in statespace
+        J = zeros(1,size(initStates,2));
+        for j=1:size(initStates,2)
+            J(j) = find(all(stateSpace.states == initStates(:,j),1));
+        end
+        if useReducedModel
+            solVec = zeros(stateCount, 1);
+            solVec(J) = initProbs;
+            solVec = modRedTransformMatrices.phi_inv*solVec;
+        else
+            solVec = zeros(stateCount + constraintCount, 1);
+            solVec(J) = initProbs;
+        end
     end
 end
+
+tInit =min(outputTimes);
+tNow = tInit;
+
 if useHybrid
     solVec = [solVec;initODEs];
 end
 
 % Write initial condition into results structure
-tInit =min(outputTimes);
-tNow = tInit;
 iout = find(outputTimes == tNow, 1, 'first');
 if (~isempty(iout))
     if useReducedModel
@@ -278,18 +339,18 @@ if (~isempty(iout))
         end
         p = p/sum(p);
         p = max(p,0);
-        solutions{iout} = struct(time=0, ...
+        solutions{iout} = struct(time=outputTimes(1), ...
             p=packFspSolution(stateSpace.states, p(1:stateCount)), ...
             escapeProbs=[], ...
             sinks=[]);
     elseif useHybrid
-        solutions{iout} = struct(time=0, ...
+        solutions{iout} = struct(time=outputTimes(1), ...
             p=packFspSolution(stateSpace.states, solVec(1:stateCount)), ...
             sinks=solVec(stateCount+1:end-nEscapeSinks-numODEs),...
             escapeProbs=solVec(end-nEscapeSinks-numODEs+1:end-numODEs),...
             upstreamODEs=solVec(end-numODEs+1:end));
     else
-        solutions{iout} = struct(time=0, ...
+        solutions{iout} = struct(time=outputTimes(1), ...
             p=packFspSolution(stateSpace.states, solVec(1:stateCount)), ...
             sinks=solVec(stateCount+1:end-nEscapeSinks), ...
             escapeProbs=solVec(end-nEscapeSinks+1:end));
@@ -300,7 +361,7 @@ end
 
 % Determine ODE solver
 if odeSolver == "auto"
-    if isTimeInvariant 
+    if isTimeInvariant
         odeSolver = "expokit";
     elseif usePiecewiseFSP
         odeSolver = "expokitPiecewise";
@@ -310,13 +371,12 @@ if odeSolver == "auto"
         else
             odeSolver = "sundials";
         end
-    end       
+    end
 end
 
 % While loop for solving the FSP over each time step.
 while (tNow < maxOutputTime)
-    fspErrorCondition = struct('tStart', tNow,...
-        'tFinal', maxOutputTime,...
+    fspErrorCondition = struct('tFinal', maxOutputTime,...
         'tInit', tInit,...
         'fspTol', fspTol,...
         'nSinks', constraintCount, ...
@@ -327,9 +387,9 @@ while (tNow < maxOutputTime)
     % Set up ODE solver data structure for the truncated problem
     if (odeSolver=="sundials")
         error('Sundials not implemented.')
-%         jac = [];
-%         matvec = @(t, p) Afsp.multiply(t, p);
-%         solver = ssit.fsp_ode_solvers.MexSundials();        
+        %         jac = [];
+        %         matvec = @(t, p) Afsp.multiply(t, p);
+        %         solver = ssit.fsp_ode_solvers.MexSundials();
     else
         if useReducedModel
             fspErrorCondition.fspTol = inf;
@@ -363,11 +423,7 @@ while (tNow < maxOutputTime)
             end
         else
             if isTimeInvariant==1 % If no parameters are functions of time.
-                % if ~isempty(parameters)
-                    jac = AfspFull.createSingleMatrix(tNow+1e-6, parameters);
-                % else
-                    % jac = AfspFull.createSingleMatrix(tNow);
-                % end
+                jac = AfspFull.createSingleMatrix(tNow+1e-6, parameters);
                 matvec = @(~,p) jac*p;
             elseif usePiecewiseFSP
                 if constantJacobian
@@ -380,7 +436,6 @@ while (tNow < maxOutputTime)
 
             elseif useHybrid
                 matvec = @(t, p) full(AfspFull.hybridRHS(t, p, parameters, hybridOptions.upstreamODEs));
-                % jac = [];  % Jacobian calculation is not currently available for hybrid models.
                 jac = @(t, p)AfspFull.createJacHybridMatrix(t, p, parameters, length(hybridOptions.upstreamODEs));
             else
                 if constantJacobian
@@ -398,14 +453,10 @@ while (tNow < maxOutputTime)
                 if constantJacobian
                     solver = ssit.fsp_ode_solvers.Expokit(30,absTol);
                 else
-                    solver = ssit.fsp_ode_solvers.ExpokitPiecewise();
+                    solver = ssit.fsp_ode_solvers.ExpokitPiecewise(30,absTol);
                 end
             else
-%                 if ~isempty(hybridOptions)
-%                     solver = ssit.fsp_ode_solvers.OdeSuite(relTol, absTol);
-%                 else
-                    solver = ssit.fsp_ode_solvers.OdeSuite(relTol, absTol);
-%                 end
+                solver = ssit.fsp_ode_solvers.OdeSuite(relTol, absTol, odeIntegrator);
             end
         end
     end
@@ -447,7 +498,7 @@ while (tNow < maxOutputTime)
                 escapeProbs=solutionsNow{j}(end-nEscapeSinks+1:end),...
                 sinks=solutionsNow{j}(stateCount+1:end-nEscapeSinks));
         end
-    
+
     end
 
     if (j > 0)
@@ -468,9 +519,14 @@ while (tNow < maxOutputTime)
                 (fspErrorCondition.nSinks-fspErrorCondition.nEscapeSinks) >=...
                 fspStopStatus.error_bound(end));
         else
-            constraintsToRelax = find(fspStopStatus.sinks(1:end-fspErrorCondition.nEscapeSinks)*...
-                (fspErrorCondition.nSinks-fspErrorCondition.nEscapeSinks) > 0);
+            constraintsToRelax = find(fspStopStatus.sinks(1:end-fspErrorCondition.nEscapeSinks) > 0);
         end
+        if iout>1
+            newMassInSinks = fspStopStatus.sinks(1:end-fspErrorCondition.nEscapeSinks)' - solutions{iout}.sinks;
+            [~,biggestChange] = max(newMassInSinks);
+            constraintsToRelax = [constraintsToRelax,biggestChange];
+        end
+
         constraintBoundsFinal(constraintsToRelax) = 1.2*constraintBoundsFinal(constraintsToRelax);
 
         if min(constraintsToRelax)<=size(stoichMatrix,1)
@@ -496,6 +552,7 @@ while (tNow < maxOutputTime)
 
         stateCountOld = stateCount;
         stateCount = stateSpace.getNumStates;
+
         if useHybrid
             solVec = zeros(stateCount + constraintCount + numODEs, 1);
         else

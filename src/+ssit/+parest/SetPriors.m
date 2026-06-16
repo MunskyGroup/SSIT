@@ -3,10 +3,10 @@ app.DataLoadingAndFittingTabOutputs.priorOptions = ssit.parest.propsStorage;
 clear TMP F
 switch app.PriorTypeDropDown.Value
     case 'None'
-        app.SpecifyPrioronParametersButton.Enable = 0;
+        app.SetPriorButton.Enable = 0;
         TMP=[];
     case 'Normal'
-        app.SpecifyPrioronParametersButton.Enable = 1;
+        app.SetPriorButton.Enable = 1;
         J = find(strcmp(app.fit_parameters_table.Data(:,3),'y'));
         for i=1:length(J)
             TMP(i*2-1,:) = {['MEAN_',app.fit_parameters_table.Data{i,1}],'100'};
@@ -20,7 +20,7 @@ switch app.PriorTypeDropDown.Value
             end
         end
     case 'LogNormal'
-        app.SpecifyPrioronParametersButton.Enable = 1;
+        app.SetPriorButton.Enable = 1;
         J = find(strcmp(app.fit_parameters_table.Data(:,3),'y'));
         for i=1:length(J)
             TMP(i*2-1,:) = {['LogMEAN_',app.fit_parameters_table.Data{i,1}],'0'};

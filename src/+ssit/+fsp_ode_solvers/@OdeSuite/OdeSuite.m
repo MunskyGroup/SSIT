@@ -2,12 +2,14 @@ classdef OdeSuite < ssit.fsp_ode_solvers.OdeSolver
     %ODESUITE ODE integrator using MATLAB's ODE suite.        
     properties
         relTol (1,1) double {mustBePositive} = 1.0e-4
-        absTol (1,1) double {mustBePositive} = 1.0e-8    
+        absTol (1,1) double {mustBePositive} = 1.0e-8   
+        solver = @ode23s
+        maxStep (1,1) double {mustBePositive} = 0.01
 %         numODEs = 0
     end
     
     methods
-        function obj = OdeSuite(relTol, absTol)
+        function obj = OdeSuite(relTol, absTol, solver, maxStep)
         % Construct an instance of MexSundials.
         % 
         % Parameters
@@ -25,11 +27,15 @@ classdef OdeSuite < ssit.fsp_ode_solvers.OdeSolver
         arguments
             relTol (1,1) double {mustBePositive} = 1.0e-4
             absTol (1,1) double {mustBePositive} = 1.0e-8
+            solver = 'ode23s'
+            maxStep (1,1) double {mustBePositive} = 1.0
 %             numODEs = 0
         end
         
         obj.relTol = relTol;
         obj.absTol = absTol;
+        obj.solver = str2func(solver);
+        obj.maxStep = maxStep;
 %         obj.numODEs = numODEs;
         end
         
@@ -87,9 +93,9 @@ classdef OdeSuite < ssit.fsp_ode_solvers.OdeSolver
         %
         odeEvent = @(t,p) fspOdesuiteEvent(t, p, fspErrorCondition);  
         if length(tOut)>1
-            maxStep = min(tOut(2:end)-tOut(1:end-1))/2;
+            maxStep = min(obj.maxStep,min(tOut(2:end)-tOut(1:end-1))/2);
         else
-            maxStep = (tOut-tStart)/2;
+            maxStep = min(obj.maxStep,(tOut-tStart)/2);
         end
         if ~isempty(jac)
             ode_opts = odeset('Events', odeEvent, 'Jacobian', jac, 'relTol',...
@@ -100,8 +106,10 @@ classdef OdeSuite < ssit.fsp_ode_solvers.OdeSolver
                 'absTol', obj.absTol,'Vectorized','off','MaxStep',maxStep);
         end
         tSpan = sort(unique([tStart; tOut]));
+       
+        [tExport, solutionsNow, te, ye, ~] =  obj.solver(rhs, tSpan, initSolution, ode_opts);
         % tic
-        [tExport, solutionsNow, te, ye, ~] =  ode23s(rhs, tSpan, initSolution, ode_opts);
+        % [tExport, solutionsNow, te, ye, ~] =  ode23s(rhs, tSpan, initSolution, ode_opts);
         % toc23 = toc
         % tic
         % [tExport, solutionsNow, te, ye, ~] =  ode15s(rhs, tSpan, initSolution, ode_opts);
@@ -158,9 +166,25 @@ arguments
     fspErrorCheck
 end
 sinks = p(end-fspErrorCheck.nSinks-fspErrorCheck.numODEs+1:end-fspErrorCheck.numODEs-fspErrorCheck.nEscapeSinks);
-error_bound = fspErrorCheck.fspTol*(t-fspErrorCheck.tInit)/(fspErrorCheck.tFinal-fspErrorCheck.tInit);
+% error_bound = fspErrorCheck.fspTol*(t-fspErrorCheck.tInit)/(fspErrorCheck.tFinal-fspErrorCheck.tInit);
 
-val = max(sinks)*(fspErrorCheck.nSinks-fspErrorCheck.nEscapeSinks) - error_bound;
-terminal = 1;
-direction = 1;
+if isinf(fspErrorCheck.fspTol)
+    error_bound = inf;
+else
+    error_bound = fspErrorCheck.fspTol*...
+        (t-fspErrorCheck.tInit)/(fspErrorCheck.tFinal-fspErrorCheck.tInit);
+end
+
+% val = max(sinks)*(fspErrorCheck.nSinks-fspErrorCheck.nEscapeSinks) - error_bound;
+val = sum(sinks) - error_bound;
+% val is used in ode23s.  It is an indicator if the
+% solution should continue or be interupted. 
+% When val crosses zero to become positive (i.e. if the
+% error becomes too large), this will trigger the solution scheme to execute the
+% function
+% See example here:
+% https://www.mathworks.com/help/matlab/ref/odeevent.html
+
+terminal = true; % if the event is triggered, then it will be terminal.
+direction = 1; % check to see if the error is increasing.
 end

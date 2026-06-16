@@ -1,0 +1,617 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<META http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      -->
+<title>example_2_SolveSSITModels_ODE</title>
+<meta name="generator" content="MATLAB 25.1">
+<link rel="schema.DC" href="http://purl.org/dc/elements/1.1/">
+<meta name="DC.date" content="2025-07-22">
+<meta name="DC.source" content="example_2_SolveSSITModels_ODE.m">
+<style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; }
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+span.typesection { color:#A0522D }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style>
+</head>
+<body>
+<div class="content">
+<h2>Contents</h2>
+<div>
+<ul>
+<li>
+<a href="#1">example_2_SolveSSITModels_ODE</a>
+</li>
+<li>
+<a href="#2">Section 2.2: Finding and visualizing master equation solutions</a>
+</li>
+<li>
+<a href="#3">Preliminaries</a>
+</li>
+<li>
+<a href="#4">Ex(1): Use deterministic, ordinary differential equations (ODEs)</a>
+</li>
+<li>
+<a href="#5">Model:</a>
+</li>
+<li>
+<a href="#6">Make a movie of the ODE solution being plotted:</a>
+</li>
+<li>
+<a href="#7">Ex(2): Use deterministic, ordinary differential equations (ODEs)</a>
+</li>
+<li>
+<a href="#8">STL1 Model:</a>
+</li>
+<li>
+<a href="#9">Make a movie of the ODE solution being plotted:</a>
+</li>
+<li>
+<a href="#10">Ex(3): Use deterministic, ordinary differential equations (ODEs)</a>
+</li>
+<li>
+<a href="#11">STL1 Model:</a>
+</li>
+<li>
+<a href="#12">Make a movie of the ODE solution being plotted:</a>
+</li>
+</ul>
+</div>
+<h2 id="1">example_2_SolveSSITModels_ODE</h2>
+<pre class="codeinput">
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<h2 id="2">Section 2.2: Finding and visualizing master equation solutions</h2>
+<pre class="language-matlab">* Compute Ordinary <span class="string">Differential</span> <span class="string">Equations</span> <span class="string">(ODEs)</span>
+</pre>
+<pre class="codeinput">
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<h2 id="3">Preliminaries</h2>
+<p>Use the models from example_1_CreateSSITModels</p>
+<pre class="codeinput">
+<span class="comment">%clear</span>
+<span class="comment">%close all</span>
+addpath(genpath(<span class="string">'../../'</span>));
+
+example_1_CreateSSITModels
+
+<span class="comment">% View model summaries:</span>
+Model.summarizeModel
+STL1.summarizeModel
+STL1_4state.summarizeModel
+
+<span class="comment">% Set the times at which distributions will be computed:</span>
+Model.tSpan = linspace(0,20,200);
+STL1.tSpan = linspace(0,20,200);
+STL1_4state.tSpan = linspace(0,20,200);
+
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<pre class="codeoutput error">Error using dir
+Pathname '../../Library/Application Support/Steam/Steam.AppBundle/Steam/Contents/MacOS/Frameworks/Steam
+Helper.app/Contents/Frameworks/Steam Helper.app/Contents/Frameworks/Steam Helper.app/Contents/Frameworks/Steam
+Helper.app/Contents/Frameworks/Steam Helper.app/Contents/Frameworks/Steam Helper.app/Contents/Frameworks/Steam
+Helper.app/Contents/Frameworks/Steam Helper.app/Contents/Frameworks/Steam Helper.app/Contents/Frameworks/Steam
+Helper.app/Contents/Frameworks/Steam Helper.app/Contents/Frameworks/Steam Helper.app/Contents/Frameworks/Steam
+Helper.app/Contents/Frameworks/Steam Helper.app/Contents/Frameworks/Steam Helper.app/Contents/Frameworks/Steam
+Helper.app/Contents/Frameworks/Steam Helper.app/Contents/Frameworks/Steam Helper.app/Contents/Frameworks/Steam
+Helper.app/Contents/Frameworks/Steam Helper.app/Contents/Frameworks/Steam Helper.app/Contents/Frameworks/Steam
+Helper.app/Contents/Frameworks/Steam Helper.app/Contents/Frameworks/Steam
+Helper.app/Contents/Resources/.Frameworks/Chromium Embedded Framework.framework' is too long.
+
+Error in genpath (line 38)
+files = dir(d);
+        ^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in genpath (line 62)
+      p = [p genpath(fullfile(d,dirname))]; % recursive calling of this function.
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+Error in example_2_SolveSSITModels_ODE (line 12)
+addpath(genpath('../../'));
+        ^^^^^^^^^^^^^^^^^</pre>
+<h2 id="4">Ex(1): Use deterministic, ordinary differential equations (ODEs)</h2>
+<p>to average the time evolution of state space probabilities for the bursting gene example model from example_1_CreateSSITModels</p>
+<pre class="codeinput">
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<h2 id="5">Model:</h2>
+<p>Create a copy of the bursting gene model for ODEs:</p>
+<pre class="codeinput">    Model_ODE = Model;
+
+    <span class="comment">% Set solution scheme to 'ode':</span>
+    Model_ODE.solutionScheme = <span class="string">'ode'</span>;
+
+    <span class="comment">% This function compiles and stores the given reaction propensities</span>
+    <span class="comment">% into symbolic expression functions that use sparse matrices to</span>
+    <span class="comment">% operate on the system based on the current state. The functions are</span>
+    <span class="comment">% stored with the given prefix, in this case, 'Model_ODE'</span>
+    Model_ODE = Model_ODE.formPropensitiesGeneral(<span class="string">'Model_ODE'</span>);
+
+    <span class="comment">% Solve ODE and make plots:</span>
+    Model_ODEsoln = Model_ODE.solve;
+    plotODE(Model_ODEsoln,Model_ODE.species,Model_ODE.tSpan)
+</pre>
+<h2 id="6">Make a movie of the ODE solution being plotted:</h2>
+<pre class="codeinput">    makeODEmovie(Model_ODEsoln, Model_ODE.species, Model_ODE.tSpan, <span class="keyword">...</span>
+                <span class="string">'Model_ODE.mp4'</span>);
+
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<h2 id="7">Ex(2): Use deterministic, ordinary differential equations (ODEs)</h2>
+<p>to average the time evolution of state space probabilities for the time-varying STL1 yeast model from example_1_CreateSSITModels</p>
+<pre class="codeinput">
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<h2 id="8">STL1 Model:</h2>
+<p>Create a copy of the time-varying STL1 yeast model for ODEs:</p>
+<pre class="codeinput">    STL1_ODE = STL1;
+
+    <span class="comment">% Set solution scheme to 'ode':</span>
+    STL1_ODE.solutionScheme = <span class="string">'ode'</span>;
+
+    <span class="comment">% This function compiles and stores the given reaction propensities</span>
+    <span class="comment">% into symbolic expression functions that use sparse matrices to</span>
+    <span class="comment">% operate on the system based on the current state. The functions are</span>
+    <span class="comment">% stored with the given prefix, in this case, 'STL1_ODE'</span>
+    STL1_ODE = STL1_ODE.formPropensitiesGeneral(<span class="string">'STL1_ODE'</span>);
+
+    <span class="comment">% Solve ODE and make plots:</span>
+    STL1_ODEsoln = STL1_ODE.solve;
+    plotODE(STL1_ODEsoln,STL1_ODE.species,STL1_ODE.tSpan)
+</pre>
+<h2 id="9">Make a movie of the ODE solution being plotted:</h2>
+<pre class="codeinput">    makeODEmovie(STL1_ODEsoln, STL1_ODE.species, STL1_ODE.tSpan, <span class="keyword">...</span>
+                <span class="string">'STL1_ODE.mp4'</span>);
+
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<h2 id="10">Ex(3): Use deterministic, ordinary differential equations (ODEs)</h2>
+<p>to average the time evolution of state space probabilities for the 4-state time-varying STL1 yeast model from example_1_CreateSSITModels</p>
+<pre class="codeinput">
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<h2 id="11">STL1 Model:</h2>
+<p>Create a copy of the time-varying STL1 yeast model for ODEs:</p>
+<pre class="codeinput">    STL1_ODE_4state = STL1_4state;
+
+    <span class="comment">% Set solution scheme to 'ode':</span>
+    STL1_ODE_4state.solutionScheme = <span class="string">'ode'</span>;
+
+    <span class="comment">% This function compiles and stores the given reaction propensities</span>
+    <span class="comment">% into symbolic expression functions that use sparse matrices to</span>
+    <span class="comment">% operate on the system based on the current state. The functions are</span>
+    <span class="comment">% stored with the given prefix, in this case, 'STL1_ODE'</span>
+    STL1_ODE_4state = <span class="keyword">...</span>
+        STL1_ODE_4state.formPropensitiesGeneral(<span class="string">'STL1_ODE_4state'</span>);
+
+    <span class="comment">% Solve ODE and make plots:</span>
+    STL1_ODEsoln_4state = STL1_ODE_4state.solve;
+    plotODE(STL1_ODEsoln_4state,STL1_ODE_4state.species,<span class="keyword">...</span>
+            STL1_ODE_4state.tSpan)
+</pre>
+<h2 id="12">Make a movie of the ODE solution being plotted:</h2>
+<pre class="codeinput">    makeODEmovie(STL1_ODEsoln_4state, STL1_ODE_4state.species, <span class="keyword">...</span>
+                 STL1_ODE_4state.tSpan, <span class="string">'STL1_ODE_4state.mp4'</span>);
+</pre>
+<p class="footer">
+<br>
+<a href="https://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2025a</a>
+<br>
+</p>
+</div>
+<!--
+##### SOURCE BEGIN #####
+%% example_2_SolveSSITModels_ODE
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Section 2.2: Finding and visualizing master equation solutions
+%   * Compute Ordinary Differential Equations (ODEs)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% Preliminaries
+% Use the models from example_1_CreateSSITModels
+%clear
+%close all
+addpath(genpath('../../'));
+
+example_1_CreateSSITModels
+
+% View model summaries:
+Model.summarizeModel
+STL1.summarizeModel
+STL1_4state.summarizeModel
+
+% Set the times at which distributions will be computed:
+Model.tSpan = linspace(0,20,200);
+STL1.tSpan = linspace(0,20,200);
+STL1_4state.tSpan = linspace(0,20,200);
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Ex(1): Use deterministic, ordinary differential equations (ODEs) 
+% to average the time evolution of state space probabilities for 
+% the bursting gene example model from example_1_CreateSSITModels
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% Model:
+    % Create a copy of the bursting gene model for ODEs:
+    Model_ODE = Model;
+
+    % Set solution scheme to 'ode':
+    Model_ODE.solutionScheme = 'ode';
+    
+    % This function compiles and stores the given reaction propensities  
+    % into symbolic expression functions that use sparse matrices to  
+    % operate on the system based on the current state. The functions are 
+    % stored with the given prefix, in this case, 'Model_ODE'
+    Model_ODE = Model_ODE.formPropensitiesGeneral('Model_ODE');
+    
+    % Solve ODE and make plots:
+    Model_ODEsoln = Model_ODE.solve; 
+    plotODE(Model_ODEsoln,Model_ODE.species,Model_ODE.tSpan)
+
+    %% Make a movie of the ODE solution being plotted:
+    makeODEmovie(Model_ODEsoln, Model_ODE.species, Model_ODE.tSpan, ...
+                'Model_ODE.mp4');
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Ex(2): Use deterministic, ordinary differential equations (ODEs) 
+% to average the time evolution of state space probabilities for 
+% the time-varying STL1 yeast model from example_1_CreateSSITModels
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% STL1 Model:
+    % Create a copy of the time-varying STL1 yeast model for ODEs:
+    STL1_ODE = STL1;
+
+    % Set solution scheme to 'ode':
+    STL1_ODE.solutionScheme = 'ode';
+    
+    % This function compiles and stores the given reaction propensities  
+    % into symbolic expression functions that use sparse matrices to  
+    % operate on the system based on the current state. The functions are 
+    % stored with the given prefix, in this case, 'STL1_ODE'
+    STL1_ODE = STL1_ODE.formPropensitiesGeneral('STL1_ODE');
+    
+    % Solve ODE and make plots:
+    STL1_ODEsoln = STL1_ODE.solve; 
+    plotODE(STL1_ODEsoln,STL1_ODE.species,STL1_ODE.tSpan)
+
+    %% Make a movie of the ODE solution being plotted:
+    makeODEmovie(STL1_ODEsoln, STL1_ODE.species, STL1_ODE.tSpan, ...
+                'STL1_ODE.mp4');
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Ex(3): Use deterministic, ordinary differential equations (ODEs) 
+% to average the time evolution of state space probabilities for the
+% 4-state time-varying STL1 yeast model from example_1_CreateSSITModels
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% STL1 Model:
+    % Create a copy of the time-varying STL1 yeast model for ODEs:
+    STL1_ODE_4state = STL1_4state;
+
+    % Set solution scheme to 'ode':
+    STL1_ODE_4state.solutionScheme = 'ode';
+    
+    % This function compiles and stores the given reaction propensities  
+    % into symbolic expression functions that use sparse matrices to  
+    % operate on the system based on the current state. The functions are 
+    % stored with the given prefix, in this case, 'STL1_ODE'
+    STL1_ODE_4state = ...
+        STL1_ODE_4state.formPropensitiesGeneral('STL1_ODE_4state');
+    
+    % Solve ODE and make plots:
+    STL1_ODEsoln_4state = STL1_ODE_4state.solve; 
+    plotODE(STL1_ODEsoln_4state,STL1_ODE_4state.species,...
+            STL1_ODE_4state.tSpan)
+
+    %% Make a movie of the ODE solution being plotted:
+    makeODEmovie(STL1_ODEsoln_4state, STL1_ODE_4state.species, ...
+                 STL1_ODE_4state.tSpan, 'STL1_ODE_4state.mp4');
+##### SOURCE END #####
+-->
+</body>
+</html>

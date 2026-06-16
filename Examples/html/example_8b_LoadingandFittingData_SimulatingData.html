@@ -1,0 +1,433 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<META http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      -->
+<title>example_8b_LoadingandFittingData_SimulatingData</title>
+<meta name="generator" content="MATLAB 25.2">
+<link rel="schema.DC" href="http://purl.org/dc/elements/1.1/">
+<meta name="DC.date" content="2026-03-03">
+<meta name="DC.source" content="example_8b_LoadingandFittingData_SimulatingData.m">
+<style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; }
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+span.typesection { color:#A0522D }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style>
+</head>
+<body>
+<div class="content">
+<h2>Contents</h2>
+<div>
+<ul>
+<li>
+<a href="#1">example_8b_LoadingandFittingData_SimulatingData</a>
+</li>
+<li>
+<a href="#2">Section 2.3: Loading and fitting data</a>
+</li>
+<li>
+<a href="#3">Preliminaries:</a>
+</li>
+<li>
+<a href="#4">Create a complicated model to simulate noisy real data</a>
+</li>
+<li>
+<a href="#5">Generate simulated time-varying STL1 yeast data for fitting later</a>
+</li>
+<li>
+<a href="#6">Load time-varying STL1 yeast data</a>
+</li>
+<li>
+<a href="#7">Save models with loaded data</a>
+</li>
+</ul>
+</div>
+<h2 id="1">example_8b_LoadingandFittingData_SimulatingData</h2>
+<pre class="codeinput">
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<h2 id="2">Section 2.3: Loading and fitting data</h2>
+<pre class="language-matlab">* Simulate data <span class="string">for</span> <span class="string">testing</span>
+</pre>
+<pre class="codeinput">
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<h2 id="3">Preliminaries:</h2>
+<pre class="codeinput">
+<span class="comment">%clear</span>
+<span class="comment">%close all</span>
+
+<span class="comment">% example_1_CreateSSITModels</span>
+<span class="comment">% example_4_SolveSSITModels_FSP</span>
+
+<span class="comment">% View model summaries:</span>
+STL1_FSP.summarizeModel
+
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<pre class="codeoutput">Species:
+     offGene; IC = 1;  discrete stochastic
+     onGene; IC = 0;  discrete stochastic
+     mRNA; IC = 0;  discrete stochastic
+ 
+Reactions:
+  Reaction 1:
+     s1: 1*offGene --&gt; 1*onGene
+     w1: kon * offGene
+  Reaction 2:
+     s2: 1*onGene --&gt; 1*offGene
+     w2: onGene*koff/(1+Hog1)
+  Reaction 3:
+     s3: NULL --&gt; 1*mRNA
+     w3: kr * onGene
+  Reaction 4:
+     s4: 1*mRNA --&gt; NULL
+     w4: dr * mRNA
+ 
+Input Signals:
+     Hog1(t) = (a0+a1*exp(-r1*t)*(1-exp(-r2*t))*(t&gt;0))
+ 
+Model Parameters:
+    {'kon' }    {[2.0000e-01]}
+    {'koff'}    {[2.0000e-01]}
+    {'kr'  }    {[        10]}
+    {'dr'  }    {[         5]}
+    {'a0'  }    {[         5]}
+    {'a1'  }    {[        10]}
+    {'r1'  }    {[4.0000e-03]}
+    {'r2'  }    {[1.0000e-02]}
+
+</pre>
+<h2 id="4">Create a complicated model to simulate noisy real data</h2>
+<pre class="codeinput">
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+<span class="comment">% Create a copy of the STL1 model for simulation:</span>
+STL1_sim_model = STL1_FSP;
+
+<span class="comment">% Update propensity function for the gene activation reaction:</span>
+STL1_sim_model.propensityFunctions{1} = <span class="string">'offGene * Hog1'</span>;
+
+<span class="comment">% Define the time-varying TF/MAPK input signal with added noise:</span>
+STL1_sim_model.inputExpressions = {<span class="string">'Hog1'</span>,<span class="keyword">...</span>
+               <span class="string">'a0 + a1*exp(-r1*t)*(1-exp(-r2*t))*(t&gt;0) + sig'</span>};
+
+<span class="comment">% Add the new parameters from the TF/MAPK input signal:</span>
+STL1_sim_model.parameters = ({<span class="string">'koff'</span>,0.01; <span class="string">'kr'</span>,100; <span class="string">'dr'</span>,0.5; <span class="keyword">...</span>
+<span class="string">'kleak'</span>,0.5; <span class="string">'a0'</span>,0.01; <span class="string">'a1'</span>,10; <span class="string">'r1'</span>,0.004; <span class="string">'r2'</span>,.01; <span class="string">'sig'</span>,randn(1)*5});
+<span class="comment">% Note that the simulated data will differ each time it is run.</span>
+
+<span class="comment">% Set stoichiometry of reactions:</span>
+STL1_sim_model.stoichiometry = [-1,1,0,0,0;<span class="keyword">...</span>
+                                 1,-1,0,0,0;<span class="keyword">...</span>
+                                 0,0,1,-1,1];
+
+<span class="comment">% Set propensity functions:</span>
+STL1_sim_model.propensityFunctions{5} = <span class="string">'kleak'</span>;
+
+<span class="comment">% Print a summary of STL1 Model:</span>
+STL1_sim_model.summarizeModel
+
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<pre class="codeoutput">Species:
+     offGene; IC = 1;  discrete stochastic
+     onGene; IC = 0;  discrete stochastic
+     mRNA; IC = 0;  discrete stochastic
+ 
+Reactions:
+  Reaction 1:
+     s1: 1*offGene --&gt; 1*onGene
+     w1: offGene * Hog1
+  Reaction 2:
+     s2: 1*onGene --&gt; 1*offGene
+     w2: onGene*koff/(1+Hog1)
+  Reaction 3:
+     s3: NULL --&gt; 1*mRNA
+     w3: kr * onGene
+  Reaction 4:
+     s4: 1*mRNA --&gt; NULL
+     w4: dr * mRNA
+  Reaction 5:
+     s5: NULL --&gt; 1*mRNA
+     w5: kleak
+ 
+Input Signals:
+     Hog1(t) = a0 + a1*exp(-r1*t)*(1-exp(-r2*t))*(t&gt;0) + sig
+ 
+Model Parameters:
+    {'koff' }    {[1.0000e-02]}
+    {'kr'   }    {[       100]}
+    {'dr'   }    {[5.0000e-01]}
+    {'kleak'}    {[5.0000e-01]}
+    {'a0'   }    {[1.0000e-02]}
+    {'a1'   }    {[        10]}
+    {'r1'   }    {[4.0000e-03]}
+    {'r2'   }    {[1.0000e-02]}
+    {'sig'  }    {[6.3937e+00]}
+
+</pre>
+<h2 id="5">Generate simulated time-varying STL1 yeast data for fitting later</h2>
+<pre class="codeinput">
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+
+<span class="comment">% Number of independent data sets to generate:</span>
+STL1_sim_model.ssaOptions.Nexp = 2;
+
+<span class="comment">% Number of cells to include at each time point for each data set:</span>
+STL1_sim_model.ssaOptions.nSimsPerExpt = 200;
+
+<span class="comment">% Ensure the solution scheme is set to FSP (default):</span>
+    STL1_sim_model.solutionScheme = <span class="string">'FSP'</span>;
+
+<span class="comment">% This function compiles and stores the given reaction propensities</span>
+<span class="comment">% into symbolic expression functions that use sparse matrices to</span>
+<span class="comment">% operate on the system based on the current state. The functions are</span>
+<span class="comment">% stored with the given prefix, in this case, 'STL1_FSP'</span>
+STL1_sim_model = STL1_sim_model.formPropensitiesGeneral(<span class="string">'STL1_sim_FSP'</span>);
+
+<span class="comment">% Set FSP 1-norm error tolerance:</span>
+STL1_sim_model.fspOptions.fspTol = 1e-4;
+
+<span class="comment">% Guess initial bounds on FSP StateSpace:</span>
+STL1_sim_model.fspOptions.bounds = [2,2,400];
+
+<span class="comment">% Have FSP approximate the steady state for the initial distribution</span>
+<span class="comment">% by finding the eigenvector corresponding to the smallest magnitude</span>
+<span class="comment">% eigenvalue (i.e., zero, for generator matrix A, d/dtP(t)=AP(t)):</span>
+STL1_sim_model.fspOptions.initApproxSS = false;
+
+<span class="comment">% Solve Model:</span>
+[STL1_sim_FSPsoln,STL1_sim_model.fspOptions.bounds] = STL1_sim_model.solve;
+
+<span class="comment">% Generate and save data:</span>
+dataTable = STL1_sim_model.sampleDataFromFSP(STL1_sim_FSPsoln,<span class="keyword">...</span>
+                                             <span class="string">'data/STL1_sim.csv'</span>);
+
+<span class="comment">% Plot data as histograms:</span>
+<span class="keyword">for</span> i = 1:4
+    subplot(2,2,i)  <span class="comment">% Switch to current subplot</span>
+    histogram(dataTable.exp1_s3(dataTable.time==STL1_sim_model.tSpan(i)),<span class="keyword">...</span><span class="comment">.</span>
+                                    30,<span class="string">"DisplayStyle"</span>,<span class="string">"stairs"</span>)
+<span class="keyword">end</span>
+
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<pre class="codeoutput">FSP Samples saved to data/STL1_sim.csv
+</pre>
+<img vspace="5" hspace="5" src="example_8b_LoadingandFittingData_SimulatingData_01.png" alt=""> <h2 id="6">Load time-varying STL1 yeast data</h2>
+<pre>* Now load simulated data and associate it with the models we set in
+  example_1_CreateSSITModels</pre>
+<pre class="codeinput">
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+
+<span class="comment">% Make new copies of our model:</span>
+STL1_sim_data = STL1_FSP;
+
+<span class="comment">% Load the simulated data, matching the species name of the model</span>
+<span class="comment">% (e.g., the model species 'offGene' is column 'exp1_s1' in the file):</span>
+STL1_sim_data = STL1_sim_data.loadData(<span class="string">'data/STL1_sim.csv'</span>,<span class="keyword">...</span>
+                {<span class="string">'offGene'</span>,<span class="string">'exp1_s1'</span>;<span class="string">'onGene'</span>,<span class="string">'exp1_s2'</span>;<span class="string">'mRNA'</span>,<span class="string">'exp1_s3'</span>});
+
+<span class="comment">% This plot is unnecessary, as the model parameters have not been fit to</span>
+<span class="comment">% the data yet.  However, it illustrates the improvement to come later:</span>
+STL1_sim_data.makeFitPlot
+</pre>
+<pre class="codeoutput">
+ans =
+
+  1&times;4 cell array
+
+    {1&times;1 Figure}    {1&times;1 Figure}    {1&times;1 Figure}    {1&times;1 Figure}
+
+</pre>
+<img vspace="5" hspace="5" src="example_8b_LoadingandFittingData_SimulatingData_02.png" alt=""> <img vspace="5" hspace="5" src="example_8b_LoadingandFittingData_SimulatingData_03.png" alt=""> <img vspace="5" hspace="5" src="example_8b_LoadingandFittingData_SimulatingData_04.png" alt=""> <img vspace="5" hspace="5" src="example_8b_LoadingandFittingData_SimulatingData_05.png" alt=""> <h2 id="7">Save models with loaded data</h2>
+<pre class="codeinput">saveNames = unique({<span class="string">'STL1_sim_model'</span>
+    <span class="string">'STL1_sim_data'</span>});
+
+save(<span class="string">'example_8b_LoadingandFittingData_SimulatingData'</span>,saveNames{:})
+</pre>
+<p class="footer">
+<br>
+<a href="https://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2025b</a>
+<br>
+</p>
+</div>
+<!--
+##### SOURCE BEGIN #####
+%% example_8b_LoadingandFittingData_SimulatingData
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Section 2.3: Loading and fitting data
+%   * Simulate data for testing
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% Preliminaries:
+%clear
+%close all
+
+% example_1_CreateSSITModels
+% example_4_SolveSSITModels_FSP
+
+% View model summaries:
+STL1_FSP.summarizeModel
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Create a complicated model to simulate noisy real data
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+% Create a copy of the STL1 model for simulation:
+STL1_sim_model = STL1_FSP;
+
+% Update propensity function for the gene activation reaction:
+STL1_sim_model.propensityFunctions{1} = 'offGene * Hog1';
+
+% Define the time-varying TF/MAPK input signal with added noise:
+STL1_sim_model.inputExpressions = {'Hog1',...
+               'a0 + a1*exp(-r1*t)*(1-exp(-r2*t))*(t>0) + sig'};
+
+% Add the new parameters from the TF/MAPK input signal:
+STL1_sim_model.parameters = ({'koff',0.01; 'kr',100; 'dr',0.5; ...
+'kleak',0.5; 'a0',0.01; 'a1',10; 'r1',0.004; 'r2',.01; 'sig',randn(1)*5});
+% Note that the simulated data will differ each time it is run.
+
+% Set stoichiometry of reactions:
+STL1_sim_model.stoichiometry = [-1,1,0,0,0;...
+                                 1,-1,0,0,0;...
+                                 0,0,1,-1,1]; 
+
+% Set propensity functions:
+STL1_sim_model.propensityFunctions{5} = 'kleak'; 
+
+% Print a summary of STL1 Model:
+STL1_sim_model.summarizeModel
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Generate simulated time-varying STL1 yeast data for fitting later
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Number of independent data sets to generate:
+STL1_sim_model.ssaOptions.Nexp = 2;  
+
+% Number of cells to include at each time point for each data set:
+STL1_sim_model.ssaOptions.nSimsPerExpt = 200;
+
+% Ensure the solution scheme is set to FSP (default):
+    STL1_sim_model.solutionScheme = 'FSP';  
+
+% This function compiles and stores the given reaction propensities  
+% into symbolic expression functions that use sparse matrices to  
+% operate on the system based on the current state. The functions are 
+% stored with the given prefix, in this case, 'STL1_FSP'
+STL1_sim_model = STL1_sim_model.formPropensitiesGeneral('STL1_sim_FSP');
+    
+% Set FSP 1-norm error tolerance:
+STL1_sim_model.fspOptions.fspTol = 1e-4; 
+    
+% Guess initial bounds on FSP StateSpace:
+STL1_sim_model.fspOptions.bounds = [2,2,400];
+    
+% Have FSP approximate the steady state for the initial distribution 
+% by finding the eigenvector corresponding to the smallest magnitude 
+% eigenvalue (i.e., zero, for generator matrix A, d/dtP(t)=AP(t)):
+STL1_sim_model.fspOptions.initApproxSS = false; 
+    
+% Solve Model:
+[STL1_sim_FSPsoln,STL1_sim_model.fspOptions.bounds] = STL1_sim_model.solve;
+
+% Generate and save data:
+dataTable = STL1_sim_model.sampleDataFromFSP(STL1_sim_FSPsoln,...
+                                             'data/STL1_sim.csv'); 
+
+% Plot data as histograms:
+for i = 1:4
+    subplot(2,2,i)  % Switch to current subplot
+    histogram(dataTable.exp1_s3(dataTable.time==STL1_sim_model.tSpan(i)),....
+                                    30,"DisplayStyle","stairs")
+end 
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Load time-varying STL1 yeast data 
+%  * Now load simulated data and associate it with the models we set in 
+%    example_1_CreateSSITModels
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Make new copies of our model:
+STL1_sim_data = STL1_FSP;
+
+% Load the simulated data, matching the species name of the model  
+% (e.g., the model species 'offGene' is column 'exp1_s1' in the file):
+STL1_sim_data = STL1_sim_data.loadData('data/STL1_sim.csv',...
+                {'offGene','exp1_s1';'onGene','exp1_s2';'mRNA','exp1_s3'});
+
+% This plot is unnecessary, as the model parameters have not been fit to
+% the data yet.  However, it illustrates the improvement to come later:
+STL1_sim_data.makeFitPlot
+
+%% Save models with loaded data
+saveNames = unique({'STL1_sim_model'
+    'STL1_sim_data'});
+    
+save('example_8b_LoadingandFittingData_SimulatingData',saveNames{:})
+##### SOURCE END #####
+-->
+</body>
+</html>

@@ -20,7 +20,7 @@ classdef poissonTest < matlab.unittest.TestCase
             testCase1.Poiss.fspOptions.fspTol = 1e-5;
             testCase1.Poiss = testCase1.Poiss.formPropensitiesGeneral('Poiss',true);
 
-            [testCase1.PoissSolution,testCase1.Poiss.fspOptions.bounds] = testCase1.Poiss.solve;
+            [testCase1.PoissSolution, testCase1.Poiss.fspOptions.bounds, testCase1.Poiss] = testCase1.Poiss.solve;
             tic
             [testCase1.PoissSolution,testCase1.Poiss.fspOptions.bounds] = testCase1.Poiss.solve(testCase1.PoissSolution.stateSpace);
             testCase1.PoissSolution.time = toc;
@@ -41,7 +41,7 @@ classdef poissonTest < matlab.unittest.TestCase
     end
 
     methods (TestMethodSetup)
-        % Setup for each test
+        
     end
 
     methods (Test)
@@ -53,11 +53,48 @@ classdef poissonTest < matlab.unittest.TestCase
                 'Species name is incorrect');
         end
 
+        function AddReaction(testCase)
+            % In this trivial test, we check that the SSIT is set up with
+            % the right names for the 'rna' species.
+            F = SSIT('Empty');
+            newRxn(1).propensity = 'kr + kr1*x1';
+            newRxn(1).stoichiometry = {'x1',1};
+            newRxn(1).parameters = {'kr',2;'kr1',0.01};
+            newRxn(2).propensity = 'g*x1';
+            newRxn(2).stoichiometry = {'x1',-1};
+            newRxn(2).parameters = {'g',0.1};
+            F = F.addReaction(newRxn);
+
+            testCase.verifyEqual(F.species{1}, 'x1', ...
+                'FSP add reaction has error');
+            testCase.verifyEqual(F.propensityFunctions{1}, 'kr + kr1*x1', ...
+                'FSP add reaction has error');
+            testCase.verifyEqual(F.stoichiometry, [1    -1], ...
+                'FSP add reaction has error');
+        end
+
         function FspConverged(testCase)
             % In this test, we check tha tthe FSP solution exits with an
             % appropriate FSP tolerance value.
             final = testCase.PoissSolution.fsp{end}.p.sum;
             tst = (1-final)<=testCase.Poiss.fspOptions.fspTol;
+            testCase.verifyEqual(tst, true, ...
+                'Final FSP is not within tolerance');
+        end
+
+        
+        function FspSSConverged(testCase)
+            % In this test, we check tha the FSP expansion to find the
+            % initial Steady State is correct.
+
+            testCase.Poiss.fspOptions.initApproxSS = true;
+            testCase.Poiss.fspOptions.stateSpace = [];
+            testCase.Poiss.fspOptions.bounds = [0,1];
+            testCase.Poiss.tSpan = [0];
+            ssPoissSolution = testCase.Poiss.solve;
+
+            final = [0:length(double(ssPoissSolution.fsp{1}.p.data))-1]*double(ssPoissSolution.fsp{1}.p.data);
+            tst = abs(final-testCase.Poiss.parameters{1,2}/testCase.Poiss.parameters{2,2})<1e-4;
             testCase.verifyEqual(tst, true, ...
                 'Final FSP is not within tolerance');
         end
@@ -82,6 +119,36 @@ classdef poissonTest < matlab.unittest.TestCase
 
             testCase.verifyEqual(relDiff<0.01, true, ...
                 'Solution Mean is not within 1% Tolerance');
+        end
+
+        function PoissonMoments(testCase)            
+            % This test verifies that the moment closure approach is
+            % working for the Poisson case.
+            model = testCase.Poiss;
+
+            t = testCase.Poiss.tSpan;
+            mn = testCase.Poiss.parameters{1,2}/testCase.Poiss.parameters{2,2}*...
+                (1-exp(-testCase.Poiss.parameters{2,2}*t));
+
+            model.solutionScheme = 'ode';
+            [~,~,model] = model.solve;
+
+            model.solutionScheme = 'moments';
+            [~,~,model] = model.solve;
+
+            errMean = max(abs((model.Solutions.moments(1,:)-mn)./mn));
+
+            var = model.Solutions.moments(2,:)-model.Solutions.moments(1,:).^2;
+            errVar = max(abs((var-mn)./mn));
+            
+            testCase.verifyEqual(errMean+errVar<0.01, true, ...
+                'Solution Mean and Variance not within 1% Tolerance');
+            
+            var2 = squeeze(model.Solutions.momenstsCOV(1,1,:))';
+            errVar2 = max(abs((var2-mn)./mn));
+            testCase.verifyEqual(errVar2<0.01, true, ...
+                'Solution Mean and Variance not within 1% Tolerance');
+            
         end
 
         function PoissonSpeed(testCase)
@@ -149,6 +216,114 @@ classdef poissonTest < matlab.unittest.TestCase
                 'SSA Data Not Generated');            
         end
 
+        function SSALossFunction(testCase)
+            % In this test, we check that the code generates and saves data
+            % generated using the Poisson model.
+            testCase.Poiss.ssaOptions.useParalel = true;
+            testCase.Poiss.ssaOptions.nSimsPerExpt = 1000;
+            testCase.Poiss.ssaOptions.Nexp = 1;
+            testCase.Poiss.solutionScheme = 'SSA';
+
+            % Generate new data
+            [~,~,testCase.Poiss] = testCase.Poiss.solve(testCase.PoissSolution,'testDataSSANEW.csv');
+            
+            % load new data and check that the loss function is now zero.
+            testCase.Poiss = testCase.Poiss.loadData('testDataSSANEW.csv',{'rna','exp1_s1'});
+            
+            [lossFunction] = testCase.Poiss.computeLossFunctionSSA('cdf_one_norm',[],true,true);
+
+            testCase.verifyEqual(lossFunction, 0, ...
+                'SSA Loss Function Incorrectly Calculated');   
+
+            % Test custom loss function
+            customLossMeans = @(Hmod,Hdata)([0:length(Hmod)-1]*Hmod-[0:length(Hdata)-1]*Hdata).^2;
+            [lossFunction] = testCase.Poiss.computeLossFunctionSSA(customLossMeans,[],true,true);
+
+            testCase.verifyEqual(lossFunction, 0, ...
+                'SSA Loss Function Incorrectly Calculated');
+
+            % Test ABC for a short run.
+            fitOptions.numberOfSamples=100;
+            [~,~,Results] = testCase.Poiss.runABCsearch([],[],[],fitOptions);
+            
+
+        end
+
+        function SsaDataGenerationGPU(testCase)
+            % In this test, we check that the code generates and saves data
+            % generated using the Poisson model.
+            testCase.Poiss.ssaOptions.nSimsPerExpt = 100000;
+            testCase.Poiss.ssaOptions.Nexp = 1;
+            testCase.Poiss.solutionScheme = 'SSA';
+            testCase.Poiss.tSpan = [0:10];
+
+            try
+                parpool
+            catch
+            end
+
+            tic
+            testCase.Poiss.ssaOptions.useParallel = true;
+            testCase.Poiss.ssaOptions.useGPU = false;
+            SSACPUp = testCase.Poiss.solve(testCase.PoissSolution);
+            timeCPUp = toc;
+
+            if gpuDeviceCount>0
+                tic
+                testCase.Poiss.ssaOptions.useParalel = false;
+                testCase.Poiss.ssaOptions.useGPU = true;
+                SSAGPU = testCase.Poiss.solve(testCase.PoissSolution);
+                timeGPU = toc;
+            else
+                disp('Skipping GPU test - no device available')
+                timeGPU = 0;
+                SSAGPU = SSACPUp;
+            end
+           
+            tic
+            testCase.Poiss.ssaOptions.useParallel = false;
+            testCase.Poiss.ssaOptions.useGPU = false;
+            SSACPUs = testCase.Poiss.solve(testCase.PoissSolution);
+            timeCPUs = toc;    
+
+            p = gcp("nocreate");
+            Methods = {'1CPU+1GPU';append(num2str(p.NumWorkers),' CPUs');'1 CPU'};
+            Times = [timeGPU;timeCPUp;timeCPUs];
+            Means = [mean(SSAGPU.trajs(1,end,:));mean(SSACPUp.trajs(1,end,:));mean(SSACPUs.trajs(1,end,:))];
+            Vars = [var(SSAGPU.trajs(1,end,:));var(SSACPUp.trajs(1,end,:));var(SSACPUs.trajs(1,end,:))];
+            
+            disp('GPU/CPU Performance for SSA - 1.1Mk sims')
+            table(Methods,Times,Means,Vars)
+
+            tic
+            testCase.Poiss.ssaOptions.useParallel = true;
+            testCase.Poiss.ssaOptions.useGPU = false;
+            SSACPUp = testCase.Poiss.solve(testCase.PoissSolution);
+            timeCPUp = toc;
+            
+            if gpuDeviceCount>0
+                testCase.Poiss.ssaOptions.nSimsPerExpt = 1000000;
+                tic
+                testCase.Poiss.ssaOptions.useParalel = false;
+                testCase.Poiss.ssaOptions.useGPU = true;
+                SSAGPU = testCase.Poiss.solve(testCase.PoissSolution);
+                timeGPU = toc;
+            else
+                disp('Skipping GPU test - no device available')
+                timeGPU = 0;
+                SSAGPU = SSACPUp;
+            end
+
+            Methods = {'1CPU+1GPU';append(num2str(p.NumWorkers),' CPUs')};
+            Times = [timeGPU;timeCPUp];
+            Means = [mean(SSAGPU.trajs(1,end,:));mean(SSACPUp.trajs(1,end,:))];
+            Vars = [var(SSAGPU.trajs(1,end,:));var(SSACPUp.trajs(1,end,:))];
+            
+            disp('GPU/CPU Performance for SSA - 11M sims')
+            table(Methods,Times,Means,Vars)
+
+        end
+
         function DataLoading(testCase)
             % In this test, we check that the code correctly loads the data
             % geerated using the Poisson model. 
@@ -175,7 +350,17 @@ classdef poissonTest < matlab.unittest.TestCase
             % exact solution for the Poisson Model:
             % lam(t) = k/g*(1-exp(-g*t));
             % logL = prod_n [Poisson(n|lam(t))]
-            fspLogL = testCase.Poiss.computeLikelihood;
+            
+            % Add additional times to FSP solution to test that it
+            % correctly can filter thee out when computing the likelihood
+            % values.
+            testCase.Poiss.tSpan = [0:0.05:max(testCase.Poiss.tSpan)];
+            
+            % Update solution.
+            [~,~,testCase.Poiss] = testCase.Poiss.solve;
+
+            % Call to compute likelihood
+            fspLogL = testCase.Poiss.computeLikelihood([],[],false,true);
             
             t = [testCase.Poiss.dataSet.DATA{:,1}];
             x = [testCase.Poiss.dataSet.DATA{:,2}];
@@ -188,6 +373,56 @@ classdef poissonTest < matlab.unittest.TestCase
 
             testCase.verifyEqual(relDiff<0.0001, true, ...
                 'Likelihood Calculation is not within 0.01% Tolerance');            
+        end
+
+        function likelihoodSpread(testCase)
+            % In this test we compare the computed log-likelihood to the
+            % exact solution for the Poisson Model:
+            % lam(t) = k/g*(1-exp(-g*t));
+            % logL = prod_n [Poisson(n|lam(t))]
+            
+            % Add additional times to FSP solution to test that it
+            % correctly can filter thee out when computing the likelihood
+            % values.
+            % testCase.Poiss.tSpan = [0:0.05:max(testCase.Poiss.tSpan)];
+            
+            % Update solution.
+            [~,~,testCase.Poiss] = testCase.Poiss.solve;
+
+            % Change numbers of cells
+            testCase.Poiss.dataSet.nCells(:) = 30;
+            testCase.Poiss.dataSet.nCells(end) = 60;           
+
+            % Call to compute likelihood
+            testCase.Poiss.estimateLikelihoodSpread;
+               
+        end
+
+        function LikelihoodGradient(testCase)
+            % This tests to make sure that the calculation for the gradient
+            % of the loglikelihood function completes and is within 0.1% of
+            % the solution found using the finite difference method.
+            testCase.Poiss.solutionScheme = 'fspSens';
+            [~,~,testCase.Poiss] = testCase.Poiss.solve;
+
+            [fspLogL,gradient] = testCase.Poiss.computeLikelihood([],[],true,true);
+
+            testCase.Poiss.solutionScheme = 'FSP';
+            numPars = size(testCase.Poiss.parameters,1);
+            gradLogLFiniteDiff = zeros(numPars,1);
+            for i = 1:numPars
+                TMPmodel = testCase.Poiss;
+                delt = abs(TMPmodel.parameters{i,2})/1e6;
+                TMPmodel.parameters{i,2} = TMPmodel.parameters{i,2} + delt;
+                fspLogLPrime = TMPmodel.computeLikelihood;
+                gradLogLFiniteDiff(i) = (fspLogLPrime-fspLogL)/delt;
+            end
+
+            maxGradientError = max(abs(gradient-gradLogLFiniteDiff)./gradLogLFiniteDiff);
+
+            testCase.verifyEqual(maxGradientError<0.001, true, ...
+                'Likelihood Gradient Calculation is not within 0.1% Tolerance');
+
         end
 
         function ComputingSensitivities(testCase)
@@ -303,15 +538,19 @@ classdef poissonTest < matlab.unittest.TestCase
             % lam(t) = k/g*(1-exp(-g*t));
             % logL = prod_n [Poisson(n|lam(t))]
             Model = testCase.PoissODE;
-            % Model.solutionScheme = 'ode';
-            % Model = Model.formPropensitiesGeneral;            
+            
+            % Skip first time point for fitting.
+            Model.fittingOptions.timesToFit = Model.tSpan>0;
+            Model.odeIntegrator = 'ode45';
+
             odeLogL = Model.computeLikelihoodODE;
             
-            t = testCase.Poiss.tSpan;
-            mn = testCase.Poiss.parameters{1,2}/testCase.Poiss.parameters{2,2}*...
-                (1-exp(-testCase.Poiss.parameters{2,2}*t));
+            t = Model.tSpan(2:end);
+            mn = Model.parameters{1,2}/Model.parameters{2,2}*...
+                (1-exp(-Model.parameters{2,2}*t));
 
-            logLExact = -1/2*1000*sum((testCase.Poiss.dataSet.mean-mn').^2);
+            logLExact = -1/2*sum(Model.dataSet.nCells(2:end).*(Model.dataSet.mean(2:end)-mn').^2./ ...
+                Model.dataSet.var(2:end));
 
             relDiff = abs((logLExact-odeLogL)/logLExact);
 
@@ -325,6 +564,7 @@ classdef poissonTest < matlab.unittest.TestCase
             % Model.solutionScheme = 'ode';
             % Model = Model.formPropensitiesGeneral;
             Model.parameters(:,2) = {10*rand;rand};
+            Model.fittingOptions.timesToFit = Model.tSpan>0;
             fitOptions = optimset('Display','none','MaxIter',1000);
             fitOptions.SIG = [];
             Model.fittingOptions.modelVarsToFit = [1,2];
@@ -357,7 +597,9 @@ classdef poissonTest < matlab.unittest.TestCase
                 [Model.parameters{:,2}])./[testCase.Poiss.parameters{:,2}]);
 
             testCase.verifyEqual(relDiff<0.05, true, ...
-                'ODE Fit of Poisson Model is not within 5% of true values');            
+                'ODE Fit of Poisson Model is not within 5% of true values'); 
+
+            Model.makeFitPlot()
         end  
         
         function MetHastAndSampledFIM(testCase)
@@ -388,20 +630,112 @@ classdef poissonTest < matlab.unittest.TestCase
             Nc = Model.dataSet.nCells;
             figure
             FIM = Model.totalFim(fimResults,Nc);
-            Model.plotMHResults(MHResults,FIM)
+            Model.plotMHResults(MHResults,FIM=FIM)
 
             % Find optimal experiment design given parameters sets
-            NcOptExperiment = Model.optimizeCellCounts(fimResults,sum(Nc),'Determinant',[],[],10000*ones(size(Nc)));
+            NcOptExperiment = Model.optimizeCellCounts(fimResults,sum(Nc),'D-opt',[],[],10000*ones(size(Nc)));
             FIMOptExpt = Model.totalFim(fimResults,NcOptExperiment);
-            Model.plotMHResults(MHResults,[FIM,FIMOptExpt])         
+            Model.plotMHResults(MHResults,FIM=[FIM,FIMOptExpt])         
 
             % Find optimal experiment design given parameters sets but
             % where there is a base of 10 cells at every time point.
             NcBase = Nc;
-            NcOptExperimentBase = Model.optimizeCellCounts(fimResults,sum(Nc),'Determinant',[],NcBase,10000*ones(size(Nc)));
+            NcOptExperimentBase = Model.optimizeCellCounts(fimResults,sum(Nc),'D-opt',[],NcBase,10000*ones(size(Nc)));
             FIMOptExptBase = Model.totalFim(fimResults,NcOptExperimentBase+NcBase);
-            Model.plotMHResults(MHResults,[FIM,FIMOptExpt,FIMOptExptBase])
+            Model.plotMHResults(MHResults,FIM=[FIM,FIMOptExpt,FIMOptExptBase])
 
-        end  
+        end 
+        
+        function LoadModelTest(testCase)
+            % Test to see if the code can correctly load a model from file,
+            % asscoiate data to that model, and then run a simple fitting
+            % routine.
+            %
+            % Save Poisson Model to File
+            delete('exampleResultsTest.mat')
+            model = testCase.Poiss;
+            save('TemporarySaveFile',"model")
+            DataSettings = {'testData.csv',{'rna','exp1_s1'}};
+            Pipeline = 'fittingPipelineExample';
+            pipelineArgs.maxIter = 10;
+            pipelineArgs.display = 'none';
+            pipelineArgs.makePlot = true;
+            saveFile = 'exampleResultsTest.mat';
+
+            % Create model from preset, associate with data, run
+            % 'fittingPipeline', and save result.
+            SSIT('TemporarySaveFile','model',DataSettings,Pipeline,pipelineArgs,saveFile);
+
+            % Load model from file, run 'fittingPipeline', and save result.
+            SSIT(saveFile,'model',[],Pipeline,pipelineArgs,saveFile);
+
+            testCase.verifyEqual(exist('exampleResultsTest.mat','file'), 2, ...
+                'Model Creation Failed');
+
+        end
+
+        function TestTimeSpanChange(testCase)
+            % Test a few minor issues
+
+            % Test correction of mismatch in tSpan and initialTime
+            testCase.Poiss.tSpan = linspace(10,30,5);
+            [~,~,testCase.Poiss] = testCase.Poiss.solve;
+            testCase.Poiss.initialTime = 0;
+            testCase.Poiss.solve;
+            testCase.Poiss.initialTime = 10;
+            testCase.Poiss.solve;
+
+            % Test Data Summaries
+            Mod = testCase.Poiss.loadData('testDataSSANEW.csv',...
+                {'rna','exp1_s1'},...
+                {[],[],'TAB.exp1_s1>=5&TAB.exp1_s1<=12'});
+            Mod.summarizeData
+            Mod = testCase.Poiss.loadData('testDataSSANEW.csv',...
+                {'rna','exp1_s1'},...
+                {'exp1_s1',5,'>='});
+            Mod.summarizeData
+
+        end
+
+        function TestAdvancedDataLoading(testCase)
+            % Test loading multiple data sets and running logical data selection.
+            model = testCase.Poiss;
+            model = model.loadData({'test_data/fakeData4Testing1.xlsx','test_data/fakeData4Testing2.xlsx'},...
+                {'rna','cyt'},...
+                {'Replica',1,'>'});
+            combineCellNum = model.dataSet.nCells;
+            diff = max(abs(combineCellNum - [8;4]));
+            testCase.verifyEqual(diff==0, true, ...
+                'Advanced data loading resulted in incorrect cell number');
+
+            model = model.loadData({'test_data/fakeData4Testing1.xlsx','test_data/fakeData4Testing2.xlsx'},...
+                {'rna','cyt'},...
+                {'Replica',1,'~='});
+            combineCellNum = model.dataSet.nCells;
+            diff = max(abs(combineCellNum - [8;4]));
+            testCase.verifyEqual(diff==0, true, ...
+                'Advanced data loading resulted in incorrect cell number');
+
+            % Test custom constraint
+            model = model.loadData({'test_data/fakeData4Testing1.xlsx','test_data/fakeData4Testing2.xlsx'},...
+                {'rna','cyt'},...
+                {[],[],'contains(TAB.Condition,''a'')&contains(TAB.Condition,''b'')'});
+            combineCellNum = model.dataSet.nCells;
+            diff = max(abs(combineCellNum - [2;1]));
+            testCase.verifyEqual(diff==0, true, ...
+                'Advanced data loading resulted in incorrect cell number');
+
+            % Test manipulation of data (in this case summing two columns).
+            model = model.loadData({'test_data/fakeData4Testing1.xlsx','test_data/fakeData4Testing2.xlsx'},...
+                {'rna',[],'TAB.nuc+TAB.cyt'},...
+                {[],[],'contains(TAB.Condition,''a'')&contains(TAB.Condition,''b'')'});
+            distCounts = [model.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor(1,4);
+                model.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor(1,5);
+                model.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor(1,6);];
+            diff = max(abs(distCounts - [0;1;1]));
+            testCase.verifyEqual(diff==0, true, ...
+                'Datafield led to incorrec totals.');
+            
+        end
     end
 end

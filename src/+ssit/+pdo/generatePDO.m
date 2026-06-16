@@ -1,21 +1,54 @@
-function [app,pdo] = generatePDO(app,paramsPDO,FSPoutputs,indsObserved,variablePDO,maxSize)
+function [app,pdo] = generatePDO(app,paramsPDO,FSPoutputs,indsObserved,variablePDO,maxSize,opts)
+%% SSIT.generatePDO - This function generates the Probabilistic 
+%% Distortion Operator (PDO) according to user choice.
+% 
+% Inputs:
+%   * app
+%   * paramsPDO - ()
+%   * FSPoutputs - ()
+%   * indsObserved - ()
+%   * variablePDO - (logical), default: false
+%   * maxSize - ()
+%
+%   Optional plotting arguments:
+%   * opts.showPlot - (logical), default: false
+%   * opts.Title - (string) 
+%   * opts.FontSize - (double), default: 26
+%   * opts.XLabel - (string), default: "True counts"
+%   * opts.YLabel - (string), default: "Observed counts"
+%   * opts.XLim - (double), default: []
+%   * opts.YLim - (double), default: []
+%   * opts.Levels - (double), default: 30
+%   * opts.CLim double - default: [-25 0] 
+% Output: 
+%
+% Example: 
 arguments
     app
     paramsPDO = []
-    FSPoutputs =[]
+    FSPoutputs = []
     indsObserved = []
     variablePDO = false
-    maxSize=[]
+    maxSize = []
+    % Plotting opts (used only when showPlot==true)
+    opts.showPlot (1,1) logical = false
+    opts.Title (1,1) string = ""
+    opts.FontSize (1,1) double {mustBePositive} = 26
+    opts.XLabel (1,1) string = "True counts"
+    opts.YLabel (1,1) string = "Observed counts"
+    opts.XLim double = []
+    opts.YLim double = []
+    opts.Levels (1,1) double {mustBeInteger, mustBePositive} = 30
+    opts.CLim double = [-25 0]   % log10(P) clamp range for display
 end
-% This function generates the Probabilistic Distortion operator according
-% to the user choices.
+
 
 if isempty(maxSize)
     if isempty(FSPoutputs)
-        if isempty(app.FspTabOutputs.solutions)
+        if isempty(app.SSITModel.Solutions)
             app = runFsp(app);
         end
-        FSPoutputs = app.FspTabOutputs.solutions;
+        FSPoutputs = app.SSITModel.Solutions.fsp;
     end
     nSpecies = ndims(FSPoutputs{1}.p.data);
     maxSize = zeros(1,nSpecies);
@@ -48,7 +81,17 @@ switch app.DistortionTypeDropDown.Value
     case 'Binomial'
         for ispec = 1:nSpecies
             if maxSize(ispec)>1
-                lamb = app.FIMTabOutputs.PDOProperties.props.(['CaptureProbabilityS',num2str(ispec)]);
+                % --- Prefer calibrated parameters if provided ---
+                if ~isempty(paramsPDO)
+                    lamb = paramsPDO(ispec);   % lamb = capture probability p_cap for species ispec
+                elseif isfield(app.FIMTabOutputs.PDOProperties.props,'PDOpars') && ...
+                       numel(app.FIMTabOutputs.PDOProperties.props.PDOpars) >= ispec
+                    lamb = app.FIMTabOutputs.PDOProperties.props.PDOpars(ispec);
+                else
+                    lamb = app.FIMTabOutputs.PDOProperties.props.(['CaptureProbabilityS',num2str(ispec)]);
+                end
+                lamb = min(max(lamb,0),1); % clamp just in case
+                % ------------------------------------------------------                
                 for j = 1:maxSize(ispec)
                     conditionalPmfs{ispec}(1:j,j) = pdf('bino',0:j-1,j-1,lamb);
                 end
@@ -63,8 +106,18 @@ switch app.DistortionTypeDropDown.Value
                 for jspec = 1:nSpecies
                     dCdLam{jspec,ispec} = [];
                 end
-                if maxSize(ispec)>1
-                    lamb = app.FIMTabOutputs.PDOProperties.props.(['CaptureProbabilityS',num2str(ispec)]);
+                if maxSize(ispec)>1                    
+                    % --- Prefer calibrated parameters if provided ---
+                    if ~isempty(paramsPDO)
+                        lamb = paramsPDO(ispec);   % lamb = capture probability p_cap for species ispec
+                    elseif isfield(app.FIMTabOutputs.PDOProperties.props,'PDOpars') && ...
+                        numel(app.FIMTabOutputs.PDOProperties.props.PDOpars) >= ispec
+                        lamb = app.FIMTabOutputs.PDOProperties.props.PDOpars(ispec);
+                    else
+                        lamb = app.FIMTabOutputs.PDOProperties.props.(['CaptureProbabilityS',num2str(ispec)]);
+                    end
+                lamb = min(max(lamb,0),1); % clamp just in case
+                % ------------------------------------------------------ 
                     for j = 0:maxSize(ispec)-1
                         pdf('bino',0:j-1,j-1,lamb);
                         k=0:j;
@@ -417,6 +470,76 @@ switch app.DistortionTypeDropDown.Value
             end
         end
 end
+% --------------------------------------------------------------------
+% Optional visualization of per-species conditional PMFs
+%   conditionalPmfs{ispec} is (nObserved x nTrue)
+%   x-axis = true counts (columns), y-axis = observed counts (rows)
+% --------------------------------------------------------------------
+if opts.showPlot
+    if isempty(indsObserved)
+        indsToPlot = 1:nSpecies;
+    else
+        indsToPlot = indsObserved;
+    end
+
+    % Only plot species with valid indices
+    indsToPlot = indsToPlot(:)';
+    indsToPlot = indsToPlot(indsToPlot >= 1 & indsToPlot <= nSpecies);
+
+    % Make one figure with a tiled layout
+    fg = figure;
+    tl = tiledlayout(fg, 'flow');
+
+    % Overall title only
+    if strlength(opts.Title) > 0
+        title(tl,opts.Title, 'FontSize',opts.FontSize, 'FontWeight','bold');
+    end
+
+    for ii = 1:numel(indsToPlot)
+        ispec = indsToPlot(ii);
+        P = conditionalPmfs{ispec};
+
+        ax = nexttile;
+
+        % Skip scalar/singleton PDOs
+        if isempty(P) || (isscalar(P) && numel(P)==1)
+            axis(ax,'off');
+            text(ax,0.1,0.5,'(trivial PDO)','FontSize',opts.FontSize);
+            continue
+        end
+
+        % Log10 display with safe floor to avoid -Inf
+        Z = log10(max(P, realmin));
+        Z = max(opts.CLim(1), min(opts.CLim(2), Z));  % clamp for nicer contrast
+
+        h = contourf(ax, 0:size(P,2)-1, 0:size(P,1)-1, Z, ...
+            opts.Levels, 'LineColor','none', 'DisplayName','PDO');
+
+        xlabel(ax, opts.XLabel, 'FontSize', opts.FontSize);
+        ylabel(ax, opts.YLabel, 'FontSize', opts.FontSize);
+
+        if ~isempty(opts.XLim); xlim(ax, opts.XLim); end
+        if ~isempty(opts.YLim); ylim(ax, opts.YLim); end
+
+        set(ax, 'FontSize', max(10, round(0.8*opts.FontSize)));
+
+        % Only use per-panel title if no overall title was given
+        if strlength(opts.Title) == 0
+            title(ax, 'PDO', 'FontSize', opts.FontSize);
+        end
+
+        % Simple legend
+        legend('Location', 'northwest', 'FontSize', opts.FontSize);
+
+        % Colorbar
+        C = colorbar(ax);
+        C.Label.String = 'log_{10} C_{x \rightarrow y}';
+        if isprop(C.Label,'Interpreter')
+            C.Label.Interpreter = 'tex';
+        end
+    end
+end
+
 if variablePDO
     app.FIMTabOutputs.distortionOperator = ssit.pdo.TensorProductDistortionOperator(conditionalPmfs(indsObserved),dCdLam(indsObserved,:));
 else

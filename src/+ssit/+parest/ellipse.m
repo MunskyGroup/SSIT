@@ -20,7 +20,14 @@ if cmat~=cmat'
 end
 
 t = linspace(0,2*pi)';
-R = chol(cmat);
+
+try
+    R = chol(cmat);
+catch
+    % Add tiny amount to diagonal to make positive definite.
+    R = chol(cmat+eye*1e-10);
+end
+
 x = mu(1) + R(1,1).*cos(t); 
 y = mu(2) + R(1,2).*cos(t) + R(2,2).*sin(t);
 

@@ -17,14 +17,15 @@ classdef poissonTVtest < matlab.unittest.TestCase
             testCase1.TvPoiss.parameters = ({'kr',10;'gr',1});
             testCase1.TvPoiss.tSpan = linspace(0,2,21);
             testCase1.TvPoiss.fspOptions.fspTol = 1e-5;
+            testCase1.TvPoiss.odeIntegrator = 'ode45';
 
             testCase1.TvPoiss.propensityFunctions = {'kr*Ig';'gr*rna'};
             testCase1.TvPoiss.inputExpressions = {'Ig','t>1'};
             testCase1.TvPoiss = testCase1.TvPoiss.formPropensitiesGeneral('PoissTV');
 
-            [testCase1.TvPoissSolution,testCase1.TvPoiss.fspOptions.bounds] = testCase1.TvPoiss.solve;
+            [~,~,testCase1.TvPoiss] = testCase1.TvPoiss.solve;
             tic
-            [testCase1.TvPoissSolution,testCase1.TvPoiss.fspOptions.bounds] = testCase1.TvPoiss.solve(testCase1.TvPoissSolution.stateSpace);
+            [~,~,testCase1.TvPoiss]  = testCase1.TvPoiss.solve;
             testCase1.TvPoissSolution.time = toc;
 
             %% ODE model for TV Poisson process
@@ -50,11 +51,11 @@ classdef poissonTVtest < matlab.unittest.TestCase
             mn = testCase.TvPoiss.parameters{1,2}/testCase.TvPoiss.parameters{2,2}*...
                 (1-exp(-testCase.TvPoiss.parameters{2,2}*tp));
             
-            fspSoln = testCase.TvPoissSolution.fsp;
+            fspSoln = testCase.TvPoiss.Solutions.fsp;
             fspMn = NaN*mn;
             for i = 1:length(fspSoln)
-                n = size(testCase.TvPoissSolution.fsp{i}.p.data,1);
-                fspMn(i) = [0:n-1]*double(testCase.TvPoissSolution.fsp{i}.p.data);
+                n = size(fspSoln{i}.p.data,1);
+                fspMn(i) = [0:n-1]*double(fspSoln{i}.p.data);
             end
 
             diff = abs(fspMn-mn);
@@ -92,6 +93,21 @@ classdef poissonTVtest < matlab.unittest.TestCase
                 'ODE Solution is not within 1% Tolerance');
             
         end
+
+        function testODESolvers(testCase)
+            odeOptions = {'ode23s','ode45','ode15s'};
+            for i = 1:length(odeOptions)
+                testCase.TvPoiss.odeIntegrator = odeOptions{i};
+                tic
+                for j = 1:10
+                    tmpSoln = testCase.TvPoiss.solve;
+                end
+                timed = toc;
+                disp([odeOptions{i},': ',num2str(timed/10),'s'])
+            end       
+        end
+
+        
 
     end
 end

@@ -126,7 +126,7 @@ classdef Propensity
                 parameters
                 varNames=[];
                 computeSens = false
-                ipar  = [];
+                ipar  = 1;
             end
             if isempty(varNames)
                 varNames={'x1','x2','x3','x4'};
@@ -136,9 +136,10 @@ classdef Propensity
             end
             if computeSens
                 if ~isempty(parameters)
-                    y = obj.sensStateFactor{ipar}(x,parameters);
+                    y = obj.sensStateFactor{ipar}(x,parameters)+zeros(length(parameters),size(x,2));
+                    y = y(ipar,:);
                 else
-                    y = 0;
+                    y = zeros(length(parameters),size(x,2));
                 end
             else
                 if ~isempty(parameters)
@@ -212,14 +213,21 @@ classdef Propensity
             n_pars = size(nonXTpars,1);
             speciesStoch = setdiff(species,upstreamODEs,'stable');
 
-            varODEs = sym('varODEs',[1,length(upstreamODEs)]);
+            varODEs = sym('varODEs',[length(upstreamODEs),1],'real');
 
-            % Delete previous propensity function m-files
-            if ~exist([pwd,'/tmpPropensityFunctions'],'dir')
-                mkdir([pwd,'/tmpPropensityFunctions'])
+            load('SSITconfig.mat','pathToPropensityFuns');
+
+            % % Delete previous propensity function m-files
+            % if ~exist([pwd,filesep,'tmpPropensityFunctions'],'dir')
+            %     mkdir([pwd,filesep,'tmpPropensityFunctions'])
+            % end
+            delete(append(pathToPropensityFuns,filesep,prefixName,'*'));
+            if contains(prefixName,filesep)
+                J = find(prefixName==filesep,1,"last");
+                addpath([pathToPropensityFuns,filesep,prefixName(1:J-1)],'-begin')
+            else
+                addpath([pathToPropensityFuns,filesep],'-begin')
             end
-            delete([pwd,'/tmpPropensityFunctions/',prefixName,'*']);
-            addpath([pwd,'/tmpPropensityFunctions/'],'-begin')
 
             obj = cell(1,n_reactions);
             expr_t_vec = sym('w',[n_reactions,1]);
@@ -234,17 +242,17 @@ classdef Propensity
             anyLogical = zeros(1,n_reactions,'logical');
            
             t = sym('t','real');
-            for iRxn = 1:n_reactions
-                prop_vars = symvar(symbolicExpression{iRxn});
-                syms(prop_vars,'real');
-            end
+
+            allvars = unique([symvar([symbolicExpression{:}])]);
+            assume(allvars, 'real');
+
             if ~isempty(upstreamODEs)
                 syms(upstreamODEs,'positive')
             end
             oneSym = str2sym('1');
 
             % change to parfor?
-            parfor iRxn = 1:n_reactions
+            for iRxn = 1:n_reactions
                 prop_vars = symvar(symbolicExpression{iRxn});
                 hybridFactor =[];
                 prefixNameLocal = [prefixName,'_',num2str(iRxn)];
@@ -314,6 +322,17 @@ classdef Propensity
                     expr_x = subs(expr_x,upstreamODEs{i2},varODEs(i2));
                 end
 
+                if ~isempty(string(symvar(expr_t)))
+                    if ~max(contains(string(symvar(expr_t)),'t'))&&~max(contains(string(symvar(expr_t)),'logT'))&&isempty(upstreamODEs)
+                        % Check that there is actually a t-dependent
+                        % reaction (including an upstream ODE)
+                        % and otherwise combine.
+                        expr_x = expr_x*expr_t;
+                        expr_t=sym(1);
+                    end
+                end
+
+
                 if (~isempty(string(symvar(expr_x)))&&max(contains(string(symvar(expr_x)),'logT')))||...
                         (~isempty(string(symvar(expr_t)))&&max(contains(string(symvar(expr_t)),'logX')))
                     obj{iRxn}.isFactorizable = false;
@@ -334,7 +353,8 @@ classdef Propensity
                     % to be sent individually to the anonymous functions.
                     if ~isempty(logicTerms{iRxn})&&(isfield(logicTerms{iRxn},'logT')||isfield(logicTerms{iRxn},'logJ'))
                         obj{iRxn}.anonymousT = true;
-                        hybridFactor = sym2propfun(expr_t, true, false, nonXTpars(:,1), speciesStoch, varODEs, logicTerms(iRxn));
+                        % hybridFactor = sym2propfun(expr_t, true, false, nonXTpars(:,1), speciesStoch, varODEs, logicTerms(iRxn));
+                        hybridFactor = sym2mFun(expr_t, true, false, nonXTpars(:,1), speciesStoch, varODEs, false, true, prefixNameLocal, logicTerms(iRxn));
                         anyLogical(iRxn) = true;
                     % elseif sum(contains(string(symvar(expr_t)),'logX'))
                     %     obj{iRxn}.anonymousT = true;
@@ -384,8 +404,10 @@ classdef Propensity
                     % First for the time varying factors.
                     signHybridFactor = ((TmpHybridFactor>=0)-(TmpHybridFactor<0));
                     if obj{iRxn}.anonymousT
+                        % [obj{iRxn}.(timeFunName),expr_dt_vec_dodei] = ...
+                        %     sym2propfun(signHybridFactor*expr_t, true, false, nonXTpars(:,1), speciesStoch, varODEs, logicTerms(iRxn), true);
                         [obj{iRxn}.(timeFunName),expr_dt_vec_dodei] = ...
-                            sym2propfun(signHybridFactor*expr_t, true, false, nonXTpars(:,1), speciesStoch, varODEs, logicTerms(iRxn), true);
+                            sym2mFun(signHybridFactor*expr_t, true, false, nonXTpars(:,1), speciesStoch, varODEs, true, true, prefixNameLocal, logicTerms(iRxn));
                     else
                         [~,expr_dt_vec_dodei] = ...
                             sym2mFun(signHybridFactor*expr_t, true, false, nonXTpars(:,1), speciesStoch, varODEs, true, false, prefixNameLocal);
@@ -393,8 +415,10 @@ classdef Propensity
 
                     % Then for the state varying factors.
                     if obj{iRxn}.anonymousX
+                        % obj{iRxn}.stateDependentFactor =...
+                        %     sym2propfun(signHybridFactor*expr_x, false, true, nonXTpars(:,1), speciesStoch, [], logicTerms(iRxn));                    
                         obj{iRxn}.stateDependentFactor =...
-                            sym2propfun(signHybridFactor*expr_x, false, true, nonXTpars(:,1), speciesStoch, [], logicTerms(iRxn));                    
+                            sym2mFun(signHybridFactor*expr_x, false, true, nonXTpars(:,1), speciesStoch, [], false, true, prefixNameLocal, logicTerms(iRxn));                    
                     else
                         obj{iRxn}.stateDependentFactor =...
                             sym2mFun(signHybridFactor*expr_x, false, true, nonXTpars(:,1), speciesStoch, [], false, true, prefixNameLocal);
@@ -419,8 +443,11 @@ classdef Propensity
                     for i2=1:length(upstreamODEs)
                         expr_tx = subs(expr_tx,upstreamODEs{i2},varODEs(i2));
                     end
+
+                    % [obj{iRxn}.(jntFactorName),expr_dt_vec_dodei] = ...
+                    %     sym2propfun(expr_tx, true, true, nonXTpars(:,1), speciesStoch, varODEs, logicTerms(iRxn), true);
                     [obj{iRxn}.(jntFactorName),expr_dt_vec_dodei] = ...
-                        sym2propfun(expr_tx, true, true, nonXTpars(:,1), speciesStoch, varODEs, logicTerms(iRxn), true);
+                        sym2mFun(expr_tx, true, true, nonXTpars(:,1), speciesStoch, varODEs, true, true, prefixNameLocal, logicTerms(iRxn));
                     obj{iRxn}.isTimeDependent = true;
                     expr_t_vec(iRxn) = sym(NaN);
                     expr_x_vec(iRxn) = sym(NaN);
@@ -443,38 +470,55 @@ classdef Propensity
             % Create a vector function for the time varying part of the
             % propensity functions so that these can be found all at once.
             if any(anyLogical)
-                hybridFactorVector = sym2propfun(expr_t_vec, true, false, nonXTpars(:,1), speciesStoch, varODEs, logicTerms);
-                xFactorVector = sym2propfun(expr_x_vec, false, true, nonXTpars(:,1), speciesStoch, varODEs, logicTerms);
+                % hybridFactorVector = sym2propfun(expr_t_vec, true, false, nonXTpars(:,1), speciesStoch, varODEs, logicTerms);
+                hybridFactorVector = sym2mFun(expr_t_vec, true, false, nonXTpars(:,1), speciesStoch, varODEs, false, true, prefixNameLocal, logicTerms);
+                % xFactorVector = sym2propfun(expr_x_vec, false, true, nonXTpars(:,1), speciesStoch, varODEs, logicTerms);
+                xFactorVector = sym2mFun(expr_x_vec, false, true, nonXTpars(:,1), speciesStoch, varODEs, false, true, prefixNameLocal, logicTerms);
                 if ~isempty(expr_dt_vec_dode)
-                    obj{1}.DhybridFactorDodesVec = sym2propfun(expr_dt_vec_dode, true, false, nonXTpars(:,1), speciesStoch, varODEs, logicTerms);
+                    % obj{1}.DhybridFactorDodesVec = sym2propfun(expr_dt_vec_dode, true, false, nonXTpars(:,1), speciesStoch, varODEs, logicTerms);
+                    obj{1}.DhybridFactorDodesVec = sym2mFun(expr_dt_vec_dode, true, false, nonXTpars(:,1), speciesStoch, varODEs, false, true, prefixNameLocal, logicTerms);
                 end
                 if computeSens
-                    obj{1}.sensStateFactorVec = sym2propfun(expr_x_vec_sens, false, true, nonXTpars(:,1), speciesStoch, varODEs, logicTerms);
+                    % obj{1}.sensStateFactorVec = sym2propfun(expr_x_vec_sens, false, true, nonXTpars(:,1), speciesStoch, varODEs, logicTerms);
+                    obj{1}.sensStateFactorVec = sym2mFun(expr_x_vec_sens, false, true, nonXTpars(:,1), speciesStoch, varODEs, false, true, prefixNameLocal, logicTerms);
                     for iRxn = 1:n_reactions
                         obj{iRxn}.sensStateFactor = cell(1,n_pars);
                         for ipar = 1:n_pars
-                            obj{iRxn}.sensStateFactor{ipar} =  sym2propfun(expr_x_vec_sens(iRxn,ipar), false, true, nonXTpars(:,1), speciesStoch, varODEs, logicTerms);
-                            obj{1}.sensTimeFactorVec{ipar} = sym2propfun(expr_t_vec_sens(:,ipar), true, false, nonXTpars(:,1), speciesStoch, varODEs, logicTerms);
+                            % obj{iRxn}.sensStateFactor{ipar} =  sym2propfun(expr_x_vec_sens(iRxn,ipar), false, true, nonXTpars(:,1), speciesStoch, varODEs, logicTerms);
+                            % obj{1}.sensTimeFactorVec{ipar} = sym2propfun(expr_t_vec_sens(:,ipar), true, false, nonXTpars(:,1), speciesStoch, varODEs, logicTerms);
+                            obj{iRxn}.sensStateFactor{ipar} =  sym2mFun(expr_x_vec_sens(iRxn,ipar), false, true, nonXTpars(:,1), speciesStoch, varODEs, false, true, prefixNameLocal, logicTerms);
+                            obj{1}.sensTimeFactorVec{ipar} = sym2mFun(expr_t_vec_sens(:,ipar), true, false, nonXTpars(:,1), speciesStoch, varODEs, false, true, prefixNameLocal, logicTerms);
                         end
                     end
                 end
             else
-                hybridFactorVector = sym2mFun(expr_t_vec, true, false, nonXTpars(:,1), speciesStoch, varODEs, false, true, prefixNameLocal);
-                xFactorVector = sym2mFun(expr_x_vec, false, true, nonXTpars(:,1), speciesStoch, varODEs, false, true, prefixNameLocal);
+                hybridFactorVector = sym2mFun(expr_t_vec, true, false, nonXTpars(:,1), speciesStoch, varODEs, false, true, [prefixNameLocal,'_t']);
+                xFactorVector = sym2mFun(expr_x_vec, false, true, nonXTpars(:,1), speciesStoch, varODEs, false, true, [prefixNameLocal,'_x']);
                 if ~isempty(expr_dt_vec_dode)
-                    obj{1}.DhybridFactorDodesVec = sym2mFun(expr_dt_vec_dode, true, false, nonXTpars(:,1), speciesStoch, varODEs, false, true, prefixNameLocal);
+                    obj{1}.DhybridFactorDodesVec = sym2mFun(expr_dt_vec_dode, true, false, nonXTpars(:,1), speciesStoch, varODEs, false, true, [prefixNameLocal,'_dt']);
                 end
                 if computeSens
-                    obj{1}.sensStateFactorVec = sym2mFun(expr_x_vec_sens, false, true, nonXTpars(:,1), speciesStoch, varODEs, false, true, prefixNameLocal);
-                    parfor iRxn = 1:n_reactions
-                        obj{iRxn}.sensStateFactor = cell(1,n_pars);
-                        for ipar = 1:n_pars
-                            prefixNameLocal = [prefixName,'_',num2str(iRxn),'_',num2str(ipar)];
-                            obj{iRxn}.sensStateFactor{ipar} =  sym2mFun(expr_x_vec_sens(iRxn,ipar), false, true, nonXTpars(:,1), speciesStoch, varODEs, false, true, prefixNameLocal);
+                    obj{1}.sensStateFactorVec = sym2mFun(expr_x_vec_sens, false, true, nonXTpars(:,1), speciesStoch, varODEs, false, true, [prefixNameLocal,'_s']);
+                    poolobj = gcp("nocreate");
+                    if ~isempty(poolobj)&&n_reactions>0
+                        parfor iRxn = 1:n_reactions
+                            obj{iRxn}.sensStateFactor = cell(1,n_pars);
+                            for ipar = 1:n_pars
+                                prefixNameLocal = [prefixName,'_',num2str(iRxn),'_',num2str(ipar)];
+                                obj{iRxn}.sensStateFactor{ipar} =  sym2mFun(expr_x_vec_sens(iRxn,ipar), false, true, nonXTpars(:,1), speciesStoch, varODEs, false, true, prefixNameLocal);
+                            end
+                        end
+                    else
+                        for iRxn = 1:n_reactions
+                            obj{iRxn}.sensStateFactor = cell(1,n_pars);
+                            for ipar = 1:n_pars
+                                prefixNameLocal = [prefixName,'_',num2str(iRxn),'_',num2str(ipar)];
+                                obj{iRxn}.sensStateFactor{ipar} =  sym2mFun(expr_x_vec_sens(iRxn,ipar), false, true, nonXTpars(:,1), speciesStoch, varODEs, false, true, prefixNameLocal);
+                            end
                         end
                     end
                     for ipar = 1:n_pars
-                        prefixNameLocal = [prefixName,'_',num2str(iRxn),'_',num2str(ipar)];
+                        prefixNameLocal = [prefixName,'_v_',num2str(1),'_',num2str(ipar)];
                         obj{1}.sensTimeFactorVec{ipar} = sym2mFun(expr_t_vec_sens(:,ipar), true, false, nonXTpars(:,1), speciesStoch, varODEs, false, true, prefixNameLocal);
                     end
                 end
@@ -564,31 +608,50 @@ classdef Propensity
             n = [0,0,0];
             stNew = st;
             for i=1:3
-                J = strfind(stNew,logTypes{i});
-                for j = 1:length(J)
-                    K = strfind(stNew,'(');
-                    k1 = max(K(K<J(j)));
-                    K = strfind(stNew,')');
-                    k2 = min(K(K>J(j)));
-                    logE = stNew(k1:k2);
-                    if contains(logE,'t')&&max(contains(logE,species))
-                        n(1)=n(1)+1;
-                        logicTerms.logJ{n(1),1} = logE;
-                        counter = counter+1;
-                        logicTerms.logJ{n(1),2} = ['logJ',num2str(counter)];
-                        stNew = strrep(stNew,logE,['(',logicTerms.logJ{n(1),2},')']);
-                    elseif contains(logE,'t')
-                        n(2)=n(2)+1;
-                        logicTerms.logT{n(2),1} = logE;
-                        counter = counter+1;
-                        logicTerms.logT{n(2),2} = ['logT',num2str(counter)];
-                        stNew = strrep(stNew,logE,['(',logicTerms.logT{n(2),2},')']);
-                    elseif max(contains(logE,species))
-                        n(3)=n(3)+1;
-                        logicTerms.logX{n(3),1} = logE;
-                        counter = counter+1;
-                        logicTerms.logX{n(3),2} = ['logX',num2str(counter)];
-                        stNew = strrep(stNew,logE,['(',logicTerms.logX{n(3),2},')']);
+                while ~isempty(strfind(stNew,logTypes{i}))
+                    J = strfind(stNew,logTypes{i});
+                    for j = 1%:length(J)
+                        logvals = (stNew == '(') - (stNew == ')');
+                        k1 = J(j);
+                        pos = 0;
+                        while pos<1
+                            k1 = k1-1;
+                            pos = sum(logvals(k1:J(j)));
+                        end
+                        k2 = J(j);
+                        neg = 0;
+                        while neg>-1
+                            k2 = k2+1;
+                            neg = sum(logvals(J(j):k2));
+                        end
+
+                        % K = strfind(stNew,'(');
+                        % k1 = max(K(K<J(j)));
+                        % K = strfind(stNew,')');
+                        % k2 = min(K(K>J(j)));
+                        logE = stNew(k1:k2);
+                        if ~isempty(regexp(logE,'\<t\>'))&&max(contains(logE,species))
+                            n(1)=n(1)+1;
+                            logicTerms.logJ{n(1),1} = logE;
+                            counter = counter+1;
+                            logicTerms.logJ{n(1),2} = ['logJ',num2str(counter)];
+                            stNew = strrep(stNew,logE,['(',logicTerms.logJ{n(1),2},')']);
+                            % stNew = regexprep(stNew,['\<',logE,'\>'],['(',logicTerms.logJ{n(1),2},')']);
+                        elseif ~isempty(regexp(logE,'\<t\>'))
+                            n(2)=n(2)+1;
+                            logicTerms.logT{n(2),1} = logE;
+                            counter = counter+1;
+                            logicTerms.logT{n(2),2} = ['logT',num2str(counter)];
+                            stNew = strrep(stNew,logE,['(',logicTerms.logT{n(2),2},')']);
+                            % stNew = regexprep(stNew,['\<',logE,'\>'],['(',logicTerms.logT{n(2),2},')']);
+                        elseif max(contains(logE,species))
+                            n(3)=n(3)+1;
+                            logicTerms.logX{n(3),1} = logE;
+                            counter = counter+1;
+                            logicTerms.logX{n(3),2} = ['logX',num2str(counter)];
+                            stNew = strrep(stNew,logE,['(',logicTerms.logX{n(3),2},')']);
+                            % stNew = regexprep(stNew,['\<',logE,'\>'],['(',logicTerms.logX{n(3),2},')']);
+                        end
                     end
                 end
             end
@@ -624,7 +687,7 @@ if (isempty(left_bracket_loc))
         ft = '1';
         fx = expr;
         return;
-    elseif (~contains(strrep(expr,'exp','EP'), 'x')) % Check if it has 'x' and not 'exp'
+    elseif (~contains(regexprep(expr,'\<exp\>','EP'), 'x')) % Check if it has 'x' and not 'exp'
         isFactorizable = true;
         ft = expr;
         fx = '1';
@@ -677,6 +740,13 @@ end
 
 % import ssit.fsp.*
 varNames = string(symvar(symbolicExpression));
+varNames = unique([varNames,species{:}]);
+% len = zeros(1,length(varNames));
+% for i = 1:length(varNames)
+%     len(i) = length(varNames{i});
+% end
+% [~,J] = sort(len,'descend');
+% varNames = varNames(J);
 % sort(varNames, 'descend');
 
 if jacobian&&~isempty(varODEs)
@@ -688,7 +758,23 @@ else
     exprJac=[];
 end
 
+
 exprStr = char(symbolicExpression);
+
+% Get rid of  max rules.
+% k = strfind(exprStr,', ''omitnan');
+% if ~isempty(k)
+%     exprStr = [exprStr(1:k-1),')'];
+% end
+exprStr = strrep(exprStr,', ''omitnan'', false','');
+exprStr = strrep(exprStr,', \"''omitnan''\", false','');
+% Same but for another format.
+% k = strfind(exprStr,', \"''omitnan''\"');
+% if ~isempty(k)
+%     exprStr = [exprStr(1:k-1),')'];
+% end
+
+% exprStr = char(strrep(exprStr,", [], 2, 'omitnan', false",""));
 opVar = {'*','/','^'};
 for i = 1:length(opVar)
     op = opVar{i};
@@ -704,37 +790,49 @@ parStr = ', Parameters';
 if ~isempty(varODEs)
     parStr = [parStr,', varODEs'];
     for i=length(varODEs):-1:1
-        exprStr = strrep(exprStr, ['varODEs',num2str(i)], ['varODEs(',num2str(i),')']);
+        % exprStr = strrep(exprStr, ['varODEs',num2str(i)], ['varODEs(',num2str(i),')']);
+        exprStr = regexprep(exprStr, ['\<varODEs',num2str(i),'\>'], ['varODEs(',num2str(i),')']);
     end
 end
 
 for i=1:length(logicTerms)
     if isfield(logicTerms{i},'logT')
         for j=1:size(logicTerms{i}.logT,1)
-            exprStr=strrep(exprStr,logicTerms{i}.logT{j,2},logicTerms{i}.logT{j,1});
+            % exprStr=strrep(exprStr,logicTerms{i}.logT{j,2},logicTerms{i}.logT{j,1});
+            exprStr=regexprep(exprStr,['\<',logicTerms{i}.logT{j,2},'\>'],logicTerms{i}.logT{j,1});
         end
     end
     if isfield(logicTerms{i},'logX')
         %             state_dep = true;
         for j=1:size(logicTerms{i}.logX,1)
-            exprStr=strrep(exprStr,logicTerms{i}.logX{j,2},logicTerms{i}.logX{j,1});
+            % exprStr=strrep(exprStr,logicTerms{i}.logX{j,2},logicTerms{i}.logX{j,1});
+            exprStr=regexprep(exprStr,['\<',logicTerms{i}.logX{j,2},'\>'],logicTerms{i}.logX{j,1});
         end
     end
     if isfield(logicTerms{i},'logJ')
         %             time_dep = true;
         %             state_dep = true;
         for j=1:size(logicTerms{i}.logX,1)
-            exprStr=strrep(exprStr,logicTerms{i}.logX{j,2},logicTerms{i}.logX{j,1});
+            % exprStr=strrep(exprStr,logicTerms{i}.logX{j,2},logicTerms{i}.logX{j,1});
+            exprStr=regexprep(exprStr,['\<',logicTerms{i}.logX{j,2},'\>'],logicTerms{i}.logX{j,1});
         end
     end
 end
 
+lens = zeros(1,length(nonXTpars));
 for i = 1:length(nonXTpars)
-    exprStr = strrep(exprStr, nonXTpars{i}, ['Parameters(',num2str(i),')']);
+    lens(i) = length(nonXTpars{i});
 end
+[~,J] = sort(lens,'descend');
+
+for i = 1:length(nonXTpars)
+    % exprStr = strrep(exprStr, nonXTpars{J(i)}, ['$(',num2str(J(i)),')']);
+    exprStr = regexprep(exprStr, ['\<',nonXTpars{J(i)},'\>'], ['Parameters(',num2str(J(i)),')']);
+end
+% exprStr = strrep(exprStr,'$','Parameters');
 
 for i = length(nonXTpars):-1:1
-    exprStr = strrep(exprStr, ['parameters',num2str(i)], ['Parameters(',num2str(i),')']);
+    exprStr = regexprep(exprStr, ['\<parameters',num2str(i),'\>'], ['Parameters(',num2str(i),')']);
 end
 
 
@@ -745,7 +843,8 @@ if (time_dep && state_dep)
         if max(ismember(species, old_name))
             j = find(ismember(species, old_name));
             new_name = ['x(', num2str(j), ', :)'];
-            exprStr = strrep(exprStr, old_name, new_name);
+            % exprStr = strrep(exprStr, old_name, new_name);
+            exprStr = regexprep(exprStr, ['\<',old_name,'\>'], new_name);
         end
     end
     exprHandle = str2func([fhandle_var exprStr]);
@@ -761,7 +860,8 @@ else
             if max(ismember(species, old_name))
                 j = find(ismember(species, old_name));
                 new_name = ['x(', num2str(j), ', :)'];
-                exprStr = strrep(exprStr, old_name, new_name);
+                % exprStr = strrep(exprStr, old_name, new_name);
+                exprStr = regexprep(exprStr, ['\<',old_name,'\>'], new_name);
             end
         end
     else
@@ -770,7 +870,7 @@ else
     exprHandle = str2func([fhandle_var exprStr]);
 end
 end
-function [exprHandle,exprJac] = sym2mFun(symbolicExpression, time_dep, state_dep, nonXTpars, species, varODEs, jacobian, writeFiles, prefixName)
+function [exprHandle,exprJac] = sym2mFun(symbolicExpression, time_dep, state_dep, nonXTpars, species, varODEs, jacobian, writeFiles, prefixName, logicTerms)
 arguments
     symbolicExpression
     time_dep
@@ -781,12 +881,48 @@ arguments
     jacobian = false
     writeFiles = true
     prefixName = []
+    logicTerms = {};
 end
 % This function writes an executable m-file for the provided expression.
 varNames = string(symvar(symbolicExpression));
 states = sym("states",[length(species),1],'positive');
 parameters = sym("parameters",[length(nonXTpars),1],'positive');
-syms t real
+t = sym("t",'real');
+
+% Replace logic terms with the correct values.
+if ~isempty(logicTerms)
+    logVars = [];
+    logVarsReps = {};
+    for i=1:length(logicTerms)
+        if isfield(logicTerms{i},'logT')
+            for j=1:size(logicTerms{i}.logT,1)
+                eval([logicTerms{i}.logT{j,2},' = sym("',logicTerms{i}.logT{j,2},'","positive");'])
+                % syms(logicTerms{i}.logT{j,2},'positive')
+                logVars = [logVars;eval(logicTerms{i}.logT{j,2})];
+                logVarsReps = [logVarsReps;logicTerms{i}.logT(j,1:2)];
+            end
+        end
+        if isfield(logicTerms{i},'logX')
+            for j=1:size(logicTerms{i}.logX,1)
+                eval([logicTerms{i}.logX{j,2},' = sym("',logicTerms{i}.logX{j,2},'","positive");'])
+                logVars = [logVars;eval(logicTerms{i}.logX{j,2})];
+                logVarsReps = [logVarsReps;logicTerms{i}.logX(j,1:2)];
+            end
+        end
+        if isfield(logicTerms{i},'logJ')
+            for j=1:size(logicTerms{i}.logJ,1)
+                eval([logicTerms{i}.logJ{j,2},' = sym("',logicTerms{i}.logJ{j,2},'","positive");'])
+                logVars = [logVars;eval(logicTerms{i}.logJ{j,2})];
+                logVarsReps = [logVarsReps;logicTerms{i}.logJ(j,1:2)];
+            end
+        end
+    end
+else
+    logDummy=sym('logDummy');
+    logVars=logDummy;
+    logVarsReps={' ','logDummy'};
+end
+
 for i = 1:length(varNames)
     old_name = char(varNames(i));
     if max(ismember(species, old_name))
@@ -799,20 +935,44 @@ for i = 1:length(varNames)
     end
 end
 
+% for i = 1:size(logVarsReps,1)
+%     old_name = logVarsReps{i,1};
+%     for j = 1:length(species)
+%         old_name = regexprep(old_name,['\<',species{j},'\>'],string(states(j)));
+%     end
+%     for j = 1:length(nonXTpars)
+%         old_name = regexprep(old_name,['\<',nonXTpars{j},'\>'],string(parameters(j)));
+%     end
+%     logVarsReps{i,1} = old_name;
+% end
+from = [species(:); nonXTpars(:)];
+to   = [string(states(:)); string(parameters(:))];
+pat  = cellfun(@(x) ['\<' x '\>'], from, 'UniformOutput', false);
+for i = 1:size(logVarsReps,1)
+    logVarsReps{i,1} = regexprep(logVarsReps{i,1}, pat, to);
+end
+
+
 if isempty(prefixName)
     prefixName = pwd;
     j = find(prefixName==filesep,1,'last');
     prefixName = prefixName(j+1:end);
 end
 
-ifn = sum(contains({dir('tmpPropensityFunctions').name},[prefixName,'_fun']))+1;
-fn = [pwd,'/tmpPropensityFunctions/',prefixName,'_fun_',num2str(ifn),'.m'];
+load('SSITconfig.mat','pathToPropensityFuns');
+
+% ifn = sum(contains({dir('tmpPropensityFunctions').name},[prefixName,'_fun']))+1;
+% files = dir(fullfile('tmpPropensityFunctions', [prefixName '_fun*']));
+files = dir(fullfile(pathToPropensityFuns, [prefixName '_fun*']));
+ifn = numel(files) + 1;
+
+fn = append(pathToPropensityFuns,filesep,prefixName,'_fun_',num2str(ifn),'.m');
 
 if jacobian&&~isempty(varODEs)
     exprJac = sym(zeros([1,length(varODEs)]));
     [~,a2] = intersect(varODEs,symvar(symbolicExpression));
-    for i=1:a2
-        exprJac(i) = diff(symbolicExpression,varODEs(i));
+    for i=1:length(a2)
+        exprJac(a2(i)) = diff(symbolicExpression,varODEs(a2(i)));
     end
 else
     exprJac=[];
@@ -821,26 +981,64 @@ end
 if writeFiles
     if isempty(varODEs)
         if (time_dep && state_dep)
-            exprHandle = matlabFunction(symbolicExpression,'Vars',{t,states,parameters},'File',fn,'Sparse',true);
+            % exprHandle = matlabFunction(symbolicExpression,'Vars',{t,states,parameters,logVars},'File',fn,'Sparse',true);
+            exprHandle = matlabFunctionSSIT(symbolicExpression,{t,states,parameters},fn,true,logVarsReps);
         elseif time_dep
-            exprHandle = matlabFunction(symbolicExpression,'Vars',{t,parameters},'File',fn,'Sparse',true);
+            % exprHandle = matlabFunction(symbolicExpression,'Vars',{t,parameters,logVars},'File',fn,'Sparse',true);
+            exprHandle = matlabFunctionSSIT(symbolicExpression,{t,parameters},fn,true,logVarsReps);
         else
-            exprHandle = matlabFunction(symbolicExpression,'Vars',{states,parameters},'File',fn,'Sparse',false);
+            % exprHandle = matlabFunction(symbolicExpression,'Vars',{states,parameters,logVars},'File',fn,'Sparse',false);
+            exprHandle = matlabFunctionSSIT(symbolicExpression,{states,parameters},fn,false,logVarsReps);
         end
     else
         if (time_dep && state_dep)
-            exprHandle = matlabFunction(symbolicExpression,'Vars',{t,states,parameters,varODEs},'File',fn,'Sparse',true);
+            % exprHandle = matlabFunction(symbolicExpression,'Vars',{t,states,parameters,varODEs,logVars},'File',fn,'Sparse',true);
+            exprHandle = matlabFunctionSSIT(symbolicExpression,{t,states,parameters,varODEs},fn,true,logVarsReps);
         elseif time_dep
-            exprHandle = matlabFunction(symbolicExpression,'Vars',{t,parameters,varODEs},'File',fn,'Sparse',true);
+            % exprHandle = matlabFunction(symbolicExpression,'Vars',{t,parameters,varODEs,logVars},'File',fn,'Sparse',true);
+            exprHandle = matlabFunctionSSIT(symbolicExpression,{t,parameters,varODEs},fn,true,logVarsReps);
         else
-            exprHandle = matlabFunction(symbolicExpression,'Vars',{states,parameters,varODEs},'File',fn,'Sparse',true);
+            % exprHandle = matlabFunction(symbolicExpression,'Vars',{states,parameters,varODEs,logVars},'File',fn,'Sparse',true);
+            exprHandle = matlabFunctionSSIT(symbolicExpression,{states,parameters,varODEs},fn,true,logVarsReps);
         end
     end
+    % % % Read entire file as text
+    % if ~isempty(logVars)
+    %     txt = fileread(fn);
+    % 
+    %     % Replace first string in function name
+    %     for i = 1:size(logVarsReps,1)
+    %         J = strfind(txt,[',',logVarsReps{i,2}]);
+    %         txt(J(1):J(1)+length([',',logVarsReps{i,2}])-1) = [];
+    % 
+    %         txt = strrep(txt,[logVarsReps{i,2}],['(',logVarsReps{i,1},')']);
+    % 
+    %     end
+    % 
+    %     % Overwrite original file
+    %     fid = fopen(fn, 'w');
+    %     fwrite(fid, txt);
+    %     fclose(fid);
+    % 
+    % end
+    
+    % TODO - This is meant to remove redundant functions, but it is slow,
+    % and I removed it.  Should continue testing to see if the path
+    % problems persist.
+    % J = find(fn=='/',1,'last');
+    % oldFile = which(fn(J+1:end));
+    % while ~isempty(oldFile)&&~strcmp(oldFile,fn)
+    %     disp('WARNING -- it appears that a new propensity functions is redundant to one already on the search path. Moving old version to backup')
+    %     oldFile = which(func2str(exprHandle));
+    %     if ~isempty(oldFile)
+    %         movefile(oldFile,[oldFile(1:end-2),'_bak.m']);
+    %     end
+    % end
 else
     exprHandle=[];
 end
 % if jacobian
-%     fn = [pwd,'/tmpPropensityFunctions/',prefix,'_fun_',num2str(ifn+1),'.m'];
+%     fn = [pathToPropensityFuns,filesep,prefix,'_fun_',num2str(ifn+1),'.m'];
 %     if isempty(varODEs)
 %         % if (time_dep && state_dep)
 %         %     exprHandleJac = matlabFunction(exprJac,'Vars',{t,states,parameters},'File',fn);

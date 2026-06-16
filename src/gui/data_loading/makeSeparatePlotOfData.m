@@ -1,11 +1,24 @@
-function makeSeparatePlotOfData(app,smoothWindow,fignums,usePanels,varianceType,IQRrange)
+function figHandles = makeSeparatePlotOfData(app,smoothWindow,fignums,usePanels, ...
+    varianceType,IQRrange,suppressFigures)
 arguments
     app
-    smoothWindow = 5;
+    smoothWindow = 1;
     fignums = [];
     usePanels=true;
-    varianceType = 'STD';
-    IQRrange = 0.25
+    varianceType = 'STD';  % Plot type standard deviation ('STD') or interquartile range ('IQR'). {'STD', 'IQR'}
+    IQRrange = 0.25 % Interquartile range for plotting.
+    suppressFigures = false % Hide figures.  Will need to manually make them visible again for viewing.
+end
+
+if suppressFigures
+    visible = 'off';
+    set(0,'DefaultFigureVisible','off')
+    if ~isempty(fignums)&&(~iscell(fignums)||~ishandle(fignums{1}))
+        disp('Creating new figures -- to reuse figures, fignum must be a cell of figure handles');   
+        fignums = [];
+    end
+else
+    visible = 'on';
 end
 
 %% This function creates a histogram from the loaded data.
@@ -17,16 +30,17 @@ if NdModFit~=NdDat
 end
 
 % Plts_to_make = zeros(1,NdModFit);
-
+figHandles = {};
 % Density and Cumulative Distributions plots
 for DistType = 0:1
     % Choose which figures to plot in
-    if isempty(fignums); figHandle = figure; 
+    if isempty(fignums); figHandle = figure('Visible',visible);
+    elseif iscell(fignums); figHandle = fignums{DistType+1}; set(0, 'CurrentFigure', figHandle);
     else; figHandle = figure(fignums(DistType+1)); end
-    if DistType==0; set(figHandle,'Name','Cumulative Distributions versus Time') 
+    if DistType==0; set(figHandle,'Name','Cumulative Distributions versus Time')
     elseif DistType==1; set(figHandle,'Name','Probability Distributions versus Time')
     end
-    
+
     % initialize histogram plots
     if numTimes<=4
         subPlotSize = [1,numTimes];
@@ -37,7 +51,7 @@ for DistType = 0:1
 
     modelHistTime = cell(numTimes,NdDat);
     dataHistTime = cell(numTimes,NdDat);
-    
+
     % loop over number of time points
     for iTime = 1:numTimes
         % Find index of time in model solution times set
@@ -46,10 +60,10 @@ for DistType = 0:1
             subplot(subPlotSize(1),subPlotSize(2),iTime)
         end
         FigHandleHists = gca;
-        
+
         LegNames = {};
         xm = 0; ym = 0;
-        
+
         % Switches plotted data, (e.g., x1, x2, x3,...), and legend depending on if the
         % species was selected for plotting.
         for icb=1:NdDat
@@ -58,7 +72,7 @@ for DistType = 0:1
 
             indsToSumOver = setdiff([1:NdModFit],icb);
             % soDat = setdiff([1:NdDat],icb);
-            speciesName = app.NameTable.Data{icb,2};
+            speciesName = app.NameTable.Data{icb};
 
             %% Histograms for the data.
             if cb  % If this species selected for plotting
@@ -92,11 +106,15 @@ for DistType = 0:1
                 xm = max(xm,length(H1));
 
                 %% Histograms for the model
+                modelTensor = app.DataLoadingAndFittingTabOutputs.fitResults.current;
+                inds = modelTensor.subs;
+                inds = inds(inds(:,1) == iTime,:);
+                vals = modelTensor(inds);
+                modelTensor = double(sptensor(inds(:,2:end),vals));
                 if ~isempty(indsToSumOver)
-                    modelTensor = squeeze(app.DataLoadingAndFittingTabOutputs.fitResults.current(iTime,:,:,:,:,:,:,:,:,:,:,:,:));
                     H1 = squeeze(sum(modelTensor,indsToSumOver));
                 else
-                    H1 = squeeze(app.DataLoadingAndFittingTabOutputs.fitResults.current(iTime,:,:,:,:,:,:,:,:,:,:,:,:));
+                    H1 = squeeze(modelTensor);
                 end
                 modelHistTime{iTime,icb} = H1;
 
@@ -133,11 +151,13 @@ for DistType = 0:1
         end
     end
     legend(LegNames)
+    figHandles{end+1} = figHandle;
 end
 
 %% Make trajectory plots for model.
 % NdModAll = size(app.NameTable.Data,1);
-if isempty(fignums); figHandle = figure;
+if isempty(fignums); figHandle = figure('Visible',visible);
+elseif iscell(fignums); figHandle = fignums{3}; set(0, 'CurrentFigure', figHandle);
 else; figHandle = figure(fignums(3));
 end
 
@@ -161,7 +181,7 @@ for iTime = 1:length(tArrayModel)
         px = app.FspTabOutputs.solutions{iTime}.p;
         if ~isempty(app.FIMTabOutputs.distortionOperator)
             px = app.FIMTabOutputs.distortionOperator.computeObservationDist(px,soInds);
-        end        
+        end
         if isempty(soInds)
             Z = double(px.data);
         else
@@ -173,47 +193,50 @@ for iTime = 1:length(tArrayModel)
         % Compute the 25% and 75% range from model.
         sumZ = cumsum(Z);
         [~,I] = unique(sumZ);
-        
-        if sumZ(1)>IQRrange
-            lowIQRmod(iTime,j) = 0;
-        else
-            lowIQRmod(iTime,j) = interp1(sumZ(I),I-1,IQRrange);
+
+        if strcmp(varianceType,'IQR')
+            if sumZ(1)>IQRrange
+                lowIQRmod(iTime,j) = 0;
+            else
+                lowIQRmod(iTime,j) = interp1(sumZ(I),I-1,IQRrange);
+            end
+            if sumZ(1)>1-IQRrange
+                highIQRmod(iTime,j) = 0;
+            else
+                highIQRmod(iTime,j) = interp1(sumZ(I),I-1,1-IQRrange);
+            end
         end
-        if sumZ(1)>1-IQRrange
-            highIQRmod(iTime,j) = 0;
-        else
-            highIQRmod(iTime,j) = interp1(sumZ(I),I-1,1-IQRrange);
-        end        
     end
 end
-
-   % for iTimeModel = 1:length(T_array)
-   %      if ~isempty(app.FspTabOutputs.solutions{iTimeModel})
-   %          for i=1:NdModAll
-   %              INDS = setdiff([1:NdDat],i);
-   % 
-   %              % Add effect of PDO.
-   %              px = app.FspTabOutputs.solutions{iTimeModel}.p;
-   %              if ~isempty(app.FIMTabOutputs.distortionOperator)
-   %                  px = app.FIMTabOutputs.distortionOperator.computeObservationDist(px);
-   %              end
-   %              if ~isempty(INDS)
-   %                  mdist{i} = double(px.sumOver(INDS).data);
-   %              else
-   %                  mdist{i} = double(px.data);
-   %              end
-   %          end
-   %          for j=1:NdModAll
-   %              mns(iTimeModel,j) = [0:length(mdist{j})-1]*mdist{j};
-   %              mns2(iTimeModel,j) = [0:length(mdist{j})-1].^2*mdist{j};
-   %          end
-   %      end
-   %  end
+% for iTimeModel = 1:length(T_array)
+%      if ~isempty(app.FspTabOutputs.solutions{iTimeModel})
+%          for i=1:NdModAll
+%              INDS = setdiff([1:NdDat],i);
+%
+%              % Add effect of PDO.
+%              px = app.FspTabOutputs.solutions{iTimeModel}.p;
+%              if ~isempty(app.FIMTabOutputs.distortionOperator)
+%                  px = app.FIMTabOutputs.distortionOperator.computeObservationDist(px);
+%              end
+%              if ~isempty(INDS)
+%                  mdist{i} = double(px.sumOver(INDS).data);
+%              else
+%                  mdist{i} = double(px.data);
+%              end
+%          end
+%          for j=1:NdModAll
+%              mns(iTimeModel,j) = [0:length(mdist{j})-1]*mdist{j};
+%              mns2(iTimeModel,j) = [0:length(mdist{j})-1].^2*mdist{j};
+%          end
+%      end
+%  end
 % end
 vars = mns2Mod-mnsMod.^2;
 cols = ['b','r','g','m','c','k'];
 cols2 = [.90 .90  1.00; 1.00 .90 .90; .90 1.00 .90; .60 .60  1.00; 1.00 .60 .60; .60 1.00 .60];
 LG = {};
+
+%% TODO - 1:NdDat can be changed to plot species separately (e.g., separate cytGR and nucGR plots)
 for iplt=1:NdDat
     % if Plts_to_make(iplt)
     switch varianceType
@@ -227,33 +250,35 @@ for iplt=1:NdDat
     fill(meanVarTrajAxis,TT,BD,cols2(iplt,:));
     hold(meanVarTrajAxis,'on');
     plot(meanVarTrajAxis,tArrayModel,mnsMod(:,iplt),cols(iplt),'linewidth',2);
-    LG{end+1} = [char(app.NameTable.Data(iplt,2)),' Model Mean \pm std'];
-    LG{end+1} = [char(app.NameTable.Data(iplt,2)),' Model Mean'];
+    LG{end+1} = [char(app.NameTable.Data(iplt)),' Model Mean \pm std'];
+    LG{end+1} = [char(app.NameTable.Data(iplt)),' Model Mean'];
     % endc
 end
 title('Trajectory of means and standard deviations')
 
 %% Add data to trajectory plot.
 for iTime = 1:numTimes
+    %% TODO - 1:NdDat can be changed to plot species separately (e.g., separate cytGR and nucGR plots)
     for j=1:NdDat
         mnsDat(iTime,j) = [0:length(dataHistTime{iTime,j})-1]*dataHistTime{iTime,j};
         mns2Dat(iTime,j) = [0:length(dataHistTime{iTime,j})-1].^2*dataHistTime{iTime,j};
         % Compute the 25% and 75% range from data.
-        
+
         sumZ = cumsum(dataHistTime{iTime,j});
         [~,I] = unique(sumZ);
-        
+
         if sumZ(1)>0.25
             lowIQRmod(iTime,j) = 0;
         else
             lowIQRdat(iTime,j) = interp1(sumZ(I),I-1,0.25);
             highIQRdat(iTime,j) = interp1(sumZ(I),I-1,0.75);
         end
-    
+
     end
 end
 varDat = mns2Dat-mnsDat.^2;
 T_array = app.DataLoadingAndFittingTabOutputs.fittingOptions.dataTimes;
+%% TODO - 1:NdDat can be changed to plot species separately (e.g., separate cytGR and nucGR plots)
 for j=1:NdDat
     switch varianceType
         case 'STD'
@@ -265,7 +290,7 @@ for j=1:NdDat
                 mnsDat(:,j),(mnsDat(:,j)-lowIQRdat(:,j)),(highIQRdat(:,j)-mnsDat(:,j)),[cols(j),...
                 'o'],'MarkerSize',12,'MarkerFaceColor',cols(j),'linewidth',3)
     end
-    LG{end+1} = [char(app.NameTable.Data(j,2)),' Data mean \pm std'];
+    LG{end+1} = [char(app.NameTable.Data(j)),' Data mean \pm std'];
 end
 
 % Ned = length(size(app.DataLoadingAndFittingTabOutputs.dataTensor))-1;
@@ -294,28 +319,28 @@ set(meanVarTrajAxis,'fontsize',15)
 if max(T_array)>0
     set(meanVarTrajAxis,'xlim',[0,max(T_array)])
 end
-
+figHandles{end+1} = figHandle;
 
 %% Make plots of Likelihood functions versus time.
-if isempty(fignums)
-    figure
-else
-    figure(fignums(4))
+if isempty(fignums);figHandle=figure('Visible',visible);
+elseif iscell(fignums); figHandle = fignums{4}; set(0, 'CurrentFigure', figHandle);
+else; figHandle=figure(fignums(4));
 end
 subplot(3,1,1)
-plot(app.DataLoadingAndFittingTabOutputs.fittingOptions.fit_times,app.DataLoadingAndFittingTabOutputs.V_LogLk,'linewidth',2)
+plot(app.DataLoadingAndFittingTabOutputs.fittingOptions.dataTimes,app.DataLoadingAndFittingTabOutputs.V_LogLk,'linewidth',2)
 hold on
-plot(app.DataLoadingAndFittingTabOutputs.fittingOptions.fit_times,app.DataLoadingAndFittingTabOutputs.perfectMod,'linewidth',2)
-plot(app.DataLoadingAndFittingTabOutputs.fittingOptions.fit_times,app.DataLoadingAndFittingTabOutputs.perfectModSmoothed,'linewidth',2)
+plot(app.DataLoadingAndFittingTabOutputs.fittingOptions.dataTimes,app.DataLoadingAndFittingTabOutputs.perfectMod,'linewidth',2)
+% plot(app.DataLoadingAndFittingTabOutputs.fittingOptions.fit_times,app.DataLoadingAndFittingTabOutputs.perfectModSmoothed,'linewidth',2)
 ylabel('Log(L(D(t)|M)')
-legend({'log(L) - best fit for model','log(L) - theoretical limit','log(L) - theoretical limit (smoothed)'})
+% legend({'log(L) - best fit for model','log(L) - theoretical limit','log(L) - theoretical limit (smoothed)'})
+legend({'log(L) - best fit for model','log(L) - theoretical limit'})
 
 subplot(3,1,2)
-plot(app.DataLoadingAndFittingTabOutputs.fittingOptions.fit_times,app.DataLoadingAndFittingTabOutputs.numCells,'linewidth',2)
+plot(app.DataLoadingAndFittingTabOutputs.fittingOptions.dataTimes,app.DataLoadingAndFittingTabOutputs.numCells,'linewidth',2)
 ylabel('# Cells')
 
 subplot(3,1,3)
-plot(app.DataLoadingAndFittingTabOutputs.fittingOptions.fit_times,...
+plot(app.DataLoadingAndFittingTabOutputs.fittingOptions.dataTimes,...
     (app.DataLoadingAndFittingTabOutputs.V_LogLk - app.DataLoadingAndFittingTabOutputs.perfectMod)./...
     app.DataLoadingAndFittingTabOutputs.numCells,'linewidth',2)
 
@@ -325,6 +350,7 @@ for i=1:3
     subplot(3,1,i)
     set(gca,'fontsize',15);
 end
+figHandles{end+1} = figHandle;
 
 %% Make Joint Density Plots if 2 or more species in data set
 % if NdDat==2
@@ -343,13 +369,6 @@ end
 %         contourf(Z)
 %     end
 % end
-
-        
-    
-
-
-
-
 end
 
 function sb = smoothBins(x,bnsz)

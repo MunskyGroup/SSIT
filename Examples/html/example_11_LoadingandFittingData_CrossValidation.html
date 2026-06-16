@@ -1,0 +1,369 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<META http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      -->
+<title>example_11_LoadingandFittingData_CrossValidation</title>
+<meta name="generator" content="MATLAB 25.2">
+<link rel="schema.DC" href="http://purl.org/dc/elements/1.1/">
+<meta name="DC.date" content="2026-03-03">
+<meta name="DC.source" content="example_11_LoadingandFittingData_CrossValidation.m">
+<style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; }
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+span.typesection { color:#A0522D }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style>
+</head>
+<body>
+<div class="content">
+<h2>Contents</h2>
+<div>
+<ul>
+<li>
+<a href="#1">SSIT/Examples/example_11_LoadingandFittingData_CrossValidation</a>
+</li>
+<li>
+<a href="#2">Section 2.3: Loading and fitting time-varying STL1 yeast data</a>
+</li>
+<li>
+<a href="#3">Preliminaries</a>
+</li>
+<li>
+<a href="#4">Load model fitted using Metropolis-Hastings:</a>
+</li>
+<li>
+<a href="#5">Perform Cross-Validation fitting different replicas at the same time</a>
+</li>
+<li>
+<a href="#6">Set Fitting Options:</a>
+</li>
+<li>
+<a href="#7">Save model &amp; cross-validation results:</a>
+</li>
+</ul>
+</div>
+<h2 id="1">SSIT/Examples/example_11_LoadingandFittingData_CrossValidation</h2>
+<pre class="codeinput">
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<h2 id="2">Section 2.3: Loading and fitting time-varying STL1 yeast data</h2>
+<pre class="language-matlab">* Fitted model <span class="string">evaluation</span> <span class="string">using</span> <span class="string">cross-validation</span>
+</pre>
+<pre class="codeinput">
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<h2 id="3">Preliminaries</h2>
+<p>Use the 4-state STL1 model from example_1_CreateSSITModels and its FSP solutions from example_4_SolveSSITModels_FSP</p>
+<pre class="codeinput">
+<span class="comment">%clear</span>
+<span class="comment">%close all</span>
+
+<span class="comment">% example_1_CreateSSITModels</span>
+<span class="comment">% example_4_SolveSSITModels_FSP</span>
+<span class="comment">% example_1_CreateSSITModels</span>
+<span class="comment">% example_4_SolveSSITModels_FSP</span>
+<span class="comment">% example_8_LoadingandFittingData_DataLoading</span>
+<span class="comment">% example_9_LoadingandFittingData_MLE</span>
+<span class="comment">% example_10_LoadingandFittingData_MH</span>
+</pre>
+<h2 id="4">Load model fitted using Metropolis-Hastings:</h2>
+<p>load('example_10_LoadingandFittingData_MH.mat')</p>
+<pre class="codeinput">
+<span class="comment">% View summary of 4-state STL1 model:</span>
+STL1_4state_MH.summarizeModel
+
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<pre class="codeoutput">Species:
+     g1; IC = 1;  discrete stochastic
+     g2; IC = 0;  discrete stochastic
+     g3; IC = 0;  discrete stochastic
+     g4; IC = 0;  discrete stochastic
+     mRNA; IC = 0;  discrete stochastic
+ 
+Reactions:
+  Reaction 1:
+     s1: 1*g1 --&gt; 1*g2
+     w1: k12*g1
+  Reaction 2:
+     s2: 1*g2 --&gt; 1*g1
+     w2: (max(0,k21o*(1-k21i*Hog1)))*g2
+  Reaction 3:
+     s3: 1*g2 --&gt; 1*g3
+     w3: k23*g2
+  Reaction 4:
+     s4: 1*g3 --&gt; 1*g2
+     w4: k32*g3
+  Reaction 5:
+     s5: 1*g3 --&gt; 1*g4
+     w5: k34*g3
+  Reaction 6:
+     s6: 1*g4 --&gt; 1*g3
+     w6: k43*g4
+  Reaction 7:
+     s7: NULL --&gt; 1*mRNA
+     w7: kr1*g1
+  Reaction 8:
+     s8: NULL --&gt; 1*mRNA
+     w8: kr2*g2
+  Reaction 9:
+     s9: NULL --&gt; 1*mRNA
+     w9: kr3*g3
+  Reaction 10:
+     s10: NULL --&gt; 1*mRNA
+     w10: kr4*g4
+  Reaction 11:
+     s11: 1*mRNA --&gt; NULL
+     w11: dr*mRNA
+ 
+Input Signals:
+     Hog1(t) = A*(((1-(exp(1)^(-r1*(t-t0))))*exp(1)^(-r2*(t-t0)))/(1+((1-(exp(1)^(-r1*(t-t0))))*exp(1)^(-r2*(t-t0)))/M))^n*(t&gt;t0)
+ 
+Model Parameters:
+    {'t0'  }    {[4.6670e+00]}
+    {'k12' }    {[5.6952e+00]}
+    {'k21o'}    {[5.6202e+02]}
+    {'k21i'}    {[3.3473e+00]}
+    {'k23' }    {[3.8955e-01]}
+    {'k34' }    {[1.2789e+00]}
+    {'k32' }    {[4.0527e+00]}
+    {'k43' }    {[6.6118e-01]}
+    {'dr'  }    {[2.2980e-01]}
+    {'kr1' }    {[7.2306e-02]}
+    {'kr2' }    {[2.7184e-01]}
+    {'kr3' }    {[8.3779e+01]}
+    {'kr4' }    {[1.3655e+01]}
+    {'r1'  }    {[4.1400e-03]}
+    {'r2'  }    {[4.2600e-01]}
+    {'A'   }    {[9.3000e+09]}
+    {'M'   }    {[6.4000e-04]}
+    {'n'   }    {[3.1000e+00]}
+
+</pre>
+<h2 id="5">Perform Cross-Validation fitting different replicas at the same time</h2>
+<pre>using SSITMultiModel</pre>
+<p>In this example, we will use the multimodel to allow parameters to change for different replica data sets (e.g., to allow for batch variations, or to explore how parameters change under different genetic variations). Here, we illustrate a quick means to generate the multimodel starting with a single template and a datafile with multiple replicas.</p>
+<pre class="codeinput">
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<h2 id="6">Set Fitting Options:</h2>
+<pre class="codeinput">fitAlgorithm = <span class="string">'fminsearch'</span>;
+fitOptions = optimset(<span class="string">'Display'</span>,<span class="string">'final'</span>,<span class="string">'MaxIter'</span>,200);
+<span class="comment">% Note: 'MaxIter', 200 for fast run; Set to 'MaxIter', 2000 for accuracy</span>
+
+<span class="comment">% Make a copy of our 4-state STL1 model:</span>
+STL1_4state_CrossVal = STL1_4state_MH;
+
+<span class="comment">% Specify datafile name and species linking rules:</span>
+DataFileName = <span class="string">'data/filtered_data_2M_NaCl_Step.csv'</span>;
+LinkedSpecies = {<span class="string">'mRNA'</span>,<span class="string">'RNA_STL1_total_TS3Full'</span>};
+
+<span class="comment">% Suppose we only wish to fit the data at times before 25 minutes.</span>
+<span class="comment">% Set the global conditions:</span>
+ConditionsGlobal = {[],[],<span class="string">'TAB.time&lt;=25'</span>};
+
+<span class="comment">% Split up the replicas to be separate:</span>
+ConditionsReplicas = {<span class="string">'TAB.Replica==1'</span>;<span class="string">'TAB.Replica==2'</span>};
+
+<span class="comment">% Specify constraints on rep-to-rep parameter variations. Here, we specify</span>
+<span class="comment">% that there is an expected 0.1 log10 deviation expected in some parameters</span>
+<span class="comment">% and smaller in others.  No deviation at all is indicated by 0.</span>
+Log10Constraints = <span class="keyword">...</span>
+    [0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.02,0.02,0.02,0.02,0.02];
+
+<span class="comment">% Create full model:</span>
+CrossValidationModel = SSITMultiModel.createCrossValMultiModel(<span class="keyword">...</span>
+    STL1_4state_CrossVal, DataFileName, LinkedSpecies, ConditionsGlobal,<span class="keyword">...</span>
+    ConditionsReplicas, Log10Constraints);
+CrossValidationModel = CrossValidationModel.initializeStateSpaces;
+
+<span class="comment">% Run the model fitting routines:</span>
+crossValPars = CrossValidationModel.parameters;
+crossValPars = CrossValidationModel.maximizeLikelihood(<span class="keyword">...</span>
+    crossValPars, fitOptions, fitAlgorithm);
+CrossValidationModel = CrossValidationModel.updateModels(crossValPars);
+CrossValidationModel.parameters = crossValPars;
+
+<span class="comment">% Make a figure to explore how much the parameters changed between replicas:</span>
+fignum = 11; useRelative = true;
+CrossValidationModel.compareParameters(fignum,useRelative);
+</pre>
+<pre class="codeoutput"> 
+Exiting: Maximum number of iterations has been exceeded
+         - increase MaxIter option.
+         Current function value: 37659.186562 
+
+</pre>
+<img vspace="5" hspace="5" src="example_11_LoadingandFittingData_CrossValidation_01.png" alt=""> <h2 id="7">Save model &amp; cross-validation results:</h2>
+<pre class="codeinput">saveNames = unique({ <span class="keyword">...</span>
+    <span class="string">'STL1_4state_CrossVal'</span>
+    <span class="string">'ConditionsGlobal'</span>
+    <span class="string">'ConditionsReplicas'</span>
+    <span class="string">'crossValPars'</span>
+    <span class="string">'CrossValidationModel'</span>
+    });
+
+save(<span class="string">'example_11_LoadingandFittingData_CrossValidation'</span>,saveNames{:})
+</pre>
+<p class="footer">
+<br>
+<a href="https://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2025b</a>
+<br>
+</p>
+</div>
+<!--
+##### SOURCE BEGIN #####
+%% SSIT/Examples/example_11_LoadingandFittingData_CrossValidation
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Section 2.3: Loading and fitting time-varying STL1 yeast data 
+%   * Fitted model evaluation using cross-validation
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% Preliminaries
+% Use the 4-state STL1 model from example_1_CreateSSITModels and its FSP 
+% solutions from example_4_SolveSSITModels_FSP
+%clear
+%close all
+
+% example_1_CreateSSITModels  
+% example_4_SolveSSITModels_FSP
+% example_1_CreateSSITModels  
+% example_4_SolveSSITModels_FSP
+% example_8_LoadingandFittingData_DataLoading
+% example_9_LoadingandFittingData_MLE
+% example_10_LoadingandFittingData_MH
+
+%% Load model fitted using Metropolis-Hastings:
+% load('example_10_LoadingandFittingData_MH.mat')
+
+% View summary of 4-state STL1 model:
+STL1_4state_MH.summarizeModel
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Perform Cross-Validation fitting different replicas at the same time
+%  using SSITMultiModel
+%
+% In this example, we will use the multimodel to allow parameters to change
+% for different replica data sets (e.g., to allow for batch variations, or
+% to explore how parameters change under different genetic variations).
+% Here, we illustrate a quick means to generate the multimodel starting
+% with a single template and a datafile with multiple replicas.
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% Set Fitting Options:
+fitAlgorithm = 'fminsearch';
+fitOptions = optimset('Display','final','MaxIter',200); 
+% Note: 'MaxIter', 200 for fast run; Set to 'MaxIter', 2000 for accuracy
+
+% Make a copy of our 4-state STL1 model:
+STL1_4state_CrossVal = STL1_4state_MH;
+
+% Specify datafile name and species linking rules:
+DataFileName = 'data/filtered_data_2M_NaCl_Step.csv';
+LinkedSpecies = {'mRNA','RNA_STL1_total_TS3Full'};
+
+% Suppose we only wish to fit the data at times before 25 minutes.  
+% Set the global conditions:
+ConditionsGlobal = {[],[],'TAB.time<=25'};
+
+% Split up the replicas to be separate:
+ConditionsReplicas = {'TAB.Replica==1';'TAB.Replica==2'};
+
+% Specify constraints on rep-to-rep parameter variations. Here, we specify 
+% that there is an expected 0.1 log10 deviation expected in some parameters 
+% and smaller in others.  No deviation at all is indicated by 0.
+Log10Constraints = ...
+    [0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.1,0.02,0.02,0.02,0.02,0.02]; 
+
+% Create full model:
+CrossValidationModel = SSITMultiModel.createCrossValMultiModel(...
+    STL1_4state_CrossVal, DataFileName, LinkedSpecies, ConditionsGlobal,...
+    ConditionsReplicas, Log10Constraints);
+CrossValidationModel = CrossValidationModel.initializeStateSpaces;
+
+% Run the model fitting routines:
+crossValPars = CrossValidationModel.parameters;
+crossValPars = CrossValidationModel.maximizeLikelihood(...
+    crossValPars, fitOptions, fitAlgorithm);
+CrossValidationModel = CrossValidationModel.updateModels(crossValPars);
+CrossValidationModel.parameters = crossValPars;
+
+% Make a figure to explore how much the parameters changed between replicas:
+fignum = 11; useRelative = true;
+CrossValidationModel.compareParameters(fignum,useRelative);
+
+%% Save model & cross-validation results:
+saveNames = unique({ ...
+    'STL1_4state_CrossVal'
+    'ConditionsGlobal'
+    'ConditionsReplicas'
+    'crossValPars'
+    'CrossValidationModel'
+    });
+    
+save('example_11_LoadingandFittingData_CrossValidation',saveNames{:})
+##### SOURCE END #####
+-->
+</body>
+</html>

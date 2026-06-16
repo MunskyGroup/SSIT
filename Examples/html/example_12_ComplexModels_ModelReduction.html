@@ -1,0 +1,482 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<META http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      -->
+<title>example_12_ComplexModels_ModelReduction</title>
+<meta name="generator" content="MATLAB 25.2">
+<link rel="schema.DC" href="http://purl.org/dc/elements/1.1/">
+<meta name="DC.date" content="2026-03-03">
+<meta name="DC.source" content="example_12_ComplexModels_ModelReduction.m">
+<style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; }
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+span.typesection { color:#A0522D }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style>
+</head>
+<body>
+<div class="content">
+<h2>Contents</h2>
+<div>
+<ul>
+<li>
+<a href="#1">SSIT/Examples/example_12_ModelReduction</a>
+</li>
+<li>
+<a href="#2">Section 2.4: Complex models</a>
+</li>
+<li>
+<a href="#3">Preliminaries</a>
+</li>
+<li>
+<a href="#4">Load pre-computed FSP solutions:</a>
+</li>
+<li>
+<a href="#5">Choose which type of model reduction to apply. Options include:</a>
+</li>
+<li>
+<a href="#6">Use Proper Orthogonal Decomposition (POD) to create a reduced</a>
+</li>
+<li>
+<a href="#7">model for computing FSP solutions for the 4-state time-varying</a>
+</li>
+<li>
+<a href="#8">STL1 yeast model</a>
+</li>
+<li>
+<a href="#9">4-state STL1:</a>
+</li>
+<li>
+<a href="#10">Solve the POD reduced model for STL1:</a>
+</li>
+<li>
+<a href="#11">Plot the full and reduced FSP solutions:</a>
+</li>
+<li>
+<a href="#12">Save reduced model &amp; solution</a>
+</li>
+</ul>
+</div>
+<h2 id="1">SSIT/Examples/example_12_ModelReduction</h2>
+<pre class="codeinput">
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<h2 id="2">Section 2.4: Complex models</h2>
+<pre class="language-matlab">* Create reduced <span class="string">FSP</span> <span class="string">models</span> <span class="string">using</span> <span class="string">different</span> <span class="string">types</span> <span class="string">of</span>
+  projection-based transformations
+</pre>
+<pre class="codeinput">
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<h2 id="3">Preliminaries</h2>
+<p>Use the STL1 model from example_1_CreateSSITModels and FSP solutions from example_4_SolveSSITModels_FSP clear close all addpath(genpath('../src'));</p>
+<pre class="codeinput">
+<span class="comment">% example_1_CreateSSITModels</span>
+<span class="comment">% example_4_SolveSSITModels_FSP</span>
+<span class="comment">% example_8b_LoadingandFittingData_SimulatingData</span>
+</pre>
+<h2 id="4">Load pre-computed FSP solutions:</h2>
+<p>load('example_4_SolveSSITModels_FSP.mat')</p>
+<pre class="codeinput">
+<span class="comment">% View model summaries:</span>
+STL1_4state_FSP.summarizeModel
+
+<span class="comment">% Make a copy of the STL1 model to set up for model reduction:</span>
+STL1_MR_setup = STL1_4state_FSP;
+
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<pre class="codeoutput">Species:
+     g1; IC = 1;  discrete stochastic
+     g2; IC = 0;  discrete stochastic
+     g3; IC = 0;  discrete stochastic
+     g4; IC = 0;  discrete stochastic
+     mRNA; IC = 0;  discrete stochastic
+ 
+Reactions:
+  Reaction 1:
+     s1: 1*g1 --&gt; 1*g2
+     w1: k12*g1
+  Reaction 2:
+     s2: 1*g2 --&gt; 1*g1
+     w2: (max(0,k21o*(1-k21i*Hog1)))*g2
+  Reaction 3:
+     s3: 1*g2 --&gt; 1*g3
+     w3: k23*g2
+  Reaction 4:
+     s4: 1*g3 --&gt; 1*g2
+     w4: k32*g3
+  Reaction 5:
+     s5: 1*g3 --&gt; 1*g4
+     w5: k34*g3
+  Reaction 6:
+     s6: 1*g4 --&gt; 1*g3
+     w6: k43*g4
+  Reaction 7:
+     s7: NULL --&gt; 1*mRNA
+     w7: kr1*g1
+  Reaction 8:
+     s8: NULL --&gt; 1*mRNA
+     w8: kr2*g2
+  Reaction 9:
+     s9: NULL --&gt; 1*mRNA
+     w9: kr3*g3
+  Reaction 10:
+     s10: NULL --&gt; 1*mRNA
+     w10: kr4*g4
+  Reaction 11:
+     s11: 1*mRNA --&gt; NULL
+     w11: dr*mRNA
+ 
+Input Signals:
+     Hog1(t) = A*(((1-(exp(1)^(-r1*(t-t0))))*exp(1)^(-r2*(t-t0)))/(1+((1-(exp(1)^(-r1*(t-t0))))*exp(1)^(-r2*(t-t0)))/M))^n*(t&gt;t0)
+ 
+Model Parameters:
+    {'t0'  }    {[3.1700e+00]}
+    {'k12' }    {[        78]}
+    {'k21o'}    {[    192000]}
+    {'k21i'}    {[      3200]}
+    {'k23' }    {[4.0200e-01]}
+    {'k34' }    {[7.8000e+00]}
+    {'k32' }    {[1.6200e+00]}
+    {'k43' }    {[2.2800e+00]}
+    {'dr'  }    {[2.9400e-01]}
+    {'kr1' }    {[4.6800e-02]}
+    {'kr2' }    {[7.2000e-01]}
+    {'kr3' }    {[5.9400e+01]}
+    {'kr4' }    {[3.2400e+00]}
+    {'r1'  }    {[4.1400e-03]}
+    {'r2'  }    {[4.2600e-01]}
+    {'A'   }    {[9.3000e+09]}
+    {'M'   }    {[6.4000e-04]}
+    {'n'   }    {[3.1000e+00]}
+
+</pre>
+<h2 id="5">Choose which type of model reduction to apply. Options include:</h2>
+<pre class="language-matlab">
+<span class="string">'Linear State Lumping'</span> (LNSL) --
+    State <span class="string">space</span> <span class="string">is</span> <span class="string">divided</span> <span class="string">into</span> <span class="string">linearly</span> <span class="string">distributed</span> <span class="string">bins.</span>
+    Then <span class="string">within</span> <span class="string">each</span> <span class="string">bin</span>, the <span class="string">proability</span> <span class="string">distribution</span> <span class="string">is</span> <span class="string">assumed</span> <span class="string">to</span>
+    be <span class="string">constant.</span> <span class="string">The</span> <span class="string">number</span> <span class="string">of</span> <span class="string">bins</span> <span class="string">for</span> <span class="string">each</span> <span class="string">species</span> <span class="string">is</span> <span class="string">defined</span> <span class="string">by</span>
+    reductionOrder.
+<span class="string">'Logarithmic State Lumping'</span> (LGSL) --
+    State <span class="string">space</span> <span class="string">is</span> <span class="string">divided</span> <span class="string">into</span> <span class="string">logarithmically</span> <span class="string">distributed</span> <span class="string">bins.</span>
+    Then <span class="string">within</span> <span class="string">each</span> <span class="string">bin</span>, the <span class="string">proability</span> <span class="string">distribution</span> <span class="string">is</span> <span class="string">assumed</span> <span class="string">to</span>
+    be <span class="string">constant.</span> <span class="string">The</span> <span class="string">number</span> <span class="string">of</span> <span class="string">bins</span> <span class="string">for</span> <span class="string">each</span> <span class="string">species</span> <span class="string">is</span> <span class="string">defined</span> <span class="string">by</span>
+    reductionOrder.
+<span class="string">'Principle Orthogonal Decomposition'</span> (POD) -
+    The <span class="string">infintesimal</span> <span class="string">generator</span> <span class="string">is</span> <span class="string">projected</span> <span class="string">onto</span> <span class="string">the</span> <span class="string">orthonorml</span>
+    basis <span class="string">spanned</span> <span class="string">by</span> <span class="string">a</span> <span class="string">previous</span> <span class="string">solution</span> <span class="string">of</span> <span class="string">the</span> <span class="string">full</span> <span class="string">master</span>
+    equation <span class="string">at</span> <span class="string">discrete</span> <span class="string">time</span> <span class="string">points.</span>  <span class="string">This</span> <span class="string">is</span> <span class="string">done</span> <span class="string">by</span> <span class="string">perfoming</span>
+    SVD <span class="string">on</span> <span class="string">the</span> <span class="string">solutions</span> <span class="string">and</span> <span class="string">choosing</span> <span class="string">the</span> <span class="string">output</span> <span class="string">space</span>
+    corresponding <span class="string">to</span> <span class="string">the</span> <span class="string">'redOrder'</span> <span class="string">largest</span> <span class="string">singular</span> <span class="string">values.</span>
+    For <span class="string">best</span> <span class="string">use</span>, this <span class="string">reduction</span> <span class="string">should</span> <span class="string">be</span> <span class="string">found</span> <span class="string">using</span> <span class="string">a</span>
+    fine <span class="string">time</span> <span class="string">resolution</span> <span class="string">in</span> <span class="string">the</span> <span class="string">calculation</span> <span class="string">of</span> <span class="string">the</span> <span class="string">FSP.</span> <span class="string">The</span> <span class="string">size</span> <span class="string">of</span> <span class="string">the</span>
+    reduced <span class="string">model</span> <span class="string">must</span> <span class="string">be</span> <span class="string">specified</span> <span class="string">as</span> <span class="string">'reductionOrder'.</span> <span class="string">Because</span> <span class="string">the</span>
+    POD <span class="string">requires</span> <span class="string">a</span> <span class="string">solution</span> <span class="string">of</span> <span class="string">the</span> <span class="string">FSP</span>, this <span class="string">reduction</span> <span class="string">is</span> <span class="string">usually</span> <span class="string">only</span>
+    helpful <span class="string">for</span> <span class="string">situations</span> <span class="string">where</span> <span class="string">many</span> <span class="string">solutions</span> <span class="string">are</span> <span class="string">needed</span> <span class="string">(e.g.,</span>
+    during <span class="string">model</span> <span class="string">fitting).</span>
+<span class="string">'No Transform'</span> -
+    Test <span class="string">case</span> <span class="string">where</span> <span class="string">no</span> <span class="string">reduction</span> <span class="string">is</span> <span class="string">applied.</span>
+Other <span class="string">Options</span> <span class="string">that</span> <span class="string">are</span> <span class="string">only</span> <span class="string">aplicable</span> <span class="string">to</span> <span class="string">time</span> <span class="string">invariant</span> <span class="string">systems:</span>
+<span class="string">'Log Lump QSSA'</span> (LGQSSA) --
+    Same <span class="string">as</span> <span class="string">LGSL</span>, but <span class="string">where</span> <span class="string">the</span> <span class="string">distribution</span> <span class="string">within</span> <span class="string">each</span> <span class="string">lump</span> <span class="string">is</span>
+    assumed <span class="string">to</span> <span class="string">be</span> <span class="string">distributed</span> <span class="string">according</span> <span class="string">to</span> <span class="string">the</span> <span class="string">quasi-steady</span> <span class="string">state</span>
+    assumption.
+<span class="string">'Dynamic Mode Decomposition'</span> (DM) --
+(POD2) --
+    Extension <span class="string">of</span> <span class="string">PDO</span> <span class="string">that</span> <span class="string">also</span> <span class="string">includes</span> <span class="string">the</span> <span class="string">time</span> <span class="string">derivatives</span> <span class="string">of</span> <span class="string">the</span> <span class="string">CME</span>
+    (i.e., A*P(t_i)) solution <span class="string">in</span> <span class="string">the</span> <span class="string">set</span> <span class="string">of</span> <span class="string">vectors</span> <span class="string">onto</span> <span class="string">which</span> <span class="string">the</span> <span class="string">CME</span>
+    is <span class="string">projected.</span> <span class="string">Only</span> <span class="string">the</span> <span class="string">vectors</span> <span class="string">corresponding</span> <span class="string">top</span> <span class="string">the</span> <span class="string">top</span>
+    <span class="string">'reductionOrder'</span> singular <span class="string">values</span> <span class="string">are</span> <span class="string">kept</span> <span class="string">for</span> <span class="string">the</span> <span class="string">projection.</span>
+<span class="string">'Eigen Decomposition'</span>(ED) --
+    The <span class="string">infintesimal</span> <span class="string">generator</span> <span class="string">is</span> <span class="string">projected</span> <span class="string">onto</span> <span class="string">the</span> <span class="string">eigenvectors</span>
+    corresponding <span class="string">to</span> <span class="string">its</span> <span class="string">least</span> <span class="string">negative</span> <span class="string">eigenvalues.</span> <span class="string">The</span> <span class="string">number</span> <span class="string">of</span>
+    eigenvectors <span class="string">for</span> <span class="string">this</span> <span class="string">projection</span> <span class="string">is</span> <span class="string">defined</span> <span class="string">by</span> <span class="string">'reductionOrder'.</span>
+</pre>
+<pre class="codeinput">
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+
+reductionType = <span class="string">'POD'</span>;
+reductionOrder = 50;
+<span class="comment">% podTimeSetSize = 30;    % Only needed for the POD reduction scheme.</span>
+
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<h2 id="6">Use Proper Orthogonal Decomposition (POD) to create a reduced</h2>
+<h2 id="7">model for computing FSP solutions for the 4-state time-varying</h2>
+<h2 id="8">STL1 yeast model</h2>
+<pre class="codeinput">
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<h2 id="9">4-state STL1:</h2>
+<p>Set up to solve FSP solution again to time following expansion:</p>
+<pre class="codeinput">STL1_MR_setup.fspOptions.initApproxSS = true;
+STL1_MR_setup.tSpan = linspace(0,50,30);
+
+<span class="comment">% Print the computation time to solve the FSP using "tic" and "toc":</span>
+tic
+<span class="comment">% [STL1_FSPsoln_expand,STL1_MR_setup.fspOptions.bounds] = STL1_MR_setup.solve;</span>
+[~,~,STL1_MR_setup] = STL1_MR_setup.solve;
+STL1_SolveTime = toc
+
+<span class="comment">% Turn off further FSP expansion:</span>
+STL1_MR_setup.fspOptions.fspTol = inf;
+</pre>
+<pre class="codeoutput">
+STL1_SolveTime =
+
+   2.3656e-01
+
+</pre>
+<h2 id="10">Solve the POD reduced model for STL1:</h2>
+<p>Make a copy of the full model:</p>
+<pre class="codeinput">STL1_MR = STL1_MR_setup;
+
+<span class="comment">% Set the solver to use ModelReduction:</span>
+STL1_MR.modelReductionOptions.useModReduction = true;
+<span class="comment">% FSP expansion should be suppressed when using Model Reductions</span>
+
+<span class="comment">% Set type and order of Model Reduction:</span>
+STL1_MR.modelReductionOptions.reductionType = reductionType;
+STL1_MR.modelReductionOptions.reductionOrder = reductionOrder;
+
+<span class="comment">% Call the SSIT to compute the model reduction transformation matrices:</span>
+STL1_MR = STL1_MR.computeModelReductionTransformMatrices;
+
+<span class="comment">% Solve the reduced model:</span>
+tic
+[~,~,STL1_MR] = STL1_MR.solve;
+STL1_SolveTimeReduced = toc
+</pre>
+<pre class="codeoutput">
+STL1_SolveTimeReduced =
+
+   2.4301e-01
+
+</pre>
+<h2 id="11">Plot the full and reduced FSP solutions:</h2>
+<pre class="codeinput">STL1_MR_setup.plotFSP(speciesNames=STL1_MR_setup.species(5),<span class="keyword">...</span>
+    plotType=<span class="string">'means'</span>, lineProps={<span class="string">'linewidth'</span>,4}, YLim=[0,32],<span class="keyword">...</span>
+    Title=<span class="string">'4-state STL1 (FSP full)'</span>, TitleFontSize=24, AxisLabelSize=18,<span class="keyword">...</span>
+    TickLabelSize=18, XLabel=<span class="string">'Time'</span>, YLabel=<span class="string">'Molecule Count'</span>,<span class="keyword">...</span>
+    LegendFontSize=15, LegendLocation=<span class="string">'northeast'</span>, Colors=[0.23,0.67,0.2]);
+
+STL1_MR.plotFSP(speciesNames=STL1_MR.species(5), plotType=<span class="string">'means'</span>,<span class="keyword">...</span>
+    lineProps={<span class="string">'linewidth'</span>,4}, XLabel=<span class="string">'Time'</span>, YLim=[0,32],<span class="keyword">...</span>
+    YLabel=<span class="string">'Molecule Count'</span>, Title=<span class="string">'4-state STL1 (FSP reduced)'</span>,<span class="keyword">...</span>
+    TitleFontSize=24, AxisLabelSize=18, TickLabelSize=18,<span class="keyword">...</span>
+    Colors=[0.23,0.67,0.2], LegendFontSize=15, LegendLocation=<span class="string">'northeast'</span>);
+</pre>
+<img vspace="5" hspace="5" src="example_12_ComplexModels_ModelReduction_01.png" alt=""> <img vspace="5" hspace="5" src="example_12_ComplexModels_ModelReduction_02.png" alt=""> <h2 id="12">Save reduced model &amp; solution</h2>
+<p>saveNames = unique({ 'STL1_MR_setup' 'STL1_MR' 'STL1_FSPsoln_expand' 'STL1_FSPsoln_Red' });</p>
+<p>save('example_12_ComplexModels_ModelReduction',saveNames{:})</p>
+<p class="footer">
+<br>
+<a href="https://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2025b</a>
+<br>
+</p>
+</div>
+<!--
+##### SOURCE BEGIN #####
+%% SSIT/Examples/example_12_ModelReduction
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Section 2.4: Complex models
+%   * Create reduced FSP models using different types of 
+%     projection-based transformations
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% Preliminaries
+% Use the STL1 model from example_1_CreateSSITModels and FSP solutions from 
+% example_4_SolveSSITModels_FSP
+% clear
+% close all
+% addpath(genpath('../src'));
+
+% example_1_CreateSSITModels 
+% example_4_SolveSSITModels_FSP
+% example_8b_LoadingandFittingData_SimulatingData
+
+%% Load pre-computed FSP solutions:
+% load('example_4_SolveSSITModels_FSP.mat')
+
+% View model summaries:
+STL1_4state_FSP.summarizeModel
+
+% Make a copy of the STL1 model to set up for model reduction:
+STL1_MR_setup = STL1_4state_FSP;
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Choose which type of model reduction to apply. Options include:
+%   'Linear State Lumping' (LNSL) REPLACE_WITH_DASH_DASH
+%       State space is divided into linearly distributed bins.
+%       Then within each bin, the proability distribution is assumed to
+%       be constant. The number of bins for each species is defined by
+%       reductionOrder.
+%   'Logarithmic State Lumping' (LGSL) REPLACE_WITH_DASH_DASH
+%       State space is divided into logarithmically distributed bins.
+%       Then within each bin, the proability distribution is assumed to
+%       be constant. The number of bins for each species is defined by
+%       reductionOrder.
+%   'Principle Orthogonal Decomposition' (POD) - 
+%       The infintesimal generator is projected onto the orthonorml
+%       basis spanned by a previous solution of the full master
+%       equation at discrete time points.  This is done by perfoming
+%       SVD on the solutions and choosing the output space
+%       corresponding to the 'redOrder' largest singular values.
+%       For best use, this reduction should be found using a
+%       fine time resolution in the calculation of the FSP. The size of the
+%       reduced model must be specified as 'reductionOrder'. Because the
+%       POD requires a solution of the FSP, this reduction is usually only
+%       helpful for situations where many solutions are needed (e.g.,
+%       during model fitting).
+%   'No Transform' - 
+%       Test case where no reduction is applied.
+%   Other Options that are only aplicable to time invariant systems:
+%   'Log Lump QSSA' (LGQSSA) REPLACE_WITH_DASH_DASH 
+%       Same as LGSL, but where the distribution within each lump is
+%       assumed to be distributed according to the quasi-steady state
+%       assumption. 
+%   'Dynamic Mode Decomposition' (DM) REPLACE_WITH_DASH_DASH 
+%   (POD2) REPLACE_WITH_DASH_DASH
+%       Extension of PDO that also includes the time derivatives of the CME
+%       (i.e., A*P(t_i)) solution in the set of vectors onto which the CME
+%       is projected. Only the vectors corresponding top the top
+%       'reductionOrder' singular values are kept for the projection.
+%   'Eigen Decomposition'(ED) REPLACE_WITH_DASH_DASH
+%       The infintesimal generator is projected onto the eigenvectors
+%       corresponding to its least negative eigenvalues. The number of
+%       eigenvectors for this projection is defined by 'reductionOrder'.
+      
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+reductionType = 'POD'; 
+reductionOrder = 50;
+% podTimeSetSize = 30;    % Only needed for the POD reduction scheme.
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Use Proper Orthogonal Decomposition (POD) to create a reduced 
+%% model for computing FSP solutions for the 4-state time-varying 
+%% STL1 yeast model
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% 4-state STL1:
+% Set up to solve FSP solution again to time following expansion:
+STL1_MR_setup.fspOptions.initApproxSS = true;
+STL1_MR_setup.tSpan = linspace(0,50,30);
+
+% Print the computation time to solve the FSP using "tic" and "toc":
+tic
+% [STL1_FSPsoln_expand,STL1_MR_setup.fspOptions.bounds] = STL1_MR_setup.solve;
+[~,~,STL1_MR_setup] = STL1_MR_setup.solve;
+STL1_SolveTime = toc
+
+% Turn off further FSP expansion:
+STL1_MR_setup.fspOptions.fspTol = inf;
+
+%% Solve the POD reduced model for STL1:
+% Make a copy of the full model:
+STL1_MR = STL1_MR_setup;
+
+% Set the solver to use ModelReduction:
+STL1_MR.modelReductionOptions.useModReduction = true;
+% FSP expansion should be suppressed when using Model Reductions
+
+% Set type and order of Model Reduction:
+STL1_MR.modelReductionOptions.reductionType = reductionType;
+STL1_MR.modelReductionOptions.reductionOrder = reductionOrder;
+
+% Call the SSIT to compute the model reduction transformation matrices:
+STL1_MR = STL1_MR.computeModelReductionTransformMatrices;
+
+% Solve the reduced model:
+tic
+[~,~,STL1_MR] = STL1_MR.solve;
+STL1_SolveTimeReduced = toc
+
+%% Plot the full and reduced FSP solutions:
+STL1_MR_setup.plotFSP(speciesNames=STL1_MR_setup.species(5),...
+    plotType='means', lineProps={'linewidth',4}, YLim=[0,32],...
+    Title='4-state STL1 (FSP full)', TitleFontSize=24, AxisLabelSize=18,...
+    TickLabelSize=18, XLabel='Time', YLabel='Molecule Count',...
+    LegendFontSize=15, LegendLocation='northeast', Colors=[0.23,0.67,0.2]);
+
+STL1_MR.plotFSP(speciesNames=STL1_MR.species(5), plotType='means',...
+    lineProps={'linewidth',4}, XLabel='Time', YLim=[0,32],...
+    YLabel='Molecule Count', Title='4-state STL1 (FSP reduced)',...
+    TitleFontSize=24, AxisLabelSize=18, TickLabelSize=18,...
+    Colors=[0.23,0.67,0.2], LegendFontSize=15, LegendLocation='northeast');
+
+%% Save reduced model & solution
+% saveNames = unique({
+%     'STL1_MR_setup'
+%     'STL1_MR'
+%     'STL1_FSPsoln_expand'
+%     'STL1_FSPsoln_Red'
+%     });
+% 
+% save('example_12_ComplexModels_ModelReduction',saveNames{:})
+##### SOURCE END #####
+-->
+</body>
+</html>

@@ -11,7 +11,8 @@ function [outputs, constraintBounds, stateSpace] = adaptiveFspForwardSens(output
     absTol, ...
     stateSpace, ...
     initApproxSS, ...
-    useReducedModel)
+    useReducedModel,...
+    odeIntegrator)
 arguments
     outputTimes
     initialStates
@@ -34,6 +35,7 @@ arguments
     stateSpace =[];
     initApproxSS = false;
     useReducedModel = false;
+    odeIntegrator = 'ode23s';
 end
 % Compute and outputs the solution and sensitivitiy vectors of the CME at the user-input timepoints.
 %
@@ -120,17 +122,27 @@ constraintBounds = initialConstraintBounds;
 outputs = cell(tOutputCount, 1);
 
 % Set up the initial state subset
-if isempty(stateSpace)
+if isempty(stateSpace)||stateSpace.numConstraints~=constraintCount
     stateSpace = ssit.FiniteStateSet(initialStates, stoichMatrix);
-    stateSpace = stateSpace.expand(constraintFunctions, constraintBounds);
 end
+stateSpace = stateSpace.expand(constraintFunctions, constraintBounds);
 stateCount = stateSpace.getNumStates();
 
-% Generate the time-varying FSP operator
-fspMatrix = ssit.FspMatrix(propensities, [parameters{:,2}]', stateSpace, constraintCount, varNames, modRedTransformMatrices, true);
+% Generate the time-varying FSP operator. This should already have the full
+% dimension of the forward sensitivy ODE (that is, its dimension should be
+% (Npars+1)*Nstates.
+computeSens = true;
+fspMatrix = ssit.FspMatrix(propensities, [parameters{:,2}]', stateSpace, constraintCount, varNames, modRedTransformMatrices, computeSens);
 
 probabilityVec = zeros(stateCount + constraintCount, 1);
-probabilityVec(1:size(initialStates,2)) = initialProbabilities;
+
+% Find initial states  in statespace
+J = zeros(1,size(initialStates,2));
+for j=1:size(initialStates,2)
+    J(j) = find(all(stateSpace.states == initialStates(:,j),1));
+end
+probabilityVec(J) = initialProbabilities;
+
 sensitivityVecs = zeros((stateCount + constraintCount)*parameterCount, 1);
 for i = 1:parameterCount
     sensitivityVecs(1 + (i-1)*length(initialProbabilities):i*length(initialProbabilities)) ...
@@ -229,7 +241,6 @@ while (tNow < tFinal)
         %     y0(JnotSinks) = eigVec/sum(eigVec);
         % end
     else
-
         y0 = zeros(length(probabilityVec)*(parameterCount+1), 1);
         y0(1:stateCount+constraintCount) = probabilityVec;
         for j = 1:parameterCount
@@ -267,7 +278,7 @@ while (tNow < tFinal)
         ode_rhs = @(t, ps) forwardSensRHS(t, ps, fspMatrix, fspMatrixDiff(indsCompSens), stateCount, constraintCount, parameterCount);
         ode_opts = odeset(Events=ode_event, Jacobian=jac, RelTol=relTol, AbsTol=absTol);
         [tout, outputs_current, te, ye, ~] = ...
-            ode23s(ode_rhs, outputTimes(outputTimes>=tNow), y0, ode_opts);
+            odeIntegrator(ode_rhs, outputTimes(outputTimes>=tNow), y0, ode_opts);
     end
 
     if length(tout)<2||(~isempty(te)&&te<tout(2))
