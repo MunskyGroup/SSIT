@@ -92,7 +92,8 @@ if fileId < 0
 end
 
 fprintf(fileId, 'function Y = %s(x, b)\n', functionName);
-fprintf(fileId, 'LOGXP1 = log(x + 1);\n');
+fprintf(fileId, 'LOGXP1 = log(max(0.001,x-3));\n');
+% fprintf(fileId, 'LOGXP1 = log(x+1);\n');
 if isempty(constraintExpressions)
     fprintf(fileId, 'if nargin < 2\n');
     fprintf(fileId, 'Y = zeros(0, size(x,2));\n');

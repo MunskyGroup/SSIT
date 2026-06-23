@@ -123,3 +123,4 @@ mexFunctionExpokit.mexmaca64
 src/+ssit/+fsp_ode_solvers/mexFunctionExpokit.mexw64
 /WorkSpace_DoNotPush
 testData.csv
+SBML_test_cases/00010/Time-Course.txt

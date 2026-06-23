@@ -128,7 +128,6 @@ void expokitC(
     double  *t_step,
     double   Time_array_i_prt,
     double   tNow,
-    int      resetSparsity,
     int      orthDepth)         /* reorthogonalization depth: 0=full, k=limited window */
 {
     /* ---- zero output arrays ---------------------------------------- */
@@ -136,11 +135,11 @@ void expokitC(
     memset(H, 0, (size_t)(m + 2) * (size_t)(m + 2) * sizeof(double));
 
     /* ---- optional sparsity enforcement on w ------------------------ */
-    if (resetSparsity) {
-        for (int i = 0; i < n; i++) {
-            if (w[i] < 1e-10) w[i] = 0.0;
-        }
-    }
+    // if (resetSparsity) {
+    //     for (int i = 0; i < n; i++) {
+    //         if (w[i] < 1e-10) w[i] = 0.0;
+    //     }
+    // }
 
     /* ---- V(:,0) = w / beta ----------------------------------------- */
     const double inv_beta = 1.0 / beta;

@@ -324,7 +324,7 @@ while expandSS
             [~,constraintsToRelax] = max(exitWeights);
             % constraintsToRelax = unique([constraintsToRelax;find(exitWeights/sum(exitWeights)>0.1)]);
             constraintsToRelax = unique([constraintsToRelax;find(exitWeights/sum(exitWeights)>4/length(exitWeights)|exitWeights>=0.05*minEscapeRate)]);
-            constraintBoundsFinal(constraintsToRelax) = 1.4*constraintBoundsFinal(constraintsToRelax);
+            constraintBoundsFinal(constraintsToRelax) = 1.25*constraintBoundsFinal(constraintsToRelax);
             stateSpace = stateSpace.expand(constraintFunctions, constraintBoundsFinal);
         else
             if useReducedModel
@@ -479,7 +479,8 @@ while (tNow < maxOutputTime)
             end
 
             if odeSolver == "expokit"
-                solver = ssit.fsp_ode_solvers.Expokit(min(50,max(30,ceil(length(jac)/300))),absTol);
+                solver = ssit.fsp_ode_solvers.Expokit(min(100,max(30,ceil(length(jac)/10000))),absTol);
+                % solver = ssit.fsp_ode_solvers.Expokit(30,absTol);
             elseif odeSolver == "expokitPiecewise"
                 if constantJacobian
                     solver = ssit.fsp_ode_solvers.Expokit(30,absTol);
@@ -563,7 +564,7 @@ while (tNow < maxOutputTime)
             constraintsToRelax = [constraintsToRelax,biggestChange];
         end
 
-        constraintBoundsFinal(constraintsToRelax) = 1.2*constraintBoundsFinal(constraintsToRelax);
+        constraintBoundsFinal(constraintsToRelax) = 1.25*constraintBoundsFinal(constraintsToRelax);
 
         if min(constraintsToRelax)<=size(stoichMatrix,1)
             stateSpace = ssit.FiniteStateSet(initStates, stoichMatrix, specialEvents);

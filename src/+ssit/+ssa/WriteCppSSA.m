@@ -177,7 +177,8 @@ try
     if isunix && ~ismac
         mex('-R2018a','-O',sourceFile,'-lm','-output',mexName);
     else
-        mex('-R2018a','-O',sourceFile,'-output',mexName);
+        % mex('-R2018a','-O',sourceFile,'-output',mexName);
+        evalc("mex('-R2018a','-O',sourceFile,'-output',mexName)");
     end
 catch ME
     % Some MATLAB/macOS arm64 setups fail C++ MEX link with adapter symbols
@@ -192,7 +193,8 @@ catch ME
             if isunix && ~ismac
                 mex('-R2017b','-O',sourceFile,'-lm','-output',mexName);
             else
-                mex('-R2017b','-O',sourceFile,'-output',mexName);
+                % mex('-R2017b','-O',sourceFile,'-output',mexName);
+                evalc("mex('-R2017b','-O',sourceFile,'-output',mexName)");
             end
         catch ME2
             cSourceFile = [mexName,'_ssa_mex.c'];
@@ -202,7 +204,7 @@ catch ME
                 if isunix && ~ismac
                     mex('-O',cSourceFile,'-lm','-output',mexName);
                 else
-                    mex('-O',cSourceFile,'-output',mexName);
+                    evalc("mex('-O',cSourceFile,'-output',mexName)");
                 end
             catch ME3
                 error('WriteCppSSA:mexCompileFailed', ...

@@ -87,9 +87,11 @@
 %  EXPOKIT: Software Package for Computing Matrix Exponentials.
 %  ACM - Transactions On Mathematical Software, 24(1):130-156, 1998
 
-function [w, err, hump, Time_array_out, P_array, P_lost, tryagain, te, ye] = mexpv_modified_2( t, A, v, tol, m, N_prt, Time_array,fspTol,SINKS,tNow,fspErrorCondition,resetSparsity,fixedEvents)
+function [wout, err, hump, Time_array_out, P_array, P_lost, tryagain, te, ye] = ...
+    mexpv_modified_2( t, Ain, vin, tol, m, N_prt, Time_array,fspTol,SINKS,...
+    tNow,fspErrorCondition,resetSparsity,fixedEvents,maxTimeStep,clipStates)
 
-[n] = size(A,1);
+[n] = size(Ain,1);
 if nargin == 3
     tol = 1.0e-7;
     m = min(n,30);
@@ -142,15 +144,27 @@ if nargin<13
     fixedEvents = {};
 end
 %%
+maxTimeStep = 10;
+% clipStates = false;
 
-anorm = norm(A,'inf');
+% R = 5e-2;
+% Jclip = 1:length(vin);
+wout = vin;
+% if isempty(SINKS)
+%     iCore = 1:length(vin);
+% else
+%     iCore = 1:(SINKS(1)-1);
+% end
+
+%%
+anorm = norm(Ain,'inf');
 mxrej = 10;  btol  = 1.0e-7;
 gamma = 0.9; delta = 1.2;
 mb    = m; t_out   = abs(t);
 s_error = 0;
 rndoff= anorm*eps;
 
-k1 = 2; xm = 1/m; normv = norm(v); beta = normv;
+k1 = 2; xm = 1/m; normv = norm(vin); beta = normv;
 fact = (((m+1)/exp(1))^(m+1))*sqrt(2*pi*(m+1));
 t_new = (1/anorm)*((fact*tol)/(4*beta*anorm))^xm;
 s = 10^(floor(log10(t_new))-1); t_new = ceil(t_new/s)*s;
@@ -162,56 +176,21 @@ else
 end
 
 istep = 0;
+n_prev_clip = 0;
 
-w = v; ye = w'; te = tNow;
+w = wout; ye = w'; te = tNow;
 hump = normv;
 
 %% Changes by Brian Munsky
 Time_array_out=[];
 i_prt=1;
-P_array = zeros(length(Time_array),length(w));
+P_array = zeros(length(Time_array),length(vin));
 %%
 if tNow==Time_array(1)
-    P_array(1,:)=w';
+    P_array(1,:)=wout';
     Time_array_out=tNow;
     i_prt=2;
 end
-
-%% Convert A to sparse structure
-[nr,nc] = size(A);
-assert(nr==nc,'A must be square');
-
-% MATLAB sparse is CSC internally: [ir, jc, pr]
-[row_idx, col_ptr, val] = find_csc_like(A);  % helper below
-
-% Build CSR (0-based indexing)
-n = nr;
-nnzA = numel(val);
-
-row_counts = accumarray(row_idx+1, 1, [n,1]);  % row_idx currently 0-based
-row_ptr = zeros(n+1,1);
-row_ptr(2:end) = cumsum(row_counts);
-
-col_ind = zeros(nnzA,1);
-val_csr = zeros(nnzA,1);
-
-next = row_ptr(1:end-1);  % insertion offsets per row
-for c = 1:n
-    k0 = col_ptr(c) + 1;      % convert 0-based -> MATLAB indexing
-    ak1 = col_ptr(c+1);        % already count endpoint in MATLAB indexing
-    for k = k0:ak1
-        r = row_idx(k) + 1;   % 1-based row for MATLAB arrays
-        dst = next(r) + 1;    % destination in MATLAB indexing
-        col_ind(dst) = c - 1; % store 0-based col index
-        val_csr(dst) = val(k);
-        next(r) = next(r) + 1;
-    end
-end
-
-Acsr = struct( ...
-    'row_ptr', row_ptr, ...
-    'col_ind', col_ind, ...
-    'val',     val_csr);
 %%
 
 if ~isempty(fixedEvents)
@@ -221,27 +200,84 @@ else
     nextFixedTime = inf;
 end
 
+% if ~clipStates
+Acsr = build_csr(Ain);
+% A = Ain;
+[nr,nc] = size(Ain);
+assert(nr==nc,'A must be square');
+Jclip = 1:length(vin);
+% end
+
 while tNow < t_out && i_prt<=length(Time_array)
     istep = istep + 1;
+
+    % if clipStates
+    %     Asub = Ain(iCore, iCore);
+    %     d = full(diag(Asub));
+    %     inSet = false(length(iCore), 1);
+    %     iSeed = find(wout(iCore) > 1e-10);
+    %     inSet(iSeed) = true;
+    %     frontier = iSeed(:);
+    %     while ~isempty(frontier)
+    %         newSet = false(length(iCore), 1);
+    %         for fi = frontier'
+    %             if d(fi) ~= 0
+    %                 [jj, ~, vv] = find(Asub(:, fi));
+    %                 nbrs = jj(wout(iCore(fi)) * abs(vv / d(fi)) > R & ~inSet(jj));
+    %                 newSet(nbrs) = true;
+    %             end
+    %         end
+    %         newSet(inSet) = false;
+    %         frontier = find(newSet);
+    %         inSet(frontier) = true;
+    %     end
+    %     Jcand = iCore(inSet);
+    %     if ~isempty(SINKS)
+    %         Jcand = unique([Jcand(:); SINKS(:)])';
+    %     else
+    %         Jcand = unique(Jcand(:))';
+    %     end
+    % 
+    %     if length(Jcand) > 1000
+    %         Jclip = Jcand;
+    %         A = Ain(Jclip,Jclip);
+    %         A = A - diag(sum(A));
+    %         w = wout(Jclip);
+    %     else
+    %         Jclip = 1:length(vin);
+    %         A = Ain;
+    %         w = wout;
+    %     end
+    %     [nr,nc] = size(A);
+    %     assert(nr==nc,'A must be square');
+    %     n = nr;
+    %     Acsr = build_csr(A);
+    % end
+
+    beta = norm(w);
+
+    if n ~= n_prev_clip
+        k1 = 2;
+        mb = m;
+        n_prev_clip = n;
+    end
+
     % step to next print time, next step size, or next fixed event time
-    t_step = min([Time_array(i_prt)-tNow,t_new,nextFixedTime-tNow]);
+    t_step = min([Time_array(i_prt)-tNow,t_new,nextFixedTime-tNow,maxTimeStep]);
     k1_in = k1;
     mb_in = mb;
     t_step_in = t_step;
-    if resetSparsity
-        w(w<1e-10) = 0;
-    end
 
     % tic
     if nr<500
         orthDepth = m;%min(m,15);
     else
-        orthDepth = min(m,15);
+        orthDepth = min(m,30);
     end
 
     try
         [H,V,k1,mb,t_step] = ssit.fsp_ode_solvers.mexFunctionExpokit(n,m,w,beta,Acsr,btol,...
-            Time_array(i_prt),tNow,double(resetSparsity),k1_in,mb_in,t_step_in,orthDepth);
+            Time_array(i_prt),tNow,k1_in,mb_in,t_step_in,orthDepth);
     catch
         [H,V,k1,mb,t_step] = ssit.fsp_ode_solvers.ExpensiveTask(n,m,w,beta,A,btol,...
             Time_array(i_prt),tNow,k1_in,mb_in,t_step_in,orthDepth);
@@ -249,7 +285,7 @@ while tNow < t_out && i_prt<=length(Time_array)
    
     if k1 ~= 0
         H(m+2,m+1) = 1;
-        avnorm = norm(A*V(:,m+1));
+        avnorm = norm(Ain*V(:,m+1));
     else
         avnorm = 0;
     end
@@ -306,45 +342,53 @@ while tNow < t_out && i_prt<=length(Time_array)
     beta = norm( w );
     hump = max(hump,beta);
     
-    neg = find(w < 0);
-    ineg = length(neg);
-    w(neg) = 0;
-       
-    wnorm = norm(w,1);
-    if ineg > 0
-        w = (1/wnorm)*w;
+    if resetSparsity
+        WJ = w(1:SINKS(1)-1);
+        WJ(WJ<1e-10) = 0;
+        w(1:SINKS(1)-1) = WJ;
     end
+    % neg = find(w < 0);
+    % ineg = length(neg);
+    % w(neg) = 0;
+    % 
+    wnorm = norm(w,1);
+    % if ineg > 0
+    %     w = (1/wnorm)*w;
+    % end
     roundoff = abs(1.0d0-wnorm)/n;
     
     tNow = tNow + t_step;
 
 
+    wout = zeros(size(vin));
+    wout(Jclip) = w;
+
     if tNow == nextFixedTime
         % disp('fixed time reached')
         % implement fixed time effect
-        w = fixedEvents.matrices{fixedEvents.matrixInds(indNextFixedTime)}*w;
+        wout = fixedEvents.matrices{fixedEvents.matrixInds(indNextFixedTime)}*wout;
         indNextFixedTime = find(fixedEvents.times>tNow,1,"first");
         nextFixedTime = fixedEvents.times(indNextFixedTime);
     end
 
     %% Changes by Brian Munsky
     tolCalc = fspTol*(tNow-fspErrorCondition.tInit)/(fspErrorCondition.tFinal-fspErrorCondition.tInit);
-    if sum(w(SINKS)) > tolCalc
-        P_lost=w(SINKS);
+    if sum(wout(SINKS)) > tolCalc
+        P_lost=wout(SINKS);
         err=[];
         hump=[];
-        ye = w';
+        ye = wout';
         te = tNow-t_step;
-        P_array=[P_array(1:i_prt-1,:)];
+        P_array = P_array(1:i_prt-1,:);       
         tryagain=0;
         return
     else
-        ye = w';
+        ye = wout';
         te = tNow;
     end
     while i_prt<=length(Time_array)&&tNow>=Time_array(i_prt)
         Time_array_out = [Time_array_out;Time_array(i_prt)];
-        P_array(i_prt,:) = w;
+        P_array(i_prt,:) = wout';
         i_prt=i_prt+1;
     end
     %%
@@ -359,13 +403,13 @@ while tNow < t_out && i_prt<=length(Time_array)
 end
 while i_prt<=length(Time_array)&&tNow>=Time_array(i_prt)
     Time_array_out = [Time_array_out;Time_array(i_prt)];
-    P_array(i_prt,:) = w;
+    P_array(i_prt,:) = wout';
     i_prt=i_prt+1;
 end
 err = s_error;
 hump = hump / normv;
-te = max(Time_array); ye = w;
-P_lost = w(SINKS);
+te = max(Time_array); ye = wout';
+P_lost = wout(SINKS);
 
 %% Changes by Brian Munsky
 tryagain=0;
@@ -379,4 +423,32 @@ function [ir0, jc0, pr] = find_csc_like(S)
     jc0 = [0; cumsum(counts)];            % 0-based column pointer
     ir0 = i - 1;                          % 0-based row indices
     pr = v;
+end
+
+function Acsr = build_csr(A)
+    [row_idx, col_ptr, val] = find_csc_like(A);
+    n = size(A,1);
+    nnzA = numel(val);
+
+    row_counts = accumarray(row_idx+1, 1, [n,1]);
+    row_ptr = zeros(n+1,1);
+    row_ptr(2:end) = cumsum(row_counts);
+
+    col_ind = zeros(nnzA,1);
+    val_csr = zeros(nnzA,1);
+
+    next = row_ptr(1:end-1);
+    for c = 1:n
+        k0 = col_ptr(c) + 1;
+        ak1 = col_ptr(c+1);
+        for k = k0:ak1
+            r = row_idx(k) + 1;
+            dst = next(r) + 1;
+            col_ind(dst) = c - 1;
+            val_csr(dst) = val(k);
+            next(r) = next(r) + 1;
+        end
+    end
+
+    Acsr = struct('row_ptr', row_ptr, 'col_ind', col_ind, 'val', val_csr);
 end

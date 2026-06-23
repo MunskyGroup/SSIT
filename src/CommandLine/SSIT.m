@@ -715,20 +715,29 @@ classdef SSIT
             % Adds several common custom constraints to the FSP model to
             % help narrow the statespace for pairs of species that are
             % correlated or anticorrelated
+            nSpecies = length(obj.species);
             if (isstring(opts.anticorrelatedPairs)||ischar(opts.anticorrelatedPairs))&&strcmpi(opts.anticorrelatedPairs,'all')
-                for i = 1:length(obj.species)
-                    for j = i+1:length(obj.species)
-                        % obj.customConstraintFuns = [obj.customConstraintFuns;['(',obj.species{i},'-3).^2.*(',obj.species{j},'-3).^2']];
-                        % obj.customConstraintFuns = [obj.customConstraintFuns;['log(max(',obj.species{i},'-3,1))+log(max(',obj.species{j},'-3,1))']];
-                        obj.customConstraintFuns = [obj.customConstraintFuns;['log(',obj.species{i},'+1)+log(',obj.species{j},'+1)']];
+                for i = 1:nSpecies
+                    for j = i+1:nSpecies
+                        % if nSpecies>4
+                            obj.customConstraintFuns = [obj.customConstraintFuns;['1/2*log(',obj.species{i},'+1)+1/2*log(',obj.species{j},'+1)']];
+                        % else
+                        % obj.customConstraintFuns = [obj.customConstraintFuns;['(max(0,',obj.species{i},'-3)).^2.*(max(0,',obj.species{j},'-3)).^2']];
+                        % end
                     end
                 end
             end
             if (isstring(opts.correlatedPairs)||ischar(opts.correlatedPairs))&&strcmpi(opts.correlatedPairs,'all')
-                for i = 1:length(obj.species)
-                    for j = i+1:length(obj.species)
+                for i = 1:nSpecies
+                    for j = i+1:nSpecies
                         obj.customConstraintFuns = [obj.customConstraintFuns;[obj.species{i},'-',obj.species{j}]];
                         obj.customConstraintFuns = [obj.customConstraintFuns;[obj.species{j},'-',obj.species{i}]];
+                        % if nSpecies<=3
+                        %     obj.customConstraintFuns = [obj.customConstraintFuns;[obj.species{i},'-2*',obj.species{j}]];
+                        %     obj.customConstraintFuns = [obj.customConstraintFuns;[obj.species{j},'-2*',obj.species{i}]];
+                        %     obj.customConstraintFuns = [obj.customConstraintFuns;[obj.species{i},'-4*',obj.species{j}]];
+                        %     obj.customConstraintFuns = [obj.customConstraintFuns;[obj.species{j},'-4*',obj.species{i}]];
+                        % end
                     end
                 end
             end
@@ -2387,10 +2396,10 @@ classdef SSIT
 
                         try
                             ssit.ssa.WriteSSA_MatlabCpp_Hybrid(k,w,S,obj.tSpan,[obj.ssaOptions.computeFile]);
-                            disp(['C-Based SSA file generated: ',obj.ssaOptions.computeFile]);
+                            % disp(['C-Based SSA file generated: ',obj.ssaOptions.computeFile]);
                         catch
                             ssit.ssa.WriteGPUSSA(k,w,S,obj.tSpan,obj.ssaOptions.computeFile);
-                            disp(['MATLAB-Based SSA file generated: ',obj.ssaOptions.computeFile]);
+                            % disp(['MATLAB-Based SSA file generated: ',obj.ssaOptions.computeFile]);
                         end
                     else
                         Jslash = strfind(obj.ssaOptions.computeFile,filesep);
@@ -5404,6 +5413,56 @@ function plotMoments(obj, opts)
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        % verifyFSPandSSA - make plots of histograms to verify results of
+        % FSP and SSA
+        function obj = verifyFSPandSSA(obj, opts)
+           % Create a set of plots 
+            arguments 
+                obj
+                opts.speciesNames = []    
+                opts.HistTime double = NaN  % histogram time (closest used)
+            end
+
+            if isnan(opts.HistTime)
+                opts.HistTime = obj.tSpan(end);
+            end
+
+            if isempty(opts.speciesNames)
+                opts.speciesNames = obj.species;
+            end
+
+            priorSolutionScheme = obj.solutionScheme;
+            if ~isfield(obj.Solutions,'trajs')
+                disp('No SSA trajectories found. Rerunning now');
+                obj.solutionScheme = 'ssa';
+                obj.ssaOptions.Nsims = 5000;
+                [~,~,obj] = obj.solve;
+            end
+            if ~isfield(obj.Solutions,'fsp')
+                disp('No FSP solution found. Rerunning now');
+                obj.solutionScheme = 'fsp';
+                [~,~,obj] = obj.solve;               
+            end
+            obj.solutionScheme = priorSolutionScheme;
+
+            disp('Both FSP and SSA solutions are available.')
+            
+            if ~iscell(opts.speciesNames)
+                opts.speciesNames = {opts.speciesNames}
+            end
+
+            for iS = 1:length(opts.speciesNames)
+                % Make SSA Histograms
+                f = figure;
+
+                obj.plotSSA(speciesNames=opts.speciesNames(iS), HistTime=opts.HistTime, ...
+                    makeHistogramPlot=true, histogramPlotNumber=f.Number ,makeTrajectoryPlot=false)
+                % obj.plotFSP(speciesNames=opts.speciesNames, indTimes=length(obj.tSpan),makeHistogramPlot=true, histogramPlotNumber=f.Number ,makeTrajectoryPlot=false)
+                obj.plotFSP(speciesNames=opts.speciesNames(iS), plotType='marginals', indTimes=length(obj.tSpan), figureNums=f.Number)
+            end
+        end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         % plotSSA - Plots SSA trajectories and histograms from ssaSoln struct
         function plotSSA(obj,opts)
             arguments
@@ -5427,14 +5486,18 @@ end
                 opts.Colors = [] % [] | species ×3 RGB | cell array | colormap name  
                 opts.makeMovie = false
                 opts.videoFileName = 'ssa_trajectories.mp4'
+                opts.makeTrajectoryPlot = true
+                opts.trajectoryPlotNumber = NaN
+                opts.makeHistogramPlot = true
+                opts.histogramPlotNumber = NaN
             end
-        
+
             % ----- Extract SSA solution & sizes -----
             ssaSoln = obj.Solutions;
             numSpecies    = size(ssaSoln.trajs, 1);
             nTime         = size(ssaSoln.trajs, 2);
             numTotalTraj  = size(ssaSoln.trajs, 3);
-        
+
             % ----- Number of trajectories to draw -----
             numTraj = opts.numTraj;
             if isempty(numTraj)
@@ -5442,14 +5505,14 @@ end
             else
                 numTraj = min(numTraj, numTotalTraj);
             end
-        
+
             % ----- Species master names -----
             allNames = obj.species;
             if isempty(allNames)
                 allNames = arrayfun(@(s) sprintf('Species %d', s), 1:numSpecies, 'UniformOutput', false);
             end
             if isstring(allNames), allNames = cellstr(allNames); end
-        
+
             % ----- Select species by names (priority) or indices -----
             speciesNames = opts.speciesNames;
             speciesIdx = opts.speciesIdx;
@@ -5483,12 +5546,12 @@ end
                 selNames = allNames(spList);
             end
             nSel = numel(spList);
-        
+
             % ----- Time vector & valid window -----
             Tfull = ssaSoln.T_array(:);         % full time vector
             validIdx = Tfull >= 0;              % adjust as needed
             T = Tfull(validIdx);
-        
+
             % Histogram time index (closest to opts.HistTime)
             if isempty(opts.HistTime) || ~isfinite(opts.HistTime)
                 histTarget = 100;
@@ -5496,7 +5559,7 @@ end
                 histTarget = opts.HistTime;
             end
             [~, tHist_idx] = min(abs(Tfull - histTarget));
-        
+
             % ----- Colors for selected species -----
             C = []; useCellColors = false; cellColors = {};
             if isempty(opts.Colors)
@@ -5539,84 +5602,111 @@ end
             else
                 error('opts.Colors must be: [], colormap name, n×3 RGB, or cell array.');
             end
-        
+
             % Helper: lighten color toward white (simulate transparency)
             function lc = lighten(baseRGB, alpha)
                 lc = (1 - alpha)*[1 1 1] + alpha*baseRGB;
             end
-        
+
             % ----- TRAJECTORY PLOT -----
-            figure; hold on;
-            legendEntries = cell(1, nSel);
-            legendHandles = gobjects(1, nSel);
-        
-            randIdx = randperm(numTotalTraj, numTraj);
-        
-            for j = 1:nSel
-                s = spList(j);
-                        
-                if useCellColors
-                    baseColor = cellColors{j};
+            if opts.makeTrajectoryPlot
+                if isnan(opts.trajectoryPlotNumber)
+                    figure; hold on;
                 else
-                    baseColor = C(j, :);
+                    figure(opts.trajectoryPlotNumber); hold on;
                 end
-        
-                if ~opts.MeanOnly
-                    trajColor = baseColor;
-                    if isnumeric(baseColor)
-                        trajColor = lighten(baseColor, 0.25); % lighter lines for single trajectories
-                    end
-                    Xs = squeeze(ssaSoln.trajs(s, validIdx, :));
-                    for i = 1:numTraj
-                        plot(T, Xs(:, randIdx(i)), 'LineWidth', 0.75, 'Color', trajColor, ...
-                             'HandleVisibility', 'off');
-                    end
-                end
-        
-                Xs_full = squeeze(ssaSoln.trajs(s, validIdx, :));
-                h = plot(T, mean(Xs_full, 2), opts.lineProps{:}, 'Color', baseColor);
-                legendHandles(j) = h;
-                legendEntries{j} = selNames{j};
-            end
-        
-            % ----- Axes styling -----
-            ax = gca; ax.FontSize = opts.TickLabelSize;
-            xlabel(opts.XLabel, 'FontSize', opts.AxisLabelSize);
-            ylabel(opts.YLabel, 'FontSize', opts.AxisLabelSize);
-        
-            % ----- Title -----
-            if strlength(opts.Title) > 0
-                title(string(opts.Title), 'FontSize', opts.TitleFontSize);
-            else
-                if nSel == numSpecies
-                    title('SSA Trajectories (Starting at t = 0)', 'FontSize', opts.TitleFontSize);
-                elseif nSel == 1
-                    title(sprintf('SSA Trajectories for %s (Starting at t = 0)', selNames{1}), 'FontSize', opts.TitleFontSize);
-                else
-                    title('SSA Trajectories for Selected Species (Starting at t = 0)', 'FontSize', opts.TitleFontSize);
-                end
-            end
-        
-            % ----- Axes limits -----
-            if ~isempty(opts.XLim), xlim(opts.XLim); end
-            if ~isempty(opts.YLim), ylim(opts.YLim); end
-        
-            % ----- Legend -----
-            if ~strcmpi(opts.LegendLocation, "none")
-                lgd = legend(legendHandles, legendEntries, 'Location', char(opts.LegendLocation));
-                if ~isempty(lgd), lgd.FontSize = opts.LegendFontSize; end
-            end
-            grid on; box on; hold off;
-        
-            % ----- HISTOGRAM PLOT(S) at t ≈ opts.HistTime -----
-            figure;
-            if nSel > 1
-                numPanels = nSel;
-                numRows = ceil(sqrt(numPanels));
-                numCols = ceil(numPanels / numRows);
+                legendEntries = cell(1, nSel);
+                legendHandles = gobjects(1, nSel);
+
+                randIdx = randperm(numTotalTraj, numTraj);
+
                 for j = 1:nSel
                     s = spList(j);
-                    subplot(numRows, numCols, j);
+
+                    if useCellColors
+                        baseColor = cellColors{j};
+                    else
+                        baseColor = C(j, :);
+                    end
+
+                    if ~opts.MeanOnly
+                        trajColor = baseColor;
+                        if isnumeric(baseColor)
+                            trajColor = lighten(baseColor, 0.25); % lighter lines for single trajectories
+                        end
+                        Xs = squeeze(ssaSoln.trajs(s, validIdx, :));
+                        for i = 1:numTraj
+                            plot(T, Xs(:, randIdx(i)), 'LineWidth', 0.75, 'Color', trajColor, ...
+                                'HandleVisibility', 'off');
+                        end
+                    end
+
+                    Xs_full = squeeze(ssaSoln.trajs(s, validIdx, :));
+                    h = plot(T, mean(Xs_full, 2), opts.lineProps{:}, 'Color', baseColor);
+                    legendHandles(j) = h;
+                    legendEntries{j} = selNames{j};
+                end
+
+                % ----- Axes styling -----
+                ax = gca; ax.FontSize = opts.TickLabelSize;
+                xlabel(opts.XLabel, 'FontSize', opts.AxisLabelSize);
+                ylabel(opts.YLabel, 'FontSize', opts.AxisLabelSize);
+
+                % ----- Title -----
+                if strlength(opts.Title) > 0
+                    title(string(opts.Title), 'FontSize', opts.TitleFontSize);
+                else
+                    if nSel == numSpecies
+                        title('SSA Trajectories (Starting at t = 0)', 'FontSize', opts.TitleFontSize);
+                    elseif nSel == 1
+                        title(sprintf('SSA Trajectories for %s (Starting at t = 0)', selNames{1}), 'FontSize', opts.TitleFontSize);
+                    else
+                        title('SSA Trajectories for Selected Species (Starting at t = 0)', 'FontSize', opts.TitleFontSize);
+                    end
+                end
+
+                % ----- Axes limits -----
+                if ~isempty(opts.XLim), xlim(opts.XLim); end
+                if ~isempty(opts.YLim), ylim(opts.YLim); end
+
+                % ----- Legend -----
+                if ~strcmpi(opts.LegendLocation, "none")
+                    lgd = legend(legendHandles, legendEntries, 'Location', char(opts.LegendLocation));
+                    if ~isempty(lgd), lgd.FontSize = opts.LegendFontSize; end
+                end
+                grid on; box on; hold off;
+            end
+
+            % ----- HISTOGRAM PLOT(S) at t ≈ opts.HistTime -----
+            if opts.makeHistogramPlot
+                if isnan(opts.histogramPlotNumber)
+                    figure; hold on;
+                else
+                    figure(opts.histogramPlotNumber); hold on;
+                end
+                if nSel > 1
+                    numPanels = nSel;
+                    numRows = ceil(sqrt(numPanels));
+                    numCols = ceil(numPanels / numRows);
+                    for j = 1:nSel
+                        s = spList(j);
+                        subplot(numRows, numCols, j);
+                        X_t = squeeze(ssaSoln.trajs(s, tHist_idx, :));
+                        if useCellColors
+                            fc = cellColors{j};
+                            if ischar(fc), fc = C(j,:); end
+                        else
+                            fc = C(j, :);
+                        end
+                        histogram(X_t, 'FaceColor', fc, 'EdgeColor', 'k', 'Normalization','pdf');
+                        ax = gca; ax.FontSize = opts.TickLabelSize;
+                        xlabel(sprintf('Molecule Count', selNames{j}), 'FontSize', opts.AxisLabelSize);
+                        ylabel('Frequency', 'FontSize', opts.AxisLabelSize);
+                        title(sprintf('t ≈ %.2f (%s)', Tfull(tHist_idx), selNames{j}), 'FontSize', opts.TitleFontSize);
+                        grid on; box on;
+                    end
+                else
+                    j = 1; s = spList(j);
                     X_t = squeeze(ssaSoln.trajs(s, tHist_idx, :));
                     if useCellColors
                         fc = cellColors{j};
@@ -5624,104 +5714,89 @@ end
                     else
                         fc = C(j, :);
                     end
-                    histogram(X_t, 'FaceColor', fc, 'EdgeColor', 'k');
+                    histogram(X_t, 'FaceColor', fc, 'EdgeColor', 'k', 'Normalization','pdf');
                     ax = gca; ax.FontSize = opts.TickLabelSize;
                     xlabel(sprintf('Molecule Count', selNames{j}), 'FontSize', opts.AxisLabelSize);
                     ylabel('Frequency', 'FontSize', opts.AxisLabelSize);
                     title(sprintf('t ≈ %.2f (%s)', Tfull(tHist_idx), selNames{j}), 'FontSize', opts.TitleFontSize);
                     grid on; box on;
                 end
-            else
-                j = 1; s = spList(j);
-                X_t = squeeze(ssaSoln.trajs(s, tHist_idx, :));
-                if useCellColors
-                    fc = cellColors{j};
-                    if ischar(fc), fc = C(j,:); end
-                else
-                    fc = C(j, :);
-                end
-                histogram(X_t, 'FaceColor', fc, 'EdgeColor', 'k');
-                ax = gca; ax.FontSize = opts.TickLabelSize;
-                xlabel(sprintf('Molecule Count', selNames{j}), 'FontSize', opts.AxisLabelSize);
-                ylabel('Frequency', 'FontSize', opts.AxisLabelSize);
-                title(sprintf('t ≈ %.2f (%s)', Tfull(tHist_idx), selNames{j}), 'FontSize', opts.TitleFontSize);
-                grid on; box on;
             end
 
-            if opts.makeMovie                           
-                    T = ssaSoln.T_array;
-                    validIdx = T >= 0;
-                    T = T(validIdx);
-                    trajs = ssaSoln.trajs(:, validIdx, :);
-                
-                    speciesColors = lines(numSpecies);
-                    randIdx = randperm(numTotalTraj, numTraj); % pick trajectories to show
-                
-                    % Setup video writer
-                    v = VideoWriter(opts.videoFileName, 'MPEG-4');
-                    v.FrameRate = 10;
-                    open(v);
-                
-                    % Create figure for plotting
-                    figure;
-                    hold on;
-                
-                    % Initialize plot handles
-                    if strcmp(speciesIdx, 'all')
-                        h = gobjects(numSpecies, numTraj);
-                        for s = 1:numSpecies
-                            for i = 1:numTraj
-                                h(s, i) = plot(NaN, NaN, '-', 'Color', [speciesColors(s, :) 0.3]);
-                            end
-                        end
-                        meanLines = gobjects(1, numSpecies);
-                        for s = 1:numSpecies
-                            meanLines(s) = plot(NaN, NaN, 'Color', speciesColors(s, :), 'LineWidth', 2);
-                        end
-                    else
-                        s = speciesIdx;
-                        h = gobjects(1, numTraj);
+            if opts.makeMovie
+                T = ssaSoln.T_array;
+                validIdx = T >= 0;
+                T = T(validIdx);
+                trajs = ssaSoln.trajs(:, validIdx, :);
+
+                speciesColors = lines(numSpecies);
+                randIdx = randperm(numTotalTraj, numTraj); % pick trajectories to show
+
+                % Setup video writer
+                v = VideoWriter(opts.videoFileName, 'MPEG-4');
+                v.FrameRate = 10;
+                open(v);
+
+                % Create figure for plotting
+                figure;
+                hold on;
+
+                % Initialize plot handles
+                if strcmp(speciesIdx, 'all')
+                    h = gobjects(numSpecies, numTraj);
+                    for s = 1:numSpecies
                         for i = 1:numTraj
-                            h(i) = plot(NaN, NaN, '-', 'Color', [speciesColors(s, :) 0.3]);
+                            h(s, i) = plot(NaN, NaN, '-', 'Color', [speciesColors(s, :) 0.3]);
                         end
-                        meanLine = plot(NaN, NaN, 'Color', speciesColors(s, :), 'LineWidth', 2);
                     end
-                
-                    xlabel('Time');
-                    ylabel('Molecule Count');
+                    meanLines = gobjects(1, numSpecies);
+                    for s = 1:numSpecies
+                        meanLines(s) = plot(NaN, NaN, 'Color', speciesColors(s, :), 'LineWidth', 2);
+                    end
+                else
+                    s = speciesIdx;
+                    h = gobjects(1, numTraj);
+                    for i = 1:numTraj
+                        h(i) = plot(NaN, NaN, '-', 'Color', [speciesColors(s, :) 0.3]);
+                    end
+                    meanLine = plot(NaN, NaN, 'Color', speciesColors(s, :), 'LineWidth', 2);
+                end
+
+                xlabel('Time');
+                ylabel('Molecule Count');
+                if strcmp(speciesIdx, 'all')
+                    legend(meanLines, speciesNames, 'Location', 'Best');
+                else
+                    legend(meanLine, speciesNames{speciesIdx}, 'Location', 'Best');
+                end
+                grid on;
+
+                % Animate over time
+                for tIdx = 2:length(T)
+                    tNow = T(1:tIdx);
+
                     if strcmp(speciesIdx, 'all')
-                        legend(meanLines, speciesNames, 'Location', 'Best');
-                    else
-                        legend(meanLine, speciesNames{speciesIdx}, 'Location', 'Best');
-                    end
-                    grid on;
-                
-                    % Animate over time
-                    for tIdx = 2:length(T)
-                        tNow = T(1:tIdx);
-                
-                        if strcmp(speciesIdx, 'all')
-                            for s = 1:numSpecies
-                                Xs = squeeze(trajs(s, 1:tIdx, randIdx));
-                                for i = 1:numTraj
-                                    set(h(s, i), 'XData', tNow, 'YData', Xs(:, i));
-                                end
-                                set(meanLines(s), 'XData', tNow, 'YData', mean(Xs, 2));
-                            end
-                        else
-                            Xs = squeeze(trajs(speciesIdx, 1:tIdx, randIdx));
+                        for s = 1:numSpecies
+                            Xs = squeeze(trajs(s, 1:tIdx, randIdx));
                             for i = 1:numTraj
-                                set(h(i), 'XData', tNow, 'YData', Xs(:, i));
+                                set(h(s, i), 'XData', tNow, 'YData', Xs(:, i));
                             end
-                            set(meanLine, 'XData', tNow, 'YData', mean(Xs, 2));
+                            set(meanLines(s), 'XData', tNow, 'YData', mean(Xs, 2));
                         end
-                
-                        drawnow;
-                        frame = getframe(gcf);
-                        writeVideo(v, frame);
-                    end                
-                    close(v);
-                    disp(['Video saved to ', opts.videoFileName]);
+                    else
+                        Xs = squeeze(trajs(speciesIdx, 1:tIdx, randIdx));
+                        for i = 1:numTraj
+                            set(h(i), 'XData', tNow, 'YData', Xs(:, i));
+                        end
+                        set(meanLine, 'XData', tNow, 'YData', mean(Xs, 2));
+                    end
+
+                    drawnow;
+                    frame = getframe(gcf);
+                    writeVideo(v, frame);
+                end
+                close(v);
+                disp(['Video saved to ', opts.videoFileName]);
             end
         end
 
@@ -5748,6 +5823,8 @@ end
                 opts.XLim double = []
                 opts.YLim double = []
                 opts.includePDO = false
+                opts.makeHistogramPlot=true
+                opts.histogramPlotNumber=NaN
             end
 
             solution = opts.solution;
@@ -5931,7 +6008,7 @@ end
                 case "marginals"
                     for jj = 1:nSel
                         s = fspSelIdx(jj);
-                        f = figure(figureNums(kfig)); clf; kfig=kfig+1;
+                        f = figure(figureNums(kfig)); kfig=kfig+1;
                         f.Name = ['Marginal Distributions of ', selNames{jj}];
                         Nr = ceil(sqrt(Nt)); Nc = ceil(Nt/Nr);
                 
@@ -5951,7 +6028,7 @@ end
                             end
                 
                             subplot(Nr, Nc, ii); hold on
-                            stairs(xPlot, yPlot, lineProps{:}, 'Color', getC(C,jj));
+                            stairs(xPlot-0.5, yPlot, lineProps{:}, 'Color', getC(C,jj));
                             set(gca,'FontSize',opts.TickLabelSize)
                             title(sprintf('t = %.3g', solution.T_array(i2)), ...
                                   'FontSize', max(opts.TitleFontSize-2,8))
@@ -7737,6 +7814,10 @@ end
                 opts.showConvergence = true;
                 opts.ESS = true;
                 opts.names = {};
+                opts.latexFileName = '';
+                opts.showMLEs = true;
+                opts.descriptions = [];
+                opts.parameterReorder = [];
             end
             FIM = opts.FIM;
             fimScale = opts.fimScale;
@@ -7747,11 +7828,15 @@ end
             ess = opts.ESS;
             names = opts.names;
 
-            obj.plotMHResultsStatic(obj,mhResults,FIM,fimScale,mhPlotScale,scatterFig,ess,showConvergence,plotColors,names)
+            obj.plotMHResultsStatic(obj,mhResults,FIM,fimScale,mhPlotScale,...
+                scatterFig,ess,showConvergence,plotColors,names,opts.latexFileName,...
+                opts.showMLEs,opts.descriptions,opts.parameterReorder)
         end
     end
     methods (Static)
-        function plotMHResultsStatic(obj,mhResults,FIM,fimScale,mhPlotScale,scatterFig,ess,showConvergence,plotColors,names)
+        function plotMHResultsStatic(obj,mhResults,FIM,fimScale,mhPlotScale,...
+                scatterFig,ess,showConvergence,plotColors,names,latexFileName,...
+                showMLE,descriptions,parameterReorder)
             arguments
                 obj
                 mhResults = [];
@@ -7763,6 +7848,10 @@ end
                 showConvergence = true
                 plotColors = struct() % Optional: fields like scatter, ellipseFIM, ellipseMH, etc.
                 names = {};
+                latexFileName = '';
+                showMLE = true;
+                descriptions = [];
+                parameterReorder = [];
             end
 
             if isfield(plotColors, 'scatter')
@@ -7889,31 +7978,81 @@ end
                 % Compute and display parameter means and standard deviations
                 mhMeans = mean(smplDone) / log(10);   % log10 scale
                 mhStds  = std(smplDone) / log(10);
+                pars = [obj.parameters{obj.fittingOptions.modelVarsToFit,2}];
+                [~,jMax] = max(mhResults.mhValue);
+                MHpars = mhResults.mhSamples(jMax,:) / log(10);
 
-                fprintf('\nMH sample means and standard deviations (log10 scale):\n');
+                if isempty(parameterReorder)
+                    parameterReorder = [1:Np];
+                else
+                    Np = length(parameterReorder);
+                end
+
                 for p = 1:Np
-                    fprintf('%15s: mean = % .4f, std = %.4f\n', parNames{p}, mhMeans(p), mhStds(p));
+                    if length(descriptions)<Np
+                        descriptions{p} = '';
+                    else
+                        descriptions{p} = [descriptions{p},'&'];
+                    end
+                end
+
+                if isempty(latexFileName)
+                %  fprintf('\nMH sample means and standard deviations (log10 scale): \n');
+                %    for p = 1:Np
+                %        if showMLE
+                %            fprintf(['%15s: MLE = % .4f, mean = % .4f, std = %.4f \\hline \\\\ \n'], parNames{p}, MHpars(p), mhMeans(p), mhStds(p));
+                %        else
+                %            fprintf('%15s: mean = % .4f, std = %.4f \\hline \\\\ \n', parNames{p}, mhMeans(p), mhStds(p));
+                %        end
+                %     end
+                else
+                     fid = fopen(latexFileName,'w');
+                %     fprintf(fid,'\nMH sample means and standard deviations (log10 scale):\n');
+                %     for p = 1:Np
+                %         if showMLE
+                %             fprintf(fid,[descriptions{p},'%15s & %.2e (%.2e $\\pm$ %.2e) \\hline \\\\ \n'], parNames{p}, MHpars(p), mhMeans(p), mhStds(p));
+                %         else
+                %             fprintf(fid,[descriptions{p},'%15s & %.2e & %.2e \\hline \\\\ \n'], parNames{p}, mhMeans(p), mhStds(p));
+                %         end
+                %     end
                 end
 
                 % Compute and display parameter means and standard deviations
                 mhMeans = mean(exp(smplDone));   % log10 scale
                 mhStds  = std(exp(smplDone));
+                MHpars = exp(mhResults.mhSamples(jMax,:));
 
-                fprintf('\nMH sample means and standard deviations (lin scale):\n');
-                for p = 1:Np
-                    fprintf('%15s: mean = %12s, std = %12s\n', ...
-                        parNames{p}, ...
-                        sprintf('%0.4e', mhMeans(p)), ...
-                        sprintf('%0.4e', mhStds(p)));
+                if isempty(latexFileName)
+                    fprintf('\n%%MH sample means and standard deviations (linear scale):\n');
+                    for ip = 1:Np
+                        p = parameterReorder(ip);
+                        if showMLE
+                           fprintf('%15s: MLE = % .4f, mean = % .4f, std = %.4f\n', parNames{p}, MHpars(p), mhMeans(p), mhStds(p));
+                        else
+                           fprintf('%15s: mean = % .4f, std = %.4f\n', parNames{p}, mhMeans(p), mhStds(p));
+                        end
+                    end
+                else
+                    fprintf(fid,'\n\n\n%%MH sample means and standard deviations (linear scale): \n');
+                    fprintf(fid,'%%Model & MLE & Posterior mean $\\pm$ STD)  \\\\ \\hline \n');
+                    for ip = 1:Np
+                        p = parameterReorder(ip);
+                        if showMLE
+                            fprintf(fid,[descriptions{ip},'%15s & %.2e & %.2e $\\pm$ %.2e  \\\\ \\hline\n'], parNames{p}, MHpars(p), mhMeans(p), mhStds(p));
+                        else
+                            fprintf(fid,[descriptions{ip},'%15s & %.2e $\\pm$ %.2e  \\\\ \\hline\n'], parNames{p}, mhMeans(p), mhStds(p));
+                        end                    
+                    end
                 end
-
             end
 
             fimCols = {'k','c','b','g','r'};
 
-            for i=1:Np-1
-                for j = i+1:Np
-                    subplot(Np-1,Np-1,(i-1)*(Np-1)+j-1);
+            for ii=1:Np-1
+                for jj = ii+1:Np
+                    subplot(Np-1,Np-1,(ii-1)*(Np-1)+jj-1);
+                    i = parameterReorder(ii);
+                    j = parameterReorder(jj);
 
                     if exist('mhResultsSecondHalf','var')&&~isempty(mhResultsSecondHalf)
                         scatter(smplDone(:,j)/log(10),smplDone(:,i)/log(10),20,valDoneSorted,'filled'); hold on;
