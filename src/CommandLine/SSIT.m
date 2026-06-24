@@ -137,7 +137,7 @@ classdef SSIT
         ssaOptions = struct('Nsims',1000,'Nexp',1,'nSimsPerExpt',NaN,...
             'useTimeVar',false,'signalUpdateRate',[],...
             'useParallel',false,'verbose',false,...
-            'useGPU',false,'computeFile',[]);
+            'useGPU',false,'computeFile',[],'useC',true);
         % Options for PDO
         %   defaults:
         %       'unobservedSpecies',[]
@@ -2394,12 +2394,16 @@ classdef SSIT
                             Jslash=0; 
                         end
 
-                        try
-                            ssit.ssa.WriteSSA_MatlabCpp_Hybrid(k,w,S,obj.tSpan,[obj.ssaOptions.computeFile]);
-                            % disp(['C-Based SSA file generated: ',obj.ssaOptions.computeFile]);
-                        catch
+                        if isfield(obj.ssaOptions,'useC')&&~obj.ssaOptions.useC
                             ssit.ssa.WriteGPUSSA(k,w,S,obj.tSpan,obj.ssaOptions.computeFile);
-                            % disp(['MATLAB-Based SSA file generated: ',obj.ssaOptions.computeFile]);
+                        else
+                            try
+                                ssit.ssa.WriteSSA_MatlabCpp_Hybrid(k,w,S,obj.tSpan,[obj.ssaOptions.computeFile]);
+                                % disp(['C-Based SSA file generated: ',obj.ssaOptions.computeFile]);
+                            catch
+                                ssit.ssa.WriteGPUSSA(k,w,S,obj.tSpan,obj.ssaOptions.computeFile);
+                                % disp(['MATLAB-Based SSA file generated: ',obj.ssaOptions.computeFile]);
+                            end
                         end
                     else
                         Jslash = strfind(obj.ssaOptions.computeFile,filesep);
