@@ -7822,6 +7822,10 @@ end
                 opts.showMLEs = true;
                 opts.descriptions = [];
                 opts.parameterReorder = [];
+                opts.showMarginalPosteriors = false;
+                opts.priorMean = [];
+                opts.priorSig = [];
+                opts.showCovMatrix = false;
             end
             FIM = opts.FIM;
             fimScale = opts.fimScale;
@@ -7834,13 +7838,15 @@ end
 
             obj.plotMHResultsStatic(obj,mhResults,FIM,fimScale,mhPlotScale,...
                 scatterFig,ess,showConvergence,plotColors,names,opts.latexFileName,...
-                opts.showMLEs,opts.descriptions,opts.parameterReorder)
+                opts.showMLEs,opts.descriptions,opts.parameterReorder,opts.showMarginalPosteriors,...
+                opts.priorMean,opts.priorSig,opts.showCovMatrix)
         end
     end
     methods (Static)
         function plotMHResultsStatic(obj,mhResults,FIM,fimScale,mhPlotScale,...
                 scatterFig,ess,showConvergence,plotColors,names,latexFileName,...
-                showMLE,descriptions,parameterReorder)
+                showMLE,descriptions,parameterReorder,showMarginalPosteriors,...
+                priorMean,priorSig,showCovMatrix)
             arguments
                 obj
                 mhResults = [];
@@ -7856,6 +7862,10 @@ end
                 showMLE = true;
                 descriptions = [];
                 parameterReorder = [];
+                showMarginalPosteriors = false;
+                priorMean = [];
+                priorSig = [];
+                showCovMatrix = false;
             end
 
             if isfield(plotColors, 'scatter')
@@ -8056,38 +8066,109 @@ end
 
             fimCols = {'k','c','b','g','r'};
 
-            for ii=1:Np-1
-                for jj = ii+1:Np
-                    subplot(Np-1,Np-1,(ii-1)*(Np-1)+jj-1);
-                    i = parameterReorder(ii);
-                    j = parameterReorder(jj);
+            if Np<=8
+                for ii=1:Np-1
+                    for jj = ii+1:Np
+                        subplot(Np-1,Np-1,(ii-1)*(Np-1)+jj-1);
+                        i = parameterReorder(ii);
+                        j = parameterReorder(jj);
 
-                    if exist('mhResultsSecondHalf','var')&&~isempty(mhResultsSecondHalf)
-                        scatter(smplDone(:,j)/log(10),smplDone(:,i)/log(10),20,valDoneSorted,'filled'); hold on;
-                        par0 = mean(smplDone(:,[j,i])/log(10));
-                        cov12 = cov(smplDone(:,j)/log(10),smplDone(:,i)/log(10));
-                    end
-                    if ~isempty(FIM)
-                        for iFIM = 1:length(covFIM)
-                            ssit.parest.ellipse(parsScaled([j,i]),icdf('chi2',0.9,2)*covFIM{iFIM}([j,i],[j,i]),fimCols{mod(iFIM,5)+1},'linewidth',2); hold on;
-                            plot(parsScaled(j),parsScaled(i),'ks','MarkerSize',15)
-                            % plot(smplDone(end,j)/log(10),smplDone(end,i)/log(10),'cs','MarkerSize',15)
+                        if exist('mhResultsSecondHalf','var')&&~isempty(mhResultsSecondHalf)
+                            scatter(smplDone(:,j)/log(10),smplDone(:,i)/log(10),20,valDoneSorted,'filled'); hold on;
+                            par0 = mean(smplDone(:,[j,i])/log(10));
+                            cov12 = cov(smplDone(:,j)/log(10),smplDone(:,i)/log(10));
                         end
-                    end
-                    if exist('mhResultsSecondHalf','var')&&~isempty(mhResultsSecondHalf)
-                        ssit.parest.ellipse(par0,icdf('chi2',0.9,2)*cov12,'m--','linewidth',2);  hold on;
-                        % Draw crosshairs at MH mean ± std
-                        % plot([mhMeans(j)-mhStds(j), mhMeans(j)+mhStds(j)], [mhMeans(i), mhMeans(i)], 'm-', 'LineWidth', 1.5);
-                        % plot([mhMeans(j), mhMeans(j)], [mhMeans(i)-mhStds(i), mhMeans(i)+mhStds(i)], 'm-', 'LineWidth', 1.5);
-                        %
-                        % % Annotate mean location
-                        % text(mhMeans(j), mhMeans(i), sprintf('\\leftarrow Mean'), 'Color', 'm', 'FontSize', 8, 'HorizontalAlignment', 'left');
+                        if ~isempty(FIM)
+                            for iFIM = 1:length(covFIM)
+                                ssit.parest.ellipse(parsScaled([j,i]),icdf('chi2',0.9,2)*covFIM{iFIM}([j,i],[j,i]),fimCols{mod(iFIM,5)+1},'linewidth',2); hold on;
+                                plot(parsScaled(j),parsScaled(i),'ks','MarkerSize',15)
+                                % plot(smplDone(end,j)/log(10),smplDone(end,i)/log(10),'cs','MarkerSize',15)
+                            end
+                        end
+                        if exist('mhResultsSecondHalf','var')&&~isempty(mhResultsSecondHalf)
+                            ssit.parest.ellipse(par0,icdf('chi2',0.9,2)*cov12,'m--','linewidth',2);  hold on;
+                            % Draw crosshairs at MH mean ± std
+                            % plot([mhMeans(j)-mhStds(j), mhMeans(j)+mhStds(j)], [mhMeans(i), mhMeans(i)], 'm-', 'LineWidth', 1.5);
+                            % plot([mhMeans(j), mhMeans(j)], [mhMeans(i)-mhStds(i), mhMeans(i)+mhStds(i)], 'm-', 'LineWidth', 1.5);
+                            %
+                            % % Annotate mean location
+                            % text(mhMeans(j), mhMeans(i), sprintf('\\leftarrow Mean'), 'Color', 'm', 'FontSize', 8, 'HorizontalAlignment', 'left');
 
+                        end
+                        xlabel(['$\log_{10}(',strrep(parNames{j},'$',''),')$'],'Interpreter','latex')
+                        ylabel(['$\log_{10}(',strrep(parNames{i},'$',''),')$'],'Interpreter','latex')
                     end
-                    xlabel(['log_{10}(',parNames{j},')']);
-                    ylabel(['log_{10}(',parNames{i},')']);
+                end
+            else
+                kSub = 0;
+                for ii=1:Np-1
+                    for jj = ii+1:Np
+                        kSub = kSub+1;
+                        if kSub>49
+                            figure
+                            kSub=1;
+                        end
+                        subplot(7,7,kSub);
+                        i = parameterReorder(ii);
+                        j = parameterReorder(jj);
+
+                        if exist('mhResultsSecondHalf','var')&&~isempty(mhResultsSecondHalf)
+                            scatter(smplDone(:,j)/log(10),smplDone(:,i)/log(10),20,valDoneSorted,'filled'); hold on;
+                            par0 = mean(smplDone(:,[j,i])/log(10));
+                            cov12 = cov(smplDone(:,j)/log(10),smplDone(:,i)/log(10));
+                        end
+                        if ~isempty(FIM)
+                            for iFIM = 1:length(covFIM)
+                                ssit.parest.ellipse(parsScaled([j,i]),icdf('chi2',0.9,2)*covFIM{iFIM}([j,i],[j,i]),fimCols{mod(iFIM,5)+1},'linewidth',2); hold on;
+                                plot(parsScaled(j),parsScaled(i),'ks','MarkerSize',15)
+                                % plot(smplDone(end,j)/log(10),smplDone(end,i)/log(10),'cs','MarkerSize',15)
+                            end
+                        end
+                        if exist('mhResultsSecondHalf','var')&&~isempty(mhResultsSecondHalf)
+                            ssit.parest.ellipse(par0,icdf('chi2',0.9,2)*cov12,'m--','linewidth',2);  hold on;
+                            % Draw crosshairs at MH mean ± std
+                            % plot([mhMeans(j)-mhStds(j), mhMeans(j)+mhStds(j)], [mhMeans(i), mhMeans(i)], 'm-', 'LineWidth', 1.5);
+                            % plot([mhMeans(j), mhMeans(j)], [mhMeans(i)-mhStds(i), mhMeans(i)+mhStds(i)], 'm-', 'LineWidth', 1.5);
+                            %
+                            % % Annotate mean location
+                            % text(mhMeans(j), mhMeans(i), sprintf('\\leftarrow Mean'), 'Color', 'm', 'FontSize', 8, 'HorizontalAlignment', 'left');
+
+                        end
+                        xlabel(['$\log_{10}(',strrep(parNames{j},'$',''),')$'],'Interpreter','latex')
+                        ylabel(['$\log_{10}(',strrep(parNames{i},'$',''),')$'],'Interpreter','latex')
+                    end
                 end
             end
+
+            if showMarginalPosteriors
+                f = figure;
+                nx = ceil(sqrt(length(parameterReorder)));
+                for ip = 1:Np
+                    p = parameterReorder(ip);
+                    subplot(nx,nx,ip)
+                    h = histogram(smplDone(:,p),35,'Normalization','pdf');
+                    hold on
+                    mu = mean(smplDone(:,p));
+                    sig2 = var(smplDone(:,p));
+                    binCenters = (h.BinEdges(1:end-1)+h.BinEdges(2:end))/2;
+                    pFit = normpdf(binCenters,mu,sqrt(sig2));
+                    plot(binCenters,pFit,'linewidth',3)
+                    set(gca,'fontsize',15)
+                    xlabel(['$\log_{10}(',strrep(parNames{p},'$',''),')$'],'Interpreter','latex')
+                    grid on
+
+                    if ~isempty(priorMean)&&~isempty(priorSig)
+                        mu = priorMean(p);
+                        sig = priorSig(p);
+                        pFit = normpdf(binCenters,mu,sig);
+                        plot(binCenters,pFit,'linewidth',3)
+                    end
+                end
+            end
+            if showCovMatrix
+                % TODO - add function to plot the covariance matrix              
+            end
+
         end
 
         
