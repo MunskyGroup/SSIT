@@ -8035,6 +8035,9 @@ end
                 else
                     fprintf(fid,'\n\n\n%%MH sample means and standard deviations (linear scale): \n');
                     fprintf(fid,'%%Model & MLE & Posterior mean $\\pm$ STD)  \\\\ \\hline \n');
+                    fprintf(fid,'\\begin{tabular}{|l|l|l|l|}\n');
+                    fprintf(fid,'\\hline\n');
+                    fprintf(fid,'\\textbf{Description (units)} & \\textbf{Parameter} & \\textbf{MLE Value} &\\textbf{Posterior Mean $\\pm$ STD}\\\\ \\hline \\hline\n');
                     for ip = 1:Np
                         p = parameterReorder(ip);
                         if showMLE
@@ -8043,6 +8046,7 @@ end
                             fprintf(fid,[descriptions{ip},'%15s & %.2e $\\pm$ %.2e  \\\\ \\hline\n'], parNames{p}, mhMeans(p), mhStds(p));
                         end                    
                     end
+                    fprintf(fid,'\\end{tabular}');                    
                 end
             end
 

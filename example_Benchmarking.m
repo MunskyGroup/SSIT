@@ -1,6 +1,6 @@
 % Benchmark Examples
 
-Models = {'ToggleTV'};
+Models = {'Toggle'};
 clear benchmarks
 for iM = 1:length(Models)
     Model = Generate_Model_from_Benchmark_Library(Models{iM});
