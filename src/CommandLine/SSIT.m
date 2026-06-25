@@ -941,9 +941,10 @@ classdef SSIT
             %   Model1 = SSIT('Toggle');  % Load the toggle model.
             %   Model1.tSpan = linspace(0,10,11);
             %   [~,~,Model1] = Model1.solve;
+            %   Model1.plotFSP(figureNums=1,plotType='meansAndDevs',Colors={'r'});hold on
             %   Model2 = Model1.continueFSP(resetError=false);
             %   [~,~,Model2] = Model2.solve;
-
+            %   Model2.plotFSP(figureNums=1,plotType='meansAndDevs',Colors={'b'});
             arguments
                 obj
                 opts.fspSoln = []
@@ -5954,7 +5955,7 @@ end
         
             switch plotType
                 case "means"
-                    figure(figureNums(kfig)); clf; kfig=kfig+1; hold on
+                    figure(figureNums(kfig)); kfig=kfig+1; hold on
                     hMean = gobjects(1, nSel);
                     tt = solution.T_array(indTimes);
                     for j = 1:nSel
@@ -5981,7 +5982,7 @@ end
                     grid on; box on; hold off;
         
                 case "meansAndDevs"
-                    figure(figureNums(kfig)); clf; kfig=kfig+1; hold on
+                    figure(figureNums(kfig)); kfig=kfig+1; hold on
                     hMean = gobjects(1, nSel);                 % handles for legend
                 
                     tt = solution.T_array(indTimes);
@@ -6074,7 +6075,7 @@ end
                     for a = 1:nSel
                         for b = a+1:nSel
                             s1 = fspSelIdx(a); s2 = fspSelIdx(b);
-                            h = figure(figureNums(kfig)); clf; kfig=kfig+1;
+                            h = figure(figureNums(kfig)); kfig=kfig+1;
                             h.Name = sprintf('Joint Distribution of %s and %s', selNames{a}, selNames{b});
                             Nr = ceil(sqrt(Nt)); Nc = ceil(Nt/Nr);
                             for ii = 1:Nt
@@ -6144,7 +6145,7 @@ end
                     end
                 
                     % ---- Plot: CDF (top) ----
-                    figure(figureNums(kfig)); clf; kfig = kfig+1;
+                    figure(figureNums(kfig)); kfig = kfig+1;
                     subplot(2,1,1); hold on
                     hC = gobjects(1, nSinks);
                     for k = 1:nSinks
@@ -6227,7 +6228,7 @@ end
                     
                             for ii = 1:Nt
                                 it2 = indTimes(ii);
-                                f = figure(figureNums(kfig)); clf; kfig = kfig+1;
+                                f = figure(figureNums(kfig)); kfig = kfig+1;
                                 f.Name = sprintf('Marginal Sensitivities — %s @ t=%.3g', spName, solution.plotable.T_array(it2));
                     
                                 for j = 1:Np
