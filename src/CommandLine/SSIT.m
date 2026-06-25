@@ -116,7 +116,8 @@ classdef SSIT
             'fspIntegratorAbsTol',1e-4, 'odeSolver','auto',...
             'verbose',false,'bounds',[],'usePiecewiseFSP',false,...
             'initApproxSS',false,'escapeSinks',[],...
-            'constantJacobian',false,'constantJacobianTime',1.1,'stateSpace',[]);
+            'constantJacobian',false,'constantJacobianTime',1.1,...
+            'stateSpace',[],'krylovSize',10,'minSSEscapeRate',1e-3);
         % Options for FSP-Sensitivity solver
         %   defaults:
         %       'solutionMethod','finiteDifference'
@@ -732,6 +733,8 @@ classdef SSIT
                     for j = i+1:nSpecies
                         obj.customConstraintFuns = [obj.customConstraintFuns;[obj.species{i},'-',obj.species{j}]];
                         obj.customConstraintFuns = [obj.customConstraintFuns;[obj.species{j},'-',obj.species{i}]];
+                        % obj.customConstraintFuns = [obj.customConstraintFuns;['log(',obj.species{i},'+1)-log(',obj.species{j},'+1)']];
+                        % obj.customConstraintFuns = [obj.customConstraintFuns;['log(',obj.species{i},'+1)-log(',obj.species{j},'+1)']];
                         % if nSpecies<=3
                         %     obj.customConstraintFuns = [obj.customConstraintFuns;[obj.species{i},'-2*',obj.species{j}]];
                         %     obj.customConstraintFuns = [obj.customConstraintFuns;[obj.species{j},'-2*',obj.species{i}]];
@@ -934,6 +937,13 @@ classdef SSIT
         function obj = continueFSP(obj,opts)
             % This method replaces the initial condition with a previous
             % solution of the SSIT.
+            % Example:
+            %   Model1 = SSIT('Toggle');  % Load the toggle model.
+            %   Model1.tSpan = linspace(0,10,11);
+            %   [~,~,Model1] = Model1.solve;
+            %   Model2 = Model1.continueFSP(resetError=false);
+            %   [~,~,Model2] = Model2.solve;
+
             arguments
                 obj
                 opts.fspSoln = []
@@ -2300,7 +2310,7 @@ classdef SSIT
 
                     % specificPropensities = SSIT.parameterizePropensities(obj.propensitiesGeneral,[obj.parameters{:,2}]');
 
-                    [Solution.fsp, bConstraints,Solution.stateSpace] = ssit.fsp.adaptiveFspSolve(obj.tSpan,...
+                    [Solution.fsp, bConstraints, Solution.stateSpace, obj.fspOptions.krylovSize] = ssit.fsp.adaptiveFspSolve(obj.tSpan,...
                         obj.initialCondition,...
                         obj.initialProbs,...
                         obj.stoichiometry, ...
@@ -2323,7 +2333,9 @@ classdef SSIT
                         obj.fspOptions.constantJacobian,...
                         obj.fspOptions.constantJacobianTime,...
                         obj.odeIntegrator,...
-                        obj.specialEvents);
+                        obj.specialEvents,...
+                        obj.fspOptions.minSSEscapeRate,...
+                        obj.fspOptions.krylovSize);
                     obj.fspOptions.stateSpace = Solution.stateSpace;
                     obj.fspOptions.bounds = bConstraints;
 
@@ -8146,10 +8158,10 @@ end
                 for ip = 1:Np
                     p = parameterReorder(ip);
                     subplot(nx,nx,ip)
-                    h = histogram(smplDone(:,p),35,'Normalization','pdf');
+                    h = histogram(smplDone(:,p)/log(10),35,'Normalization','pdf');
                     hold on
-                    mu = mean(smplDone(:,p));
-                    sig2 = var(smplDone(:,p));
+                    mu = mean(smplDone(:,p)/log(10));
+                    sig2 = var(smplDone(:,p)/log(10));
                     binCenters = (h.BinEdges(1:end-1)+h.BinEdges(2:end))/2;
                     pFit = normpdf(binCenters,mu,sqrt(sig2));
                     plot(binCenters,pFit,'linewidth',3)
