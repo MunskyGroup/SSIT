@@ -7,11 +7,11 @@ for modset = 1:6
         case 2
             Models = {'Toggle'};
         case 3
-            Models = {'Goutsias_1000'};
-        case 4
             Models = {'TripleRepressor_SS'};
-        case 5
+        case 4
             Models = {'GeneExpression_SS'};
+        case 5
+            Models = {'Goutsias_1000'};
         case 6
             Models = {'MAPK'};
     end
