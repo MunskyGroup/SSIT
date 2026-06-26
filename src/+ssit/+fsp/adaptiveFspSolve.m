@@ -1,4 +1,4 @@
-function [solutions, constraintBoundsFinal, stateSpace] = adaptiveFspSolve(...
+function [solutions, constraintBoundsFinal, stateSpace, krylovSize] = adaptiveFspSolve(...
     outputTimes, ...
     initStates,...
     initProbs,...
@@ -16,7 +16,8 @@ function [solutions, constraintBoundsFinal, stateSpace] = adaptiveFspSolve(...
     constantJacobian,constantJacobianTime,...
     odeIntegrator,...
     specialEvents,...
-    minEscapeRate)
+    minEscapeRate,...
+    krylovSize)
 % Approximate the transient solution of the chemical master equation using
 % an adaptively expanding finite state projection (FSP).
 %
@@ -147,6 +148,7 @@ arguments
     odeIntegrator = 'ode23s';
     specialEvents = [];
     minEscapeRate = 3.6e-3;
+    krylovSize = 20;
 end
 
 maxOutputTime = max(outputTimes);
@@ -275,17 +277,15 @@ while expandSS
             
             if ~exist('eigVec','var')
                 [eigVec,eigVal]  = eigs(jacR,1,'lr');
-            elseif size(jacR,1)>length(eigVec)
-                opts.v0 = [eigVec;zeros(size(jacR,1)-length(eigVec),1)];
-                [eigVec,eigVal]  = eigs(jacR,1,'lr',opts);
             end
+            opts.v0 = [eigVec;zeros(size(jacR,1)-length(eigVec),1)];
+            [eigVec,eigVal]  = eigs(jacR,1,'lr',opts);
 
             % Check that largest EVP is within tolerance to accept as
             % steady state. Otherwise expand further.
             % if eigVal>-minEscapeRate
             eigVec = abs(eigVec)/sum(abs(eigVec));
             if sum(abs(jacB*eigVec))>minEscapeRate
-            % else
                 expandSS = true;
             end
         catch
@@ -323,7 +323,7 @@ while expandSS
             exitWeights = abs(jacB*eigVec);
             [~,constraintsToRelax] = max(exitWeights);
             % constraintsToRelax = unique([constraintsToRelax;find(exitWeights/sum(exitWeights)>0.1)]);
-            constraintsToRelax = unique([constraintsToRelax;find(exitWeights/sum(exitWeights)>4/length(exitWeights)|exitWeights>=0.05*minEscapeRate)]);
+            constraintsToRelax = unique([constraintsToRelax;find(exitWeights/sum(exitWeights)>4/length(exitWeights)|exitWeights>=minEscapeRate)]);
             constraintBoundsFinal(constraintsToRelax) = 1.25*constraintBoundsFinal(constraintsToRelax);
             stateSpace = stateSpace.expand(constraintFunctions, constraintBoundsFinal);
         else
@@ -446,7 +446,7 @@ while (tNow < maxOutputTime)
             end
 
             if odeSolver == "expokit"
-                solver = ssit.fsp_ode_solvers.Expokit(20,1e-8,'expv_modified');
+                solver = ssit.fsp_ode_solvers.Expokit(krylovSize,absTol,'expv_modified');
             elseif odeSolver == "expokitPiecewise"
                 solver = ssit.fsp_ode_solvers.ExpokitPiecewise();
             else
@@ -478,17 +478,24 @@ while (tNow < maxOutputTime)
                 end
             end
 
-            if odeSolver == "expokit"
-                solver = ssit.fsp_ode_solvers.Expokit(min(100,max(30,ceil(length(jac)/10000))),absTol);
-                % solver = ssit.fsp_ode_solvers.Expokit(30,absTol);
-            elseif odeSolver == "expokitPiecewise"
-                if constantJacobian
-                    solver = ssit.fsp_ode_solvers.Expokit(30,absTol);
+            if ~exist("solver","var")
+                if odeSolver == "expokit"
+                    solver = ssit.fsp_ode_solvers.Expokit(min(100,max(krylovSize,ceil(length(jac)/50000))),absTol);
+                    solver.maxTimeStep = max(1,max(outputTimes)-min(outputTimes));
+                    % solver = ssit.fsp_ode_solvers.Expokit(30,absTol);
+                elseif odeSolver == "expokitPiecewise"
+                    if constantJacobian
+                        solver = ssit.fsp_ode_solvers.Expokit(krylovSize,absTol);
+                    else
+                        solver = ssit.fsp_ode_solvers.ExpokitPiecewise(krylovSize,absTol);
+                    end
                 else
-                    solver = ssit.fsp_ode_solvers.ExpokitPiecewise(30,absTol);
+                    solver = ssit.fsp_ode_solvers.OdeSuite(relTol, absTol, odeIntegrator);
                 end
             else
-                solver = ssit.fsp_ode_solvers.OdeSuite(relTol, absTol, odeIntegrator);
+                if odeSolver == "expokit"
+                    solver.m = max(solver.m,min(100,max(krylovSize,ceil(length(jac)/50000))));
+                end
             end
         end
     end
@@ -540,6 +547,12 @@ while (tNow < maxOutputTime)
     else
         solVecOld = solVec;
     end
+
+    if odeSolver == "expokit"
+        % tNow = fspStopStatus.t_break;
+        krylovSize = solver.m;
+    end
+
 
     if (fspStopStatus.i_expand)
         if (verbose)

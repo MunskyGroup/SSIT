@@ -87,65 +87,90 @@
 %  EXPOKIT: Software Package for Computing Matrix Exponentials.
 %  ACM - Transactions On Mathematical Software, 24(1):130-156, 1998
 
-function [wout, err, hump, Time_array_out, P_array, P_lost, tryagain, te, ye] = ...
+function [wout, err, hump, Time_array_out, P_array, P_lost, tryagain, te, ye, yeLast] = ...
     mexpv_modified_2( t, Ain, vin, tol, m, N_prt, Time_array,fspTol,SINKS,...
     tNow,fspErrorCondition,resetSparsity,fixedEvents,maxTimeStep,clipStates)
+arguments
+    t
+    Ain
+    vin
+    tol
+    m
+    N_prt
+    Time_array
+    fspTol
+    SINKS 
+    tNow
+    fspErrorCondition
+    resetSparsity = false
+    fixedEvents = {}
+    maxTimeStep = 10
+    clipStates = false
+end
 
 [n] = size(Ain,1);
-if nargin == 3
-    tol = 1.0e-7;
-    m = min(n,30);
-    %% Changes by Brian Munsky
-    N_prt=1;
-    Time_array=[0 t];
-    fspTol=1;
-    SINKS = [];
-    %%
-end
-if nargin == 4
-    m = min(n,30);
-    %% Changes by Brian Munsky
-    N_prt=1;
-    Time_array=[0 t];
-    fspTol=1;
-    SINKS = [];
-    %%
-end
-%% Changes by Brian Munsky
-if nargin == 5
-    N_prt=1;
-    Time_array=[0 t];
-    fspTol=1;
-    SINKS = [];
-end
-if nargin ==6
-    Time_array=linspace(0,t,N_prt);
-    fspTol=1;
-    SINKS = [];
-end
-if nargin>=7
-    N_prt = length(Time_array);
-end
-if nargin ==7
-    fspTol=1;
-    SINKS = [];
-end
-if nargin ==8
-    tol=min(tol,fspTol/10);
-    SINKS = [];
-end
-if nargin ==9
-    tol=min(tol,fspTol/10);
-end
-if nargin<12
-    resetSparsity = 0;
-end
-if nargin<13
-    fixedEvents = {};
-end
-%%
-maxTimeStep = 10;
-% clipStates = false;
+% if m==0
+%     m = min(n,30);
+% end
+% if isempty(Time_array)
+%     Time_array = [0,t];
+% else
+%     N_prt = length(Time_array);
+% end
+% % if nargin == 3
+% %     tol = 1.0e-7;
+% %     m = min(n,30);
+% %     %% Changes by Brian Munsky
+% %     N_prt=1;
+% %     Time_array=[0 t];
+% %     fspTol=1;
+% %     SINKS = [];
+% %     %%
+% % end
+% if nargin == 4
+%     m = min(n,30);
+%     %% Changes by Brian Munsky
+%     N_prt=1;
+%     Time_array=[0 t];
+%     fspTol=1;
+%     SINKS = [];
+%     %%
+% end
+% %% Changes by Brian Munsky
+% if nargin == 5
+%     N_prt=1;
+%     Time_array=[0 t];
+%     fspTol=1;
+%     SINKS = [];
+% end
+% if nargin ==6
+%     Time_array=linspace(0,t,N_prt);
+%     fspTol=1;
+%     SINKS = [];
+% end
+% if nargin>=7
+%     N_prt = length(Time_array);
+% end
+% if nargin ==7
+%     fspTol=1;
+%     SINKS = [];
+% end
+% if nargin ==8
+%     tol=min(tol,fspTol/10);
+%     SINKS = [];
+% end
+% if nargin ==9
+%     tol=min(tol,fspTol/10);
+% end
+% if nargin<12
+%     resetSparsity = 0;
+% end
+% if nargin<13
+%     fixedEvents = {};
+% end
+% %%
+% maxTimeStep = 10;
+% % clipStates = false;
 
 % R = 5e-2;
 % Jclip = 1:length(vin);
@@ -158,7 +183,7 @@ wout = vin;
 
 %%
 anorm = norm(Ain,'inf');
-mxrej = 10;  btol  = 1.0e-7;
+mxrej = 10;  btol  = 1.0e-4;
 gamma = 0.9; delta = 1.2;
 mb    = m; t_out   = abs(t);
 s_error = 0;
@@ -253,98 +278,104 @@ while tNow < t_out && i_prt<=length(Time_array)
     %     n = nr;
     %     Acsr = build_csr(A);
     % end
+    if sum(abs((Ain*w)))<(btol/(max(Time_array)-min(Time_array)))
+        % Detect SS and quit early
+        t_step = min([Time_array(i_prt)-tNow,nextFixedTime-tNow]);
+    else
 
-    beta = norm(w);
+        beta = norm(w);
 
-    if n ~= n_prev_clip
-        k1 = 2;
-        mb = m;
-        n_prev_clip = n;
-    end
+        if n ~= n_prev_clip
+            k1 = 2;
+            mb = m;
+            n_prev_clip = n;
+        end
 
-    % step to next print time, next step size, or next fixed event time
-    t_step = min([Time_array(i_prt)-tNow,t_new,nextFixedTime-tNow,maxTimeStep]);
-    k1_in = k1;
-    mb_in = mb;
-    t_step_in = t_step;
+        % step to next print time, next step size, or next fixed event time
+        t_step = min([Time_array(i_prt)-tNow,t_new,nextFixedTime-tNow,maxTimeStep]);
+        k1_in = k1;
+        mb_in = mb;
+        t_step_in = t_step;
 
-    % tic
-    if nr<500
+        % tic
         orthDepth = m;%min(m,15);
-    else
-        orthDepth = min(m,30);
-    end
+        % if nr>30000
+        %     orthDepth = min(m,30);
+        % end
+        % [orthDepth,m]
 
-    try
-        [H,V,k1,mb,t_step] = ssit.fsp_ode_solvers.mexFunctionExpokit(n,m,w,beta,Acsr,btol,...
-            Time_array(i_prt),tNow,k1_in,mb_in,t_step_in,orthDepth);
-    catch
-        [H,V,k1,mb,t_step] = ssit.fsp_ode_solvers.ExpensiveTask(n,m,w,beta,A,btol,...
-            Time_array(i_prt),tNow,k1_in,mb_in,t_step_in,orthDepth);
-    end
-   
-    if k1 ~= 0
-        H(m+2,m+1) = 1;
-        avnorm = norm(Ain*V(:,m+1));
-    else
-        avnorm = 0;
-    end
-    ireject = 0;
+        try
+            [H,V,k1,mb,t_step] = ssit.fsp_ode_solvers.mexFunctionExpokit(n,m,w,beta,Acsr,btol,...
+                Time_array(i_prt),tNow,k1_in,mb_in,t_step_in,orthDepth);
+        catch
+            [H,V,k1,mb,t_step] = ssit.fsp_ode_solvers.ExpensiveTask(n,m,w,beta,A,btol,...
+                Time_array(i_prt),tNow,k1_in,mb_in,t_step_in,orthDepth);
+        end
 
-    % Define defaults for variables (needed for C conversion).
-    F = zeros(size(H));
-    err_loc = 0;
-
-    while ireject <= mxrej
-        mx = mb + k1;
-        F = expm(sgn*t_step*H(1:mx,1:mx));
-        if k1 == 0
-            err_loc = btol;
-            break;
+        if k1 ~= 0
+            H(m+2,m+1) = 1;
+            avnorm = norm(Ain*V(:,m+1));
         else
-            phi1 = abs( beta*F(m+1,1) );
-            phi2 = abs( beta*F(m+2,1) * avnorm );
-            if phi1 > 10*phi2
-                err_loc = phi2;
-                xm = 1/m;
-            elseif phi1 > phi2
-                err_loc = (phi1*phi2)/(phi1-phi2);
-                xm = 1/m;
+            avnorm = 0;
+        end
+        ireject = 0;
+
+        % Define defaults for variables (needed for C conversion).
+        F = zeros(size(H));
+        err_loc = 0;
+
+        while ireject <= mxrej
+            mx = mb + k1;
+            F = expm(sgn*t_step*H(1:mx,1:mx));
+            if k1 == 0
+                err_loc = btol;
+                break;
             else
-                err_loc = phi1;
-                xm = 1/(m-1);
+                phi1 = abs( beta*F(m+1,1) );
+                phi2 = abs( beta*F(m+2,1) * avnorm );
+                if phi1 > 10*phi2
+                    err_loc = phi2;
+                    xm = 1/m;
+                elseif phi1 > phi2
+                    err_loc = (phi1*phi2)/(phi1-phi2);
+                    xm = 1/m;
+                else
+                    err_loc = phi1;
+                    xm = 1/(m-1);
+                end
+            end
+            if err_loc <= delta * t_step*tol
+                break;
+            else
+                t_step = gamma * t_step * (t_step*tol/err_loc)^xm;
+                s = 10^(floor(log10(t_step))-1);
+                t_step = ceil(t_step/s) * s;
+                if ireject == mxrej
+                    %% Changes by Brian Munsky
+                    tryagain=1;
+                    P_lost=w(SINKS);
+                    %             time_of_excess = tNow/t;
+                    yeLast = ye;
+                    w=[];
+                    err=[];
+                    hump=[];
+                    Time_array_out=[];
+                    P_array=[];
+                    return
+                    %           error('The requested tolerance is too high.');
+                end
+                ireject = ireject + 1;
             end
         end
-        if err_loc <= delta * t_step*tol
-            break;
-        else
-            t_step = gamma * t_step * (t_step*tol/err_loc)^xm;
-            s = 10^(floor(log10(t_step))-1);
-            t_step = ceil(t_step/s) * s;
-            if ireject == mxrej
-                %% Changes by Brian Munsky
-                tryagain=1;
-                P_lost=w(SINKS);
-                %             time_of_excess = tNow/t;
-                w=[];
-                err=[];
-                hump=[];
-                Time_array_out=[];
-                P_array=[];
-                return
-                %           error('The requested tolerance is too high.');
-            end
-            ireject = ireject + 1;
-        end
+        mx = mb + max( 0,k1-1 );
+        w = V(:,1:mx)*(beta*F(1:mx,1));
+        beta = norm( w );
+        hump = max(hump,beta);
     end
-    mx = mb + max( 0,k1-1 );
-    w = V(:,1:mx)*(beta*F(1:mx,1));
-    beta = norm( w );
-    hump = max(hump,beta);
     
     if resetSparsity
         WJ = w(1:SINKS(1)-1);
-        WJ(WJ<1e-10) = 0;
+        WJ(WJ<1e-15) = 0;
         w(1:SINKS(1)-1) = WJ;
     end
     % neg = find(w < 0);
@@ -377,6 +408,7 @@ while tNow < t_out && i_prt<=length(Time_array)
         P_lost=wout(SINKS);
         err=[];
         hump=[];
+        yeLast = ye;
         ye = wout';
         te = tNow-t_step;
         P_array = P_array(1:i_prt-1,:);       
@@ -384,6 +416,7 @@ while tNow < t_out && i_prt<=length(Time_array)
         return
     else
         ye = wout';
+        yeLast = ye;
         te = tNow;
     end
     while i_prt<=length(Time_array)&&tNow>=Time_array(i_prt)
@@ -408,7 +441,7 @@ while i_prt<=length(Time_array)&&tNow>=Time_array(i_prt)
 end
 err = s_error;
 hump = hump / normv;
-te = max(Time_array); ye = wout';
+te = max(Time_array); yeLast = ye; ye = wout'; 
 P_lost = wout(SINKS);
 
 %% Changes by Brian Munsky

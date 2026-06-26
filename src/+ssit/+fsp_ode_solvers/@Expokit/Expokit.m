@@ -1,26 +1,29 @@
-classdef Expokit
+classdef Expokit < handle
     %EXPOKIT ODE integrator using Expokit.    
     
     properties
         tol = 1.0e-8;
         m = 30;
         version = 'mexpv_modified_2';
+        maxTimeStep = 10;
+        lastExitTime = -inf;
+        yeLast = [];
     end
     
     methods
         function obj = Expokit(m, tol, version)
-        %EXPOKIT Construct an instance of this class
-        %   Detailed explanation goes here
-        arguments
-            m (1,1) double {mustBePositive} = 30
-            tol (1,1) double {mustBePositive} = 1.0e-8
-            version  = 'mexpv_modified_2'
+            %EXPOKIT Construct an instance of this class
+            %   Detailed explanation goes here
+            arguments
+                m (1,1) double {mustBePositive} = 30
+                tol (1,1) double {mustBePositive} = 1.0e-8
+                version  = 'mexpv_modified_2'
+            end
+            obj.m = m;
+            obj.tol = tol;
+            obj.version = version;
         end
-        obj.m = m;
-        obj.tol = tol;
-        obj.version = version;
-        end
-        
+
         function [tExport, solutionsNow, fspStopStatus] = solve(obj, tStart, ...
                 tOut, initSolution, rhs, jac, fspErrorCondition, fixedEvents)
         %SOLVE Advance the solution of the FSP-truncated CME up until
@@ -75,9 +78,9 @@ classdef Expokit
         %
         %
         % m = min(ceil(size(jac,1)/2),obj.m);
-        m = min(size(jac,1),obj.m);
+        obj.m = min(size(jac,1),obj.m);
         tryAgain=1;
-        if ~exist('m','var'); m=15; end
+        % if ~exist('m','var'); m=15; end
         fspTol = fspErrorCondition.fspTol;
         expvTol = min(fspTol/1e2,1e-5);
         nSinks = fspErrorCondition.nSinks;
@@ -86,11 +89,35 @@ classdef Expokit
             while tryAgain==1
                 SINKS = [length(initSolution)-nSinks+1:length(initSolution)-fspErrorCondition.nEscapeSinks];
                 % fspSINKS = [length(initSolution)-nSinks+1 : length(initSolution)];
-                [~, ~, ~, tExport, solutionsNow, ~, tryAgain, te, ye] = ...
+                
+                % TODO -- add capability to stop and expand between time
+                % points for better solutions when the output time is
+                % coarse.
+                % if ~isempty(obj.yeLast)
+                %     initSolution = [obj.yeLast(1:end-length(SINKS));...
+                %         zeros(size(jac,1)-length(obj.yeLast),1);...
+                %         obj.yeLast(end-length(SINKS)+1:end)];
+                %     tStart = obj.lastExitTime;
+                % end
+
+
+                [~, ~, ~, tExport, solutionsNow, ~, tryAgain, te, ye, yeLast] = ...
                     ssit.fsp_ode_solvers.mexpv_modified_2(tOut(end), jac, ...
-                    initSolution, expvTol, m,...
-                    [], tOut, fspTol, SINKS, tStart, fspErrorCondition, true, fixedEvents);
-                if tryAgain==0;break;end
+                    initSolution, expvTol, obj.m,...
+                    [], tOut, fspTol, SINKS, tStart, fspErrorCondition, false, fixedEvents, ...
+                    obj.maxTimeStep);
+                % Check that FSP error is decreasing with expansion -- if
+                % not increase the dimension of the Krylov projection and
+                % try again once.
+                if te<obj.lastExitTime
+                    tryAgain = 1;
+                    obj.lastExitTime = -inf;
+                end
+                if tryAgain==0
+                    % obj.yeLast = yeLast';
+                    obj.lastExitTime = te;
+                    break;
+                end
                 % if m>300
                 % SINKS = [length(initSolution)-nSinks+1:length(initSolution)-fspErrorCondition.nEscapeSinks];
                 %     warning('Expokit expansion truncated at 300');
@@ -99,22 +126,22 @@ classdef Expokit
                 %         initSolution, expvTol, m,...
                 %         [], tOut, fspTol, SINKS, tStart, fspErrorCondition, true, fixedEvents);
                 % end
-                m=m+5;
+                obj.m=obj.m+5;
             end
         elseif strcmp(obj.version,'expv_modified')
             while tryAgain==1
                 SINKS = [];
                 [~, ~, ~, tExport, solutionsNow, ~, tryAgain, te, ye] = ...
-                    ssit.fsp_ode_solvers.expv_modified(tOut(end), jac, initSolution, 1e-16, m,...
+                    ssit.fsp_ode_solvers.expv_modified(tOut(end), jac, initSolution, 1e-16, obj.m,...
                     [], tOut,fspTol,SINKS,tStart,fspErrorCondition, false, fixedEvents);
                 if tryAgain==0;break;end
-                if m>300
+                if obj.m>300
                     warning('Expokit expansion truncated at 300');
                     [~, ~, ~, tExport, solutionsNow, ~, tryAgain, te, ye] = ...
-                        expv_modified(tOut(end), jac, initSolution, expvTol, m,...
+                        expv_modified(tOut(end), jac, initSolution, expvTol, obj.m,...
                         [], tOut,fspTol,[],tStart,fspErrorCondition, false, fixedEvents);
                 end
-                m=m+5;
+                obj.m=obj.m+5;
             end
         end
         
