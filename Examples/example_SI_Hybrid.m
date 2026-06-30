@@ -58,7 +58,7 @@ STL1_hybrid.customConstraintFuns = [];
 STL1_hybrid.fspOptions.fspTol = 1e-4; 
     
 % Guess initial bounds on FSP StateSpace:
-STL1_hybrid.fspOptions.bounds = [1,1,1,1,300];
+STL1_hybrid.fspOptions.bounds = [0;300];
 
 % This function compiles and stores the given reaction propensities  
 % into symbolic expression functions that use sparse matrices:
