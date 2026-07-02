@@ -105,9 +105,26 @@ STL1_sim_data = STL1_FSP;
 STL1_sim_data = STL1_sim_data.loadData('data/STL1_sim.csv',...
                 {'offGene','exp1_s1';'onGene','exp1_s2';'mRNA','exp1_s3'});
 
-% This plot is unnecessary, as the model parameters have not been fit to
-% the data yet.  However, it illustrates the improvement to come later:
-STL1_sim_data.makeFitPlot
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Fit model parameters to simulated data using maximizeLikelihood 
+%  * Optimize the parameter values to fit the data
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Save model parameters:
+STL1_sim_data_pars = cell2mat(STL1_sim_data.parameters(1:8,2));
+
+% Maximize likelihood to improve model fit:
+[STL1_sim_data_pars,STL1_sim_data_likelihood] = ...
+ STL1_sim_data.maximizeLikelihood(STL1_sim_data_pars);
+
+% Update model parameters with optimized values:
+for m=1:length(STL1_sim_data_pars)
+    STL1_sim_data.parameters{m,2} = STL1_sim_data_pars(m);
+end
+
+% Plot fits:
+STL1_sim_data.plotFits(plotType="all", lineProps={'linewidth',2},...
+    Title='Simulated STL1', YLabel='Molecule Count')
 
 %% Save models with loaded data
 saveNames = unique({'STL1_sim_model'
