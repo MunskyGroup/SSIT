@@ -235,11 +235,14 @@ while expandSS
     if initApproxSS&&~isempty(FixedEvents)&&min(FixedEvents.times)<(outputTimes(1)-1e-6)
         error('Fixed Events cannot occur before intitial time if initialing at steady state')
     end
-    if initApproxSS&&useReducedModel
-        error('Fixed Events not yet compatible with ReducedModels')
-        %TODO - it should be relatively easy to add fixed events into
-        %reduced models, but I have left this error for now.
-    end
+    if useReducedModel && ~isempty(FixedEvents)
+    	error('Fixed Events not yet compatible with ReducedModels')
+	end
+%     if initApproxSS&&useReducedModel
+%         error('Fixed Events not yet compatible with ReducedModels')
+%         %TODO - it should be relatively easy to add fixed events into
+%         %reduced models, but I have left this error for now.
+%     end
 
 
     % Use Approximate steady state as initial distribution if requested.
