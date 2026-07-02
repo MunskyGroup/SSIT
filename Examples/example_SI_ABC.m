@@ -132,7 +132,7 @@ if isfield(ResultsABC, 'mhSamples')
         hold on;        
         xline(parGuess(k), 'b', 'LineWidth', 1.5);
         xline(parsABC(k), 'r', 'LineWidth', 1.5);
-        xline(cell2mat(Model_TSC22D3.parameters(k,2)),'g','LineWidth',1.5);
+        xline(cell2mat(scRNAseq.parameters(k,2)),'g','LineWidth',1.5);
         title(sprintf('Parameter %d', k));
         xlabel('\theta_k');
         ylabel('Posterior density (approx.)');
@@ -165,7 +165,7 @@ fprintf('Relative improvement: %.1f%%\n', 100 * (L_init - L_min)/L_init);
 
 %% Compare ABC posterior sample to MLE
 % TODO: Overlay parameter values and compute predictive distributions.
-%load('seqModels/Model_TSC22D3.mat')
+load('seqModels/Model_TSC22D3.mat')
 
 theta_TSC22D3 = cell2mat(Model_TSC22D3.parameters(1:9,2));
 
