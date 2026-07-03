@@ -1,6 +1,6 @@
 % Benchmark Examples
 
-for modset = 1:6
+for modset = 1:7
     switch modset
         case 1
             Models = {'Pap','Goutsias','BirthDeath','Toggle2','Phage','MichaelisMenten'};
@@ -14,6 +14,8 @@ for modset = 1:6
             Models = {'Goutsias_1000'};
         case 6
             Models = {'MAPK'};
+        case 7
+            Models = {'Wang2StateNC'};
     end
 
     %% Expected Time (MacBook Air, Apple M4, 24Gb, MATLAB R2025b)
@@ -713,7 +715,74 @@ switch Name
         %     	'ki*MDM2cyt';'dmn*MDM2nuc*MDM2nuc';'k3*MDM2nuc*ARF';'ka';'da*ARF'};
         %     Model.initialCondition = [100;100;100;0;0;0;0];
         %     Model.tSpan = linspace(0,1000,101);
-
+        case 'Wang2StateNC'
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        %% Wang et al. PRL 2025 Fig. 3a speed-comparison model
+        %% 2-state extrinsic-noise-corrected nuclear/cytoplasmic mRNA model
+        %%
+        %% Original paper model:
+        %%   offGene -> onGene                      rate sigma_on
+        %%   onGene  -> offGene                     rate sigma_off
+        %%   onGene  -> onGene + nucRNA             rate rho * beta
+        %%   nucRNA  => cytRNA after fixed delay    delay tau
+        %%   cytRNA  -> null                        rate d
+        %%
+        %% SSIT-compatible approximation below:
+        %%   nucRNA -> cytRNA                       rate kexp*nucRNA, kexp = 1/tau
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        
+        Model = SSIT;
+        
+        % Species:
+        % offGene + onGene = number of gene copies.
+        % Wang et al. use two independent gene copies, so initial total gene copy
+        % number is 2.
+        Model.species = {'offGene'; 'onGene'; 'nucRNA'; 'cytRNA'};
+        
+        % Initial condition:
+        % For steady-state FSP/MLE this usually should not matter much after
+        % sufficient integration. Both copies are initialized inactive here.
+        Model.initialCondition = [2; 0; 0; 0];
+        
+        % Reactions:
+        %   1. offGene -> onGene
+        %   2. onGene  -> offGene
+        %   3. onGene  -> onGene + nucRNA
+        %   4. nucRNA  -> cytRNA          % Markovian approximation to fixed delay
+        %   5. cytRNA  -> null
+        Model.stoichiometry = [...
+            -1,  1,  0,  0,  0;  % offGene
+             1, -1,  0,  0,  0;  % onGene
+             0,  0,  1, -1,  0;  % nucRNA
+             0,  0,  0,  1, -1]; % cytRNA
+        
+        % Propensity functions:
+        % beta is the extrinsic-noise multiplier for cell volume.
+        % For a single fixed-beta run, set beta = 1.
+        % To mimic Wang et al.'s ENC mixture, sample beta externally for each cell
+        % or quadrature component and rerun/mixture-average the model.
+        Model.propensityFunctions = {...
+            'sigma_on * offGene'; ...
+            'sigma_off * onGene'; ...
+            'rho * beta * onGene'; ...
+            'kexp * nucRNA'; ...
+            'd * cytRNA'};
+        
+        % Example parameter values / placeholders.
+        % Wang et al. used multiple parameter sets in their supplement; the main
+        % paper states d = 1 for the related total-mRNA telegraph comparison.
+        % Replace these with the relevant parameter set if you obtain SM Table S2.
+        tau = 0.8;
+        
+        Model.parameters = ({...
+            'sigma_on',  0.2; ...
+            'sigma_off', 2.0; ...
+            'rho',       10; ...
+            'kexp',      1/tau; ...
+            'd',         1; ...
+            'beta',      1});
+        
+        Model.summarizeModel
 end
 if ~exist("timeSets","var")
     timeSets = Model.tSpan(end);
