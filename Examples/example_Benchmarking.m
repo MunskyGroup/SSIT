@@ -19,6 +19,7 @@ for modset = 1:7
     end
 
     %% Expected Time (MacBook Air, Apple M4, 24Gb, MATLAB R2025b)
+    %%  * (MackBook Pro, Apple M3 Pro, 18Gb, MATLAB R2025b)
     % NAME      Model Time      Computation Time (Repeat Time)
 
     % FAST MODELS (<1 m)
@@ -30,6 +31,7 @@ for modset = 1:7
     % Toggle2:  (tf=30)         ~ 1.9  (0.38) s
     % Phage:    (tf=30)         ~ 4.9  (0.21) s
     % MichaelisMenten: (tf=70)  ~ 5.1  (1.2) s
+    % * MAPK:     (tf=10)         ~ 43.3 (1.03) s
 
     % MODERATE MODELS (1 min to 30 min)
     % Toggle:   (tf=30)         ~ 15.3 (13.9) s
@@ -40,8 +42,6 @@ for modset = 1:7
     % NAME                      Model Time  Computation Time (Repeat Time)
     % TripleRepressor_SS:       (tf=SS)     ~ 598 (148) s
     % Goutsias_1000:            (tf=1000)   ~ 6107 ()
-    % MAPK:                     (tf=10000)
-
 
     %%
     clear benchmarks
@@ -534,7 +534,7 @@ switch Name
             'KpT+KpT_MEK+KpT_MKP3_Y+KpT_MKP3_T'; % Sum of KpT
             'K+K_MEK_Y+K_MEK_T+K_MKP3_T+K_MKP3_Y+KpY+KpY_MEK+KpY_MKP3+KpT+KpT_MEK+KpT_MKP3_Y+KpT_MKP3_T'}; % Sum of all
 
-        Model.tSpan = linspace(0,10000,101);
+        Model.tSpan = linspace(0,10,101);
         Model.fspOptions.fspTol = 1e-3;
 
         %% Models without Complete Parameters/Reactions
