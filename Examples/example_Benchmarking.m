@@ -15,33 +15,35 @@ for modset = 1:7
         case 6
             Models = {'MAPK'};
         case 7
+            Models = {'p53'};
+        case 8
             Models = {'Wang2StateNC'};
     end
 
     %% Expected Time (MacBook Air, Apple M4, 24Gb, MATLAB R2025b)
     %%  * (MackBook Pro, Apple M3 Pro, 18Gb, MATLAB R2025b)
-    % NAME      Model Time      Computation Time (Repeat Time)
+    % NAME              Model Time      Computation Time (Repeat Time)
 
     % FAST MODELS (<1 m)
-    % Pap:      (tf=10)         ~ 1.27 (0.027) s
-    %           (tf=100)        ~ 0.46 (0.10) s
-    % Goutsias: (tf=100)        ~ 2.04 (0.40) s
-    %           (tf=300)        ~ 31.5 (36.9) s
-    % BirthDeath: (tf=10)       ~ 0.79  (0.23) s
-    % Toggle2:  (tf=30)         ~ 1.9  (0.38) s
-    % Phage:    (tf=30)         ~ 4.9  (0.21) s
-    % MichaelisMenten: (tf=70)  ~ 5.1  (1.2) s
-    % * MAPK:     (tf=10)         ~ 43.3 (1.03) s
+    % Pap:              (tf=10)         ~ 1.27 (0.027) s
+    %                   (tf=100)        ~ 0.46 (0.10) s
+    % Goutsias:         (tf=100)        ~ 2.04 (0.40) s
+    %                   (tf=300)        ~ 31.5 (36.9) s
+    % BirthDeath:       (tf=10)         ~ 0.79  (0.23) s
+    % Toggle2:          (tf=30)         ~ 1.9  (0.38) s
+    % Phage:            (tf=30)         ~ 4.9  (0.21) s
+    % MichaelisMenten:  (tf=70)         ~ 5.1  (1.2) s
+    % * MAPK:           (tf=10)         ~ 3.25 (1.03) s
 
     % MODERATE MODELS (1 min to 30 min)
-    % Toggle:   (tf=30)         ~ 15.3 (13.9) s
-    %           (tf=100)        ~ 43.4 (39.1) s
-    % GeneExpression: (tf=SS)   ~ 68.1 (72.4) s
+    % Toggle:           (tf=30)         ~ 15.3 (13.9) s
+    %                   (tf=100)        ~ 43.4 (39.1) s
+    % GeneExpression:   (tf=SS)   ~ 68.1 (72.4) s
 
     % SLOW MODELS (> 5 min)
     % NAME                      Model Time  Computation Time (Repeat Time)
     % TripleRepressor_SS:       (tf=SS)     ~ 598 (148) s
-    % Goutsias_1000:            (tf=1000)   ~ 6107 ()
+    % * Goutsias_1000:          (tf=1000)   ~ 6107 (3200) s
 
     %%
     clear benchmarks
@@ -697,24 +699,24 @@ switch Name
         %
         %     Model.tSpan = linspace(0,1);
         %     %Model.fspTol = 1e-6;
-        % case 'p53'
-        % 	Model = SSIT('Empty');
-        %     Model.parameters = {'kp',0.5;'k1',9.963e-6;'dp',1.925e-5;'km',1.5e-3;...
-        %     	'k2',1.5e-2;'kD',740;'k0',8e-4;'drc',1.444e-4;'kT',1.66e-2;'ki',9e-4;...
-        %     	'dmn',1.66e-7;'k3',9.963e-6;'ka',0.5;'da',3.209e-5};
-        %     Model.species = {'p53';'MDM2nuc';'ARF';'RNAnuc';'RNAcyt'; 'MDM2cyt';'MDM2nucARF'};
-        %     Model.stoichiometry = [1,-1,0,0,0,0,0,0,0,0,0;...
-        %                            0,0,0,0,0,0,1,-1,-1,0,0;...
-        %        					   0,0,0,0,0,0,0,0,-1,1,-1;...
-        %        					   0,0,1,-1,0,0,0,0,0,0,0;...
-        %        					   0,0,0,1,-1,0,0,0,0,0,0;...
-        %        					   0,0,0,0,0,1,-1,0,0,0,0;...
-        %        					   0,0,0,0,0,0,0,0,1,0,0];
-        %     Model.propensityFunctions = {'kp';'dp*p53+k1*p53*MDM2nuc';...
-        %     	'km+k2*(p53^(1.8)/(kD^(1.8)+p53^(1.8)))';'k0*RNAnuc';'drc*RNAcyt';'kT*RNAcyt';...
-        %     	'ki*MDM2cyt';'dmn*MDM2nuc*MDM2nuc';'k3*MDM2nuc*ARF';'ka';'da*ARF'};
-        %     Model.initialCondition = [100;100;100;0;0;0;0];
-        %     Model.tSpan = linspace(0,1000,101);
+         case 'p53'
+         	Model = SSIT('Empty');
+             Model.parameters = {'kp',0.5;'k1',9.963e-6;'dp',1.925e-5;'km',1.5e-3;...
+             	'k2',1.5e-2;'kD',740;'k0',8e-4;'drc',1.444e-4;'kT',1.66e-2;'ki',9e-4;...
+             	'dmn',1.66e-7;'k3',9.963e-6;'ka',0.5;'da',3.209e-5};
+             Model.species = {'p53';'MDM2nuc';'ARF';'RNAnuc';'RNAcyt'; 'MDM2cyt';'MDM2nucARF'};
+             Model.stoichiometry = [1,-1,0,0,0,0,0,0,0,0,0;...
+                                    0,0,0,0,0,0,1,-1,-1,0,0;...
+                					0,0,0,0,0,0,0,0,-1,1,-1;...
+                					0,0,1,-1,0,0,0,0,0,0,0;...
+                					0,0,0,1,-1,0,0,0,0,0,0;...
+                					0,0,0,0,0,1,-1,0,0,0,0;...
+                					0,0,0,0,0,0,0,0,1,0,0];
+             Model.propensityFunctions = {'kp';'dp*p53+k1*p53*MDM2nuc';...
+             	'km+k2*(p53^(1.8)/(kD^(1.8)+p53^(1.8)))';'k0*RNAnuc';'drc*RNAcyt';'kT*RNAcyt';...
+             	'ki*MDM2cyt';'dmn*MDM2nuc*MDM2nuc';'k3*MDM2nuc*ARF';'ka';'da*ARF'};
+             Model.initialCondition = [0;0;0;0;0;0;0];
+             Model.tSpan = linspace(0,100,101);
         case 'Wang2StateNC'
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         %% Wang et al. PRL 2025 Fig. 3a speed-comparison model
