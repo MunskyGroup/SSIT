@@ -1,4 +1,4 @@
-%% SSIT/Examples/example_12_ModelReduction
+%% SSIT/Examples/example_SI_ModelReduction
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Section 2.4: Complex models
 %   * Create reduced FSP models using different types of 
@@ -13,7 +13,7 @@
 % addpath(genpath('../src'));
 
 % example_1_CreateSSITModels 
-% example_4_SolveSSITModels_FSP
+example_4_SolveSSITModels_FSP
 % example_8b_LoadingandFittingData_SimulatingData
 
 %% Load pre-computed FSP solutions:
@@ -58,7 +58,7 @@ STL1_MR_setup = STL1_4state_FSP;
 %       assumption. 
 %   'Dynamic Mode Decomposition' (DM) -- 
 %   (POD2) --
-%       Extension of PDO that also includes the time derivatives of the CME
+%       Extension of POD that also includes the time derivatives of the CME
 %       (i.e., A*P(t_i)) solution in the set of vectors onto which the CME
 %       is projected. Only the vectors corresponding top the top
 %       'reductionOrder' singular values are kept for the projection.
