@@ -1,6 +1,13 @@
 % Benchmark Examples
+% Use this script to reproduce benchmarking example times from manuscript.
+% To run example models change the value of modSetsToRun. 
+% To run FSP benchmarks, change "runFSP" to "true".
+% To run SSA benchmarks, change "runSSA" to "true".
+runFSP = false;
+runSSA = true;
+modSetsToRun = (1);
 
-for modset = 1:7
+for modset = modSetsToRun
     switch modset
         case 1
             Models = {'Pap','Goutsias','BirthDeath','Toggle2','Phage','MichaelisMenten'};
@@ -66,7 +73,9 @@ for modset = 1:7
                 run_benchmarks(Model,verbose=false, ...
                 ssaInitialize=false, ...
                 addCustomConstraints=true, ...
-                followUp = followUp);
+                followUp = followUp, ...
+                runSSA = runSSA, ...
+                runFSP = runFSP);
             disp('Benchmark Complete')
             benchmarks.([Models{iM},'_',num2str(timeSets(iT))])
         end
@@ -794,7 +803,7 @@ end
 function benchmarks = run_benchmarks(Model,opts)
 arguments
     Model
-    opts.nSims = 1000;
+    opts.nSims = 10000;
     opts.runReductions = false;
     opts.verbose = false;
     opts.runParallel = false;
@@ -802,81 +811,87 @@ arguments
     opts.ssaInitialize = false;
     opts.addCustomConstraints = false;
     opts.followUp = [];
+    opts.runSSA = true;
+    opts.runFSP = true;
 end
 
-% FSP solutions
-Model.solutionScheme = 'fsp';
-Model.fspOptions.verbose = opts.verbose;
+if opts.runFSP
+    % FSP solutions
+    Model.solutionScheme = 'fsp';
+    Model.fspOptions.verbose = opts.verbose;
 
-% Add list of common FSP constraints.
-if opts.addCustomConstraints
-    Model = Model.addFSPConstraints(anticorrelatedPairs='all',correlatedPairs='all');
-end
+    % Add list of common FSP constraints.
+    if opts.addCustomConstraints
+        Model = Model.addFSPConstraints(anticorrelatedPairs='all',correlatedPairs='all');
+    end
 
-% Write FSP Propensity function codes
-tic
-Model = Model.formPropensitiesGeneral(Model.propensityFilePrefix);
-disp('FSP propensity function formed:')
-benchmarks.writeFSPcodes = toc;
-
-% Run SSA to Initialize FSP projections
-if opts.ssaInitialize
+    % Write FSP Propensity function codes
     tic
-    Model = Model.ssaInitializeConstraints(100);
-    disp('SSA initialization solve:')
-    benchmarks.SSAinitialization = toc;
-end
+    Model = Model.formPropensitiesGeneral(Model.propensityFilePrefix);
+    disp('FSP propensity function formed:')
+    benchmarks.writeFSPcodes = toc;
 
-tic
-% Run first FSP Solve
-[~,~,Model] = Model.solve;
-disp('FSP initial solve:')
-if ~isempty(opts.followUp)
-    eval(opts.followUp);
-end
-benchmarks.initialFSPSolve = toc;
+    % Run SSA to Initialize FSP projections
+    if opts.ssaInitialize
+        tic
+        Model = Model.ssaInitializeConstraints(100);
+        disp('SSA initialization solve:')
+        benchmarks.SSAinitialization = toc;
+    end
 
-% Run another solve using the identified state space.
-tic
-[~,~,Model] = Model.solve;
-disp('FSP subsequent solve:')
-if ~isempty(opts.followUp)
-    eval(opts.followUp);
-end
-benchmarks.subsequentFSPSolve = toc;
+    tic
+    % Run first FSP Solve
+    [~,~,Model] = Model.solve;
+    disp('FSP initial solve:')
+    if ~isempty(opts.followUp)
+        eval(opts.followUp);
+    end
+    benchmarks.initialFSPSolve = toc;
 
-% Run verification code (to make plots to check results)
-if ~isempty(opts.verificationCode)
-    eval(opts.verificationCode);
-end
-
-% Record size of FSP projection
-benchmarks.fspSize = size(Model.Solutions.stateSpace.states,2);
-benchmarks.bounds = Model.fspOptions.bounds;
-
-%% SSA Solutions
-Model.solutionScheme = 'ssa';
-
-% Run first SSA solution to write analysis codes.
-Model.ssaOptions.Nsims = 1;
-tic
-[~,~,Model] = Model.solve;
-benchmarks.initialSSASolve_1run = toc;
-
-% Run list of SSA trajectories.
-Model.ssaOptions.Nsims = opts.nSims;
-Model.ssaOptions.useParallel = false;
-tic
-[~,~,Model] = Model.solve;
-benchmarks.(['subsequentSSASolve_',num2str(opts.nSims),'runs_serial']) = toc;
-
-% Run again in parallel.
-if opts.runParallel
-    Model.ssaOptions.Nsims = opts.nSims;
-    Model.ssaOptions.useParallel = true;
+    % Run another solve using the identified state space.
     tic
     [~,~,Model] = Model.solve;
-    benchmarks.(['subsequentSSASolve_',num2str(opts.nSims),'runs_parallel']) = toc;
+    disp('FSP subsequent solve:')
+    if ~isempty(opts.followUp)
+        eval(opts.followUp);
+    end
+    benchmarks.subsequentFSPSolve = toc;
+
+    % Run verification code (to make plots to check results)
+    if ~isempty(opts.verificationCode)
+        eval(opts.verificationCode);
+    end
+
+    % Record size of FSP projection
+    benchmarks.fspSize = size(Model.Solutions.stateSpace.states,2);
+    benchmarks.bounds = Model.fspOptions.bounds;
+end
+
+%% SSA Solutions
+if opts.runSSA
+    Model.solutionScheme = 'ssa';
+
+    % Run first SSA solution to write analysis codes.
+    Model.ssaOptions.Nsims = 1;
+    tic
+    [~,~,Model] = Model.solve;
+    benchmarks.initialSSASolve_1run = toc;
+
+    % Run list of SSA trajectories.
+    Model.ssaOptions.Nsims = opts.nSims;
+    Model.ssaOptions.useParallel = false;
+    tic
+    [~,~,Model] = Model.solve;
+    benchmarks.(['subsequentSSASolve_',num2str(opts.nSims),'runs_serial']) = toc;
+
+    % Run again in parallel.
+    if opts.runParallel
+        Model.ssaOptions.Nsims = opts.nSims;
+        Model.ssaOptions.useParallel = true;
+        tic
+        [~,~,Model] = Model.solve;
+        benchmarks.(['subsequentSSASolve_',num2str(opts.nSims),'runs_parallel']) = toc;
+    end
 end
 
 %% ODE Solver
