@@ -5,7 +5,7 @@
 % To run SSA benchmarks, change "runSSA" to "true".
 runFSP = false;
 runSSA = true;
-modSetsToRun = (1);
+modSetsToRun = (9);
 
 for modset = modSetsToRun
     switch modset
@@ -25,6 +25,8 @@ for modset = modSetsToRun
             Models = {'p53'};
         case 8
             Models = {'Wang2StateNC'};
+        case 9
+            Models = {'Phage'};
     end
 
     %% Expected Time (MacBook Air, Apple M4, 24Gb, MATLAB R2025b)
@@ -464,7 +466,7 @@ switch Name
         Model = Model.addReaction(struct('propensity',{'s2'},'stoichiometry',{{'MEK',1}}));
         Model = Model.addReaction(struct('propensity',{'d2*MEK'},'stoichiometry',{{'MEK',-1}}));
 
-        % R2: synthesis/degradation of MEK
+        % R2: synthesis of MEK
         Model = Model.addReaction(struct('propensity',{'s3*Kpp'},'stoichiometry',{{'MEK',1}}));
 
         % R3: synthesis/degradation of K
@@ -708,7 +710,7 @@ switch Name
         %
         %     Model.tSpan = linspace(0,1);
         %     %Model.fspTol = 1e-6;
-         case 'p53'
+    case 'p53'
          	 Model = SSIT('Empty');
              Model.parameters = {'kp',0.5;'k1',9.963e-6;'dp',1.925e-5;'km',1.5e-3;...
              	'k2',1.5e-2;'kD',740;'k0',8e-4;'drc',1.444e-4;'kT',1.66e-2;'ki',9e-4;...
@@ -726,7 +728,7 @@ switch Name
              	'ki*MDM2cyt';'dmn*MDM2nuc*MDM2nuc';'k3*MDM2nuc*ARF';'ka';'da*ARF'};
              Model.initialCondition = [0;0;0;0;0;0;0];
              Model.tSpan = linspace(0,100,101);
-        case 'Wang2StateNC'
+    case 'Wang2StateNC'
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         %% Wang et al. PRL 2025 Fig. 3a speed-comparison model
         %% 2-state extrinsic-noise-corrected nuclear/cytoplasmic mRNA model
@@ -892,7 +894,32 @@ if opts.runSSA
         [~,~,Model] = Model.solve;
         benchmarks.(['subsequentSSASolve_',num2str(opts.nSims),'runs_parallel']) = toc;
     end
+
+    %% Attempt to solve using SimBiology
+    % % SSA configuration
+    try
+        sbModel = Model.exportSimBiol(isMassAction=true);
+        cs = getconfigset(sbModel,'active');
+        cs.SolverType = 'ssa';
+        v = Model.tSpan;
+        cs.StopTime  = max(v);
+        cs.RuntimeOptions.StatesToLog = 'all';
+        nRuns = 2;
+        simData = sbioensemblerun(sbModel,nRuns);
+        tic
+        simData = sbioensemblerun(sbModel,opts.nSims);
+        simBiologyTime = toc
+        benchmarks.simBiologyTime = simBiologyTime;
+
+        meansSB = zeros(1,length(Model.species));
+        for j = 1:opts.nSims
+            meansSB = meansSB + simData(j).Data(end,:)/opts.nSims;
+        end
+        meansSB
+    catch
+    end
 end
+
 
 %% ODE Solver
 if length(Model.tSpan)>1
