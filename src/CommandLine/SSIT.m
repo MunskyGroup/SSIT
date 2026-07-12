@@ -1236,18 +1236,28 @@ classdef SSIT
             sbmlexport(sbModel, modelName)
         end
 
-        function sbModel = exportSimBiol(obj,verifyAndPlot)
+        function sbModel = exportSimBiol(obj,opts)
             % This function converts the model to a simple simbiology model
             % and returns that simbiology object.
             % Arguments:
-            %   verifyAndPlot (true/false0) -- option to verify the model
+            %   opts.verifyAndPlot (true/false) -- option to verify the model
             %       and run simBiology to make a plot of its results.
+            %   opts.isMassAction (true/false) -- export reactions with
+            %       SimBiology MassAction kinetic laws. This mode is
+            %       required for SimBiology SSA and only supports
+            %       propensities with total reactant order <= 3 that can
+            %       be written as (rate-constant)*product(reactant
+            %       combinatorial terms).
+            %
+            % Legacy usage is still supported:
+            %   exportSimBiol(obj,true)
             %
             % Outputs:
             %   smModel -- the resulting simBiology model.
             arguments
                 obj
-                verifyAndPlot = false;
+                opts.verifyAndPlot = false
+                opts.isMassAction = false
             end
 
             sbModel = sbiomodel('simpleModel');
@@ -1273,22 +1283,250 @@ classdef SSIT
             end
 
             for ir=1:size(obj.stoichiometry,2)
-                strReactants = [];
-                strProducts =  [];
+                reactantTerms = {};
+                productTerms = {};
                 for is = 1:size(obj.stoichiometry,1)
                     if obj.stoichiometry(is,ir)<0
-                        strReactants =[strReactants,'+ ',[num2str(-obj.stoichiometry(is,ir))],' ',obj.species{is}];
+                        reactantTerms{end+1} = [num2str(-obj.stoichiometry(is,ir)),' ',obj.species{is}];
                     elseif obj.stoichiometry(is,ir)>0
-                        strProducts =[strProducts,'+ ',[num2str(obj.stoichiometry(is,ir))],' ',obj.species{is}];
+                        productTerms{end+1} = [num2str(obj.stoichiometry(is,ir)),' ',obj.species{is}];
                     end
                 end
-                if isempty(strProducts); strProducts = '  null '; end
-                if isempty(strReactants); strReactants = '  null '; end
-                rxn = [strReactants(3:end),' -> ',strProducts(3:end)];
-                RXN{is} = addreaction(sbModel,rxn,'ReactionRate',props{ir});
+                if isempty(productTerms)
+                    strProducts = 'null';
+                else
+                    strProducts = strjoin(productTerms,' + ');
+                end
+                if isempty(reactantTerms)
+                    strReactants = 'null';
+                else
+                    strReactants = strjoin(reactantTerms,' + ');
+                end
+                rxn = [strReactants,' -> ',strProducts];
+                if ~opts.isMassAction
+                    RXN{ir} = addreaction(sbModel,rxn,'ReactionRate',props{ir});
+                else
+                    maReactants = max(-obj.stoichiometry(:,ir),0);
+                    maProducts = max(obj.stoichiometry(:,ir),0);
+
+                    % MassAction mode: propensity must be
+                    % (rate)*product(reactant combinatorial terms), with
+                    % total reactant order <= 3.
+                    rateExpr = props{ir};
+                    reactantSpecies = find(maReactants > 0);
+                    for iReact = 1:length(reactantSpecies)
+                        iSp = reactantSpecies(iReact);
+                        rOrd = maReactants(iSp);
+                        speciesName = obj.species{iSp};
+                        speciesPattern = ['\<',regexptranslate('escape',speciesName),'\>'];
+                        if rOrd == 1
+                            if isempty(regexp(rateExpr,speciesPattern,'once'))
+                                error(['MassAction export failed for reaction ',num2str(ir),...
+                                       '. Propensity does not contain required reactant factor "',speciesName,'".']);
+                            end
+
+                            % Remove one required species factor and clean simple "*1" terms.
+                            rateExpr = regexprep(rateExpr,speciesPattern,'1','once');
+                        elseif rOrd == 2
+                            minusOneParenPattern = ['\(\s*',regexptranslate('escape',speciesName),'\s*-\s*1\s*\)'];
+                            minusOneBarePattern = ['\<',regexptranslate('escape',speciesName),'\>\s*-\s*1(?![A-Za-z0-9_])'];
+                            hasSpeciesTerm = ~isempty(regexp(rateExpr,speciesPattern,'once'));
+                            hasMinusOneTerm = ~isempty(regexp(rateExpr,minusOneParenPattern,'once')) || ...
+                                              ~isempty(regexp(rateExpr,minusOneBarePattern,'once'));
+                            if ~(hasSpeciesTerm && hasMinusOneTerm)
+                                error(['MassAction export failed for reaction ',num2str(ir),...
+                                       '. Second-order self-reaction for "',speciesName,'" requires factors ',...
+                                       '"',speciesName,'" and "(',speciesName,'-1)" in propensity.']);
+                            end
+
+                            % Remove one X and one (X-1) factor.
+                            rateExpr = regexprep(rateExpr,speciesPattern,'1','once');
+                            if ~isempty(regexp(rateExpr,minusOneParenPattern,'once'))
+                                rateExpr = regexprep(rateExpr,minusOneParenPattern,'1','once');
+                            else
+                                rateExpr = regexprep(rateExpr,minusOneBarePattern,'1','once');
+                            end
+
+                            % For SSA, second-order self-reaction propensity is X*(X-1)/2.
+                            % Remove one explicit 1/2 combinatorial factor.
+                            rateExprPrev = rateExpr;
+                            rateExpr = regexprep(rateExpr,'/\s*2(?![A-Za-z0-9_])','','once');
+                            if strcmp(rateExpr,rateExprPrev)
+                                rateExpr = regexprep(rateExpr,'\*\s*0?\.5(?![0-9])','','once');
+                                rateExpr = regexprep(rateExpr,'(?<![0-9])0?\.5\s*\*','','once');
+                            end
+                            if ~strcmp(rateExpr,rateExprPrev)
+                                warning('SSIT:exportSimBiol:AutoRemovedHalf', ...
+                                    ['Reaction %d: auto-removed combinatorial 1/2 factor for second-order self-reaction ',...
+                                     'to avoid double counting in SimBiology MassAction.'], ir);
+                            else
+                                warning('SSIT:exportSimBiol:MissingHalf', ...
+                                    ['Reaction %d: second-order self-reaction did not contain detectable 1/2 factor; ',...
+                                     'continuing without auto-removal.'], ir);
+                            end
+                        elseif rOrd == 3
+                            minusOneParenPattern = ['\(\s*',regexptranslate('escape',speciesName),'\s*-\s*1\s*\)'];
+                            minusOneBarePattern = ['\<',regexptranslate('escape',speciesName),'\>\s*-\s*1(?![A-Za-z0-9_])'];
+                            minusTwoParenPattern = ['\(\s*',regexptranslate('escape',speciesName),'\s*-\s*2\s*\)'];
+                            minusTwoBarePattern = ['\<',regexptranslate('escape',speciesName),'\>\s*-\s*2(?![A-Za-z0-9_])'];
+                            hasSpeciesTerm = ~isempty(regexp(rateExpr,speciesPattern,'once'));
+                            hasMinusOneTerm = ~isempty(regexp(rateExpr,minusOneParenPattern,'once')) || ...
+                                              ~isempty(regexp(rateExpr,minusOneBarePattern,'once'));
+                            hasMinusTwoTerm = ~isempty(regexp(rateExpr,minusTwoParenPattern,'once')) || ...
+                                              ~isempty(regexp(rateExpr,minusTwoBarePattern,'once'));
+                            if ~(hasSpeciesTerm && hasMinusOneTerm && hasMinusTwoTerm)
+                                error(['MassAction export failed for reaction ',num2str(ir),...
+                                       '. Third-order self-reaction for "',speciesName,'" requires factors ',...
+                                       '"',speciesName,'", "(',speciesName,'-1)", and "(',speciesName,'-2)" in propensity.']);
+                            end
+
+                            % Remove one X, one (X-1), and one (X-2) factor.
+                            rateExpr = regexprep(rateExpr,speciesPattern,'1','once');
+                            if ~isempty(regexp(rateExpr,minusOneParenPattern,'once'))
+                                rateExpr = regexprep(rateExpr,minusOneParenPattern,'1','once');
+                            else
+                                rateExpr = regexprep(rateExpr,minusOneBarePattern,'1','once');
+                            end
+                            if ~isempty(regexp(rateExpr,minusTwoParenPattern,'once'))
+                                rateExpr = regexprep(rateExpr,minusTwoParenPattern,'1','once');
+                            else
+                                rateExpr = regexprep(rateExpr,minusTwoBarePattern,'1','once');
+                            end
+
+                            % For SSA, third-order self-reaction propensity is X*(X-1)*(X-2)/6.
+                            % Remove one explicit 1/6 combinatorial factor.
+                            rateExprPrev = rateExpr;
+                            rateExpr = regexprep(rateExpr,'/\s*6(?![A-Za-z0-9_])','','once');
+                            if strcmp(rateExpr,rateExprPrev)
+                                rateExpr = regexprep(rateExpr,'\*\s*0?\.1666666667(?![0-9])','','once');
+                                rateExpr = regexprep(rateExpr,'(?<![0-9])0?\.1666666667\s*\*','','once');
+                            end
+                            if ~strcmp(rateExpr,rateExprPrev)
+                                warning('SSIT:exportSimBiol:AutoRemovedSixth', ...
+                                    ['Reaction %d: auto-removed combinatorial 1/6 factor for third-order self-reaction ',...
+                                     'to avoid double counting in SimBiology MassAction.'], ir);
+                            else
+                                warning('SSIT:exportSimBiol:MissingSixth', ...
+                                    ['Reaction %d: third-order self-reaction did not contain detectable 1/6 factor; ',...
+                                     'continuing without auto-removal.'], ir);
+                            end
+                        else
+                            error(['MassAction export only supports reactant stoichiometry 1, 2, or 3. ',...
+                                   'Reaction ',num2str(ir),' has order ',num2str(rOrd),...
+                                   ' for species ',speciesName,'.']);
+                        end
+
+                        rateExpr = regexprep(rateExpr,'\*\s*1(?![A-Za-z0-9_])','');
+                        rateExpr = regexprep(rateExpr,'(?<![A-Za-z0-9_])1\s*\*','');
+                        rateExpr = regexprep(rateExpr,'\(\s*1\s*\)','1');
+                    end
+
+                    % Promote leftover multiplicative species factors to
+                    % catalytic reactants/products (same species on both sides).
+                    for iSp = 1:length(obj.species)
+                        if maReactants(iSp) > 0
+                            continue
+                        end
+                        spPattern = ['\<',regexptranslate('escape',obj.species{iSp}),'\>'];
+                        if ~isempty(regexp(rateExpr,spPattern,'once'))
+                            maReactants(iSp) = maReactants(iSp) + 1;
+                            maProducts(iSp) = maProducts(iSp) + 1;
+                            rateExpr = regexprep(rateExpr,spPattern,'1','once');
+                            rateExpr = regexprep(rateExpr,'\*\s*1(?![A-Za-z0-9_])','');
+                            rateExpr = regexprep(rateExpr,'(?<![A-Za-z0-9_])1\s*\*','');
+                            rateExpr = regexprep(rateExpr,'\(\s*1\s*\)','1');
+                        end
+                    end
+
+                    totalOrder = sum(maReactants);
+                    if totalOrder > 3
+                        error(['MassAction export only supports total reactant order <= 3. ',...
+                               'Reaction ',num2str(ir),' has total order ',num2str(totalOrder),'.']);
+                    end
+
+                    % Remaining expression cannot depend on species.
+                    for iSp = 1:length(obj.species)
+                        spPattern = ['\<',regexptranslate('escape',obj.species{iSp}),'\>'];
+                        if ~isempty(regexp(rateExpr,spPattern,'once'))
+                            error(['MassAction export failed for reaction ',num2str(ir),...
+                                   '. Remaining rate expression still depends on species "',obj.species{iSp},'": ',rateExpr]);
+                        end
+                    end
+
+                    rateExpr = strtrim(rateExpr);
+                    if isempty(rateExpr)
+                        rateExpr = '1';
+                    end
+
+                    % Build the mass-action reaction string from promoted
+                    % reactant/product coefficients.
+                    reactantTermsMA = {};
+                    productTermsMA = {};
+                    for is = 1:size(obj.stoichiometry,1)
+                        if maReactants(is) > 0
+                            reactantTermsMA{end+1} = [num2str(maReactants(is)),' ',obj.species{is}];
+                        end
+                        if maProducts(is) > 0
+                            productTermsMA{end+1} = [num2str(maProducts(is)),' ',obj.species{is}];
+                        end
+                    end
+                    if isempty(productTermsMA)
+                        strProductsMA = 'null';
+                    else
+                        strProductsMA = strjoin(productTermsMA,' + ');
+                    end
+                    if isempty(reactantTermsMA)
+                        strReactantsMA = 'null';
+                    else
+                        strReactantsMA = strjoin(reactantTermsMA,' + ');
+                    end
+                    rxnMA = [strReactantsMA,' -> ',strProductsMA];
+
+                    rxnObj = addreaction(sbModel,rxnMA);
+                    kl = addkineticlaw(rxnObj,'MassAction');
+
+                    if ~isempty(regexp(rateExpr,'^[A-Za-z][A-Za-z0-9_]*$','once'))
+                        % Use existing model parameter name directly.
+                        kl.ParameterVariableNames = {rateExpr};
+                    else
+                        % Stochastic SimBiology solvers ignore rules, so
+                        % reduce expression to a numeric value now.
+                        rateValExpr = rateExpr;
+                        for ip = 1:size(obj.parameters,1)
+                            pName = obj.parameters{ip,1};
+                            pVal = obj.parameters{ip,2};
+                            pPattern = ['\<',regexptranslate('escape',pName),'\>'];
+                            rateValExpr = regexprep(rateValExpr,pPattern,['(',num2str(pVal,17),')']);
+                        end
+
+                        if ~isempty(regexp(rateValExpr,'\<[A-Za-z_][A-Za-z0-9_]*\>','once'))
+                            error(['MassAction export failed for reaction ',num2str(ir),...
+                                   '. Rate expression "',rateExpr,'" is not reducible to a numeric constant ',...
+                                   'without rules (unsupported by stochastic SimBiology).']);
+                        end
+
+                        try
+                            rateVal = eval(rateValExpr);
+                        catch ME
+                            error(['MassAction export failed for reaction ',num2str(ir),...
+                                   '. Could not evaluate rate expression "',rateExpr,'" to numeric value: ',ME.message]);
+                        end
+
+                        if ~(isscalar(rateVal) && isnumeric(rateVal) && isfinite(rateVal))
+                            error(['MassAction export failed for reaction ',num2str(ir),...
+                                   '. Evaluated rate expression is not a finite scalar: ',rateExpr]);
+                        end
+
+                        % Create a synthetic numeric parameter (no rules).
+                        rateName = ['kMA_rxn_',num2str(ir)];
+                        addparameter(sbModel,rateName,rateVal);
+                        kl.ParameterVariableNames = {rateName};
+                    end
+                    RXN{ir} = rxnObj;
+                end
             end
 
-            if verifyAndPlot
+            if opts.verifyAndPlot
                 verify(sbModel)
                 csObj = getconfigset(sbModel,'active');
                 set(csObj,'Stoptime',max(obj.tSpan));
@@ -1798,7 +2036,8 @@ classdef SSIT
                 if isfield(obj.Solutions,'fsp')
                     fspSoln = obj.Solutions.fsp;
                 else
-                    fspSoln = obj.solve;
+                    Soln = obj.solve;
+                    fspSoln = Soln.fsp;
                 end
             end
         
@@ -2223,6 +2462,13 @@ classdef SSIT
                 obj.sensOptions.solutionMethod='finiteDifference';
             end
             
+
+            if ~isfield(obj.fspOptions,'minSSEscapeRate')
+                obj.fspOptions.minSSEscapeRate = 1e-3;
+            end
+            if ~isfield(obj.fspOptions,'krylovSize')
+                obj.fspOptions.krylovSize = 20;
+            end
             % try
                 if nargout>=2
                     [Solution, bConstraints, obj] = obj.solveHelper(stateSpace,saveFile,fspSoln);
@@ -2389,17 +2635,21 @@ classdef SSIT
 
                     % Call code to write a GPU friendly SSA code.
                     if ~isfield(obj.ssaOptions,'computeFile')||isempty(obj.ssaOptions.computeFile)
+                        load('SSITconfig.mat','pathToPropensityFuns');
+
                         if ~strcmpi(obj.propensityFilePrefix,'default')
-                            obj.ssaOptions.computeFile = append(obj.propensityFilePrefix,'_TmpGPUSSACode');
+                            obj.ssaOptions.computeFile = append(pathToPropensityFuns,filesep,obj.propensityFilePrefix,'_TmpGPUSSACode');
                         else
-                            obj.ssaOptions.computeFile = append(obj.propensityFilePrefix,'_TmpGPUSSACode_',num2str(randi(1000)));                            
+                            obj.ssaOptions.computeFile = append(pathToPropensityFuns,filesep,obj.propensityFilePrefix,'_TmpGPUSSACode_',num2str(randi(1000)));                            
                         end
                         clear(obj.ssaOptions.computeFile) % Clear function from cache just in case.
                         
 
                         Jslash = strfind(obj.ssaOptions.computeFile,filesep);
                         for islash = 1:length(Jslash)
-                            mkdir(obj.ssaOptions.computeFile(1:Jslash(islash)-1));
+                            if Jslash(islash)>1&&~exist(obj.ssaOptions.computeFile(1:Jslash(islash)-1),"dir")
+                                mkdir(obj.ssaOptions.computeFile(1:Jslash(islash)-1));
+                            end
                         end
                         if ~isempty(Jslash)
                             addpath(obj.ssaOptions.computeFile(1:Jslash(end)-1))
@@ -5433,11 +5683,14 @@ end
         % verifyFSPandSSA - make plots of histograms to verify results of
         % FSP and SSA
         function obj = verifyFSPandSSA(obj, opts)
-           % Create a set of plots 
+           % Create a set of plots to verify that the FSP and SSA solutions
+           % are consistent with one another.
             arguments 
                 obj
                 opts.speciesNames = []    
                 opts.HistTime double = NaN  % histogram time (closest used)
+                opts.speciesNamesFSP = [];
+                opts.speciesNamesSSA = [];                
             end
 
             if isnan(opts.HistTime)
@@ -5448,11 +5701,17 @@ end
                 opts.speciesNames = obj.species;
             end
 
+            if isempty(opts.speciesNamesFSP)
+                opts.speciesNamesFSP = opts.speciesNames;
+            end
+            if isempty(opts.speciesNamesSSA)
+                opts.speciesNamesSSA = opts.speciesNames;
+            end
+
             priorSolutionScheme = obj.solutionScheme;
             if ~isfield(obj.Solutions,'trajs')
                 disp('No SSA trajectories found. Rerunning now');
                 obj.solutionScheme = 'ssa';
-                obj.ssaOptions.Nsims = 5000;
                 [~,~,obj] = obj.solve;
             end
             if ~isfield(obj.Solutions,'fsp')
@@ -5465,17 +5724,26 @@ end
             disp('Both FSP and SSA solutions are available.')
             
             if ~iscell(opts.speciesNames)
-                opts.speciesNames = {opts.speciesNames}
+                opts.speciesNames = {opts.speciesNames};
+            end
+            if ~iscell(opts.speciesNamesSSA)
+                opts.speciesNamesSSA = {opts.speciesNamesSSA};
+            end
+            if ~iscell(opts.speciesNamesFSP)
+                opts.speciesNamesFSP = {opts.speciesNamesFSP};
             end
 
-            for iS = 1:length(opts.speciesNames)
+            for iS = 1:length(opts.speciesNamesFSP)
                 % Make SSA Histograms
                 f = figure;
 
-                obj.plotSSA(speciesNames=opts.speciesNames(iS), HistTime=opts.HistTime, ...
-                    makeHistogramPlot=true, histogramPlotNumber=f.Number ,makeTrajectoryPlot=false)
-                % obj.plotFSP(speciesNames=opts.speciesNames, indTimes=length(obj.tSpan),makeHistogramPlot=true, histogramPlotNumber=f.Number ,makeTrajectoryPlot=false)
-                obj.plotFSP(speciesNames=opts.speciesNames(iS), plotType='marginals', indTimes=length(obj.tSpan), figureNums=f.Number)
+                obj.plotSSA(speciesNames=opts.speciesNamesSSA(iS), HistTime=opts.HistTime, ...
+                    makeHistogramPlot=true, histogramPlotNumber=f.Number ,makeTrajectoryPlot=false);
+                hold on
+                obj.plotFSP(speciesNames=opts.speciesNamesFSP(iS), plotType='marginals',...
+                    indTimes=length(obj.Solutions.fsp), figureNums=f.Number)
+
+                
             end
         end
 
@@ -5918,8 +6186,14 @@ end
                     p = solution.fsp{iT}.p.sumOver(indsUnObserved);
                     solution.fsp{iT}.p = obj.pdoOptions.PDO.computeObservationDist(p);
                 end
-                fspSelIdx = find(strcmp(obj.species(indsObserved),obj.species(fspSelIdx)));
-            end
+                if isempty(speciesNames)
+                    fspSelIdx = [1:length(indsObserved)];
+                else
+                    fspSelIdx = find(strcmp(obj.species(indsObserved),obj.species(fspSelIdx)));
+                end
+                nSel = length(fspSelIdx);
+                selNames = allNames(indsObserved(fspSelIdx));
+           end
 
             % ----- Export FSP to plottable struct -----
             rawSol = solution;   % <- copy to compute escape CDF if needed
@@ -6044,7 +6318,9 @@ end
                                 yPlot = pmf;
                             end
                 
-                            subplot(Nr, Nc, ii); hold on
+                            if Nr>1||Nc>1
+                                subplot(Nr, Nc, ii); hold on
+                            end
                             stairs(xPlot-0.5, yPlot, lineProps{:}, 'Color', getC(C,jj));
                             set(gca,'FontSize',opts.TickLabelSize)
                             title(sprintf('t = %.3g', solution.T_array(i2)), ...
