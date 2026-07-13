@@ -407,6 +407,8 @@ classdef poissonTest < matlab.unittest.TestCase
             % of the loglikelihood function completes and is within 0.1% of
             % the solution found using the finite difference method.
             testCase.Poiss.solutionScheme = 'fspSens';
+            testCase.Poiss.fspOptions.fspTol = 1e-10;
+
             [~,~,testCase.Poiss] = testCase.Poiss.solve;
 
             [fspLogL,gradient] = testCase.Poiss.computeLikelihood([],[],true,true);
@@ -418,7 +420,7 @@ classdef poissonTest < matlab.unittest.TestCase
                 TMPmodel = testCase.Poiss;
                 delt = abs(TMPmodel.parameters{i,2})/1e6;
                 TMPmodel.parameters{i,2} = TMPmodel.parameters{i,2} + delt;
-                fspLogLPrime = TMPmodel.computeLikelihood;
+                fspLogLPrime = TMPmodel.computeLikelihood([TMPmodel.parameters{:,2}]);
                 gradLogLFiniteDiff(i) = (fspLogLPrime-fspLogL)/delt;
             end
 

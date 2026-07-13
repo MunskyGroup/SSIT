@@ -188,7 +188,8 @@ while tNow < t_out && i_prt<=length(Time_array)
   %    H(j+1,j) = s;
   %    V(:,j+1) = (1/s)*p;
   % end
-  orthDepth = min(m,15);
+  % orthDepth = min(m,15);
+  orthDepth = m;
   try
       [H,V,k1,mb,t_step] = ssit.fsp_ode_solvers.mexFunctionExpokit(n,m,w,beta,Acsr,btol,...
           Time_array(i_prt),tNow,double(resetSparsity),k1_in,mb_in,t_step_in,orthDepth);
