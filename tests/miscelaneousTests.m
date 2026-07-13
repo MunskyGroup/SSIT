@@ -364,7 +364,7 @@ classdef miscelaneousTests < matlab.unittest.TestCase
             TwoDNonLinearTV.makePlot(fspSoln1,'meansAndDevs',[],[],[1])
             
             figure(2)
-            TwoDNonLinearTV.exportSimBiol(true);
+            TwoDNonLinearTV.exportSimBiol(verifyAndPlot=true);
             TwoDNonLinearTV.exportToSBML('TwoDNonLinearTV.xml');
 
             clear TwoDNonLinearTV
