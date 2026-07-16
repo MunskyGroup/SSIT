@@ -2490,25 +2490,25 @@ classdef SSIT
             if ~isfield(obj.fspOptions,'krylovSize')
                 obj.fspOptions.krylovSize = 20;
             end
-            % try
-            % if nargout>=2
-            [Solution, bConstraints, obj] = obj.solveHelper(stateSpace,saveFile,fspSoln);
-            % else
-            % Solution = obj.solveHelper(stateSpace,saveFile,fspSoln);
-            % end
-            % catch
-            %     obj.propensitiesGeneral = [];
-            %     if strcmpi(obj.solutionScheme,'fsp')||strcmpi(obj.solutionScheme,'fspsens')
-            %         newPropFileName = [obj.propensityFilePrefix,'_',char(randi([97 122]))];
-            %         disp(['(Re)Forming Propensity Function Files under new name: ',newPropFileName]);
-            %         obj = obj.formPropensitiesGeneral(newPropFileName);
-            %     end
-            %     if nargout>=2
-            %         [Solution, bConstraints, obj] = obj.solveHelper(stateSpace,saveFile,fspSoln);
-            %     else
-            %         Solution = obj.solveHelper(stateSpace,saveFile,fspSoln);
-            %     end
-            % end
+            try
+                if nargout>=2
+                    [Solution, bConstraints, obj] = obj.solveHelper(stateSpace,saveFile,fspSoln);
+                else
+                    Solution = obj.solveHelper(stateSpace,saveFile,fspSoln);
+                end
+            catch
+                obj.propensitiesGeneral = [];
+                if strcmpi(obj.solutionScheme,'fsp')||strcmpi(obj.solutionScheme,'fspsens')
+                    newPropFileName = [obj.propensityFilePrefix,'_',char(randi([97 122]))];
+                    disp(['(Re)Forming Propensity Function Files under new name: ',newPropFileName]);
+                    obj = obj.formPropensitiesGeneral(newPropFileName);
+                end
+                if nargout>=2
+                    [Solution, bConstraints, obj] = obj.solveHelper(stateSpace,saveFile,fspSoln);
+                else
+                    Solution = obj.solveHelper(stateSpace,saveFile,fspSoln);
+                end
+            end
             switch returnType
                 case 'ssit'
                     Solution = obj;
