@@ -196,7 +196,7 @@ classdef SSIT
         propensitiesGeneralMeanJac = [];
         propensitiesGeneralMoments = [];
         propensitiesGeneralMomentsJac = [];
-        propensityFilePrefix = 'Default';
+        propensityFilePrefix = 'default';
 
         % Solutions
         Solutions = []; % Field holding solutions for current model and
@@ -232,6 +232,7 @@ classdef SSIT
             %       'ToggleSwitch',  % 2 species pre-formatted example
             %       'Repressilator', % 3 species pre-formatted example
             %       'BurstingSpatialCentralDogma'}  % 4 species pre-formatted example
+            %       'STL1_4state'}  % 4 species pre-formatted example
             %
             %%   modelName (string, optional) -- Name of model within
             %       modelFile. This is needed in cases where the modelFile
@@ -1100,7 +1101,35 @@ classdef SSIT
                         'kp*x3';'gp*x4'};
                     obj.initialCondition = [0;0;0;0];
                     obj.customConstraintFuns = {};
-
+                case 'STL1_4state'
+                    % Set species names for STL1_4state:
+                    obj.species = {'g1';'g2';'g3';'g4';'mRNA'};
+                    % Set initial condition:
+                    obj.initialCondition = [1;0;0;0;0];
+                    % Set stoichiometry of reactions:
+                    obj.stoichiometry = [-1,1,0,0,0,0,0,0,0,0,0;...   % gene state 1
+                        1,-1,-1,1,0,0,0,0,0,0,0;... % gene state 2
+                        0,0,1,-1,-1,1,0,0,0,0,0;... % gene state 3
+                        0,0,0,0,1,-1,0,0,0,0,0;...  % gene state 4
+                        0,0,0,0,0,0,1,1,1,1,-1];     % mRNA
+                    % Reactions: 1,2,3,4,5,6,7,8,9,10,11
+                    % Add a lag to the time-varying TF/MAPK input signal:
+                    obj.inputExpressions = ...
+                        {'Hog1',['A*(((1-(exp(1)^(-r1*(t-t0))))*',...
+                        'exp(1)^(-r2*(t-t0)))/(1+((1-(exp(1)^(-r1*(t-t0))))*',...
+                        'exp(1)^(-r2*(t-t0)))/M))^n*(t>t0)']};
+                    % Set propensity functions:
+                    obj.propensityFunctions = {...
+                        'k12*g1';'(max(0,k21o*(1-k21i*Hog1)))*g2';...
+                        'k23*g2';'k32*g3'; 'k34*g3';'k43*g4';...
+                        'kr1*g1';'kr2*g2';'kr3*g3';'kr4*g4';'dr*mRNA'};
+                    % Add the new parameters for the 4 state model:
+                    obj.parameters = ({'t0',3.17; 'k12',78; 'k21o',1.92e+05;...
+                        'k21i',3200; 'k23',0.402; 'k34',7.8; 'k32',1.62;...
+                        'k43',2.28; 'dr',0.294; 'kr1',4.68e-02; 'kr2',0.72;...
+                        'kr3', 59.4; 'kr4', 3.24; 'r1',4.14e-03; 'r2',0.426;...
+                        'A',9.3e+09; 'M',6.4e-04; 'n',3.1});
+                    obj.tSpan = linspace(0,50,100);
             end
             obj.propensitiesGeneral = [];
             obj.propensitiesGeneralODE = [];
@@ -1347,23 +1376,8 @@ classdef SSIT
                                 rateExpr = regexprep(rateExpr,minusOneBarePattern,'1','once');
                             end
 
-                            % For SSA, second-order self-reaction propensity is X*(X-1)/2.
-                            % Remove one explicit 1/2 combinatorial factor.
-                            rateExprPrev = rateExpr;
-                            rateExpr = regexprep(rateExpr,'/\s*2(?![A-Za-z0-9_])','','once');
-                            if strcmp(rateExpr,rateExprPrev)
-                                rateExpr = regexprep(rateExpr,'\*\s*0?\.5(?![0-9])','','once');
-                                rateExpr = regexprep(rateExpr,'(?<![0-9])0?\.5\s*\*','','once');
-                            end
-                            if ~strcmp(rateExpr,rateExprPrev)
-                                warning('SSIT:exportSimBiol:AutoRemovedHalf', ...
-                                    ['Reaction %d: auto-removed combinatorial 1/2 factor for second-order self-reaction ',...
-                                     'to avoid double counting in SimBiology MassAction.'], ir);
-                            else
-                                warning('SSIT:exportSimBiol:MissingHalf', ...
-                                    ['Reaction %d: second-order self-reaction did not contain detectable 1/2 factor; ',...
-                                     'continuing without auto-removal.'], ir);
-                            end
+                            % Keep any combinatorial scaling (e.g., 1/2)
+                            % in the rate expression; user can set it manually.
                         elseif rOrd == 3
                             minusOneParenPattern = ['\(\s*',regexptranslate('escape',speciesName),'\s*-\s*1\s*\)'];
                             minusOneBarePattern = ['\<',regexptranslate('escape',speciesName),'\>\s*-\s*1(?![A-Za-z0-9_])'];
@@ -2430,12 +2444,13 @@ classdef SSIT
             obj.solutionScheme='FSP';
             [~,~,obj] = obj.solve;
         end
-        function [Solution, bConstraints, obj] = solve(obj,stateSpace,saveFile,fspSoln)
+        function [Solution, bConstraints, obj] = solve(obj,stateSpace,saveFile,fspSoln,opts)
             arguments
                 obj
                 stateSpace = [];
                 saveFile=[];
                 fspSoln=[];
+                opts.solver = []
             end
             % Solve the model using the specified method in
             %    obj.solutionScheme (default: 'FSP')
@@ -2455,6 +2470,13 @@ classdef SSIT
             % See also: SSIT.makePlot for information on how to visualize
             % the solution data. 
 
+            if ~isempty(opts.solver)
+                obj.solutionScheme = opts.solver;
+                returnType = 'ssit';
+            else
+                returnType = 'soln';
+            end
+
             if ~isempty(obj.specialEvents)&&~strcmpi(obj.solutionScheme(1:3),'fsp')
                 error('Special Events are currently supported only for FSP analyses')
             elseif strcmpi(obj.solutionScheme(1:3),'fspsens')&&~strcmpi(obj.sensOptions.solutionMethod,'finiteDifference')
@@ -2462,7 +2484,6 @@ classdef SSIT
                 obj.sensOptions.solutionMethod='finiteDifference';
             end
             
-
             if ~isfield(obj.fspOptions,'minSSEscapeRate')
                 obj.fspOptions.minSSEscapeRate = 1e-3;
             end
@@ -2470,11 +2491,11 @@ classdef SSIT
                 obj.fspOptions.krylovSize = 20;
             end
             % try
-                if nargout>=2
-                    [Solution, bConstraints, obj] = obj.solveHelper(stateSpace,saveFile,fspSoln);
-                else
-                    Solution = obj.solveHelper(stateSpace,saveFile,fspSoln);
-                end
+            % if nargout>=2
+            [Solution, bConstraints, obj] = obj.solveHelper(stateSpace,saveFile,fspSoln);
+            % else
+            % Solution = obj.solveHelper(stateSpace,saveFile,fspSoln);
+            % end
             % catch
             %     obj.propensitiesGeneral = [];
             %     if strcmpi(obj.solutionScheme,'fsp')||strcmpi(obj.solutionScheme,'fspsens')
@@ -2488,6 +2509,10 @@ classdef SSIT
             %         Solution = obj.solveHelper(stateSpace,saveFile,fspSoln);
             %     end
             % end
+            switch returnType
+                case 'ssit'
+                    Solution = obj;
+            end
         end
 
         function [Solution, bConstraints, obj] = solveHelper(obj,stateSpace,saveFile,fspSoln)
@@ -3044,7 +3069,7 @@ classdef SSIT
             end
         end
 
-        function [fimResults,sensSoln] = computeFIM(obj,sensSoln,scale,MHSamples,freePars)
+        function [fimResults,sensSoln] = computeFIM(obj,sensSoln,scale,MHSamples,freePars,opts)
             %% computeFIM - Computes the Fisher Information Matrix (FIM)
             %%              at all time points.
             % Inputs:
@@ -3068,6 +3093,19 @@ classdef SSIT
                 scale = 'lin';
                 MHSamples = [];
                 freePars = [];
+                opts.scale = [];
+                opts.freePars = [];
+                opts.observed = [];
+            end           
+            fieldNames = fields(opts);
+            for i = 1:length(fieldNames)
+                if ~isempty(opts.(fieldNames{i}))
+                    eval([fieldNames{i},'=opts.(fieldNames{i});']);
+                end
+            end
+
+            if ~isempty(opts.observed)
+                obj.pdoOptions.unobservedSpecies = setdiff(obj.species,opts.observed);
             end
 
             % Determine which parameters sensitivities correspond to
@@ -3131,7 +3169,9 @@ classdef SSIT
                 end
             else
                 if isempty(sensSoln)
-                    if isfield(obj.Solutions,'sens')
+                    % Check if sensitivity solution availabel and that it
+                    % matches the length of the tSpan.
+                    if isfield(obj.Solutions,'sens')&&length(obj.Solutions.sens.data)==length(obj.tSpan)
                         sensSoln = obj.Solutions.sens;
                     else
                         % disp({'Running Sensitivity Calculation';'You can skip this step by providing sensSoln.'})
@@ -4358,16 +4398,29 @@ classdef SSIT
             end
         end
         % WARNING: returns height of posterior instead of likelihood if priors are specified
-        function [pars,likelihood,otherResults,obj,essVec] = maximizeLikelihood(obj,parGuess,fitOptions,fitAlgorithm)
+        function [output,likelihood,otherResults,obj,essVec] = maximizeLikelihood(obj,parGuess,fitOptions,fitAlgorithm,opts)
             arguments
                 obj
                 parGuess = [];
                 fitOptions = optimset('Display','iter','MaxIter',2000);
                 fitAlgorithm = 'fminsearch';
+                opts.parGuess = [];
+                opts.fitOptions = [];
+                opts.fitAlgorithm = [];
             end
             % Compute the maximum likelihood estimate (if priors are not
             % provided) or the maximum posterior estimate (if priors are
             % provided).  
+
+            % Parse optional options
+            returnType = 'default';
+            fieldNames = fields(opts);
+            for i = 1:length(fieldNames)
+                if ~isempty(opts.(fieldNames{i}))
+                    eval([fieldNames{i},'=opts.(fieldNames{i});']);
+                    returnType = 'ssit';
+                end
+            end
 
             % parse fitting options
             allFitOptions.suppressFSPExpansion = true;
@@ -4600,20 +4653,27 @@ classdef SSIT
                     % If fit was in linear space, need to convert to log
                     % space before returning parameters.
                     if ~allFitOptions.logForm
-                        pars = log(x0);
+                        output = log(x0);
                     end
 
             end
 
-            pars = exp(x0);
+            output = exp(x0);
 
             if strcmp(obj.solutionScheme,'FSP')&&allFitOptions.suppressFSPExpansion
                 obj.fspOptions.fspTol = tmpFSPtol;
             end
 
-            if nargout>=4
-                % Update best parameters set in returned model.
-                obj.parameters(obj.fittingOptions.modelVarsToFit,2) = num2cell(pars);
+            % Check if the fit resulted in better parameters for max
+            % posterior and update if so.
+            if nargout>=4||strcmpi(returnType,'ssit')
+                if obj.computeLikelihood(exp(x0))>obj.computeLikelihood([obj.parameters{obj.fittingOptions.modelVarsToFit,2}])
+                    % Update best parameters set in returned model.
+                    obj.parameters(obj.fittingOptions.modelVarsToFit,2) = num2cell(exp(x0));
+                end
+            end
+            if strcmpi(returnType,'ssit')
+                output = obj;
             end
         end
 
@@ -5196,7 +5256,8 @@ classdef SSIT
         
             % ----- timeVec -----
             if isempty(timeVec)
-                timeVec = (1:nTime).';
+                % timeVec = (1:nTime).';
+                timeVec = obj.tSpan;
             else
                 if numel(timeVec) ~= nTime
                     error('timeVec length (%d) must match number of ODE time points (%d).', numel(timeVec), nTime);
