@@ -2,7 +2,6 @@ classdef modelReductionTest < matlab.unittest.TestCase
     properties
         TwoDPoiss
         TwoDPoissSolution
-        TwoDPoissODE
     end
 
     methods (TestClassSetup)
@@ -16,20 +15,16 @@ classdef modelReductionTest < matlab.unittest.TestCase
             tc.TwoDPoiss.initialCondition = [0;0];
             tc.TwoDPoiss.propensityFunctions = {'kr1';'gr1*rna1';'kr2';'gr2*rna2'};
             tc.TwoDPoiss.stoichiometry = [1,-1,0,0;0,0,1,-1];
-            tc.TwoDPoiss.parameters = ({'kr1',100;'gr1',3;'kr2',80;'gr2',3});
+            tc.TwoDPoiss.parameters = ({'kr1',150;'gr1',1;'kr2',180;'gr2',1});
             tc.TwoDPoiss.tSpan = linspace(0,5,201);
             tc.TwoDPoiss = tc.TwoDPoiss.formPropensitiesGeneral('TwoPoiss');
 
-            [tc.TwoDPoissSolution,tc.TwoDPoiss.fspOptions.bounds] = tc.TwoDPoiss.solve;
+            [tc.TwoDPoissSolution,~,tc.TwoDPoiss] = tc.TwoDPoiss.solve;
             tic
             [tc.TwoDPoissSolution,tc.TwoDPoiss.fspOptions.bounds] = tc.TwoDPoiss.solve(tc.TwoDPoissSolution.stateSpace);
             tc.TwoDPoissSolution.time = toc;
 
-            %% ODE model for Two Poisson process
-            tc.TwoDPoissODE = tc.TwoDPoiss;
-            tc.TwoDPoissODE.solutionScheme = 'ode';
-            tc.TwoDPoissODE = tc.TwoDPoissODE.formPropensitiesGeneral('TwoDPoissODE');
-
+         
         end
     end
 
@@ -55,8 +50,8 @@ classdef modelReductionTest < matlab.unittest.TestCase
             redModelSolveTime = toc;
 
             NoTransform_SpeedUp_Factor = tc.TwoDPoissSolution.time/redModelSolveTime
-            NoTransformfinalError1 = max(sum(abs((double(fspSoln2.fsp{end}.p.data - tc.TwoDPoissSolution.fsp{end}.p.data))),1))
-            NoTransformfinalError2 = max(sum(abs((double(fspSoln2.fsp{end}.p.data - tc.TwoDPoissSolution.fsp{end}.p.data))),2))
+            NoTransformfinalError1 = max(abs(cumsum(sum(double(fspSoln2.fsp{end}.p.data),1)) - cumsum(sum(double(tc.TwoDPoissSolution.fsp{end}.p.data),1))))
+            NoTransformfinalError2 = max(abs(cumsum(sum(double(fspSoln2.fsp{end}.p.data),2)) - cumsum(sum(double(tc.TwoDPoissSolution.fsp{end}.p.data),2))))
             NoTransformfinalError = (NoTransformfinalError1+NoTransformfinalError2)/2;
 
             % tc.TwoDPoiss.makePlot(tc.TwoDPoissSolution,'meansAndDevs',[1:10:201],[],1)
@@ -85,13 +80,13 @@ classdef modelReductionTest < matlab.unittest.TestCase
             redModelSolveTime = toc;
 
             LogLumpQSSA_SpeedUp_Factor = tc.TwoDPoissSolution.time/redModelSolveTime
-            LogLumpQSSAfinalError1 = max(sum(abs((double(fspSoln2.fsp{end}.p.data - tc.TwoDPoissSolution.fsp{end}.p.data))),1))
-            LogLumpQSSAfinalError2 = max(sum(abs((double(fspSoln2.fsp{end}.p.data - tc.TwoDPoissSolution.fsp{end}.p.data))),2))
+            LogLumpQSSAfinalError1 = max(abs(cumsum(sum(double(fspSoln2.fsp{end}.p.data),1)) - cumsum(sum(double(tc.TwoDPoissSolution.fsp{end}.p.data),1))))
+            LogLumpQSSAfinalError2 = max(abs(cumsum(sum(double(fspSoln2.fsp{end}.p.data),2)) - cumsum(sum(double(tc.TwoDPoissSolution.fsp{end}.p.data),2))))
             LogLumpQSSAfinalError = (LogLumpQSSAfinalError1+LogLumpQSSAfinalError2)/2;
 
             % tc.TwoDPoiss.makePlot(tc.TwoDPoissSolution,'meansAndDevs',[1:10:201],[],1)
             % tc.TwoDPoiss.makePlot(tc.TwoDPoissSolution,'marginals',[51,101,151,201],[],[2,3])
-
+            % 
             % Model2.makePlot(fspSoln2,'meansAndDevs',[1:10:201],[],1)
             % Model2.makePlot(fspSoln2,'marginals',[51,101,152,201],[],[2,3])
 
@@ -117,8 +112,8 @@ classdef modelReductionTest < matlab.unittest.TestCase
             redModelSolveTime = toc;
 
             EigenDecomposition_SpeedUp_Factor = tc.TwoDPoissSolution.time/redModelSolveTime
-            EigenDecompositionfinalError1 = max(sum(abs((double(fspSoln2.fsp{end}.p.data - tc.TwoDPoissSolution.fsp{end}.p.data))),1))
-            EigenDecompositionfinalError2 = max(sum(abs((double(fspSoln2.fsp{end}.p.data - tc.TwoDPoissSolution.fsp{end}.p.data))),2))
+            EigenDecompositionfinalError1 = max(abs(cumsum(sum(double(fspSoln2.fsp{end}.p.data),1)) - cumsum(sum(double(tc.TwoDPoissSolution.fsp{end}.p.data),1))))
+            EigenDecompositionfinalError2 = max(abs(cumsum(sum(double(fspSoln2.fsp{end}.p.data),2)) - cumsum(sum(double(tc.TwoDPoissSolution.fsp{end}.p.data),2))))
             EigenDecompositionfinalError = (EigenDecompositionfinalError1+EigenDecompositionfinalError2)/2;
 
             % tc.TwoDPoiss.makePlot(tc.TwoDPoissSolution,'meansAndDevs',[1:10:201],[],1)
@@ -149,8 +144,8 @@ classdef modelReductionTest < matlab.unittest.TestCase
             redModelSolveTime = toc;
 
             LinearStateLumping_SpeedUp_Factor = tc.TwoDPoissSolution.time/redModelSolveTime
-            LinearStateLumpingfinalError1 = max(sum(abs((double(fspSoln2.fsp{end}.p.data - tc.TwoDPoissSolution.fsp{end}.p.data))),1))
-            LinearStateLumpingfinalError2 = max(sum(abs((double(fspSoln2.fsp{end}.p.data - tc.TwoDPoissSolution.fsp{end}.p.data))),2))
+            LinearStateLumpingfinalError1 = max(abs(cumsum(sum(double(fspSoln2.fsp{end}.p.data),1)) - cumsum(sum(double(tc.TwoDPoissSolution.fsp{end}.p.data),1))))
+            LinearStateLumpingfinalError2 = max(abs(cumsum(sum(double(fspSoln2.fsp{end}.p.data),2)) - cumsum(sum(double(tc.TwoDPoissSolution.fsp{end}.p.data),2))))
             LinearStateLumpingfinalError = (LinearStateLumpingfinalError1+LinearStateLumpingfinalError2)/2;
 
             % tc.TwoDPoiss.makePlot(tc.TwoDPoissSolution,'meansAndDevs',[1:10:201],[],1)
@@ -181,8 +176,8 @@ classdef modelReductionTest < matlab.unittest.TestCase
             redModelSolveTime = toc;
 
             LogarithmicStateLumping_SpeedUp_Factor = tc.TwoDPoissSolution.time/redModelSolveTime
-            LogarithmicStateLumpingfinalError1 = max(sum(abs((double(fspSoln2.fsp{end}.p.data - tc.TwoDPoissSolution.fsp{end}.p.data))),1))
-            LogarithmicStateLumpingfinalError2 = max(sum(abs((double(fspSoln2.fsp{end}.p.data - tc.TwoDPoissSolution.fsp{end}.p.data))),2))
+            LogarithmicStateLumpingfinalError1 = max(abs(cumsum(sum(double(fspSoln2.fsp{end}.p.data),1)) - cumsum(sum(double(tc.TwoDPoissSolution.fsp{end}.p.data),1))))
+            LogarithmicStateLumpingfinalError2 = max(abs(cumsum(sum(double(fspSoln2.fsp{end}.p.data),2)) - cumsum(sum(double(tc.TwoDPoissSolution.fsp{end}.p.data),2))))
             LogarithmicStateLumpingfinalError = (LogarithmicStateLumpingfinalError1+LogarithmicStateLumpingfinalError2)/2;
 
             % tc.TwoDPoiss.makePlot(tc.TwoDPoissSolution,'meansAndDevs',[1:10:201],[],1)
@@ -212,8 +207,8 @@ classdef modelReductionTest < matlab.unittest.TestCase
         %     redModelSolveTime = toc;
         % 
         %     BalancedTruncation_SpeedUp_Factor = tc.TwoDPoissSolution.time/redModelSolveTime
-        %     BalancedTruncationfinalError1 = max(sum(abs((double(fspSoln2.fsp{end}.p.data - tc.TwoDPoissSolution.fsp{end}.p.data))),1))
-        %     BalancedTruncationfinalError2 = max(sum(abs((double(fspSoln2.fsp{end}.p.data - tc.TwoDPoissSolution.fsp{end}.p.data))),2))
+        %     BalancedTruncationfinalError1 = max(abs(cumsum(sum(double(fspSoln2.fsp{end}.p.data),1)) - cumsum(sum(double(tc.TwoDPoissSolution.fsp{end}.p.data),1))))
+        %     BalancedTruncationfinalError2 = max(abs(cumsum(sum(double(fspSoln2.fsp{end}.p.data),2)) - cumsum(sum(double(tc.TwoDPoissSolution.fsp{end}.p.data),2))))
         %     BalancedTruncationfinalError = (BalancedTruncationfinalError1+BalancedTruncationfinalError2)/2;
         % 
         %     tc.TwoDPoiss.makePlot(tc.TwoDPoissSolution,'meansAndDevs',[1:10:201],[],1)
@@ -244,8 +239,8 @@ classdef modelReductionTest < matlab.unittest.TestCase
             redModelSolveTime = toc;
 
             POD_SpeedUpFactor = tc.TwoDPoissSolution.time/redModelSolveTime
-            PODfinalError1 = max(sum(abs((double(fspSoln2.fsp{end}.p.data - tc.TwoDPoissSolution.fsp{end}.p.data))),1))
-            PODfinalError2 = max(sum(abs((double(fspSoln2.fsp{end}.p.data - tc.TwoDPoissSolution.fsp{end}.p.data))),2))
+            PODfinalError1 = max(abs(cumsum(sum(double(fspSoln2.fsp{end}.p.data),1)) - cumsum(sum(double(tc.TwoDPoissSolution.fsp{end}.p.data),1))))
+            PODfinalError2 = max(abs(cumsum(sum(double(fspSoln2.fsp{end}.p.data),2)) - cumsum(sum(double(tc.TwoDPoissSolution.fsp{end}.p.data),2))))
             PODfinalError = (PODfinalError1+PODfinalError2)/2;
 
             % tc.TwoDPoiss.makePlot(tc.TwoDPoissSolution,'meansAndDevs',[1:10:201],[],1)
@@ -276,8 +271,8 @@ classdef modelReductionTest < matlab.unittest.TestCase
             redModelSolveTime = toc;
 
             POD_SpeedUpFactor = tc.TwoDPoissSolution.time/redModelSolveTime
-            PODfinalError1 = max(sum(abs((double(fspSoln2.fsp{end}.p.data - tc.TwoDPoissSolution.fsp{end}.p.data))),1))
-            PODfinalError2 = max(sum(abs((double(fspSoln2.fsp{end}.p.data - tc.TwoDPoissSolution.fsp{end}.p.data))),2))
+            PODfinalError1 = max(abs(cumsum(sum(double(fspSoln2.fsp{end}.p.data),1)) - cumsum(sum(double(tc.TwoDPoissSolution.fsp{end}.p.data),1))))
+            PODfinalError2 = max(abs(cumsum(sum(double(fspSoln2.fsp{end}.p.data),2)) - cumsum(sum(double(tc.TwoDPoissSolution.fsp{end}.p.data),2))))
             PODfinalError = (PODfinalError1+PODfinalError2)/2;
 
             % tc.TwoDPoiss.makePlot(tc.TwoDPoissSolution,'meansAndDevs',[1:10:201],[],1)
@@ -309,8 +304,8 @@ classdef modelReductionTest < matlab.unittest.TestCase
             redModelSolveTime = toc;
 
             QSSA_SpeedUpFactor = tc.TwoDPoissSolution.time/redModelSolveTime
-            QSSAfinalError1 = max(sum(abs((double(fspSoln2.fsp{end}.p.data - tc.TwoDPoissSolution.fsp{end}.p.data))),1))
-            QSSAfinalError2 = max(sum(abs((double(fspSoln2.fsp{end}.p.data - tc.TwoDPoissSolution.fsp{end}.p.data))),2))
+            QSSAfinalError1 = max(abs(cumsum(sum(double(fspSoln2.fsp{end}.p.data),1)) - cumsum(sum(double(tc.TwoDPoissSolution.fsp{end}.p.data),1))))
+            QSSAfinalError2 = max(abs(cumsum(sum(double(fspSoln2.fsp{end}.p.data),2)) - cumsum(sum(double(tc.TwoDPoissSolution.fsp{end}.p.data),2))))
             QSSAfinalError = (QSSAfinalError1+QSSAfinalError2)/2;
 
             % tc.TwoDPoiss.makePlot(tc.TwoDPoissSolution,'meansAndDevs',[1:10:201],[],1)
@@ -341,8 +336,8 @@ classdef modelReductionTest < matlab.unittest.TestCase
             redModelSolveTime = toc;
 
             DynamicModeDecomposition_SpeedUp_Factor = tc.TwoDPoissSolution.time/redModelSolveTime
-            DynamicModeDecompositionfinalError1 = max(sum(abs((double(fspSoln2.fsp{end}.p.data - tc.TwoDPoissSolution.fsp{end}.p.data))),1))
-            DynamicModeDecompositionfinalError2 = max(sum(abs((double(fspSoln2.fsp{end}.p.data - tc.TwoDPoissSolution.fsp{end}.p.data))),2))
+            DynamicModeDecompositionfinalError1 = max(abs(cumsum(sum(double(fspSoln2.fsp{end}.p.data),1)) - cumsum(sum(double(tc.TwoDPoissSolution.fsp{end}.p.data),1))))
+            DynamicModeDecompositionfinalError2 = max(abs(cumsum(sum(double(fspSoln2.fsp{end}.p.data),2)) - cumsum(sum(double(tc.TwoDPoissSolution.fsp{end}.p.data),2))))
             DynamicModeDecompositionfinalError = (DynamicModeDecompositionfinalError1+DynamicModeDecompositionfinalError2)/2;
 
             % tc.TwoDPoiss.makePlot(tc.TwoDPoissSolution,'meansAndDevs',[1:10:201],[],1)
@@ -372,8 +367,8 @@ classdef modelReductionTest < matlab.unittest.TestCase
         %     redModelSolveTime = toc;
         % 
         %     RadialBasisFunctions_SpeedUp_Factor = tc.TwoDPoissSolution.time/redModelSolveTime
-        %     RadialBasisFunctionsfinalError1 = max(sum(abs((double(fspSoln2.fsp{end}.p.data - tc.TwoDPoissSolution.fsp{end}.p.data))),1))
-        %     RadialBasisFunctionsfinalError2 = max(sum(abs((double(fspSoln2.fsp{end}.p.data - tc.TwoDPoissSolution.fsp{end}.p.data))),2))
+        %     RadialBasisFunctionsfinalError1 = max(abs(cumsum(sum(double(fspSoln2.fsp{end}.p.data),1)) - cumsum(sum(double(tc.TwoDPoissSolution.fsp{end}.p.data),1))))
+        %     RadialBasisFunctionsfinalError2 = max(abs(cumsum(sum(double(fspSoln2.fsp{end}.p.data),2)) - cumsum(sum(double(tc.TwoDPoissSolution.fsp{end}.p.data),2))))
         %     RadialBasisFunctionsfinalError = (RadialBasisFunctionsfinalError1+RadialBasisFunctionsfinalError2)/2;
         % 
         %     tc.TwoDPoiss.makePlot(tc.TwoDPoissSolution,'meansAndDevs',[1:10:201],[],1)
