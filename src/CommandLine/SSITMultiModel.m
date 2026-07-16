@@ -342,7 +342,7 @@ classdef SSITMultiModel
             SMM.FIM = FIMlocal;
         end
 
-        function [pars,likelihood,otherResults,SMM] = maximizeLikelihood(SMM,parGuess,fitOptions,fitAlgorithm)
+        function [output,likelihood,otherResults,SMM] = maximizeLikelihood(SMM,parGuess,fitOptions,fitAlgorithm,opts)
             % Search parameter space to determine which sets maximize the
             % likelihood function.  
             arguments
@@ -350,6 +350,19 @@ classdef SSITMultiModel
                 parGuess = [];
                 fitOptions = optimset('Display','iter','MaxIter',1000)
                 fitAlgorithm = 'fminsearch'
+                opts.fitOptions = []
+                opts.fitAlgorithm = []
+                opts.parGuess = []
+            end
+
+            % Parse optional options
+            returnType = 'default';
+            fieldNames = fields(opts);
+            for i = 1:length(fieldNames)
+                if ~isempty(opts.(fieldNames{i}))
+                    eval([fieldNames{i},'=opts.(fieldNames{i});']);
+                    returnType = 'ssit';
+                end
             end
 
             otherResults = [];
@@ -479,18 +492,21 @@ classdef SSITMultiModel
                     % If fit was in linear space, need to convert to log
                     % space before returning parameters.
                     if ~allFitOptions.logForm
-                        pars = log(x0);
+                        output = log(x0);
                     end
 
             end
-            pars = exp(x0);
-            SMM.parameters = pars;
-            SMM = SMM.updateModels(pars);
+            output = exp(x0);
+            SMM.parameters = output;
+            SMM = SMM.updateModels(output);
 
             if isfield(fitOptions,'suppressExpansion')&&fitOptions.suppressExpansion==true
                 for iModel = 1:length(SMM.SSITModels)
                     SMM.SSITModels{iModel}.fspOptions.fspTol = oldFspTols(iModel);
                 end
+            end
+            if strcmpi(returnType,'ssit')
+                output = SMM;
             end
 
         end
