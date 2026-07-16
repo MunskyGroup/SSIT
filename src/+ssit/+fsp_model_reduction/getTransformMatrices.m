@@ -36,8 +36,8 @@ switch redType
     case 'No Transform'
         %'No Transform' --
         %   No model reduction is used.  This is meant only for testing.
-        phi = eye(size(fspSoln.A_total,1));
-        phi_inv = phi';
+        phi = speye(size(fspSoln.A_total,1));
+        phi_inv = phi;
     case {'Linear State Lumping','LNSL'}
         %'Linear State Lumping' (LNSL) -- 
         %   State space is divided into linearly distributed bins.
@@ -332,6 +332,7 @@ switch redType
         % %  functions that are randomly placed throughout the statespace.
         % [phi,phi_inv] = ssit.fsp_model_reduction.radiaBasisPhi(fspSoln.stateSpace.states,redOrder,0,1);
 end
+phi = sparse(phi); phi_inv = sparse(phi_inv);
 end
 function keys =  state2key( states )
 % Hash function to convert a N-dimensional integer vector into a unique
