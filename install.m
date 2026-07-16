@@ -38,6 +38,7 @@ if ~strcmpi(weAreIn(J(end)+1:end),'SSIT')
 end
 
 % Set the path to include all SSIT codes.  
+addpath(weAreIn)
 addpath(genpath('src'));
 
 % Install MEX codes
