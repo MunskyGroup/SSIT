@@ -92,9 +92,13 @@ switch app.DistortionTypeDropDown.Value
                 end
                 lamb = min(max(lamb,0),1); % clamp just in case
                 % ------------------------------------------------------                
-                for j = 1:maxSize(ispec)
-                    conditionalPmfs{ispec}(1:j,j) = pdf('bino',0:j-1,j-1,lamb);
-                end
+                % conditionalPmfs{ispec} = zeros(maxSize(ispec),maxSize(ispec));
+                % for j = 1:maxSize(ispec)
+                %     conditionalPmfs{ispec}(1:j,j) = pdf('bino',0:j-1,j-1,lamb);
+                % end
+                conditionalPmfs{ispec} = binopdf(repmat((0:maxSize(ispec)-1)',1,maxSize(ispec)),...
+                    repmat(0:maxSize(ispec)-1,maxSize(ispec),1),...
+                    lamb);
             else
                 conditionalPmfs{ispec} = 1;
             end
