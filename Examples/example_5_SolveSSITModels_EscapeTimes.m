@@ -40,7 +40,7 @@ STL1_4state.tSpan = linspace(0,50,101);
     Model_escape.fspOptions.verbose = false;
     Model_escape.fspOptions.escapeSinks.b = 5;
     Model_escape = Model_escape.formPropensitiesGeneral('Model_escape');
-    [~,~,Model_escape] = Model_escape.solve;
+    Model_escape = Model_escape.solve(solver='fsp');
 
     % Plot the CDF and PDF
     Model_escape.plotFSP(plotType="escapeTimes",...
@@ -62,7 +62,7 @@ STL1_4state.tSpan = linspace(0,50,101);
     STL1_escape.fspOptions.verbose = false;
     STL1_escape.fspOptions.escapeSinks.b = 5;
     STL1_escape = STL1_escape.formPropensitiesGeneral('STL1_escape');
-    [~,~,STL1_escape] = STL1_escape.solve;
+    STL1_escape = STL1_escape.solve(solver='fsp');
 
     % Plot the CDF and PDF
     STL1_escape.plotFSP(plotType="escapeTimes",...
@@ -92,7 +92,7 @@ STL1_4state.tSpan = linspace(0,50,101);
     % Solve for time for mRNA to reach 100:
     STL1_4state_escape.fspOptions.escapeSinks.f = {'mRNA'};
     STL1_4state_escape.fspOptions.escapeSinks.b = 100;    
-    [~,~,STL1_4state_escape] = STL1_4state_escape.solve;
+    STL1_4state_escape = STL1_4state_escape.solve(solver='fsp');
 
     % Plot the CDF and PDF
     STL1_4state_escape.plotFSP(plotType="escapeTimes", XLim=[0,50],...
