@@ -5,8 +5,6 @@
 STL1_4state = SSIT('STL1_4state');
 % Solve ODEs:
 STL1_4state = STL1_4state.solve(solver='ODE');
-% STL1_4state.solutionScheme = 'ODE';
-% STL1_4state.Solutions = STL1_4state.solve; 
 
 % Plot ODE solutions for mRNA:
 STL1_4state.plotODE(speciesNames={'mRNA'}, timeVec=STL1_4state.tSpan, ...
@@ -55,7 +53,6 @@ STL1_4state = STL1_4state.solve(solver='FSP');
 STL1_4state = STL1_4state.solve(solver='fspSens');
 
 %%
-
 % Specify time points and numbers of cells for experiments
 STL1_4state.tSpan = [0,1,2,4,6,8,10:5:55];
 cellCounts = 1000*ones(1,16);
@@ -65,7 +62,7 @@ fims_full = STL1_4state.computeFIM(scale='log',observed='mRNA'); % full FIM
 
 % Compute FIMs using FSP sensitivity results (Hog1 parameters fixed)
 fims_free = STL1_4state.computeFIM(scale='log',observed='mRNA',...
-    freePars=freePars); % FIM sub matrix
+    freePars=(1:13)); % FIM sub matrix
 
 % Evaluate the provided experiment design (in "cellCounts")
 % to get the FIM:

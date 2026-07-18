@@ -37,9 +37,9 @@ classdef miscelaneousTests < matlab.unittest.TestCase
                 'fixedTimes','[]',...
                 'args',struct('lineage','primary'));
             ModelBC = ModelBC.formPropensitiesGeneral('BinomialDecay');
-            [~,~,ModelBC] = ModelBC.solve;
+            ModelBC = ModelBC.solve;
             tic
-            [~,~,ModelBC] = ModelBC.solve;
+            ModelBC = ModelBC.solve;
             time_BinomialDecay = toc;
             traj = zeros(1,length(ModelBC.tSpan));
             for i =1:length(traj)
@@ -64,9 +64,9 @@ classdef miscelaneousTests < matlab.unittest.TestCase
                 'fixedTimes',[],...
                 'args',struct('lineage','bothCoupled'));
             ModelBC = ModelBC.formPropensitiesGeneral('BinomialDecay');
-            [~,~,ModelBC] = ModelBC.solve;
+            ModelBC = ModelBC.solve;
             tic
-            [~,~,ModelBC] = ModelBC.solve;
+            ModelBC = ModelBC.solve;
             time_BinomialDecay = toc;
             traj = zeros(1,length(ModelBC.tSpan));
             for i =1:length(traj)
@@ -102,9 +102,9 @@ classdef miscelaneousTests < matlab.unittest.TestCase
                 'fixedTimes',[],...
                 'args',struct('lineage','bothCoupled'));
             ModelBC = ModelBC.formPropensitiesGeneral('AllelicDecay');
-            [~,~,ModelBC] = ModelBC.solve;
+            ModelBC = ModelBC.solve;
             tic
-            [~,~,ModelBC] = ModelBC.solve;
+            ModelBC = ModelBC.solve;
             time_BinomialDecay = toc;
             trajG = zeros(1,length(ModelBC.tSpan));
             trajR = zeros(1,length(ModelBC.tSpan));
@@ -150,7 +150,7 @@ classdef miscelaneousTests < matlab.unittest.TestCase
                 'type','production',...
                 'args',struct());
             ModelGB = ModelGB.formPropensitiesGeneral('GeometricBursts2D');
-            [~,~,ModelGB] = ModelGB.solve;
+            ModelGB = ModelGB.solve;
             traj = zeros(1,length(ModelGB.tSpan));
             for i =1:length(traj)
                 P1 = sum(double(ModelGB.Solutions.fsp{i}.p.data),2);
@@ -189,7 +189,7 @@ classdef miscelaneousTests < matlab.unittest.TestCase
                 'type','production',...
                 'args',struct());
             ModelGB = ModelGB.formPropensitiesGeneral('GeometricBursts2D');
-            [~,~,ModelGB] = ModelGB.solve;
+            ModelGB = ModelGB.solve;
             traj = zeros(1,length(ModelGB.tSpan));
             for i =1:length(traj)
                 P1 = sum(double(ModelGB.Solutions.fsp{i}.p.data),2);
@@ -229,7 +229,7 @@ classdef miscelaneousTests < matlab.unittest.TestCase
             ModelGB = ModelGB.formPropensitiesGeneral('GeometricBursts2DFixedTime');
             ModelGB.fspOptions.verbose = true;
             ModelGB.tSpan = linspace(0,20,41);
-            [~,~,ModelGB] = ModelGB.solve;
+            ModelGB = ModelGB.solve;
             traj = zeros(1,length(ModelGB.tSpan));
             for i =1:length(traj)
                 P1 = sum(double(ModelGB.Solutions.fsp{i}.p.data),2);
@@ -263,7 +263,7 @@ classdef miscelaneousTests < matlab.unittest.TestCase
             ModelGB = ModelGB.formPropensitiesGeneral('GeometricBursts2DFixedTime');
             ModelGB.fspOptions.verbose = true;
             ModelGB.tSpan = linspace(0,20,40);
-            [~,~,ModelGB] = ModelGB.solve;
+            ModelGB = ModelGB.solve;
             traj = zeros(1,length(ModelGB.tSpan));
             for i =1:length(traj)
                 P1 = sum(double(ModelGB.Solutions.fsp{i}.p.data),2);
@@ -294,9 +294,9 @@ classdef miscelaneousTests < matlab.unittest.TestCase
                 'args',struct('lineage','primary','FixedTime',true));
             ModelBC = ModelBC.formPropensitiesGeneral('BinomialDecay');
             ModelBC.tSpan = linspace(0,20,41);
-            [~,~,ModelBC] = ModelBC.solve;
+            ModelBC = ModelBC.solve;
             tic
-            [~,~,ModelBC] = ModelBC.solve;
+            ModelBC = ModelBC.solve;
             time_BinomialDecay = toc;
             traj = zeros(1,length(ModelBC.tSpan));
             for i =1:length(traj)
@@ -319,7 +319,7 @@ classdef miscelaneousTests < matlab.unittest.TestCase
             % Tests the loading of a model from SBML.
             tc.Model = tc.Model.createModelFromSBML('../SBML_test_cases/00010/00010-sbml-l1v2.xml',true);
             tc.Model = tc.Model.formPropensitiesGeneral('SBMEModel');
-            [fspSoln] = tc.Model.solve;
+            [fspSoln] = tc.Model.solve(returnType='soln');
             tc.Model.makePlot(fspSoln,'meansAndDevs')
         end
 
@@ -336,9 +336,9 @@ classdef miscelaneousTests < matlab.unittest.TestCase
             TwoDNonLinearTV.tSpan = linspace(0,2,21);
             TwoDNonLinearTV = TwoDNonLinearTV.formPropensitiesGeneral('TwoNonLinTV');
 
-            [TwoDNonLinearTVSolution,TwoDNonLinearTV.fspOptions.bounds] = TwoDNonLinearTV.solve;
+            [TwoDNonLinearTVSolution,TwoDNonLinearTV.fspOptions.bounds] = TwoDNonLinearTV.solve(returnType='soln');
             tic
-            [TwoDNonLinearTVSolution,TwoDNonLinearTV.fspOptions.bounds] = TwoDNonLinearTV.solve(TwoDNonLinearTVSolution.stateSpace);
+            [TwoDNonLinearTVSolution,TwoDNonLinearTV.fspOptions.bounds] = TwoDNonLinearTV.solve(TwoDNonLinearTVSolution.stateSpace,returnType='soln');
             TwoDNonLinearTVSolution.time = toc;
 
             % %% ODE model for Two Poisson process
@@ -360,7 +360,7 @@ classdef miscelaneousTests < matlab.unittest.TestCase
             TwoDNonLinearTV.inputExpressions = {'Ir','1+cos(t)'};
             TwoDNonLinearTV.tSpan = linspace(0,10,40);
             TwoDNonLinearTV = TwoDNonLinearTV.formPropensitiesGeneral('TwoNonLinTV',false);
-            [fspSoln1] = TwoDNonLinearTV.solve;
+            [fspSoln1] = TwoDNonLinearTV.solve(returnType='soln');
             TwoDNonLinearTV.makePlot(fspSoln1,'meansAndDevs',[],[],[1])
             
             figure(2)
@@ -374,7 +374,7 @@ classdef miscelaneousTests < matlab.unittest.TestCase
             TwoDNonLinearTV.tSpan = linspace(0,10,40);
                         
             TwoDNonLinearTV = TwoDNonLinearTV.formPropensitiesGeneral('TwoNonLinTV',false);
-            [fspSoln2] = TwoDNonLinearTV.solve;
+            [fspSoln2] = TwoDNonLinearTV.solve(returnType='soln');
             TwoDNonLinearTV.makePlot(fspSoln2,'meansAndDevs',[],[],[3])
 
             P1 = double(fspSoln1.fsp{end}.p.data);
@@ -408,7 +408,7 @@ classdef miscelaneousTests < matlab.unittest.TestCase
             
             FourDNonLinearTV.odeIntegrator = 'ode15s';
 
-            [odeSoln1] = FourDNonLinearTV.solve;
+            [odeSoln1] = FourDNonLinearTV.solve(returnType='soln');
             parVector = [FourDNonLinearTV.parameters{:,2}];
 
             Ntests = 100;
@@ -434,7 +434,7 @@ classdef miscelaneousTests < matlab.unittest.TestCase
             tic
             for i=1:Ntests
                 FourDNonLinearTV.parameters(:,2) = num2cell(parVectorSets(i,:));
-                [odeSoln1] = FourDNonLinearTV.solve;
+                [odeSoln1] = FourDNonLinearTV.solve(returnType='soln');
                 results(i,:) = odeSoln1.ode(end,:);
             end
             SSITSolveTime100pars = toc
@@ -470,7 +470,7 @@ classdef miscelaneousTests < matlab.unittest.TestCase
             
             FourDNonLinearTV.odeIntegrator = 'ode15s';
 
-            [odeSoln1] = FourDNonLinearTV.solve;
+            [odeSoln1] = FourDNonLinearTV.solve(returnType='soln');
             parVector = [FourDNonLinearTV.parameters{:,2}];
 
             Ntests = 100;
@@ -496,7 +496,7 @@ classdef miscelaneousTests < matlab.unittest.TestCase
             tic
             for i=1:Ntests
                 FourDNonLinearTV.parameters(:,2) = num2cell(parVectorSets(i,:));
-                [odeSoln1] = FourDNonLinearTV.solve;
+                [odeSoln1] = FourDNonLinearTV.solve(returnType='soln');
                 results(i,:) = odeSoln1.ode(end,:);
             end
             SSITSolveTime100pars = toc
@@ -587,11 +587,11 @@ classdef miscelaneousTests < matlab.unittest.TestCase
              SSIT_Model.tSpan = v;
              SSIT_Model.ssaOptions.Nsims = 1;
              SSIT_Model.solutionScheme = 'ssa';
-             [~,~,SSIT_Model] = SSIT_Model.solve;
+             SSIT_Model = SSIT_Model.solve;
 
              SSIT_Model.ssaOptions.Nsims = nRuns;
              tic
-             [~,~,SSIT_Model] = SSIT_Model.solve;
+             SSIT_Model = SSIT_Model.solve;
              ssitTime = toc
 
             tc.verifyEqual(ssitTime<(5*simBiologyTime), true, ...
@@ -623,11 +623,11 @@ classdef miscelaneousTests < matlab.unittest.TestCase
 
              ThreeDNLinearTV.solutionScheme = 'ode';
              ThreeDNLinearTV = ThreeDNLinearTV.formPropensitiesGeneral('TwoDTV',false);
-             [~,~,ThreeDNLinearTV] = ThreeDNLinearTV.solve;
+             ThreeDNLinearTV = ThreeDNLinearTV.solve;
 
              ThreeDNLinearTV.solutionScheme = 'moments';
              ThreeDNLinearTV = ThreeDNLinearTV.formPropensitiesGeneral('TwoDTV',false);
-             [~,~,ThreeDNLinearTV] = ThreeDNLinearTV.solve;
+             ThreeDNLinearTV = ThreeDNLinearTV.solve;
 
              maxRelError = max((ThreeDNLinearTV.Solutions.moments(1:3,:) - ThreeDNLinearTV.Solutions.ode')./ThreeDNLinearTV.Solutions.ode',[],'all');
 
@@ -638,7 +638,7 @@ classdef miscelaneousTests < matlab.unittest.TestCase
              ThreeDNLinearTV.solutionScheme = 'fsp';
              ThreeDNLinearTV.fspOptions.verbose = true;
              ThreeDNLinearTV = ThreeDNLinearTV.formPropensitiesGeneral('TwoDTV',false);
-             [~,~,ThreeDNLinearTV] = ThreeDNLinearTV.solve;
+             ThreeDNLinearTV = ThreeDNLinearTV.solve;
 
              % sum(double(ThreeDNLinearTV.Solutions.fsp{end}.p.data),[2,3])ThreeDNLinearTV.Solutions.stateSpace.states
              % finalMean = ThreeDNLinearTV.Solutions.fsp{end}.p

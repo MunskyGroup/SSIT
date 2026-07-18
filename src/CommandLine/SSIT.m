@@ -760,7 +760,7 @@ classdef SSIT
             if obj2.fspOptions.initApproxSS
                 obj2.tSpan = linspace(0,1000,101);
             end
-            X = obj2.solve;
+            X = obj2.solve(returnType='soln');
 
             obj.solutionScheme = 'fsp';
             obj.fspOptions.bounds = ...
@@ -839,12 +839,12 @@ classdef SSIT
             %
             % 3D Example:
             %   Model = SSIT('Repressilator');  % Load pre-made model.
-            %   [~,~,Model] = Model.solve;      % Solve to get FSP projection
+            %   Model = Model.solve;      % Solve to get FSP projection
             %   RepGenes_Model.plotStatespace(true,true,'s'); % Make plot of FSP projection statespace.
             %
             % 2D Example:
             %   Model = SSIT('ToggleSwitch');  % Load pre-made model.
-            %   [~,~,Model] = Model.solve;     % Solve to get FSP projection
+            %   Model = Model.solve;     % Solve to get FSP projection
             %   RepGenes_Model.plotStatespace(true,true,'s'); % Make plot of FSP projection statespace.
 
             arguments
@@ -941,10 +941,10 @@ classdef SSIT
             % Example:
             %   Model1 = SSIT('Toggle');  % Load the toggle model.
             %   Model1.tSpan = linspace(0,10,11);
-            %   [~,~,Model1] = Model1.solve;
+            %   Model1 = Model1.solve(solver='fsp');
             %   Model1.plotFSP(figureNums=1,plotType='meansAndDevs',Colors={'r'});hold on
             %   Model2 = Model1.continueFSP(resetError=false);
-            %   [~,~,Model2] = Model2.solve;
+            %   Model2 = Model2.solve(solver='fsp');
             %   Model2.plotFSP(figureNums=1,plotType='meansAndDevs',Colors={'b'});
             arguments
                 obj
@@ -1151,7 +1151,7 @@ classdef SSIT
             % Example:
             %      Model = SSIT();
             %      Model = Model.createModelFromSBML('../SBML_test_cases/00010/00010-sbml-l1v2.xml');
-            %      [fspSoln] = Model.solve;
+            %      [fspSoln] = Model.solve(returnType='soln');
             %      Model.makePlot(fspSoln,'meansAndDevs')
             sbmlobj = sbmlimport(sbmlFile);
             [obj] = createModelFromSimBiol(obj,sbmlobj,scaleVolume);
@@ -1170,7 +1170,7 @@ classdef SSIT
             % Example:
             %      Model = SSIT();
             %      Model = Model.createModelFromSimBiol(sbmlobj);
-            %      [fspSoln] = Model.solve;
+            %      [fspSoln] = Model.solve(returnType='soln');
             %      Model.makePlot(fspSoln,'meansAndDevs')
             arguments
                 obj
@@ -2050,7 +2050,7 @@ classdef SSIT
                 if isfield(obj.Solutions,'fsp')
                     fspSoln = obj.Solutions.fsp;
                 else
-                    Soln = obj.solve;
+                    Soln = obj.solve(returnType='soln');
                     fspSoln = Soln.fsp;
                 end
             end
@@ -2441,8 +2441,7 @@ classdef SSIT
 
         %% Model Analysis Functions
         function obj = fspSolve(obj)
-            obj.solutionScheme='FSP';
-            [~,~,obj] = obj.solve;
+            obj = obj.solve(solver='fsp');
         end
         function [Solution, bConstraints, obj] = solve(obj,stateSpace,saveFile,fspSoln,opts)
             arguments
@@ -2451,6 +2450,7 @@ classdef SSIT
                 saveFile=[];
                 fspSoln=[];
                 opts.solver = []
+                opts.returnType = 'ssit';
             end
             % Solve the model using the specified method in
             %    obj.solutionScheme (default: 'FSP')
@@ -2462,19 +2462,16 @@ classdef SSIT
             % Example:
             %   F = SSIT('ToggleSwitch')
             %   F.solutionScheme = 'FSP'
-            %   [soln,bounds] = F.solve;  % Returns the solution and the
+            %   [soln,bounds] = F.solve(returnType='soln');  % Returns the solution and the
             %                             % bounds for the FSP projection
             %   F.solutionScheme = 'fspSens'
-            %   [soln,bounds] = F.solve;  % Returns the sensitivity and the
+            %   [soln,bounds] = F.solve(returnType='soln');  % Returns the sensitivity and the
             %                             % bounds for the FSP projection
             % See also: SSIT.makePlot for information on how to visualize
             % the solution data. 
 
             if ~isempty(opts.solver)
                 obj.solutionScheme = opts.solver;
-                returnType = 'ssit';
-            else
-                returnType = 'soln';
             end
 
             if ~isempty(obj.specialEvents)&&~strcmpi(obj.solutionScheme(1:3),'fsp')
@@ -2491,7 +2488,7 @@ classdef SSIT
                 obj.fspOptions.krylovSize = 20;
             end
             try
-                if strcmp(returnType,'ssit') || nargout >= 2
+                if strcmp(opts.returnType,'ssit') || nargout >= 2
                     [Solution, bConstraints, obj] = obj.solveHelper(stateSpace,saveFile,fspSoln);
                 else
                     Solution = obj.solveHelper(stateSpace,saveFile,fspSoln);
@@ -2503,13 +2500,13 @@ classdef SSIT
                     disp(['(Re)Forming Propensity Function Files under new name: ',newPropFileName]);
                     obj = obj.formPropensitiesGeneral(newPropFileName);
                 end
-                if strcmp(returnType,'ssit') || nargout >= 2
+                if strcmp(opts.returnType,'ssit') || nargout >= 2
                     [Solution, bConstraints, obj] = obj.solveHelper(stateSpace,saveFile,fspSoln);
                 else
                     Solution = obj.solveHelper(stateSpace,saveFile,fspSoln);
                 end
             end
-            switch returnType
+            switch opts.returnType
                 case 'ssit'
                     Solution = obj;
             end
@@ -3175,8 +3172,7 @@ classdef SSIT
                         sensSoln = obj.Solutions.sens;
                     else
                         % disp({'Running Sensitivity Calculation';'You can skip this step by providing sensSoln.'})
-                        obj.solutionScheme = 'fspSens';
-                        [sensSoln] = obj.solve;
+                        sensSoln = obj.solve(solver='fspSens',returnType='soln');
                         sensSoln = sensSoln.sens;
                     end
                 end
@@ -3731,7 +3727,7 @@ classdef SSIT
             for i=1:size(obj.parameters,1)
                 obj.parameters{i,2} = round(obj.parameters{i,2},12);
             end
-            solutions = obj.solve;  % Solve the ODE analysis
+            solutions = obj.solve(returnType='soln');  % Solve the ODE analysis
 
             obj.parameters =  originalPars;
 
@@ -3845,10 +3841,10 @@ classdef SSIT
                 % sensitivity.
                 if computeSensitivity&&nargout>=2
                     obj.solutionScheme = 'fspSens'; % Chosen solution scheme
-                    [solutions] = obj.solve(stateSpace);  % Solve the FSP analysis
+                    [solutions] = obj.solve(stateSpace,returnType='soln');  % Solve the FSP analysis
                 else
                     obj.solutionScheme = 'FSP'; % Chosen solution scheme
-                    [solutions] = obj.solve(stateSpace);  % Solve the FSP analysis
+                    [solutions] = obj.solve(stateSpace,returnType='soln');  % Solve the FSP analysis
                 end
                 obj.parameters =  originalPars; % Reset back to the original parameters.
                 % end
@@ -4234,7 +4230,7 @@ classdef SSIT
                 obj.parameters(indsParsToFit,2) =  num2cell(pars(1:nModelPars));
 
                 % Solve model
-                [solutions] = obj.solve;  % Solve the SSA analysis
+                [solutions] = obj.solve(returnType='soln');  % Solve the SSA analysis
 
                 obj.parameters =  originalPars; % Reset back to the original parameters.
             end
@@ -4361,7 +4357,7 @@ classdef SSIT
             obj.fittingOptions.modelVarsToFit = parIndices;  % Choose which parameters to vary.
             pars0 = [obj.parameters{obj.fittingOptions.modelVarsToFit,2}];
 
-            fspSoln = obj.solve();
+            fspSoln = obj.solve(returnType='soln');
             stateSpace = fspSoln.stateSpace;
 
             Ngrid=length(scalingRange);
@@ -4407,18 +4403,19 @@ classdef SSIT
                 opts.parGuess = [];
                 opts.fitOptions = [];
                 opts.fitAlgorithm = [];
+                opts.returnType = 'ssit';
             end
             % Compute the maximum likelihood estimate (if priors are not
             % provided) or the maximum posterior estimate (if priors are
             % provided).  
 
             % Parse optional options
-            returnType = 'default';
+            % returnType = 'default';
             fieldNames = fields(opts);
             for i = 1:length(fieldNames)
                 if ~isempty(opts.(fieldNames{i}))
                     eval([fieldNames{i},'=opts.(fieldNames{i});']);
-                    returnType = 'ssit';
+                    % returnType = 'ssit';
                 end
             end
 
@@ -4445,7 +4442,7 @@ classdef SSIT
             end
 
             if strcmpi(obj.solutionScheme,'FSP')   % Set solution scheme to FSP.
-                [FSPsoln,~,obj] = obj.solve;  % Solve the FSP analysis
+                [FSPsoln,~,obj] = obj.solve(returnType='soln');  % Solve the FSP analysis
                 % obj.fspOptions.bounds = bounds;% Save bound for faster analyses
                 if allFitOptions.suppressFSPExpansion
                     tmpFSPtol = obj.fspOptions.fspTol;
@@ -4562,7 +4559,7 @@ classdef SSIT
                     if allFitOptions.useFIMforMetHast
                         TMP = obj;
                         TMP.solutionScheme = 'fspSens'; % Set solutions scheme to FSP Sensitivity
-                        [sensSoln] = TMP.solve;  % Solve the sensitivity problem
+                        [sensSoln] = TMP.solve(returnType='soln');  % Solve the sensitivity problem
 
                         if allFitOptions.logForm
                             fimResults = TMP.computeFIM(sensSoln.sens,'log');
@@ -4666,13 +4663,13 @@ classdef SSIT
 
             % Check if the fit resulted in better parameters for max
             % posterior and update if so.
-            if nargout>=4||strcmpi(returnType,'ssit')
+            if nargout>=4||strcmpi(opts.returnType,'ssit')
                 if obj.computeLikelihood(exp(x0))>obj.computeLikelihood([obj.parameters{obj.fittingOptions.modelVarsToFit,2}])
                     % Update best parameters set in returned model.
                     obj.parameters(obj.fittingOptions.modelVarsToFit,2) = num2cell(exp(x0));
                 end
             end
-            if strcmpi(returnType,'ssit')
+            if strcmpi(opts.returnType,'ssit')
                 output = obj;
             end
         end
@@ -4718,9 +4715,8 @@ classdef SSIT
             % Switch solution scheme to 'ssa'
             if ~strcmpi(obj.solutionScheme,'ssa')
                 disp('Changing solution scheme to SSA for ABC.')
-                obj.solutionScheme = 'ssa';
                 % Run once to make sure SSA files are defined.
-                [~,~,obj] = obj.solve;
+                obj = obj.solve(solver='ssa');
             end
         
             % Define the objective in *parameter* space (theta, not log-theta)
@@ -4921,13 +4917,13 @@ classdef SSIT
             % Examples:
             %   F = SSIT('ToggleSwitch')
             %   F.solutionScheme = 'FSP'
-            %   [FSPsoln,bounds] = F.solve;  % Returns the solution and the
+            %   [FSPsoln,bounds] = F.solve(returnType='soln');  % Returns the solution and the
             %                                % bounds for the FSP projection
             %   F.makePlot(FSPsoln,'marginals')  % Make plot of FSP
             %                                    % marginal distributions
             %
             %   F.solutionScheme = 'fspSens'
-            %   [sensSoln,bounds] = F.solve;  % Returns the sensitivity and the
+            %   [sensSoln,bounds] = F.solve(returnType='soln');  % Returns the sensitivity and the
             %                                   bounds for the FSP projection
             %   F.makePlot(sensSoln,'marginals') % Make plot of sensitivities
             %                                      of marginal distributions
@@ -5772,13 +5768,11 @@ end
             priorSolutionScheme = obj.solutionScheme;
             if ~isfield(obj.Solutions,'trajs')
                 disp('No SSA trajectories found. Rerunning now');
-                obj.solutionScheme = 'ssa';
-                [~,~,obj] = obj.solve;
+                obj = obj.solve(solver='ssa');
             end
             if ~isfield(obj.Solutions,'fsp')
                 disp('No FSP solution found. Rerunning now');
-                obj.solutionScheme = 'fsp';
-                [~,~,obj] = obj.solve;               
+                obj = obj.solve(solver='fsp');               
             end
             obj.solutionScheme = priorSolutionScheme;
 

@@ -23,9 +23,9 @@ classdef poissonTVtest < matlab.unittest.TestCase
             testCase1.TvPoiss.inputExpressions = {'Ig','t>1'};
             testCase1.TvPoiss = testCase1.TvPoiss.formPropensitiesGeneral('PoissTV');
 
-            [~,~,testCase1.TvPoiss] = testCase1.TvPoiss.solve;
+            testCase1.TvPoiss = testCase1.TvPoiss.solve;
             tic
-            [~,~,testCase1.TvPoiss]  = testCase1.TvPoiss.solve;
+            testCase1.TvPoiss  = testCase1.TvPoiss.solve;
             testCase1.TvPoissSolution.time = toc;
 
             %% ODE model for TV Poisson process
@@ -84,7 +84,7 @@ classdef poissonTVtest < matlab.unittest.TestCase
                 (1-exp(-testCase.PoissTVODE.parameters{2,2}*tp));
             
             Model = testCase.PoissTVODE;
-            odeSoln = Model.solve;
+            odeSoln = Model.solve(returnType='soln');
 
             diff = abs(odeSoln.ode-mn');
             relDiff = sum(diff(mn>0)./mn(mn>0)')/length(odeSoln.ode);
@@ -100,7 +100,7 @@ classdef poissonTVtest < matlab.unittest.TestCase
                 testCase.TvPoiss.odeIntegrator = odeOptions{i};
                 tic
                 for j = 1:10
-                    tmpSoln = testCase.TvPoiss.solve;
+                    tmpSoln = testCase.TvPoiss.solve(returnType='soln');
                 end
                 timed = toc;
                 disp([odeOptions{i},': ',num2str(timed/10),'s'])

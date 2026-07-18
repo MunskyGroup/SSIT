@@ -20,9 +20,9 @@ classdef poisson2Dtest < matlab.unittest.TestCase
             testCase1.TwoDPoiss.tSpan = linspace(0,2,21);
             testCase1.TwoDPoiss = testCase1.TwoDPoiss.formPropensitiesGeneral('TwoPoiss');
 
-            [testCase1.TwoDPoissSolution,testCase1.TwoDPoiss.fspOptions.bounds] = testCase1.TwoDPoiss.solve;
+            [testCase1.TwoDPoissSolution,testCase1.TwoDPoiss.fspOptions.bounds] = testCase1.TwoDPoiss.solve(returnType='soln');
             tic
-            [testCase1.TwoDPoissSolution,testCase1.TwoDPoiss.fspOptions.bounds] = testCase1.TwoDPoiss.solve(testCase1.TwoDPoissSolution.stateSpace);
+            [testCase1.TwoDPoissSolution,testCase1.TwoDPoiss.fspOptions.bounds] = testCase1.TwoDPoiss.solve(testCase1.TwoDPoissSolution.stateSpace,returnType='soln');
             testCase1.TwoDPoissSolution.time = toc;
 
             %% ODE model for Two Poisson process
@@ -85,7 +85,7 @@ classdef poisson2Dtest < matlab.unittest.TestCase
             HybridModel.useHybrid = true;
             HybridModel.hybridOptions.upstreamODEs = {'rna1'};
             HybridModel = HybridModel.formPropensitiesGeneral('Hybrid');
-            [hybSoln, HybridModel.fspOptions.bounds] = HybridModel.solve;
+            [hybSoln, HybridModel.fspOptions.bounds] = HybridModel.solve(returnType='soln');
 
             t = HybridModel.tSpan;
             mn1 = HybridModel.parameters{1,2}/HybridModel.parameters{2,2}*...
@@ -133,7 +133,7 @@ classdef poisson2Dtest < matlab.unittest.TestCase
             
             Model = testCase.TwoDPoissODE;
             Model.fspOptions.initApproxSS = true;
-            [~,~,Model] = Model.solve;
+            Model = Model.solve;
 
             relDiff1 = max(abs((Model.Solutions.ode(:,1)-mn1')./mn1'));
             relDiff2 = max(abs((Model.Solutions.ode(:,2)-mn2')./mn2'));
@@ -196,7 +196,7 @@ classdef poisson2Dtest < matlab.unittest.TestCase
             % testCase.Poiss.tSpan = [0:0.05:max(testCase.Poiss.tSpan)];
             
             % Update solution.
-            [~,~,testCase.TwoDPoiss] = testCase.TwoDPoiss.solve;
+            testCase.TwoDPoiss = testCase.TwoDPoiss.solve;
 
             delete 'testData.csv'
             testCase.TwoDPoiss.ssaOptions.nSimsPerExpt = 1000;

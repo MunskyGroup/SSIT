@@ -128,7 +128,7 @@ classdef SSITMultiModel
                 end
 
                 if strcmp(Model.solutionScheme,'FSP')
-                    [fspSoln,SMM.SSITModels{i}.fspOptions.bounds] = Model.solve;
+                    [fspSoln,SMM.SSITModels{i}.fspOptions.bounds] = Model.solve(returnType='soln');
                     % Initialize the structure for the current model
                     fspSolnsSMM(i).fsp = cell(numel(fspSoln.fsp), 1); % Cell array for FSP solutions
                     for f=1:numel(fspSoln.fsp)
@@ -165,8 +165,8 @@ classdef SSITMultiModel
                 end
 
                 if strcmp(Model1.solutionScheme,'FSP')
-                    [fspSoln1,SMM1.SSITModels{i}.fspOptions.bounds] = Model1.solve;
-                    [fspSoln2,SMM2.SSITModels{i}.fspOptions.bounds] = Model2.solve;
+                    [fspSoln1,SMM1.SSITModels{i}.fspOptions.bounds] = Model1.solve(returnType='soln');
+                    [fspSoln2,SMM2.SSITModels{i}.fspOptions.bounds] = Model2.solve(returnType='soln');
                     % Initialize the structure for the current model
                     fspSolnsSMM1(i).fsp = cell(numel(fspSoln1.fsp), 1); % Cell array for FSP solutions
                     fspSolnsSMM2(i).fsp = cell(numel(fspSoln2.fsp), 1); % Cell array for FSP solutions
@@ -242,12 +242,12 @@ classdef SSITMultiModel
             p = gcp("nocreate");
             if isempty(p)
                 for i = 1:length(SMM.SSITModels)
-                    [~,~,SMM.SSITModels{i}] = SMM.SSITModels{i}.solve;
+                    SMM.SSITModels{i} = SMM.SSITModels{i}.solve;
                 end
             else
                 SSITModelsL = SMM.SSITModels;
                 parfor i = 1:length(SMM.SSITModels)
-                    [~,~,SSITModelsL{i}] = SSITModelsL{i}.solve;
+                    SSITModelsL{i} = SSITModelsL{i}.solve;
                 end
                 SMM.SSITModels = SSITModelsL;
             end
