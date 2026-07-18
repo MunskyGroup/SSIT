@@ -57,7 +57,7 @@ STL1_4state.tSpan = linspace(0,50,101);
     Model_FSP = Model_FSP.formPropensitiesGeneral('Model_FSP');
     
     % Solve with FSP:
-    [~,~,Model_FSP] = Model_FSP.solve; 
+    Model_FSP = Model_FSP.solve(solver='FSP');
     
     % Means and standard deviations:
     Model_FSP.plotFSP(speciesNames=Model_FSP.species,...
@@ -103,7 +103,7 @@ STL1_4state.tSpan = linspace(0,50,101);
     STL1_FSP = STL1_FSP.formPropensitiesGeneral('STL1_FSP');
     
     % Solve with FSP:
-    [~,~,STL1_FSP] = STL1_FSP.solve; 
+    STL1_FSP = STL1_FSP.solve(solver='FSP');
     
     % Means and standard deviations:
     STL1_FSP.plotFSP(speciesNames=STL1_FSP.species,...
@@ -150,7 +150,7 @@ STL1_4state.tSpan = linspace(0,50,101);
         STL1_4state_FSP.formPropensitiesGeneral('STL1_4state_FSP');
     
     % Solve Model:
-    [~,~,STL1_4state_FSP] = STL1_4state_FSP.solve; 
+    STL1_4state_FSP = STL1_4state_FSP.solve(solver='FSP'); 
     
     %% Plots for FSP solutions:
     % Means only:

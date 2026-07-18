@@ -1,10 +1,13 @@
 % Install all SSIT tools and packages
-install
-%%
+% install
+
 % Load STL1_4state model (see SI for manual creation)
 STL1_4state = SSIT('STL1_4state');
 % Solve ODEs:
 STL1_4state = STL1_4state.solve(solver='ODE');
+% STL1_4state.solutionScheme = 'ODE';
+% STL1_4state.Solutions = STL1_4state.solve; 
+
 % Plot ODE solutions for mRNA:
 STL1_4state.plotODE(speciesNames={'mRNA'}, timeVec=STL1_4state.tSpan, ...
     lineProps={'linewidth',4}, TitleFontSize=26, Title='4-state STL1 (mRNA)', ...

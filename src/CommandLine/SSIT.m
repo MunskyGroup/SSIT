@@ -2491,7 +2491,7 @@ classdef SSIT
                 obj.fspOptions.krylovSize = 20;
             end
             try
-                if nargout>=2
+                if strcmp(returnType,'ssit') || nargout >= 2
                     [Solution, bConstraints, obj] = obj.solveHelper(stateSpace,saveFile,fspSoln);
                 else
                     Solution = obj.solveHelper(stateSpace,saveFile,fspSoln);
@@ -2503,7 +2503,7 @@ classdef SSIT
                     disp(['(Re)Forming Propensity Function Files under new name: ',newPropFileName]);
                     obj = obj.formPropensitiesGeneral(newPropFileName);
                 end
-                if nargout>=2
+                if strcmp(returnType,'ssit') || nargout >= 2
                     [Solution, bConstraints, obj] = obj.solveHelper(stateSpace,saveFile,fspSoln);
                 else
                     Solution = obj.solveHelper(stateSpace,saveFile,fspSoln);

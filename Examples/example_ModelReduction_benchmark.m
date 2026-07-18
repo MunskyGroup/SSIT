@@ -1,8 +1,5 @@
 % In this example, we show how to create reduced FSP models using different
 % types of projectionbased transformations.
-% close all 
-% clear all
-% addpath(genpath('../src'));
 
 %% First, choose a model on which to illustrate the reduction approximation,
 % or you can create your own. Here are the example options defined below:
@@ -70,8 +67,7 @@ switch testModel
         Model1.stoichiometry = [1,-1,0,0;0,0,1,-1];
         Model1.parameters = ({'kr',40;'gr',1;'kp',20;'gp',1});
         Model1.fspOptions.initApproxSS = false;
-        Model1.tSpan = linspace(0,5,12);
-    
+        Model1.tSpan = linspace(0,5,12);   
     case 4 % Time varying model (DUSP1)
         Model1 = SSIT;
         Model1.species = {'ActiveGene';'mRNA'};
@@ -88,7 +84,8 @@ end
 %% Solve the original Model (for comparison)
 % Solve once to get the necessary FSP projection space.
 Model1 = Model1.formPropensitiesGeneral('Model1');
-[fspSoln,Model1.fspOptions.bounds] = Model1.solve;
+Model1.solve;
+fspSoln = Model1.Solutions;
 
 % Solve again to record FSP solution time following expansion.
 tic
