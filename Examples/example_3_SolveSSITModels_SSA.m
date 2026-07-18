@@ -34,42 +34,35 @@ STL1_4state.tSpan = linspace(0,50,101);
 %% Run Gillepsie's Stochastic Simulation Algorithm (SSA) and analyse 
 %% trajectories
 %% Model:
-    % Create a copy of the bursting gene model for SSA:
-    Model_SSA = Model;
-
-    % Set solution scheme to SSA:
-    Model_SSA.solutionScheme = 'SSA';
-
-    % 'nSimsPerExpt' is an SSA option that defaults to 100, sets the number
-    % of simulations performed per experiment (set small number for demo):
-    Model_SSA.ssaOptions.nSimsPerExpt=10;
+    % Set the number of simulations:
+    Model.ssaOptions.nSims=1000;
 
     % 'verbose' defaults to false, prints completed sim number to screen.
-    Model_SSA.ssaOptions.verbose=true;
+    Model.ssaOptions.verbose=true;
     
     % A negative initial time is used to allow model to equilibrate 
     % before starting (burn-in). Large burn-in times cause long run times.
-    Model_SSA.tSpan = [-100,Model_SSA.tSpan];
+    Model.tSpan = [-100,Model.tSpan];
     
     % Set the initial time:
-    Model_SSA.initialTime = Model_SSA.tSpan(1); 
+    Model.initialTime = Model.tSpan(1); 
     
     % Run iterations in parallel with multiple cores, or execute serially:
-    Model_SSA.ssaOptions.useParallel = true;
+    Model.ssaOptions.useParallel = true;
     
     % Run SSA:
-    Model_SSA.Solutions = Model_SSA.solve;
+    Model = Model.solve(solver='SSA');
     
     % Plot SSA trajectories and means:
-    Model_SSA.plotSSA(speciesIdx='all', numTraj=10,...
-        speciesNames=Model_SSA.species, lineProps={'linewidth',4}, ...
+    Model.plotSSA(speciesIdx='all', numTraj=10,...
+        speciesNames=Model.species, lineProps={'linewidth',4}, ...
         Title="Bursting Gene", MeanOnly=true, TitleFontSize=32,...
         AxisLabelSize=24, TickLabelSize=24, LegendFontSize=20,...
         LegendLocation='east', XLabel='Time', YLabel='Molecule Count');
 
     %% Make a video of the SSA trajectories being plotted:
-    % makeSSAvideo(Model_SSAsoln, 'all', 100, Model_SSA.species, ...
-    %             'Model_SSA_video')
+    % makeSSAvideo(Model.Solutions, 'all', 100, Model.species, ...
+    %             'Model_video')
         
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(2): Use Gillepsie's Stochastic Simulation Algorithm (SSA) 
@@ -78,43 +71,33 @@ STL1_4state.tSpan = linspace(0,50,101);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% STL1 model:
-    % Create a copy of the time-varying STL1 yeast model for SSA:
-    STL1_SSA = STL1;
-
-    % Set solution scheme to SSA:
-    STL1_SSA.solutionScheme = 'SSA';
-
-    % 'nSimsPerExpt' is an SSA option that defaults to 100, sets the number
-    % of simulations performed per experiment (set small number for demo):
-    STL1_SSA.ssaOptions.nSimsPerExpt=10;
-
-    % 'verbose' defaults to false, prints completed sim number to screen:
-    STL1_SSA.ssaOptions.verbose=true;
+    % Set the number of simulations:
+    STL1.ssaOptions.nSims=1000;
     
     % A negative initial time is used to allow model to equilibrate 
     % before starting (burn-in). Large burn-in times cause long run times.
-    STL1_SSA.tSpan = [-100,STL1_SSA.tSpan];
+    STL1.tSpan = [-100,STL1.tSpan];
 
     % Set the initial time:
-    STL1_SSA.initialTime = STL1_SSA.tSpan(1); 
+    STL1.initialTime = STL1.tSpan(1); 
     
     % Run iterations in parallel with multiple cores, or execute serially:
-    STL1_SSA.ssaOptions.useParallel = true;
+    STL1.ssaOptions.useParallel = true;
     
     % Run SSA:
-    STL1_SSA.Solutions = STL1_SSA.solve;
+    STL1 = STL1.solve(solver='SSA');
             
     % Plot SSA trajectories and means:
-    STL1_SSA.plotSSA(speciesIdx='all', numTraj=100,...
-        speciesNames=STL1_SSA.species, lineProps={'linewidth',4},...
+    STL1.plotSSA(speciesIdx='all', numTraj=100,...
+        speciesNames=STL1.species, lineProps={'linewidth',4},...
         Title="STL1", MeanOnly=true, TitleFontSize=32,...
         AxisLabelSize=24, TickLabelSize=24,...
         LegendFontSize=20, LegendLocation='east',...
         XLabel='Time', YLabel='Molecule Count');
 
     %% Make a video of the SSA trajectories being plotted:
-    % makeSSAvideo(STL1_SSAsoln, 'all', 100, STL1_SSA.species, ...
-    %             'STL1_SSA_video')
+    % makeSSAvideo(STL1.Solutions, 'all', 100, STL1.species, ...
+    %             'STL1_video')
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(3): Use Gillepsie's Stochastic Simulation Algorithm (SSA) 
@@ -123,56 +106,46 @@ STL1_4state.tSpan = linspace(0,50,101);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% 4-state STL1 model:
-    % Create a copy of the time-varying STL1 yeast model for SSA:
-    STL1_4state_SSA = STL1_4state;
-
-    % Set solution scheme to SSA:
-    STL1_4state_SSA.solutionScheme = 'SSA';
-
-    % 'nSimsPerExpt' is an SSA option that defaults to 100, sets the number
-    % of simulations performed per experiment (set small number for demo):
-    STL1_4state_SSA.ssaOptions.nSimsPerExpt=10;
-
-    % 'verbose' defaults to false, prints completed sim number to screen.
-    STL1_4state_SSA.ssaOptions.verbose=true;
+    % Set the number of simulations:
+    STL1_4state.ssaOptions.nSims=1000;
        
     % A negative initial time is used to allow model to equilibrate 
     % before starting (burn-in). Large burn-in times cause long run times.
-    STL1_4state_SSA.tSpan = [-100,STL1_4state_SSA.tSpan];
+    STL1_4state.tSpan = [-100,STL1_4state.tSpan];
 
     % Set the initial time:
-    STL1_4state_SSA.initialTime = STL1_4state_SSA.tSpan(1); 
+    STL1_4state.initialTime = STL1_4state.tSpan(1); 
     
     % Run iterations in parallel with multiple cores, or execute serially:
-    STL1_4state_SSA.ssaOptions.useParallel = true;
+    STL1_4state.ssaOptions.useParallel = true;
     
     % Run SSA:
-    STL1_4state_SSA.Solutions = STL1_4state_SSA.solve;
+    STL1_4state = STL1_4state.solve(solver='SSA');
             
     % Plot SSA trajectories and means (mRNA):
-    STL1_4state_SSA.plotSSA(speciesIdx='all', numTraj=100,...
-        speciesNames=STL1_4state_SSA.species(5), MeanOnly=false,...
+    STL1_4state.plotSSA(speciesIdx='all', numTraj=100,...
+        speciesNames=STL1_4state.species(5), MeanOnly=false,...
         lineProps={'linewidth',4}, Title="4-state STL1 (mRNA)",...
         TitleFontSize=26, AxisLabelSize=20, TickLabelSize=20,...
         LegendFontSize=20, LegendLocation='northeast', HistTime=20,...
         XLabel='Time', YLabel='Molecule Count', Colors=[0.23,0.67,0.20]);  
 
     % Plot SSA trajectories and means (gene states):
-    STL1_4state_SSA.plotSSA(speciesIdx='all', numTraj=100,...
-        speciesNames=STL1_4state_SSA.species(1:4),...
+    STL1_4state.plotSSA(speciesIdx='all', numTraj=100,...
+        speciesNames=STL1_4state.species(1:4),...
         lineProps={'linewidth',4}, Title="4-state STL1 (gene states)",...
         MeanOnly=true, TitleFontSize=26, AxisLabelSize=20,...
         TickLabelSize=20, LegendFontSize=20, LegendLocation='east',...
         XLabel='Time', YLabel='Molecule Count', makeMovie=false); 
 
     %% Make a video of the SSA trajectories being plotted:
-    % makeSSAvideo(STL1_4state_SSAsoln, 'all', 100, ...
-    %              STL1_4state_SSA.species, 'STL1_SSA_video_4state')
+    % makeSSAvideo(STL1_4state.Solutions, 'all', 100, ...
+    %              STL1_4state.species, 'STL1_video_4state')
 
 %% Save SSA models & solutions
-saveNames = unique({'Model_SSA'
-    'STL1_SSA'
-    'STL1_4state_SSA'
+saveNames = unique({'Model'
+    'STL1'
+    'STL1_4state'
     });
     
 save('example_3_SolveSSITModels_SSA',saveNames{:})
