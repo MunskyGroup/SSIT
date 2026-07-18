@@ -35,17 +35,8 @@ STL1_4state.tSpan = linspace(0,50,101);
     % Create a copy of the bursting gene model for ODEs:
     Model_ODE = Model;
 
-    % Set solution scheme to 'ODE':
-    Model_ODE.solutionScheme = 'ODE';
-    
-    % This function compiles and stores the given reaction propensities  
-    % into symbolic expression functions that use sparse matrices to  
-    % operate on the system based on the current state. The functions are 
-    % stored with the given prefix, in this case, 'Model_ODE':
-    Model_ODE = Model_ODE.formPropensitiesGeneral('Model_ODE');
-    
     % Solve ODEs:
-    Model_ODE.Solutions = Model_ODE.solve; 
+    Model_ODE = Model_ODE.solve(solver='ODE'); 
 
     % Plot ODE solutions:
     Model_ODE.plotODE(speciesNames=Model_ODE.species,...
@@ -63,18 +54,9 @@ STL1_4state.tSpan = linspace(0,50,101);
 %% STL1 Model:
     % Create a copy of the time-varying STL1 yeast model for ODEs:
     STL1_ODE = STL1;
-
-    % Set solution scheme to 'ODE':
-    STL1_ODE.solutionScheme = 'ODE';
-    
-    % This function compiles and stores the given reaction propensities  
-    % into symbolic expression functions that use sparse matrices to  
-    % operate on the system based on the current state. The functions are 
-    % stored with the given prefix, in this case, 'STL1_ODE':
-    STL1_ODE = STL1_ODE.formPropensitiesGeneral('STL1_ODE');
     
     % Solve ODEs:
-    STL1_ODE.Solutions = STL1_ODE.solve; 
+    STL1_ODE = STL1_ODE.solve(solver='ODE'); 
 
     % Plot ODE solutions:
     STL1_ODE.plotODE(speciesNames=STL1_ODE.species,...
@@ -94,21 +76,11 @@ STL1_4state.tSpan = linspace(0,50,101);
     % Create a copy of the time-varying STL1 yeast model for ODEs:
     STL1_4state_ODE = STL1_4state;
 
-    % Set solution scheme to 'ODE':E 
-    STL1_4state_ODE.solutionScheme = 'ODE';
-
     % Set the ODE integrator (default 'ode23s'):
     STL1_4state_ODE.odeIntegrator = 'ode23s';
-    
-    % This function compiles and stores the given reaction propensities  
-    % into symbolic expression functions that use sparse matrices to  
-    % operate on the system based on the current state. The functions are 
-    % stored with the given prefix, in this case, 'STL1_4state_ODE':
-    STL1_4state_ODE = ...
-        STL1_4state_ODE.formPropensitiesGeneral('STL1_4state_ODE');
-    
+        
     % Solve ODEs:
-    STL1_4state_ODE.Solutions = STL1_4state_ODE.solve; 
+    STL1_4state_ODE = STL1_4state_ODE.solve(solver='ODE'); 
 
     % Plot ODE solutions for mRNA:
     STL1_4state_ODE.plotODE(speciesNames=STL1_4state_ODE.species(5),...
