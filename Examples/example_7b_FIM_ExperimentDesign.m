@@ -17,19 +17,16 @@
 %% Load pre-run results (pre-loaded data):
 load('example_8_LoadingandFittingData_DataLoading.mat')
 
-% Make a copy of our model:
-STL1_4state_design = STL1_4state_data;
-
 % Compute FIM results:
-fimResults = STL1_4state_design.computeFIM([],'log',[]);
+fimResults = STL1_4state.computeFIM(scale='log');
 
 % Get the number of cells from loaded experimental data using 'nCells':
-cellCounts_data = STL1_4state_design.dataSet.nCells*...
-                 ones(size(STL1_4state_design.tSpan));
+cellCounts_data = STL1_4state.dataSet.nCells*...
+                 ones(size(STL1_4state.tSpan));
 
 % Compile and store propensities:
-STL1_4state_design = ...
-    STL1_4state_design.formPropensitiesGeneral('STL1_4state_design');
+STL1_4state = ...
+    STL1_4state.formPropensitiesGeneral('STL1_4state_design');
 
 %% Experiment Design
 % Find the FIM-based designs for a total cells 
@@ -46,22 +43,22 @@ STL1_4state_design = ...
 nCol = sum(cellCounts_data);
 nTotal = nCol(1);
 nCellsOpt_Dcov = ...
-    STL1_4state_design.optimizeCellCounts(fimResults,nTotal,'D-cov');
+    STL1_4state.optimizeCellCounts(fimResults,nTotal,'D-cov');
 nCellsOpt_Trace = ...
-    STL1_4state_design.optimizeCellCounts(fimResults,nTotal,'Trace');
+    STL1_4state.optimizeCellCounts(fimResults,nTotal,'Trace');
 nCellsOpt_Doptsub = ...
-    STL1_4state_design.optimizeCellCounts(fimResults,nTotal,...
+    STL1_4state.optimizeCellCounts(fimResults,nTotal,...
                                           'D-opt-sub[1:8]');
 nCellsOpt_DoptsubR = ...
-    STL1_4state_design.optimizeCellCounts(fimResults,nTotal,...
+    STL1_4state.optimizeCellCounts(fimResults,nTotal,...
                                           'D-opt-sub[9:13]');
 nCellsOpt_DoptsubI = ...
-    STL1_4state_design.optimizeCellCounts(fimResults,nTotal,...
+    STL1_4state.optimizeCellCounts(fimResults,nTotal,...
                                           'D-opt-sub[14:18]');
 
 %% Make a bar chart to compare the different designs
 % Find which x positions correspond to time=30 and time=60 for off-setting:
-t = STL1_4state_design.tSpan;
+t = STL1_4state.tSpan;
 x = 1:size(t,2);   
 
 f = figure;
