@@ -2964,7 +2964,7 @@ classdef SSIT
             end
         end
 
-        function A = sampleDataFromFSP(obj,fspSoln,saveFile,nCells,species2save)
+        function A = sampleDataFromFSP(obj,fspSoln,saveFile,nCells,species2save,opts)
             % Function to create simulated single-cell snapshot data by
             % sampling from the FSP solution.
             % Arguments:
@@ -2976,7 +2976,19 @@ classdef SSIT
                 saveFile = [];
                 nCells = [];
                 species2save = {};
+                opts.fspSoln = [];
+                opts.saveFile = [];
+                opts.nCells = [];
             end
+            % Parse optional options
+            % returnType = 'default';
+            fieldNames = fields(opts);
+            for i = 1:length(fieldNames)
+                if ~isempty(opts.(fieldNames{i}))
+                    eval([fieldNames{i},'=opts.(fieldNames{i});']);
+                end
+            end
+
             Solution.T_array = obj.tSpan;
             Nt = length(Solution.T_array);
             
