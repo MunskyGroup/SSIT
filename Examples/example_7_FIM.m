@@ -19,9 +19,9 @@
 load('example_4_SolveSSITModels_FSP.mat')
 
 % View model summaries:
-Model_FSP.summarizeModel
-STL1_FSP.summarizeModel
-STL1_4state_FSP.summarizeModel
+Model.summarizeModel
+STL1.summarizeModel
+STL1_4state.summarizeModel
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(1): Compute the Fisher Information Matrix for the bursting gene model
@@ -30,47 +30,41 @@ STL1_4state_FSP.summarizeModel
 
 %% Compute FIMs using FSP sensitivity results
 % Compute the FIM:
-Model_FIM = Model_FSP;
-Model_fimResults = Model_FIM.computeFIM([],'log',[]); 
+Model_fimResults = Model.computeFIM(scale='log'); 
 
 % Generate a count of measured cells (in place of real data):
-Model_cellCounts = 100*ones(size(Model_FIM.tSpan));
+Model_cellCounts = 100*ones(size(Model.tSpan));
 
 % Evaluate the provided experiment design (in "cellCounts") 
 % and produce an array of FIMs (one for each parameter set):
 [Model_fimTotal,Model_mleCovEstimate,Model_fimMetrics] = ...
-    Model_FIM.evaluateExperiment(Model_fimResults,Model_cellCounts)
+    Model.evaluateExperiment(Model_fimResults,Model_cellCounts)
 
-theta0 = [Model_FIM.parameters{:,2}];
+theta0 = [Model.parameters{:,2}];
 
-Model_FIM.plotFIMResults(Model_fimTotal, 'log', Model_FIM.parameters,...
+Model.plotFIMResults(Model_fimTotal, 'log', Model.parameters,...
                          theta0, PlotEllipses=true);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(2): Compute the Fisher Information Matrix for the STL1 yeast model
 %  from example_1_CreateSSITModels
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-% Make a copy of the time-varying STL1 yeast model with solved 
-% sensitivities:
-STL1_FIM = STL1_FSP;
-
 %% Compute FIMs using FSP sensitivity results
 % Compute the FIM:
-STL1_fimResults = STL1_FIM.computeFIM([],'log',[]); 
+STL1_fimResults = STL1.computeFIM(scale='log'); 
 
 % Generate a count of measured cells (in place of real data):
-STL1_cellCounts = 100*ones(size(STL1_FIM.tSpan));
+STL1_cellCounts = 100*ones(size(STL1.tSpan));
 
 % Evaluate the provided experiment design (in "cellCounts") 
 % and produce an array of FIMs (one for each parameter set):
 [STL1_fimTotal,STL1_mleCovEstimate,STL1_fimMetrics] = ...
-    STL1_FIM.evaluateExperiment(STL1_fimResults,STL1_cellCounts)
+    STL1.evaluateExperiment(STL1_fimResults,STL1_cellCounts)
 
-STL1_theta0 = [STL1_FIM.parameters{:,2}];
+STL1_theta0 = [STL1.parameters{:,2}];
 
 % Plot the FIMs:
-STL1_FIM.plotFIMResults(STL1_fimTotal, 'log', STL1_FIM.parameters,...
+STL1.plotFIMResults(STL1_fimTotal, 'log', STL1.parameters,...
                         STL1_theta0, PlotEllipses=true,...
                         EllipsePairs=[1 3; 1 4; 3 4; 7 8; 3 6; 2 7]);
 
@@ -78,56 +72,51 @@ STL1_FIM.plotFIMResults(STL1_fimTotal, 'log', STL1_FIM.parameters,...
 %% Ex(3): Compute the FIM for the 4-state STL1 yeast model
 %  from example_1_CreateSSITModels
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-% Make a copy of the 4-state time-varying STL1 yeast model with solved 
-% sensitivities:
-STL1_4state_FIM = STL1_4state_FSP;
-
 % Define indices of free parameters for FIM sub matrix. Here, Hog1 input 
 % parameters are experimentally known (thus fixed) and all others are free:
 freePars = 1:13;
 
 %% Compute FIMs using FSP sensitivity results
 % Compute the full FIM:
-STL1_4state_fimResults_full = STL1_4state_FIM.computeFIM([],'log',[]); 
+STL1_4state_fimResults_full = STL1_4state.computeFIM(scale='log'); 
 
 % Compute the FIM sub matrix for free parameters:
 STL1_4state_fimResults_free = ...
-    STL1_4state_FIM.computeFIM([],'log',[],freePars);
+    STL1_4state.computeFIM(scale='log',freePars=freePars);
 
 % Generate a count of measured cells:
-cellCounts = 1000*ones(size(STL1_4state_FIM.tSpan));
+cellCounts = 1000*ones(size(STL1_4state.tSpan));
 
 % - Or, get the number of cells using 'nCells':
 % STL1_4state_cellCounts = ...
-% STL1_4state_data.dataSet.nCells*ones(size(STL1_4state_FIM.tSpan));
+% STL1_4state_data.dataSet.nCells*ones(size(STL1_4state.tSpan));
 
 
 % Evaluate the provided experiment design (in "cellCounts") 
 % and produce an array of FIMs (one for each parameter set):
 [STL1_4state_fimTotal_full,STL1_4state_mleCovEstimate_full,...
     STL1_4state_fimMetrics_full] = ...
-    STL1_4state_FIM.evaluateExperiment(STL1_4state_fimResults_full,...
+    STL1_4state.evaluateExperiment(STL1_4state_fimResults_full,...
                                        cellCounts)
 
 [STL1_4state_fimTotal_free,STL1_4state_mleCovEstimate_free,...
     STL1_4state_fimMetrics_free] = ...
-    STL1_4state_FIM.evaluateExperiment(STL1_4state_fimResults_free,...
+    STL1_4state.evaluateExperiment(STL1_4state_fimResults_free,...
                                        cellCounts)
 
 % Plot the FIMs (full):
 f1 = figure(11);
 f2 = figure(12);
-STL1_4state_FIM.plotFIMResults(STL1_4state_fimTotal_full, 'log',...
-    STL1_4state_FIM.parameters, PlotEllipses=true, EllipseFigure=f1,...
+STL1_4state.plotFIMResults(STL1_4state_fimTotal_full, 'log',...
+    STL1_4state.parameters, PlotEllipses=true, EllipseFigure=f1,...
     EllipsePairs=[1 6; 2 3; 4 5; 6 13], FigureHandle=f2,...
     Colors=struct('EllipseColors',[0.2 0.6 0.9],...
     'CenterSquare',[0.96,0.47,0.16]));
 
 % Plot the FIMs (free):
 f3 = figure(13);
-STL1_4state_FIM.plotFIMResults(STL1_4state_fimTotal_free, 'log',...
-    STL1_4state_FIM.parameters(1:13),PlotEllipses=true,EllipseFigure=f1,...
+STL1_4state.plotFIMResults(STL1_4state_fimTotal_free, 'log',...
+    STL1_4state.parameters(1:13),PlotEllipses=true,EllipseFigure=f1,...
     EllipsePairs=[1 6; 2 3; 4 5; 6 13],FigureHandle=f3,...
     Colors=struct('EllipseColors',[0.9 0.6 0.2],...
     'CenterSquare',[0.96,0.47,0.16]));
@@ -167,20 +156,19 @@ STL1_4state_FIM.plotFIMResults(STL1_4state_fimTotal_free, 'log',...
 
 
 %% Save models & FIM results
-saveNames = unique({'Model_FIM'
+saveNames = unique({'Model'
     'Model_fimResults'
     'Model_cellCounts'
     'Model_fimTotal'
     'Model_mleCovEstimate'
     'Model_fimMetrics'
-    'STL1_FIM'
+    'STL1'
     'STL1_fimResults'
     'STL1_cellCounts'
     'STL1_fimTotal'
     'STL1_mleCovEstimate'
     'STL1_fimMetrics'
-    'STL1_4state_FIM'
-    'STL1_4state_FIM'
+    'STL1_4state'
     'STL1_4state_fimResults_full'
     'STL1_4state_fimResults_free'
     'cellCounts'
