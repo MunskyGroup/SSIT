@@ -19,28 +19,21 @@
 load('example_4_SolveSSITModels_FSP.mat')
 
 % View model summaries
-Model_FSP.summarizeModel
-STL1_FSP.summarizeModel
-STL1_4state_FSP.summarizeModel
+Model.summarizeModel
+STL1.summarizeModel
+STL1_4state.summarizeModel
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(1): Solve sensitivities of the bursting gene model
 %  from example_1_CreateSSITModels
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% Make a copy of the bursting gene model solved by FSP for sensitivity 
-% analysis:
-Model_sens = Model_FSP;
-
 %% Solve FSP sensitivities
-% Set solution schemes to FSP sensitivity:
-Model_sens.solutionScheme = 'fspSens'; 
-
 % Solve the sensitivity problem:
-[~,~,Model_sens] = Model_sens.solve(Model_FSP.Solutions.stateSpace);
+Model = Model.solve(solver='fspSens');
 
 % Plot the results from the sensitivity analysis:
-Model_sens.plotFSP(speciesNames=Model_FSP.species(3), plotType='sens',...
+Model.plotFSP(speciesNames=Model.species(3), plotType='sens',...
    indTimes=40, lineProps={'linewidth',3}, AxisLabelSize=12,...
    TickLabelSize=12, XLim=[0,10], TitleFontSize=22,...
    Title="Bursting Gene", Colors=[0.93,0.69,0.13])
@@ -50,19 +43,12 @@ Model_sens.plotFSP(speciesNames=Model_FSP.species(3), plotType='sens',...
 %  from example_1_CreateSSITModels
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% Make a copy of the time-varying STL1 yeast model solved by FSP for 
-% sensitivity analysis:
-STL1_sens = STL1_FSP;
-
 %% Solve FSP sensitivities
-% Set solution schemes to FSP sensitivity:
-STL1_sens.solutionScheme = 'fspSens'; 
-
 % Solve the sensitivity problem: 
-[~,~,STL1_sens] = STL1_sens.solve(STL1_FSP.Solutions.stateSpace); 
+STL1 = STL1.solve(solver='fspSens'); 
 
 % Plot the results from the sensitivity analysis:
-STL1_sens.plotFSP(speciesNames=STL1_FSP.species(3), plotType='sens',...
+STL1.plotFSP(speciesNames=STL1.species(3), plotType='sens',...
     indTimes=40, lineProps={'linewidth',3}, AxisLabelSize=12,...
     TickLabelSize=12, XLim=[0,10], Title="STL1",...
     TitleFontSize=22, Colors=[0.93,0.69,0.13])
@@ -71,19 +57,12 @@ STL1_sens.plotFSP(speciesNames=STL1_FSP.species(3), plotType='sens',...
 %% Ex(3): Solve sensitivities of the 4-state time-varying STL1 yeast model
 %  from example_1_CreateSSITModels
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-% Make a copy of the 4-state time-varying STL1 yeast model solved by FSP:
-STL1_4state_sens = STL1_4state_FSP;
-
 %% Solve FSP sensitivities
-% Set solution schemes to FSP sensitivity:
-STL1_4state_sens.solutionScheme = 'fspSens'; 
-
 % Solve the sensitivity problem:
-[~,~,STL1_4state_sens] = STL1_4state_sens.solve;
+STL1_4state = STL1_4state.solve(solver='fspSens');
 
 % Plot the results from the sensitivity analysis
-STL1_4state_sens.plotFSP(speciesNames=STL1_4state_sens.species(5),...
+STL1_4state.plotFSP(speciesNames=STL1_4state.species(5),...
     plotType='sens', indTimes=40, lineProps={'linewidth',3},...
     Colors=[0.23,0.67,0.2], AxisLabelSize=15, TickLabelSize=12,...
     XLim=[0,100], Title="4-state STL1 (t=25)", TitleFontSize=24)
@@ -91,9 +70,9 @@ STL1_4state_sens.plotFSP(speciesNames=STL1_4state_sens.species(5),...
 
 %% Save models & sensitivities
 saveNames = unique({ ...
-    'Model_sens'
-    'STL1_sens'
-    'STL1_4state_sens'
+    'Model'
+    'STL1'
+    'STL1_4state'
     });
     
 save('example_6_SensitivityAnalysis',saveNames{:})
