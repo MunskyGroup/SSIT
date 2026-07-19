@@ -72,50 +72,47 @@ STL1.plotFIMResults(STL1_fimTotal, 'log', STL1.parameters,...
 %% Ex(3): Compute the FIM for the 4-state STL1 yeast model
 %  from example_1_CreateSSITModels
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-% Define indices of free parameters for FIM sub matrix. Here, Hog1 input 
-% parameters are experimentally known (thus fixed) and all others are free:
+
+%% Define indices of free parameters for FIM sub matrix. (Hog1 input signal
+%% params are experimentally known (thus fixed) and all others are free:
 freePars = 1:13;
+
+% Specify time points and numbers of cells for experiments
+STL1_4state.tSpan = [0,1,2,4,6,8,10:5:55];
+cellCounts = 1000*ones(1,16);
 
 %% Compute FIMs using FSP sensitivity results
 % Compute the full FIM:
-STL1_4state_fimResults_full = STL1_4state.computeFIM(scale='log'); 
+fims_full = STL1_4state.computeFIM(scale='log',observed='mRNA'); % full FIM
 
 % Compute the FIM sub matrix for free parameters:
-STL1_4state_fimResults_free = ...
-    STL1_4state.computeFIM(scale='log',freePars=freePars);
-
-% Generate a count of measured cells:
-cellCounts = 1000*ones(size(STL1_4state.tSpan));
+fims_free = STL1_4state.computeFIM(scale='log',observed='mRNA',...
+    freePars=freePars); % FIM sub matrix
 
 % - Or, get the number of cells using 'nCells':
 % STL1_4state_cellCounts = ...
 % STL1_4state_data.dataSet.nCells*ones(size(STL1_4state.tSpan));
 
-
 % Evaluate the provided experiment design (in "cellCounts") 
 % and produce an array of FIMs (one for each parameter set):
-[STL1_4state_fimTotal_full,STL1_4state_mleCovEstimate_full,...
-    STL1_4state_fimMetrics_full] = ...
-    STL1_4state.evaluateExperiment(STL1_4state_fimResults_full,...
-                                       cellCounts)
+[fimTotal_full,mleCovEstimate_full,fimMetrics_full] = ...
+    STL1_4state.evaluateExperiment(fims_full,cellCounts)
 
-[STL1_4state_fimTotal_free,STL1_4state_mleCovEstimate_free,...
-    STL1_4state_fimMetrics_free] = ...
-    STL1_4state.evaluateExperiment(STL1_4state_fimResults_free,...
-                                       cellCounts)
+[fimTotal_free,mleCovEstimate_free,fimMetrics_free] = ...
+    STL1_4state.evaluateExperiment(fims_free,cellCounts)
 
-% Plot the FIMs (full):
+%% Plot the FIMs (full):
 f1 = figure(11);
 f2 = figure(12);
-STL1_4state.plotFIMResults(STL1_4state_fimTotal_full, 'log',...
-    STL1_4state.parameters, PlotEllipses=true, EllipseFigure=f1,...
+STL1_4state.plotFIMResults(fimTotal_full,'log',STL1_4state.parameters,...
+    PlotEllipses=true, EllipseFigure=f1,...
     EllipsePairs=[1 6; 2 3; 4 5; 6 13], FigureHandle=f2,...
     Colors=struct('EllipseColors',[0.2 0.6 0.9],...
     'CenterSquare',[0.96,0.47,0.16]));
 
 % Plot the FIMs (free):
 f3 = figure(13);
-STL1_4state.plotFIMResults(STL1_4state_fimTotal_free, 'log',...
+STL1_4state.plotFIMResults(fimTotal_free, 'log',...
     STL1_4state.parameters(1:13),PlotEllipses=true,EllipseFigure=f1,...
     EllipsePairs=[1 6; 2 3; 4 5; 6 13],FigureHandle=f3,...
     Colors=struct('EllipseColors',[0.9 0.6 0.2],...
@@ -133,26 +130,26 @@ STL1_4state.plotFIMResults(STL1_4state_fimTotal_free, 'log',...
 % weakly constrained by your experiment.
 
 % Model_fimMetrics = 
-%          det: 1.5614e+22
-%        trace: 1.4666e+06
-%    minEigVal: 2.6148e+05
+%          det: 4.8027e+24
+%        trace: 1.6623e+07
+%    minEigVal: 1.6309e+05
 
 % STL1_fimMetrics = 
-%          det: 7.1764e+00
-%        trace: 3.5113e+04
-%    minEigVal: 1.8524e-11
+%          det: 9.9840e+00
+%        trace: 3.5112e+04
+%    minEigVal: 2.5775e-11
 
 %% Full FIM
 % STL1_4state_fimMetrics = 
-%          det: -1.3466e+33
-%        trace: 2.9419e+06
-%    minEigVal: -8.1721e-13
+%          det: 1.7388e+09
+%        trace: 2.4234e+05
+%    minEigVal: -3.4038e-14
 
 %% FIM sub matrix (free parameters):
 % STL1_4state_fimMetrics_free =  
-%           det: 2.7889e+44
-%         trace: 6.9367e+05
-%     minEigVal: 1.1381
+%           det: 2.7363e+29
+%         trace: 7.2778e+04
+%     minEigVal: 2.9656e-01
 
 
 %% Save models & FIM results
