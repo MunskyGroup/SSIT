@@ -1,9 +1,9 @@
 %% example_4_SolveSSITModels_FSP
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Section 2.2: Finding and visualizing master equation solutions
+%% Section 3.2.4: Finding and visualizing master equation solutions: FSP
 %   * Compute Finite State Projection (FSP) solutions
-%%%%%%%%%%%%%%%%%%d%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%%%%%%%%%%%%%%%%%%d%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Preliminaries
 % Use the models from example_1_CreateSSITModels

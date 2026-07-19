@@ -1,7 +1,7 @@
 %% SSIT/Examples/example_5_SolveSSITModels_EscapeTimes 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Section 2.2: Finding and visualizing master equation solutions
+%% Section 3.2.5: Finding and visualizing master equation solutions: Escape
 %   * Solve a first-passage time problem (escape times)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -26,7 +26,7 @@ STL1.tSpan = linspace(0,50,101);
 STL1_4state.tSpan = linspace(0,50,101);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Ex(1): Solve escape times for the bursting gene example model 
+%% Ex(1): Solve escape times for the bursting gene example model
 %  from example_1_CreateSSITModels
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

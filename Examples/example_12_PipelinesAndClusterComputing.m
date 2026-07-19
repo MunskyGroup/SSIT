@@ -1,7 +1,7 @@
 %% example_16_PipelinesAndClusterComputing
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Section 2.5: Pipelines and Cluster Computing Scripts
+%% Section 3.5: Pipelines and Cluster Computing Scripts
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Preliminaries

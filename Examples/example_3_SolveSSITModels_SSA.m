@@ -1,7 +1,7 @@
 %% SSIT/Examples/example_3_SolveSSITModels_SSA
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Section 2.2: Finding and visualizing master equation solutions
+%% Section 3.2.3: Finding and visualizing master equation solutions: SSA
 %   * Compute Stochastic Simulation Algorithm (SSA) trajectories
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

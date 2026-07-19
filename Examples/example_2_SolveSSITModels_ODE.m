@@ -1,7 +1,7 @@
 %% SSIT/Examples/example_2_SolveSSITModels_ODE
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Section 2.2: Finding and visualizing master equation solutions
+%% Section 3.2.1: Finding and visualizing master equation solutions: ODEs
 %   * Compute Ordinary Differential Equations (ODEs)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

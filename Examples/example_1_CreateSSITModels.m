@@ -1,7 +1,7 @@
 %% SSIT/Examples/example_1_CreateSSITModels
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Section 2.1: Creating, Saving, and Loading Models in SSIT
+%% Section 3.1: Create, Save, and Load Models in the SSIT
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Preliminaries:
@@ -12,7 +12,7 @@
 addpath(genpath('../src'));
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Ex(1): Create a simple Bursting Gene model in SSIT
+%% Ex(1): Create a simple Bursting Gene model in the SSIT
 %%  This model consists of 3 species: 
 %   an inactive gene ('offGene'), an activated gene ('onGene'), and mRNA. 
 %%  There are four reactions, each with a unique rate parameter: 

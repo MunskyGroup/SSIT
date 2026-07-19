@@ -1,7 +1,7 @@
 %% SSIT/Examples/example_6_SensitivityAnalysis
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Section 2.2: Sensitivity analysis 
+%% Section 3.2.6: Sensitivity analysis 
 %   * Compute model sensitivities to small changes in the model parameters
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 

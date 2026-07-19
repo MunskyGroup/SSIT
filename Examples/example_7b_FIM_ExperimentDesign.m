@@ -1,7 +1,7 @@
 %% SSIT/Examples/example_7b_FIM_ExperimentDesign
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Section 2.2: FIM Optimality Criteria and Experiment Design
+%% Section 3.2.8: FIM Optimality Criteria and Experiment Design
 %   * Use Fisher information results to design a next round of experiments
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -15,7 +15,7 @@
 % example_8_LoadingandFittingData_DataLoading
 
 %% Load pre-run results (pre-loaded data):
-load('example_8_LoadingandFittingData_DataLoading.mat')
+%load('example_8_LoadingandFittingData_DataLoading.mat')
 
 % Compute FIM results:
 fimResults = STL1_4state.computeFIM(scale='log');

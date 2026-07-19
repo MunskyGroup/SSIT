@@ -1,7 +1,7 @@
 %% SSIT/Examples/example_9_LoadingandFittingData_MLE
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Section 2.3: Loading and fitting time-varying STL1 yeast data 
+%% Section 3.3.3: Loading and fitting time-varying STL1 yeast data 
 %   * Maximize the likelihood L(D|theta) and use the maximum likelihood
 %     estimate (MLE) to fit the experimental data
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -37,11 +37,10 @@ fitOptions = optimset('Display','iter','MaxIter',2000);
 
 %% Compute the MLEs:
 % Model =Model.maximizeLikelihood(fitOptions=fitOptions);
-% 
 % STL1 = STL1.maximizeLikelihood(fitOptions=fitOptions);
 
 STL1_4state = STL1_4state.maximizeLikelihood(fitOptions=fitOptions);
-% Note: Should see an MLE of -21961.2 at the end
+% Note: Should see an MLE of -24863.7 at the end
 
 % Make plots of the parameter fits from the MLEs:
 % Model.plotFits(plotType="all", lineProps={'linewidth',2},...

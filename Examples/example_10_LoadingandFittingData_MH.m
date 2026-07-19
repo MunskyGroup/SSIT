@@ -1,7 +1,7 @@
 %% SSIT/Examples/example_10_LoadingandFittingData_MH
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Section 2.3: Loading and fitting time-varying STL1 yeast data 
+%% Section 3.3.4: Loading and fitting time-varying STL1 yeast data 
 %   * Uncertainty sampling using the Metropolis-Hastings Algorithm (MHA)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -22,7 +22,7 @@
 load('example_9_LoadingandFittingData_MLE.mat')
 
 % View summary of 4-state STL1 model:
-STL1_4state_MLE.summarizeModel
+STL1_4state.summarizeModel
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Use Metropolis-Hastings and Bayesian priors, iterating between 
@@ -30,12 +30,9 @@ STL1_4state_MLE.summarizeModel
 %% parameter fit to data.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% Make a new copy of our 4-state STL1 model:
-STL1_4state_MH = STL1_4state_MLE;
-
 % Specify how many model parameters will be fit (the rest will be fixed):
 fitpars = 13;
-STL1_4state_MH.fittingOptions.modelVarsToFit = [1:fitpars]; 
+STL1_4state.fittingOptions.modelVarsToFit = [1:fitpars]; 
 
 %% Specify Bayesian Prior and fit
 % Specify Prior as log-normal distribution with wide uncertainty
@@ -46,25 +43,22 @@ mu_log10 = [0.5,2,5,3.5,-0.4,1,0.2,0.4,-0.5,-1.3,-0.1,2,0.5];
 sig_log10 = 2*ones(1,fitpars);  
 
 % Prior:
-STL1_4state_MH.fittingOptions.logPrior = ...
+STL1_4state.fittingOptions.logPrior = ...
     @(x)-sum((log10(x)-mu_log10).^2./(2*sig_log10.^2));
 
 % Create first parameter guess:
-STL1_4state_MH_pars = [STL1_4state_MH.parameters{:,2}];      
-
-% % You may need to re-run this multiple times until converged.
-% % I got a MLE of -34,003.3 after a few runs. 
+STL1_4state_pars = [STL1_4state.parameters{:,2}];      
 
 %% Iterating between MLE and MH
 %  Running a few rounds of MLE and MH together may improve convergence.
 
-STL1_4state_MH.parameters(:,2) = num2cell(STL1_4state_MH_pars);
+STL1_4state.parameters(:,2) = num2cell(STL1_4state_pars);
 
 for i=1:2
     % Maximize likelihood:
-    STL1_4state_MH_pars = STL1_4state_MH.maximizeLikelihood([]);    
+    STL1_4state_pars = STL1_4state.maximizeLikelihood([]);    
     % Update parameters in the model:
-    STL1_4state_MH.parameters(1:fitpars, 2) = num2cell(STL1_4state_MH_pars);
+    STL1_4state.parameters(1:fitpars, 2) = num2cell(STL1_4state_pars);
 
     % Run Metropolis-Hastings    
     proposalWidthScale = 0.01;
@@ -77,27 +71,27 @@ for i=1:2
     MHOptions.thin = 2;
 
     % Run Metropolis-Hastings (seeking acceptance ratio around 0.3-0.4): 
-    [STL1_4state_MH_pars,~,STL1_4state_MHResults] = ...
-        STL1_4state_MH.maximizeLikelihood([], MHOptions,...
+    [STL1_4state_pars,~,STL1_4stateResults] = ...
+        STL1_4state.maximizeLikelihood([], MHOptions,...
         'MetropolisHastings');
     
     % Store MH parameters in model:
-    STL1_4state_MH.parameters([1:fitpars],2) = num2cell(STL1_4state_MH_pars);
+    STL1_4state.parameters([1:fitpars],2) = num2cell(STL1_4state_pars);
 end
 
 % Plot results:
-STL1_4state_MH.plotMHResults(STL1_4state_MHResults);
+STL1_4state.plotMHResults(STL1_4stateResults);
 
-STL1_4state_MH.plotFits(plotType="all",lineProps={'linewidth',2},...
+STL1_4state.plotFits(plotType="all",lineProps={'linewidth',2},...
     Title='4-state STL1 (MH)', YLabel='Molecule Count',...
     LegendLocation='northeast', LegendFontSize=18, ProbXLim = [0 80],...
     TimePoints=[0 8 10 15 30 55], TitleFontSize=24, AxisLabelSize=20);
 
 %% Save model & MH results:
 saveNames = unique({ ...
-    'STL1_4state_MH'
-    'STL1_4state_MH_pars'
-    'STL1_4state_MHResults'
+    'STL1_4state'
+    'STL1_4state_pars'
+    'STL1_4stateResults'
     });
     
 save('example_10_LoadingandFittingData_MH',saveNames{:})
