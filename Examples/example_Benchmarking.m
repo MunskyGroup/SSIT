@@ -3,7 +3,7 @@
 % To run example models change the value of modSetsToRun. 
 % To run FSP benchmarks, change "runFSP" to "true".
 % To run SSA benchmarks, change "runSSA" to "true".
-runFSP = false;
+runFSP = true;
 runSSA = true;
 modSetsToRun = (9);
 
@@ -843,7 +843,7 @@ if opts.runFSP
 
     tic
     % Run first FSP Solve
-    [~,~,Model] = Model.solve;
+    Model = Model.solve(solver='fsp');
     disp('FSP initial solve:')
     if ~isempty(opts.followUp)
         eval(opts.followUp);
@@ -852,7 +852,7 @@ if opts.runFSP
 
     % Run another solve using the identified state space.
     tic
-    [~,~,Model] = Model.solve;
+    Model = Model.solve(solver='fsp');
     disp('FSP subsequent solve:')
     if ~isempty(opts.followUp)
         eval(opts.followUp);
@@ -876,14 +876,14 @@ if opts.runSSA
     % Run first SSA solution to write analysis codes.
     Model.ssaOptions.Nsims = 1;
     tic
-    [~,~,Model] = Model.solve;
+    Model = Model.solve(solver='ssa');
     benchmarks.initialSSASolve_1run = toc;
 
     % Run list of SSA trajectories.
     Model.ssaOptions.Nsims = opts.nSims;
     Model.ssaOptions.useParallel = false;
     tic
-    [~,~,Model] = Model.solve;
+    Model = Model.solve(solver='ssa');
     benchmarks.(['subsequentSSASolve_',num2str(opts.nSims),'runs_serial']) = toc;
 
     % Run again in parallel.
@@ -891,7 +891,7 @@ if opts.runSSA
         Model.ssaOptions.Nsims = opts.nSims;
         Model.ssaOptions.useParallel = true;
         tic
-        [~,~,Model] = Model.solve;
+        Model = Model.solve(solver='ssa');
         benchmarks.(['subsequentSSASolve_',num2str(opts.nSims),'runs_parallel']) = toc;
     end
 
@@ -923,22 +923,19 @@ end
 
 %% ODE Solver
 if length(Model.tSpan)>1
-    Model.solutionScheme = 'ode';
     tic
-    [~,~,Model] = Model.solve;
+    Model = Model.solve(solver='ode');
     benchmarks.initialODEsolve = toc;
 
     tic
-    [~,~,Model] = Model.solve;
+    Model = Model.solve(solver='ode');
     benchmarks.subsequentODEsolve = toc;
 end
 
 %% Model Reduction FSP
 if opts.runReductions
-    Model.solutionScheme = 'fsp';
-
     Model.tSpan = linspace(min(Model.tSpan),max(Model.tSpan),150);
-    [~,~,Model] = Model.solve;
+    Model = Model.solve(solver='fsp');
 
     for redOrder = [20,30,40,50]
         Model2 = Model;
@@ -953,7 +950,7 @@ if opts.runReductions
         benchmarks.(['PODModelReductionTime_',num2str(redOrder)]) = toc;
 
         tic
-        [fspSoln2] = Model2.solve();
+        fspSoln2 = Model2.solve(solver='fsp',returnType='soln');
         benchmarks.(['ReducedModelSolveTime_',num2str(redOrder)]) = toc
 
         dims = 1:fspSoln2.fsp{end}.p.dim;
