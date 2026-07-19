@@ -1,9 +1,27 @@
-% clear
+%% Install all SSIT tools and packages
+% install
 
 %% Instantiate SSIT
 % Add SSIT source codes to Matlab search path, create an SSIT model:
 addpath(genpath('../src'));
-STL1_4state = SSIT('Empty');
+
+%% Load STL1_4state model (see SI for manual creation)
+STL1_4state = SSIT('STL1_4state');
+
+% Solve ODEs:
+STL1_4state = STL1_4state.solve(solver='ODE');
+
+% Plot ODE solutions for mRNA:
+STL1_4state.plotODE(speciesNames={'mRNA'}, timeVec=STL1_4state.tSpan, ...
+    lineProps={'linewidth',4}, TitleFontSize=26, Title='4-state STL1 (mRNA)', ...
+    AxisLabelSize=20, TickLabelSize=20, LegendFontSize=20, LegendLocation='east',...
+    Colors=[0.23,0.67,0.20], XLabel='Time', YLabel='Molecule Count')
+
+% Plot ODE solutions for the four gene states:
+STL1_4state.plotODE(speciesNames=STL1_4state.species(1:4), ...
+    Title='4-state STL1 (gene states)', YLabel='Molecule Count')
+
+
 
 
 %% 2.1.1 Define Model Species

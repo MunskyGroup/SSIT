@@ -45,7 +45,7 @@ STL1_4state.tSpan = linspace(0,50,101);
     Model.tSpan = [-100,Model.tSpan];
     
     % Set the initial time:
-    Model.initialTime = Model.tSpan(1); 
+    Model.initialTime = -100; 
     
     % Run iterations in parallel with multiple cores, or execute serially:
     Model.ssaOptions.useParallel = true;
@@ -61,7 +61,7 @@ STL1_4state.tSpan = linspace(0,50,101);
         LegendLocation='east', XLabel='Time', YLabel='Molecule Count');
 
     %% Make a video of the SSA trajectories being plotted:
-    % makeSSAvideo(Model.Solutions, 'all', 100, Model.species, ...
+    % Model.plotSSA(makeMovie=true,
     %             'Model_video')
         
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -79,7 +79,7 @@ STL1_4state.tSpan = linspace(0,50,101);
     STL1.tSpan = [-100,STL1.tSpan];
 
     % Set the initial time:
-    STL1.initialTime = STL1.tSpan(1); 
+    STL1.initialTime = -100; 
     
     % Run iterations in parallel with multiple cores, or execute serially:
     STL1.ssaOptions.useParallel = true;
@@ -114,7 +114,7 @@ STL1_4state.tSpan = linspace(0,50,101);
     STL1_4state.tSpan = [-100,STL1_4state.tSpan];
 
     % Set the initial time:
-    STL1_4state.initialTime = STL1_4state.tSpan(1); 
+    STL1_4state.initialTime = -100; 
     
     % Run iterations in parallel with multiple cores, or execute serially:
     STL1_4state.ssaOptions.useParallel = true;
@@ -139,8 +139,8 @@ STL1_4state.tSpan = linspace(0,50,101);
         XLabel='Time', YLabel='Molecule Count', makeMovie=false); 
 
     %% Make a video of the SSA trajectories being plotted:
-    % makeSSAvideo(STL1_4state.Solutions, 'all', 100, ...
-    %              STL1_4state.species, 'STL1_video_4state')
+    % STL1_4state.plotSSA(makeMovie=true,videoFileName='STL1_video_4state',...
+    %  speciesIdx='all',numTraj=100,speciesNames=STL1_4state.species(1:5))
 
 %% Save SSA models & solutions
 saveNames = unique({'Model'
