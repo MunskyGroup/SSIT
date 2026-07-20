@@ -157,13 +157,12 @@ Model = Model.loadData('../ExampleData/DUSP1_Dex_100nM_Rep1_Rep2.csv', ...
     {'rna','RNA_nuc'});
 Model.tSpan = unique([Model.initialTime,Model.dataSet.times]);
 fitOptions = optimset('Display','iter','MaxIter',100);
-[pars,likelihood] = Model.maximizeLikelihood([],fitOptions);
+Model = Model.maximizeLikelihood(fitOptions=fitOptions);
 ```
 
-**Update Model and Make Plots of Results**
+**Make Plots of Results**
 
 ```matlab
-Model.parameters(:,2) = num2cell(pars);
 Model.makeFitPlot;
 ```
 
