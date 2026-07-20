@@ -69,13 +69,10 @@ for i=1:2
     % Run Metropolis-Hastings (seeking acceptance ratio around 0.3-0.4): 
     STL1_4state = STL1_4state.maximizeLikelihood(fitOptions=MHOptions,...
         fitAlgorithm='MetropolisHastings');
-    
-    % Store MH parameters in model:
-    STL1_4state.parameters([1:fitpars],2) = num2cell(STL1_4state_pars);
 end
 
 % Plot results:
-%STL1_4state.plotMHResults(STL1_4state);
+STL1_4state.plotMHResults(STL1_4state.Solutions.mhResults);
 
 STL1_4state.plotFits(plotType="all",lineProps={'linewidth',2},...
     Title='4-state STL1 (MH)', YLabel='Molecule Count',...
@@ -85,8 +82,6 @@ STL1_4state.plotFits(plotType="all",lineProps={'linewidth',2},...
 %% Save model & MH results:
 saveNames = unique({ ...
     'STL1_4state'
-    'STL1_4state_pars'
-    'STL1_4stateResults'
     });
     
 save('example_10_LoadingandFittingData_MH',saveNames{:})
