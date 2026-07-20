@@ -4,9 +4,8 @@
 %% Section 3.3.4: Loading and fitting time-varying STL1 yeast data 
 %   * Uncertainty sampling using the Metropolis-Hastings Algorithm (MHA)
 %   * Use Bayesian priors and iterate between computing MLE and MH
-%   * Use FIM for Metropolis-Hastings proposal distribution 
-%     This sometimes provides faster mixing (convergence), although in our 
-%     simple example, the default proposal distribution (above) is fine.
+%   * Use FIM for Metropolis-Hastings proposal distribution. 
+%     This sometimes provides faster mixing (convergence).
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Preliminaries
@@ -55,7 +54,7 @@ COVfree = (1/2*(FIMfree + FIMfree'))^(-1);
 % Define Metropolis-Hasting settings:
 STL1_4state_MH_FIM.fittingOptions.logPrior = ...
     @(x)-sum((log10(x)-mu_log10([1:13])).^2./(2*sig_log10([1:13]).^2));
-proposalWidthScale = 0.1;
+proposalWidthScale = 0.01;
 STL1_4state_MH_FIM_FIMOptions = ...
  struct('proposalDistribution',@(x)mvnrnd(x,proposalWidthScale*COVfree),...
         'numberOfSamples',2000,'burnin',500,'thin',2);
@@ -71,8 +70,8 @@ STL1_4state_MH_FIM = STL1_4state_MH_FIM.maximizeLikelihood(...
     fitAlgorithm='MetropolisHastings');
 
 % Plot MH samples, FIM:
-STL1_4state_MH_FIM.plotMHResults(STL1_4state.Solutions.mhResults,...
-                                 FIM=FIMfree, fimScale='log')
+STL1_4state_MH_FIM.plotMHResults(STL1_4state_MH_FIM.Solutions.mhResults,...
+                                  FIM=FIMfree, fimScale='log')
 
 STL1_4state_MH_FIM.plotFits(plotType="all",lineProps={'linewidth',2},...
     Title='4-state STL1', YLabel='Molecule Count',...
@@ -80,12 +79,10 @@ STL1_4state_MH_FIM.plotFits(plotType="all",lineProps={'linewidth',2},...
 
 %% Save models & MH results:
 saveNames = unique({'STL1_4state_MH_FIM'
-    'STL1_4state_MH_FIM_pars'
     'fimResults'
     'fimTotal'
     'FIMfree'
     'COVfree'
-    'STL1_4state_FIM_MHResults'
     });
     
 save('example_9b_LoadingandFittingData_MH_with_FIM',saveNames{:})
