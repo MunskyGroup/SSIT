@@ -33,7 +33,7 @@ STL1_4state.summarizeModel
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Make a copy of our model:
-STL1_4state_multi_1 = STL1_4state_MLE;
+STL1_4state_multi_1 = STL1_4state;
 
 %% Load and associate smFISH data
 %  Associate the data with an SSIT model data as usual 
@@ -268,7 +268,7 @@ combinedModelMixed = combinedModelMixed.updateModels(allParsMixed, true);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Make copies of our models:
-STL1_multi = STL1_FSP;
+STL1_multi = STL1;
 STL1_4state_multi = STL1_4state_multi_1;
 
 % Load and associate data:
