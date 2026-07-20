@@ -1,25 +1,26 @@
-%% SSIT/Examples/example_15_ComplexModels_MultiModel
+%% SSIT/Examples/example_13_MultiModel
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Section 2.4: Complex models
-%   * Fit multiple models and data sets with shared parameters
+%% Section 3.4.4: Complex models: Multiple Models with shared data/params
+%   * Fit multiple models and data sets with shared parameters using
+%   SSITMultiModel
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Preliminaries
 % Use the pre-fit 4-state STL1 model from 
-% example_9_LoadingandFittingData_MLE.m 
+% example_10_LoadingandFittingData_MLE.m 
 %clear
 %close all
 
 % example_1_CreateSSITModels  
 % example_4_SolveSSITModels_FSP
-% example_9_LoadingandFittingData_MLE
+% example_10_LoadingandFittingData_MLE
 
 %% Load pre-solved model 
-load('example_9_LoadingandFittingData_MLE.mat')
+load('example_10_LoadingandFittingData_MLE.mat')
 
 % View model summariy:
-STL1_4state_MLE.summarizeModel
+STL1_4state.summarizeModel
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Example script to show how multiple SSIT models and data sets can be fit

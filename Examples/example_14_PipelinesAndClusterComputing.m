@@ -1,4 +1,4 @@
-%% example_16_PipelinesAndClusterComputing
+%% example_14_PipelinesAndClusterComputing
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Section 3.5: Pipelines and Cluster Computing Scripts
@@ -7,30 +7,30 @@
 %% Preliminaries
 % Use the STL1 model from example_1_CreateSSITModels, FSP solutions from 
 % example_4_SolveSSITModels_FSP, data loaded in 
-% example_8_LoadingandFittingData_DataLoading, and MLE computed in
-% example_9_LoadingandFittingData_MLE
+% example_9_LoadingandFittingData_DataLoading, and MLE computed in
+% example_10_LoadingandFittingData_MLE
 %clear
 %close all
 addpath(genpath('../src'));
 
 % example_1_CreateSSITModels  
 % example_4_SolveSSITModels_FSP
-% example_8_LoadingandFittingData_DataLoading
-% example_9_LoadingandFittingData_MLE
-% example_10_LoadingandFittingData_MH
+% example_9_LoadingandFittingData_DataLoading
+% example_10_LoadingandFittingData_MLE
+% example_11_LoadingandFittingData_MH
 
 %% Load model fitted using Metropolis-Hastings:
-load('example_10_LoadingandFittingData_MH.mat')
+load('example_11_LoadingandFittingData_MH.mat')
 
 % View summary of 4-state STL1 model:
-STL1_4state_MH.summarizeModel
+STL1_4state.summarizeModel
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Running SSIT Pipelines Outside of Matlab
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Make a copy of our 4-state STL1 model:
-STL1_4state_pipe = STL1_4state_MH;
+STL1_4state_pipe = STL1_4state;
 
 % Save model for later use:
 saveFile = 'generatedModel.mat';
