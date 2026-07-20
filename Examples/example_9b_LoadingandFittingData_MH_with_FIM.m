@@ -1,7 +1,7 @@
 %% SSIT/Examples/example_9b_LoadingandFittingData_MH_with_FIM
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Section 2.3: Loading and fitting time-varying STL1 yeast data 
+%% Section 3.3.4: Loading and fitting time-varying STL1 yeast data 
 %   * Uncertainty sampling using the Metropolis-Hastings Algorithm (MHA)
 %   * Use Bayesian priors and iterate between computing MLE and MH
 %   * Use FIM for Metropolis-Hastings proposal distribution 
@@ -59,18 +59,19 @@ proposalWidthScale = 0.1;
 STL1_4state_MH_FIM_FIMOptions = ...
  struct('proposalDistribution',@(x)mvnrnd(x,proposalWidthScale*COVfree),...
         'numberOfSamples',2000,'burnin',500,'thin',2);
+fitOptions = optimset('Display','iter','MaxIter',2000);
 
-% Run Metropolis Hastings
-[STL1_4state_MH_FIM_pars,~,STL1_4state_FIM_MHResults] = ...
-    STL1_4state_MH_FIM.maximizeLikelihood([], ...
-    STL1_4state_MH_FIM_FIMOptions, 'MetropolisHastings'); 
+% Compute the MLEs:
+STL1_4state_MH_FIM = ...
+    STL1_4state_MH_FIM.maximizeLikelihood(fitOptions=fitOptions);
 
-% Store sampled parameters:
-STL1_4state_MH_FIM.parameters([1:13],2) = ...
-    num2cell(STL1_4state_MH_FIM_pars);
+% Run Metropolis-Hastings (seeking acceptance ratio around 0.3-0.4): 
+STL1_4state_MH_FIM = STL1_4state_MH_FIM.maximizeLikelihood(...
+    fitOptions=STL1_4state_MH_FIM_FIMOptions,...
+    fitAlgorithm='MetropolisHastings');
 
 % Plot MH samples, FIM:
-STL1_4state_MH_FIM.plotMHResults(STL1_4state_FIM_MHResults,...
+STL1_4state_MH_FIM.plotMHResults(STL1_4state.Solutions.mhResults,...
                                  FIM=FIMfree, fimScale='log')
 
 STL1_4state_MH_FIM.plotFits(plotType="all",lineProps={'linewidth',2},...
