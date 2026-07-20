@@ -44,21 +44,17 @@ sig_log10 = 2*ones(1,fitpars);
 
 % Prior:
 STL1_4state.fittingOptions.logPrior = ...
-    @(x)-sum((log10(x)-mu_log10).^2./(2*sig_log10.^2));
-
-% Create first parameter guess:
-STL1_4state_pars = [STL1_4state.parameters{:,2}];      
+    @(x)-sum((log10(x)-mu_log10).^2./(2*sig_log10.^2));   
 
 %% Iterating between MLE and MH
 %  Running a few rounds of MLE and MH together may improve convergence.
 
-STL1_4state.parameters(:,2) = num2cell(STL1_4state_pars);
+% Set fitOptions, with the maximum allowable number of iterations to fit:
+fitOptions = optimset('Display','iter','MaxIter',2000);
 
 for i=1:2
     % Maximize likelihood:
-    STL1_4state_pars = STL1_4state.maximizeLikelihood([]);    
-    % Update parameters in the model:
-    STL1_4state.parameters(1:fitpars, 2) = num2cell(STL1_4state_pars);
+    STL1_4state = STL1_4state.maximizeLikelihood(fitOptions=fitOptions);    
 
     % Run Metropolis-Hastings    
     proposalWidthScale = 0.01;
@@ -71,16 +67,15 @@ for i=1:2
     MHOptions.thin = 2;
 
     % Run Metropolis-Hastings (seeking acceptance ratio around 0.3-0.4): 
-    [STL1_4state_pars,~,STL1_4stateResults] = ...
-        STL1_4state.maximizeLikelihood([], MHOptions,...
-        'MetropolisHastings');
+    STL1_4state = STL1_4state.maximizeLikelihood(fitOptions=MHOptions,...
+        fitAlgorithm='MetropolisHastings');
     
     % Store MH parameters in model:
     STL1_4state.parameters([1:fitpars],2) = num2cell(STL1_4state_pars);
 end
 
 % Plot results:
-STL1_4state.plotMHResults(STL1_4stateResults);
+%STL1_4state.plotMHResults(STL1_4state);
 
 STL1_4state.plotFits(plotType="all",lineProps={'linewidth',2},...
     Title='4-state STL1 (MH)', YLabel='Molecule Count',...
