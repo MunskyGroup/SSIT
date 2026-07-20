@@ -19,14 +19,16 @@
 
 % example_1_CreateSSITModels  
 % example_4_SolveSSITModels_FSP
+% example_7_FIM
 % example_9_LoadingandFittingData_DataLoading
 % example_10_LoadingandFittingData_MLE
 
-%% Load pre-computed FSP solutions + loaded data + MLEs:
+%% Load FIM results and pre-computed FSP solutions + loaded data + MLEs:
+load('example_7_FIM.mat')
 load('example_10_LoadingandFittingData_MLE.mat')
 
 % Make a new copy of our 4-state STL1 model:
-STL1_4state_MH_FIM = STL1_4state_MLE;
+STL1_4state_MH_FIM = STL1_4state;
 
 %% Compute FIM, Run Metropolis Hastings
 % Specify Prior as log-normal distribution with wide uncertainty
@@ -40,17 +42,8 @@ sig_log10 = 2*ones(1,13);
 STL1_4state_MH_FIM.fittingOptions.logPrior = ...
     @(x)-sum((log10(x)-mu_log10).^2./(2*sig_log10.^2));
 
-% Choose parameters to search:
-STL1_4state_MH_FIM.fittingOptions.modelVarsToFit = [1:13];
-
-% Create first parameter guess:
-STL1_4state_MH_FIM_pars = [STL1_4state_MH_FIM.parameters{:,2}];         
-
-% Compute individual FIMs:
-fimResults = STL1_4state_MH_FIM.computeFIM([],'log'); 
-
 % Compute total FIM including effect of prior:
-fimTotal = STL1_4state_MH_FIM.evaluateExperiment(fimResults,...
+fimTotal = STL1_4state_MH_FIM.evaluateExperiment(fimTotal_free,...
            STL1_4state_MH_FIM.dataSet.nCells,diag(sig_log10.^2)); 
 
 % Select FIM for free parameters:
