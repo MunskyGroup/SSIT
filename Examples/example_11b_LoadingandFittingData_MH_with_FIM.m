@@ -1,4 +1,4 @@
-%% SSIT/Examples/example_9b_LoadingandFittingData_MH_with_FIM
+%% SSIT/Examples/example_11b_LoadingandFittingData_MH_with_FIM
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Section 3.3.4: Loading and fitting time-varying STL1 yeast data 
@@ -85,4 +85,4 @@ saveNames = unique({'STL1_4state_MH_FIM'
     'COVfree'
     });
     
-save('example_9b_LoadingandFittingData_MH_with_FIM',saveNames{:})
+save('example_11b_LoadingandFittingData_MH_with_FIM',saveNames{:})
