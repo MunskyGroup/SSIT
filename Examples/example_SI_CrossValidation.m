@@ -1,4 +1,4 @@
-%% SSIT/Examples/example_11_LoadingandFittingData_CrossValidation
+%% SSIT/Examples/example_SI_CrossValidation
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Section 2.3: Loading and fitting time-varying STL1 yeast data 
@@ -15,15 +15,15 @@
 % example_4_SolveSSITModels_FSP
 % example_1_CreateSSITModels  
 % example_4_SolveSSITModels_FSP
-% example_8_LoadingandFittingData_DataLoading
-% example_9_LoadingandFittingData_MLE
-% example_10_LoadingandFittingData_MH
+% example_9_LoadingandFittingData_DataLoading
+% example_10_LoadingandFittingData_MLE
+% example_11_LoadingandFittingData_MH
 
 %% Load model fitted using Metropolis-Hastings:
-load('example_10_LoadingandFittingData_MH.mat')
+load('example_11_LoadingandFittingData_MH.mat')
 
 % View summary of 4-state STL1 model:
-STL1_4state_MH.summarizeModel
+STL1_4state.summarizeModel
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Perform Cross-Validation fitting different replicas at the same time
@@ -42,7 +42,7 @@ fitOptions = optimset('Display','final','MaxIter',200);
 % Note: 'MaxIter', 200 for fast run; Set to 'MaxIter', 2000 for accuracy
 
 % Make a copy of our 4-state STL1 model:
-STL1_4state_CrossVal = STL1_4state_MH;
+STL1_4state_CrossVal = STL1_4state;
 
 % Specify datafile name and species linking rules:
 DataFileName = 'data/filtered_data_2M_NaCl_Step.csv';
@@ -87,4 +87,4 @@ saveNames = unique({ ...
     'CrossValidationModel'
     });
     
-save('example_11_LoadingandFittingData_CrossValidation',saveNames{:})
+save('example_SI_CrossValidation',saveNames{:})

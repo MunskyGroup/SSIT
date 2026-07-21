@@ -1,8 +1,9 @@
 %% example_SI_Epidemics
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 % Example script to demonstrate modeling epidemic data using SI, SIS, SIR, 
 % and SEIS epidemiological models
-%clear; clc; close all
-addpath(genpath('../src'));
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Define SI Model
 % Set up a simple model where susceptible (S) individuals become infected 
@@ -114,17 +115,11 @@ SEIR.tSpan = linspace(0,20,200);
 
 %% Compute Ordinary Differential Equations (ODEs)
 
-% Set solution scheme to 'ODE':
-SI.solutionScheme = 'ODE';
-SIS.solutionScheme = 'ODE';
-SIR.solutionScheme = 'ODE';
-SEIR.solutionScheme = 'ODE';
-    
-% Solve ODEs    
-SI.Solutions = SI.solve; 
-SIS.Solutions = SIS.solve; 
-SIR.Solutions = SIR.solve; 
-SEIR.Solutions = SEIR.solve; 
+% Solve ODEs:
+SI = SI.solve(solver='ODE'); 
+SIS = SIS.solve(solver='ODE'); 
+SIR = SIR.solve(solver='ODE'); 
+SEIR = SEIR.solve(solver='ODE'); 
 
 % Plot ODE solutions
 SI.plotODE(speciesNames=SI.species, timeVec=SI.tSpan)
@@ -133,35 +128,22 @@ SIR.plotODE(speciesNames=SIR.species, timeVec=SIR.tSpan)
 SEIR.plotODE(speciesNames=SEIR.species, timeVec=SEIR.tSpan)
 
 %% Solve CME using FSP
-% Next, we can solve the model using the FSP.  In this example, we show how
-% to run the code twice.  First call finds the FSP projection needed to
-% solve the problem, and the second call solves using that projection.
-% Select FSP solution Scheme
-SI.solutionScheme = 'FSP';  
-SIS.solutionScheme = 'FSP'; 
-SIR.solutionScheme = 'FSP'; 
-SEIR.solutionScheme = 'FSP'; 
+% Next, we can solve the model using the FSP.  
 
 % Set FSP 1-norm error tolerance
 SI.fspOptions.fspTol = 1e-5; 
 SIS.fspOptions.fspTol = 1e-5; 
 SIR.fspOptions.fspTol = 1e-5; 
-SEIR.fspOptions.fspTol = 1e-5; 
-
-% Guess initial bounds on FSP StateSpace
-SI.fspOptions.bounds(1:2) = [201,201]; 
-SIS.fspOptions.bounds(1:3) = [201,201,201]; 
-SIR.fspOptions.bounds(1:3) = [201,201,201]; 
-SEIR.fspOptions.bounds(1:4) = [201,201,201,201];  
+SEIR.fspOptions.fspTol = 1e-5;  
 
 % Solve Model
-[SI_FSPsoln,SI.fspOptions.bounds] = SI.solve; 
-[SIS_FSPsoln,SIS.fspOptions.bounds] = SIS.solve; 
-[SIR_FSPsoln,SIR.fspOptions.bounds] = SIR.solve;
-[SEIR_FSPsoln,SEIR.fspOptions.bounds] = SEIR.solve;
+SI = SI.solve(solver='FSP'); 
+SIS = SIS.solve(solver='FSP'); 
+SIR = SIR.solve(solver='FSP');
+SEIR = SEIR.solve(solver='FSP');
 
 % Plot marginal distributions
-SI.plotFSP(solution=SI_FSPsoln, plotType='marginals', indTimes=[1:5:50])
-SIS.plotFSP(solution=SIS_FSPsoln, plotType='marginals', indTimes=[1:5:50])
-SIR.plotFSP(solution=SIR_FSPsoln, plotType='marginals', indTimes=[1:5:50])
-SEIR.plotFSP(solution=SEIR_FSPsoln,plotType='marginals',indTimes=[1:5:50])
+SI.plotFSP(plotType='marginals', indTimes=[1:5:50])
+SIS.plotFSP(plotType='marginals', indTimes=[1:5:50])
+SIR.plotFSP(plotType='marginals', indTimes=[1:5:50])
+SEIR.plotFSP(plotType='marginals',indTimes=[1:5:50])
