@@ -1,7 +1,7 @@
-%% SSIT/Examples/example_13_SolveSSITModels_Hybrid
+%% SSIT/Examples/example_SI_Hybrid
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Section 2.4: Complex models
+%% Hybrid solutions
 %   * Solve a model by using a hybrid deterministic-stochastic approach
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -56,9 +56,6 @@ STL1_hybrid.customConstraintFuns = [];
 
 % Set FSP 1-norm error tolerance:
 STL1_hybrid.fspOptions.fspTol = 1e-4; 
-    
-% Guess initial bounds on FSP StateSpace:
-STL1_hybrid.fspOptions.bounds = [1,1,1,1,300];
 
 % This function compiles and stores the given reaction propensities  
 % into symbolic expression functions that use sparse matrices:
@@ -68,18 +65,18 @@ STL1_hybrid = STL1_hybrid.formPropensitiesGeneral('STL1_hybrid');
 STL1_hybrid.fspOptions.initApproxSS = true; 
     
 % Solve STL1_hybrid:
-[STL1_hybrid_FSPsoln,STL1_hybrid.fspOptions.bounds] = STL1_hybrid.solve; 
+STL1_hybrid = STL1_hybrid.solve(solver='FSP'); 
 
 %% Plots for FSP solutions:
 % Means and standard deviations:
-STL1_hybrid.plotFSP(solution=STL1_hybrid_FSPsoln, TickLabelSize=20,...
-    speciesNames=STL1_hybrid.species(5), plotType='meansAndDevs',...
+STL1_hybrid.plotFSP(speciesNames=STL1_hybrid.species(5),...
+    plotType='meansAndDevs', TickLabelSize=20,...
     Title='4-state STL1 (hybrid)', TitleFontSize=26, LegendFontSize=20,...
     YLabel='Molecule Count', YLim=[-10,50], lineProps={'linewidth',4},...
     LegendLocation='northeast', AxisLabelSize=20, Colors=[0.23,0.67,0.2]);
 
 % Marginal distributions:
-STL1_hybrid.plotFSP(solution=STL1_hybrid_FSPsoln, plotType='marginals',...
-    speciesNames=STL1_hybrid.species(5), indTimes=[1,12,24,50,101,200],...
+STL1_hybrid.plotFSP(speciesNames=STL1_hybrid.species(5),...
+    indTimes=[1,12,24,50,101,200], plotType='marginals',...
     lineProps={'linewidth',3}, XLim=[0,100], Colors=[0.23,0.67,0.2],...
     AxisLabelSize=20, TickLabelSize=20)

@@ -1,6 +1,7 @@
 %% example_SI_Epidemics
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Epidemics 
 % Example script to demonstrate modeling epidemic data using SI, SIS, SIR, 
 % and SEIS epidemiological models
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%

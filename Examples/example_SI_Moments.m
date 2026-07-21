@@ -1,7 +1,7 @@
 %% SSIT/Examples/example_SI_Moments
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Section 2.2: Finding and visualizing master equation solutions
+%% Moment solutions
 %   * Compute moments
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -17,23 +17,23 @@
 load('example_2_SolveSSITModels_ODE.mat')
 
 % View model summaries:
-Model_ODE.summarizeModel
-STL1_ODE.summarizeModel
-STL1_4state_ODE.summarizeModel
+Model.summarizeModel
+STL1.summarizeModel
+STL1_4state.summarizeModel
 
 % Set the times at which distributions will be computed:
-Model_ODE.tSpan = linspace(0,50,101);
-STL1_ODE.tSpan = linspace(0,50,101);
-STL1_4state_ODE.tSpan = linspace(0,50,101);
+Model.tSpan = linspace(0,50,101);
+STL1.tSpan = linspace(0,50,101);
+STL1_4state.tSpan = linspace(0,50,101);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(1): Bursting Gene
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Make a copy of the Bursting Gene model for moment equations
-Model_mom = Model_ODE;
+Model_mom = Model;
 Model_mom.solutionScheme = 'moments';
-[~,~,Model_mom] = Model_mom.solve;
+Model_mom = Model_mom.solve;
 
 % Number of species
 nSp = numel(Model_mom.species);
@@ -82,9 +82,9 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Make a copy of the (simple) STL1 model for moment equations
-STL1_mom = STL1_ODE;
+STL1_mom = STL1;
 STL1_mom.solutionScheme = 'moments';
-[~,~,STL1_mom] = STL1_mom.solve;
+STL1_mom = STL1_mom.solve;
 
 % Number of species
 nSp = numel(STL1_mom.species);
@@ -133,9 +133,9 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Make a copy of the 4-state STL1 model for moment equations
-STL1_4state_mom = STL1_4state_ODE;
+STL1_4state_mom = STL1_4state;
 STL1_4state_mom.solutionScheme = 'moments';
-[~,~,STL1_4state_mom] = STL1_4state_mom.solve;
+STL1_4state_mom = STL1_4state_mom.solve;
 
 % Number of species
 nSp = numel(STL1_4state_mom.species);
