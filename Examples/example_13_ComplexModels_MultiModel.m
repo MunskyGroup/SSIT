@@ -15,7 +15,7 @@
 
       % Set free parameters
         Models{i}.fittingOptions.modelVarsToFit = 1:9;  
-        
+
       % Assign shared (1,2) and unshared (3,..,9) parameters:
         ParInds{i} = [1,2,(3:9)+7*(i-1)];
   end
@@ -32,3 +32,8 @@
 % Fit the multimodel:
   fitOptions = optimset('Display','iter','MaxIter',1000);
   combinedModel = combinedModel.maximizeLikelihood(fitOptions=fitOptions);
+
+% Plot fits:  
+for j = 1:3
+  combinedModel.SSITModels{j}.makeFitPlot
+end
