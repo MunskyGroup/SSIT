@@ -22,6 +22,7 @@ jobs:
             Symbolic_Math_Toolbox        
           release: ${{ matrix.release }}
       - name: Install build dependencies
+        if: runner.os == 'Linux'
         run: |
           sudo apt-get update
           sudo apt-get install -y libopenblas-dev libblas-dev gfortran
