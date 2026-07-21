@@ -4,5 +4,5 @@
 Model = SSIT('Empty');
 Model = Model.createModelFromSBML('../SBML_test_cases/00010/00010-sbml-l1v2.xml',true);
 Model = Model.formPropensitiesGeneral('SBMEModel');
-Model.Solutions = Model.solve;
+Model = Model.solve(solver='FSP');
 Model.plotFSP(speciesNames=Model.species, plotType='meansAndDevs')
