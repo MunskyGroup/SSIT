@@ -4973,8 +4973,8 @@ classdef SSIT
             end
 
             kfig = 1;
-            switch obj.solutionScheme
-                case 'FSP'
+            switch lower(obj.solutionScheme)
+                case 'fsp'
                     app.FspTabOutputs.solutions = solution.fsp;
                     if includePDO
                         if ~isempty(obj.pdoOptions.PDO)
@@ -5101,7 +5101,7 @@ classdef SSIT
                             ylabel('Escape PDF')
                             xlabel('time')
                     end
-                case 'SSA'
+                case 'ssa'
                     Nd = size(solution.trajs,1);
                     if isempty(indTimes)
                         indTimes = 1:length(solution.T_array);
@@ -5121,7 +5121,7 @@ classdef SSIT
                             vars = var(solution.trajs(:,indTimes,:),[],3);
                             errorbar(solution.T_array(indTimes),squeeze(mean(solution.trajs(:,indTimes,:),3)),sqrt(vars));
                     end
-                case 'fspSens'
+                case 'fspsens'
 
                     if includePDO
                         if ~isempty(obj.pdoOptions.PDO)
