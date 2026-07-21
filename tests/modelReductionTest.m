@@ -9,7 +9,7 @@ classdef modelReductionTest < matlab.unittest.TestCase
         function createTestModel1(tc)
             addpath(genpath('../src'));
 
-            %% Test Case 3 - 2 Species Poisson Model
+            %% Test Case 3 - Time-varying Bursting TXTL Model
             tc.TwoDPoiss = SSIT;
             tc.TwoDPoiss.species = {'goff','gon','rna','prot'};
             tc.TwoDPoiss.initialCondition = [2;0;0;0];

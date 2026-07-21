@@ -7,8 +7,9 @@
 %       (2)   Poisson Start at SS.
 %       (3)   Two Species Poisson Process.
 %       (4)   Time varying bursting gene expression model (DUSP1)
+%       (5)   Time varying bursting gene expression TXTL
 % See below for the codes to create each model so you can create your own.
-testModel = 3; 
+testModel = 5; 
 
 %% Next, choose which type of model reduction to apply. Options include:
 %   'Proper Orthogonal Decomposition' - solve the FSP once and then uses
@@ -25,7 +26,7 @@ testModel = 3;
 %   'Eigen Decomposition Initial' - reduction to consider only the space
 %       spanned by the initial condition plus the eigvenvectors corresponding
 %       to the eigenvalues wite the largest real values.  The number of modes
-%       to consider in the reduction is specified in 'reductionOrder'. Fort
+%       to consider in the reduction is specified in 'reductionOrder'. For
 %       time varying systems, the basis vectors are found using the
 %       infinitesimal generator at t=0.  
 %   'No Transform' - test case where no reduction is applied.
@@ -79,17 +80,24 @@ switch testModel
             'a1',0.4;'r1',0.04;'r2',0.1});
         Model1.fspOptions.initApproxSS = true;
         Model1.tSpan = linspace(0,180,12);
+    case 5 % Time-varying Bursting TXTL Model
+        Model1 = SSIT();
+        Model1.species = {'goff','gon','rna','prot'};
+        Model1.initialCondition = [2;0;0;0];
+        Model1.propensityFunctions = {'kon*goff*(1+sin(2*pi*t))';'koff*gon';'kr*gon';'gr*rna';'kp*rna';'gp*prot'};
+        Model1.stoichiometry = [-1,1,0,0,0,0;1,-1,0,0,0,0;0,0,1,-1,0,0;0,0,0,0,1,-1];
+        Model1.parameters = ({'kon',0.5';'koff',1;'kr',20;'gr',1;'kp',5;'gp',1});
+        Model1.tSpan = linspace(0,5,16);
 end
  
 %% Solve the original Model (for comparison)
 % Solve once to get the necessary FSP projection space.
 Model1 = Model1.formPropensitiesGeneral('Model1');
-Model1.solve;
-fspSoln = Model1.Solutions;
+Model1 = Model1.solve(solver='FSP');
 
 % Solve again to record FSP solution time following expansion.
 tic
-[fspSoln,Model1.fspOptions.bounds] = Model1.solve(fspSoln.stateSpace);
+fspSoln = Model1.solve(solver='FSP',returnType='soln');
 fullModelSolveTime = toc
 
 % Turn off further FSP expansion.
@@ -102,10 +110,10 @@ Model1.fspOptions.fspTol = inf;
 if strcmp(reductionType,'Proper Orthogonal Decomposition')
     tSpan = Model1.tSpan;
     Model1.tSpan = linspace(min(Model1.tSpan),max(Model1.tSpan),podTimeSetSize);
-    [fspSoln2,Model1.fspOptions.bounds] = Model1.solve(fspSoln.stateSpace);
+    fspSoln2 = Model1.solve(returnType='soln');
     Model1.tSpan = tSpan;
 else
-    fspSoln2 = fspSoln;
+    fspSoln2 = Model1.Solutions;
 end
 
 %% Solving the reduced models
@@ -126,8 +134,17 @@ Model2 = Model2.computeModelReductionTransformMatrices(fspSoln2);
 
 % Solve the reduce model.
 tic
-fspSolnRed = Model2.solve(fspSoln2.stateSpace);
+fspSolnRed = Model2.solve(returnType='soln');
 redModelSolveTime = toc
+%% Compare results
+nSpecies = length(Model1.species);
+for i = 1:nSpecies
+    PODfinalError(i) = max(abs(squeeze(cumsum(sum(double(fspSoln2.fsp{end}.p.data),setdiff((1:nSpecies),i)))) - ...
+        squeeze(cumsum(sum(double(fspSoln.fsp{end}.p.data),setdiff((1:nSpecies),i))))));
+
+    disp([Model1.species{i},': KS(Full,Red) = ',num2str(PODfinalError(i))])
+end
+
 
 % Make Figures to compare the results. Here, we will plot the original
 % model in blue and the reduced model in red lines.
@@ -135,7 +152,7 @@ Model1.makePlot(fspSoln,'meansAndDevs',[],[],1,{'Color',[0,0,1]})
 Model2.makePlot(fspSolnRed,'meansAndDevs',[],[],1,{'Color',[1,0,0]})
 figure(1);legend('Full','Reduced','Location','southeast')
 
-Model1.makePlot(fspSoln,'marginals',[],[],[2,3],{'Color',[0,0,1]})
-Model2.makePlot(fspSolnRed,'marginals',[],[],[2,3],{'Color',[1,0,0]})
+Model1.makePlot(fspSoln,'marginals',[],[],[2:nSpecies+1],{'Color',[0,0,1]})
+Model2.makePlot(fspSolnRed,'marginals',[],[],[2:nSpecies+1],{'Color',[1,0,0]})
 figure(2);legend('Full','Reduced','Location','eastoutside')
 figure(3);legend('Full','Reduced','Location','eastoutside')
