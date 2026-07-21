@@ -157,13 +157,12 @@ Model = Model.loadData('../ExampleData/DUSP1_Dex_100nM_Rep1_Rep2.csv', ...
     {'rna','RNA_nuc'});
 Model.tSpan = unique([Model.initialTime,Model.dataSet.times]);
 fitOptions = optimset('Display','iter','MaxIter',100);
-[pars,likelihood] = Model.maximizeLikelihood([],fitOptions);
+Model = Model.maximizeLikelihood(fitOptions=fitOptions);
 ```
 
-**Update Model and Make Plots of Results**
+**Make Plots of Results**
 
 ```matlab
-Model.parameters(:,2) = num2cell(pars);
 Model.makeFitPlot;
 ```
 
@@ -344,12 +343,64 @@ For more general insight on the use of quantitative models in biology, please re
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 <!-- TRAFFIC_STATS_START -->
-Total Clones: **4818**  
-Unique Cloners: **1983**  
-Total Views: **1215**  
-Unique Visitors: **284**
+Total Clones: **5524**  
+Unique Cloners: **2271**  
+Total Views: **1312**  
+Unique Visitors: **309**
 <!-- TRAFFIC_STATS_END -->
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
