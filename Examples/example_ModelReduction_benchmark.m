@@ -8,8 +8,10 @@
 %       (3)   Two Species Poisson Process.
 %       (4)   Time varying bursting gene expression model (DUSP1)
 %       (5)   Time varying bursting gene expression TXTL
+%       (6)   Constant 3-Species Repressilator Model
+%       (7)   Time-Varying 3-Species Repressilator Model
 % See below for the codes to create each model so you can create your own.
-testModel = 5; 
+testModel = 7; 
 
 %% Next, choose which type of model reduction to apply. Options include:
 %   'Proper Orthogonal Decomposition' - solve the FSP once and then uses
@@ -34,10 +36,10 @@ testModel = 5;
 %       species. The list of species to be assumed at QSSA must be
 %       specified in a vector 'reductionSpecies'. 
 
-reductionType = 'Proper Orthogonal Decomposition'; %{'Log Lump QSSA','Proper Orthogonal Decomposition','QSSA'};
-reductionOrder = 20;
+reductionType = 'POD'; %{'Log Lump QSSA','Proper Orthogonal Decomposition','QSSA'};
+reductionOrder = 25;
 qssaSpecies = 2;        % Only needed for the QSSA reduction scheme.
-podTimeSetSize = 100;   % Only needed for the POD reduction scheme.
+podTimeSetSize = 200;   % Only needed for the POD reduction scheme.
 
 % Define SSIT Model
 % SSIT models are defined as usual:
@@ -88,6 +90,13 @@ switch testModel
         Model1.stoichiometry = [-1,1,0,0,0,0;1,-1,0,0,0,0;0,0,1,-1,0,0;0,0,0,0,1,-1];
         Model1.parameters = ({'kon',0.5';'koff',1;'kr',20;'gr',1;'kp',5;'gp',1});
         Model1.tSpan = linspace(0,5,16);
+    case 6 % Constant 3-Species Repressilator Model
+        Model1 = SSIT('Repressilator');
+        Model1.tSpan = linspace(0,20,21);
+    case 7 % Time-Varying 3-Species Repressilator Model
+        Model1 = SSIT('Repressilator');
+        Model1.propensityFunctions{1} = 'kn0*(1+cos(2*pi*t))+kn1*(1/(1+a*(x2^n)))';
+        Model1.tSpan = linspace(0,20,21);
 end
  
 %% Solve the original Model (for comparison)
