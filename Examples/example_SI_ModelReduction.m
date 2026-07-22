@@ -1,6 +1,6 @@
 %% SSIT/Examples/example_SI_ModelReduction
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Section 2.4: Complex models
+%% Model Reduction
 %   * Create reduced FSP models using different types of 
 %     projection-based transformations
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -20,10 +20,10 @@ example_4_SolveSSITModels_FSP
 load('example_4_SolveSSITModels_FSP.mat')
 
 % View model summaries:
-STL1_4state_FSP.summarizeModel
+STL1_4state.summarizeModel
 
 % Make a copy of the STL1 model to set up for model reduction:
-STL1_MR_setup = STL1_4state_FSP;
+STL1_MR_setup = STL1_4state;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Choose which type of model reduction to apply. Options include:
@@ -87,7 +87,7 @@ STL1_MR_setup.tSpan = linspace(0,50,30);
 % Print the computation time to solve the FSP using "tic" and "toc":
 tic
 % [STL1_FSPsoln_expand,STL1_MR_setup.fspOptions.bounds] = STL1_MR_setup.solve;
-[~,~,STL1_MR_setup] = STL1_MR_setup.solve;
+STL1_MR_setup = STL1_MR_setup.solve(solver='FSP');
 STL1_SolveTime = toc
 
 % Turn off further FSP expansion:
@@ -110,7 +110,7 @@ STL1_MR = STL1_MR.computeModelReductionTransformMatrices;
 
 % Solve the reduced model:
 tic
-[~,~,STL1_MR] = STL1_MR.solve;
+STL1_MR = STL1_MR.solve(solver='FSP');
 STL1_SolveTimeReduced = toc
 
 %% Plot the full and reduced FSP solutions:

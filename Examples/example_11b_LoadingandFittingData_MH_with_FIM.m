@@ -22,8 +22,7 @@
 % example_9_LoadingandFittingData_DataLoading
 % example_10_LoadingandFittingData_MLE
 
-%% Load FIM results and pre-computed FSP solutions + loaded data + MLEs:
-load('example_7_FIM.mat')
+% Load 4-state STL1 model:
 load('example_10_LoadingandFittingData_MLE.mat')
 
 %% Compute FIM, Run Metropolis Hastings

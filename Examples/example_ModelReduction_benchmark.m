@@ -145,6 +145,7 @@ Model2 = Model2.computeModelReductionTransformMatrices(fspSoln2);
 tic
 fspSolnRed = Model2.solve(returnType='soln');
 redModelSolveTime = toc
+
 %% Compare results
 nSpecies = length(Model1.species);
 for i = 1:nSpecies
