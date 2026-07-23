@@ -33,7 +33,8 @@ Model_Template.pdoOptions.type = 'Binomial';
 Model_Template.pdoOptions.unobservedSpecies = 'onGene';
 Model_Template.pdoOptions.props.CaptureProbabilityS1 = 0;    % Gene State is not measured
 Model_Template.pdoOptions.props.CaptureProbabilityS2 = 0.05; % 95% drop out from RNA
-[~,Model_Template] = Model_Template.generatePDO();
+[~,Model_Template] = Model_Template.generatePDO(showPlot=true,...
+    Title='RNA Seq (Binomial PDO: 95% Dropout)')
 
 %% Load and fit representative data set to get better first parameter guess
 DataFileName = 'data/Raw_DEX_UpRegulatedGenes_ForSSIT.csv';
