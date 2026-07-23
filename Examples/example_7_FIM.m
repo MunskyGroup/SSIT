@@ -173,6 +173,7 @@ saveNames = unique({'Model'
     'mleCovEstimate_free'
     'fimMetrics_full'
     'fimMetrics_free'
+    'freePars'
     });
     
 save('example_7_FIM',saveNames{:})
