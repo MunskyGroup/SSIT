@@ -4569,6 +4569,7 @@ classdef SSIT
                     end
 
                     if allFitOptions.useFIMforMetHast
+                        disp('Computing FIM for use in proposal distribution')
                         TMP = obj;
                         TMP.solutionScheme = 'fspSens'; % Set solutions scheme to FSP Sensitivity
                         [sensSoln] = TMP.solve(returnType='soln');  % Solve the sensitivity problem
@@ -4597,6 +4598,7 @@ classdef SSIT
                         covFree = FIMfree^-1;
                         covFree = allFitOptions.CovFIMscale*(covFree+covFree')/2;
                         allFitOptions.proposalDistribution=@(x)mvnrnd(x,covFree);
+                        disp('FIM computation complete')
                     end
 
                     if allFitOptions.suppressFSPExpansion
@@ -4676,9 +4678,9 @@ classdef SSIT
             % Check if the fit resulted in better parameters for max
             % posterior and update if so.
             if nargout>=4||strcmpi(opts.returnType,'ssit')
-                if obj.computeLikelihood(exp(x0))>obj.computeLikelihood([obj.parameters{obj.fittingOptions.modelVarsToFit,2}])
+                if obj.computeLikelihood(exp(x0(:)))>obj.computeLikelihood([obj.parameters{obj.fittingOptions.modelVarsToFit,2}]')
                     % Update best parameters set in returned model.
-                    obj.parameters(obj.fittingOptions.modelVarsToFit,2) = num2cell(exp(x0));
+                    obj.parameters(obj.fittingOptions.modelVarsToFit,2) = num2cell(exp(x0(:)));
                 end
             end
             if strcmpi(opts.returnType,'ssit')
