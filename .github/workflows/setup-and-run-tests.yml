@@ -3,33 +3,36 @@ on: [push]
 jobs:
   my-job:
     name: Run MATLAB Tests and Generate Artifacts
-    runs-on: ubuntu-latest
     continue-on-error: true
     strategy:
       matrix:
-        release: [R2023a
-        #, R2023b TODO: There is currently a bug affecting one test on R2023b
-        ]  
+        os: [ubuntu-latest, windows-latest]
+        release: [R2023b, R2024a, latest]
+    runs-on: ${{ matrix.os }}
     steps:
       - name: Check out repository
-        uses: actions/checkout@v3
+        uses: actions/checkout@v6
       - name: Set up MATLAB
-        uses: matlab-actions/setup-matlab@v1
+        uses: matlab-actions/setup-matlab@v3
         with:
+          products: >
+            Global_Optimization_Toolbox
+            Parallel_Computing_Toolbox
+            SimBiology
+            Symbolic_Math_Toolbox        
           release: ${{ matrix.release }}
-      - name: Add paths
-        uses: matlab-actions/run-command@v1
-        with:
-          command: addpath(genpath("src"))
       - name: Install (setup)
-        uses: matlab-actions/run-command@v1
+        uses: matlab-actions/run-command@v3
         with:
           command: install(0,0,1,1)
       - name: Run MATLAB Tests
-        uses: matlab-actions/run-tests@v1.5.2    
+        uses: matlab-actions/run-tests@v3    
         with:
           select-by-folder: tests
           select-by-name: '^(?!testGui$).*'
           test-results-junit: test-results/results.xml
           code-coverage-cobertura: code-coverage/coverage.xml
           source-folder: src
+      - name: Verify complete success
+        if: ${{ failure() }}
+        run: echo "::error::Setup and/or tests failed"          
