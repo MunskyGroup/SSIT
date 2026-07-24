@@ -51,6 +51,7 @@ STL1_4state_MH_FIM_FIMOptions = struct('useFIMforMetHast',true,...
     'CovFIMscale',0.5,...
     'progress',false,...
     'numberOfSamples',2000);
+
 % Run Metropolis-Hastings (seeking acceptance ratio around 0.3-0.4). It is
 % sometimes helpful to try a few short chains (~200 samples) and checking
 % that the MAP is not still increasing before running a longer chain.
@@ -68,7 +69,6 @@ STL1_4state.plotFits(plotType="all",lineProps={'linewidth',2},...
 
 %% Save models & MH results:
 saveNames = unique({'STL1_4state'
-    'fimResults'
     'fimTotal'
     'FIMfree'
     'COVfree'
