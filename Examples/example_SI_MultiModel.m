@@ -37,7 +37,7 @@ STL1_4state_multi_1 = STL1_4state;
 
 %% Load and associate smFISH data
 %  Associate the data with an SSIT model data as usual 
-%  (example_8_LoadingandFittingData_DataLoading):
+%  (example_9_LoadingandFittingData_DataLoading):
 
 STL1_4state_multi_1 = ...
    STL1_4state_multi_1.loadData('data/filtered_data_2M_NaCl_Step.csv',...
