@@ -40,6 +40,9 @@ STL1_4state.fittingOptions.logPriorCovariance = ...
 STL1_4state.fittingOptions.logPrior = ...
     @(x)-sum((log10(x(:))-mu_log10).^2./(2*sig_log10.^2));
 
+% Set minimum FSP truncation bounds for 
+STL1_4state = STL1_4state.setMaxBounds({'mRNA',300});
+
 % Refit with the prior to find the MAP
 fitOptions = optimset('Display','iter','MaxIter',1000);
 for i = 1:5
@@ -48,18 +51,57 @@ end
 
 %% Run MH using FIM as proposal distribution.
 STL1_4state_MH_FIM_FIMOptions = struct('useFIMforMetHast',true,...
-    'CovFIMscale',0.5,...
+    'CovFIMscale',2.0,...
     'progress',false,...
     'numberOfSamples',2000);
 
 % Run Metropolis-Hastings (seeking acceptance ratio around 0.3-0.4). It is
-% sometimes helpful to try a few short chains (~200 samples) and checking
-% that the MAP is not still increasing before running a longer chain.
+% sometimes helpful to try a few short chains (~200 samples) to confirm
+% that the MAP is not still increasing and there is a good acceptance rate
+% before running a longer chain. 
 STL1_4state = STL1_4state.maximizeLikelihood(...
     fitOptions=STL1_4state_MH_FIM_FIMOptions,...
     fitAlgorithm='MetropolisHastings');
 
 %% Plot MH samples and FIM:
+STL1_4state = STL1_4state.solve(solver='fspSens');
+
+% Compute the FIM sub matrix for free parameters:
+fims_free = STL1_4state.computeFIM(scale='log',observed='mRNA',...
+    freePars=(1:13)); % FIM sub matrix
+
+FIMfree = STL1_4state.evaluateExperiment(fims_free,...
+    STL1_4state.dataSet.nCells);
+
+STL1_4state.plotMHResults(STL1_4state.Solutions.mhResults,...
+    FIM=FIMfree, fimScale='log')
+
+STL1_4state.plotFits(plotType="all",lineProps={'linewidth',2},...
+    Title='4-state STL1', YLabel='Molecule Count',...
+    LegendLocation='northeast', LegendFontSize=12);
+
+%% Run Adaptive MH.
+STL1_4state_MH_FIM_FIMOptions = struct('numberOfSamples',2000,...
+    'proposalDistribution',@(x)mvnrnd(x,0.01*eye(size(x))),...
+    'progress',false);
+% Run Metropolis-Hastings automatically using short initialization chains
+% of 10% final length to tune the proposal distribution.  In this case, the
+% initial proposal distribution is defined by the FIM for the current MAP
+% parameter set.
+STL1_4state = STL1_4state.maximizeLikelihood(...
+    fitOptions=STL1_4state_MH_FIM_FIMOptions,...
+    fitAlgorithm='adaptMH');
+
+%% Plot MH samples and FIM:
+STL1_4state = STL1_4state.solve(solver='fspSens');
+
+% Compute the FIM sub matrix for free parameters:
+fims_free = STL1_4state.computeFIM(scale='log',observed='mRNA',...
+    freePars=(1:13)); % FIM sub matrix
+
+FIMfree = STL1_4state.evaluateExperiment(fims_free,...
+    STL1_4state.dataSet.nCells);
+
 STL1_4state.plotMHResults(STL1_4state.Solutions.mhResults,...
     FIM=FIMfree, fimScale='log')
 
