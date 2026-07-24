@@ -52,7 +52,7 @@ STL1_4state.fittingOptions.logPrior = ...
 % Set fitOptions, with the maximum allowable number of iterations to fit:
 fitOptions = optimset('Display','iter','MaxIter',2000);
 
-for i=1:2
+%for i=1:2
     % Maximize likelihood:
     STL1_4state = STL1_4state.maximizeLikelihood(fitOptions=fitOptions);    
 
@@ -62,14 +62,14 @@ for i=1:2
        @(x)x+proposalWidthScale*randn(size(x));
 
     % Set MH runtime options (number of samples, burnin, thin, etc.):
-    MHOptions.numberOfSamples = 2000;
-    MHOptions.burnin = 500;
-    MHOptions.thin = 2;
+    MHOptions.numberOfSamples = 8000;
+    MHOptions.burnin = 4000;
+    MHOptions.thin = 20;
 
     % Run Metropolis-Hastings (seeking acceptance ratio around 0.3-0.4): 
     STL1_4state = STL1_4state.maximizeLikelihood(fitOptions=MHOptions,...
         fitAlgorithm='MetropolisHastings');
-end
+%end
 
 % Plot results:
 STL1_4state.plotMHResults(STL1_4state.Solutions.mhResults);
