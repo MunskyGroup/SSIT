@@ -186,7 +186,7 @@ classdef OdeSuite < ssit.fsp_ode_solvers.OdeSolver
                 length(initSolution)-fspErrorCondition.numODEs;
             sinks = max(0,ye(SINKS));
             errorBound = fspErrorCondition.fspTol*...
-                (te-fspErrorCondition.tInit)/(fspErrorCondition.tFinal-fspErrorCondition.tInit);
+                max(0.01,(te-fspErrorCondition.tInit)/(fspErrorCondition.tFinal-fspErrorCondition.tInit));
             if sum(sinks*(fspErrorCondition.nSinks-fspErrorCondition.nEscapeSinks))>=errorBound
                 fspStopStatus = struct('i_expand', true, ...
                     't_break', te, ...
@@ -223,7 +223,7 @@ if isinf(fspErrorCheck.fspTol)
     error_bound = inf;
 else
     error_bound = fspErrorCheck.fspTol*...
-        (t-fspErrorCheck.tInit)/(fspErrorCheck.tFinal-fspErrorCheck.tInit);
+        max(0.01,(t-fspErrorCheck.tInit)/(fspErrorCheck.tFinal-fspErrorCheck.tInit));
 end
 
 % val = max(sinks)*(fspErrorCheck.nSinks-fspErrorCheck.nEscapeSinks) - error_bound;

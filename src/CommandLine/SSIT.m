@@ -747,6 +747,22 @@ classdef SSIT
             end
         end
 
+        function obj = setMaxBounds(obj,bounds)
+            arguments
+                obj
+                bounds
+            end
+            % Set max bounds on individual species as specified in a Nx2
+            % cell array.
+            nSpecies = length(obj.species);
+            for i = 1:size(bounds,1)
+                J = find(strcmpi(obj.species,bounds{i,1}));
+                if isempty(J)
+                    error(['Species (',bounds{i,1},' not recognized.'])
+                end
+                obj.fspOptions.bounds(nSpecies+J) = bounds{i,2};
+            end
+        end
         function obj = ssaInitializeConstraints(obj,n)
             % Initialize FSP constraints using a set of n SSA runs.
             arguments
@@ -4519,6 +4535,62 @@ classdef SSIT
 
                     [x0,likelihood]  = mlSearch(objFun,x0,allFitOptions);
 
+                case 'adaptmh'
+                    % Basic adaptive MH sampler.  Runs several short chains
+                    % until acceptance is between 0.2 and 0.4 recalculating
+                    % proposal width after each chain.
+
+                    nLongChain = allFitOptions.numberOfSamples;
+                    nShortchain = ceil(max(0.1*nLongChain,10*length(obj.parameters)));
+                    allFitOptions.numberOfSamples = nShortchain;
+                    allFitOptions.thin = 1;
+                    allFitOptions.useFIMforMetHast = true;
+                    CovScale = 1.0;
+
+                    if ~strcmpi(returnType,'ssit')
+                        error('AdaptMH only available for returnType of "SSST".')
+                    end
+                    
+                    obj = obj.maximizeLikelihood(parGuess,allFitOptions,...
+                        'metropolishastings',returnType='ssit');
+
+                    finalRun = false;
+                    while ~finalRun
+                        covMH = cov(obj.Solutions.mhResults.mhSamples);
+                        covMH = (covMH+covMH')/2;
+
+                        newParGuess = exp(obj.Solutions.mhResults.mhSamples(end,:))';
+
+                        lastAcceptance = obj.Solutions.mhResults.mhAcceptance;
+                        if lastAcceptance<0.1
+                            CovScale = CovScale/2;
+                            disp(['Acceptance = ',num2str(lastAcceptance),'. Decreasing proposal width'])
+                        elseif lastAcceptance<0.2
+                            CovScale = CovScale*0.8;
+                            disp(['Acceptance = ',num2str(lastAcceptance),'. Decreasing proposal width'])
+                        elseif lastAcceptance>0.4
+                            CovScale = CovScale/0.8;
+                            disp(['Acceptance = ',num2str(lastAcceptance),'. Increasing proposal width'])
+                        elseif lastAcceptance>0.6
+                            CovScale = CovScale*2;
+                            disp(['Acceptance = ',num2str(lastAcceptance),'. Increasing proposal width'])
+                        else
+                            allFitOptions.numberOfSamples = nLongChain;
+                            disp(['Acceptance = ',num2str(lastAcceptance),'. Starting Full Chain.'])
+                            finalRun = true;
+                        end
+
+                        allFitOptions.useFIMforMetHast = false;
+                        allFitOptions.proposalDistribution  = ...
+                            @(x)mvnrnd(x,CovScale*covMH);
+
+                        [output,likelihood,otherResults,obj] = obj.maximizeLikelihood(newParGuess,allFitOptions,...
+                            'metropolishastings');
+
+                    end
+
+                    return
+                   
                 case 'metropolishastings'
 
                     defaultFitOptions.isPropDistSymmetric=true;
