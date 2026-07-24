@@ -4544,7 +4544,6 @@ classdef SSIT
                     nShortchain = ceil(max(0.1*nLongChain,10*length(obj.parameters)));
                     allFitOptions.numberOfSamples = nShortchain;
                     allFitOptions.thin = 1;
-                    % allFitOptions.useFIMforMetHast = true;
                     CovScale = 1.0;
 
                     if ~strcmpi(returnType,'ssit')
@@ -4554,9 +4553,15 @@ classdef SSIT
                     obj = obj.maximizeLikelihood(parGuess,allFitOptions,...
                         'metropolishastings',returnType='ssit');
 
+                    if obj.Solutions.mhResults.mhAcceptance*allFitOptions.numberOfSamples<2*length(obj.parameters)
+                        error(['Initial Acceptance too small: ',num2str(obj.Solutions.mhResults.mhAcceptance),'. Decrease proposal or request longer chain.'])
+                    end
+
                     finalRun = false;
                     while ~finalRun
                         covMH = cov(obj.Solutions.mhResults.mhSamples);
+                        % Enforce symmetry and add a bit of uncorrelated
+                        % noise to the proposal generator.
                         covMH = (covMH+covMH')/2 + 1e-6*eye(length(covMH));
 
                         newParGuess = exp(obj.Solutions.mhResults.mhSamples(end,:))';
