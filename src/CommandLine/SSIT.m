@@ -4544,7 +4544,7 @@ classdef SSIT
                     nShortchain = ceil(max(0.1*nLongChain,10*length(obj.parameters)));
                     allFitOptions.numberOfSamples = nShortchain;
                     allFitOptions.thin = 1;
-                    allFitOptions.useFIMforMetHast = true;
+                    % allFitOptions.useFIMforMetHast = true;
                     CovScale = 1.0;
 
                     if ~strcmpi(returnType,'ssit')
@@ -4557,7 +4557,7 @@ classdef SSIT
                     finalRun = false;
                     while ~finalRun
                         covMH = cov(obj.Solutions.mhResults.mhSamples);
-                        covMH = (covMH+covMH')/2;
+                        covMH = (covMH+covMH')/2 + 1e-6*eye(length(covMH));
 
                         newParGuess = exp(obj.Solutions.mhResults.mhSamples(end,:))';
 
