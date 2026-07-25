@@ -1,0 +1,2 @@
+classdef UniformSEDStrategy < AbstractSequentialExperimentDesignStrategy
+end

@@ -1,0 +1,102 @@
+classdef SequentialExperimentDesigner
+    properties
+        DataFilename (1, :) char {mustBeNonempty} = "DefaultExperiment"
+        DataType (1, 1) ExperimentalDataType = ExperimentalDataType.Simulated
+        ExperimentalConfigurations (1, :) ExperimentConfiguration
+        IsTesting (1, 1) logical = false
+        MaximumNumberOfRounds (1, 1) double {mustBeInteger, mustBePositive} = intmax("uint64")
+        MaximumNumberOfObservations (1, 1) double {mustBeInteger, mustBePositive} = intmax("uint64")
+        Model (1, 1) DiscoverableModel        
+        RNGSeed (1, 1) double {mustBeInteger} = 42
+        Strategy (1, 1) AbstractSequentialExperimentDesignStrategy = RandomSEDStrategy()
+        TrueModel (1, 1) DiscoverableModel
+    end
+    properties (SetAccess = private)
+        DataLocations (1, :) string = []
+        DataStore %(1, 1) = datastore()
+        NumberOfObservationsCompleted (1, 1) double {mustBeInteger, mustBeNonnegative} = 0
+        NumberOfRoundsCompleted (1, 1) double {mustBeInteger, mustBeNonnegative} = 0
+        Rounds (1, :) SequentialExperimentRound
+    end
+
+    methods
+        function [obj, round] = designNextRound(obj)
+            if obj.NumberOfRoundsCompleted == obj.MaximumNumberOfRounds
+                disp('Maximum number of experiment rounds completed')
+            else
+                if obj.NumberOfRoundsCompleted == length(obj.Rounds)
+                    % We need to grow the array of Rounds. To preserve all
+                    % existing results, simply concatenate the existing
+                    % Rounds array with a new template round.
+                    obj.Rounds = [obj.Rounds ...
+                        SequentialExperimentRound(obj.ExperimentalConfigurations)];
+                end
+
+                % We are only designing the next round, not completing it,
+                % so the ID of the next round will be one greater than the
+                % number of rounds completed. We will only increment the
+                % NumberOfRoundsCompleted property after the "perform"
+                % stage.
+
+                nextRoundID = 1 + obj.NumberOfRoundsCompleted;
+                obj.Rounds(nextRoundID).RoundID = nextRoundID;
+                obj.Rounds(nextRoundID) = ...
+                    obj.Strategy.designRound(obj.Rounds(nextRoundID));                                
+            end
+
+            round = obj.Rounds(nextRoundID);
+        end % designNextRound
+
+        function obj = performNextRound(obj, locations)
+            arguments
+                obj 
+                locations (1, :) string {mustBeNonempty}
+            end      
+
+            roundPerformed = false;
+
+            switch obj.DataType
+                case Empirical
+                    % When working with empirical data, the caller must
+                    % supply the location(s) of the data file(s) that will
+                    % have been collected according to the design of this
+                    % round. Here, performing the round simply means
+                    % incorporating the new data into the datastore.
+                    % Because we always create a new datastore, using the
+                    % new set of all locations, the datastore is always an
+                    % initial, fully readable state for the design of the
+                    % next round, enabling immediate loading and fitting of
+                    % all data.
+
+                    if ~isempty(locations)
+                        obj.DataLocations = [obj.DataLocations locations];
+                        %obj.DataStore = datastore(obj.DataLocations);                        
+                        roundPerformed = true;
+                    else
+                        disp('performNextRound requires at least one data location when working with empirical data!')
+                    end
+                case Simulated
+                    % TO DO: Run SSA simulations according to the true
+                    % model, write these to files, and then append them to
+                    % the list of data locations.
+                    if isempty(locations)
+                        nextRoundID = 1 + obj.NumberOfRoundsCompleted;
+                        locations = ...
+                            obj.Rounds(nextRoundID).performSimulations(obj.DataFilename);
+                        obj.DataLocations = [obj.DataLocations locations];
+                        roundPerformed = true;
+                    else
+                        disp('performNextRound should not be called with data locations when working with simulated data!')
+                    end
+            end % switch obj.DataType
+
+            if roundPerformed
+                obj.NumberOfRoundsCompleted = 1 + ...
+                    obj.NumberOfRoundsCompleted;
+                obj.NumberOfObservationsCompleted = ...
+                    obj.NumberOfObservationsCompleted + ...
+                    obj.Rounds(obj.NumberOfRoundsCompleted).NumberOfObservations;
+            end
+        end % performNextRound
+    end % Public methods
+end
