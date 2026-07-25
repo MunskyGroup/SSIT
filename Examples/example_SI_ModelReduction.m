@@ -155,7 +155,6 @@ switch testModel
         
         % Print the computation time to solve the FSP using "tic" and "toc":
         tic
-        % [STL1_FSPsoln_expand,STL1_MR_setup.fspOptions.bounds] = STL1_MR_setup.solve;
         STL1_MR_setup = STL1_MR_setup.solve(solver='FSP');
         STL1_SolveTime = toc
         
