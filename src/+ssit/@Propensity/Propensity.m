@@ -160,7 +160,7 @@ classdef Propensity
                 species
                 upstreamODEs = {};
                 logicTerms = {};
-                prefixName = 'default';
+                prefixName (1, 1) string = "default";
                 computeSens = false;
             end
 
@@ -216,17 +216,19 @@ classdef Propensity
             varODEs = sym('varODEs',[length(upstreamODEs),1],'real');
 
             load('SSITconfig.mat','pathToPropensityFuns');
+            pathToPropensityFuns = string(pathToPropensityFuns);
 
             % % Delete previous propensity function m-files
             % if ~exist([pwd,filesep,'tmpPropensityFunctions'],'dir')
             %     mkdir([pwd,filesep,'tmpPropensityFunctions'])
             % end
-            delete(append(pathToPropensityFuns,filesep,prefixName,'*'));
-            if contains(prefixName,filesep)
-                J = find(prefixName==filesep,1,"last");
-                addpath([pathToPropensityFuns,filesep,prefixName(1:J-1)],'-begin')
+            delete(pathToPropensityFuns + filesep + prefixName + "*");            
+            if contains(prefixName, filesep)
+                [pathToCurrentFolder, ~] = fileparts(prefixName);                
+                addpath(pathToPropensityFuns + filesep + ...
+                    pathToCurrentFolder, '-begin')
             else
-                addpath([pathToPropensityFuns,filesep],'-begin')
+                addpath(pathToPropensityFuns + filesep, '-begin')
             end
 
             obj = cell(1,n_reactions);
@@ -255,7 +257,7 @@ classdef Propensity
             for iRxn = 1:n_reactions
                 prop_vars = symvar(symbolicExpression{iRxn});
                 hybridFactor =[];
-                prefixNameLocal = [prefixName,'_',num2str(iRxn)];
+                prefixNameLocal = prefixName + "_" + iRxn;
 
                 obj{iRxn} = ssit.Propensity(stoichMatrix(jStochastic,iRxn), iRxn);
                 obj{iRxn}.ODEstoichVector = stoichMatrix(jODE,iRxn);
@@ -492,19 +494,20 @@ classdef Propensity
                     end
                 end
             else
-                hybridFactorVector = sym2mFun(expr_t_vec, true, false, nonXTpars(:,1), speciesStoch, varODEs, false, true, [prefixNameLocal,'_t']);
-                xFactorVector = sym2mFun(expr_x_vec, false, true, nonXTpars(:,1), speciesStoch, varODEs, false, true, [prefixNameLocal,'_x']);
+                hybridFactorVector = sym2mFun(expr_t_vec, true, false, nonXTpars(:,1), speciesStoch, varODEs, false, true, prefixNameLocal + "_t");
+                xFactorVector = sym2mFun(expr_x_vec, false, true, nonXTpars(:,1), speciesStoch, varODEs, false, true, prefixNameLocal + "_x");
                 if ~isempty(expr_dt_vec_dode)
-                    obj{1}.DhybridFactorDodesVec = sym2mFun(expr_dt_vec_dode, true, false, nonXTpars(:,1), speciesStoch, varODEs, false, true, [prefixNameLocal,'_dt']);
+                    obj{1}.DhybridFactorDodesVec = sym2mFun(expr_dt_vec_dode, true, false, nonXTpars(:,1), speciesStoch, varODEs, false, true, prefixNameLocal + "_dt");
                 end
                 if computeSens
-                    obj{1}.sensStateFactorVec = sym2mFun(expr_x_vec_sens, false, true, nonXTpars(:,1), speciesStoch, varODEs, false, true, [prefixNameLocal,'_s']);
+                    obj{1}.sensStateFactorVec = sym2mFun(expr_x_vec_sens, false, true, nonXTpars(:,1), speciesStoch, varODEs, false, true, prefixNameLocal + "_s");
                     poolobj = gcp("nocreate");
                     if ~isempty(poolobj)&&n_reactions>0
                         parfor iRxn = 1:n_reactions
                             obj{iRxn}.sensStateFactor = cell(1,n_pars);
                             for ipar = 1:n_pars
-                                prefixNameLocal = [prefixName,'_',num2str(iRxn),'_',num2str(ipar)];
+                                prefixNameLocal = ...
+                                    prefixName + "_" + iRxn + "_" + ipar;
                                 obj{iRxn}.sensStateFactor{ipar} =  sym2mFun(expr_x_vec_sens(iRxn,ipar), false, true, nonXTpars(:,1), speciesStoch, varODEs, false, true, prefixNameLocal);
                             end
                         end
@@ -512,13 +515,15 @@ classdef Propensity
                         for iRxn = 1:n_reactions
                             obj{iRxn}.sensStateFactor = cell(1,n_pars);
                             for ipar = 1:n_pars
-                                prefixNameLocal = [prefixName,'_',num2str(iRxn),'_',num2str(ipar)];
+                                prefixNameLocal = ...
+                                    prefixName + "_" + iRxn + "_" + ipar;
                                 obj{iRxn}.sensStateFactor{ipar} =  sym2mFun(expr_x_vec_sens(iRxn,ipar), false, true, nonXTpars(:,1), speciesStoch, varODEs, false, true, prefixNameLocal);
                             end
                         end
                     end
                     for ipar = 1:n_pars
-                        prefixNameLocal = [prefixName,'_v_',num2str(1),'_',num2str(ipar)];
+                        prefixNameLocal = ...
+                            prefixName + "_v_" + 1 + "_" + ipar;
                         obj{1}.sensTimeFactorVec{ipar} = sym2mFun(expr_t_vec_sens(:,ipar), true, false, nonXTpars(:,1), speciesStoch, varODEs, false, true, prefixNameLocal);
                     end
                 end
@@ -870,7 +875,9 @@ else
     exprHandle = str2func([fhandle_var exprStr]);
 end
 end
-function [exprHandle,exprJac] = sym2mFun(symbolicExpression, time_dep, state_dep, nonXTpars, species, varODEs, jacobian, writeFiles, prefixName, logicTerms)
+function [exprHandle,exprJac] = sym2mFun(symbolicExpression, ...
+    time_dep, state_dep, nonXTpars, species, varODEs, jacobian, ...
+    writeFiles, prefixName, logicTerms)
 arguments
     symbolicExpression
     time_dep
@@ -880,7 +887,7 @@ arguments
     varODEs = {}
     jacobian = false
     writeFiles = true
-    prefixName = []
+    prefixName (1, 1) string = ""
     logicTerms = {};
 end
 % This function writes an executable m-file for the provided expression.
@@ -954,19 +961,19 @@ end
 
 
 if isempty(prefixName)
-    prefixName = pwd;
-    j = find(prefixName==filesep,1,'last');
-    prefixName = prefixName(j+1:end);
+    % Use the name of the current folder itself as the prefix:
+    [~, prefixName] = fileparts(pwd);
 end
 
 load('SSITconfig.mat','pathToPropensityFuns');
+pathToPropensityFuns = string(pathToPropensityFuns);
 
 % ifn = sum(contains({dir('tmpPropensityFunctions').name},[prefixName,'_fun']))+1;
 % files = dir(fullfile('tmpPropensityFunctions', [prefixName '_fun*']));
-files = dir(fullfile(pathToPropensityFuns, [prefixName '_fun*']));
+files = dir(fullfile(pathToPropensityFuns, prefixName + "_fun*"));
 ifn = numel(files) + 1;
 
-fn = append(pathToPropensityFuns,filesep,prefixName,'_fun_',num2str(ifn),'.m');
+fn = pathToPropensityFuns + filesep + prefixName + "_fun_" + ifn + ".m";
 
 if jacobian&&~isempty(varODEs)
     exprJac = sym(zeros([1,length(varODEs)]));

@@ -151,9 +151,9 @@ classdef poisson2Dtest < matlab.unittest.TestCase
             testCase.TwoDPoiss.ssaOptions.Nexp = 1;
             testCase.TwoDPoiss.sampleDataFromFSP(testCase.TwoDPoissSolution,'testData.csv');
 
-            modelBoth = testCase.TwoDPoiss.loadData('testData.csv',{'rna1','exp1_s1';'rna2','exp1_s2'});
+            modelBoth = testCase.TwoDPoiss.loadData('testData.csv');
             modelBothLogL = modelBoth.computeLikelihood;
-            modelA = testCase.TwoDPoiss.loadData('testData.csv',{'rna1','exp1_s1'});
+            modelA = testCase.TwoDPoiss.loadData('testData.csv');
             modelALogL = modelA.computeLikelihood;
 
             DATA = modelBoth.dataSet.DATA;
@@ -203,7 +203,7 @@ classdef poisson2Dtest < matlab.unittest.TestCase
             testCase.TwoDPoiss.ssaOptions.Nexp = 1;
             testCase.TwoDPoiss.sampleDataFromFSP(testCase.TwoDPoissSolution,'testData.csv');
 
-            modelBoth = testCase.TwoDPoiss.loadData('testData.csv',{'rna1','exp1_s1';'rna2','exp1_s2'});
+            modelBoth = testCase.TwoDPoiss.loadData('testData.csv');
 
             % Change numbers of cells
             modelBoth.dataSet.nCells(:) = 30;

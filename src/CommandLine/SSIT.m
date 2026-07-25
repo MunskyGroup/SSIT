@@ -431,57 +431,59 @@ classdef SSIT
             end
         end
 
-        function obj = clearPropensityFiles(obj,prefixName,type)
+        function obj = clearPropensityFiles(obj, prefixName, type)
             arguments
                 obj
-                prefixName
+                prefixName (1, 1) string
                 type
             end
-
-            load('SSITconfig.mat','pathToPropensityFuns');
-
+            
+            load('SSITconfig.mat', 'pathToPropensityFuns');
+            
+            pathToDelete = ...
+                string(pathToPropensityFuns) + filesep + prefixName; 
+            
             switch type
                 case 'fsp'
-                    delete([pathToPropensityFuns,filesep,prefixName,'_fsp*'])
-                    clear([prefixName,'_fsp*'])
+                    delete(pathToDelete + "_fsp*")
+                    clear(prefixName + "_fsp*")
+            
                     % TODO - it would be good if we could search here and
-                    % find if there are conflict files in pther folders
+                    % find if there are conflict files in other folders
                     % that need to be deleted.  This is easier for the
                     % ode and moments models below.
-
                 case 'ssa'
                 case 'ode'
-                    delete([pathToPropensityFuns,filesep,prefixName,'_mean*'],...
-                        [pathToPropensityFuns,filesep,prefixName,'_mean*'])
-                    clear([prefixName,'_mean'],[prefixName,'_mean_jac']);
-
-                    conflictFile = which([prefixName,'_mean']);
+                    delete(pathToDelete + "_mean*")
+                    clear(prefixName + "_mean", prefixName + "_mean_jac");
+            
+                    conflictFile = which(prefixName + "_mean");
                     while ~isempty(conflictFile)
                         delete(conflictFile)
-                        conflictFile = which([prefixName,'_mean']);
+                        conflictFile = which(prefixName + "_mean");
                     end
-
-                case {'moments','gaussian'}
-                    delete([pathToPropensityFuns,filesep,prefixName,'_momentsgaussian*'],...
-                        [pathToPropensityFuns,filesep,prefixName,'_momentsgaussian_jac*'])
-                    clear([prefixName,'_momentsgaussian'],[prefixName,'_momentsgaussian_jac']);
-
-                    conflictFile = which([prefixName,'_momentsgaussian']);
+            
+                case {'moments', 'gaussian'}
+                    delete(pathToDelete + "_momentsgaussian*", ...
+                        pathToDelete + "_momentsgaussian_jac*")
+                    clear(prefixName + "_momentsgaussian", ...
+                        prefixName + "_momentsgaussian_jac");
+            
+                    conflictFile = which(prefixName + "_momentsgaussian");
                     while ~isempty(conflictFile)
                         delete(conflictFile)
-                        conflictFile = which([prefixName,'_momentsgaussian']);
+                        conflictFile = which(prefixName + "_momentsgaussian");
                     end
-
-                    conflictFile = which([prefixName,'_momentsgaussian_jac']);
+            
+                    conflictFile = which(prefixName + "_momentsgaussian_jac");
                     while ~isempty(conflictFile)
                         delete(conflictFile)
-                        conflictFile = which([prefixName,'_momentsgaussian_jac']);
+                        conflictFile = which(prefixName + "_momentsgaussian_jac");
                     end
-            end
+            end % switch type
+        end % clearPropensityFiles
 
-        end
-
-        function obj = formPropensitiesGeneral(obj,prefixName,computeSens)
+        function obj = formPropensitiesGeneral(obj, prefixName, computeSens)
             %% SSIT.formPropensitiesGeneral - Create callable functions
             %% for all propensity functions.
             %
@@ -495,7 +497,7 @@ classdef SSIT
             %    * obj - SELF
             %    * prefixName - (string) the prefix name used to name the
             %                   saved propensity functions
-            %                   default: 'default'
+            %                   default: "default"
             %    * computeSens - (logical) indicates whether derivatives
             %                    are calculated for use in sensitivity
             %                    analysis
@@ -503,30 +505,29 @@ classdef SSIT
             %
             % Outputs: Model, callable symbolic expression functions
             %
-            % Example: Model = Model.formPropensitiesGeneral('Model_1')
+            % Example: Model = Model.formPropensitiesGeneral("Model_1")
             arguments
                 obj
-                prefixName = 'default';
+                prefixName (1, 1) string = "default";
                 computeSens = true;
             end
             % This function starts the process to write m-file for each
             % propensity function.
 
             load('SSITconfig.mat','pathToPropensityFuns');
-            % oldPath = path;
-            Jslash = strfind(prefixName,filesep);
-            if isempty(Jslash)
-                pathFuns = append(pathToPropensityFuns);
-                Jslash = 0;
-            else
-                pathFuns = append(pathToPropensityFuns,filesep,prefixName(1:Jslash(end)-1));
+            pathToPropensityFuns = string(pathToPropensityFuns);
+
+            [pathToCurrentFolder, currentFolder] = fileparts(prefixName);           
+            if pathToCurrentFolder.strlength() > 0
+                pathFuns = pathToPropensityFuns + filesep + ...
+                    pathToCurrentFolder;
                 addpath(pathFuns);
-                Jslash = Jslash(end);
-           end
+            end
 
             if strcmpi(obj.solutionScheme,'ode')
                 obj = clearPropensityFiles(obj,prefixName,'ode');
-                momentOdeFileName = [pathToPropensityFuns,filesep,prefixName,'_mean'];
+                momentOdeFileName = pathToPropensityFuns + filesep + ...
+                    prefixName + "_mean";
                 try
                     jacCreated = ssit.moments.writeFunForMomentsODESymb(obj.stoichiometry,...
                         obj.propensityFunctions,...
@@ -535,11 +536,13 @@ classdef SSIT
                         momentOdeFileName, ...
                         false,...
                         obj.inputExpressions, ...
-                        [momentOdeFileName,'_jac']);
-                    obj.propensitiesGeneralMean = str2func([prefixName(Jslash+1:end),'_mean']);
+                        momentOdeFileName + "_jac");
+                    obj.propensitiesGeneralMean = ...
+                        str2func(currentFolder + "_mean");
                     % obj.propensitiesGeneralMean = eval(['@(t,v,pars)',pathToPropensityFuns,filesep,prefixName,'_mean(t,v,pars)']);
                     if jacCreated
-                        obj.propensitiesGeneralMeanJac = str2func([prefixName(Jslash+1:end),'_mean_jac']);
+                        obj.propensitiesGeneralMeanJac = ...
+                            str2func(currentFolder + "_mean_jac");
                         % obj.propensitiesGeneralMeanJac = eval(['@(t,v,pars)',pathToPropensityFuns,filesep,prefixName,'_mean_jac(t,v,pars)']);
                     else
                         obj.propensitiesGeneralMeanJac = [];
@@ -551,7 +554,9 @@ classdef SSIT
             elseif strcmpi(obj.solutionScheme,'moments')||strcmpi(obj.solutionScheme,'gaussian')
                 obj = clearPropensityFiles(obj,prefixName,'moments');
                 try
-                    momentOdeFileName = [pathToPropensityFuns,filesep,prefixName,'_momentsgaussian'];
+                    momentOdeFileName = ...
+                        pathToPropensityFuns + filesep + prefixName + ...
+                        "_momentsgaussian";
                     jacCreated = ssit.moments.writeFunForMomentsODESymb(obj.stoichiometry,...
                         obj.propensityFunctions,...
                         obj.species,...
@@ -559,11 +564,13 @@ classdef SSIT
                         momentOdeFileName, ...
                         true,...
                         obj.inputExpressions,...
-                        [momentOdeFileName,'_jac']);
-                    obj.propensitiesGeneralMoments = str2func([prefixName(Jslash+1:end),'_momentsgaussian']);
+                        momentOdeFileName + "_jac");
+                    obj.propensitiesGeneralMoments = str2func(...
+                        currentFolder + "_momentsgaussian");
                     % obj.propensitiesGeneralMoments = eval(['@(t,v,pars)',pathToPropensityFuns,filesep,prefixName,'_momentsgaussian(t,v,pars)']);
                     if jacCreated
-                        obj.propensitiesGeneralMomentsJac = str2func([prefixName(Jslash+1:end),'_momentsgaussian_jac']);
+                        obj.propensitiesGeneralMomentsJac = ...
+                            str2func(currentFolder + "_momentsgaussian_jac");
                         % obj.propensitiesGeneralMomentsJac = eval(['@(t,v,pars)',pathToPropensityFuns,filesep,prefixName,'_momentsgaussian_jac(t,v,pars)']);
                     else
                         obj.propensitiesGeneralMomentsJac = [];
@@ -611,15 +618,16 @@ classdef SSIT
 
             % if ~strcmp(obj.solutionScheme,'ode')||~ismember('ode',obj.solutionSchemes)
             if obj.useHybrid
-                PropensitiesGeneral = ...
-                    ssit.Propensity.createAsHybridVec(sm, obj.stoichiometry,...
-                    obj.parameters, obj.species, obj.hybridOptions.upstreamODEs,...
-                    logicTerms, [prefixName,'_fsp'], computeSens);
+                upstreamODEs = obj.hybridOptions.upstreamODEs;
             else
-                PropensitiesGeneral = ...
-                    ssit.Propensity.createAsHybridVec(sm, obj.stoichiometry,...
-                    obj.parameters, obj.species, [], logicTerms, [prefixName,'_fsp'], computeSens);
+                upstreamODEs = [];
             end
+
+            PropensitiesGeneral = ssit.Propensity.createAsHybridVec(...
+                sm, obj.stoichiometry,...
+                obj.parameters, obj.species, upstreamODEs, ...
+                logicTerms, prefixName + "_fsp", computeSens);
+
             % else
             %     PropensitiesGeneral = [];
             % end
@@ -2148,8 +2156,13 @@ classdef SSIT
                         disp([num2str(nSims),' SSA Runs Completed'])
                     end
 
+                    trajsToWrite = Solution.trajs;
+                    distortedMode = false;
+
                     % Apply PDO, if applicable
                     if ~isempty(obj.pdoOptions.PDO)
+
+                        distortedMode = true;
 
                         [speciesStochastic,iA] = setdiff(obj.species,obj.hybridOptions.upstreamODEs);
 
@@ -2191,8 +2204,9 @@ classdef SSIT
                             end
                             Solution.trajsDistorted(iS,:,:) = Q;
                         end
+                        trajsToWrite = Solution.trajsDistorted;
                         disp('PDO applied to SSA results')
-                    end
+                    end % [PDO exists]
 
                     % Save results if requested.
                     if ~isempty(saveFile)
@@ -2200,43 +2214,58 @@ classdef SSIT
                         if ~isnan(obj.ssaOptions.nSimsPerExpt)
                             % Write table for independent experiments.
                             for j=1:Nt
-                                A.time((j-1)*obj.ssaOptions.nSimsPerExpt+1:j*obj.ssaOptions.nSimsPerExpt) = obj.tSpan(j);
+                                rowsForCurrentTime = (j-1)*obj.ssaOptions.nSimsPerExpt+1:j*obj.ssaOptions.nSimsPerExpt;
+                                A.time(rowsForCurrentTime) = obj.tSpan(j);
                                 for i = 1:obj.ssaOptions.Nexp
                                     for k=1:obj.ssaOptions.nSimsPerExpt
+                                        tableRow = (j-1)*obj.ssaOptions.nSimsPerExpt+k;
+                                        trajObservations = ...
+                                            (i-1)*Nt*obj.ssaOptions.nSimsPerExpt+(j-1)*obj.ssaOptions.nSimsPerExpt+k;
                                         for s = 1:size(Solution.trajs,1)
                                             warning('off')
-                                            A.(['exp',num2str(i),'_s',num2str(s)])((j-1)*obj.ssaOptions.nSimsPerExpt+k) = ...
-                                                Solution.trajs(s,j,(i-1)*Nt*obj.ssaOptions.nSimsPerExpt+(j-1)*obj.ssaOptions.nSimsPerExpt+k);
-                                            if ~isempty(obj.pdoOptions.PDO)
-                                                A.(['exp',num2str(i),'_s',num2str(s),'_Distorted'])((j-1)*obj.ssaOptions.nSimsPerExpt+k) = ...
-                                                    Solution.trajsDistorted(s,j,(i-1)*Nt*obj.ssaOptions.nSimsPerExpt+(j-1)*obj.ssaOptions.nSimsPerExpt+k);
+
+                                            tableColumn = ...
+                                                "exp" + ie + "_" + obj.species{s};
+                                            if distortedMode
+                                                tableColumn = tableColumn + "_Distorted";
                                             end
-                                        end
-                                    end
-                                end
-                            end
+
+                                            A.(tableColumn)(tableRow) = ...
+                                                trajsToWrite(s, j, trajObservations);                                            
+                                        end % Trajectories
+                                    end % Simulations
+                                end % Experiments
+                            end % Times
                         else
                             % Write table for dependent experiments.
                             for j=1:Nt
-                                A.time((j-1)*obj.ssaOptions.Nsims+1:j*obj.ssaOptions.Nsims) = obj.tSpan(j);
+                                rowsForCurrentTime = (j-1)*obj.ssaOptions.Nsims+1:j*obj.ssaOptions.Nsims;
+                                A.time(rowsForCurrentTime) = obj.tSpan(j);
                                 for i = 1:obj.ssaOptions.Nexp
                                     for k=1:obj.ssaOptions.Nsims
                                         for s = 1:size(Solution.trajs,1)
                                             warning('off')
-                                            A.(['exp',num2str(i),'_s',num2str(s)])((j-1)*obj.ssaOptions.Nsims+(1:obj.ssaOptions.Nsims)) = ...
-                                                Solution.trajs(s,j,:);
-                                            if ~isempty(obj.pdoOptions.PDO)
-                                                A.(['exp',num2str(i),'_s',num2str(s),'_Distorted'])((j-1)*obj.ssaOptions.Nsims+k) = ...
-                                                    Solution.trajsDistorted(s,j,:);
+
+                                            tableColumn = ...
+                                                "exp" + ie + "_" + obj.species{s};
+                                            tableRows = ...
+                                                (j-1)*obj.ssaOptions.Nsims+(1:obj.ssaOptions.Nsims);
+                                            
+                                            if distortedMode
+                                                tableColumn = tableColumn + "_Distorted";
+                                                tableRows = (j-1)*obj.ssaOptions.Nsims+k;
                                             end
-                                        end
-                                    end
-                                end
-                            end
+
+                                            A.(tableColumn)(tableRows) = ...
+                                                trajsToWrite(s, j, :);                                            
+                                        end % Trajectories
+                                    end % Simulations
+                                end % Experiments
+                            end % Times
                         end
                         writetable(A,saveFile)
                         disp(['SSA Results saved to ',saveFile])
-                    end
+                    end % [Writing results to table]
                     
                     states = reshape(Solution.trajs,[size(Solution.trajs,1),size(Solution.trajs,2)*size(Solution.trajs,3)]);
                     try
@@ -2426,7 +2455,12 @@ classdef SSIT
                     eval(['Solution.trajs(iSp,iT,1:nCells(iT)) = I',num2str(indsSpecies2save(iSp)),'-1;']);
                 end
             end
+
+            trajsToWrite = Solution.trajs;
+            distortedMode = false;
+
             if ~isempty(obj.pdoOptions.PDO)
+                distortedMode = true;
                 Solution.trajsDistorted = NaN*ones(nSpSave,...
                 length(obj.tSpan),max(nCells)); % Creates an empty Trajectories matrix from the size of the time array and number of simulations
                 for iS = 1:nSpSave
@@ -2438,24 +2472,31 @@ classdef SSIT
                     end
                     Solution.trajsDistorted(iS,:,:) = Q;
                 end
+                trajsToWrite = Solution.trajsDistorted;
                 disp('PDO applied to FSP Samples')
             end
 
             if nargout>=1||~isempty(saveFile)
                 A = table;
                 k = 0;
+                
                 for iT=1:Nt
-                    A.time(k+1:k+nCells(iT)) = obj.tSpan(iT);
+                    tableRows = k+1:k+nCells(iT);
+                    A.time(tableRows) = obj.tSpan(iT);
                     for ie = 1:obj.ssaOptions.Nexp
                         for s = 1:size(Solution.trajs,1)
                             warning('off')
 
-                            A.(['exp',num2str(ie),'_s',num2str(s)])(k+1:k+nCells(iT)) = ...
-                                Solution.trajs(s,iT,1:nCells(iT));
-                            if ~isempty(obj.pdoOptions.PDO)
-                                A.(['exp',num2str(ie),'_s',num2str(s),'_Distorted'])(k+1:k+nCells(iT)) = ...
-                                    Solution.trajsDistorted(s,iT,1:nCells(iT));
+                            tableColumn = ...
+                                "exp" + ie + "_" + obj.species{s};
+                            if distortedMode
+                                tableColumn = tableColumn + "_Distorted";
                             end
+
+                            trajObservations = 1:nCells(iT);
+
+                            A.(tableColumn)(tableRows) = ...
+                                trajsToWrite(s, iT, trajObservations);                            
                         end
                     end
                     k = k + nCells(iT);
@@ -2465,8 +2506,8 @@ classdef SSIT
                     writetable(A,saveFile)
                     disp(['FSP Samples saved to ',saveFile])
                 end
-            end
-        end
+            end % [Writing to file or to table...]
+        end % sampleDataFromFSP
 
         function [fimResults,sensSoln] = computeFIM(obj,sensSoln,scale,MHSamples,freePars)
             %% computeFIM - Computes the Fisher Information Matrix (FIM)
@@ -2894,7 +2935,7 @@ classdef SSIT
             arguments
                 obj
                 dataFileName
-                linkedSpecies
+                linkedSpecies = {};
                 conditions = {};
                 savedColumns = {};
             end
@@ -2916,6 +2957,53 @@ classdef SSIT
             elseif length(timeField)>2
                 error('Data sheet has more than one entry with keyword "time"');
             end
+
+            % Link Species
+            % First, make sure that all linked species are in the order of
+            % species.
+            if ~isempty(linkedSpecies)
+                iSpe = [];
+                for i = 1:length(obj.species)
+                    if max(contains(linkedSpecies(:,1),obj.species(i)))
+                        j = find(strcmp(linkedSpecies(:,1),obj.species(i)));
+                        iSpe = [iSpe,j];
+                    end
+                end
+                linkedSpecies = linkedSpecies(iSpe,:);
+            end
+
+            TAB2 = table;
+            TAB2.time = TAB.(timeField{1});
+
+            % Automatically handled simulated data by linking species from
+            % the first simulation experiment.
+            columns = TAB.Properties.VariableNames;
+            for colIdx = 1:length(columns)
+                curColumn = columns{colIdx};
+                tokens = regexp(curColumn, "exp1_(\w+)", "tokens");
+                if ~isempty(tokens)
+                    TAB2.(string(tokens{1})) = TAB.(curColumn);
+                end
+            end
+
+            for i = 1:size(linkedSpecies,1)
+                if ~isempty(linkedSpecies{i,2})
+                    TAB2.(linkedSpecies{i,1}) = TAB.(linkedSpecies{i,2});
+                elseif ~isempty(linkedSpecies{i,3})
+                    % This section allows for manipulation of data columns.
+                    % Example: linkedSpecies = {'rna',[],'TAB.nuc+TAB.cyt'}
+                    % results in TAB2.rna = TAB.nuc+TAB.cyt
+                    eval(['TAB2.',linkedSpecies{i,1},' = ',linkedSpecies{i,3},';']);
+                end
+            end
+
+            % Reorder table in order of species list
+            if ~isempty(linkedSpecies)
+                [~,iA] = intersect(linkedSpecies(:,1),obj.species,'stable');
+                TAB2 = TAB2(:,[1,iA'+1]);
+            end
+
+            TAB = TAB2;
 
             % Apply conditions
             for i = 1:size(conditions,1)
@@ -2967,34 +3055,7 @@ classdef SSIT
             obj.dataSet.dataFileName = dataFileName;
             % obj.dataSet.DATA = table2cell(TAB);
 
-            % Link Species
-            % First, make sure that all linked species are in the order of
-            % species.
-            iSpe = [];
-            for i = 1:length(obj.species)
-                if max(contains(linkedSpecies(:,1),obj.species(i)))
-                    j = find(strcmp(linkedSpecies(:,1),obj.species(i)));
-                    iSpe = [iSpe,j];
-                end
-            end
-            linkedSpecies = linkedSpecies(iSpe,:);
-
-            TAB2 = table;
-            TAB2.time = TAB.(timeField{1});
-            for i = 1:size(linkedSpecies,1)
-                if ~isempty(linkedSpecies{i,2})
-                    TAB2.(linkedSpecies{i,1}) = TAB.(linkedSpecies{i,2});
-                elseif ~isempty(linkedSpecies{i,3})
-                    % This section allows for manipulation of data columns.
-                    % Example: linkedSpecies = {'rna',[],'TAB.nuc+TAB.cyt'}
-                    % results in TAB2.rna = TAB.nuc+TAB.cyt
-                    eval(['TAB2.',linkedSpecies{i,1},' = ',linkedSpecies{i,3},';']);
-                end
-            end
-
-            % Reorder table in order of species list
-            [~,iA] = intersect(linkedSpecies(:,1),obj.species,'stable');
-            TAB2 = TAB2(:,[1,iA'+1]);
+            TAB2 = TAB;
 
             % Update to a constrained copy of the data in the obj.
             obj.dataSet.DATA = table2cell(TAB2);
@@ -3013,11 +3074,17 @@ classdef SSIT
             obj.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor = sptensor(TAB2.Variables+1,ones(size(TAB2,1),1));
 
             % Define other properties needed in other functions.
-            obj.dataSet.linkedSpecies = linkedSpecies;
+            if isempty(linkedSpecies)
+                obj.dataSet.linkedSpecies = obj.species;
+            else
+                obj.dataSet.linkedSpecies = linkedSpecies;
+            end
             obj.dataSet.times = times';
 
             obj.dataSet.app.SpeciesForFitPlot.Items = obj.species;
-            obj.dataSet.app.SpeciesForFitPlot.Items = linkedSpecies(:,1);
+            if ~isempty(linkedSpecies)
+                obj.dataSet.app.SpeciesForFitPlot.Items = linkedSpecies(:,1);
+            end
             obj.dataSet.app.DataLoadingAndFittingTabOutputs.fittingOptions.fit_times = times';
             for i=1:numTimes
                 obj.dataSet.app.ParEstFitTimesList.Items{i} = num2str(times(i));
@@ -3063,9 +3130,10 @@ classdef SSIT
             end
 
             %% Automatically set unobserved species based on loaded data.
-            obj.pdoOptions.unobservedSpecies = setdiff(obj.species,linkedSpecies(:,1),'stable')';
-
-        end
+            if ~isempty(linkedSpecies)
+                obj.pdoOptions.unobservedSpecies = setdiff(obj.species,linkedSpecies(:,1),'stable')';
+            end
+        end % loadData
 
         function [logL,gradient] = minusLogL(obj,pars,stateSpace,computeSensitivity)
             [logL,gradient] = computeLikelihood(obj,exp(pars),stateSpace,computeSensitivity);
