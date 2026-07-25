@@ -4818,12 +4818,13 @@ classdef SSIT
                 -obj.computeLossFunctionSSA(lossFunction, pars, enforceIndependence) ...
                 - logPriorLoss(pars);
         
+            % If 'all', then change to list of indices.
+            if ischar(obj.fittingOptions.modelVarsToFit)&&strcmp(obj.fittingOptions.modelVarsToFit,'all')
+                obj.fittingOptions.modelVarsToFit = [1:size(obj.parameters,1)];
+            end
+
             % Set parGuess if not provided.
             if isempty(parGuess)
-                % If 'all', then change to list of indices.
-                if ischar(obj.fittingOptions.modelVarsToFit)&&strcmp(obj.fittingOptions.modelVarsToFit,'all')
-                    obj.fittingOptions.modelVarsToFit = [1:size(obj.parameters,1)];
-                end
                 parGuess = cell2mat(obj.parameters(obj.fittingOptions.modelVarsToFit,2));
             end
             % This line will throw the error location if something is wrong:
@@ -4831,11 +4832,13 @@ classdef SSIT
         
             % Call MH as usual (this will internally wrap fitOptions.obj as
             % @(x) allFitOptions.obj(exp(x)), working in log-parameter space).
-            [pars, minimumLossFunction, Results] = ...
-                obj.maximizeLikelihood(parGuess, fitOptions, 'MetropolisHastings');
+            [pars, bestObjectiveValue, Results] = ...
+                obj.maximizeLikelihood(parGuess, fitOptions, ...
+                'MetropolisHastings', returnType='parameters');
+            minimumLossFunction = -bestObjectiveValue;
 
             % Update model with results
-            obj.parameters(obj.fittingOptions.modelVarsToFit,2) = num2cell(pars);
+            obj.parameters(obj.fittingOptions.modelVarsToFit,2) = num2cell(pars(:));
             obj.Solutions.ABC = Results;
         end
 

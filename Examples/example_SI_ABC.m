@@ -66,9 +66,9 @@ logPriorLoss = [];
 % 'MetropolisHastings' algorithm. Tune these depending on your problem size.
 
 fitOptions = struct();
-fitOptions.numberOfSamples       = 500;          % Total MH iterations 
-fitOptions.burnIn                = 10;            % Discard burn-in samples
-fitOptions.thin                  = 1;            % Keep every nth sample
+fitOptions.numberOfSamples       = 2000;          % Total MH iterations 
+fitOptions.burnIn                = 200;            % Discard burn-in samples
+fitOptions.thin                  = 2;            % Keep every nth sample
 proposalWidthScale               = 0.5;           % Proposal scale
 
 % Proposal distribution:
@@ -120,6 +120,7 @@ disp(parsABC(:).');
 %       ResultsABC.mhValue          - corresponding loss values
 %       ResultsABC.mhAcceptance     - MH acceptance fraction
 % Below we show a simple marginal histogram for each fitted parameter.
+load('seqModels/Model_TSC22D3.mat')
 
 if isfield(ResultsABC, 'mhSamples')
     parChain = ResultsABC.mhSamples;   % size: [numberOfSamples x nPars] 
@@ -132,7 +133,7 @@ if isfield(ResultsABC, 'mhSamples')
         hold on;        
         xline(parGuess(k), 'b', 'LineWidth', 1.5);
         xline(parsABC(k), 'r', 'LineWidth', 1.5);
-        xline(cell2mat(scRNAseq.parameters(k,2)),'g','LineWidth',1.5);
+        xline(cell2mat(Model_TSC22D3.parameters(k,2)),'g','LineWidth',1.5);
         title(sprintf('Parameter %d', k));
         xlabel('\theta_k');
         ylabel('Posterior density (approx.)');
@@ -165,7 +166,6 @@ fprintf('Relative improvement: %.1f%%\n', 100 * (L_init - L_min)/L_init);
 
 %% Compare ABC posterior sample to MLE
 % TODO: Overlay parameter values and compute predictive distributions.
-load('seqModels/Model_TSC22D3.mat')
 
 theta_TSC22D3 = cell2mat(Model_TSC22D3.parameters(1:9,2));
 
@@ -175,5 +175,3 @@ L_min  = minimumLoss;
 
 fprintf('MLE loss: %.3f,  Final (min) ABC loss: %.3f\n', L_MLE, L_min);
 fprintf('Relative improvement: %.1f%%\n', 100 * (L_MLE - L_min)/L_MLE);
-
-

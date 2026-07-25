@@ -247,7 +247,13 @@ classdef poissonTest < matlab.unittest.TestCase
             % Test ABC for a short run.
             fitOptions.numberOfSamples=100;
             fitOptions.progress=false;
-            [~,~,Results] = testCase.Poiss.runABCsearch([],[],[],fitOptions);
+            [parsABC,~,Results,PoissABC] = testCase.Poiss.runABCsearch([],[],[],fitOptions);
+            testCase.verifyTrue(isnumeric(parsABC), ...
+                'ABC search should return numeric parameter values');
+            testCase.verifyEqual(cell2mat(PoissABC.parameters(PoissABC.fittingOptions.modelVarsToFit,2)), ...
+                parsABC(:), 'ABC search should update the returned model parameters');
+            testCase.verifyTrue(all(cellfun(@isnumeric, PoissABC.parameters(:,2))), ...
+                'ABC search should not store model objects in the parameter table');
             
 
         end
