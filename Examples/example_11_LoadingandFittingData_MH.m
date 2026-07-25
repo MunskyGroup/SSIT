@@ -37,7 +37,7 @@ STL1_4state.fittingOptions.modelVarsToFit = [1:fitpars];
 %% Specify Bayesian Prior and fit
 % Specify Prior as log-normal distribution with wide uncertainty
 % Prior log-mean:
-mu_log10 = [0.5,2,5,3.5,-0.4,1,0.2,0.4,-0.5,-1.3,-0.1,2,0.5]; 
+mu_log10 = [0.5;2;5;3.5;-0.4;1;0.2;0.4;-0.5;-1.3;-0.1;2;0.5]; 
 
 % Prior log-standard deviation:
 sig_log10 = 2*ones(1,fitpars);  
@@ -52,7 +52,7 @@ STL1_4state.fittingOptions.logPrior = ...
 % Set fitOptions, with the maximum allowable number of iterations to fit:
 fitOptions = optimset('Display','iter','MaxIter',2000);
 
-%for i=1:2
+for i=1:2
     % Maximize likelihood:
     STL1_4state = STL1_4state.maximizeLikelihood(fitOptions=fitOptions);    
 
@@ -62,14 +62,14 @@ fitOptions = optimset('Display','iter','MaxIter',2000);
        @(x)x+proposalWidthScale*randn(size(x));
 
     % Set MH runtime options (number of samples, burnin, thin, etc.):
-    MHOptions.numberOfSamples = 8000;
-    MHOptions.burnin = 4000;
-    MHOptions.thin = 20;
+    MHOptions.numberOfSamples = 2000;
+    MHOptions.burnin = 200;
+    MHOptions.thin = 2;
 
     % Run Metropolis-Hastings (seeking acceptance ratio around 0.3-0.4): 
     STL1_4state = STL1_4state.maximizeLikelihood(fitOptions=MHOptions,...
         fitAlgorithm='MetropolisHastings');
-%end
+end
 
 % Plot results:
 STL1_4state.plotMHResults(STL1_4state.Solutions.mhResults);
