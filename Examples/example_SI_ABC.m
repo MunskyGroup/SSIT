@@ -121,24 +121,35 @@ disp(parsABC(:).');
 %       ResultsABC.mhAcceptance     - MH acceptance fraction
 % Below we show a simple marginal histogram for each fitted parameter.
 load('seqModels/Model_TSC22D3.mat')
+histogramTitle = 'ABC posterior marginals for TSC22D3';
 
 if isfield(ResultsABC, 'mhSamples')
-    parChain = ResultsABC.mhSamples;   % size: [numberOfSamples x nPars] 
+    if ~isfield(fitOptions, 'logForm') || fitOptions.logForm
+        parChain = exp(ResultsABC.mhSamples);  % Default MH samples are stored in log-parameter space.
+    else
+        parChain = ResultsABC.mhSamples;
+    end
     nPars    = size(parChain, 2);
+    mlePars  = cell2mat(Model_TSC22D3.parameters(fitpars,2));
 
     figure;
     for k = 1:nPars
         subplot(ceil(nPars/2), 2, k);
-        histogram(parChain(:,k), 40, 'Normalization', 'pdf');
+        histogram(parChain(:,k), 40, 'Normalization', 'pdf', ...
+            'HandleVisibility', 'off');
         hold on;        
-        xline(parGuess(k), 'b', 'LineWidth', 1.5);
-        xline(parsABC(k), 'r', 'LineWidth', 1.5);
-        xline(cell2mat(Model_TSC22D3.parameters(k,2)),'g','LineWidth',1.5);
+        hInit = xline(parGuess(k), 'b', 'LineWidth', 1.5, ...
+            'DisplayName', 'Initial Guess');
+        hABC = xline(parsABC(k), 'r', 'LineWidth', 1.5, ...
+            'DisplayName', 'ABC min-loss');
+        hMLE = xline(mlePars(k), 'g', 'LineWidth', 1.5, ...
+            'DisplayName', 'MLE');
         title(sprintf('Parameter %d', k));
         xlabel('\theta_k');
         ylabel('Posterior density (approx.)');
+        legend([hInit hMLE hABC], 'Location', 'best');
     end
-    sgtitle('ABC posterior marginals (approximate)');
+    sgtitle(histogramTitle);
 else
     warning('ResultsABC.mhSamples not found.');
 end
