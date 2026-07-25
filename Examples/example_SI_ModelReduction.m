@@ -65,10 +65,6 @@ testModel = 8;
 %       eigenvectors for this projection is defined by 'reductionOrder'.      
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% reductionType = 'POD'; 
-% reductionOrder = 50;
-% podTimeSetSize = 30;    % only needed for the POD reduction scheme
-
 reductionType = 'POD';    % {'Log Lump QSSA',
                           %  'Proper Orthogonal Decomposition','QSSA'};
 reductionOrder = 25;
@@ -198,4 +194,72 @@ switch testModel
             YLabel='Molecule Count', Title='4-state STL1 (FSP reduced)',...
             TitleFontSize=24, AxisLabelSize=18, TickLabelSize=18,...
             Colors=[0.23,0.67,0.2], LegendFontSize=15, LegendLocation='northeast');
+end
+if testModel<8
+    %% Solve the original Model (for comparison)
+    % Solve once to get the necessary FSP projection space.
+    Model1 = Model1.formPropensitiesGeneral('Model1');
+    Model1 = Model1.solve(solver='FSP');
+    
+    % Solve again to record FSP solution time following expansion.
+    tic
+    fspSoln = Model1.solve(solver='FSP',returnType='soln');
+    fullModelSolveTime = toc
+    
+    % Turn off further FSP expansion.
+    Model1.fspOptions.fspTol = inf;
+    
+    % If using the POD, we will also need to generate basis set using solution
+    % at finer resolution. Note -- this means that the POD will be inefficient
+    % for the initial set up of the reduction.  The benefits typically come
+    % from solving the model multiple times with different parameters sets.
+    if strcmp(reductionType,'Proper Orthogonal Decomposition')
+        tSpan = Model1.tSpan;
+        Model1.tSpan = linspace(min(Model1.tSpan),max(Model1.tSpan),podTimeSetSize);
+        fspSoln2 = Model1.solve(returnType='soln');
+        Model1.tSpan = tSpan;
+    else
+        fspSoln2 = Model1.Solutions;
+    end
+    
+    %% Solving the reduced models
+    % Make a copy of the full model.
+    Model2 = Model1;
+    
+    % Set the solver to use ModelReduction
+    Model2.modelReductionOptions.useModReduction = true;
+    % FSP expansion should be supressed when using Model Reductions
+    
+    % Set type and order of Model Recution
+    Model2.modelReductionOptions.reductionType = reductionType;
+    Model2.modelReductionOptions.reductionOrder = reductionOrder;
+    Model2.modelReductionOptions.qssaSpecies = qssaSpecies;
+    
+    % Call SSIT to compute the model reduction transformation matrices.
+    Model2 = Model2.computeModelReductionTransformMatrices(fspSoln2);
+    
+    % Solve the reduce model.
+    tic
+    fspSolnRed = Model2.solve(returnType='soln');
+    redModelSolveTime = toc
+    
+    %% Compare results
+    nSpecies = length(Model1.species);
+    for i = 1:nSpecies
+        PODfinalError(i) = max(abs(squeeze(cumsum(sum(double(fspSoln2.fsp{end}.p.data),setdiff((1:nSpecies),i)))) - ...
+            squeeze(cumsum(sum(double(fspSoln.fsp{end}.p.data),setdiff((1:nSpecies),i))))));
+    
+        disp([Model1.species{i},': KS(Full,Red) = ',num2str(PODfinalError(i))])
+    end
+    
+    % Make Figures to compare the results. Here, we will plot the original
+    % model in blue and the reduced model in red lines.
+    Model1.makePlot(fspSoln,'meansAndDevs',[],[],1,{'Color',[0,0,1]})
+    Model2.makePlot(fspSolnRed,'meansAndDevs',[],[],1,{'Color',[1,0,0]})
+    figure(1);legend('Full','Reduced','Location','southeast')
+    
+    Model1.makePlot(fspSoln,'marginals',[],[],[2:nSpecies+1],{'Color',[0,0,1]})
+    Model2.makePlot(fspSolnRed,'marginals',[],[],[2:nSpecies+1],{'Color',[1,0,0]})
+    figure(2);legend('Full','Reduced','Location','eastoutside')
+    figure(3);legend('Full','Reduced','Location','eastoutside')
 end
