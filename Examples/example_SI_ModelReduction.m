@@ -1,29 +1,26 @@
 %% SSIT/Examples/example_SI_ModelReduction
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Model Reduction
-%   * Create reduced FSP models using different types of 
-%     projection-based transformations
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-%% Preliminaries
-% Use the STL1 model from example_1_CreateSSITModels and FSP solutions from 
-% example_4_SolveSSITModels_FSP
+%% Preliminaries:
 % clear
 % close all
 % addpath(genpath('../src'));
 
-% example_1_CreateSSITModels 
-example_4_SolveSSITModels_FSP
-% example_8b_LoadingandFittingData_SimulatingData
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Model Reduction
+%   * Create reduced FSP models using different types of transformations
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%% Load pre-computed FSP solutions:
-load('example_4_SolveSSITModels_FSP.mat')
+%% First, choose a model on which to illustrate the reduction approximation,
+% or you can create your own. Here are the example options defined below:
+%       (1)   Poisson process
+%       (2)   Poisson start at steady-state
+%       (3)   2-species Poisson process
+%       (4)   Time-varying bursting gene expression model (DUSP1)
+%       (5)   Time-varying bursting gene expression (TXTL)
+%       (6)   Constant 3-Species repressilator model
+%       (7)   Time-varying 3-species repressilator model
+%       (8)   Time-varying 4-state STL1 Model
 
-% View model summaries:
-STL1_4state.summarizeModel
-
-% Make a copy of the STL1 model to set up for model reduction:
-STL1_MR_setup = STL1_4state;
+testModel = 8; 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Choose which type of model reduction to apply. Options include:
@@ -65,73 +62,140 @@ STL1_MR_setup = STL1_4state;
 %   'Eigen Decomposition'(ED) --
 %       The infintesimal generator is projected onto the eigenvectors
 %       corresponding to its least negative eigenvalues. The number of
-%       eigenvectors for this projection is defined by 'reductionOrder'.
-      
+%       eigenvectors for this projection is defined by 'reductionOrder'.      
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-reductionType = 'POD'; 
-reductionOrder = 50;
-podTimeSetSize = 30;    % Only needed for the POD reduction scheme.
+% reductionType = 'POD'; 
+% reductionOrder = 50;
+% podTimeSetSize = 30;    % only needed for the POD reduction scheme
 
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Use Proper Orthogonal Decomposition (POD) to create a reduced 
-%% model for computing FSP solutions for the 4-state time-varying 
-%% STL1 yeast model
-%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+reductionType = 'POD';    % {'Log Lump QSSA',
+                          %  'Proper Orthogonal Decomposition','QSSA'};
+reductionOrder = 25;
+qssaSpecies = 2;          % only needed for the QSSA reduction scheme
+podTimeSetSize = 200;     % only needed for the POD reduction scheme
 
-%% 4-state STL1:
-% Set up to solve FSP solution again to time following expansion:
-STL1_MR_setup.fspOptions.initApproxSS = true;
-STL1_MR_setup.tSpan = linspace(0,50,30);
-
-% Print the computation time to solve the FSP using "tic" and "toc":
-tic
-% [STL1_FSPsoln_expand,STL1_MR_setup.fspOptions.bounds] = STL1_MR_setup.solve;
-STL1_MR_setup = STL1_MR_setup.solve(solver='FSP');
-STL1_SolveTime = toc
-
-% Turn off further FSP expansion:
-STL1_MR_setup.fspOptions.fspTol = inf;
-
-%% Solve the POD reduced model for STL1:
-% Make a copy of the full model:
-STL1_MR = STL1_MR_setup;
-
-% Set the solver to use ModelReduction:
-STL1_MR.modelReductionOptions.useModReduction = true;
-% FSP expansion should be suppressed when using Model Reductions
-
-% Set type and order of Model Reduction:
-STL1_MR.modelReductionOptions.reductionType = reductionType;
-STL1_MR.modelReductionOptions.reductionOrder = reductionOrder;
-
-% Call the SSIT to compute the model reduction transformation matrices:
-STL1_MR = STL1_MR.computeModelReductionTransformMatrices;
-
-% Solve the reduced model:
-tic
-STL1_MR = STL1_MR.solve(solver='FSP');
-STL1_SolveTimeReduced = toc
-
-%% Plot the full and reduced FSP solutions:
-STL1_MR_setup.plotFSP(speciesNames=STL1_MR_setup.species(5),...
-    plotType='means', lineProps={'linewidth',4}, YLim=[0,32],...
-    Title='4-state STL1 (FSP full)', TitleFontSize=24, AxisLabelSize=18,...
-    TickLabelSize=18, XLabel='Time', YLabel='Molecule Count',...
-    LegendFontSize=15, LegendLocation='northeast', Colors=[0.23,0.67,0.2]);
-
-STL1_MR.plotFSP(speciesNames=STL1_MR.species(5), plotType='means',...
-    lineProps={'linewidth',4}, XLabel='Time', YLim=[0,32],...
-    YLabel='Molecule Count', Title='4-state STL1 (FSP reduced)',...
-    TitleFontSize=24, AxisLabelSize=18, TickLabelSize=18,...
-    Colors=[0.23,0.67,0.2], LegendFontSize=15, LegendLocation='northeast');
-
-%% Save reduced model & solution
-% saveNames = unique({
-%     'STL1_MR_setup'
-%     'STL1_MR'
-%     'STL1_FSPsoln_expand'
-%     'STL1_FSPsoln_Red'
-%     });
-% 
-% save('example_12_ComplexModels_ModelReduction',saveNames{:})
+% Define SSIT Model
+% SSIT models are defined as usual:
+switch testModel
+    case 1 % Poisson Process
+        Model1 = SSIT;
+        Model1.species = {'x1'};
+        Model1.initialCondition = 0;
+        Model1.propensityFunctions = {'kr';'gr*x1'};
+        Model1.stoichiometry = [1,-1];
+        Model1.parameters = ({'kr',100;'gr',1});
+        Model1.fspOptions.initApproxSS = false;
+        Model1.tSpan = linspace(0,3,10);
+    case 2 % Poisson Start at SS
+        Model1 = SSIT;
+        Model1.species = {'x1'};
+        Model1.initialCondition = [0];
+        Model1.propensityFunctions = {'kr';'gr*x1'};
+        Model1.stoichiometry = [1,-1];
+        Model1.parameters = ({'kr',40;'gr',1});
+        Model1.fspOptions.initApproxSS = true;
+        Model1.tSpan = linspace(0,5,10);
+    case 3 % 2-Species Poisson
+        Model1 = SSIT;
+        Model1.species = {'x1';'x2'};
+        Model1.initialCondition = [0;0];
+        Model1.propensityFunctions = {'kr';'gr*x1';'kp';'gp*x2'};
+        Model1.stoichiometry = [1,-1,0,0;0,0,1,-1];
+        Model1.parameters = ({'kr',40;'gr',1;'kp',20;'gp',1});
+        Model1.fspOptions.initApproxSS = false;
+        Model1.tSpan = linspace(0,5,12);   
+    case 4 % Time-varying Model (DUSP1)
+        Model1 = SSIT;
+        Model1.species = {'ActiveGene';'mRNA'};
+        Model1.initialCondition = [0;0];
+        Model1.propensityFunctions = {'kon*(1+IGR)*(2-ActiveGene)';'koff*ActiveGene';'kr*ActiveGene';'gr*mRNA'};
+        Model1.stoichiometry = [1,-1,0,0;0,0,1,-1];
+        Model1.inputExpressions = {'IGR','a1*exp(-r1*t)*(1-exp(-r2*t))'};
+        Model1.parameters = ({'koff',0.14;'kon',0.14;'kr',10;'gr',0.01;...
+            'a1',0.4;'r1',0.04;'r2',0.1});
+        Model1.fspOptions.initApproxSS = true;
+        Model1.tSpan = linspace(0,180,12);
+    case 5 % Time-varying Bursting TXTL Model
+        Model1 = SSIT();
+        Model1.species = {'goff','gon','rna','prot'};
+        Model1.initialCondition = [2;0;0;0];
+        Model1.propensityFunctions = {'kon*goff*(1+sin(2*pi*t))';'koff*gon';'kr*gon';'gr*rna';'kp*rna';'gp*prot'};
+        Model1.stoichiometry = [-1,1,0,0,0,0;1,-1,0,0,0,0;0,0,1,-1,0,0;0,0,0,0,1,-1];
+        Model1.parameters = ({'kon',0.5';'koff',1;'kr',20;'gr',1;'kp',5;'gp',1});
+        Model1.tSpan = linspace(0,5,16);
+    case 6 % Constant 3-Species Repressilator Model
+        Model1 = SSIT('Repressilator');
+        Model1.tSpan = linspace(0,20,21);
+    case 7 % Time-varying 3-Species Repressilator Model
+        Model1 = SSIT('Repressilator');
+        Model1.propensityFunctions{1} = 'kn0*(1+cos(2*pi*t))+kn1*(1/(1+a*(x2^n)))';
+        Model1.tSpan = linspace(0,20,21);
+    case 8 % Time-varying 4-state STL1 Model
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        %% Use Proper Orthogonal Decomposition (POD) to create a reduced 
+        %% model for computing FSP solutions for the 4-state time-varying 
+        %% STL1 yeast model
+        %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        % Use the STL1 model from example_1_CreateSSITModels and 
+        % FSP solutions from example_4_SolveSSITModels_FSP
+        
+        % example_1_CreateSSITModels 
+        % example_4_SolveSSITModels_FSP
+        
+        % Load pre-computed FSP solutions:
+        load('example_4_SolveSSITModels_FSP.mat')
+        
+        % View model summaries:
+        STL1_4state.summarizeModel
+        
+        % Make a copy of the STL1 model to set up for model reduction:
+        STL1_MR_setup = STL1_4state;
+        
+        %% 4-state STL1:
+        % Set up to solve FSP solution again to time following expansion:
+        STL1_MR_setup.fspOptions.initApproxSS = true;
+        STL1_MR_setup.tSpan = linspace(0,50,30);
+        
+        % Print the computation time to solve the FSP using "tic" and "toc":
+        tic
+        % [STL1_FSPsoln_expand,STL1_MR_setup.fspOptions.bounds] = STL1_MR_setup.solve;
+        STL1_MR_setup = STL1_MR_setup.solve(solver='FSP');
+        STL1_SolveTime = toc
+        
+        % Turn off further FSP expansion:
+        STL1_MR_setup.fspOptions.fspTol = inf;
+        
+        %% Solve the POD reduced model for STL1:
+        % Make a copy of the full model:
+        STL1_MR = STL1_MR_setup;
+        
+        % Set the solver to use ModelReduction:
+        STL1_MR.modelReductionOptions.useModReduction = true;
+        % FSP expansion should be suppressed when using Model Reductions
+        
+        % Set type and order of Model Reduction:
+        STL1_MR.modelReductionOptions.reductionType = reductionType;
+        STL1_MR.modelReductionOptions.reductionOrder = reductionOrder;
+        
+        % Call the SSIT to compute the model reduction transformation matrices:
+        STL1_MR = STL1_MR.computeModelReductionTransformMatrices;
+        
+        % Solve the reduced model:
+        tic
+        STL1_MR = STL1_MR.solve(solver='FSP');
+        STL1_SolveTimeReduced = toc
+        
+        %% Plot the full and reduced FSP solutions:
+        STL1_MR_setup.plotFSP(speciesNames=STL1_MR_setup.species(5),...
+            plotType='means', lineProps={'linewidth',4}, YLim=[0,32],...
+            Title='4-state STL1 (FSP full)', TitleFontSize=24, AxisLabelSize=18,...
+            TickLabelSize=18, XLabel='Time', YLabel='Molecule Count',...
+            LegendFontSize=15, LegendLocation='northeast', Colors=[0.23,0.67,0.2]);
+        
+        STL1_MR.plotFSP(speciesNames=STL1_MR.species(5), plotType='means',...
+            lineProps={'linewidth',4}, XLabel='Time', YLim=[0,32],...
+            YLabel='Molecule Count', Title='4-state STL1 (FSP reduced)',...
+            TitleFontSize=24, AxisLabelSize=18, TickLabelSize=18,...
+            Colors=[0.23,0.67,0.2], LegendFontSize=15, LegendLocation='northeast');
+end
