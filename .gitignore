@@ -125,3 +125,4 @@ src/+ssit/+fsp_ode_solvers/mexFunctionExpokit.mexw64
 testData.csv
 SBML_test_cases/00010/Time-Course.txt
 /Examples/New Folder With Items
+/doNotCommit
