@@ -8,18 +8,18 @@
 
 %% Preliminaries
 % Use the STL1 model from example_1_CreateSSITModels, FSP solutions  
-% from example_4_SolveSSITModels_FSP, sensitivities computed in 
-% example_6_SensitivityAnalysis, FIM results from example_7_FIM,  
-% loaded data from example_8_LoadingandFittingData_DataLoading, and
+% from example_04_SolveSSITModels_FSP, sensitivities computed in 
+% example_06_SensitivityAnalysis, FIM results from example_07_FIM,  
+% loaded data from example_08_LoadingandFittingData_DataLoading, and
 % Metropolis-Hastings results from example_10_LoadingandFittingData_MH
 %clear
 %close all
 
-% example_1_CreateSSITModels  
-% example_4_SolveSSITModels_FSP
-% example_6_SensitivityAnalysis
-% example_7_FIM
-% example_9_LoadingandFittingData_DataLoading
+% example_01_CreateSSITModels  
+% example_04_SolveSSITModels_FSP
+% example_06_SensitivityAnalysis
+% example_07_FIM
+% example_09_LoadingandFittingData_DataLoading
 % example_10_LoadingandFittingData_MLE
 % example_11_LoadingandFittingData_MH
 

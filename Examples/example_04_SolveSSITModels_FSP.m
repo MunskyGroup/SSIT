@@ -1,4 +1,4 @@
-%% example_4_SolveSSITModels_FSP
+%% example_04_SolveSSITModels_FSP
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Section 3.2.4: Finding and visualizing master equation solutions: FSP
@@ -6,11 +6,11 @@
 %%%%%%%%%%%%%%%%%%d%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Preliminaries
-% Use the models from example_1_CreateSSITModels
+% Use the models from example_01_CreateSSITModels
 % clear
 % close all
 
-% example_1_CreateSSITModels
+% example_01_CreateSSITModels
 
 % Load the models created in example_1_CreateSSITModels
 load('ExampleSaveFiles/example_1_CreateSSITModels.mat')
@@ -29,7 +29,7 @@ STL1_4state.tSpan = linspace(0,50,101);
 %% Ex(1): Use the stochastic Finite State Projection (FSP) 
 % approximation of the Chemical Master Equation (CME) to solve the time 
 % evolution of state space probabilities for the bursting gene example 
-% model from example_1_CreateSSITModels 
+% model from example_01_CreateSSITModels 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Model:        
@@ -66,7 +66,7 @@ STL1_4state.tSpan = linspace(0,50,101);
 %% Ex(2): Use the stochastic Finite State Projection (FSP) 
 % approximation of the Chemical Master Equation (CME) to solve the time 
 % evolution of state space probabilities for the time-varying STL1 yeast 
-% model from example_1_CreateSSITModels 
+% model from example_01_CreateSSITModels 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% STL1:    

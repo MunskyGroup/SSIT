@@ -12,8 +12,8 @@
 %clear
 %close all
 
-% example_1_CreateSSITModels  
-% example_4_SolveSSITModels_FSP
+% example_01_CreateSSITModels  
+% example_04_SolveSSITModels_FSP
 % example_10_LoadingandFittingData_MLE
 
 %% Load pre-solved model 
@@ -37,7 +37,7 @@ STL1_4state_multi_1 = STL1_4state;
 
 %% Load and associate smFISH data
 %  Associate the data with an SSIT model data as usual 
-%  (example_9_LoadingandFittingData_DataLoading):
+%  (example_09_LoadingandFittingData_DataLoading):
 
 STL1_4state_multi_1 = ...
    STL1_4state_multi_1.loadData('data/filtered_data_2M_NaCl_Step.csv',...

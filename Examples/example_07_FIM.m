@@ -1,4 +1,4 @@
-%% SSIT/Examples/example_7_FIM
+%% SSIT/Examples/example_07_FIM
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Section 3.2.7: Fisher Information Matrix (FIM)
@@ -6,14 +6,14 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Preliminaries
-% Use the models from example_1_CreateSSITModels and computed FSP solutions 
-% from example_4_SolveSSITModels_FSP
+% Use the models from example_01_CreateSSITModels and computed FSP solutions 
+% from example_04_SolveSSITModels_FSP
 
 % clear
 % close all
 
-% example_1_CreateSSITModels  
-% example_4_SolveSSITModels_FSP
+% example_01_CreateSSITModels  
+% example_04_SolveSSITModels_FSP
 
 %% Load pre-computed FSP solutions:
 load('ExampleSaveFiles/example_4_SolveSSITModels_FSP.mat')
@@ -25,7 +25,7 @@ STL1_4state.summarizeModel
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(1): Compute the Fisher Information Matrix for the bursting gene model
-%  from example_1_CreateSSITModels
+%  from example_01_CreateSSITModels
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Compute FIMs using FSP sensitivity results
@@ -47,7 +47,7 @@ Model.plotFIMResults(Model_fimTotal, 'log', Model.parameters,...
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(2): Compute the Fisher Information Matrix for the STL1 yeast model
-%  from example_1_CreateSSITModels
+%  from example_01_CreateSSITModels
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Compute FIMs using FSP sensitivity results
 % Compute the FIM:
@@ -70,7 +70,7 @@ STL1.plotFIMResults(STL1_fimTotal, 'log', STL1.parameters,...
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(3): Compute the FIM for the 4-state STL1 yeast model
-%  from example_1_CreateSSITModels
+%  from example_01_CreateSSITModels
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Define indices of free parameters for FIM sub matrix. (Hog1 input signal

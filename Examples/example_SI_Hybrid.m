@@ -11,9 +11,9 @@
 %close all
 addpath(genpath('../src'));
 
-% example_1_CreateSSITModels 
+% example_01_CreateSSITModels 
 
-% Load the model created in example_1_CreateSSITModels
+% Load the model created in example_01_CreateSSITModels
 load('ExampleSaveFiles/example_1_CreateSSITModels.mat')
 
 % View model summaries:

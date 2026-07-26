@@ -1,4 +1,4 @@
-%% SSIT/Examples/example_3_SolveSSITModels_SSA
+%% SSIT/Examples/example_03_SolveSSITModels_SSA
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Section 3.2.3: Finding and visualizing master equation solutions: SSA
@@ -6,11 +6,11 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Preliminaries
-% Use the models from example_1_CreateSSITModels
+% Use the models from example_01_CreateSSITModels
 % clear
 % close all
 
-% example_1_CreateSSITModels
+% example_01_CreateSSITModels
 
 % Load the models created in example_1_CreateSSITModels
 load('ExampleSaveFiles/example_1_CreateSSITModels.mat')

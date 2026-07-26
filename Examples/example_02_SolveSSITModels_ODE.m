@@ -1,4 +1,4 @@
-%% SSIT/Examples/example_2_SolveSSITModels_ODE
+%% SSIT/Examples/example_02_SolveSSITModels_ODE
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Section 3.2.1: Finding and visualizing master equation solutions: ODEs
@@ -6,11 +6,11 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Preliminaries
-% Use the models from example_1_CreateSSITModels
+% Use the models from example_01_CreateSSITModels
 % clear
 % close all
 
-% example_1_CreateSSITModels
+% example_01_CreateSSITModels
 
 % Load the models created in example_1_CreateSSITModels
 load('ExampleSaveFiles/example_1_CreateSSITModels.mat')

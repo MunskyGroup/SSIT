@@ -1,4 +1,4 @@
-%% SSIT/Examples/example_5_SolveSSITModels_EscapeTimes 
+%% SSIT/Examples/example_05_SolveSSITModels_EscapeTimes 
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Section 3.2.5: Finding and visualizing master equation solutions: Escape
@@ -6,13 +6,13 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Preliminaries
-% Use the models from example_1_CreateSSITModels
+% Use the models from example_01_CreateSSITModels
 % clear
 % close all
 
-% example_1_CreateSSITModels
+% example_01_CreateSSITModels
 
-% Load the models created in example_1_CreateSSITModels
+% Load the models created in example_01_CreateSSITModels
 load('ExampleSaveFiles/example_1_CreateSSITModels.mat')
 
 % View model summaries:
@@ -27,7 +27,7 @@ STL1_4state.tSpan = linspace(0,50,101);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(1): Solve escape times for the bursting gene example model
-%  from example_1_CreateSSITModels
+%  from example_01_CreateSSITModels
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Model:
@@ -49,7 +49,7 @@ STL1_4state.tSpan = linspace(0,50,101);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(2): Solve escape times for the time-varying STL1 yeast model
-%  from example_1_CreateSSITModels
+%  from example_01_CreateSSITModels
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% STL1:
@@ -71,7 +71,7 @@ STL1_4state.tSpan = linspace(0,50,101);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(3): Solve escape times for the 4-state time-varying STL1 yeast model
-%  from example_1_CreateSSITModels
+%  from example_01_CreateSSITModels
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% 4-state STL1:

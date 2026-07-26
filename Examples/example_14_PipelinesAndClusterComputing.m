@@ -6,16 +6,16 @@
 
 %% Preliminaries
 % Use the STL1 model from example_1_CreateSSITModels, FSP solutions from 
-% example_4_SolveSSITModels_FSP, data loaded in 
-% example_9_LoadingandFittingData_DataLoading, and MLE computed in
+% example_04_SolveSSITModels_FSP, data loaded in 
+% example_09_LoadingandFittingData_DataLoading, and MLE computed in
 % example_10_LoadingandFittingData_MLE
 %clear
 %close all
 addpath(genpath('../src'));
 
-% example_1_CreateSSITModels  
-% example_4_SolveSSITModels_FSP
-% example_9_LoadingandFittingData_DataLoading
+% example_01_CreateSSITModels  
+% example_04_SolveSSITModels_FSP
+% example_09_LoadingandFittingData_DataLoading
 % example_10_LoadingandFittingData_MLE
 % example_11_LoadingandFittingData_MH
 

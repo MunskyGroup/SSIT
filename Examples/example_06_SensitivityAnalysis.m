@@ -1,4 +1,4 @@
-%% SSIT/Examples/example_6_SensitivityAnalysis
+%% SSIT/Examples/example_06_SensitivityAnalysis
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Section 3.2.6: Sensitivity analysis 
@@ -6,14 +6,14 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Preliminaries
-% Use the models from example_1_CreateSSITModels and  
-% computed FSP solutions from example_4_SolveSSITModels_FSP
+% Use the models from example_01_CreateSSITModels and  
+% computed FSP solutions from example_04_SolveSSITModels_FSP
 
 % clear
 % close all
 
-% example_1_CreateSSITModels  
-% example_4_SolveSSITModels_FSP
+% example_01_CreateSSITModels  
+% example_04_SolveSSITModels_FSP
 
 %% Load pre-computed FSP solutions:
 load('ExampleSaveFiles/example_4_SolveSSITModels_FSP.mat')
@@ -25,7 +25,7 @@ STL1_4state.summarizeModel
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(1): Solve sensitivities of the bursting gene model
-%  from example_1_CreateSSITModels
+%  from example_01_CreateSSITModels
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Solve FSP sensitivities
@@ -40,7 +40,7 @@ Model.plotFSP(speciesNames=Model.species(3), plotType='sens',...
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(2): Solve sensitivities of the time-varying STL1 yeast model
-%  from example_1_CreateSSITModels
+%  from example_01_CreateSSITModels
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Solve FSP sensitivities
@@ -55,7 +55,7 @@ STL1.plotFSP(speciesNames=STL1.species(3), plotType='sens',...
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(3): Solve sensitivities of the 4-state time-varying STL1 yeast model
-%  from example_1_CreateSSITModels
+%  from example_01_CreateSSITModels
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Solve FSP sensitivities
 % Solve the sensitivity problem:

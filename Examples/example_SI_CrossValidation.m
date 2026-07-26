@@ -6,16 +6,14 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Preliminaries
-% Use the 4-state STL1 model from example_1_CreateSSITModels and its FSP 
-% solutions from example_4_SolveSSITModels_FSP
+% Use the 4-state STL1 model from example_01_CreateSSITModels and its FSP 
+% solutions from example_04_SolveSSITModels_FSP
 %clear
 %close all
 
-% example_1_CreateSSITModels  
-% example_4_SolveSSITModels_FSP
-% example_1_CreateSSITModels  
-% example_4_SolveSSITModels_FSP
-% example_9_LoadingandFittingData_DataLoading
+% example_01_CreateSSITModels  
+% example_04_SolveSSITModels_FSP
+% example_09_LoadingandFittingData_DataLoading
 % example_10_LoadingandFittingData_MLE
 % example_11_LoadingandFittingData_MH
 

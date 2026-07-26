@@ -133,11 +133,11 @@ switch testModel
         %% model for computing FSP solutions for the 4-state time-varying 
         %% STL1 yeast model
         %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-        % Use the STL1 model from example_1_CreateSSITModels and 
-        % FSP solutions from example_4_SolveSSITModels_FSP
+        % Use the STL1 model from example_01_CreateSSITModels and 
+        % FSP solutions from example_04_SolveSSITModels_FSP
         
-        % example_1_CreateSSITModels 
-        % example_4_SolveSSITModels_FSP
+        % example_01_CreateSSITModels 
+        % example_04_SolveSSITModels_FSP
         
         % Load pre-computed FSP solutions:
         load('example_4_SolveSSITModels_FSP.mat')

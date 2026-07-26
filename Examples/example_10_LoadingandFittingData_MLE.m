@@ -7,15 +7,15 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Preliminaries
-% Use the STL1 model from example_1_CreateSSITModels, FSP solutions from 
-% example_4_SolveSSITModels_FSP, and loaded data from 
-% example_9_LoadingandFittingData_DataLoading
+% Use the STL1 model from example_01_CreateSSITModels, FSP solutions from 
+% example_04_SolveSSITModels_FSP, and loaded data from 
+% example_09_LoadingandFittingData_DataLoading
 % clear
 % close all
 
-% example_1_CreateSSITModels  
-% example_4_SolveSSITModels_FSP
-% example_9_LoadingandFittingData_DataLoading
+% example_01_CreateSSITModels  
+% example_04_SolveSSITModels_FSP
+% example_09_LoadingandFittingData_DataLoading
 
 %% Load pre-computed FSP solutions & loaded data:
 load('ExampleSaveFiles/example_9_LoadingandFittingData_DataLoading.mat')
