@@ -20,7 +20,7 @@ addpath(genpath('../src'));
 % example_11_LoadingandFittingData_MH
 
 %% Load model fitted using Metropolis-Hastings:
-load('example_11_LoadingandFittingData_MH.mat')
+load('ExampleSaveFiles/example_11_LoadingandFittingData_MH.mat')
 
 % View summary of 4-state STL1 model:
 STL1_4state.summarizeModel
@@ -33,7 +33,7 @@ STL1_4state.summarizeModel
 STL1_4state_pipe = STL1_4state;
 
 % Save model for later use:
-saveFile = 'generatedModel.mat';
+saveFile = 'ExampleSaveFiles/generatedModel.mat';
 save(saveFile,"STL1_4state_pipe")
 
 %% Call Pipeline to Fit Model

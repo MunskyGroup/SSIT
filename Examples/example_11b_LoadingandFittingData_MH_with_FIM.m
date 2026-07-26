@@ -23,7 +23,7 @@
 % example_10_LoadingandFittingData_MLE
 
 % Load 4-state STL1 model:
-load('example_10_LoadingandFittingData_MLE.mat')
+load('ExampleSaveFiles/example_10_LoadingandFittingData_MLE.mat')
 
 %% Find Maximum Aposterior Estimate to use a starting point for MH
 % Specify Prior as log-normal distribution with wide uncertainty
@@ -117,4 +117,4 @@ saveNames = unique({'STL1_4state'
     'COVfree'
     });
     
-save('example_11b_LoadingandFittingData_MH_with_FIM',saveNames{:})
+save('ExampleSaveFiles/example_11b_LoadingandFittingData_MH_with_FIM',saveNames{:})

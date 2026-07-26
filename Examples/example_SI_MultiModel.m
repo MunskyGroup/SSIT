@@ -17,7 +17,7 @@
 % example_10_LoadingandFittingData_MLE
 
 %% Load pre-solved model 
-load('example_10_LoadingandFittingData_MLE.mat')
+load('ExampleSaveFiles/example_10_LoadingandFittingData_MLE.mat')
 
 % View model summariy:
 STL1_4state.summarizeModel

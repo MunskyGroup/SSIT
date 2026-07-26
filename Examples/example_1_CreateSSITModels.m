@@ -146,4 +146,4 @@ saveNames = unique({'Model'
     'STL1_4state'
     });
     
-save('example_1_CreateSSITModels',saveNames{:})
+save('ExampleSaveFiles/example_1_CreateSSITModels',saveNames{:})

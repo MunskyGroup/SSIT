@@ -16,7 +16,7 @@
 % example_4_SolveSSITModels_FSP
 
 %% Load pre-computed FSP solutions:
-load('example_4_SolveSSITModels_FSP.mat')
+load('ExampleSaveFiles/example_4_SolveSSITModels_FSP.mat')
 
 % View model summaries
 Model.summarizeModel
@@ -75,4 +75,4 @@ saveNames = unique({ ...
     'STL1_4state'
     });
     
-save('example_6_SensitivityAnalysis',saveNames{:})
+save('ExampleSaveFiles/example_6_SensitivityAnalysis',saveNames{:})

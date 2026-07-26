@@ -19,7 +19,7 @@
 % example_10_LoadingandFittingData_MLE
 
 %% Load pre-computed FSP solutions + loaded data + MLEs:
-load('example_10_LoadingandFittingData_MLE.mat')
+load('ExampleSaveFiles/example_10_LoadingandFittingData_MLE.mat')
 
 % View summary of 4-state STL1 model:
 STL1_4state.summarizeModel
@@ -84,4 +84,4 @@ saveNames = unique({ ...
     'STL1_4state'
     });
     
-save('example_11_LoadingandFittingData_MH',saveNames{:})
+save('ExampleSaveFiles/example_11_LoadingandFittingData_MH',saveNames{:})

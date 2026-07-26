@@ -20,7 +20,7 @@
 % example_11_LoadingandFittingData_MH
 
 %% Load model fitted using Metropolis-Hastings:
-load('example_11_LoadingandFittingData_MH.mat')
+load('ExampleSaveFiles/example_11_LoadingandFittingData_MH.mat')
 
 % View summary of 4-state STL1 model:
 STL1_4state.summarizeModel
@@ -87,4 +87,4 @@ saveNames = unique({ ...
     'CrossValidationModel'
     });
     
-save('example_SI_CrossValidation',saveNames{:})
+save('ExampleSaveFiles/example_SI_CrossValidation',saveNames{:})

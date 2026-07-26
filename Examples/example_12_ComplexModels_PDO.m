@@ -24,8 +24,8 @@
 % example_11_LoadingandFittingData_MH
 
 %% Load pre-run results:
-load('example_7_FIM.mat')
-load('example_11_LoadingandFittingData_MH.mat')
+load('ExampleSaveFiles/example_7_FIM.mat')
+load('ExampleSaveFiles/example_11_LoadingandFittingData_MH.mat')
 
 % View model summary:
 STL1_4state_MH.summarizeModel
@@ -147,4 +147,4 @@ saveNames = unique({'STL1_4state_PDO'
     'nCellsOptPDO_nuc'
     });
     
-save('example_12_PDO',saveNames{:})
+save('ExampleSaveFiles/example_12_PDO',saveNames{:})

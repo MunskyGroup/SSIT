@@ -81,7 +81,7 @@ for modset = modSetsToRun
             disp('Benchmark Complete')
             benchmarks.([Models{iM},'_',num2str(timeSets(iT))])
         end
-        save(['BenchmarkResuts',num2str(modset)],"benchmarks");
+        save(['ExampleSaveFiles/BenchmarkResuts',num2str(modset)],"benchmarks");
     end
 end
 

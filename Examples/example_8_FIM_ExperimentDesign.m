@@ -15,7 +15,7 @@
 % example_9_LoadingandFittingData_DataLoading
 
 %% Load pre-run results (pre-loaded data):
-load('example_9_LoadingandFittingData_DataLoading.mat')
+load('ExampleSaveFiles/example_9_LoadingandFittingData_DataLoading.mat')
 
 % Compute FIM results:
 fimResults = STL1_4state.computeFIM(scale='log');

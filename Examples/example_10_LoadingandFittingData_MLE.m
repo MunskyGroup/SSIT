@@ -18,7 +18,7 @@
 % example_9_LoadingandFittingData_DataLoading
 
 %% Load pre-computed FSP solutions & loaded data:
-load('example_9_LoadingandFittingData_DataLoading.mat')
+load('ExampleSaveFiles/example_9_LoadingandFittingData_DataLoading.mat')
  
 % View model summary:
 % Model.summarizeModel
@@ -60,4 +60,4 @@ saveNames = unique({
     'STL1_4state'
     });
     
-save('example_10_LoadingandFittingData_MLE',saveNames{:})
+save('ExampleSaveFiles/example_10_LoadingandFittingData_MLE',saveNames{:})

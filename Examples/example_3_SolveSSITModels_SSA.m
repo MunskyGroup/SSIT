@@ -13,7 +13,7 @@
 % example_1_CreateSSITModels
 
 % Load the models created in example_1_CreateSSITModels
-load('example_1_CreateSSITModels.mat')
+load('ExampleSaveFiles/example_1_CreateSSITModels.mat')
 
 % View model summaries:
 Model.summarizeModel
@@ -149,4 +149,4 @@ saveNames = unique({'Model'
     'STL1_4state'
     });
     
-save('example_3_SolveSSITModels_SSA',saveNames{:})
+save('ExampleSaveFiles/example_3_SolveSSITModels_SSA',saveNames{:})
