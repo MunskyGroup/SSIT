@@ -186,3 +186,12 @@ L_min  = minimumLoss;
 
 fprintf('MLE loss: %.3f,  Final (min) ABC loss: %.3f\n', L_MLE, L_min);
 fprintf('Relative improvement: %.1f%%\n', 100 * (L_MLE - L_min)/L_MLE);
+
+%% Save SSA models & solutions
+saveNames = unique({'scRNAseq'
+    'parsABC'
+    'minimumLoss'
+    'ResultsABC'
+    });
+    
+save('example_SI_ABC',saveNames{:})
