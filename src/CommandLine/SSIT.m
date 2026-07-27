@@ -2225,7 +2225,7 @@ classdef SSIT
                                             warning('off')
 
                                             tableColumn = ...
-                                                "exp" + ie + "_" + obj.species{s};
+                                                "exp" + i + "_" + obj.species{s};
                                             if distortedMode
                                                 tableColumn = tableColumn + "_Distorted";
                                             end
@@ -2247,7 +2247,7 @@ classdef SSIT
                                             warning('off')
 
                                             tableColumn = ...
-                                                "exp" + ie + "_" + obj.species{s};
+                                                "exp" + i + "_" + obj.species{s};
                                             tableRows = ...
                                                 (j-1)*obj.ssaOptions.Nsims+(1:obj.ssaOptions.Nsims);
                                             
