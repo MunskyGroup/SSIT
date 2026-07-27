@@ -2982,7 +2982,16 @@ classdef SSIT
                 curColumn = columns{colIdx};
                 tokens = regexp(curColumn, "exp1_(\w+)", "tokens");
                 if ~isempty(tokens)
+                    % We have found a corresponding species name in the
+                    % model, so copy the column while updating its name
+                    % accordingly.
+
                     TAB2.(string(tokens{1})) = TAB.(curColumn);
+                else
+                    % There is no match, so copy the column to the name
+                    % under its existing name.
+                    
+                    TAB2.(curColumn) = TAB.(curColumn);
                 end
             end
 
