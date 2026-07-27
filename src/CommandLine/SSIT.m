@@ -3006,14 +3006,6 @@ classdef SSIT
                 end
             end
 
-            % Reorder table in order of species list
-            if ~isempty(linkedSpecies)
-                [~,iA] = intersect(linkedSpecies(:,1),obj.species,'stable');
-                TAB2 = TAB2(:,[1,iA'+1]);
-            end
-
-            TAB = TAB2;
-
             % Apply conditions
             for i = 1:size(conditions,1)
                 if size(conditions,2)==2
@@ -3042,10 +3034,10 @@ classdef SSIT
             if ischar(savedColumns) || isstring(savedColumns)
                 savedColumns = cellstr(savedColumns);
             end
-            
+
             if ~isempty(savedColumns)
                 dataNames = TAB.Properties.VariableNames;
-            
+
                 for k = 1:numel(savedColumns)
                     if ~any(strcmp(dataNames, savedColumns{k}))
                         error('SSIT:loadData:MissingColumn', ...
@@ -3053,13 +3045,21 @@ classdef SSIT
                             savedColumns{k});
                     end
                 end
-            
+
                 obj.dataSet.savedColumns = savedColumns;
                 obj.dataSet.savedData = TAB(:, savedColumns);
             else
                 obj.dataSet.savedColumns = {};
                 obj.dataSet.savedData = table;
             end
+
+            % Reorder table in order of species list
+            if ~isempty(linkedSpecies)
+                [~,iA] = intersect(linkedSpecies(:,1),obj.species,'stable');
+                TAB2 = TAB2(:,[1,iA'+1]);
+            end
+
+            TAB = TAB2;
 
             obj.dataSet.dataFileName = dataFileName;
             % obj.dataSet.DATA = table2cell(TAB);
