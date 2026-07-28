@@ -74,8 +74,8 @@ classdef multiModelTests < matlab.unittest.TestCase
         function loadHybridModelFromFile(tc)
             delete('exampleResultsTest.mat')
             
-            DataSettings = {'testData1.csv',{'rna','exp1_s1'},{};...
-                'testData2.csv',{'rna','exp1_s1'},{}};
+            DataSettings = {'testData1.csv',{},{};...
+                'testData2.csv',{},{}};
             
             Pipeline = 'multiModelFittingPipelineExample';
             pipelineArgs.maxIter = 10;
