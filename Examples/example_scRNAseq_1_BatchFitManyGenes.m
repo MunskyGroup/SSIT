@@ -34,13 +34,14 @@ Model_Template.pdoOptions.unobservedSpecies = 'onGene';
 Model_Template.pdoOptions.props.CaptureProbabilityS1 = 0;    % Gene State is not measured
 Model_Template.pdoOptions.props.CaptureProbabilityS2 = 0.05; % 95% dropout from RNA
 [~,Model_Template] = Model_Template.generatePDO(showPlot=true,...
-    Title='RNA Seq (Binomial PDO: 95% Dropout)')
+    Title='RNA Seq (Binomial PDO: 95% Dropout)');
 
 %% Load and fit representative data set to get better first parameter guess
 DataFileName = 'data/Raw_DEX_UpRegulatedGenes_ForSSIT.csv';
 Model_Template = Model_Template.loadData(DataFileName,{'rna','DUSP1'});
+fitOptions = optimset('Display','final','MaxIter',1000);
 for i=1:5
-    [~,~,~,Model_Template] = Model_Template.maximizeLikelihood;
+    [~,~,~,Model_Template] = Model_Template.maximizeLikelihood(fitOptions=fitOptions);
 end
 Model_Template.makeFitPlot;  % Cluster may crash if no display is set.
 

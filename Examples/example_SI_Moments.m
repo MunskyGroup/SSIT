@@ -29,30 +29,26 @@ STL1_4state.tSpan = linspace(0,50,101);
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(1): Bursting Gene
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-% Make a copy of the Bursting Gene model for moment equations
-Model_mom = Model;
-Model_mom.solutionScheme = 'moments';
-Model_mom = Model_mom.solve;
+Model = Model.solve(solver='moments');
 
 % Number of species
-nSp = numel(Model_mom.species);
+nSp = numel(Model.species);
 
 %% First moments from the "moments" solver
 % Moments: [ (#means + #secondMoments) x nTimes ]
-mom = Model_mom.Solutions.moments;
+mom = Model.Solutions.moments;
 
 % First nSp rows are the means ⟨x_i⟩
 means_mom = mom(1:nSp, :);   % size: nSp x nTimes
 
 %% Species trajectories from the ODE solver
 % Get ODE solution:
-Y_ode = Model_mom.Solutions.ode;   % nTimes x nSpecies
+Y_ode = Model.Solutions.ode;   % nTimes x nSpecies
 means_ode = Y_ode.';                     % transpose: nSp x nTimes
 
 %% Compare ODEs vs moments 
 % Compare mRNA:
-i_mRNA = find(strcmp(Model_mom.species,'mRNA'));
+i_mRNA = find(strcmp(Model.species,'mRNA'));
 
 den_mRNA = max(abs(means_ode(i_mRNA,:)), 1e-12);
 errMean_mRNA = ...
@@ -81,29 +77,26 @@ end
 %% Ex(2): STL1 (simple)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% Make a copy of the (simple) STL1 model for moment equations
-STL1_mom = STL1;
-STL1_mom.solutionScheme = 'moments';
-STL1_mom = STL1_mom.solve;
+STL1 = STL1.solve(solver='moments');
 
 % Number of species
-nSp = numel(STL1_mom.species);
+nSp = numel(STL1.species);
 
 %% First moments from the "moments" solver
 % Moments: [ (#means + #secondMoments) x nTimes ]
-mom = STL1_mom.Solutions.moments;
+mom = STL1.Solutions.moments;
 
 % First nSp rows are the means ⟨x_i⟩
 means_mom = mom(1:nSp, :);   % size: nSp x nTimes
 
 %% Species trajectories from the ODE solver
 % Get ODE solution:
-Y_ode = STL1_mom.Solutions.ode;   % nTimes x nSpecies
+Y_ode = STL1.Solutions.ode;   % nTimes x nSpecies
 means_ode = Y_ode.';                     % transpose: nSp x nTimes
 
 %% Compare ODEs vs moments 
 % Compare mRNA:
-i_mRNA = find(strcmp(STL1_mom.species,'mRNA'));
+i_mRNA = find(strcmp(STL1.species,'mRNA'));
 
 den_mRNA = max(abs(means_ode(i_mRNA,:)), 1e-12);
 errMean_mRNA = ...
@@ -131,30 +124,26 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(3): 4-state STL1
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-% Make a copy of the 4-state STL1 model for moment equations
-STL1_4state_mom = STL1_4state;
-STL1_4state_mom.solutionScheme = 'moments';
-STL1_4state_mom = STL1_4state_mom.solve;
+STL1_4state = STL1_4state.solve(solver='moments');
 
 % Number of species
-nSp = numel(STL1_4state_mom.species);
+nSp = numel(STL1_4state.species);
 
 %% First moments from the "moments" solver
 % Moments: [ (#means + #secondMoments) x nTimes ]
-mom = STL1_4state_mom.Solutions.moments;
+mom = STL1_4state.Solutions.moments;
 
 % First nSp rows are the means ⟨x_i⟩
 means_mom = mom(1:nSp, :);   % size: nSp x nTimes
 
 %% Species trajectories from the ODE solver
 % Get ODE solution:
-Y_ode = STL1_4state_ODE.Solutions.ode;   % nTimes x nSpecies
+Y_ode = STL1_4state.Solutions.ode;   % nTimes x nSpecies
 means_ode = Y_ode.';                     % transpose: nSp x nTimes
 
 %% Compare ODEs vs moments 
 % Compare mRNA:
-i_mRNA = find(strcmp(STL1_4state_mom.species,'mRNA'));
+i_mRNA = find(strcmp(STL1_4state.species,'mRNA'));
 
 den_mRNA = max(abs(means_ode(i_mRNA,:)), 1e-12);
 errMean_mRNA = ...
@@ -179,16 +168,16 @@ else
 end
 
 %% Plot results:
-STL1_4state_mom.plotMoments(solution=STL1_4state_mom.Solutions.moments,...
+STL1_4state.plotMoments(solution=STL1_4state.Solutions.moments,...
     speciesNames=STL1_4state.species(5), plotType="meansanddevs",...
-    indTimes=STL1_4state_mom.tSpan, lineProps={'linewidth',4},...
+    indTimes=STL1_4state.tSpan, lineProps={'linewidth',4},...
     Title='4-state STL1 (mRNA)', TitleFontSize=26, LegendFontSize=20,...
     LegendLocation='east', Colors=[0.23,0.67,0.20],...
     YLabel='Molecule Count', AxisLabelSize=20, TickLabelSize=20);
 
-STL1_4state_mom.plotMoments(solution=STL1_4state_mom.Solutions.moments,...
+STL1_4state.plotMoments(solution=STL1_4state.Solutions.moments,...
     speciesNames=STL1_4state.species(1:4), plotType="meansanddevs",...
-    indTimes=STL1_4state_mom.tSpan, lineProps={'linewidth',4},...
+    indTimes=STL1_4state.tSpan, lineProps={'linewidth',4},...
     Title='4-state STL1 (mRNA)', TitleFontSize=26,...
     LegendLocation='east', YLabel='Molecule Count',...
     AxisLabelSize=20, TickLabelSize=20, LegendFontSize=20);

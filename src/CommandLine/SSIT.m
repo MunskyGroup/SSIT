@@ -441,24 +441,6 @@ classdef SSIT
 
         end
 
-        function Tutorial(obj)
-            % Open file browser for user to launch one of the example tutorials.
-            load('SSITconfig.mat');
-            J = max(strfind(pathToPropensityFuns,append(filesep,'SSIT',filesep)));
-            exampleFolder = append(pathToPropensityFuns(1:J+5),'Examples');
-            files = dir(exampleFolder);
-            J = find(contains({files.name},'example_'));
-            promptString = 'Select a tutorial to launch.';
-            dialogTitle = 'SSIT Tutorial Launcher';
-            answer = listdlg('promptString',promptString,'SelectionMode',...
-                'single','ListSize',[350,500],...
-                'ListString',{files(J).name},...
-                'Name',dialogTitle)
-            open(append(exampleFolder,filesep,files(J(answer)).name));
-
-        end
-
-
         function Pars_container = get.pars_container(obj)
             if ~isempty(obj.parameters)
                 Pars_container = containers.Map(obj.parameters(:,1), obj.parameters(:,2));
@@ -8833,6 +8815,27 @@ end
                     logFile=logfile, ...
                     runNow1=true, ...
                     runOnCluster=useCluster);
+            end
+        end
+
+        function Tutorial(obj)
+            % Open file browser for user to launch one of the example tutorials.
+            load('SSITconfig.mat');
+            J = max(strfind(pathToPropensityFuns,append(filesep,'SSIT',filesep)));
+            exampleFolder = append(pathToPropensityFuns(1:J+5),'Examples');
+            files = dir(exampleFolder);
+            J = find(contains({files.name},'example_'));
+            promptString = 'Select a tutorial to launch.';
+            dialogTitle = 'SSIT Tutorial Launcher';
+            answer = listdlg('promptString',promptString,'SelectionMode',...
+                'single','ListSize',[350,500],...
+                'ListString',{files(J).name},...
+                'Name',dialogTitle);
+            open(append(exampleFolder,filesep,files(J(answer)).name));
+
+            htmlFile = append(exampleFolder,filesep,'html',filesep,files(J(answer)).name(1:end-2),'.html');
+            if exist(htmlFile,'file')
+                web(htmlFile)
             end
         end
     end

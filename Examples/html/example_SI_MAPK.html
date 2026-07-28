@@ -1,0 +1,929 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN">
+<html>
+<head>
+<META http-equiv="Content-Type" content="text/html; charset=UTF-8">
+<!--
+This HTML was auto-generated from MATLAB code.
+To make changes, update the MATLAB code and republish this document.
+      -->
+<title>example_SI_MAPK</title>
+<meta name="generator" content="MATLAB 25.2">
+<link rel="schema.DC" href="http://purl.org/dc/elements/1.1/">
+<meta name="DC.date" content="2026-07-27">
+<meta name="DC.source" content="example_SI_MAPK.m">
+<style type="text/css">
+html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
+
+html { min-height:100%; margin-bottom:1px; }
+html body { height:100%; margin:0px; font-family:Arial, Helvetica, sans-serif; font-size:10px; color:#000; line-height:140%; background:#fff none; overflow-y:scroll; }
+html body td { vertical-align:top; text-align:left; }
+
+h1 { padding:0px; margin:0px 0px 25px; font-family:Arial, Helvetica, sans-serif; font-size:1.5em; color:#d55000; line-height:100%; font-weight:normal; }
+h2 { padding:0px; margin:0px 0px 8px; font-family:Arial, Helvetica, sans-serif; font-size:1.2em; color:#000; font-weight:bold; line-height:140%; border-bottom:1px solid #d6d4d4; display:block; }
+h3 { padding:0px; margin:0px 0px 5px; font-family:Arial, Helvetica, sans-serif; font-size:1.1em; color:#000; font-weight:bold; line-height:140%; }
+
+a { color:#005fce; text-decoration:none; }
+a:hover { color:#005fce; text-decoration:underline; }
+a:visited { color:#004aa0; text-decoration:none; }
+
+p { padding:0px; margin:0px 0px 20px; }
+img { padding:0px; margin:0px 0px 20px; border:none; }
+p img, pre img, tt img, li img, h1 img, h2 img { margin-bottom:0px; }
+
+ul { padding:0px; margin:0px 0px 20px 23px; list-style:square; }
+ul li { padding:0px; margin:0px 0px 7px 0px; }
+ul li ul { padding:5px 0px 0px; margin:0px 0px 7px 23px; }
+ul li ol li { list-style:decimal; }
+ol { padding:0px; margin:0px 0px 20px 0px; list-style:decimal; }
+ol li { padding:0px; margin:0px 0px 7px 23px; list-style-type:decimal; }
+ol li ol { padding:5px 0px 0px; margin:0px 0px 7px 0px; }
+ol li ol li { list-style-type:lower-alpha; }
+ol li ul { padding-top:7px; }
+ol li ul li { list-style:square; }
+
+.content { font-size:1.2em; line-height:140%; padding: 20px; }
+
+pre, code { font-size:12px; }
+tt { font-size: 1.2em; }
+pre { margin:0px 0px 20px; }
+pre.codeinput { padding:10px; border:1px solid #d3d3d3; background:#f7f7f7; }
+pre.codeoutput { padding:10px 11px; margin:0px 0px 20px; color:#4c4c4c; }
+pre.error { color:red; }
+
+@media print { pre.codeinput, pre.codeoutput { word-wrap:break-word; width:100%; } }
+
+span.keyword { color:#0000FF }
+span.comment { color:#228B22 }
+span.string { color:#A020F0 }
+span.untermstring { color:#B20000 }
+span.syscmd { color:#B28C00 }
+span.typesection { color:#A0522D }
+
+.footer { width:auto; padding:10px 0px; margin:25px 0px 0px; border-top:1px dotted #878787; font-size:0.8em; line-height:140%; font-style:italic; color:#878787; text-align:left; float:none; }
+.footer p { margin:0px; }
+.footer a { color:#878787; }
+.footer a:hover { color:#878787; text-decoration:underline; }
+.footer a:visited { color:#878787; }
+
+table th { padding:7px 5px; text-align:left; vertical-align:middle; border: 1px solid #d6d4d4; font-weight:bold; }
+table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px solid #d6d4d4; }
+
+
+
+
+
+  </style>
+</head>
+<body>
+<div class="content">
+<h2>Contents</h2>
+<div>
+<ul>
+<li>
+<a href="#2">Solve Toggle Model</a>
+</li>
+<li>
+<a href="#3">Example 2 - MAPK Model</a>
+</li>
+<li>
+<a href="#4">Form FSP Codes (Can Skip this step for SSA Only)</a>
+</li>
+<li>
+<a href="#5">Solve MAPK Model using FSP Approach</a>
+</li>
+<li>
+<a href="#6">Solve MAPK Model using SSA Approach</a>
+</li>
+<li>
+<a href="#7">Now run for ful set of simulations.</a>
+</li>
+<li>
+<a href="#8">8 Compartment Spatial Schlogel Model</a>
+</li>
+<li>
+<a href="#9">Solve using SSA</a>
+</li>
+</ul>
+</div>
+<pre class="codeinput">
+<span class="comment">% Create Toggle Model</span>
+<span class="comment">% clear</span>
+Toggle = SSIT();
+Toggle.species = {<span class="string">'Gx_on'</span>,<span class="string">'Gx_off'</span>,<span class="string">'Gy_on'</span>,<span class="string">'Gy_off'</span>,<span class="string">'Px'</span>,<span class="string">'Py'</span>};
+Toggle.initialCondition = [1;0;1;0;0;0];
+Toggle.parameters = {<span class="string">'sxy'</span>,50;
+    <span class="string">'dxy'</span>,1;
+    <span class="string">'bxy'</span>,1e-4;
+    <span class="string">'uxy'</span>,0.1};
+Toggle.propensityFunctions = {};
+Toggle.stoichiometry = [];
+Toggle = Toggle.addReaction(struct(<span class="string">'propensity'</span>,{<span class="string">'sxy*Gx_on'</span>},<span class="string">'stoichiometry'</span>,{{<span class="string">'Px'</span>,1}}));
+Toggle = Toggle.addReaction(struct(<span class="string">'propensity'</span>,{<span class="string">'sxy*Gy_on'</span>},<span class="string">'stoichiometry'</span>,{{<span class="string">'Py'</span>,1}}));
+Toggle = Toggle.addReaction(struct(<span class="string">'propensity'</span>,{<span class="string">'dxy*Px'</span>},<span class="string">'stoichiometry'</span>,{{<span class="string">'Px'</span>,-1}}));
+Toggle = Toggle.addReaction(struct(<span class="string">'propensity'</span>,{<span class="string">'dxy*Py'</span>},<span class="string">'stoichiometry'</span>,{{<span class="string">'Py'</span>,-1}}));
+Toggle = Toggle.addReaction(struct(<span class="string">'propensity'</span>,{<span class="string">'bxy*Px*(Px-1)*Gy_on'</span>},<span class="keyword">...</span>
+        <span class="string">'stoichiometry'</span>,{{<span class="string">'Px'</span>,-2;<span class="string">'Gy_on'</span>,-1;<span class="string">'Gy_off'</span>,1}}));
+Toggle = Toggle.addReaction(struct(<span class="string">'propensity'</span>,{<span class="string">'bxy*Py*(Py-1)*Gx_on'</span>},<span class="keyword">...</span>
+        <span class="string">'stoichiometry'</span>,{{<span class="string">'Py'</span>,-2;<span class="string">'Gx_on'</span>,-1;<span class="string">'Gx_off'</span>,1}}));
+Toggle = Toggle.addReaction(struct(<span class="string">'propensity'</span>,{<span class="string">'uxy*Gy_off'</span>},<span class="keyword">...</span>
+        <span class="string">'stoichiometry'</span>,{{<span class="string">'Px'</span>,2;<span class="string">'Gy_on'</span>,1;<span class="string">'Gy_off'</span>,-1}}));
+Toggle = Toggle.addReaction(struct(<span class="string">'propensity'</span>,{<span class="string">'uxy*Gx_off'</span>},<span class="keyword">...</span>
+    <span class="string">'stoichiometry'</span>,{{<span class="string">'Py'</span>,2;<span class="string">'Gx_on'</span>,1;<span class="string">'Gx_off'</span>,-1}}));
+Toggle.tSpan = linspace(0,40,81);
+Toggle.fspOptions.verbose = true;
+Toggle = Toggle.formPropensitiesGeneral(<span class="string">'Toggle'</span>);
+</pre>
+<h2 id="2">Solve Toggle Model</h2>
+<pre class="codeinput">Toggle.fspOptions.fspTol = 0.001;
+tic
+Toggle = Toggle.solve(solver=<span class="string">'FSP'</span>);
+toc
+Toggle.plotFSP(speciesNames={<span class="string">'Px'</span>,<span class="string">'Py'</span>});
+</pre>
+<pre class="codeoutput">expand at t= 0.00e+00 from fsp with size 4 
+expand at t= 0.00e+00 from fsp with size 4 
+expand at t= 0.00e+00 from fsp with size 4 
+expand at t= 0.00e+00 from fsp with size 4 
+expand at t= 0.00e+00 from fsp with size 36 
+expand at t= 0.00e+00 from fsp with size 64 
+expand at t= 0.00e+00 from fsp with size 64 
+expand at t= 0.00e+00 from fsp with size 100 
+expand at t= 1.40e-03 from fsp with size 144 
+expand at t= 2.70e-03 from fsp with size 256 
+expand at t= 3.60e-03 from fsp with size 400 
+expand at t= 4.40e-03 from fsp with size 576 
+expand at t= 4.45e-02 from fsp with size 900 
+expand at t= 5.06e-02 from fsp with size 1444 
+expand at t= 1.36e-01 from fsp with size 2116 
+expand at t= 1.67e-01 from fsp with size 3364 
+expand at t= 3.16e-01 from fsp with size 5184 
+expand at t= 5.00e-01 from fsp with size 8100 
+expand at t= 7.47e-01 from fsp with size 12544 
+expand at t= 1.50e+00 from fsp with size 19600 
+Elapsed time is 2.867988 seconds.
+</pre>
+<img vspace="5" hspace="5" src="example_SI_MAPK_01.png" alt=""> <h2 id="3">Example 2 - MAPK Model</h2>
+<p>Set up MAPK Model clear</p>
+<pre class="codeinput">MAPK = SSIT();
+
+<span class="comment">% Species</span>
+MAPK.species =   {<span class="string">'MKP3'</span>
+    <span class="string">'Kpp_MKP3'</span>
+    <span class="string">'KpT_MKP3_Y'</span>
+    <span class="string">'KpT_MKP3_T'</span>
+    <span class="string">'K_MKP3_T'</span>
+    <span class="string">'KpY_MKP3'</span>
+    <span class="string">'K_MKP3_Y'</span>
+    <span class="string">'KpT_MEK'</span>
+    <span class="string">'KpT'</span>
+    <span class="string">'KpY_MEK'</span>
+    <span class="string">'K_MEK_T'</span>
+    <span class="string">'KpY'</span>
+    <span class="string">'K_MEK_Y'</span>
+    <span class="string">'K'</span>
+    <span class="string">'MEK'</span>
+    <span class="string">'Kpp'</span>       };
+
+MAPK.initialCondition = zeros(length(MAPK.species),1);
+MAPK.initialCondition(find(strcmp(MAPK.species,<span class="string">'MKP3'</span>))) = 1; <span class="comment">% MKP3 IC is 1</span>
+MAPK.initialCondition(find(strcmp(MAPK.species,<span class="string">'K'</span>))) = 3; <span class="comment">% K IC is 3</span>
+
+<span class="comment">% Parameters</span>
+MAPK.parameters = {
+    <span class="string">'s1'</span>,0.00024;
+    <span class="string">'d1'</span>,0.0001;
+    <span class="string">'s2'</span>,0.001;
+    <span class="string">'d2'</span>,0.15;
+    <span class="string">'s3'</span>,0.005;
+    <span class="string">'k1'</span>,0.375;
+    <span class="string">'k_1'</span>,1.0;
+    <span class="string">'k2'</span>,0.06;
+    <span class="string">'k3'</span>,0.375;
+    <span class="string">'k_3'</span>,1.0;
+    <span class="string">'k4'</span>,4.5;
+    <span class="string">'k5'</span>,0.375;
+    <span class="string">'k_5'</span>,1.0;
+    <span class="string">'k6'</span>,0.06;
+    <span class="string">'k7'</span>,0.375;
+    <span class="string">'k_7'</span>,1.0;
+    <span class="string">'k8'</span>,4.5;
+    <span class="string">'h1'</span>,0.015;
+    <span class="string">'h_1'</span>,1.0;
+    <span class="string">'h2'</span>,0.032;
+    <span class="string">'h3'</span>,0.31;
+    <span class="string">'h_3'</span>,0.01;
+    <span class="string">'h4'</span>,0.01;
+    <span class="string">'h_4'</span>,1.0;
+    <span class="string">'h5'</span>,0.5;
+    <span class="string">'h6'</span>,0.086;
+    <span class="string">'h_6'</span>,0.0011;
+    <span class="string">'h7'</span>,0.01;
+    <span class="string">'h_7'</span>,1.0;
+    <span class="string">'h8'</span>,0.47;
+    <span class="string">'h9'</span>,0.14;
+    <span class="string">'h_9'</span>,0.0018;
+};
+
+<span class="comment">% Reactions</span>
+MAPK.propensityFunctions = {};
+MAPK.stoichiometry = [];
+
+<span class="comment">% R1: synthesis/degradation of MEK</span>
+MAPK = MAPK.addReaction(struct(<span class="string">'propensity'</span>,{<span class="string">'s2'</span>},<span class="string">'stoichiometry'</span>,{{<span class="string">'MEK'</span>,1}}));
+MAPK = MAPK.addReaction(struct(<span class="string">'propensity'</span>,{<span class="string">'d2*MEK'</span>},<span class="string">'stoichiometry'</span>,{{<span class="string">'MEK'</span>,-1}}));
+
+<span class="comment">% R2: synthesis/degradation of MEK</span>
+MAPK = MAPK.addReaction(struct(<span class="string">'propensity'</span>,{<span class="string">'s3*Kpp'</span>},<span class="string">'stoichiometry'</span>,{{<span class="string">'MEK'</span>,1}}));
+
+<span class="comment">% R3: synthesis/degradation of K</span>
+MAPK = MAPK.addReaction(struct(<span class="string">'propensity'</span>,{<span class="string">'s1'</span>},<span class="string">'stoichiometry'</span>,{{<span class="string">'K'</span>,1}}));
+MAPK = MAPK.addReaction(struct(<span class="string">'propensity'</span>,{<span class="string">'d1*K'</span>},<span class="string">'stoichiometry'</span>,{{<span class="string">'K'</span>,-1}}));
+
+<span class="comment">% R4:</span>
+MAPK = MAPK.addReaction(struct(<span class="string">'propensity'</span>,{<span class="string">'d1*KpY'</span>},<span class="string">'stoichiometry'</span>,{{<span class="string">'KpY'</span>,-1}}));
+MAPK = MAPK.addReaction(struct(<span class="string">'propensity'</span>,{<span class="string">'d1*KpT'</span>},<span class="string">'stoichiometry'</span>,{{<span class="string">'KpT'</span>,-1}}));
+MAPK = MAPK.addReaction(struct(<span class="string">'propensity'</span>,{<span class="string">'d1*Kpp'</span>},<span class="string">'stoichiometry'</span>,{{<span class="string">'Kpp'</span>,-1}}));
+
+<span class="comment">% R5: K + MEK -&gt; K_MEK_Y</span>
+MAPK = MAPK.addReaction(struct(<span class="string">'propensity'</span>,{<span class="string">'k1*K*MEK'</span>},<span class="keyword">...</span>
+        <span class="string">'stoichiometry'</span>,{{<span class="string">'K'</span>,-1;<span class="string">'MEK'</span>,-1;<span class="string">'K_MEK_Y'</span>,1}}));
+
+<span class="comment">% R6: K_MEK_Y -&gt; KpY + MEK, k2 = 0.06</span>
+MAPK = MAPK.addReaction(struct(<span class="string">'propensity'</span>,{<span class="string">'k2*K_MEK_Y'</span>},<span class="keyword">...</span>
+        <span class="string">'stoichiometry'</span>,{{<span class="string">'K_MEK_Y'</span>,-1;<span class="string">'KpY'</span>,1;<span class="string">'MEK'</span>,1}}));
+
+<span class="comment">% R7: KpY + MEK &lt;=&gt; KpY_MEK, k3 = 0.375, k-3 = 1.0</span>
+MAPK = MAPK.addReaction(struct(<span class="string">'propensity'</span>,{<span class="string">'k3*KpY*MEK'</span>},<span class="keyword">...</span>
+        <span class="string">'stoichiometry'</span>,{{<span class="string">'KpY'</span>,-1;<span class="string">'MEK'</span>,-1;<span class="string">'KpY_MEK'</span>,1}}));
+MAPK = MAPK.addReaction(struct(<span class="string">'propensity'</span>,{<span class="string">'k_3*KpY_MEK'</span>},<span class="keyword">...</span>
+        <span class="string">'stoichiometry'</span>,{{<span class="string">'KpY_MEK'</span>,-1;<span class="string">'KpY'</span>,1;<span class="string">'MEK'</span>,1}}));
+
+<span class="comment">% R8: KpY_MEK -&gt; Kpp + MEK, k4 = 4.5</span>
+MAPK = MAPK.addReaction(struct(<span class="string">'propensity'</span>,{<span class="string">'k4*KpY_MEK'</span>},<span class="keyword">...</span>
+        <span class="string">'stoichiometry'</span>,{{<span class="string">'KpY_MEK'</span>,-1;<span class="string">'Kpp'</span>,1;<span class="string">'MEK'</span>,1}}));
+
+<span class="comment">% R9: K + MEK &lt;=&gt; K_MEK_T, k5 = 0.375, k-5 = 1.0</span>
+MAPK = MAPK.addReaction(struct(<span class="string">'propensity'</span>,{<span class="string">'k5*K*MEK'</span>},<span class="keyword">...</span>
+        <span class="string">'stoichiometry'</span>,{{<span class="string">'K'</span>,-1;<span class="string">'MEK'</span>,-1;<span class="string">'K_MEK_T'</span>,1}}));
+MAPK = MAPK.addReaction(struct(<span class="string">'propensity'</span>,{<span class="string">'k_5*K_MEK_T'</span>},<span class="keyword">...</span>
+        <span class="string">'stoichiometry'</span>,{{<span class="string">'K_MEK_T'</span>,-1;<span class="string">'K'</span>,1;<span class="string">'MEK'</span>,1}}));
+
+<span class="comment">% R10: K_MEK_T -&gt; KpT + MEK, k6 = 0.06</span>
+MAPK = MAPK.addReaction(struct(<span class="string">'propensity'</span>,{<span class="string">'k6*K_MEK_T'</span>},<span class="keyword">...</span>
+        <span class="string">'stoichiometry'</span>,{{<span class="string">'K_MEK_T'</span>,-1;<span class="string">'KpT'</span>,1;<span class="string">'MEK'</span>,1}}));
+
+<span class="comment">% R11: KpT + MEK &lt;=&gt; KpT_MEK, k7 = 0.375, k-7 = 1.0</span>
+MAPK = MAPK.addReaction(struct(<span class="string">'propensity'</span>,{<span class="string">'k7*KpT*MEK'</span>},<span class="keyword">...</span>
+        <span class="string">'stoichiometry'</span>,{{<span class="string">'KpT'</span>,-1;<span class="string">'MEK'</span>,-1;<span class="string">'KpT_MEK'</span>,1}}));
+MAPK = MAPK.addReaction(struct(<span class="string">'propensity'</span>,{<span class="string">'k_7*KpT_MEK'</span>},<span class="keyword">...</span>
+        <span class="string">'stoichiometry'</span>,{{<span class="string">'KpT_MEK'</span>,-1;<span class="string">'KpT'</span>,1;<span class="string">'MEK'</span>,1}}));
+
+<span class="comment">% R12: KpT_MEK -&gt; Kpp + MEK, k8 = 4.5</span>
+MAPK = MAPK.addReaction(struct(<span class="string">'propensity'</span>,{<span class="string">'k8*KpT_MEK'</span>},<span class="keyword">...</span>
+        <span class="string">'stoichiometry'</span>,{{<span class="string">'KpT_MEK'</span>,-1;<span class="string">'Kpp'</span>,1;<span class="string">'MEK'</span>,1}}));
+
+<span class="comment">% R13: Kpp + MKP3 &lt;=&gt; Kpp_MKP3, h1 = 0.015, h-1 = 1.0</span>
+MAPK = MAPK.addReaction(struct(<span class="string">'propensity'</span>,{<span class="string">'h1*Kpp*MKP3'</span>},<span class="keyword">...</span>
+        <span class="string">'stoichiometry'</span>,{{<span class="string">'Kpp'</span>,-1;<span class="string">'MKP3'</span>,-1;<span class="string">'Kpp_MKP3'</span>,1}}));
+MAPK = MAPK.addReaction(struct(<span class="string">'propensity'</span>,{<span class="string">'h_1*Kpp_MKP3'</span>},<span class="keyword">...</span>
+        <span class="string">'stoichiometry'</span>,{{<span class="string">'Kpp_MKP3'</span>,-1;<span class="string">'Kpp'</span>,1;<span class="string">'MKP3'</span>,1}}));
+
+<span class="comment">% R14: Kpp_MKP3 -&gt; KpT_MKP3_Y, h2 = 0.032</span>
+MAPK = MAPK.addReaction(struct(<span class="string">'propensity'</span>,{<span class="string">'h2*Kpp_MKP3'</span>},<span class="keyword">...</span>
+        <span class="string">'stoichiometry'</span>,{{<span class="string">'Kpp_MKP3'</span>,-1;<span class="string">'KpT_MKP3_Y'</span>,1}}));
+
+<span class="comment">% R15: KpT_MKP3_Y &lt;=&gt; KpT + MKP3, h3 = 0.31, h-3 = 0.01</span>
+MAPK = MAPK.addReaction(struct(<span class="string">'propensity'</span>,{<span class="string">'h3*KpT_MKP3_Y'</span>},<span class="keyword">...</span>
+        <span class="string">'stoichiometry'</span>,{{<span class="string">'KpT_MKP3_Y'</span>,-1;<span class="string">'KpT'</span>,1;<span class="string">'MKP3'</span>,1}}));
+MAPK = MAPK.addReaction(struct(<span class="string">'propensity'</span>,{<span class="string">'h_3*KpT*MKP3'</span>},<span class="keyword">...</span>
+        <span class="string">'stoichiometry'</span>,{{<span class="string">'KpT'</span>,-1;<span class="string">'MKP3'</span>,-1;<span class="string">'KpT_MKP3_Y'</span>,1}}));
+
+<span class="comment">% R16: KpT + MKP3 &lt;=&gt; KpT_MKP3_T, h4 = 0.01, h-4 = 1.0</span>
+MAPK = MAPK.addReaction(struct(<span class="string">'propensity'</span>,{<span class="string">'h4*KpT*MKP3'</span>},<span class="keyword">...</span>
+        <span class="string">'stoichiometry'</span>,{{<span class="string">'KpT'</span>,-1;<span class="string">'MKP3'</span>,-1;<span class="string">'KpT_MKP3_T'</span>,1}}));
+MAPK = MAPK.addReaction(struct(<span class="string">'propensity'</span>,{<span class="string">'h_4*KpT_MKP3_T'</span>},<span class="keyword">...</span>
+        <span class="string">'stoichiometry'</span>,{{<span class="string">'KpT_MKP3_T'</span>,-1;<span class="string">'KpT'</span>,1;<span class="string">'MKP3'</span>,1}}));
+
+<span class="comment">% R17: KpT_MKP3_T -&gt; K_MKP3_T, h5 = 0.5</span>
+MAPK = MAPK.addReaction(struct(<span class="string">'propensity'</span>,{<span class="string">'h5*KpT_MKP3_T'</span>},<span class="keyword">...</span>
+        <span class="string">'stoichiometry'</span>,{{<span class="string">'KpT_MKP3_T'</span>,-1;<span class="string">'K_MKP3_T'</span>,1}}));
+
+<span class="comment">% R18: K_MKP3_T &lt;=&gt; K + MKP3, h6 = 0.086, h-6 = 0.0011</span>
+MAPK = MAPK.addReaction(struct(<span class="string">'propensity'</span>,{<span class="string">'h6*K_MKP3_T'</span>},<span class="keyword">...</span>
+        <span class="string">'stoichiometry'</span>,{{<span class="string">'K_MKP3_T'</span>,-1;<span class="string">'K'</span>,1;<span class="string">'MKP3'</span>,1}}));
+MAPK = MAPK.addReaction(struct(<span class="string">'propensity'</span>,{<span class="string">'h_6*K*MKP3'</span>},<span class="keyword">...</span>
+        <span class="string">'stoichiometry'</span>,{{<span class="string">'K'</span>,-1;<span class="string">'MKP3'</span>,-1;<span class="string">'K_MKP3_T'</span>,1}}));
+
+<span class="comment">% R19: KpY + MKP3 &lt;=&gt; KpY_MKP3, h7 = 0.01, h-7 = 1.0</span>
+MAPK = MAPK.addReaction(struct(<span class="string">'propensity'</span>,{<span class="string">'h7*KpY*MKP3'</span>},<span class="keyword">...</span>
+        <span class="string">'stoichiometry'</span>,{{<span class="string">'KpY'</span>,-1;<span class="string">'MKP3'</span>,-1;<span class="string">'KpY_MKP3'</span>,1}}));
+MAPK = MAPK.addReaction(struct(<span class="string">'propensity'</span>,{<span class="string">'h_7*KpY_MKP3'</span>},<span class="keyword">...</span>
+        <span class="string">'stoichiometry'</span>,{{<span class="string">'KpY_MKP3'</span>,-1;<span class="string">'KpY'</span>,1;<span class="string">'MKP3'</span>,1}}));
+
+<span class="comment">% R20: KpY_MKP3 -&gt; K_MKP3_Y, h8 = 0.47</span>
+MAPK = MAPK.addReaction(struct(<span class="string">'propensity'</span>,{<span class="string">'h8*KpY_MKP3'</span>},<span class="keyword">...</span>
+        <span class="string">'stoichiometry'</span>,{{<span class="string">'KpY_MKP3'</span>,-1;<span class="string">'K_MKP3_Y'</span>,1}}));
+
+<span class="comment">% R21: K_MKP3_Y &lt;=&gt; K + MKP3, h9 = 0.14, h-9 = 0.0018</span>
+MAPK = MAPK.addReaction(struct(<span class="string">'propensity'</span>,{<span class="string">'h9*K_MKP3_Y'</span>},<span class="keyword">...</span>
+        <span class="string">'stoichiometry'</span>,{{<span class="string">'K_MKP3_Y'</span>,-1;<span class="string">'K'</span>,1;<span class="string">'MKP3'</span>,1}}));
+MAPK = MAPK.addReaction(struct(<span class="string">'propensity'</span>,{<span class="string">'h_9*K*MKP3'</span>},<span class="keyword">...</span>
+        <span class="string">'stoichiometry'</span>,{{<span class="string">'K'</span>,-1;<span class="string">'MKP3'</span>,-1;<span class="string">'K_MKP3_Y'</span>,1}}));
+
+MAPK.tSpan = linspace(0,10000,101);
+
+MAPK.summarizeModel;
+</pre>
+<pre class="codeoutput">Species:
+     MKP3; IC = 1;  discrete stochastic
+     Kpp_MKP3; IC = 0;  discrete stochastic
+     KpT_MKP3_Y; IC = 0;  discrete stochastic
+     KpT_MKP3_T; IC = 0;  discrete stochastic
+     K_MKP3_T; IC = 0;  discrete stochastic
+     KpY_MKP3; IC = 0;  discrete stochastic
+     K_MKP3_Y; IC = 0;  discrete stochastic
+     KpT_MEK; IC = 0;  discrete stochastic
+     KpT; IC = 0;  discrete stochastic
+     KpY_MEK; IC = 0;  discrete stochastic
+     K_MEK_T; IC = 0;  discrete stochastic
+     KpY; IC = 0;  discrete stochastic
+     K_MEK_Y; IC = 0;  discrete stochastic
+     K; IC = 3;  discrete stochastic
+     MEK; IC = 0;  discrete stochastic
+     Kpp; IC = 0;  discrete stochastic
+ 
+Reactions:
+  Reaction 1:
+     s1: NULL --&gt; 1*MEK
+     w1: s2
+  Reaction 2:
+     s2: 1*MEK --&gt; NULL
+     w2: d2*MEK
+  Reaction 3:
+     s3: NULL --&gt; 1*MEK
+     w3: s3*Kpp
+  Reaction 4:
+     s4: NULL --&gt; 1*K
+     w4: s1
+  Reaction 5:
+     s5: 1*K --&gt; NULL
+     w5: d1*K
+  Reaction 6:
+     s6: 1*KpY --&gt; NULL
+     w6: d1*KpY
+  Reaction 7:
+     s7: 1*KpT --&gt; NULL
+     w7: d1*KpT
+  Reaction 8:
+     s8: 1*Kpp --&gt; NULL
+     w8: d1*Kpp
+  Reaction 9:
+     s9: 1*K + 1*MEK --&gt; 1*K_MEK_Y
+     w9: k1*K*MEK
+  Reaction 10:
+     s10: 1*K_MEK_Y --&gt; 1*KpY + 1*MEK
+     w10: k2*K_MEK_Y
+  Reaction 11:
+     s11: 1*KpY + 1*MEK --&gt; 1*KpY_MEK
+     w11: k3*KpY*MEK
+  Reaction 12:
+     s12: 1*KpY_MEK --&gt; 1*KpY + 1*MEK
+     w12: k_3*KpY_MEK
+  Reaction 13:
+     s13: 1*KpY_MEK --&gt; 1*MEK + 1*Kpp
+     w13: k4*KpY_MEK
+  Reaction 14:
+     s14: 1*K + 1*MEK --&gt; 1*K_MEK_T
+     w14: k5*K*MEK
+  Reaction 15:
+     s15: 1*K_MEK_T --&gt; 1*K + 1*MEK
+     w15: k_5*K_MEK_T
+  Reaction 16:
+     s16: 1*K_MEK_T --&gt; 1*KpT + 1*MEK
+     w16: k6*K_MEK_T
+  Reaction 17:
+     s17: 1*KpT + 1*MEK --&gt; 1*KpT_MEK
+     w17: k7*KpT*MEK
+  Reaction 18:
+     s18: 1*KpT_MEK --&gt; 1*KpT + 1*MEK
+     w18: k_7*KpT_MEK
+  Reaction 19:
+     s19: 1*KpT_MEK --&gt; 1*MEK + 1*Kpp
+     w19: k8*KpT_MEK
+  Reaction 20:
+     s20: 1*MKP3 + 1*Kpp --&gt; 1*Kpp_MKP3
+     w20: h1*Kpp*MKP3
+  Reaction 21:
+     s21: 1*Kpp_MKP3 --&gt; 1*MKP3 + 1*Kpp
+     w21: h_1*Kpp_MKP3
+  Reaction 22:
+     s22: 1*Kpp_MKP3 --&gt; 1*KpT_MKP3_Y
+     w22: h2*Kpp_MKP3
+  Reaction 23:
+     s23: 1*KpT_MKP3_Y --&gt; 1*MKP3 + 1*KpT
+     w23: h3*KpT_MKP3_Y
+  Reaction 24:
+     s24: 1*MKP3 + 1*KpT --&gt; 1*KpT_MKP3_Y
+     w24: h_3*KpT*MKP3
+  Reaction 25:
+     s25: 1*MKP3 + 1*KpT --&gt; 1*KpT_MKP3_T
+     w25: h4*KpT*MKP3
+  Reaction 26:
+     s26: 1*KpT_MKP3_T --&gt; 1*MKP3 + 1*KpT
+     w26: h_4*KpT_MKP3_T
+  Reaction 27:
+     s27: 1*KpT_MKP3_T --&gt; 1*K_MKP3_T
+     w27: h5*KpT_MKP3_T
+  Reaction 28:
+     s28: 1*K_MKP3_T --&gt; 1*MKP3 + 1*K
+     w28: h6*K_MKP3_T
+  Reaction 29:
+     s29: 1*MKP3 + 1*K --&gt; 1*K_MKP3_T
+     w29: h_6*K*MKP3
+  Reaction 30:
+     s30: 1*MKP3 + 1*KpY --&gt; 1*KpY_MKP3
+     w30: h7*KpY*MKP3
+  Reaction 31:
+     s31: 1*KpY_MKP3 --&gt; 1*MKP3 + 1*KpY
+     w31: h_7*KpY_MKP3
+  Reaction 32:
+     s32: 1*KpY_MKP3 --&gt; 1*K_MKP3_Y
+     w32: h8*KpY_MKP3
+  Reaction 33:
+     s33: 1*K_MKP3_Y --&gt; 1*MKP3 + 1*K
+     w33: h9*K_MKP3_Y
+  Reaction 34:
+     s34: 1*MKP3 + 1*K --&gt; 1*K_MKP3_Y
+     w34: h_9*K*MKP3
+ 
+Model Parameters:
+    {'s1' }    {[2.4000e-04]}
+    {'d1' }    {[1.0000e-04]}
+    {'s2' }    {[1.0000e-03]}
+    {'d2' }    {[1.5000e-01]}
+    {'s3' }    {[5.0000e-03]}
+    {'k1' }    {[3.7500e-01]}
+    {'k_1'}    {[         1]}
+    {'k2' }    {[6.0000e-02]}
+    {'k3' }    {[3.7500e-01]}
+    {'k_3'}    {[         1]}
+    {'k4' }    {[4.5000e+00]}
+    {'k5' }    {[3.7500e-01]}
+    {'k_5'}    {[         1]}
+    {'k6' }    {[6.0000e-02]}
+    {'k7' }    {[3.7500e-01]}
+    {'k_7'}    {[         1]}
+    {'k8' }    {[4.5000e+00]}
+    {'h1' }    {[1.5000e-02]}
+    {'h_1'}    {[         1]}
+    {'h2' }    {[3.2000e-02]}
+    {'h3' }    {[3.1000e-01]}
+    {'h_3'}    {[1.0000e-02]}
+    {'h4' }    {[1.0000e-02]}
+    {'h_4'}    {[         1]}
+    {'h5' }    {[5.0000e-01]}
+    {'h6' }    {[8.6000e-02]}
+    {'h_6'}    {[1.1000e-03]}
+    {'h7' }    {[1.0000e-02]}
+    {'h_7'}    {[         1]}
+    {'h8' }    {[4.7000e-01]}
+    {'h9' }    {[1.4000e-01]}
+    {'h_9'}    {[1.8000e-03]}
+</pre>
+<h2 id="4">Form FSP Codes (Can Skip this step for SSA Only)</h2>
+<pre class="codeinput">MAPK = MAPK.formPropensitiesGeneral(<span class="string">'MAPK'</span>);
+</pre>
+<h2 id="5">Solve MAPK Model using FSP Approach</h2>
+<pre class="codeinput">MAPK.fspOptions.verbose = true;
+MAPK.customConstraintFuns = <span class="keyword">...</span>
+{<span class="string">'MKP3+Kpp_MKP3+KpT_MKP3_Y+KpT_MKP3_T+K_MKP3_T+KpY_MKP3+K_MKP3_Y'</span>;  <span class="comment">% Sum of MKP3</span>
+    <span class="string">'K+K_MEK_Y+K_MEK_T+K_MKP3_T+K_MKP3_Y'</span>;  <span class="comment">% Sum of K</span>
+    <span class="string">'Kpp+Kpp_MKP3'</span>; <span class="comment">% Sum of Kpp</span>
+    <span class="string">'KpY+KpY_MEK+KpY_MKP3'</span>; <span class="comment">% Sum of KpY</span>
+    <span class="string">'KpT+KpT_MEK+KpT_MKP3_Y+KpT_MKP3_T'</span>; <span class="comment">% Sum of KpT</span>
+    <span class="string">'K+K_MEK_Y+K_MEK_T+K_MKP3_T+K_MKP3_Y+KpY+KpY_MEK+KpY_MKP3+KpT+KpT_MEK+KpT_MKP3_Y+KpT_MKP3_T'</span>};
+    <span class="comment">% Sum of all</span>
+
+MAPK.fspOptions.fspTol = 0.001;
+tic
+MAPK = MAPK.solve(solver=<span class="string">'FSP'</span>);
+toc
+MAPK.plotFSP(speciesNames={<span class="string">'MKP3'</span>,<span class="string">'K'</span>,<span class="string">'Kpp'</span>})
+</pre>
+<pre class="codeoutput">expand at t= 0.00e+00 from fsp with size 776 
+expand at t= 0.00e+00 from fsp with size 776 
+expand at t= 4.70e-04 from fsp with size 1392 
+expand at t= 7.70e-04 from fsp with size 2040 
+expand at t= 6.10e+00 from fsp with size 34173 
+expand at t= 1.48e+01 from fsp with size 99432 
+expand at t= 1.48e+01 from fsp with size 99432 
+expand at t= 2.05e+01 from fsp with size 124290 
+expand at t= 3.74e+01 from fsp with size 175644 
+expand at t= 4.46e+01 from fsp with size 269408 
+expand at t= 1.96e+02 from fsp with size 349344 
+expand at t= 5.31e+02 from fsp with size 422216 
+expand at t= 2.31e+03 from fsp with size 583608 
+Elapsed time is 310.588597 seconds.
+</pre>
+<img vspace="5" hspace="5" src="example_SI_MAPK_02.png" alt=""> <h2 id="6">Solve MAPK Model using SSA Approach</h2>
+<pre class="codeinput">MAPKSSA = MAPK;
+MAPKSSA.Solutions = [];
+<span class="comment">% Run once to write C Codes.</span>
+MAPKSSA.solutionScheme = <span class="string">'ssa'</span>;
+MAPKSSA.ssaOptions.Nsims = 10;
+MAPKSSA = MAPKSSA.solve(solver=<span class="string">'SSA'</span>);
+</pre>
+<h2 id="7">Now run for ful set of simulations.</h2>
+<pre class="codeinput">MAPKSSA.ssaOptions.Nsims = 1e4;
+MAPKSSA.ssaOptions.useParallel = false;
+tic
+MAPKSSA = MAPKSSA.solve(solver=<span class="string">'SSA'</span>);
+toc
+hold <span class="string">on</span>
+plot(MAPKSSA.tSpan,mean(MAPKSSA.Solutions.trajs(1,:,:),3),<span class="string">'c--'</span>,<span class="string">'linewidth'</span>,1)
+plot(MAPKSSA.tSpan,mean(MAPKSSA.Solutions.trajs(14,:,:),3),<span class="string">'r--'</span>,<span class="string">'linewidth'</span>,1)
+plot(MAPKSSA.tSpan,mean(MAPKSSA.Solutions.trajs(16,:,:),3),<span class="string">'b--'</span>,<span class="string">'linewidth'</span>,1)
+
+legend({<span class="string">'MKP3 - FSP'</span>,<span class="string">'K - FSP'</span>,<span class="string">'Kpp - FSP'</span>,<span class="string">'MKP3 - SSA'</span>,<span class="string">'K - SSA'</span>,<span class="string">'Kpp - SSA'</span>,})
+</pre>
+<pre class="codeoutput">Elapsed time is 0.847930 seconds.
+</pre>
+<img vspace="5" hspace="5" src="example_SI_MAPK_03.png" alt=""> <h2 id="8">8 Compartment Spatial Schlogel Model</h2>
+<p>clear</p>
+<pre class="codeinput">Schlogle = SSIT();
+N = 6;
+
+Schlogle.parameters = {
+<span class="string">'c1A'</span>,2.676;
+<span class="string">'c2'</span>,0.040;
+<span class="string">'c3B'</span>, 108.102;
+<span class="string">'c4'</span>,37.881;
+<span class="string">'d'</span>,8.2207};
+
+Schlogle.species =   {};
+Schlogle.propensityFunctions = {};
+Schlogle.stoichiometry = [];
+<span class="keyword">for</span> i = 1:N
+    Schlogle.species =   [Schlogle.species,[<span class="string">'X'</span>,num2str(i)]];
+<span class="keyword">end</span>
+
+Schlogle.initialCondition = 50*ones(N,1);
+
+<span class="comment">% Create Reactions</span>
+<span class="keyword">for</span> i = 1:N
+    Schlogle = Schlogle.addReaction(struct(<span class="keyword">...</span>
+        <span class="string">'propensity'</span>,{[<span class="string">'c1A*X'</span>,num2str(i),<span class="string">'*(X'</span>,num2str(i),<span class="string">'-1)'</span>]},<span class="keyword">...</span>
+        <span class="string">'stoichiometry'</span>,{{[<span class="string">'X'</span>,num2str(i)],1}}));
+    Schlogle = Schlogle.addReaction(struct(<span class="keyword">...</span>
+        <span class="string">'propensity'</span>,{[<span class="string">'c2*X'</span>,num2str(i),<span class="string">'*(X'</span>,num2str(i),<span class="string">'-1)*(X'</span>,num2str(i),<span class="string">'-2)'</span>]},<span class="keyword">...</span>
+        <span class="string">'stoichiometry'</span>,{{[<span class="string">'X'</span>,num2str(i)],-1}}));
+    Schlogle = Schlogle.addReaction(struct(<span class="keyword">...</span>
+        <span class="string">'propensity'</span>,{<span class="string">'c3B'</span>},<span class="keyword">...</span>
+        <span class="string">'stoichiometry'</span>,{{[<span class="string">'X'</span>,num2str(i)],1}}));
+    Schlogle = Schlogle.addReaction(struct(<span class="keyword">...</span>
+        <span class="string">'propensity'</span>,{[<span class="string">'c4*X'</span>,num2str(i)]},<span class="keyword">...</span>
+        <span class="string">'stoichiometry'</span>,{{[<span class="string">'X'</span>,num2str(i)],-1}}));
+    <span class="keyword">if</span> i&gt;1
+        Schlogle = Schlogle.addReaction(struct(<span class="keyword">...</span>
+            <span class="string">'propensity'</span>,{[<span class="string">'d*X'</span>,num2str(i)]},<span class="keyword">...</span>
+            <span class="string">'stoichiometry'</span>,{{[<span class="string">'X'</span>,num2str(i)],-1;[<span class="string">'X'</span>,num2str(i-1)],1}}));
+    <span class="keyword">end</span>
+    <span class="keyword">if</span> i&lt;N
+        Schlogle = Schlogle.addReaction(struct(<span class="keyword">...</span>
+            <span class="string">'propensity'</span>,{[<span class="string">'d*X'</span>,num2str(i)]},<span class="keyword">...</span>
+            <span class="string">'stoichiometry'</span>,{{[<span class="string">'X'</span>,num2str(i)],-1;[<span class="string">'X'</span>,num2str(i+1)],1}}));
+    <span class="keyword">end</span>
+<span class="keyword">end</span>
+</pre>
+<h2 id="9">Solve using SSA</h2>
+<pre class="codeinput">Schlogle.solutionScheme = <span class="string">'SSA'</span>;
+Schlogle.ssaOptions.useParallel = false;
+Schlogle.tSpan = linspace(0, 1, 101);
+Schlogle.ssaOptions.Nsims = 1000000;
+tic
+Schlogle = Schlogle.solve(solver=<span class="string">'SSA'</span>);
+toc
+
+close <span class="string">all</span>
+Schlogle.plotSSA(speciesNames=Schlogle.species,Ylim=[40 50]);
+</pre>
+<pre class="codeoutput">Elapsed time is 2623.065202 seconds.
+</pre>
+<img vspace="5" hspace="5" src="example_SI_MAPK_04.png" alt=""> <img vspace="5" hspace="5" src="example_SI_MAPK_05.png" alt=""> <p class="footer">
+<br>
+<a href="https://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2025b</a>
+<br>
+</p>
+</div>
+<!--
+##### SOURCE BEGIN #####
+% Create Toggle Model
+% clear
+Toggle = SSIT();
+Toggle.species = {'Gx_on','Gx_off','Gy_on','Gy_off','Px','Py'};
+Toggle.initialCondition = [1;0;1;0;0;0];
+Toggle.parameters = {'sxy',50;
+    'dxy',1;
+    'bxy',1e-4;
+    'uxy',0.1};
+Toggle.propensityFunctions = {};
+Toggle.stoichiometry = [];
+Toggle = Toggle.addReaction(struct('propensity',{'sxy*Gx_on'},'stoichiometry',{{'Px',1}}));
+Toggle = Toggle.addReaction(struct('propensity',{'sxy*Gy_on'},'stoichiometry',{{'Py',1}}));
+Toggle = Toggle.addReaction(struct('propensity',{'dxy*Px'},'stoichiometry',{{'Px',-1}}));
+Toggle = Toggle.addReaction(struct('propensity',{'dxy*Py'},'stoichiometry',{{'Py',-1}}));
+Toggle = Toggle.addReaction(struct('propensity',{'bxy*Px*(Px-1)*Gy_on'},...
+        'stoichiometry',{{'Px',-2;'Gy_on',-1;'Gy_off',1}}));
+Toggle = Toggle.addReaction(struct('propensity',{'bxy*Py*(Py-1)*Gx_on'},...
+        'stoichiometry',{{'Py',-2;'Gx_on',-1;'Gx_off',1}}));
+Toggle = Toggle.addReaction(struct('propensity',{'uxy*Gy_off'},...
+        'stoichiometry',{{'Px',2;'Gy_on',1;'Gy_off',-1}}));
+Toggle = Toggle.addReaction(struct('propensity',{'uxy*Gx_off'},...
+    'stoichiometry',{{'Py',2;'Gx_on',1;'Gx_off',-1}}));
+Toggle.tSpan = linspace(0,40,81);
+Toggle.fspOptions.verbose = true;
+Toggle = Toggle.formPropensitiesGeneral('Toggle');
+
+%% Solve Toggle Model
+Toggle.fspOptions.fspTol = 0.001;
+tic
+Toggle = Toggle.solve(solver='FSP');
+toc
+Toggle.plotFSP(speciesNames={'Px','Py'});
+
+%% Example 2 - MAPK Model
+% Set up MAPK Model
+% clear
+MAPK = SSIT();
+
+% Species
+MAPK.species =   {'MKP3'      
+    'Kpp_MKP3'  
+    'KpT_MKP3_Y'
+    'KpT_MKP3_T'
+    'K_MKP3_T'  
+    'KpY_MKP3'  
+    'K_MKP3_Y'  
+    'KpT_MEK'   
+    'KpT'       
+    'KpY_MEK'   
+    'K_MEK_T'   
+    'KpY'       
+    'K_MEK_Y'   
+    'K'         
+    'MEK'       
+    'Kpp'       };
+
+MAPK.initialCondition = zeros(length(MAPK.species),1);
+MAPK.initialCondition(find(strcmp(MAPK.species,'MKP3'))) = 1; % MKP3 IC is 1
+MAPK.initialCondition(find(strcmp(MAPK.species,'K'))) = 3; % K IC is 3
+
+% Parameters
+MAPK.parameters = {
+    's1',0.00024; 
+    'd1',0.0001;
+    's2',0.001; 
+    'd2',0.15;
+    's3',0.005; 
+    'k1',0.375; 
+    'k_1',1.0;
+    'k2',0.06;
+    'k3',0.375; 
+    'k_3',1.0;
+    'k4',4.5;
+    'k5',0.375; 
+    'k_5',1.0;
+    'k6',0.06;
+    'k7',0.375; 
+    'k_7',1.0;
+    'k8',4.5;
+    'h1',0.015; 
+    'h_1',1.0;
+    'h2',0.032;
+    'h3',0.31; 
+    'h_3',0.01;
+    'h4',0.01; 
+    'h_4',1.0;
+    'h5',0.5;
+    'h6',0.086; 
+    'h_6',0.0011;
+    'h7',0.01; 
+    'h_7',1.0;
+    'h8',0.47;
+    'h9',0.14; 
+    'h_9',0.0018;
+};
+
+% Reactions
+MAPK.propensityFunctions = {};
+MAPK.stoichiometry = [];
+
+% R1: synthesis/degradation of MEK
+MAPK = MAPK.addReaction(struct('propensity',{'s2'},'stoichiometry',{{'MEK',1}}));
+MAPK = MAPK.addReaction(struct('propensity',{'d2*MEK'},'stoichiometry',{{'MEK',-1}}));
+
+% R2: synthesis/degradation of MEK
+MAPK = MAPK.addReaction(struct('propensity',{'s3*Kpp'},'stoichiometry',{{'MEK',1}}));
+
+% R3: synthesis/degradation of K
+MAPK = MAPK.addReaction(struct('propensity',{'s1'},'stoichiometry',{{'K',1}}));
+MAPK = MAPK.addReaction(struct('propensity',{'d1*K'},'stoichiometry',{{'K',-1}}));
+
+% R4:
+MAPK = MAPK.addReaction(struct('propensity',{'d1*KpY'},'stoichiometry',{{'KpY',-1}}));
+MAPK = MAPK.addReaction(struct('propensity',{'d1*KpT'},'stoichiometry',{{'KpT',-1}}));
+MAPK = MAPK.addReaction(struct('propensity',{'d1*Kpp'},'stoichiometry',{{'Kpp',-1}}));
+
+% R5: K + MEK -> K_MEK_Y
+MAPK = MAPK.addReaction(struct('propensity',{'k1*K*MEK'},...
+        'stoichiometry',{{'K',-1;'MEK',-1;'K_MEK_Y',1}}));
+
+% R6: K_MEK_Y -> KpY + MEK, k2 = 0.06
+MAPK = MAPK.addReaction(struct('propensity',{'k2*K_MEK_Y'},...
+        'stoichiometry',{{'K_MEK_Y',-1;'KpY',1;'MEK',1}}));
+
+% R7: KpY + MEK <=> KpY_MEK, k3 = 0.375, k-3 = 1.0
+MAPK = MAPK.addReaction(struct('propensity',{'k3*KpY*MEK'},...
+        'stoichiometry',{{'KpY',-1;'MEK',-1;'KpY_MEK',1}}));
+MAPK = MAPK.addReaction(struct('propensity',{'k_3*KpY_MEK'},...
+        'stoichiometry',{{'KpY_MEK',-1;'KpY',1;'MEK',1}}));
+
+% R8: KpY_MEK -> Kpp + MEK, k4 = 4.5
+MAPK = MAPK.addReaction(struct('propensity',{'k4*KpY_MEK'},...
+        'stoichiometry',{{'KpY_MEK',-1;'Kpp',1;'MEK',1}}));
+
+% R9: K + MEK <=> K_MEK_T, k5 = 0.375, k-5 = 1.0
+MAPK = MAPK.addReaction(struct('propensity',{'k5*K*MEK'},...
+        'stoichiometry',{{'K',-1;'MEK',-1;'K_MEK_T',1}}));
+MAPK = MAPK.addReaction(struct('propensity',{'k_5*K_MEK_T'},...
+        'stoichiometry',{{'K_MEK_T',-1;'K',1;'MEK',1}}));
+
+% R10: K_MEK_T -> KpT + MEK, k6 = 0.06
+MAPK = MAPK.addReaction(struct('propensity',{'k6*K_MEK_T'},...
+        'stoichiometry',{{'K_MEK_T',-1;'KpT',1;'MEK',1}}));
+
+% R11: KpT + MEK <=> KpT_MEK, k7 = 0.375, k-7 = 1.0
+MAPK = MAPK.addReaction(struct('propensity',{'k7*KpT*MEK'},...
+        'stoichiometry',{{'KpT',-1;'MEK',-1;'KpT_MEK',1}}));
+MAPK = MAPK.addReaction(struct('propensity',{'k_7*KpT_MEK'},...
+        'stoichiometry',{{'KpT_MEK',-1;'KpT',1;'MEK',1}}));
+
+% R12: KpT_MEK -> Kpp + MEK, k8 = 4.5
+MAPK = MAPK.addReaction(struct('propensity',{'k8*KpT_MEK'},...
+        'stoichiometry',{{'KpT_MEK',-1;'Kpp',1;'MEK',1}}));
+
+% R13: Kpp + MKP3 <=> Kpp_MKP3, h1 = 0.015, h-1 = 1.0
+MAPK = MAPK.addReaction(struct('propensity',{'h1*Kpp*MKP3'},...
+        'stoichiometry',{{'Kpp',-1;'MKP3',-1;'Kpp_MKP3',1}}));
+MAPK = MAPK.addReaction(struct('propensity',{'h_1*Kpp_MKP3'},...
+        'stoichiometry',{{'Kpp_MKP3',-1;'Kpp',1;'MKP3',1}}));
+
+% R14: Kpp_MKP3 -> KpT_MKP3_Y, h2 = 0.032
+MAPK = MAPK.addReaction(struct('propensity',{'h2*Kpp_MKP3'},...
+        'stoichiometry',{{'Kpp_MKP3',-1;'KpT_MKP3_Y',1}}));
+
+% R15: KpT_MKP3_Y <=> KpT + MKP3, h3 = 0.31, h-3 = 0.01
+MAPK = MAPK.addReaction(struct('propensity',{'h3*KpT_MKP3_Y'},...
+        'stoichiometry',{{'KpT_MKP3_Y',-1;'KpT',1;'MKP3',1}}));
+MAPK = MAPK.addReaction(struct('propensity',{'h_3*KpT*MKP3'},...
+        'stoichiometry',{{'KpT',-1;'MKP3',-1;'KpT_MKP3_Y',1}}));
+
+% R16: KpT + MKP3 <=> KpT_MKP3_T, h4 = 0.01, h-4 = 1.0
+MAPK = MAPK.addReaction(struct('propensity',{'h4*KpT*MKP3'},...
+        'stoichiometry',{{'KpT',-1;'MKP3',-1;'KpT_MKP3_T',1}}));
+MAPK = MAPK.addReaction(struct('propensity',{'h_4*KpT_MKP3_T'},...
+        'stoichiometry',{{'KpT_MKP3_T',-1;'KpT',1;'MKP3',1}}));
+
+% R17: KpT_MKP3_T -> K_MKP3_T, h5 = 0.5
+MAPK = MAPK.addReaction(struct('propensity',{'h5*KpT_MKP3_T'},...
+        'stoichiometry',{{'KpT_MKP3_T',-1;'K_MKP3_T',1}}));
+
+% R18: K_MKP3_T <=> K + MKP3, h6 = 0.086, h-6 = 0.0011
+MAPK = MAPK.addReaction(struct('propensity',{'h6*K_MKP3_T'},...
+        'stoichiometry',{{'K_MKP3_T',-1;'K',1;'MKP3',1}}));
+MAPK = MAPK.addReaction(struct('propensity',{'h_6*K*MKP3'},...
+        'stoichiometry',{{'K',-1;'MKP3',-1;'K_MKP3_T',1}}));
+
+% R19: KpY + MKP3 <=> KpY_MKP3, h7 = 0.01, h-7 = 1.0
+MAPK = MAPK.addReaction(struct('propensity',{'h7*KpY*MKP3'},...
+        'stoichiometry',{{'KpY',-1;'MKP3',-1;'KpY_MKP3',1}}));
+MAPK = MAPK.addReaction(struct('propensity',{'h_7*KpY_MKP3'},...
+        'stoichiometry',{{'KpY_MKP3',-1;'KpY',1;'MKP3',1}}));
+
+% R20: KpY_MKP3 -> K_MKP3_Y, h8 = 0.47
+MAPK = MAPK.addReaction(struct('propensity',{'h8*KpY_MKP3'},...
+        'stoichiometry',{{'KpY_MKP3',-1;'K_MKP3_Y',1}}));
+
+% R21: K_MKP3_Y <=> K + MKP3, h9 = 0.14, h-9 = 0.0018
+MAPK = MAPK.addReaction(struct('propensity',{'h9*K_MKP3_Y'},...
+        'stoichiometry',{{'K_MKP3_Y',-1;'K',1;'MKP3',1}}));
+MAPK = MAPK.addReaction(struct('propensity',{'h_9*K*MKP3'},...
+        'stoichiometry',{{'K',-1;'MKP3',-1;'K_MKP3_Y',1}}));
+
+MAPK.tSpan = linspace(0,10000,101);
+
+MAPK.summarizeModel;
+
+%% Form FSP Codes (Can Skip this step for SSA Only)
+MAPK = MAPK.formPropensitiesGeneral('MAPK');
+%% Solve MAPK Model using FSP Approach
+MAPK.fspOptions.verbose = true;
+MAPK.customConstraintFuns = ...
+{'MKP3+Kpp_MKP3+KpT_MKP3_Y+KpT_MKP3_T+K_MKP3_T+KpY_MKP3+K_MKP3_Y';  % Sum of MKP3
+    'K+K_MEK_Y+K_MEK_T+K_MKP3_T+K_MKP3_Y';  % Sum of K
+    'Kpp+Kpp_MKP3'; % Sum of Kpp
+    'KpY+KpY_MEK+KpY_MKP3'; % Sum of KpY
+    'KpT+KpT_MEK+KpT_MKP3_Y+KpT_MKP3_T'; % Sum of KpT
+    'K+K_MEK_Y+K_MEK_T+K_MKP3_T+K_MKP3_Y+KpY+KpY_MEK+KpY_MKP3+KpT+KpT_MEK+KpT_MKP3_Y+KpT_MKP3_T'}; 
+    % Sum of all
+
+MAPK.fspOptions.fspTol = 0.001;
+tic
+MAPK = MAPK.solve(solver='FSP');
+toc
+MAPK.plotFSP(speciesNames={'MKP3','K','Kpp'})
+
+%% Solve MAPK Model using SSA Approach
+MAPKSSA = MAPK; 
+MAPKSSA.Solutions = [];
+% Run once to write C Codes.
+MAPKSSA.solutionScheme = 'ssa';
+MAPKSSA.ssaOptions.Nsims = 10;
+MAPKSSA = MAPKSSA.solve(solver='SSA');
+
+%% Now run for ful set of simulations.
+MAPKSSA.ssaOptions.Nsims = 1e4;
+MAPKSSA.ssaOptions.useParallel = false;
+tic
+MAPKSSA = MAPKSSA.solve(solver='SSA');
+toc
+hold on
+plot(MAPKSSA.tSpan,mean(MAPKSSA.Solutions.trajs(1,:,:),3),'cREPLACE_WITH_DASH_DASH','linewidth',1)
+plot(MAPKSSA.tSpan,mean(MAPKSSA.Solutions.trajs(14,:,:),3),'rREPLACE_WITH_DASH_DASH','linewidth',1)
+plot(MAPKSSA.tSpan,mean(MAPKSSA.Solutions.trajs(16,:,:),3),'bREPLACE_WITH_DASH_DASH','linewidth',1)
+
+legend({'MKP3 - FSP','K - FSP','Kpp - FSP','MKP3 - SSA','K - SSA','Kpp - SSA',})
+
+%% 8 Compartment Spatial Schlogel Model
+% clear
+
+Schlogle = SSIT();
+N = 6;
+
+Schlogle.parameters = {
+'c1A',2.676;
+'c2',0.040;
+'c3B', 108.102;
+'c4',37.881;
+'d',8.2207};
+
+Schlogle.species =   {};
+Schlogle.propensityFunctions = {};
+Schlogle.stoichiometry = [];
+for i = 1:N
+    Schlogle.species =   [Schlogle.species,['X',num2str(i)]];
+end
+
+Schlogle.initialCondition = 50*ones(N,1);
+
+% Create Reactions
+for i = 1:N
+    Schlogle = Schlogle.addReaction(struct(...
+        'propensity',{['c1A*X',num2str(i),'*(X',num2str(i),'-1)']},...
+        'stoichiometry',{{['X',num2str(i)],1}}));
+    Schlogle = Schlogle.addReaction(struct(...
+        'propensity',{['c2*X',num2str(i),'*(X',num2str(i),'-1)*(X',num2str(i),'-2)']},...
+        'stoichiometry',{{['X',num2str(i)],-1}}));
+    Schlogle = Schlogle.addReaction(struct(...
+        'propensity',{'c3B'},...
+        'stoichiometry',{{['X',num2str(i)],1}}));
+    Schlogle = Schlogle.addReaction(struct(...
+        'propensity',{['c4*X',num2str(i)]},...
+        'stoichiometry',{{['X',num2str(i)],-1}}));
+    if i>1
+        Schlogle = Schlogle.addReaction(struct(...
+            'propensity',{['d*X',num2str(i)]},...
+            'stoichiometry',{{['X',num2str(i)],-1;['X',num2str(i-1)],1}}));
+    end
+    if i<N
+        Schlogle = Schlogle.addReaction(struct(...
+            'propensity',{['d*X',num2str(i)]},...
+            'stoichiometry',{{['X',num2str(i)],-1;['X',num2str(i+1)],1}}));
+    end
+end
+
+%% Solve using SSA
+Schlogle.solutionScheme = 'SSA';
+Schlogle.ssaOptions.useParallel = false;
+Schlogle.tSpan = linspace(0, 1, 101);
+Schlogle.ssaOptions.Nsims = 1000000;
+tic
+Schlogle = Schlogle.solve(solver='SSA');
+toc
+
+close all
+Schlogle.plotSSA(speciesNames=Schlogle.species,Ylim=[40 50]);
+##### SOURCE END #####
+-->
+</body>
+</html>

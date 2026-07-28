@@ -133,7 +133,8 @@ if ~isCluster&&runExamples
     if ~exist("exampleLogs","dir")
         mkdir("exampleLogs")
     end
-    ExampleFiles = {'example_00_AllManuscriptExamples.m'
+    ExampleFiles = {
+        'example_00_AllManuscriptExamples.m'
         'example_01_CreateSSITModels.m'
         'example_02_SolveSSITModels_ODE.m'
         'example_03_SolveSSITModels_SSA.m'
@@ -160,8 +161,7 @@ if ~isCluster&&runExamples
         'example_SI_Moments.m'
         'example_SI_MultiModel.m'
         'example_SI_SBML.m'
-        'example_scRNAseq_1_BatchFitManyGenes.m'
-        'example_scRNAseq_3_BatchFitManyGenes.m'         };
+        };
 
     completed = zeros(1,length(ExampleFiles),'logical');
     for iEx = 1:length(ExampleFiles)
