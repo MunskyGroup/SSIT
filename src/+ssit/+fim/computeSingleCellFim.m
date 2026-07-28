@@ -47,22 +47,28 @@ else
     Sy = Sx;
 end
 
+p = double(py.data);
+for jPar = parCountModel+parCountPDO:-1:1
+    s{jPar} = double(Sy(jPar).data);
+    s{jPar} = paddata(s{jPar}, max(0, size(p) - size(s{jPar})));
+end
+
 % Loop through all pairs of parameters.
 for iPar = 1:parCountModel+parCountPDO
     for jPar = iPar:parCountModel+parCountPDO
-%         si = Sy(iPar).data.values;
-%         sj = Sy(jPar).data.values;
-%         p = py.data.values;
-        si = double(Sy(iPar).data);
-        sj = double(Sy(jPar).data);
-        p = double(py.data);
-        si = paddata(si, max(0, size(p) - size(si)));
-        sj = paddata(sj, max(0, size(p)- size(sj)));
-        if isempty(si)||isempty(sj)
+        % si = Sy(iPar).data.values;
+        % sj = Sy(jPar).data.values;
+        % p = py.data.values;
+        % si = double(Sy(iPar).data);
+        % sj = double(Sy(jPar).data);
+        % p = double(py.data);
+        % si = paddata(si, max(0, size(p) - size(si)));
+        % sj = paddata(sj, max(0, size(p)- size(sj)));
+        if isempty(s{iPar})||isempty(s{jPar})
             F(iPar, jPar) = 0;
         else
             indsForSum = p>1e-12;
-            F(iPar, jPar) = sum(si(indsForSum).*sj(indsForSum)./p(indsForSum));
+            F(iPar, jPar) = sum(s{iPar}(indsForSum).*s{jPar}(indsForSum)./p(indsForSum));
         end
     end
     for jPar = 1:iPar-1

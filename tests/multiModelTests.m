@@ -24,7 +24,7 @@ classdef multiModelTests < matlab.unittest.TestCase
             tc.Poiss.fspOptions.fspTol = 1e-5;
             tc.Poiss = tc.Poiss.formPropensitiesGeneral('Poiss1',true);
             tc.Poiss.fittingOptions.modelVarsToFit = [1,2];
-            [tc.PoissSolution,tc.Poiss.fspOptions.bounds] = tc.Poiss.solve;
+            [tc.PoissSolution,tc.Poiss.fspOptions.bounds] = tc.Poiss.solve(returnType='soln');
             
             tc.Poiss.ssaOptions.nSimsPerExpt = 100;
             tc.Poiss.ssaOptions.Nexp = 1;
@@ -37,7 +37,7 @@ classdef multiModelTests < matlab.unittest.TestCase
             tc.Poiss2.ssaOptions.Nexp = 1;
             tc.Poiss2.parameters = ({'kr',15;'gr',1});
             tc.Poiss2 = tc.Poiss2.formPropensitiesGeneral('Poiss2',true);
-            [tc.Poiss2Solution,tc.Poiss2.fspOptions.bounds] = tc.Poiss2.solve;
+            [tc.Poiss2Solution,tc.Poiss2.fspOptions.bounds] = tc.Poiss2.solve(returnType='soln');
             delete 'testData2.csv'
             tc.Poiss2.sampleDataFromFSP(tc.Poiss2Solution,'testData2.csv');
             tc.Poiss2 = tc.Poiss2.loadData('testData2.csv',{'rna','exp1_s1'});

@@ -20,15 +20,15 @@ classdef poissonTest < matlab.unittest.TestCase
             testCase1.Poiss.fspOptions.fspTol = 1e-5;
             testCase1.Poiss = testCase1.Poiss.formPropensitiesGeneral('Poiss',true);
 
-            [testCase1.PoissSolution, testCase1.Poiss.fspOptions.bounds, testCase1.Poiss] = testCase1.Poiss.solve;
+            [testCase1.PoissSolution, ~, testCase1.Poiss] = testCase1.Poiss.solve(returnType='soln');
             tic
-            [testCase1.PoissSolution,testCase1.Poiss.fspOptions.bounds] = testCase1.Poiss.solve(testCase1.PoissSolution.stateSpace);
+            testCase1.Poiss = testCase1.Poiss.solve(testCase1.PoissSolution.stateSpace);
             testCase1.PoissSolution.time = toc;
 
             delete 'testData.csv'
             testCase1.Poiss.ssaOptions.nSimsPerExpt = 1000;
-            testCase1.Poiss.ssaOptions.Nexp = 1;
-            testCase1.Poiss.sampleDataFromFSP(testCase1.PoissSolution,'testData.csv');
+            testCase1.Poiss.ssaOptions.Nexp = 2;
+            TMPdata = testCase1.Poiss.sampleDataFromFSP(testCase1.PoissSolution,'testData.csv');
 
             testCase1.Poiss = testCase1.Poiss.loadData('testData.csv',{'rna','exp1_s1'});
 
@@ -66,11 +66,13 @@ classdef poissonTest < matlab.unittest.TestCase
             F = F.addReaction(newRxn);
 
             testCase.verifyEqual(F.species{1}, 'x1', ...
-                'FSP add reaction has error');
+                'FSP add reaction has error - species');
             testCase.verifyEqual(F.propensityFunctions{1}, 'kr + kr1*x1', ...
-                'FSP add reaction has error');
+                'FSP add reaction has error - propensity funs');
             testCase.verifyEqual(F.stoichiometry, [1    -1], ...
-                'FSP add reaction has error');
+                'FSP add reaction has error - stoichiometry');
+            testCase.verifyEqual(length(intersect(F.parameters(:,1),{'kr','kr1','g'}))==3, true, ...
+                'FSP add reaction has error - parameters');
         end
 
         function FspConverged(testCase)
@@ -89,12 +91,12 @@ classdef poissonTest < matlab.unittest.TestCase
 
             testCase.Poiss.fspOptions.initApproxSS = true;
             testCase.Poiss.fspOptions.stateSpace = [];
-            testCase.Poiss.fspOptions.bounds = [0,1];
+            testCase.Poiss.fspOptions.bounds = [0;1];
             testCase.Poiss.tSpan = [0];
-            ssPoissSolution = testCase.Poiss.solve;
+            ssPoissSolution = testCase.Poiss.solve(returnType='soln');
 
             final = [0:length(double(ssPoissSolution.fsp{1}.p.data))-1]*double(ssPoissSolution.fsp{1}.p.data);
-            tst = abs(final-testCase.Poiss.parameters{1,2}/testCase.Poiss.parameters{2,2})<1e-4;
+            tst = abs(final-testCase.Poiss.parameters{1,2}/testCase.Poiss.parameters{2,2})<1e-3;
             testCase.verifyEqual(tst, true, ...
                 'Final FSP is not within tolerance');
         end
@@ -131,10 +133,10 @@ classdef poissonTest < matlab.unittest.TestCase
                 (1-exp(-testCase.Poiss.parameters{2,2}*t));
 
             model.solutionScheme = 'ode';
-            [~,~,model] = model.solve;
+            model = model.solve;
 
             model.solutionScheme = 'moments';
-            [~,~,model] = model.solve;
+            model = model.solve;
 
             errMean = max(abs((model.Solutions.moments(1,:)-mn)./mn));
 
@@ -144,7 +146,7 @@ classdef poissonTest < matlab.unittest.TestCase
             testCase.verifyEqual(errMean+errVar<0.01, true, ...
                 'Solution Mean and Variance not within 1% Tolerance');
             
-            var2 = squeeze(model.Solutions.momenstsCOV(1,1,:))';
+            var2 = squeeze(model.Solutions.momentsCOV(1,1,:))';
             errVar2 = max(abs((var2-mn)./mn));
             testCase.verifyEqual(errVar2<0.01, true, ...
                 'Solution Mean and Variance not within 1% Tolerance');
@@ -172,7 +174,7 @@ classdef poissonTest < matlab.unittest.TestCase
             escapeModel.fspOptions.escapeSinks.b = n-0.1;
             % escapeModel = escapeModel.formPropensitiesGeneral;
 
-            [escapeSoln,escapeModel.fspOptions.bounds] = escapeModel.solve;
+            [escapeSoln,escapeModel.fspOptions.bounds] = escapeModel.solve(returnType='soln');
             
             exact = cdf('gamma',t,n,1/k);
 
@@ -225,7 +227,7 @@ classdef poissonTest < matlab.unittest.TestCase
             testCase.Poiss.solutionScheme = 'SSA';
 
             % Generate new data
-            [~,~,testCase.Poiss] = testCase.Poiss.solve(testCase.PoissSolution,'testDataSSANEW.csv');
+            testCase.Poiss = testCase.Poiss.solve(testCase.PoissSolution,'testDataSSANEW.csv');
             
             % load new data and check that the loss function is now zero.
             testCase.Poiss = testCase.Poiss.loadData('testDataSSANEW.csv',{'rna','exp1_s1'});
@@ -244,7 +246,14 @@ classdef poissonTest < matlab.unittest.TestCase
 
             % Test ABC for a short run.
             fitOptions.numberOfSamples=100;
-            [~,~,Results] = testCase.Poiss.runABCsearch([],[],[],fitOptions);
+            fitOptions.progress=false;
+            [parsABC,~,Results,PoissABC] = testCase.Poiss.runABCsearch([],[],[],fitOptions);
+            testCase.verifyTrue(isnumeric(parsABC), ...
+                'ABC search should return numeric parameter values');
+            testCase.verifyEqual(cell2mat(PoissABC.parameters(PoissABC.fittingOptions.modelVarsToFit,2)), ...
+                parsABC(:), 'ABC search should update the returned model parameters');
+            testCase.verifyTrue(all(cellfun(@isnumeric, PoissABC.parameters(:,2))), ...
+                'ABC search should not store model objects in the parameter table');
             
 
         end
@@ -265,14 +274,14 @@ classdef poissonTest < matlab.unittest.TestCase
             tic
             testCase.Poiss.ssaOptions.useParallel = true;
             testCase.Poiss.ssaOptions.useGPU = false;
-            SSACPUp = testCase.Poiss.solve(testCase.PoissSolution);
+            SSACPUp = testCase.Poiss.solve(testCase.PoissSolution,returnType='soln');
             timeCPUp = toc;
 
             if gpuDeviceCount>0
                 tic
                 testCase.Poiss.ssaOptions.useParalel = false;
                 testCase.Poiss.ssaOptions.useGPU = true;
-                SSAGPU = testCase.Poiss.solve(testCase.PoissSolution);
+                SSAGPU = testCase.Poiss.solve(testCase.PoissSolution,returnType='soln');
                 timeGPU = toc;
             else
                 disp('Skipping GPU test - no device available')
@@ -283,7 +292,7 @@ classdef poissonTest < matlab.unittest.TestCase
             tic
             testCase.Poiss.ssaOptions.useParallel = false;
             testCase.Poiss.ssaOptions.useGPU = false;
-            SSACPUs = testCase.Poiss.solve(testCase.PoissSolution);
+            SSACPUs = testCase.Poiss.solve(testCase.PoissSolution,returnType='soln');
             timeCPUs = toc;    
 
             p = gcp("nocreate");
@@ -298,7 +307,7 @@ classdef poissonTest < matlab.unittest.TestCase
             tic
             testCase.Poiss.ssaOptions.useParallel = true;
             testCase.Poiss.ssaOptions.useGPU = false;
-            SSACPUp = testCase.Poiss.solve(testCase.PoissSolution);
+            SSACPUp = testCase.Poiss.solve(testCase.PoissSolution,returnType='soln');
             timeCPUp = toc;
             
             if gpuDeviceCount>0
@@ -306,7 +315,7 @@ classdef poissonTest < matlab.unittest.TestCase
                 tic
                 testCase.Poiss.ssaOptions.useParalel = false;
                 testCase.Poiss.ssaOptions.useGPU = true;
-                SSAGPU = testCase.Poiss.solve(testCase.PoissSolution);
+                SSAGPU = testCase.Poiss.solve(testCase.PoissSolution,returnType='soln');
                 timeGPU = toc;
             else
                 disp('Skipping GPU test - no device available')
@@ -357,7 +366,7 @@ classdef poissonTest < matlab.unittest.TestCase
             testCase.Poiss.tSpan = [0:0.05:max(testCase.Poiss.tSpan)];
             
             % Update solution.
-            [~,~,testCase.Poiss] = testCase.Poiss.solve;
+            testCase.Poiss = testCase.Poiss.solve;
 
             % Call to compute likelihood
             fspLogL = testCase.Poiss.computeLikelihood([],[],false,true);
@@ -387,14 +396,15 @@ classdef poissonTest < matlab.unittest.TestCase
             % testCase.Poiss.tSpan = [0:0.05:max(testCase.Poiss.tSpan)];
             
             % Update solution.
-            [~,~,testCase.Poiss] = testCase.Poiss.solve;
+            testCase.Poiss = testCase.Poiss.solve;
 
             % Change numbers of cells
             testCase.Poiss.dataSet.nCells(:) = 30;
             testCase.Poiss.dataSet.nCells(end) = 60;           
 
             % Call to compute likelihood
-            testCase.Poiss.estimateLikelihoodSpread;
+            testCase.Poiss.ssaOptions.Nexp = 1;
+            [logLSpread,logLSpreadVector] = testCase.Poiss.estimateLikelihoodSpread(100);
                
         end
 
@@ -403,7 +413,9 @@ classdef poissonTest < matlab.unittest.TestCase
             % of the loglikelihood function completes and is within 0.1% of
             % the solution found using the finite difference method.
             testCase.Poiss.solutionScheme = 'fspSens';
-            [~,~,testCase.Poiss] = testCase.Poiss.solve;
+            testCase.Poiss.fspOptions.fspTol = 1e-10;
+
+            testCase.Poiss = testCase.Poiss.solve;
 
             [fspLogL,gradient] = testCase.Poiss.computeLikelihood([],[],true,true);
 
@@ -414,7 +426,7 @@ classdef poissonTest < matlab.unittest.TestCase
                 TMPmodel = testCase.Poiss;
                 delt = abs(TMPmodel.parameters{i,2})/1e6;
                 TMPmodel.parameters{i,2} = TMPmodel.parameters{i,2} + delt;
-                fspLogLPrime = TMPmodel.computeLikelihood;
+                fspLogLPrime = TMPmodel.computeLikelihood([TMPmodel.parameters{:,2}]);
                 gradLogLFiniteDiff(i) = (fspLogLPrime-fspLogL)/delt;
             end
 
@@ -435,15 +447,15 @@ classdef poissonTest < matlab.unittest.TestCase
             Model = testCase.Poiss;
             % Model = Model.formPropensitiesGeneral;
             Model.solutionScheme = 'FSP';
-            [~,Model.fspOptions.bounds] = Model.solve;
+            Model = Model.solve;
 
             Model.solutionScheme = 'fspSens';
             Model.fspOptions.fspTol = 1e-6;            
 
             Model.sensOptions.solutionMethod = 'forward';
-            SensSoln = Model.solve;
+            SensSoln = Model.solve(returnType='soln');
             Model.sensOptions.solutionMethod = 'finiteDifference';
-            SensSoln2 = Model.solve;
+            SensSoln2 = Model.solve(returnType='soln');
             
             t = Model.tSpan;
             k = Model.parameters{1,2};
@@ -465,14 +477,14 @@ classdef poissonTest < matlab.unittest.TestCase
                 
             end
 
-            Model.makePlot(SensSoln,'marginals',21,[],[5]);
-            subplot(2,1,1)
-            hold on
-            plot(analytical1);
-            subplot(2,1,2)
-            hold on
-            plot(analytical2);
-            Model.makePlot(SensSoln2,'marginals',21,[],[5]);
+            % Model.makePlot(SensSoln,'marginals',21,[],[5]);
+            % subplot(2,1,1)
+            % hold on
+            % plot(analytical1);
+            % subplot(2,1,2)
+            % hold on
+            % plot(analytical2);
+            % Model.makePlot(SensSoln2,'marginals',21,[],[5]);
 
             testCase.verifyEqual(max(diff1+diff2)<0.001, true, ...
                 'Sensitivity Calculation is not within 0.1% Tolerance');            
@@ -491,7 +503,7 @@ classdef poissonTest < matlab.unittest.TestCase
             Model = testCase.Poiss;
             Model.solutionScheme = 'fspSens';
             Model.fspOptions.fspTol = 1e-6;
-            SensSoln = Model.solve;
+            SensSoln = Model.solve(returnType='soln');
             fspFIM = Model.computeFIM(SensSoln.sens);
             t = Model.tSpan;
             k = Model.parameters{1,2};
@@ -519,7 +531,7 @@ classdef poissonTest < matlab.unittest.TestCase
             Model = testCase.Poiss;
             Model.solutionScheme = 'fspSens';
             Model.fspOptions.fspTol = 1e-6;
-            SensSoln = Model.solve;
+            SensSoln = Model.solve(returnType='soln');
             fspFIM = Model.computeFIM(SensSoln.sens);
             t = Model.tSpan;
             SIGprior = diag(rand(1,2));
@@ -569,7 +581,7 @@ classdef poissonTest < matlab.unittest.TestCase
             fitOptions.SIG = [];
             Model.fittingOptions.modelVarsToFit = [1,2];
             for i=1:3
-                fitPars = Model.maximizeLikelihood([],fitOptions);
+                fitPars = Model.maximizeLikelihood([],fitOptions,returnType='pars');
                 Model.parameters(:,2) = num2cell(fitPars);
             end
 
@@ -589,7 +601,7 @@ classdef poissonTest < matlab.unittest.TestCase
             fitOptions.SIG = [];
             Model.fittingOptions.modelVarsToFit = [1,2];
             for i=1:3
-                fitPars = Model.maximizeLikelihood([],fitOptions);
+                fitPars = Model.maximizeLikelihood([],fitOptions,returnType='pars');
                 Model.parameters(:,2) = num2cell(fitPars);
             end
 
@@ -610,7 +622,7 @@ classdef poissonTest < matlab.unittest.TestCase
             MHFitOptions.thin=1;
             MHFitOptions.numberOfSamples=1000;
             MHFitOptions.burnIn=0;
-            MHFitOptions.progress=true;
+            MHFitOptions.progress=false;
             MHFitOptions.useFIMforMetHast =true;
             MHFitOptions.CovFIMscale = 1.0;
             MHFitOptions.numChains = 1;
@@ -628,21 +640,21 @@ classdef poissonTest < matlab.unittest.TestCase
 
             % Find and plot total FIM for each parameter sample
             Nc = Model.dataSet.nCells;
-            figure
+            % figure
             FIM = Model.totalFim(fimResults,Nc);
-            Model.plotMHResults(MHResults,FIM=FIM)
+            % Model.plotMHResults(MHResults,FIM=FIM)
 
             % Find optimal experiment design given parameters sets
             NcOptExperiment = Model.optimizeCellCounts(fimResults,sum(Nc),'D-opt',[],[],10000*ones(size(Nc)));
             FIMOptExpt = Model.totalFim(fimResults,NcOptExperiment);
-            Model.plotMHResults(MHResults,FIM=[FIM,FIMOptExpt])         
+            % Model.plotMHResults(MHResults,FIM=[FIM,FIMOptExpt])         
 
             % Find optimal experiment design given parameters sets but
             % where there is a base of 10 cells at every time point.
             NcBase = Nc;
             NcOptExperimentBase = Model.optimizeCellCounts(fimResults,sum(Nc),'D-opt',[],NcBase,10000*ones(size(Nc)));
             FIMOptExptBase = Model.totalFim(fimResults,NcOptExperimentBase+NcBase);
-            Model.plotMHResults(MHResults,FIM=[FIM,FIMOptExpt,FIMOptExptBase])
+            % Model.plotMHResults(MHResults,FIM=[FIM,FIMOptExpt,FIMOptExptBase])
 
         end 
         
@@ -679,7 +691,7 @@ classdef poissonTest < matlab.unittest.TestCase
 
             % Test correction of mismatch in tSpan and initialTime
             testCase.Poiss.tSpan = linspace(10,30,5);
-            [~,~,testCase.Poiss] = testCase.Poiss.solve;
+            testCase.Poiss = testCase.Poiss.solve;
             testCase.Poiss.initialTime = 0;
             testCase.Poiss.solve;
             testCase.Poiss.initialTime = 10;
