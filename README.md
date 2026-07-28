@@ -94,7 +94,7 @@ To get started with the Command line Tools, navigate to the directory "Examples"
 
 ### Numbered examples (`Examples/example_<N>*.m`)
 
-- [Examples/example_00_AllManuscriptExamples.m](Examples/example_00_AllManuscriptExamples.html): Runs all example code from the manuscript.
+- [Examples/example_00_AllManuscriptExamples.m](Examples/html/example_00_AllManuscriptExamples.html): Runs all example code from the manuscript.
 - [Examples/example_01_CreateSSITModels.m](Examples/example_01_CreateSSITModels.m): Create, save, and load SSIT models. ([html of expected results](https://htmlpreview.github.io/?https://github.com/MunskyGroup/SSIT/blob/main/Examples/html/example_1_CreateSSITModels.html))
 - [Examples/example_02_SolveSSITModels_ODE.m](Examples/example_02_SolveSSITModels_ODE.m): Solve and visualize models using ODE-based approaches. ([html of expected results](https://htmlpreview.github.io/?https://github.com/MunskyGroup/SSIT/blob/main/Examples/html/example_02_SolveSSITModels_ODE.html))
 - [Examples/example_03_SolveSSITModels_SSA.m](Examples/example_03_SolveSSITModels_SSA.m): Solve and visualize models using SSA simulations. ([html of expected results](https://htmlpreview.github.io/?https://github.com/MunskyGroup/SSIT/blob/main/Examples/html/example_03_SolveSSITModels_SSA.html))
