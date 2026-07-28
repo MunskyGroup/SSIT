@@ -144,7 +144,7 @@ classdef poisson2Dtest < matlab.unittest.TestCase
         end
    
         function likelihoodFunctions(testCase)
-            % This will test if the code can calculated the likelihood
+            % This will test if the code can calculate the likelihood
             % functions correctly for full and partial state information.
             delete 'testData.csv'
             testCase.TwoDPoiss.ssaOptions.nSimsPerExpt = 1000;
