@@ -90,7 +90,15 @@ You should then see the model loading and building page of the graphical interfa
 
 ## Command Line Version
 
-To get started with the Command line Tools, navigate to the directory "Examples" and open one of the tutorial scripts "example_XXX.m". Click on the links below to see html versions of the expected results.
+To get started with the Command line Tools, navigate to the directory "Examples" and open one of the tutorial scripts "example_XXX.m".
+
+All examples (and HTML displaying expected results) can be reached from the MATLAB command line by typing the command:
+
+```matlab
+SSIT.Tutorial;
+```
+
+This will launch a browser for you to open and run any of the available models and (if available) the published HTML with the expected results.
 
 ### Numbered examples (`Examples/example_<N>*.m`)
 
