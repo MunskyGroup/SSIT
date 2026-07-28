@@ -1803,7 +1803,7 @@ classdef SSIT
             %
             % Output:  Summary text to screen showing which model species
             %     are matched to which data, and how many measurements are
-            %     contaqined at each time point.
+            %     contained at each time point.
             %
             % Example:  Model.summarizeData
 
@@ -1823,11 +1823,18 @@ classdef SSIT
             disp('  --------------------------------------------------------')
 
             %% Species statistics
-            for iSp = 1:size(DATA.linkedSpecies,1)
+            [numberOfSpecies, numberOfColumns] = size(DATA.linkedSpecies);
+            for iSp = 1:numberOfSpecies
                 vals = [DATA.DATA{:, iSp+1}];
 
+                if numberOfColumns > 1
+                    annotation = " (" + DATA.linkedSpecies{iSp,2} + ")";
+                else
+                    annotation = "";
+                end
+
                 fprintf('  %-25s %10.3g %10.3g %10.3g\n', ...
-                    [DATA.linkedSpecies{iSp,1}, ' (', DATA.linkedSpecies{iSp,2}, ')'], ...
+                    string(DATA.linkedSpecies{iSp, 1}) + annotation, ...
                     min(vals), max(vals), mean(vals));
             end
             disp('------------------------------------------------------------')
@@ -3016,39 +3023,42 @@ classdef SSIT
 
             % The new TAB2 consists of a time column and all original
             % columns of TAB with renaming of ALL link-able (manually or
-            % automatically) columns.           
+            % automatically) columns. We can therefore treat this as our
+            % main table going forward.
+
+            TAB = TAB2;
 
             % Apply conditions
             for i = 1:size(conditions,1)
                 if size(conditions,2)==2
-                    if isnumeric(conditions{i,2})&&isnumeric(TAB2.(conditions{i,1})(1))
-                        TAB2 = TAB2(TAB2.(conditions{i,1})==conditions{i,2},:);
-                    elseif ischar(conditions{i,2})&&iscell(TAB2.(conditions{i,1})(1))&&ischar(TAB2.(conditions{i,1}){1})
-                        TAB2 = TAB2(strcmp(TAB2.(conditions{i,1}),conditions{i,2}),:);
-                    elseif ischar(conditions{i,2})&&ischar(TAB2.(conditions{i,1})(1))
-                        TAB2 = TAB2(strcmp(TAB2.(conditions{i,1}),conditions{i,2}),:);
-                    elseif isnumeric(TAB2.(conditions{i,1})(1))
-                        TAB2 = TAB2((TAB2.(conditions{i,1}))==eval(conditions{i,2}),:);
+                    if isnumeric(conditions{i,2})&&isnumeric(TAB.(conditions{i,1})(1))
+                        TAB = TAB(TAB.(conditions{i,1})==conditions{i,2},:);
+                    elseif ischar(conditions{i,2})&&iscell(TAB.(conditions{i,1})(1))&&ischar(TAB.(conditions{i,1}){1})
+                        TAB = TAB(strcmp(TAB.(conditions{i,1}),conditions{i,2}),:);
+                    elseif ischar(conditions{i,2})&&ischar(TAB.(conditions{i,1})(1))
+                        TAB = TAB(strcmp(TAB.(conditions{i,1}),conditions{i,2}),:);
+                    elseif isnumeric(TAB.(conditions{i,1})(1))
+                        TAB = TAB((TAB.(conditions{i,1}))==eval(conditions{i,2}),:);
                     end
                 else
                     try
-                        eval(['TAB2 = TAB2(TAB2.(conditions{i,1})',conditions{i,3},'conditions{i,2},:);'])
+                        eval(['TAB = TAB(TAB.(conditions{i,1})',conditions{i,3},'conditions{i,2},:);'])
                     catch
-                        eval(['TAB2 = TAB2(',conditions{i,3},',:);'])
+                        eval(['TAB = TAB(',conditions{i,3},',:);'])
                     end
                 end
             end
             obj.dataSet.conditions = conditions;
 
             % Preserve optional extra columns after filtering (savedColumns).
-            % These are stored separately from TAB2 because TAB2 is later converted
+            % These are stored separately from TAB because TAB is later converted
             % into a numeric sparse tensor for fitting.
             if ischar(savedColumns) || isstring(savedColumns)
                 savedColumns = cellstr(savedColumns);
             end
 
             if ~isempty(savedColumns)
-                dataNames = TAB2.Properties.VariableNames;
+                dataNames = TAB.Properties.VariableNames;
 
                 for k = 1:numel(savedColumns)
                     if ~any(strcmp(dataNames, savedColumns{k}))
@@ -3059,7 +3069,7 @@ classdef SSIT
                 end
 
                 obj.dataSet.savedColumns = savedColumns;
-                obj.dataSet.savedData = TAB2(:, savedColumns);
+                obj.dataSet.savedData = TAB(:, savedColumns);
             else
                 obj.dataSet.savedColumns = {};
                 obj.dataSet.savedData = table;
@@ -3067,36 +3077,37 @@ classdef SSIT
 
             % Reorder table in order of species list. The first column is
             % guaranteed to be the time field, because we created TAB2 de
-            % novo by the definition of the time column. So we will keep
-            % the first column plus all columns that match the model
-            % species, in the order that those species appear in the model.
+            % novo by the definition of the time column (and subsequently
+            % overwrote TAB with TAB2. So we will keep the first column
+            % plus all columns that match the model species, in the order
+            % that those species appear in the model.
             
             [~, iA] = intersect(...
-                TAB2.Properties.VariableNames, obj.species, 'stable');
-            TAB2 = TAB2(:, [1, iA']);            
+                TAB.Properties.VariableNames, obj.species, 'stable');
+            TAB = TAB(:, [1, iA']);            
 
             obj.dataSet.dataFileName = dataFileName;
             % obj.dataSet.DATA = table2cell(TAB);
 
             % Update to a constrained copy of the data in the obj.
-            obj.dataSet.DATA = table2cell(TAB2);
+            obj.dataSet.DATA = table2cell(TAB);
 
             % dataTensor = sptensor(
-            times = unique(TAB2.time);
+            times = unique(TAB.time);
             numTimes = length(times);
-            timeAr = TAB2.time;
+            timeAr = TAB.time;
             for i = 1:numTimes
-                timeAr(TAB2.time==times(i)) = i-1;
+                timeAr(TAB.time==times(i)) = i-1;
             end
-            TAB2.time = timeAr;
+            TAB.time = timeAr;
 
             % Construct sparse tensor to hold data.
-            TAB2.Variables = max(0,TAB2.Variables);
-            obj.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor = sptensor(TAB2.Variables+1,ones(size(TAB2,1),1));
+            TAB.Variables = max(0,TAB.Variables);
+            obj.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor = sptensor(TAB.Variables+1,ones(size(TAB,1),1));
 
             % Define other properties needed in other functions.
             if isempty(linkedSpecies)
-                obj.dataSet.linkedSpecies = obj.species;
+                obj.dataSet.linkedSpecies = string(obj.species);
             else
                 obj.dataSet.linkedSpecies = linkedSpecies;
             end
