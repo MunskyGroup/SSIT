@@ -2986,43 +2986,55 @@ classdef SSIT
                     % model, so copy the column while updating its name
                     % accordingly.
 
-                    TAB2.(string(tokens{1})) = TAB.(curColumn);
-                else
+                    matchedColumnName = string(tokens{1});
+                    TAB2.(matchedColumnName) = TAB.(curColumn);
+                elseif ~strcmp(curColumn, timeField{1})
                     % There is no match, so copy the column to the name
-                    % under its existing name.
+                    % under its existing name, unless it is the time
+                    % column, which we have already copied and renamed.
                     
                     TAB2.(curColumn) = TAB.(curColumn);
                 end
             end
 
+            % The new TAB2 consists of a time column and all original
+            % columns of TAB with renaming of any automatically link-able
+            % columns (of the form exp1_s#).
+
             for i = 1:size(linkedSpecies,1)
+                matchedColumnName = string(linkedSpecies{i,1});
                 if ~isempty(linkedSpecies{i,2})
-                    TAB2.(linkedSpecies{i,1}) = TAB.(linkedSpecies{i,2});
+                    TAB2.(matchedColumnName) = TAB.(linkedSpecies{i,2});
                 elseif ~isempty(linkedSpecies{i,3})
                     % This section allows for manipulation of data columns.
                     % Example: linkedSpecies = {'rna',[],'TAB.nuc+TAB.cyt'}
                     % results in TAB2.rna = TAB.nuc+TAB.cyt
-                    eval(['TAB2.',linkedSpecies{i,1},' = ',linkedSpecies{i,3},';']);
+                    eval("TAB2." + matchedColumnName + " = " + ...
+                        linkedSpecies{i,3} + ";");
                 end
             end
+
+            % The new TAB2 consists of a time column and all original
+            % columns of TAB with renaming of ALL link-able (manually or
+            % automatically) columns.           
 
             % Apply conditions
             for i = 1:size(conditions,1)
                 if size(conditions,2)==2
-                    if isnumeric(conditions{i,2})&&isnumeric(TAB.(conditions{i,1})(1))
-                        TAB = TAB(TAB.(conditions{i,1})==conditions{i,2},:);
-                    elseif ischar(conditions{i,2})&&iscell(TAB.(conditions{i,1})(1))&&ischar(TAB.(conditions{i,1}){1})
-                        TAB = TAB(strcmp(TAB.(conditions{i,1}),conditions{i,2}),:);
-                    elseif ischar(conditions{i,2})&&ischar(TAB.(conditions{i,1})(1))
-                        TAB = TAB(strcmp(TAB.(conditions{i,1}),conditions{i,2}),:);
-                    elseif isnumeric(TAB.(conditions{i,1})(1))
-                        TAB = TAB((TAB.(conditions{i,1}))==eval(conditions{i,2}),:);
+                    if isnumeric(conditions{i,2})&&isnumeric(TAB2.(conditions{i,1})(1))
+                        TAB2 = TAB2(TAB2.(conditions{i,1})==conditions{i,2},:);
+                    elseif ischar(conditions{i,2})&&iscell(TAB2.(conditions{i,1})(1))&&ischar(TAB2.(conditions{i,1}){1})
+                        TAB2 = TAB2(strcmp(TAB2.(conditions{i,1}),conditions{i,2}),:);
+                    elseif ischar(conditions{i,2})&&ischar(TAB2.(conditions{i,1})(1))
+                        TAB2 = TAB2(strcmp(TAB2.(conditions{i,1}),conditions{i,2}),:);
+                    elseif isnumeric(TAB2.(conditions{i,1})(1))
+                        TAB2 = TAB2((TAB2.(conditions{i,1}))==eval(conditions{i,2}),:);
                     end
                 else
                     try
-                        eval(['TAB = TAB(TAB.(conditions{i,1})',conditions{i,3},'conditions{i,2},:);'])
+                        eval(['TAB2 = TAB2(TAB2.(conditions{i,1})',conditions{i,3},'conditions{i,2},:);'])
                     catch
-                        eval(['TAB = TAB(',conditions{i,3},',:);'])
+                        eval(['TAB2 = TAB2(',conditions{i,3},',:);'])
                     end
                 end
             end
@@ -3036,7 +3048,7 @@ classdef SSIT
             end
 
             if ~isempty(savedColumns)
-                dataNames = TAB.Properties.VariableNames;
+                dataNames = TAB2.Properties.VariableNames;
 
                 for k = 1:numel(savedColumns)
                     if ~any(strcmp(dataNames, savedColumns{k}))
@@ -3047,24 +3059,24 @@ classdef SSIT
                 end
 
                 obj.dataSet.savedColumns = savedColumns;
-                obj.dataSet.savedData = TAB(:, savedColumns);
+                obj.dataSet.savedData = TAB2(:, savedColumns);
             else
                 obj.dataSet.savedColumns = {};
                 obj.dataSet.savedData = table;
             end
 
-            % Reorder table in order of species list
-            if ~isempty(linkedSpecies)
-                [~,iA] = intersect(linkedSpecies(:,1),obj.species,'stable');
-                TAB2 = TAB2(:,[1,iA'+1]);
-            end
-
-            TAB = TAB2;
+            % Reorder table in order of species list. The first column is
+            % guaranteed to be the time field, because we created TAB2 de
+            % novo by the definition of the time column. So we will keep
+            % the first column plus all columns that match the model
+            % species, in the order that those species appear in the model.
+            
+            [~, iA] = intersect(...
+                TAB2.Properties.VariableNames, obj.species, 'stable');
+            TAB2 = TAB2(:, [1, iA']);            
 
             obj.dataSet.dataFileName = dataFileName;
             % obj.dataSet.DATA = table2cell(TAB);
-
-            TAB2 = TAB;
 
             % Update to a constrained copy of the data in the obj.
             obj.dataSet.DATA = table2cell(TAB2);
