@@ -655,7 +655,7 @@ classdef poissonTest < matlab.unittest.TestCase
             delete('exampleResultsTest.mat')
             model = testCase.Poiss;
             save('TemporarySaveFile',"model")
-            DataSettings = {'testData.csv',{'rna','exp1_s1'}};
+            DataSettings = {'testData.csv'};
             Pipeline = 'fittingPipelineExample';
             pipelineArgs.maxIter = 10;
             pipelineArgs.display = 'none';
