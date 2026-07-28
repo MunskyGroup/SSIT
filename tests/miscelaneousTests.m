@@ -230,7 +230,7 @@ classdef miscelaneousTests < matlab.unittest.TestCase
              
              %% Define Model/Data Combination
              % Specify data set to fit.
-             DataSettings = {'testData.csv',{'mRNA','exp1_s1'}};
+             DataSettings = {'testData.csv',{}};
 
              % Create model from preset, associate with data.
              Model = SSIT('BirthDeath',[],DataSettings);
