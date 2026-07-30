@@ -397,9 +397,9 @@ classdef SSIT
             end
 
             if ~isempty(pipeline)
-                [path, name, ext] = fileparts(pipeline);
+                [filePath, name, ext] = fileparts(pipeline);
                 if strcmp(ext, ".m")
-                    pipeline = path + name;
+                    pipeline = filePath + name;
                 end
                 fun = str2func(pipeline);
                 if exist("MultiModelObj", "var")
@@ -2704,19 +2704,16 @@ classdef SSIT
                         else
                             obj.ssaOptions.computeFile = append(pathToPropensityFuns,filesep,obj.propensityFilePrefix,'_TmpGPUSSACode_',num2str(randi(1000)));                            
                         end
-                        clear(obj.ssaOptions.computeFile) % Clear function from cache just in case.
-                        
+                        clear(obj.ssaOptions.computeFile) % Clear function from cache just in case.                        
 
-                        Jslash = strfind(obj.ssaOptions.computeFile,filesep);
-                        for islash = 1:length(Jslash)
-                            if Jslash(islash)>1&&~exist(obj.ssaOptions.computeFile(1:Jslash(islash)-1),"dir")
-                                mkdir(obj.ssaOptions.computeFile(1:Jslash(islash)-1));
-                            end
-                        end
-                        if ~isempty(Jslash)
-                            addpath(obj.ssaOptions.computeFile(1:Jslash(end)-1))
-                        else
-                            Jslash=0; 
+                        [filePath, name, ext] = ...
+                            fileparts(obj.ssaOptions.computeFile);
+                        if strlength(filePath) > 0
+                            % MATLAB creates nonexistent folders within a
+                            % path and will not modify a folder that
+                            % already exists.
+                            mkdir(filePath);
+                            addpath(filePath);
                         end
 
                         if isfield(obj.ssaOptions,'useC')&&~obj.ssaOptions.useC
@@ -2730,17 +2727,15 @@ classdef SSIT
                                 % disp(['MATLAB-Based SSA file generated: ',obj.ssaOptions.computeFile]);
                             end
                         end
-                    else
-                        Jslash = strfind(obj.ssaOptions.computeFile,filesep);
-                        if isempty(Jslash)
-                            Jslash=0; 
-                        end
+                    else % "computeFile" is not a field or is empty
+                        [~, name, ext] = ...
+                            fileparts(obj.ssaOptions.computeFile);                        
                     end
                     % TODO -- Need to check that this does not lead to file
                     % confusion in the future since there could be multiple
                     % copies of this file on the search path.
 
-                    fun = str2func(obj.ssaOptions.computeFile(Jslash(end)+1:end));
+                    fun = str2func(name + ext);
                     % Convert the function name string to a function handle.
 
                     % Run SSA on GPU, in parallel, or in series as
@@ -2753,7 +2748,7 @@ classdef SSIT
                         Solution.trajs=fun(x0,nSims,k,'Series');
                     end
                     if obj.ssaOptions.verbose
-                        disp([num2str(nSims),' SSA Runs Completed'])
+                        disp(nSims + " SSA Runs Completed")
                     end
 
                     trajsToWrite = Solution.trajs;
