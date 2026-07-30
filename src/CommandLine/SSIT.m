@@ -3237,8 +3237,8 @@ classdef SSIT
             nt = length(IA);
             %             ns = length(obj.species);
 
-            J = zeroes(1, obj.dataSet.linkedSpecies.numEntries());
-            matchedSpecies = linkedSpecies.keys();
+            J = zeros(1, obj.dataSet.linkedSpecies.numEntries());
+            matchedSpecies = obj.dataSet.linkedSpecies.keys();
             for matchedSpeciesIdx = 1:length(matchedSpecies)
                 matchedSpeciesName = matchedSpecies(matchedSpeciesIdx);
                 J(matchedSpeciesIdx) = ...
