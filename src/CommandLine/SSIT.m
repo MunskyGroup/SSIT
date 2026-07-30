@@ -1823,18 +1823,20 @@ classdef SSIT
             disp('  --------------------------------------------------------')
 
             %% Species statistics
-            [numberOfSpecies, numberOfColumns] = size(DATA.linkedSpecies);
+            numberOfSpecies = length(obj.species);
             for iSp = 1:numberOfSpecies
+                curSpecies = string(obj.species{iSp});
                 vals = [DATA.DATA{:, iSp+1}];
 
-                if numberOfColumns > 1
-                    annotation = " (" + DATA.linkedSpecies{iSp,2} + ")";
-                else
-                    annotation = "";
+                annotation = "";
+                
+                if DATA.linkedSpecies.isKey(curSpecies)
+                    annotation = ...
+                        " (" + DATA.linkedSpecies(curSpecies) + ")";
                 end
 
                 fprintf('  %-25s %10.3g %10.3g %10.3g\n', ...
-                    string(DATA.linkedSpecies{iSp, 1}) + annotation, ...
+                    curSpecies + annotation, ...
                     min(vals), max(vals), mean(vals));
             end
             disp('------------------------------------------------------------')
@@ -1936,10 +1938,10 @@ classdef SSIT
                 end
             end
             for iModel = 1:size(DataSpecies,1)
-                linkedSpecies = cell(size(DataSpecies,2),2);
+                linkedSpecies = configureDictionary("string", "string");
                 for iSpecies = 1:size(DataSpecies,2)
-                    linkedSpecies(iSpecies,1) = ModelSpecies(iSpecies);
-                    linkedSpecies(iSpecies,2) = DataSpecies(iModel,iSpecies);
+                    linkedSpecies(ModelSpecies(iSpecies)) = ...
+                        DataSpecies(iModel, iSpecies);
                 end
                 Model = obj.loadData(DataFileName,linkedSpecies,Constraints);
 
@@ -2918,11 +2920,23 @@ classdef SSIT
             % Inputs:
             %   * obj
             %   * dataFileName - name of data file, e.g., "dataFile.csv"
-            %   * linkedSpecies - takes two strings: first, the names of
-            %   the species given to the SSIT model using the 'species'
-            %   property (e.g., Model.species = {'RNA','Protein'}); and
-            %   second, the names of the species in the data file (e.g.,
-            %   {'RNA','x1';'Protein','x2'})
+            %   * linkedSpecies - one of two possible data types
+            %     * dictionary (recommended) mapping strings to strings.
+            %     The KEY is the name of a species given to the SSIT model
+            %     using the 'species' property 
+            %     (e.g., Model.species = {'RNA','Protein'}).
+            %     The VALUE is the name of a species in the data file.
+            %     * n-by-3 cell array, with each column containing the
+            %     following:
+            %     Column 1: The name of a species in the model
+            %     Column 2: The name of a MEASURED species in the data
+            %     file.
+            %     Column 3: The formula to COMPUTE a species as a function
+            %     of columns in the data file, using TAB to denote the file
+            %     as a MATLAB table and dot notation to reference columns
+            %     in the file, e.g. TAB.nuc+TAB.cyt
+            %     NOTE: In each row, EXACTLY ONE of Columns 2 and 3 should
+            %     be non-empty!
             %   * conditions - data conditions that can be used to filter
             %                out data that do not meet specifications,
             %                e.g., conditions = {'Rep_num','1'}  : only
@@ -2942,7 +2956,7 @@ classdef SSIT
             arguments
                 obj
                 dataFileName
-                linkedSpecies = {};
+                linkedSpecies = configureDictionary("string", "string");
                 conditions = {};
                 savedColumns = {};
             end
@@ -2965,20 +2979,19 @@ classdef SSIT
                 error('Data sheet has more than one entry with keyword "time"');
             end
 
-            % Link Species
-            % First, make sure that all linked species are in the order of
-            % species.
-            if ~isempty(linkedSpecies)
-                iSpe = [];
-                for i = 1:length(obj.species)
-                    if max(contains(linkedSpecies(:,1),obj.species(i)))
-                        j = find(strcmp(linkedSpecies(:,1),obj.species(i)));
-                        iSpe = [iSpe,j];
-                    end
-                end
-                linkedSpecies = linkedSpecies(iSpe,:);
-            end
+            % We are now about to access the linkedSpecies parameter for
+            % the first time. If it exists but is a cell array, convert it
+            % to a dictionary; we assume that all other non-empty provided
+            % linked species will already be dictionaries. If not, the
+            % subsequent attempts to index using strings will error.
 
+            if isempty(linkedSpecies)
+                linkedSpecies = configureDictionary("string", "string");
+            elseif iscell(linkedSpecies)
+                linkedSpecies = ...
+                    createLinkedSpeciesDictionary(linkedSpecies, obj);
+            end
+           
             TAB2 = table;
             TAB2.time = TAB.(timeField{1});
 
@@ -2986,21 +2999,23 @@ classdef SSIT
             % the first simulation experiment.
             columns = TAB.Properties.VariableNames;
             for colIdx = 1:length(columns)
-                curColumn = columns{colIdx};
-                tokens = regexp(curColumn, "exp1_(\w+)", "tokens");
+                curColumnName = columns{colIdx};
+                tokens = regexp(curColumnName, "exp1_(\w+)", "tokens");
                 if ~isempty(tokens)
                     % We have found a corresponding species name in the
                     % model, so copy the column while updating its name
-                    % accordingly.
+                    % accordingly. Add the mapping to the dictionary of
+                    % linked species.
 
-                    matchedColumnName = string(tokens{1});
-                    TAB2.(matchedColumnName) = TAB.(curColumn);
-                elseif ~strcmp(curColumn, timeField{1})
+                    matchedSpeciesName = string(tokens{1});
+                    TAB2.(matchedSpeciesName) = TAB.(curColumnName);
+                    linkedSpecies(matchedSpeciesName) = curColumnName;
+                elseif ~strcmp(curColumnName, timeField{1})
                     % There is no match, so copy the column to the name
                     % under its existing name, unless it is the time
                     % column, which we have already copied and renamed.
                     
-                    TAB2.(curColumn) = TAB.(curColumn);
+                    TAB2.(curColumnName) = TAB.(curColumnName);
                 end
             end
 
@@ -3008,16 +3023,22 @@ classdef SSIT
             % columns of TAB with renaming of any automatically link-able
             % columns (of the form exp1_s#).
 
-            for i = 1:size(linkedSpecies,1)
-                matchedColumnName = string(linkedSpecies{i,1});
-                if ~isempty(linkedSpecies{i,2})
-                    TAB2.(matchedColumnName) = TAB.(linkedSpecies{i,2});
-                elseif ~isempty(linkedSpecies{i,3})
-                    % This section allows for manipulation of data columns.
-                    % Example: linkedSpecies = {'rna',[],'TAB.nuc+TAB.cyt'}
-                    % results in TAB2.rna = TAB.nuc+TAB.cyt
-                    eval("TAB2." + matchedColumnName + " = " + ...
-                        linkedSpecies{i,3} + ";");
+            matchedSpecies = linkedSpecies.keys();
+            for matchedSpeciesIdx = 1:length(matchedSpecies)
+                matchedSpeciesName = matchedSpecies(matchedSpeciesIdx);
+                curValue = linkedSpecies(matchedSpeciesName);
+                
+                % First try to find a match among columns = 
+                % TAB.Properties.VariableNames
+
+                if any(strcmp(columns, curValue))
+                    TAB2.(matchedSpeciesName) = TAB.(curValue);
+                else
+                    % The value must then be a computed variable, e.g.,
+                    % TAB.nuc+TAB.cyt:
+
+                    eval("TAB2." + matchedSpeciesName + " = " + ...
+                        curValue + ";");
                 end
             end
 
@@ -3106,17 +3127,11 @@ classdef SSIT
             obj.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor = sptensor(TAB.Variables+1,ones(size(TAB,1),1));
 
             % Define other properties needed in other functions.
-            if isempty(linkedSpecies)
-                obj.dataSet.linkedSpecies = string(obj.species);
-            else
-                obj.dataSet.linkedSpecies = linkedSpecies;
-            end
+            
+            obj.dataSet.linkedSpecies = linkedSpecies;
             obj.dataSet.times = times';
 
-            obj.dataSet.app.SpeciesForFitPlot.Items = obj.species;
-            if ~isempty(linkedSpecies)
-                obj.dataSet.app.SpeciesForFitPlot.Items = linkedSpecies(:,1);
-            end
+            obj.dataSet.app.SpeciesForFitPlot.Items = linkedSpecies.keys();
             obj.dataSet.app.DataLoadingAndFittingTabOutputs.fittingOptions.fit_times = times';
             for i=1:numTimes
                 obj.dataSet.app.ParEstFitTimesList.Items{i} = num2str(times(i));
@@ -3162,9 +3177,9 @@ classdef SSIT
             end
 
             %% Automatically set unobserved species based on loaded data.
-            if ~isempty(linkedSpecies)
-                obj.pdoOptions.unobservedSpecies = setdiff(obj.species,linkedSpecies(:,1),'stable')';
-            end
+            
+            obj.pdoOptions.unobservedSpecies = setdiff(...
+                obj.species, linkedSpecies.keys(), 'stable')';           
         end % loadData
 
         function [logL,gradient] = minusLogL(obj,pars,stateSpace,computeSensitivity)
@@ -3222,8 +3237,12 @@ classdef SSIT
             nt = length(IA);
             %             ns = length(obj.species);
 
-            for i = 1:size(obj.dataSet.linkedSpecies,1)
-                J(i) = find(strcmp(obj.species,obj.dataSet.linkedSpecies{i,1}));
+            J = zeroes(1, obj.dataSet.linkedSpecies.numEntries());
+            matchedSpecies = linkedSpecies.keys();
+            for matchedSpeciesIdx = 1:length(matchedSpecies)
+                matchedSpeciesName = matchedSpecies(matchedSpeciesIdx);
+                J(matchedSpeciesIdx) = ...
+                    find(strcmp(obj.species, matchedSpeciesName));
             end
             nds = length(J);
 
@@ -3389,9 +3408,11 @@ classdef SSIT
 
             Nd = length(speciesStochastic);
             for i=Nd:-1:1
-                indsPlots(i) = max(contains(obj.dataSet.linkedSpecies(:,1),speciesStochastic(i)));
+                indsPlots(i) = max(contains(...
+                    obj.dataSet.linkedSpecies.keys(), ...
+                    speciesStochastic(i)));
             end
-            indsIgnore = setdiff([1:Nd],find(indsPlots),'stable');
+            indsIgnore = setdiff(1:Nd,find(indsPlots),'stable');
 
             LogLk = zeros(1,numTimes);
 
@@ -3739,10 +3760,15 @@ classdef SSIT
             numTimes = length(Jtime);
 
             % Map measurement species to observed species;
-            Jspecies = [];
-            for is = 1:size(obj.dataSet.linkedSpecies,1)
-                Jspecies = [Jspecies,find(strcmp(obj.species,obj.dataSet.linkedSpecies{is,1}))];
+            Jspecies = zeros(1, obj.dataSet.linkedSpecies.numEntries());
+            
+            matchedSpecies = obj.dataSet.linkedSpecies.keys();
+            for matchedSpeciesIdx = 1:length(matchedSpecies)
+                matchedSpeciesName = matchedSpecies(matchedSpeciesIdx);
+                Jspecies(matchedSpeciesIdx) = ...
+                    find(strcmp(obj.species, matchedSpeciesName));
             end
+
             numSpecies = length(Jspecies);
 
             % Extract SSA solutions at data times.
