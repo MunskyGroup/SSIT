@@ -12,7 +12,14 @@ end
 
 d = configureDictionary("string", "string");
 
-[numberOfSpecies, ~] = size(species);
+[numberOfSpecies, numberOfColumns] = size(species);
+if numberOfColumns ~= 3 % Validation ensures that we have either 2 or 3
+    % Create an empty Column 3 (i.e. no computed species); make an n-by-1
+    % column and convert to a cell array of character vectors:
+
+    species(:, 3) = cellstr(strings(numberOfSpecies, 1));
+end
+
 for speciesIdx = 1:numberOfSpecies
     curModelSpecies = string(species{speciesIdx, 1});
     if ~isempty(model) & ~any(contains(model.species, curModelSpecies))
@@ -49,7 +56,11 @@ function mustBeValidLinkedSpeciesArray(array)
     end
 
     % Validate that every model species name (column 1) is unique:
-    if length(unique(array{:, 1})) ~= numberOfRows
+    modelSpecies = createArray(1, numberOfRows, "string");
+    for speciesIdx = 1:numberOfRows
+        modelSpecies(speciesIdx) = string(array{speciesIdx, 1});
+    end
+    if length(unique(modelSpecies)) ~= numberOfRows
         error("A linked species array contains duplicate model species")
     end
 
@@ -58,9 +69,25 @@ function mustBeValidLinkedSpeciesArray(array)
 
     for speciesIdx = 1:numberOfRows
         measuredVariable = string(array{speciesIdx, 2});
-        computedVariable = string(array{speciesIdx, 2});
+        if isempty(measuredVariable)
+            warning("Non-text or empty entry (e.g., []) used in " + ...
+                "species array at row " + speciesIdx + " , column 2");
+            measuredVariable = "";
+        end
         hasMeasuredVariable = strlength(measuredVariable) > 0;
+
+        computedVariable = "";
+        if numberOfColumns > 2
+            computedVariable = string(array{speciesIdx, 3});
+            if isempty(computedVariable)
+                warning("Non-text or empty entry (e.g., []) used in " + ...
+                    "species array at row " + speciesIdx + ...
+                    " , column 3");
+                computedVariable = "";
+            end        
+        end        
         hasComputedVariable = strlength(computedVariable) > 0;
+
         if hasMeasuredVariable && hasComputedVariable
             error("A linked species array has multiple mappings for " + ...
                 "model species " + string(array{speciesIdx, 1}) + ...
