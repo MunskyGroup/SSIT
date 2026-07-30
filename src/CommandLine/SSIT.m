@@ -2706,7 +2706,7 @@ classdef SSIT
                         end
                         clear(obj.ssaOptions.computeFile) % Clear function from cache just in case.                        
 
-                        [filePath, name, ext] = ...
+                        [filePath, name, ~] = ...
                             fileparts(obj.ssaOptions.computeFile);
                         if strlength(filePath) > 0
                             % MATLAB creates nonexistent folders within a
@@ -2728,14 +2728,14 @@ classdef SSIT
                             end
                         end
                     else % "computeFile" is not a field or is empty
-                        [~, name, ext] = ...
+                        [~, name, ~] = ...
                             fileparts(obj.ssaOptions.computeFile);                        
                     end
                     % TODO -- Need to check that this does not lead to file
                     % confusion in the future since there could be multiple
                     % copies of this file on the search path.
 
-                    fun = str2func(name + ext);
+                    fun = str2func(name);
                     % Convert the function name string to a function handle.
 
                     % Run SSA on GPU, in parallel, or in series as

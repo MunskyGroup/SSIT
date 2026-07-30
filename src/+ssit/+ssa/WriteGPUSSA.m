@@ -203,7 +203,10 @@ for it = 1:Nt
         
         for j=1:Nspec
             if S(j,i)~=0
-                txt = "    x" + j + "new=x" + j + "+(" + S(j,i) + ");\r\n";
+                % We have to use conversion methods because S is a sparse
+                % double.
+                entry = string(num2str(S(j, i)));
+                txt = "    x" + j + "new=x" + j + "+(" + entry + ");\r\n";
                 fprintf(fileID,txt);
             end
         end
