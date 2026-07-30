@@ -288,67 +288,70 @@ classdef SSIT
             %   SSIT(saveFile,'Model',[],Pipeline,pipelineArgs,saveFile);
 
             arguments
-                modelFile = []   % Name of file where SSIT Model/MultiModel has been saved. Must be a '.mat'.
-                modelName = []   % Name of the SSIT Model/MultiModel within the above file.
+                modelFile string = []   % Name of file where SSIT Model/MultiModel has been saved. Must be a '.mat'.
+                modelName string = []   % Name of the SSIT Model/MultiModel within the above file.
                 dataSettings = {}% Data Settings to load into Model/MultiModel.
-                pipeline = []    % Pipeline (matlab script) to run on model.
+                pipeline string = []    % Pipeline (matlab script) to run on model.
                 pipelineArgs = []% Pipeline arguments (matlab structure).
-                saveName = []    % File name to save model after it has been generated.
+                saveName string = []    % File name to save model after it has been generated.
             end
-
-            % SSIT Construct an instance of the SSIT class
-            addpath(genpath(['..',filesep,'src']));
 
             % Turn off warnings for deleting file that are not found.
             warning('off', 'MATLAB:DELETE:FileNotFound');
 
             if ~isempty(modelFile)
-                if length(modelFile)>4 && (strcmp(modelFile(end-3:end),'.mat')||exist([modelFile,'.mat'],"file"))
+                [~, ~, ext] = fileparts(modelFile);
+                if strcmp(ext, ".mat") || exist(modelFile + ".mat", "file")
                     % Load existing model from .mat file.
                     try
                         if ~isempty(modelName)
                             TMP = load(modelFile,modelName);
-                            if isa(TMP.(modelName),'SSIT')
+                            if isa(TMP.(modelName), "SSIT")
                                 obj = TMP.(modelName);
-                                disp(['Successfully loaded SSIT Model ',modelName])
+                                disp("Successfully loaded SSIT Model " + modelName)
                             elseif isa(TMP.(modelName),'SSITMultiModel')
                                 MultiModelObj = TMP.(modelName);
                                 obj = MultiModelObj.SSITModels{1};
-                                disp(['Successfully loaded a CombinedModel ',modelName, ' and extracted first model.'])
+                                disp("Successfully loaded a CombinedModel " + modelName + " and extracted first model.")
                             end
                         else
                             TMP = load(modelFile);
-                            fnames = fieldnames(TMP);
+                            fnames = string(fieldnames(TMP));
                             for i=1:length(fnames)
-                                if isa(TMP.(fnames{i}),'SSIT')
-                                    obj = TMP.(fnames{i});
-                                    disp(['Successfully loaded SSIT Model named "',fnames{i},'" from "',modelFile,'"'])
-                                    modelName = fnames{i};
+                                curFieldName = fnames(i); 
+                                if isa(TMP.(curFieldName), "SSIT")
+                                    obj = TMP.(curFieldName);
+                                    disp("Successfully loaded SSIT Model named '" + curFieldName + "' from '" + modelFile + "'")
+                                    modelName = curFieldName;
                                     break
-                                elseif isa(TMP.(fnames(i)),'SSITMultiModel')
-                                    MultiModelObj = TMP.(fnames{i});
+                                elseif isa(TMP.(curFieldName), "SSITMultiModel")
+                                    MultiModelObj = TMP.(curFieldName);
                                     obj = MultiModelObj.SSITModels{1};
-                                    disp(['Successfully loaded a CombinedModel  named "',fnames{i},'" and extracted first model.'])
-                                    modelName = fnames{i};
+                                    disp("Successfully loaded a CombinedModel named '" + curFieldName + "' and extracted first model.")
+                                    modelName = curFieldName;
                                     break
                                 end
                             end
                         end
                     catch
-                        disp(['Could not load model from ',modelFile])
-                        disp('Check that file exists and that it contains only the SSIT model of interest')
-                        disp('Use the optional argument "modelName" to specify which model to load.')
+                        disp("Could not load model from " + modelFile)
+                        disp("Check that file exists and that it contains only the SSIT model of interest")
+                        disp("Use the optional argument ""modelName"" to specify which model to load.")
                     end
 
                     % Test to see if propensity functions are available. If
                     % not, create them.
                     if ~isempty(obj.propensitiesGeneral)
                         try
-                            fieldsPropens2Test = {'timeDependentFactor','stateDependentFactor','jointDependentFactor','hybridFactor'};
+                            fieldsPropens2Test = ...
+                                {"timeDependentFactor", ...
+                                "stateDependentFactor", ...
+                                "jointDependentFactor", ...
+                                "hybridFactor"};
                             for field = fieldsPropens2Test
                                 if ~isempty(obj.propensitiesGeneral{1}.(field{1}))
-                                    if ~isa(obj.propensitiesGeneral{1}.(field{1}),'function_handle')
-                                        error('Missing Function')
+                                    if ~isa(obj.propensitiesGeneral{1}.(field{1}), "function_handle")
+                                        error("Missing Function")
                                     end
                                 end
                                 %
@@ -360,14 +363,14 @@ classdef SSIT
                                 % end
                             end
                         catch
-                            disp(['Propensity functions are missing -- regenerating now with name: ',modelName])
+                            disp("Propensity functions are missing -- regenerating now with name: " + modelName)
                             obj = obj.formPropensitiesGeneral(modelName);
                         end
                     end
                 else
                     % Create model from template
                     obj = pregenModel(obj,modelFile);
-                    if ~strcmp(modelFile,'Empty')
+                    if ~strcmp(modelFile, "Empty")
                         obj = obj.formPropensitiesGeneral(modelFile);
                     end
                 end
@@ -381,7 +384,7 @@ classdef SSIT
                 if size(dataSettings,2)<4
                     dataSettings{1,4} = {};
                 end
-                if exist('MultiModelObj','var')
+                if exist("MultiModelObj", "var")
                     nModels = length(MultiModelObj.SSITModels);
                     for iModel = 1:nModels
                         MultiModelObj.SSITModels{iModel} =  MultiModelObj.SSITModels{iModel}.loadData( ...
@@ -394,36 +397,37 @@ classdef SSIT
             end
 
             if ~isempty(pipeline)
-                if strcmp(pipeline(end-1:end),'.m')
-                    pipeline=pipeline(1:end-2);
+                [path, name, ext] = fileparts(pipeline);
+                if strcmp(ext, ".m")
+                    pipeline = path + name;
                 end
                 fun = str2func(pipeline);
-                if exist('MultiModelObj','var')
+                if exist("MultiModelObj", "var")
                     [outputs,MultiModelObj] = fun(MultiModelObj,pipelineArgs);
                     obj = MultiModelObj.SSITModels{1};
                 else
                     [outputs,obj] = fun(obj,pipelineArgs);
                 end
-                disp(['Pipeline "',pipeline,'" run successfully.'])
+                disp("Pipeline '" + pipeline + "' run successfully.")
             end
 
             if ~isempty(saveName)
-                if exist('MultiModelObj','var')
+                if exist("MultiModelObj", "var")
                     if ~isempty(modelName)
-                        eval([modelName,'=MultiModelObj;']);
+                        eval(modelName + "=MultiModelObj;");
                         save(saveName,"outputs",modelName)
                     else
-                        save(saveName,"outputs",'MultiModelObj')
+                        save(saveName,"outputs","MultiModelObj")
                     end
                     obj = MultiModelObj.SSITModels{1};
                 else
 
                     if ~isempty(modelName)
-                        eval([modelName,'=obj;']);
+                        eval(modelName + "=obj;");
                         save(saveName,"outputs",modelName)
                     else
                         ModelObj = obj;
-                        save(saveName,'outputs','ModelObj')
+                        save(saveName,"outputs","ModelObj")
                     end
                 end
 
@@ -438,8 +442,7 @@ classdef SSIT
                 % save(saveName,"outputs",modelName)
                 % end
             end
-
-        end
+        end % constructor
 
         function Pars_container = get.pars_container(obj)
             if ~isempty(obj.parameters)
@@ -2531,8 +2534,9 @@ classdef SSIT
             catch
                 obj.propensitiesGeneral = [];
                 if strcmpi(obj.solutionScheme,'fsp')||strcmpi(obj.solutionScheme,'fspsens')
-                    newPropFileName = [obj.propensityFilePrefix,'_',char(randi([97 122]))];
-                    disp(['(Re)Forming Propensity Function Files under new name: ',newPropFileName]);
+                    newPropFileName = string(obj.propensityFilePrefix) + ...
+                        "_" + string(char(randi([97 122])));
+                    disp("(Re)Forming Propensity Function Files under new name: " + newPropFileName);
                     obj = obj.formPropensitiesGeneral(newPropFileName);
                 end
                 if strcmp(opts.returnType,'ssit') || nargout >= 2
@@ -2576,7 +2580,8 @@ classdef SSIT
                 elseif ~isempty(obj.hybridOptions)&&~strcmp(obj.solutionScheme,'ode')&&...
                         isfield(propensityGeneral{1},'ODEstoichVector')&&length(obj.hybridOptions.upstreamODEs)~=length(propensityGeneral{1}.ODEstoichVector)
                     disp('(Re)Forming Propensity Functions Due to Detected Change in Hybrid Model Dimension.')
-                    obj = formPropensitiesGeneral(obj,'hybrid',true);
+                    obj = formPropensitiesGeneral(...
+                        obj, "hybrid", true);
                 end
 
                 if obj.modelReductionOptions.useModReduction
@@ -2875,7 +2880,8 @@ classdef SSIT
 
                 case 'fspsens'
                     if strcmp(obj.sensOptions.solutionMethod,'forward')&&isempty(obj.propensitiesGeneral{1}.sensTimeFactorVec)
-                        obj = formPropensitiesGeneral(obj,'Sensitivities',true);
+                        obj = formPropensitiesGeneral(...
+                            obj, "Sensitivities", true);
                     end
                     if ~isempty(obj.parameters)
                         app.ReactionsTabOutputs.parameters = obj.parameters(:,1);
