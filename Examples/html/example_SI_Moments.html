@@ -9,7 +9,7 @@ To make changes, update the MATLAB code and republish this document.
 <title>example_SI_Moments</title>
 <meta name="generator" content="MATLAB 25.2">
 <link rel="schema.DC" href="http://purl.org/dc/elements/1.1/">
-<meta name="DC.date" content="2026-03-03">
+<meta name="DC.date" content="2026-07-28">
 <meta name="DC.source" content="example_SI_Moments.m">
 <style type="text/css">
 html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
@@ -83,7 +83,7 @@ table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px soli
 <a href="#1">SSIT/Examples/example_SI_Moments</a>
 </li>
 <li>
-<a href="#2">Section 2.2: Finding and visualizing master equation solutions</a>
+<a href="#2">Moment solutions</a>
 </li>
 <li>
 <a href="#3">Preliminaries</a>
@@ -133,7 +133,7 @@ table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px soli
 <pre class="codeinput">
 <span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
 </pre>
-<h2 id="2">Section 2.2: Finding and visualizing master equation solutions</h2>
+<h2 id="2">Moment solutions</h2>
 <pre class="language-matlab">* Compute moments
 </pre>
 <pre class="codeinput">
@@ -142,21 +142,21 @@ table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px soli
 <h2 id="3">Preliminaries</h2>
 <p>clear close all addpath(genpath('../src'));</p>
 <pre class="codeinput">
-<span class="comment">% example_1_CreateSSITModels</span>
-<span class="comment">% example_2_SolveSSITModels_ODE</span>
+<span class="comment">% example_01_CreateSSITModels</span>
+<span class="comment">% example_02_SolveSSITModels_ODE</span>
 
-<span class="comment">% Load the models created in example_1_CreateSSITModels:</span>
-<span class="comment">% load('example_2_SolveSSITModels_ODE.mat')</span>
+<span class="comment">% Load the models created in example_01_CreateSSITModels:</span>
+load(<span class="string">'ExampleSaveFiles/example_2_SolveSSITModels_ODE.mat'</span>)
 
 <span class="comment">% View model summaries:</span>
-Model_ODE.summarizeModel
-STL1_ODE.summarizeModel
-STL1_4state_ODE.summarizeModel
+Model.summarizeModel
+STL1.summarizeModel
+STL1_4state.summarizeModel
 
 <span class="comment">% Set the times at which distributions will be computed:</span>
-Model_ODE.tSpan = linspace(0,50,101);
-STL1_ODE.tSpan = linspace(0,50,101);
-STL1_4state_ODE.tSpan = linspace(0,50,101);
+Model.tSpan = linspace(0,50,101);
+STL1.tSpan = linspace(0,50,101);
+STL1_4state.tSpan = linspace(0,50,101);
 
 <span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
 </pre>
@@ -184,7 +184,44 @@ Model Parameters:
     {'koff'}    {[2.0000e-01]}
     {'kr'  }    {[        10]}
     {'dr'  }    {[         5]}
+ans = 
+  SSIT with properties:
 
+                       parameters: {4&times;2 cell}
+                          species: {3&times;1 cell}
+                    stoichiometry: [3&times;4 double]
+              propensityFunctions: {4&times;1 cell}
+                 inputExpressions: {}
+                    specialEvents: []
+             customConstraintFuns: {}
+                       fspOptions: [1&times;1 struct]
+                      sensOptions: [1&times;1 struct]
+                       ssaOptions: [1&times;1 struct]
+                       pdoOptions: [1&times;1 struct]
+                   fittingOptions: [1&times;1 struct]
+                 initialCondition: [3&times;1 double]
+                     initialProbs: 1
+                      initialTime: 0
+                            tSpan: [0 5.0000e-01 1 &hellip; ] (1&times;101 double)
+                   solutionScheme: 'ODE'
+                    odeIntegrator: 'ode23s'
+                  solutionSchemes: {}
+            modelReductionOptions: [1&times;1 struct]
+                          dataSet: []
+                        useHybrid: 0
+                    hybridOptions: [1&times;1 struct]
+              propensitiesGeneral: []
+           propensitiesGeneralODE: []
+          propensitiesGeneralMean: @default_mean
+       propensitiesGeneralMeanJac: @default_mean_jac
+       propensitiesGeneralMoments: []
+    propensitiesGeneralMomentsJac: []
+             propensityFilePrefix: 'default'
+                        Solutions: [1&times;1 struct]
+                      description: {'Add model description here'}
+                         GUIProps: []
+                   fspConstraints: [1&times;1 struct]
+                   pars_container: [4&times;1 containers.Map]
 Species:
      offGene; IC = 1;  discrete stochastic
      onGene; IC = 0;  discrete stochastic
@@ -214,9 +251,46 @@ Model Parameters:
     {'dr'  }    {[         5]}
     {'a0'  }    {[         5]}
     {'a1'  }    {[        10]}
-    {'r1'  }    {[4.0000e-03]}
-    {'r2'  }    {[1.0000e-02]}
+    {'r1'  }    {[1.0000e-01]}
+    {'r2'  }    {[2.0000e-01]}
+ans = 
+  SSIT with properties:
 
+                       parameters: {8&times;2 cell}
+                          species: {3&times;1 cell}
+                    stoichiometry: [3&times;4 double]
+              propensityFunctions: {4&times;1 cell}
+                 inputExpressions: {1&times;2 cell}
+                    specialEvents: []
+             customConstraintFuns: {}
+                       fspOptions: [1&times;1 struct]
+                      sensOptions: [1&times;1 struct]
+                       ssaOptions: [1&times;1 struct]
+                       pdoOptions: [1&times;1 struct]
+                   fittingOptions: [1&times;1 struct]
+                 initialCondition: [3&times;1 double]
+                     initialProbs: 1
+                      initialTime: 0
+                            tSpan: [0 5.0000e-01 1 &hellip; ] (1&times;101 double)
+                   solutionScheme: 'ODE'
+                    odeIntegrator: 'ode23s'
+                  solutionSchemes: {}
+            modelReductionOptions: [1&times;1 struct]
+                          dataSet: []
+                        useHybrid: 0
+                    hybridOptions: [1&times;1 struct]
+              propensitiesGeneral: []
+           propensitiesGeneralODE: []
+          propensitiesGeneralMean: @default_mean
+       propensitiesGeneralMeanJac: @default_mean_jac
+       propensitiesGeneralMoments: []
+    propensitiesGeneralMomentsJac: []
+             propensityFilePrefix: 'default'
+                        Solutions: [1&times;1 struct]
+                      description: {'Add model description here'}
+                         GUIProps: []
+                   fspConstraints: [1&times;1 struct]
+                   pars_container: [8&times;1 containers.Map]
 Species:
      g1; IC = 1;  discrete stochastic
      g2; IC = 0;  discrete stochastic
@@ -281,37 +355,70 @@ Model Parameters:
     {'A'   }    {[9.3000e+09]}
     {'M'   }    {[6.4000e-04]}
     {'n'   }    {[3.1000e+00]}
+ans = 
+  SSIT with properties:
 
+                       parameters: {18&times;2 cell}
+                          species: {5&times;1 cell}
+                    stoichiometry: [5&times;11 double]
+              propensityFunctions: {11&times;1 cell}
+                 inputExpressions: {1&times;2 cell}
+                    specialEvents: []
+             customConstraintFuns: {}
+                       fspOptions: [1&times;1 struct]
+                      sensOptions: [1&times;1 struct]
+                       ssaOptions: [1&times;1 struct]
+                       pdoOptions: [1&times;1 struct]
+                   fittingOptions: [1&times;1 struct]
+                 initialCondition: [5&times;1 double]
+                     initialProbs: 1
+                      initialTime: 0
+                            tSpan: [0 5.0000e-01 1 &hellip; ] (1&times;101 double)
+                   solutionScheme: 'ODE'
+                    odeIntegrator: 'ode23s'
+                  solutionSchemes: {}
+            modelReductionOptions: [1&times;1 struct]
+                          dataSet: []
+                        useHybrid: 0
+                    hybridOptions: [1&times;1 struct]
+              propensitiesGeneral: []
+           propensitiesGeneralODE: []
+          propensitiesGeneralMean: @default_mean
+       propensitiesGeneralMeanJac: []
+       propensitiesGeneralMoments: []
+    propensitiesGeneralMomentsJac: []
+             propensityFilePrefix: 'default'
+                        Solutions: [1&times;1 struct]
+                      description: {'Add model description here'}
+                         GUIProps: []
+                   fspConstraints: [1&times;1 struct]
+                   pars_container: [18&times;1 containers.Map]
 </pre>
 <h2 id="4">Ex(1): Bursting Gene</h2>
 <pre class="codeinput">
 <span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
-
-<span class="comment">% Make a copy of the Bursting Gene model for moment equations</span>
-Model_mom = Model_ODE;
-Model_mom.solutionScheme = <span class="string">'moments'</span>;
-[~,~,Model_mom] = Model_mom.solve;
+Model = Model.solve(solver=<span class="string">'moments'</span>);
 
 <span class="comment">% Number of species</span>
-nSp = numel(Model_mom.species);
+nSp = numel(Model.species);
 </pre>
 <pre class="codeoutput">Forming Propensity Functions.
 </pre>
 <h2 id="5">First moments from the "moments" solver</h2>
 <p>Moments: [ (#means + #secondMoments) x nTimes ]</p>
-<pre class="codeinput">mom = Model_mom.Solutions.moments;
+<pre class="codeinput">mom = Model.Solutions.moments;
 
 <span class="comment">% First nSp rows are the means ⟨x_i⟩</span>
 means_mom = mom(1:nSp, :);   <span class="comment">% size: nSp x nTimes</span>
 </pre>
 <h2 id="6">Species trajectories from the ODE solver</h2>
 <p>Get ODE solution:</p>
-<pre class="codeinput">Y_ode = Model_mom.Solutions.ode;   <span class="comment">% nTimes x nSpecies</span>
+<pre class="codeinput">Y_ode = Model.Solutions.ode;   <span class="comment">% nTimes x nSpecies</span>
 means_ode = Y_ode.';                     <span class="comment">% transpose: nSp x nTimes</span>
 </pre>
 <h2 id="7">Compare ODEs vs moments</h2>
 <p>Compare mRNA:</p>
-<pre class="codeinput">i_mRNA = find(strcmp(Model_mom.species,<span class="string">'mRNA'</span>));
+<pre class="codeinput">i_mRNA = find(strcmp(Model.species,<span class="string">'mRNA'</span>));
 
 den_mRNA = max(abs(means_ode(i_mRNA,:)), 1e-12);
 errMean_mRNA = <span class="keyword">...</span>
@@ -345,31 +452,28 @@ Bursting Gene: species means from moments match ODE within 1%
 <pre class="codeinput">
 <span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
 
-<span class="comment">% Make a copy of the (simple) STL1 model for moment equations</span>
-STL1_mom = STL1_ODE;
-STL1_mom.solutionScheme = <span class="string">'moments'</span>;
-[~,~,STL1_mom] = STL1_mom.solve;
+STL1 = STL1.solve(solver=<span class="string">'moments'</span>);
 
 <span class="comment">% Number of species</span>
-nSp = numel(STL1_mom.species);
+nSp = numel(STL1.species);
 </pre>
 <pre class="codeoutput">Forming Propensity Functions.
 </pre>
 <h2 id="9">First moments from the "moments" solver</h2>
 <p>Moments: [ (#means + #secondMoments) x nTimes ]</p>
-<pre class="codeinput">mom = STL1_mom.Solutions.moments;
+<pre class="codeinput">mom = STL1.Solutions.moments;
 
 <span class="comment">% First nSp rows are the means ⟨x_i⟩</span>
 means_mom = mom(1:nSp, :);   <span class="comment">% size: nSp x nTimes</span>
 </pre>
 <h2 id="10">Species trajectories from the ODE solver</h2>
 <p>Get ODE solution:</p>
-<pre class="codeinput">Y_ode = STL1_mom.Solutions.ode;   <span class="comment">% nTimes x nSpecies</span>
+<pre class="codeinput">Y_ode = STL1.Solutions.ode;   <span class="comment">% nTimes x nSpecies</span>
 means_ode = Y_ode.';                     <span class="comment">% transpose: nSp x nTimes</span>
 </pre>
 <h2 id="11">Compare ODEs vs moments</h2>
 <p>Compare mRNA:</p>
-<pre class="codeinput">i_mRNA = find(strcmp(STL1_mom.species,<span class="string">'mRNA'</span>));
+<pre class="codeinput">i_mRNA = find(strcmp(STL1.species,<span class="string">'mRNA'</span>));
 
 den_mRNA = max(abs(means_ode(i_mRNA,:)), 1e-12);
 errMean_mRNA = <span class="keyword">...</span>
@@ -402,32 +506,28 @@ STL1: species means from moments match ODE within 1%
 <h2 id="12">Ex(3): 4-state STL1</h2>
 <pre class="codeinput">
 <span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
-
-<span class="comment">% Make a copy of the 4-state STL1 model for moment equations</span>
-STL1_4state_mom = STL1_4state_ODE;
-STL1_4state_mom.solutionScheme = <span class="string">'moments'</span>;
-[~,~,STL1_4state_mom] = STL1_4state_mom.solve;
+STL1_4state = STL1_4state.solve(solver=<span class="string">'moments'</span>);
 
 <span class="comment">% Number of species</span>
-nSp = numel(STL1_4state_mom.species);
+nSp = numel(STL1_4state.species);
 </pre>
 <pre class="codeoutput">Forming Propensity Functions.
 </pre>
 <h2 id="13">First moments from the "moments" solver</h2>
 <p>Moments: [ (#means + #secondMoments) x nTimes ]</p>
-<pre class="codeinput">mom = STL1_4state_mom.Solutions.moments;
+<pre class="codeinput">mom = STL1_4state.Solutions.moments;
 
 <span class="comment">% First nSp rows are the means ⟨x_i⟩</span>
 means_mom = mom(1:nSp, :);   <span class="comment">% size: nSp x nTimes</span>
 </pre>
 <h2 id="14">Species trajectories from the ODE solver</h2>
 <p>Get ODE solution:</p>
-<pre class="codeinput">Y_ode = STL1_4state_ODE.Solutions.ode;   <span class="comment">% nTimes x nSpecies</span>
+<pre class="codeinput">Y_ode = STL1_4state.Solutions.ode;   <span class="comment">% nTimes x nSpecies</span>
 means_ode = Y_ode.';                     <span class="comment">% transpose: nSp x nTimes</span>
 </pre>
 <h2 id="15">Compare ODEs vs moments</h2>
 <p>Compare mRNA:</p>
-<pre class="codeinput">i_mRNA = find(strcmp(STL1_4state_mom.species,<span class="string">'mRNA'</span>));
+<pre class="codeinput">i_mRNA = find(strcmp(STL1_4state.species,<span class="string">'mRNA'</span>));
 
 den_mRNA = max(abs(means_ode(i_mRNA,:)), 1e-12);
 errMean_mRNA = <span class="keyword">...</span>
@@ -455,16 +555,16 @@ tol = 1e-2;   <span class="comment">% 1% tolerance</span>
 4-state STL1: species means from moments do not match ODE within 1%
 </pre>
 <h2 id="16">Plot results:</h2>
-<pre class="codeinput">STL1_4state_mom.plotMoments(solution=STL1_4state_mom.Solutions,<span class="keyword">...</span>
+<pre class="codeinput">STL1_4state.plotMoments(solution=STL1_4state.Solutions.moments,<span class="keyword">...</span>
     speciesNames=STL1_4state.species(5), plotType=<span class="string">"meansanddevs"</span>,<span class="keyword">...</span>
-    indTimes=STL1_4state_mom.tSpan, lineProps={<span class="string">'linewidth'</span>,4},<span class="keyword">...</span>
+    indTimes=STL1_4state.tSpan, lineProps={<span class="string">'linewidth'</span>,4},<span class="keyword">...</span>
     Title=<span class="string">'4-state STL1 (mRNA)'</span>, TitleFontSize=26, LegendFontSize=20,<span class="keyword">...</span>
     LegendLocation=<span class="string">'east'</span>, Colors=[0.23,0.67,0.20],<span class="keyword">...</span>
     YLabel=<span class="string">'Molecule Count'</span>, AxisLabelSize=20, TickLabelSize=20);
 
-STL1_4state_mom.plotMoments(solution=STL1_4state_mom.Solutions,<span class="keyword">...</span>
+STL1_4state.plotMoments(solution=STL1_4state.Solutions.moments,<span class="keyword">...</span>
     speciesNames=STL1_4state.species(1:4), plotType=<span class="string">"meansanddevs"</span>,<span class="keyword">...</span>
-    indTimes=STL1_4state_mom.tSpan, lineProps={<span class="string">'linewidth'</span>,4},<span class="keyword">...</span>
+    indTimes=STL1_4state.tSpan, lineProps={<span class="string">'linewidth'</span>,4},<span class="keyword">...</span>
     Title=<span class="string">'4-state STL1 (mRNA)'</span>, TitleFontSize=26,<span class="keyword">...</span>
     LegendLocation=<span class="string">'east'</span>, YLabel=<span class="string">'Molecule Count'</span>,<span class="keyword">...</span>
     AxisLabelSize=20, TickLabelSize=20, LegendFontSize=20);
@@ -480,7 +580,7 @@ STL1_4state_mom.plotMoments(solution=STL1_4state_mom.Solutions,<span class="keyw
 %% SSIT/Examples/example_SI_Moments
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Section 2.2: Finding and visualizing master equation solutions
+%% Moment solutions
 %   * Compute moments
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
@@ -489,49 +589,45 @@ STL1_4state_mom.plotMoments(solution=STL1_4state_mom.Solutions,<span class="keyw
 % close all
 % addpath(genpath('../src'));
 
-% example_1_CreateSSITModels
-% example_2_SolveSSITModels_ODE
+% example_01_CreateSSITModels
+% example_02_SolveSSITModels_ODE
 
-% Load the models created in example_1_CreateSSITModels:
-% load('example_2_SolveSSITModels_ODE.mat')
+% Load the models created in example_01_CreateSSITModels:
+load('ExampleSaveFiles/example_2_SolveSSITModels_ODE.mat')
 
 % View model summaries:
-Model_ODE.summarizeModel
-STL1_ODE.summarizeModel
-STL1_4state_ODE.summarizeModel
+Model.summarizeModel
+STL1.summarizeModel
+STL1_4state.summarizeModel
 
 % Set the times at which distributions will be computed:
-Model_ODE.tSpan = linspace(0,50,101);
-STL1_ODE.tSpan = linspace(0,50,101);
-STL1_4state_ODE.tSpan = linspace(0,50,101);
+Model.tSpan = linspace(0,50,101);
+STL1.tSpan = linspace(0,50,101);
+STL1_4state.tSpan = linspace(0,50,101);
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(1): Bursting Gene
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-% Make a copy of the Bursting Gene model for moment equations
-Model_mom = Model_ODE;
-Model_mom.solutionScheme = 'moments';
-[~,~,Model_mom] = Model_mom.solve;
+Model = Model.solve(solver='moments');
 
 % Number of species
-nSp = numel(Model_mom.species);
+nSp = numel(Model.species);
 
 %% First moments from the "moments" solver
 % Moments: [ (#means + #secondMoments) x nTimes ]
-mom = Model_mom.Solutions.moments;
+mom = Model.Solutions.moments;
 
 % First nSp rows are the means ⟨x_i⟩
 means_mom = mom(1:nSp, :);   % size: nSp x nTimes
 
 %% Species trajectories from the ODE solver
 % Get ODE solution:
-Y_ode = Model_mom.Solutions.ode;   % nTimes x nSpecies
+Y_ode = Model.Solutions.ode;   % nTimes x nSpecies
 means_ode = Y_ode.';                     % transpose: nSp x nTimes
 
 %% Compare ODEs vs moments 
 % Compare mRNA:
-i_mRNA = find(strcmp(Model_mom.species,'mRNA'));
+i_mRNA = find(strcmp(Model.species,'mRNA'));
 
 den_mRNA = max(abs(means_ode(i_mRNA,:)), 1e-12);
 errMean_mRNA = ...
@@ -560,29 +656,26 @@ end
 %% Ex(2): STL1 (simple)
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% Make a copy of the (simple) STL1 model for moment equations
-STL1_mom = STL1_ODE;
-STL1_mom.solutionScheme = 'moments';
-[~,~,STL1_mom] = STL1_mom.solve;
+STL1 = STL1.solve(solver='moments');
 
 % Number of species
-nSp = numel(STL1_mom.species);
+nSp = numel(STL1.species);
 
 %% First moments from the "moments" solver
 % Moments: [ (#means + #secondMoments) x nTimes ]
-mom = STL1_mom.Solutions.moments;
+mom = STL1.Solutions.moments;
 
 % First nSp rows are the means ⟨x_i⟩
 means_mom = mom(1:nSp, :);   % size: nSp x nTimes
 
 %% Species trajectories from the ODE solver
 % Get ODE solution:
-Y_ode = STL1_mom.Solutions.ode;   % nTimes x nSpecies
+Y_ode = STL1.Solutions.ode;   % nTimes x nSpecies
 means_ode = Y_ode.';                     % transpose: nSp x nTimes
 
 %% Compare ODEs vs moments 
 % Compare mRNA:
-i_mRNA = find(strcmp(STL1_mom.species,'mRNA'));
+i_mRNA = find(strcmp(STL1.species,'mRNA'));
 
 den_mRNA = max(abs(means_ode(i_mRNA,:)), 1e-12);
 errMean_mRNA = ...
@@ -610,30 +703,26 @@ end
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(3): 4-state STL1
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
-% Make a copy of the 4-state STL1 model for moment equations
-STL1_4state_mom = STL1_4state_ODE;
-STL1_4state_mom.solutionScheme = 'moments';
-[~,~,STL1_4state_mom] = STL1_4state_mom.solve;
+STL1_4state = STL1_4state.solve(solver='moments');
 
 % Number of species
-nSp = numel(STL1_4state_mom.species);
+nSp = numel(STL1_4state.species);
 
 %% First moments from the "moments" solver
 % Moments: [ (#means + #secondMoments) x nTimes ]
-mom = STL1_4state_mom.Solutions.moments;
+mom = STL1_4state.Solutions.moments;
 
 % First nSp rows are the means ⟨x_i⟩
 means_mom = mom(1:nSp, :);   % size: nSp x nTimes
 
 %% Species trajectories from the ODE solver
 % Get ODE solution:
-Y_ode = STL1_4state_ODE.Solutions.ode;   % nTimes x nSpecies
+Y_ode = STL1_4state.Solutions.ode;   % nTimes x nSpecies
 means_ode = Y_ode.';                     % transpose: nSp x nTimes
 
 %% Compare ODEs vs moments 
 % Compare mRNA:
-i_mRNA = find(strcmp(STL1_4state_mom.species,'mRNA'));
+i_mRNA = find(strcmp(STL1_4state.species,'mRNA'));
 
 den_mRNA = max(abs(means_ode(i_mRNA,:)), 1e-12);
 errMean_mRNA = ...
@@ -658,16 +747,16 @@ else
 end
 
 %% Plot results:
-STL1_4state_mom.plotMoments(solution=STL1_4state_mom.Solutions,...
+STL1_4state.plotMoments(solution=STL1_4state.Solutions.moments,...
     speciesNames=STL1_4state.species(5), plotType="meansanddevs",...
-    indTimes=STL1_4state_mom.tSpan, lineProps={'linewidth',4},...
+    indTimes=STL1_4state.tSpan, lineProps={'linewidth',4},...
     Title='4-state STL1 (mRNA)', TitleFontSize=26, LegendFontSize=20,...
     LegendLocation='east', Colors=[0.23,0.67,0.20],...
     YLabel='Molecule Count', AxisLabelSize=20, TickLabelSize=20);
 
-STL1_4state_mom.plotMoments(solution=STL1_4state_mom.Solutions,...
+STL1_4state.plotMoments(solution=STL1_4state.Solutions.moments,...
     speciesNames=STL1_4state.species(1:4), plotType="meansanddevs",...
-    indTimes=STL1_4state_mom.tSpan, lineProps={'linewidth',4},...
+    indTimes=STL1_4state.tSpan, lineProps={'linewidth',4},...
     Title='4-state STL1 (mRNA)', TitleFontSize=26,...
     LegendLocation='east', YLabel='Molecule Count',...
     AxisLabelSize=20, TickLabelSize=20, LegendFontSize=20);

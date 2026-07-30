@@ -10,10 +10,14 @@ Nspec = size(S,1); % Number of species.
 Nrxn = size(S,2);  % Number of reactions.
 Nt = length(tprint); % Length of time at which to print results.
 
-fileID = fopen(fun_name + ".m", 'w');
-% Name of m-file to be written.
+% We assume that fun_name has no extension.
 
-txt = "function [X]=" + fun_name + "(x0,N_run,parametersIn,useGPU)\r\n";
+fileID = fopen(fun_name + ".m", 'w'); % Name of m-file to be written.
+
+[~, funNameShort, ~] = fileparts(fun_name);
+
+txt = "function [X]=" + funNameShort + "(x0,N_run,parametersIn,useGPU)\r\n";
+
 fprintf(fileID,txt);
 fprintf(fileID,"%%This is an automatically generated MATLAB SSA Program.\r\n");
 fprintf(fileID,"%%The tools used to generate this file were covered at the.\r\n");
@@ -56,9 +60,11 @@ for i=1:Nspec
         txt2 = txt2 + ",x" + i + "_0_GPU";
     end
 end
-txtAF1 = "   " + fun_name + "_SSA_GPU = @(" + txt2 + ")" + fun_name + ...
-    "_SSA(" + txt2 + ",parametersIn);\r\n";
-txtAF2 = txt + "] = arrayfun(@" + fun_name + "_SSA_GPU," + txt2 + ");\r\n";
+
+txtAF1 = "   " + funNameShort + "_SSA_GPU = @(" + txt2 + ")" + ...
+    funNameShort + "_SSA(" + txt2 + ",parametersIn);\r\n";
+txtAF2 = txt + "] = arrayfun(@" + funNameShort + "_SSA_GPU," + txt2 + ...
+    ");\r\n";
 
 fprintf(fileID,txtAF1);
 fprintf(fileID,txtAF2);
@@ -93,7 +99,10 @@ for i=1:Nspec
         txt2 = txt2 + ",x" + i + "_0";
     end
 end
-txt3 = txt0 + "] = " + fun_name + "_SSA(" + txt2 + ",parametersIn);\r\n";
+
+txt3 = txt0 + "] = " + funNameShort + "_SSA(" + txt2 + ...
+    ",parametersIn);\r\n";
+
 % fprintf(fileID,txt3);
 txt = "    [x] = collectFun(" + txt2 + ",parametersIn);\r\n";
 fprintf(fileID,txt);
@@ -135,7 +144,8 @@ for i=1:Nspec
         txt2 = txt2 + ",x" + i;
     end
 end
-txt = txt + "] = " + fun_name + "_SSA(" + txt2 + ",parametersIn)\r\n";
+
+txt = txt + "] = " + funNameShort + "_SSA(" + txt2 + ",parametersIn)\r\n";
 fprintf(fileID,txt);
 
 
@@ -226,8 +236,9 @@ for i=1:Nspec
 end
 txt = "function [x] = collectFun(" + txt2 + ",parametersIn)\r\n";
 fprintf(fileID,txt);
+
 fprintf(fileID,"%% This function runs the SSA and gathers the results into a single matrix.\r\n");
-txt4 = "[" + txt3 + "] = " + fun_name + ...
+txt4 = "[" + txt3 + "] = " + funNameShort + ...
     "_SSA(" + txt2 + ",parametersIn);\r\n";
 fprintf(fileID,txt4);
 txt5 = "x=" + "[" + txt3 + "];\r\n";

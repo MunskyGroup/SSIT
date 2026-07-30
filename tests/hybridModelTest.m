@@ -34,7 +34,7 @@ classdef hybridModelTest < matlab.unittest.TestCase
             % This should issue a warning and SSIT should ``automatically 
             % delete the upstream effect [...] from the stoichiometry for 
             % the downstream reaction"
-            [testCase.HybridFSPSoln, testCase.Hybrid.fspOptions.bounds] = testCase.Hybrid.solve;
+            [testCase.HybridFSPSoln, testCase.Hybrid.fspOptions.bounds] = testCase.Hybrid.solve(returnType='soln');
             testCase.Hybrid.summarizeModel
         end
     end

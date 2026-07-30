@@ -48,11 +48,10 @@ The SSIT allows users to specify and solve the **Chemical Master Equation** (CME
 # Dependencies
 For all basic functionalities:
 - MATLAB R2023b or later
-- Symbolic Computing Toolbox
-- Image Processing Toolbox
-- Global Optimization Toolbox (for model fitting only)
-- Parallel Computing Toolbox (optional). 
-- SimBiology Toolbox (for loading/saving SBML models only)
+  - Symbolic Computing Toolbox
+  - Global Optimization Toolbox (for model fitting only)
+  - Parallel Computing Toolbox (optional). 
+  - SimBiology Toolbox (for loading/saving SBML models only)
 
 # Installation and Testing
 Clone this package to a local folder on your computer. Then, navigate to this new folder in matlab and run the installation script from the MATLAB command window.
@@ -373,12 +372,22 @@ For more general insight on the use of quantitative models in biology, please re
 
 
 
+
+
+
+
+
 <!-- TRAFFIC_STATS_START -->
-Total Clones: **5852**  
-Unique Cloners: **2359**  
-Total Views: **1371**  
-Unique Visitors: **325**
+Total Clones: **6275**  
+Unique Cloners: **2465**  
+Total Views: **1431**  
+Unique Visitors: **334**
 <!-- TRAFFIC_STATS_END -->
+
+
+
+
+
 
 
 

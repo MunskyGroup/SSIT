@@ -79,6 +79,22 @@ classdef SSIT
         %   example:  Model.inputExpressions = ...
         %             {'Drug','(a0+a1*exp(-r1*t)*(1-exp(-r2*t))*(t>0))'};
         inputExpressions = {};
+        % List of special event propensity functions
+        %   default: []
+        %   example: Model.specialEvents = struct(...
+        %                   'timing','Exp',... % {'Exp','Fixed'}
+        %                   'stateTransitionFun','binomialDivision',... %
+        %                            Name of a function that defines state
+        %                            transitions given species and
+        %                            parameters.
+        %                   'rateFun','0.01',... % Rate of special event.
+        %                            Can be a constant or function of the
+        %                            species. Only for 'Exp' timing.                  
+        %                   'fixedTimes','[]',... % Time of special event.
+        %                            Can be constant vector of times or a
+        %                            function of time.
+        specialEvents = [];
+               
         % Struct containing user-supplied constraint functions for FSP
         %   default: {};
         %   example: Model.customConstraintFuns = {'offGene+onGene'};
@@ -100,7 +116,8 @@ classdef SSIT
             'fspIntegratorAbsTol',1e-4, 'odeSolver','auto',...
             'verbose',false,'bounds',[],'usePiecewiseFSP',false,...
             'initApproxSS',false,'escapeSinks',[],...
-            'constantJacobian',false,'constantJacobianTime',1.1,'stateSpace',[]);
+            'constantJacobian',false,'constantJacobianTime',1.1,...
+            'stateSpace',[],'krylovSize',10,'minSSEscapeRate',1e-3);
         % Options for FSP-Sensitivity solver
         %   defaults:
         %       'solutionMethod','finiteDifference'
@@ -121,7 +138,7 @@ classdef SSIT
         ssaOptions = struct('Nsims',1000,'Nexp',1,'nSimsPerExpt',NaN,...
             'useTimeVar',false,'signalUpdateRate',[],...
             'useParallel',false,'verbose',false,...
-            'useGPU',false,'computeFile',[]);
+            'useGPU',false,'computeFile',[],'useC',true);
         % Options for PDO
         %   defaults:
         %       'unobservedSpecies',[]
@@ -179,7 +196,7 @@ classdef SSIT
         propensitiesGeneralMeanJac = [];
         propensitiesGeneralMoments = [];
         propensitiesGeneralMomentsJac = [];
-        propensityFilePrefix = 'Default';
+        propensityFilePrefix = 'default';
 
         % Solutions
         Solutions = []; % Field holding solutions for current model and
@@ -215,6 +232,7 @@ classdef SSIT
             %       'ToggleSwitch',  % 2 species pre-formatted example
             %       'Repressilator', % 3 species pre-formatted example
             %       'BurstingSpatialCentralDogma'}  % 4 species pre-formatted example
+            %       'STL1_4state'}  % 4 species pre-formatted example
             %
             %%   modelName (string, optional) -- Name of model within
             %       modelFile. This is needed in cases where the modelFile
@@ -511,6 +529,24 @@ classdef SSIT
                 prefixName (1, 1) string = "default";
                 computeSens = true;
             end
+
+            if isempty(prefixName)
+                if ~isempty(obj.propensityFilePrefix)
+                    prefixName = obj.propensityFilePrefix;
+                else
+                    prefixName = 'default';
+                end
+            end
+            % Fix incompatible forward and back slashes in
+            % directory names for windows to mac transitions.
+            if ~strcmp(filesep,'\')
+                prefixName(prefixName=='\') = filesep;
+            end
+            if ~strcmp(filesep,'/')
+                prefixName(prefixName=='/') = filesep;
+            end
+            obj.propensityFilePrefix = prefixName;
+
             % This function starts the process to write m-file for each
             % propensity function.
 
@@ -592,13 +628,27 @@ classdef SSIT
             obj = clearPropensityFiles(obj,prefixName,'fsp');
 
             n_reactions = length(obj.propensityFunctions);
+            n_reactions_special = length(obj.specialEvents);
+            reactionTypes = [zeros(n_reactions,1);ones(n_reactions_special,1)]; 
+            
+            % if n_reactions == 0
+            %     disp('No reactions defined -- skipping propensity function generation')
+            %     obj.propensitiesGeneral = [];
+            %     obj.propensityFilePrefix = prefixName;
+            %     return
+            % end
+            
             % Propensity for hybrid models will include
             % solutions from the upstream ODEs.
             sm = cell(1,n_reactions);
             logicTerms = cell(1,n_reactions);
             logCounter = 0;
-            for i = 1:n_reactions
-                st = obj.propensityFunctions{i};
+            for i = 1:n_reactions+n_reactions_special
+                if i <= n_reactions
+                    st = obj.propensityFunctions{i};
+                elseif strcmp(obj.specialEvents(i-n_reactions).timing,'Exp')
+                    st = obj.specialEvents(i-n_reactions).rateFun;
+                end
                 for jI = 1:size(obj.inputExpressions,1)
                     st = regexprep(st,['\<',obj.inputExpressions{jI,1},'\>'],['(',obj.inputExpressions{jI,2},')']);
                 end
@@ -618,15 +668,30 @@ classdef SSIT
 
             % if ~strcmp(obj.solutionScheme,'ode')||~ismember('ode',obj.solutionSchemes)
             if obj.useHybrid
-                upstreamODEs = obj.hybridOptions.upstreamODEs;
+                PropensitiesGeneral = ssit.Propensity.createAsHybridVec(...
+                    sm, obj.stoichiometry,...
+                    obj.parameters, obj.species, ...
+                    obj.hybridOptions.upstreamODEs, ...
+                    logicTerms, prefixName + "_fsp", computeSens, ...
+                    pathToPropensityFuns, reactionTypes);
             else
-                upstreamODEs = [];
+                PropensitiesGeneral = ssit.Propensity.createAsHybridVec(...
+                    sm, obj.stoichiometry,...
+                    obj.parameters, obj.species, ...
+                    [], ... % No upstream ODEs
+                    logicTerms, prefixName + "_fsp", computeSens, ...
+                    pathToPropensityFuns, reactionTypes);
             end
 
-            PropensitiesGeneral = ssit.Propensity.createAsHybridVec(...
-                sm, obj.stoichiometry,...
-                obj.parameters, obj.species, upstreamODEs, ...
-                logicTerms, prefixName + "_fsp", computeSens);
+            for i = n_reactions+1:n_reactions+n_reactions_special
+                PropensitiesGeneral{i}.specialEvent = obj.specialEvents(i-n_reactions);
+                specialEventPars = NaN*ones(1,length(PropensitiesGeneral{i}.specialEvent.stateTransitionFunParameters));
+                for iSE=1:length(PropensitiesGeneral{i}.specialEvent.stateTransitionFunParameters)
+                    specialEventPars(iSE) = find(strcmp(obj.parameters(:,1),...
+                        PropensitiesGeneral{i}.specialEvent.stateTransitionFunParameters{iSE}));
+                end
+                PropensitiesGeneral{i}.specialEvent.parameterIndices = specialEventPars;
+            end
 
             % else
             %     PropensitiesGeneral = [];
@@ -652,6 +717,87 @@ classdef SSIT
             % path(oldPath);   % restore path
         end
         %%
+
+        function obj = addFSPConstraints(obj,opts)
+            arguments
+                obj
+                opts.anticorrelatedPairs = {}
+                opts.correlatedPairs = {}
+            end
+            % Adds several common custom constraints to the FSP model to
+            % help narrow the statespace for pairs of species that are
+            % correlated or anticorrelated
+            nSpecies = length(obj.species);
+            if (isstring(opts.anticorrelatedPairs)||ischar(opts.anticorrelatedPairs))&&strcmpi(opts.anticorrelatedPairs,'all')
+                for i = 1:nSpecies
+                    for j = i+1:nSpecies
+                        % if nSpecies>4
+                            obj.customConstraintFuns = [obj.customConstraintFuns;['1/2*log(',obj.species{i},'+1)+1/2*log(',obj.species{j},'+1)']];
+                        % else
+                        % obj.customConstraintFuns = [obj.customConstraintFuns;['(max(0,',obj.species{i},'-3)).^2.*(max(0,',obj.species{j},'-3)).^2']];
+                        % end
+                    end
+                end
+            end
+            if (isstring(opts.correlatedPairs)||ischar(opts.correlatedPairs))&&strcmpi(opts.correlatedPairs,'all')
+                for i = 1:nSpecies
+                    for j = i+1:nSpecies
+                        obj.customConstraintFuns = [obj.customConstraintFuns;[obj.species{i},'-',obj.species{j}]];
+                        obj.customConstraintFuns = [obj.customConstraintFuns;[obj.species{j},'-',obj.species{i}]];
+                        % obj.customConstraintFuns = [obj.customConstraintFuns;['log(',obj.species{i},'+1)-log(',obj.species{j},'+1)']];
+                        % obj.customConstraintFuns = [obj.customConstraintFuns;['log(',obj.species{i},'+1)-log(',obj.species{j},'+1)']];
+                        % if nSpecies<=3
+                        %     obj.customConstraintFuns = [obj.customConstraintFuns;[obj.species{i},'-2*',obj.species{j}]];
+                        %     obj.customConstraintFuns = [obj.customConstraintFuns;[obj.species{j},'-2*',obj.species{i}]];
+                        %     obj.customConstraintFuns = [obj.customConstraintFuns;[obj.species{i},'-4*',obj.species{j}]];
+                        %     obj.customConstraintFuns = [obj.customConstraintFuns;[obj.species{j},'-4*',obj.species{i}]];
+                        % end
+                    end
+                end
+            end
+        end
+
+        function obj = setMaxBounds(obj,bounds)
+            arguments
+                obj
+                bounds
+            end
+            % Set max bounds on individual species as specified in a Nx2
+            % cell array.
+            nSpecies = length(obj.species);
+            for i = 1:size(bounds,1)
+                J = find(strcmpi(obj.species,bounds{i,1}));
+                if isempty(J)
+                    error(['Species (',bounds{i,1},' not recognized.'])
+                end
+                obj.fspOptions.bounds(nSpecies+J) = bounds{i,2};
+            end
+        end
+        function obj = ssaInitializeConstraints(obj,n)
+            % Initialize FSP constraints using a set of n SSA runs.
+            arguments
+                obj
+                n = 100
+            end
+            obj2 = obj;
+            obj2.solutionScheme = 'ssa';
+            obj2.ssaOptions.Nsims = n;
+
+            if obj2.fspOptions.initApproxSS
+                obj2.tSpan = linspace(0,1000,101);
+            end
+            X = obj2.solve(returnType='soln');
+
+            obj.solutionScheme = 'fsp';
+            obj.fspOptions.bounds = ...
+                max(abs(obj.fspConstraints.f(reshape(X.trajs,size(X.trajs,1),[]))),[],2);
+            obj.fspOptions.bounds(1:length(obj.species),1) = 0;
+            obj.fspOptions.bounds(length(obj.species)+1:2*length(obj.species),1) = ...
+                max(0.99,obj.fspOptions.bounds(length(obj.species)+1:2*length(obj.species),1));
+            obj.fspOptions.bounds(2*length(obj.species)+1:end) = max(0.9,obj.fspOptions.bounds(2*length(obj.species)+1:end));
+
+        end
+        
         function constraints = get.fspConstraints(obj)
             % Makes a list of FSP constraints that can be used by the FSP
             % solver.
@@ -684,6 +830,9 @@ classdef SSIT
             else
                 constraints.b = obj.fspOptions.bounds;
             end
+            
+            % update constraints based on initial condition.
+            constraints.b = max([constraints.b,constraints.f(obj.initialCondition)],[],2); 
 
             % Define polynomial constraints for first passage time sinks
             % (i.e., states corresponding to boundaries that we are trying
@@ -716,12 +865,12 @@ classdef SSIT
             %
             % 3D Example:
             %   Model = SSIT('Repressilator');  % Load pre-made model.
-            %   [~,~,Model] = Model.solve;      % Solve to get FSP projection
+            %   Model = Model.solve;      % Solve to get FSP projection
             %   RepGenes_Model.plotStatespace(true,true,'s'); % Make plot of FSP projection statespace.
             %
             % 2D Example:
             %   Model = SSIT('ToggleSwitch');  % Load pre-made model.
-            %   [~,~,Model] = Model.solve;     % Solve to get FSP projection
+            %   Model = Model.solve;     % Solve to get FSP projection
             %   RepGenes_Model.plotStatespace(true,true,'s'); % Make plot of FSP projection statespace.
 
             arguments
@@ -810,6 +959,45 @@ classdef SSIT
                 otherwise
                     error('visualization of FSP StateSpace only supported 2D and 3D models.')
             end
+        end
+
+        function obj = continueFSP(obj,opts)
+            % This method replaces the initial condition with a previous
+            % solution of the SSIT.
+            % Example:
+            %   Model1 = SSIT('Toggle');  % Load the toggle model.
+            %   Model1.tSpan = linspace(0,10,11);
+            %   Model1 = Model1.solve(solver='fsp');
+            %   Model1.plotFSP(figureNums=1,plotType='meansAndDevs',Colors={'r'});hold on
+            %   Model2 = Model1.continueFSP(resetError=false);
+            %   Model2 = Model2.solve(solver='fsp');
+            %   Model2.plotFSP(figureNums=1,plotType='meansAndDevs',Colors={'b'});
+            arguments
+                obj
+                opts.fspSoln = []
+                opts.resetError = true
+            end
+            if ~isempty(opts.fspSoln)
+                F = opts.fspSoln.fsp{end};
+            elseif isfield(obj.Solutions,'fsp')
+                F = obj.Solutions.fsp{end};
+            else
+                error('SSIT.continueFSP -- A previous FSP solution is needed.')
+            end
+            obj.initialCondition = F.p.data.subs'-1;
+            P = F.p.data.vals;
+            if opts.resetError
+                obj.initialProbs(1:length(F.p.data.vals),1) = P/sum(P);
+            else
+                obj.initialProbs(1:length(F.p.data.vals),1) = P;
+                obj.fspOptions.fspTol = obj.fspOptions.fspTol*2;             
+            end
+            obj.Solutions = [];
+
+            % Shift the tSpan over.
+            obj.tSpan = obj.tSpan + max(obj.tSpan(end)-obj.tSpan(1));
+            obj.initialTime = obj.tSpan(1);
+        
         end
         %% Model Building Functions
         function [obj] = pregenModel(obj,modelFile)
@@ -939,7 +1127,35 @@ classdef SSIT
                         'kp*x3';'gp*x4'};
                     obj.initialCondition = [0;0;0;0];
                     obj.customConstraintFuns = {};
-
+                case 'STL1_4state'
+                    % Set species names for STL1_4state:
+                    obj.species = {'g1';'g2';'g3';'g4';'mRNA'};
+                    % Set initial condition:
+                    obj.initialCondition = [1;0;0;0;0];
+                    % Set stoichiometry of reactions:
+                    obj.stoichiometry = [-1,1,0,0,0,0,0,0,0,0,0;...   % gene state 1
+                        1,-1,-1,1,0,0,0,0,0,0,0;... % gene state 2
+                        0,0,1,-1,-1,1,0,0,0,0,0;... % gene state 3
+                        0,0,0,0,1,-1,0,0,0,0,0;...  % gene state 4
+                        0,0,0,0,0,0,1,1,1,1,-1];     % mRNA
+                    % Reactions: 1,2,3,4,5,6,7,8,9,10,11
+                    % Add a lag to the time-varying TF/MAPK input signal:
+                    obj.inputExpressions = ...
+                        {'Hog1',['A*(((1-(exp(1)^(-r1*(t-t0))))*',...
+                        'exp(1)^(-r2*(t-t0)))/(1+((1-(exp(1)^(-r1*(t-t0))))*',...
+                        'exp(1)^(-r2*(t-t0)))/M))^n*(t>t0)']};
+                    % Set propensity functions:
+                    obj.propensityFunctions = {...
+                        'k12*g1';'(max(0,k21o*(1-k21i*Hog1)))*g2';...
+                        'k23*g2';'k32*g3'; 'k34*g3';'k43*g4';...
+                        'kr1*g1';'kr2*g2';'kr3*g3';'kr4*g4';'dr*mRNA'};
+                    % Add the new parameters for the 4 state model:
+                    obj.parameters = ({'t0',3.17; 'k12',78; 'k21o',1.92e+05;...
+                        'k21i',3200; 'k23',0.402; 'k34',7.8; 'k32',1.62;...
+                        'k43',2.28; 'dr',0.294; 'kr1',4.68e-02; 'kr2',0.72;...
+                        'kr3', 59.4; 'kr4', 3.24; 'r1',4.14e-03; 'r2',0.426;...
+                        'A',9.3e+09; 'M',6.4e-04; 'n',3.1});
+                    obj.tSpan = linspace(0,50,100);
             end
             obj.propensitiesGeneral = [];
             obj.propensitiesGeneralODE = [];
@@ -961,7 +1177,7 @@ classdef SSIT
             % Example:
             %      Model = SSIT();
             %      Model = Model.createModelFromSBML('../SBML_test_cases/00010/00010-sbml-l1v2.xml');
-            %      [fspSoln] = Model.solve;
+            %      [fspSoln] = Model.solve(returnType='soln');
             %      Model.makePlot(fspSoln,'meansAndDevs')
             sbmlobj = sbmlimport(sbmlFile);
             [obj] = createModelFromSimBiol(obj,sbmlobj,scaleVolume);
@@ -980,7 +1196,7 @@ classdef SSIT
             % Example:
             %      Model = SSIT();
             %      Model = Model.createModelFromSimBiol(sbmlobj);
-            %      [fspSoln] = Model.solve;
+            %      [fspSoln] = Model.solve(returnType='soln');
             %      Model.makePlot(fspSoln,'meansAndDevs')
             arguments
                 obj
@@ -1075,18 +1291,28 @@ classdef SSIT
             sbmlexport(sbModel, modelName)
         end
 
-        function sbModel = exportSimBiol(obj,verifyAndPlot)
+        function sbModel = exportSimBiol(obj,opts)
             % This function converts the model to a simple simbiology model
             % and returns that simbiology object.
             % Arguments:
-            %   verifyAndPlot (true/false0) -- option to verify the model
+            %   opts.verifyAndPlot (true/false) -- option to verify the model
             %       and run simBiology to make a plot of its results.
+            %   opts.isMassAction (true/false) -- export reactions with
+            %       SimBiology MassAction kinetic laws. This mode is
+            %       required for SimBiology SSA and only supports
+            %       propensities with total reactant order <= 3 that can
+            %       be written as (rate-constant)*product(reactant
+            %       combinatorial terms).
+            %
+            % Legacy usage is still supported:
+            %   exportSimBiol(obj,true)
             %
             % Outputs:
             %   smModel -- the resulting simBiology model.
             arguments
                 obj
-                verifyAndPlot = false;
+                opts.verifyAndPlot = false
+                opts.isMassAction = false
             end
 
             sbModel = sbiomodel('simpleModel');
@@ -1112,22 +1338,235 @@ classdef SSIT
             end
 
             for ir=1:size(obj.stoichiometry,2)
-                strReactants = [];
-                strProducts =  [];
+                reactantTerms = {};
+                productTerms = {};
                 for is = 1:size(obj.stoichiometry,1)
                     if obj.stoichiometry(is,ir)<0
-                        strReactants =[strReactants,'+ ',[num2str(-obj.stoichiometry(is,ir))],' ',obj.species{is}];
+                        reactantTerms{end+1} = [num2str(-obj.stoichiometry(is,ir)),' ',obj.species{is}];
                     elseif obj.stoichiometry(is,ir)>0
-                        strProducts =[strProducts,'+ ',[num2str(obj.stoichiometry(is,ir))],' ',obj.species{is}];
+                        productTerms{end+1} = [num2str(obj.stoichiometry(is,ir)),' ',obj.species{is}];
                     end
                 end
-                if isempty(strProducts); strProducts = '  null '; end
-                if isempty(strReactants); strReactants = '  null '; end
-                rxn = [strReactants(3:end),' -> ',strProducts(3:end)];
-                RXN{is} = addreaction(sbModel,rxn,'ReactionRate',props{ir});
+                if isempty(productTerms)
+                    strProducts = 'null';
+                else
+                    strProducts = strjoin(productTerms,' + ');
+                end
+                if isempty(reactantTerms)
+                    strReactants = 'null';
+                else
+                    strReactants = strjoin(reactantTerms,' + ');
+                end
+                rxn = [strReactants,' -> ',strProducts];
+                if ~opts.isMassAction
+                    RXN{ir} = addreaction(sbModel,rxn,'ReactionRate',props{ir});
+                else
+                    maReactants = max(-obj.stoichiometry(:,ir),0);
+                    maProducts = max(obj.stoichiometry(:,ir),0);
+
+                    % MassAction mode: propensity must be
+                    % (rate)*product(reactant combinatorial terms), with
+                    % total reactant order <= 3.
+                    rateExpr = props{ir};
+                    reactantSpecies = find(maReactants > 0);
+                    for iReact = 1:length(reactantSpecies)
+                        iSp = reactantSpecies(iReact);
+                        rOrd = maReactants(iSp);
+                        speciesName = obj.species{iSp};
+                        speciesPattern = ['\<',regexptranslate('escape',speciesName),'\>'];
+                        if rOrd == 1
+                            if isempty(regexp(rateExpr,speciesPattern,'once'))
+                                error(['MassAction export failed for reaction ',num2str(ir),...
+                                       '. Propensity does not contain required reactant factor "',speciesName,'".']);
+                            end
+
+                            % Remove one required species factor and clean simple "*1" terms.
+                            rateExpr = regexprep(rateExpr,speciesPattern,'1','once');
+                        elseif rOrd == 2
+                            minusOneParenPattern = ['\(\s*',regexptranslate('escape',speciesName),'\s*-\s*1\s*\)'];
+                            minusOneBarePattern = ['\<',regexptranslate('escape',speciesName),'\>\s*-\s*1(?![A-Za-z0-9_])'];
+                            hasSpeciesTerm = ~isempty(regexp(rateExpr,speciesPattern,'once'));
+                            hasMinusOneTerm = ~isempty(regexp(rateExpr,minusOneParenPattern,'once')) || ...
+                                              ~isempty(regexp(rateExpr,minusOneBarePattern,'once'));
+                            if ~(hasSpeciesTerm && hasMinusOneTerm)
+                                error(['MassAction export failed for reaction ',num2str(ir),...
+                                       '. Second-order self-reaction for "',speciesName,'" requires factors ',...
+                                       '"',speciesName,'" and "(',speciesName,'-1)" in propensity.']);
+                            end
+
+                            % Remove one X and one (X-1) factor.
+                            rateExpr = regexprep(rateExpr,speciesPattern,'1','once');
+                            if ~isempty(regexp(rateExpr,minusOneParenPattern,'once'))
+                                rateExpr = regexprep(rateExpr,minusOneParenPattern,'1','once');
+                            else
+                                rateExpr = regexprep(rateExpr,minusOneBarePattern,'1','once');
+                            end
+
+                            % Keep any combinatorial scaling (e.g., 1/2)
+                            % in the rate expression; user can set it manually.
+                        elseif rOrd == 3
+                            minusOneParenPattern = ['\(\s*',regexptranslate('escape',speciesName),'\s*-\s*1\s*\)'];
+                            minusOneBarePattern = ['\<',regexptranslate('escape',speciesName),'\>\s*-\s*1(?![A-Za-z0-9_])'];
+                            minusTwoParenPattern = ['\(\s*',regexptranslate('escape',speciesName),'\s*-\s*2\s*\)'];
+                            minusTwoBarePattern = ['\<',regexptranslate('escape',speciesName),'\>\s*-\s*2(?![A-Za-z0-9_])'];
+                            hasSpeciesTerm = ~isempty(regexp(rateExpr,speciesPattern,'once'));
+                            hasMinusOneTerm = ~isempty(regexp(rateExpr,minusOneParenPattern,'once')) || ...
+                                              ~isempty(regexp(rateExpr,minusOneBarePattern,'once'));
+                            hasMinusTwoTerm = ~isempty(regexp(rateExpr,minusTwoParenPattern,'once')) || ...
+                                              ~isempty(regexp(rateExpr,minusTwoBarePattern,'once'));
+                            if ~(hasSpeciesTerm && hasMinusOneTerm && hasMinusTwoTerm)
+                                error(['MassAction export failed for reaction ',num2str(ir),...
+                                       '. Third-order self-reaction for "',speciesName,'" requires factors ',...
+                                       '"',speciesName,'", "(',speciesName,'-1)", and "(',speciesName,'-2)" in propensity.']);
+                            end
+
+                            % Remove one X, one (X-1), and one (X-2) factor.
+                            rateExpr = regexprep(rateExpr,speciesPattern,'1','once');
+                            if ~isempty(regexp(rateExpr,minusOneParenPattern,'once'))
+                                rateExpr = regexprep(rateExpr,minusOneParenPattern,'1','once');
+                            else
+                                rateExpr = regexprep(rateExpr,minusOneBarePattern,'1','once');
+                            end
+                            if ~isempty(regexp(rateExpr,minusTwoParenPattern,'once'))
+                                rateExpr = regexprep(rateExpr,minusTwoParenPattern,'1','once');
+                            else
+                                rateExpr = regexprep(rateExpr,minusTwoBarePattern,'1','once');
+                            end
+
+                            % For SSA, third-order self-reaction propensity is X*(X-1)*(X-2)/6.
+                            % Remove one explicit 1/6 combinatorial factor.
+                            rateExprPrev = rateExpr;
+                            rateExpr = regexprep(rateExpr,'/\s*6(?![A-Za-z0-9_])','','once');
+                            if strcmp(rateExpr,rateExprPrev)
+                                rateExpr = regexprep(rateExpr,'\*\s*0?\.1666666667(?![0-9])','','once');
+                                rateExpr = regexprep(rateExpr,'(?<![0-9])0?\.1666666667\s*\*','','once');
+                            end
+                            if ~strcmp(rateExpr,rateExprPrev)
+                                warning('SSIT:exportSimBiol:AutoRemovedSixth', ...
+                                    ['Reaction %d: auto-removed combinatorial 1/6 factor for third-order self-reaction ',...
+                                     'to avoid double counting in SimBiology MassAction.'], ir);
+                            else
+                                warning('SSIT:exportSimBiol:MissingSixth', ...
+                                    ['Reaction %d: third-order self-reaction did not contain detectable 1/6 factor; ',...
+                                     'continuing without auto-removal.'], ir);
+                            end
+                        else
+                            error(['MassAction export only supports reactant stoichiometry 1, 2, or 3. ',...
+                                   'Reaction ',num2str(ir),' has order ',num2str(rOrd),...
+                                   ' for species ',speciesName,'.']);
+                        end
+
+                        rateExpr = regexprep(rateExpr,'\*\s*1(?![A-Za-z0-9_])','');
+                        rateExpr = regexprep(rateExpr,'(?<![A-Za-z0-9_])1\s*\*','');
+                        rateExpr = regexprep(rateExpr,'\(\s*1\s*\)','1');
+                    end
+
+                    % Promote leftover multiplicative species factors to
+                    % catalytic reactants/products (same species on both sides).
+                    for iSp = 1:length(obj.species)
+                        if maReactants(iSp) > 0
+                            continue
+                        end
+                        spPattern = ['\<',regexptranslate('escape',obj.species{iSp}),'\>'];
+                        if ~isempty(regexp(rateExpr,spPattern,'once'))
+                            maReactants(iSp) = maReactants(iSp) + 1;
+                            maProducts(iSp) = maProducts(iSp) + 1;
+                            rateExpr = regexprep(rateExpr,spPattern,'1','once');
+                            rateExpr = regexprep(rateExpr,'\*\s*1(?![A-Za-z0-9_])','');
+                            rateExpr = regexprep(rateExpr,'(?<![A-Za-z0-9_])1\s*\*','');
+                            rateExpr = regexprep(rateExpr,'\(\s*1\s*\)','1');
+                        end
+                    end
+
+                    totalOrder = sum(maReactants);
+                    if totalOrder > 3
+                        error(['MassAction export only supports total reactant order <= 3. ',...
+                               'Reaction ',num2str(ir),' has total order ',num2str(totalOrder),'.']);
+                    end
+
+                    % Remaining expression cannot depend on species.
+                    for iSp = 1:length(obj.species)
+                        spPattern = ['\<',regexptranslate('escape',obj.species{iSp}),'\>'];
+                        if ~isempty(regexp(rateExpr,spPattern,'once'))
+                            error(['MassAction export failed for reaction ',num2str(ir),...
+                                   '. Remaining rate expression still depends on species "',obj.species{iSp},'": ',rateExpr]);
+                        end
+                    end
+
+                    rateExpr = strtrim(rateExpr);
+                    if isempty(rateExpr)
+                        rateExpr = '1';
+                    end
+
+                    % Build the mass-action reaction string from promoted
+                    % reactant/product coefficients.
+                    reactantTermsMA = {};
+                    productTermsMA = {};
+                    for is = 1:size(obj.stoichiometry,1)
+                        if maReactants(is) > 0
+                            reactantTermsMA{end+1} = [num2str(maReactants(is)),' ',obj.species{is}];
+                        end
+                        if maProducts(is) > 0
+                            productTermsMA{end+1} = [num2str(maProducts(is)),' ',obj.species{is}];
+                        end
+                    end
+                    if isempty(productTermsMA)
+                        strProductsMA = 'null';
+                    else
+                        strProductsMA = strjoin(productTermsMA,' + ');
+                    end
+                    if isempty(reactantTermsMA)
+                        strReactantsMA = 'null';
+                    else
+                        strReactantsMA = strjoin(reactantTermsMA,' + ');
+                    end
+                    rxnMA = [strReactantsMA,' -> ',strProductsMA];
+
+                    rxnObj = addreaction(sbModel,rxnMA);
+                    kl = addkineticlaw(rxnObj,'MassAction');
+
+                    if ~isempty(regexp(rateExpr,'^[A-Za-z][A-Za-z0-9_]*$','once'))
+                        % Use existing model parameter name directly.
+                        kl.ParameterVariableNames = {rateExpr};
+                    else
+                        % Stochastic SimBiology solvers ignore rules, so
+                        % reduce expression to a numeric value now.
+                        rateValExpr = rateExpr;
+                        for ip = 1:size(obj.parameters,1)
+                            pName = obj.parameters{ip,1};
+                            pVal = obj.parameters{ip,2};
+                            pPattern = ['\<',regexptranslate('escape',pName),'\>'];
+                            rateValExpr = regexprep(rateValExpr,pPattern,['(',num2str(pVal,17),')']);
+                        end
+
+                        if ~isempty(regexp(rateValExpr,'\<[A-Za-z_][A-Za-z0-9_]*\>','once'))
+                            error(['MassAction export failed for reaction ',num2str(ir),...
+                                   '. Rate expression "',rateExpr,'" is not reducible to a numeric constant ',...
+                                   'without rules (unsupported by stochastic SimBiology).']);
+                        end
+
+                        try
+                            rateVal = eval(rateValExpr);
+                        catch ME
+                            error(['MassAction export failed for reaction ',num2str(ir),...
+                                   '. Could not evaluate rate expression "',rateExpr,'" to numeric value: ',ME.message]);
+                        end
+
+                        if ~(isscalar(rateVal) && isnumeric(rateVal) && isfinite(rateVal))
+                            error(['MassAction export failed for reaction ',num2str(ir),...
+                                   '. Evaluated rate expression is not a finite scalar: ',rateExpr]);
+                        end
+
+                        % Create a synthetic numeric parameter (no rules).
+                        rateName = ['kMA_rxn_',num2str(ir)];
+                        addparameter(sbModel,rateName,rateVal);
+                        kl.ParameterVariableNames = {rateName};
+                    end
+                    RXN{ir} = rxnObj;
+                end
             end
 
-            if verifyAndPlot
+            if opts.verifyAndPlot
                 verify(sbModel)
                 csObj = getconfigset(sbModel,'active');
                 set(csObj,'Stoptime',max(obj.tSpan));
@@ -1167,14 +1606,85 @@ classdef SSIT
 
         end
 
-        function [obj] = addParameter(obj,newParameters)
+        function [obj] = removeSpecies(obj,namesSpecies)
+            % removeSpecies - remove one or more species from model.
+            % example:
+            %     F = SSIT;
+            %     F = F.addSpecies('x2');
+            %     F = F.removeSpecies('x2');
+            arguments
+                obj
+                namesSpecies
+            end
+            J = ~ismember(obj.species,namesSpecies);
+            obj.species = obj.species(J);
+            obj.initialCondition = obj.initialCondition(J,:);
+            obj.stoichiometry = obj.stoichiometry(J,:);
+        end
+        
+        function [obj] = addParameter(obj,newParameters,opts)
             % addParameter - add new parameter to reaction model
             % example:
             %     F = SSIT;
             %     F = F.addParameter({'kr',0.1})
-            obj.parameters =  [obj.parameters;newParameters];
+            arguments
+                obj
+                newParameters
+                opts.verbose = false
+                opts.verify = false
+            end
+            if ~isempty(obj.parameters)
+                [overlap,ia,ib] = intersect(obj.parameters(:,1),newParameters(:,1));
+            else
+                overlap = []; ia =[]; ib = [];
+            end
+            inew = setdiff(1:size(newParameters,1),ib);
+            if opts.verify
+                if ~isempty(overlap)
+                    answer = questdlg(['Existing parameters contain ',string(join(overlap)),' Do you wish to overwrite?'],...
+                        'Overwrite Old Parameters', ...
+                        'Overwrite All','Add New Only','Abort','Abort');
+                    switch answer
+                        case 'Overwrite All'
+                        case 'Add New Only'
+                            if isempty(inew)
+                                disp('No new parameters to add.');
+                                return
+                            end
+                            obj = obj.addParameter(newParameters(inew,:));
+                            return
+                        case 'Abort'
+                            if opts.verbose; disp('Aborting.'); end
+                            return
+                    end
+                end
+            end
+            obj.parameters =  [obj.parameters;newParameters(inew,:)];
+            if opts.verbose&&~isempty(inew); disp(append('Added parameters: ',string(join(newParameters(inew,1))),'.')); end
+            if ~isempty(ia)
+                obj.parameters(ia,2) = newParameters(ib,2);
+                if opts.verbose; disp(append('Overwriting parameters: ',string(join(newParameters(ib,1))),'.')); end
+            end
+
         end
 
+        function par = getParameter(obj,parName)
+            % Return value of parameter by name.
+            % Example:
+            %     k = SSIT.getParameter('k')
+            arguments
+                obj
+                parName
+            end
+            j = find(strcmp(obj.parameters,parName));
+            if ~isempty(j)
+            par = obj.parameters{j,2};
+            else
+                disp(['Parameter ',parName,' not found']);
+            end
+
+        end
+        
         function [obj] = changeParameter(obj,parChanges)
             % changeParameter - change one or more parameter values by
             % name. 
@@ -1265,6 +1775,7 @@ classdef SSIT
             inds(numRxn) = false;
             obj.stoichiometry = obj.stoichiometry(:,inds);
             obj.propensityFunctions = obj.propensityFunctions(inds);
+            obj.Solutions = [];
         end
 
         function [obj] = calibratePDO(obj,dataFileName,measuredSpecies,...
@@ -1565,7 +2076,8 @@ classdef SSIT
                 if isfield(obj.Solutions,'fsp')
                     fspSoln = obj.Solutions.fsp;
                 else
-                    fspSoln = obj.solve;
+                    Soln = obj.solve(returnType='soln');
+                    fspSoln = Soln.fsp;
                 end
             end
         
@@ -1797,7 +2309,7 @@ classdef SSIT
         end
 
         function summarizeData(obj)
-            %% SSIT.summarizeData - Prints a summary of the data in SSIT model:
+            % SSIT.summarizeData - Prints a summary of the data in SSIT model:
             %
             % Input:  SSIT model
             %
@@ -1814,7 +2326,7 @@ classdef SSIT
                 return
             end
 
-            %% Header
+            % Header
             disp('------------------------------------------------------------')
             disp(['Data file: ', DATA.dataFileName])
             disp('------------------------------------------------------------')
@@ -1907,6 +2419,7 @@ classdef SSIT
 
 
         end
+
         function generateModelLibrary(obj,DataFileName,ModelSpecies,DataSpecies,...
                 Folder,ModelNames,Individual,Constraints,ModelPrefix)
             arguments
@@ -1963,15 +2476,16 @@ classdef SSIT
 
         %% Model Analysis Functions
         function obj = fspSolve(obj)
-            obj.solutionScheme='FSP';
-            [~,~,obj] = obj.solve;
+            obj = obj.solve(solver='fsp');
         end
-        function [Solution, bConstraints, obj] = solve(obj,stateSpace,saveFile,fspSoln)
+        function [Solution, bConstraints, obj] = solve(obj,stateSpace,saveFile,fspSoln,opts)
             arguments
                 obj
                 stateSpace = [];
                 saveFile=[];
                 fspSoln=[];
+                opts.solver = []
+                opts.returnType = 'ssit';
             end
             % Solve the model using the specified method in
             %    obj.solutionScheme (default: 'FSP')
@@ -1983,16 +2497,37 @@ classdef SSIT
             % Example:
             %   F = SSIT('ToggleSwitch')
             %   F.solutionScheme = 'FSP'
-            %   [soln,bounds] = F.solve;  % Returns the solution and the
+            %   [soln,bounds] = F.solve(returnType='soln');  % Returns the solution and the
             %                             % bounds for the FSP projection
             %   F.solutionScheme = 'fspSens'
-            %   [soln,bounds] = F.solve;  % Returns the sensitivity and the
+            %   [soln,bounds] = F.solve(returnType='soln');  % Returns the sensitivity and the
             %                             % bounds for the FSP projection
             % See also: SSIT.makePlot for information on how to visualize
-            % the solution data.   
+            % the solution data. 
+
+            if ~isempty(opts.solver)
+                obj.solutionScheme = opts.solver;
+            end
+
+            if ~isempty(obj.specialEvents)&&~strcmpi(obj.solutionScheme(1:3),'fsp')
+                error('Special Events are currently supported only for FSP analyses')
+            elseif strcmpi(obj.solutionScheme(1:3),'fspsens')&&~strcmpi(obj.sensOptions.solutionMethod,'finiteDifference')
+                warning('Special Events are only supported for FSP sensitivity using finite difference.')
+                obj.sensOptions.solutionMethod='finiteDifference';
+            end
             
+            if ~isfield(obj.fspOptions,'minSSEscapeRate')
+                obj.fspOptions.minSSEscapeRate = 1e-3;
+            end
+            if ~isfield(obj.fspOptions,'krylovSize')
+                obj.fspOptions.krylovSize = 20;
+            end
             try
-                [Solution, bConstraints, obj] = obj.solveHelper(stateSpace,saveFile,fspSoln);
+                if strcmp(opts.returnType,'ssit') || nargout >= 2
+                    [Solution, bConstraints, obj] = obj.solveHelper(stateSpace,saveFile,fspSoln);
+                else
+                    Solution = obj.solveHelper(stateSpace,saveFile,fspSoln);
+                end
             catch
                 obj.propensitiesGeneral = [];
                 if strcmpi(obj.solutionScheme,'fsp')||strcmpi(obj.solutionScheme,'fspsens')
@@ -2000,7 +2535,15 @@ classdef SSIT
                     disp(['(Re)Forming Propensity Function Files under new name: ',newPropFileName]);
                     obj = obj.formPropensitiesGeneral(newPropFileName);
                 end
-                [Solution, bConstraints, obj] = obj.solveHelper(stateSpace,saveFile,fspSoln);               
+                if strcmp(opts.returnType,'ssit') || nargout >= 2
+                    [Solution, bConstraints, obj] = obj.solveHelper(stateSpace,saveFile,fspSoln);
+                else
+                    Solution = obj.solveHelper(stateSpace,saveFile,fspSoln);
+                end
+            end
+            switch opts.returnType
+                case 'ssit'
+                    Solution = obj;
             end
         end
 
@@ -2030,7 +2573,8 @@ classdef SSIT
                 if isempty(propensityGeneral)
                     disp('Forming Propensity Functions.')
                     obj = formPropensitiesGeneral(obj);
-                elseif ~isempty(obj.hybridOptions)&&~strcmp(obj.solutionScheme,'ode')&&length(obj.hybridOptions.upstreamODEs)~=length(propensityGeneral{1}.ODEstoichVector)
+                elseif ~isempty(obj.hybridOptions)&&~strcmp(obj.solutionScheme,'ode')&&...
+                        isfield(propensityGeneral{1},'ODEstoichVector')&&length(obj.hybridOptions.upstreamODEs)~=length(propensityGeneral{1}.ODEstoichVector)
                     disp('(Re)Forming Propensity Functions Due to Detected Change in Hybrid Model Dimension.')
                     obj = formPropensitiesGeneral(obj,'hybrid',true);
                 end
@@ -2070,7 +2614,7 @@ classdef SSIT
 
                     % specificPropensities = SSIT.parameterizePropensities(obj.propensitiesGeneral,[obj.parameters{:,2}]');
 
-                    [Solution.fsp, bConstraints,Solution.stateSpace] = ssit.fsp.adaptiveFspSolve(obj.tSpan,...
+                    [Solution.fsp, bConstraints, Solution.stateSpace, obj.fspOptions.krylovSize] = ssit.fsp.adaptiveFspSolve(obj.tSpan,...
                         obj.initialCondition,...
                         obj.initialProbs,...
                         obj.stoichiometry, ...
@@ -2092,7 +2636,10 @@ classdef SSIT
                         obj.fspConstraints.fEscape,obj.fspConstraints.bEscape, ...
                         obj.fspOptions.constantJacobian,...
                         obj.fspOptions.constantJacobianTime,...
-                        obj.odeIntegrator);
+                        obj.odeIntegrator,...
+                        obj.specialEvents,...
+                        obj.fspOptions.minSSEscapeRate,...
+                        obj.fspOptions.krylovSize);
                     obj.fspOptions.stateSpace = Solution.stateSpace;
                     obj.fspOptions.bounds = bConstraints;
 
@@ -2134,22 +2681,61 @@ classdef SSIT
                     x0 = obj.initialCondition;
                     % initial condition.
 
+                    % Fix incompatible forward and back slashes in
+                    % directory names for windows to mac transitions.
+                    if ~strcmp(filesep,'\')
+                        obj.propensityFilePrefix(obj.propensityFilePrefix=='\') = filesep;
+                    end
+                    if ~strcmp(filesep,'/')
+                        obj.propensityFilePrefix(obj.propensityFilePrefix=='/') = filesep;
+                    end
+
                     % Call code to write a GPU friendly SSA code.
                     if ~isfield(obj.ssaOptions,'computeFile')||isempty(obj.ssaOptions.computeFile)
+                        load('SSITconfig.mat','pathToPropensityFuns');
+
                         if ~strcmpi(obj.propensityFilePrefix,'default')
-                            obj.ssaOptions.computeFile = append(obj.propensityFilePrefix,'_TmpGPUSSACode');
+                            obj.ssaOptions.computeFile = append(pathToPropensityFuns,filesep,obj.propensityFilePrefix,'_TmpGPUSSACode');
                         else
-                            obj.ssaOptions.computeFile = append(obj.propensityFilePrefix,'_TmpGPUSSACode_',num2str(randi(1000)));                            
+                            obj.ssaOptions.computeFile = append(pathToPropensityFuns,filesep,obj.propensityFilePrefix,'_TmpGPUSSACode_',num2str(randi(1000)));                            
                         end
                         clear(obj.ssaOptions.computeFile) % Clear function from cache just in case.
-                        ssit.ssa.WriteGPUSSA(k,w,S,obj.tSpan,obj.ssaOptions.computeFile);                        
-                        disp(['SSA file generated: ',obj.ssaOptions.computeFile]);
+                        
+
+                        Jslash = strfind(obj.ssaOptions.computeFile,filesep);
+                        for islash = 1:length(Jslash)
+                            if Jslash(islash)>1&&~exist(obj.ssaOptions.computeFile(1:Jslash(islash)-1),"dir")
+                                mkdir(obj.ssaOptions.computeFile(1:Jslash(islash)-1));
+                            end
+                        end
+                        if ~isempty(Jslash)
+                            addpath(obj.ssaOptions.computeFile(1:Jslash(end)-1))
+                        else
+                            Jslash=0; 
+                        end
+
+                        if isfield(obj.ssaOptions,'useC')&&~obj.ssaOptions.useC
+                            ssit.ssa.WriteGPUSSA(k,w,S,obj.tSpan,obj.ssaOptions.computeFile);
+                        else
+                            try
+                                ssit.ssa.WriteSSA_MatlabCpp_Hybrid(k,w,S,obj.tSpan,[obj.ssaOptions.computeFile]);
+                                % disp(['C-Based SSA file generated: ',obj.ssaOptions.computeFile]);
+                            catch
+                                ssit.ssa.WriteGPUSSA(k,w,S,obj.tSpan,obj.ssaOptions.computeFile);
+                                % disp(['MATLAB-Based SSA file generated: ',obj.ssaOptions.computeFile]);
+                            end
+                        end
+                    else
+                        Jslash = strfind(obj.ssaOptions.computeFile,filesep);
+                        if isempty(Jslash)
+                            Jslash=0; 
+                        end
                     end
                     % TODO -- Need to check that this does not lead to file
                     % confusion in the future since there could be multiple
                     % copies of this file on the search path.
 
-                    fun = str2func(obj.ssaOptions.computeFile);
+                    fun = str2func(obj.ssaOptions.computeFile(Jslash(end)+1:end));
                     % Convert the function name string to a function handle.
 
                     % Run SSA on GPU, in parallel, or in series as
@@ -2277,11 +2863,14 @@ classdef SSIT
                     end % [Writing results to table]
                     
                     states = reshape(Solution.trajs,[size(Solution.trajs,1),size(Solution.trajs,2)*size(Solution.trajs,3)]);
-                    try
-                        bConstraints = max(obj.fspConstraints.f(states),[],2);
-                        bConstraints = max(bConstraints,obj.fspConstraints.b);
-                    catch
-                        bConstraints = [zeros(size(Solution.trajs,1),1);max(Solution.trajs,[],[2:3])];
+                    
+                    if nargout>=2
+                        try
+                            bConstraints = max(obj.fspConstraints.f(states),[],2);
+                            bConstraints = max(bConstraints,obj.fspConstraints.b);
+                        catch
+                            bConstraints = [zeros(size(Solution.trajs,1),1);max(Solution.trajs,[],[2:3])];
+                        end
                     end
 
                 case 'fspsens'
@@ -2333,16 +2922,37 @@ classdef SSIT
 
                     if ~isempty(obj.propensitiesGeneralMeanJac)
                         JAC = @(t,v)obj.propensitiesGeneralMeanJac(t,v,[obj.parameters{:,2}]);
+                        % Check if JAC is constant
+                        if sum(abs(JAC(rand,rand(size(initMeans)))-JAC(rand,rand(size(initMeans)))),"all")==0
+                            JAC = JAC(rand,rand(size(initMeans)));
+                        end
                         options = odeset('Jacobian',JAC);
                     else
                         options = [];
                     end
 
-                    [~,soln] =  odeIntegrat(RHS,obj.tSpan,initMeans,options);
+                    try
+                        [~,soln] =  odeIntegrat(RHS,obj.tSpan,initMeans,options);
+                    catch
+                        % Some versions of matlab fail on sparse matrices
+                        % in RHS and JAC.
+                        RHS = @(t,v)full(obj.propensitiesGeneralMean(t,v,[obj.parameters{:,2}]));
+                        if ~isempty(obj.propensitiesGeneralMeanJac)
+                            JAC = @(t,v)full(obj.propensitiesGeneralMeanJac(t,v,[obj.parameters{:,2}]));
+                            % Check if JAC is constant
+                            if sum(abs(JAC(rand,rand(size(initMeans)))-JAC(rand,rand(size(initMeans)))),"all")==0
+                                JAC = JAC(rand,rand(size(initMeans)));
+                            end
+                            options = odeset('Jacobian',JAC);
+                        end
+                        [~,soln] =  odeIntegrat(RHS,obj.tSpan,initMeans,options);
+                    end
                     Solution.ode = soln;
 
-                    bConstraints = max(obj.fspConstraints.f(Solution.ode),[],2);
-                    bConstraints = max(bConstraints,obj.fspConstraints.b);
+                    if nargout>=2
+                        bConstraints = max(obj.fspConstraints.f(Solution.ode),[],2);
+                        bConstraints = max(bConstraints,obj.fspConstraints.b);
+                    end
 
                 case {'moments','momentsgaussian'}
                     % Initial condition is assumed to be a delta
@@ -2365,6 +2975,10 @@ classdef SSIT
 
                     if ~isempty(obj.propensitiesGeneralMomentsJac)
                         JAC = @(t,v)obj.propensitiesGeneralMomentsJac(t,v,[obj.parameters{:,2}]);
+                        % Check if JAC is constant
+                        if sum(abs(JAC(rand,rand(size(initMeans)))-JAC(rand,rand(size(initMeans)))),"all")==0
+                            JAC = JAC(rand,rand(size(initMeans)));
+                        end 
                         options = odeset('Jacobian',JAC);
                     else
                         options = [];
@@ -2389,9 +3003,11 @@ classdef SSIT
                         end                             
                         Solution.momentsCOV(:,:,it) =  EXTX - MU'*MU;
                     end
-                   
-                    bConstraints = max(obj.fspConstraints.f((reshape(Solution.moments(1:nSp,:),[nSp,length(obj.tSpan)]))),[],2);
-                    bConstraints = max(bConstraints,obj.fspConstraints.b);
+
+                    if nargout>=2
+                        bConstraints = max(obj.fspConstraints.f((reshape(Solution.moments(1:nSp,:),[nSp,length(obj.tSpan)]))),[],2);
+                        bConstraints = max(bConstraints,obj.fspConstraints.b);
+                    end
             end
 
             if nargout>=3
@@ -2404,7 +3020,7 @@ classdef SSIT
             end
         end
 
-        function A = sampleDataFromFSP(obj,fspSoln,saveFile,nCells,species2save)
+        function A = sampleDataFromFSP(obj,fspSoln,saveFile,nCells,species2save,opts)
             % Function to create simulated single-cell snapshot data by
             % sampling from the FSP solution.
             % Arguments:
@@ -2416,17 +3032,30 @@ classdef SSIT
                 saveFile = [];
                 nCells = [];
                 species2save = {};
+                opts.fspSoln = [];
+                opts.saveFile = [];
+                opts.nCells = [];
             end
+            % Parse optional options
+            % returnType = 'default';
+            fieldNames = fields(opts);
+            for i = 1:length(fieldNames)
+                if ~isempty(opts.(fieldNames{i}))
+                    eval([fieldNames{i},'=opts.(fieldNames{i});']);
+                end
+            end
+
             Solution.T_array = obj.tSpan;
             Nt = length(Solution.T_array);
             
             if isempty(nCells)
                 if ~isnan(obj.ssaOptions.nSimsPerExpt)
-                    nSims = obj.ssaOptions.nSimsPerExpt*obj.ssaOptions.Nexp;
+                    % nSims = obj.ssaOptions.nSimsPerExpt*obj.ssaOptions.Nexp;
                 else
-                    nSims = obj.ssaOptions.Nsims;
+                    % nSims = obj.ssaOptions.Nsims;
+                    obj.ssaOptions.nSimsPerExpt = obj.ssaOptions.Nsims;
                 end
-                nCells = nSims*ones(1,Nt);
+                nCells = obj.ssaOptions.nSimsPerExpt*ones(1,Nt);
             end
             if isempty(fspSoln)
                 fspSoln = obj.Solutions;
@@ -2449,7 +3078,7 @@ classdef SSIT
 
             nSpSave = length(species2save);
             Solution.trajs = NaN*ones(nSpSave,...
-                length(obj.tSpan),max(nCells));% Creates an empty Trajectories matrix
+                length(obj.tSpan),max(nCells)*obj.ssaOptions.Nexp);% Creates an empty Trajectories matrix
             % from the size of the time array and number of simulations.
             % NaNs are put in empty elements for the case where there are
             % different numbers of cells at different time points.
@@ -2459,9 +3088,9 @@ classdef SSIT
                 clear w
                 w(:) = PP(:); w(w<0)=0;
                 % TODO - there has to be another way of doing this.
-                [I1,I2,I3,I4,I5,I6,I7,I8,I9,I10,I11] =  ind2sub(size(PP),randsample(length(w), nCells(iT), true, w ));
+                [I1,I2,I3,I4,I5,I6,I7,I8,I9,I10,I11] =  ind2sub(size(PP),randsample(length(w), nCells(iT)*obj.ssaOptions.Nexp, true, w ));
                 for iSp = 1:nSpSave
-                    eval(['Solution.trajs(iSp,iT,1:nCells(iT)) = I',num2str(indsSpecies2save(iSp)),'-1;']);
+                    eval(['Solution.trajs(iSp,iT,1:nCells(iT)*obj.ssaOptions.Nexp) = I',num2str(indsSpecies2save(iSp)),'-1;']);
                 end
             end
 
@@ -2471,7 +3100,7 @@ classdef SSIT
             if ~isempty(obj.pdoOptions.PDO)
                 distortedMode = true;
                 Solution.trajsDistorted = NaN*ones(nSpSave,...
-                length(obj.tSpan),max(nCells)); % Creates an empty Trajectories matrix from the size of the time array and number of simulations
+                length(obj.tSpan),max(nCells)*obj.ssaOptions.Nexp); % Creates an empty Trajectories matrix from the size of the time array and number of simulations
                 for iS = 1:nSpSave
                     PDO = obj.pdoOptions.PDO.conditionalPmfs{iS};
                     nDpossible = size(PDO,1);
@@ -2502,14 +3131,15 @@ classdef SSIT
                                 tableColumn = tableColumn + "_Distorted";
                             end
 
-                            trajObservations = 1:nCells(iT);
+                            trajObservations = ...
+                                nCells(iT)*(ie-1)+(1:nCells(iT));
 
                             A.(tableColumn)(tableRows) = ...
                                 trajsToWrite(s, iT, trajObservations);                            
                         end
                     end
                     k = k + nCells(iT);
-                end
+               end
 
                 if ~isempty(saveFile)
                     writetable(A,saveFile)
@@ -2518,7 +3148,7 @@ classdef SSIT
             end % [Writing to file or to table...]
         end % sampleDataFromFSP
 
-        function [fimResults,sensSoln] = computeFIM(obj,sensSoln,scale,MHSamples,freePars)
+        function [fimResults,sensSoln] = computeFIM(obj,sensSoln,scale,MHSamples,freePars,opts)
             %% computeFIM - Computes the Fisher Information Matrix (FIM)
             %%              at all time points.
             % Inputs:
@@ -2542,6 +3172,19 @@ classdef SSIT
                 scale = 'lin';
                 MHSamples = [];
                 freePars = [];
+                opts.scale = [];
+                opts.freePars = [];
+                opts.observed = [];
+            end           
+            fieldNames = fields(opts);
+            for i = 1:length(fieldNames)
+                if ~isempty(opts.(fieldNames{i}))
+                    eval([fieldNames{i},'=opts.(fieldNames{i});']);
+                end
+            end
+
+            if ~isempty(opts.observed)
+                obj.pdoOptions.unobservedSpecies = setdiff(obj.species,opts.observed);
             end
 
             % Determine which parameters sensitivities correspond to
@@ -2605,12 +3248,13 @@ classdef SSIT
                 end
             else
                 if isempty(sensSoln)
-                    if isfield(obj.Solutions,'sens')
+                    % Check if sensitivity solution availabel and that it
+                    % matches the length of the tSpan.
+                    if isfield(obj.Solutions,'sens')&&length(obj.Solutions.sens.data)==length(obj.tSpan)
                         sensSoln = obj.Solutions.sens;
                     else
                         % disp({'Running Sensitivity Calculation';'You can skip this step by providing sensSoln.'})
-                        obj.solutionScheme = 'fspSens';
-                        [sensSoln] = obj.solve;
+                        sensSoln = obj.solve(solver='fspSens',returnType='soln');
                         sensSoln = sensSoln.sens;
                     end
                 end
@@ -2637,7 +3281,8 @@ classdef SSIT
                 for it=length(sensSoln.data):-1:1
                     if isempty(indsUnobserved)
                         %F = ssit.fim.computeSingleCellFim(sensSoln.data{it}.p, sensSoln.data{it}.S, obj.pdoOptions.PDO);
-                        Sfree = sensSoln.data{it}.S(freeLocal);
+                        Sfree = sensSoln.data{it}.S(fitParsGlobal);
+                        Sfree = Sfree(freeLocal);
                         F = ssit.fim.computeSingleCellFim(sensSoln.data{it}.p, Sfree, obj.pdoOptions.PDO);
                     else
                         % Remove unobservable species.
@@ -3229,7 +3874,7 @@ classdef SSIT
             for i=1:size(obj.parameters,1)
                 obj.parameters{i,2} = round(obj.parameters{i,2},12);
             end
-            solutions = obj.solve;  % Solve the ODE analysis
+            solutions = obj.solve(returnType='soln');  % Solve the ODE analysis
 
             obj.parameters =  originalPars;
 
@@ -3347,10 +3992,10 @@ classdef SSIT
                 % sensitivity.
                 if computeSensitivity&&nargout>=2
                     obj.solutionScheme = 'fspSens'; % Chosen solution scheme
-                    [solutions] = obj.solve(stateSpace);  % Solve the FSP analysis
+                    [solutions] = obj.solve(stateSpace,returnType='soln');  % Solve the FSP analysis
                 else
                     obj.solutionScheme = 'FSP'; % Chosen solution scheme
-                    [solutions] = obj.solve(stateSpace);  % Solve the FSP analysis
+                    [solutions] = obj.solve(stateSpace,returnType='soln');  % Solve the FSP analysis
                 end
                 obj.parameters =  originalPars; % Reset back to the original parameters.
                 % end
@@ -3622,26 +4267,37 @@ classdef SSIT
                 nSims = 100; % Number of simulations at which to calculate log(L)
             end
 
+            species2save = setdiff(obj.species,[obj.hybridOptions.upstreamODEs,obj.pdoOptions.unobservedSpecies]);
+
             logLSpreadVector = zeros(nSims,1);
             objTMP = obj;
+
+            % Generate a bunch of simulated data for each requested
+            % replica.
+            obj.ssaOptions.Nexp = nSims;
+            A = obj.sampleDataFromFSP([],[],obj.dataSet.nCells,species2save);
+
             for iSim = 1:nSims
 
-                % Generate and reformat data using FSP solution.
-                A = obj.sampleDataFromFSP([],[],obj.dataSet.nCells);                
-                objTMP.dataSet.DATA = table2cell(A);
+                % Pick and reformat data using FSP solution.
+                Ai = A(:,[1,(iSim-1)*length(species2save)+2:iSim*length(species2save)+1]);      
+                objTMP.dataSet.DATA = table2cell(Ai);
                 
                 if iSim==1
-                    times = unique(A.time);
+                    times = unique(Ai.time);
                     numTimes = length(times);
-                    timeAr = A.time;
+                    timeAr = Ai.time;
                     for i = 1:numTimes
-                        timeAr(A.time==times(i)) = i-1;
+                        timeAr(Ai.time==times(i)) = i-1;
                     end
                 end
-                A.time = timeAr;
+                Ai.time = timeAr;
 
                 % Convert to data tensor
-                X = table2array(A);
+                X = table2array(Ai);
+
+                % Apply PDO to the data tensor
+                
 
                 objTMP.dataSet.app.DataLoadingAndFittingTabOutputs.dataTensor = ...
                     sptensor(X+1,ones(size(X,1),1));
@@ -3727,7 +4383,7 @@ classdef SSIT
                 obj.parameters(indsParsToFit,2) =  num2cell(pars(1:nModelPars));
 
                 % Solve model
-                [solutions] = obj.solve;  % Solve the SSA analysis
+                [solutions] = obj.solve(returnType='soln');  % Solve the SSA analysis
 
                 obj.parameters =  originalPars; % Reset back to the original parameters.
             end
@@ -3859,7 +4515,7 @@ classdef SSIT
             obj.fittingOptions.modelVarsToFit = parIndices;  % Choose which parameters to vary.
             pars0 = [obj.parameters{obj.fittingOptions.modelVarsToFit,2}];
 
-            fspSoln = obj.solve();
+            fspSoln = obj.solve(returnType='soln');
             stateSpace = fspSoln.stateSpace;
 
             Ngrid=length(scalingRange);
@@ -3896,16 +4552,30 @@ classdef SSIT
             end
         end
         % WARNING: returns height of posterior instead of likelihood if priors are specified
-        function [pars,likelihood,otherResults,obj,essVec] = maximizeLikelihood(obj,parGuess,fitOptions,fitAlgorithm)
+        function [output,likelihood,otherResults,obj,essVec] = maximizeLikelihood(obj,parGuess,fitOptions,fitAlgorithm,opts)
             arguments
                 obj
                 parGuess = [];
                 fitOptions = optimset('Display','iter','MaxIter',2000);
                 fitAlgorithm = 'fminsearch';
+                opts.parGuess = [];
+                opts.fitOptions = [];
+                opts.fitAlgorithm = [];
+                opts.returnType = 'ssit';
             end
             % Compute the maximum likelihood estimate (if priors are not
             % provided) or the maximum posterior estimate (if priors are
             % provided).  
+
+            % Parse optional options
+            % returnType = 'default';
+            fieldNames = fields(opts);
+            for i = 1:length(fieldNames)
+                if ~isempty(opts.(fieldNames{i}))
+                    eval([fieldNames{i},'=opts.(fieldNames{i});']);
+                    % returnType = 'ssit';
+                end
+            end
 
             % parse fitting options
             allFitOptions.suppressFSPExpansion = true;
@@ -3930,7 +4600,7 @@ classdef SSIT
             end
 
             if strcmpi(obj.solutionScheme,'FSP')   % Set solution scheme to FSP.
-                [FSPsoln,~,obj] = obj.solve;  % Solve the FSP analysis
+                [FSPsoln,~,obj] = obj.solve(returnType='soln');  % Solve the FSP analysis
                 % obj.fspOptions.bounds = bounds;% Save bound for faster analyses
                 if allFitOptions.suppressFSPExpansion
                     tmpFSPtol = obj.fspOptions.fspTol;
@@ -3995,6 +4665,67 @@ classdef SSIT
 
                     [x0,likelihood]  = mlSearch(objFun,x0,allFitOptions);
 
+                case 'adaptmh'
+                    % Basic adaptive MH sampler.  Runs several short chains
+                    % until acceptance is between 0.2 and 0.4 recalculating
+                    % proposal width after each chain.
+
+                    nLongChain = allFitOptions.numberOfSamples;
+                    nShortchain = ceil(max(0.1*nLongChain,10*length(obj.parameters)));
+                    allFitOptions.numberOfSamples = nShortchain;
+                    allFitOptions.thin = 1;
+                    CovScale = 1.0;
+
+                    if ~strcmpi(returnType,'ssit')
+                        error('AdaptMH only available for returnType of "SSST".')
+                    end
+                    
+                    obj = obj.maximizeLikelihood(parGuess,allFitOptions,...
+                        'metropolishastings',returnType='ssit');
+
+                    if obj.Solutions.mhResults.mhAcceptance*allFitOptions.numberOfSamples<2*length(obj.parameters)
+                        error(['Initial Acceptance too small: ',num2str(obj.Solutions.mhResults.mhAcceptance),'. Decrease proposal or request longer chain.'])
+                    end
+
+                    finalRun = false;
+                    while ~finalRun
+                        covMH = cov(obj.Solutions.mhResults.mhSamples);
+                        % Enforce symmetry and add a bit of uncorrelated
+                        % noise to the proposal generator.
+                        covMH = (covMH+covMH')/2 + 1e-6*eye(length(covMH));
+
+                        newParGuess = exp(obj.Solutions.mhResults.mhSamples(end,:))';
+
+                        lastAcceptance = obj.Solutions.mhResults.mhAcceptance;
+                        if lastAcceptance<0.1
+                            CovScale = CovScale/2;
+                            disp(['Acceptance = ',num2str(lastAcceptance),'. Decreasing proposal width'])
+                        elseif lastAcceptance<0.2
+                            CovScale = CovScale*0.8;
+                            disp(['Acceptance = ',num2str(lastAcceptance),'. Decreasing proposal width'])
+                        elseif lastAcceptance>0.4
+                            CovScale = CovScale/0.8;
+                            disp(['Acceptance = ',num2str(lastAcceptance),'. Increasing proposal width'])
+                        elseif lastAcceptance>0.6
+                            CovScale = CovScale*2;
+                            disp(['Acceptance = ',num2str(lastAcceptance),'. Increasing proposal width'])
+                        else
+                            allFitOptions.numberOfSamples = nLongChain;
+                            disp(['Acceptance = ',num2str(lastAcceptance),'. Starting Full Chain.'])
+                            finalRun = true;
+                        end
+
+                        allFitOptions.useFIMforMetHast = false;
+                        allFitOptions.proposalDistribution  = ...
+                            @(x)mvnrnd(x,CovScale*covMH);
+
+                        [output,likelihood,otherResults,obj] = obj.maximizeLikelihood(newParGuess,allFitOptions,...
+                            'metropolishastings');
+
+                    end
+
+                    return
+                   
                 case 'metropolishastings'
 
                     defaultFitOptions.isPropDistSymmetric=true;
@@ -4045,9 +4776,10 @@ classdef SSIT
                     end
 
                     if allFitOptions.useFIMforMetHast
+                        disp('Computing FIM for use in proposal distribution')
                         TMP = obj;
                         TMP.solutionScheme = 'fspSens'; % Set solutions scheme to FSP Sensitivity
-                        [sensSoln] = TMP.solve;  % Solve the sensitivity problem
+                        [sensSoln] = TMP.solve(returnType='soln');  % Solve the sensitivity problem
 
                         if allFitOptions.logForm
                             fimResults = TMP.computeFIM(sensSoln.sens,'log');
@@ -4073,6 +4805,7 @@ classdef SSIT
                         covFree = FIMfree^-1;
                         covFree = allFitOptions.CovFIMscale*(covFree+covFree')/2;
                         allFitOptions.proposalDistribution=@(x)mvnrnd(x,covFree);
+                        disp('FIM computation complete')
                     end
 
                     if allFitOptions.suppressFSPExpansion
@@ -4138,20 +4871,27 @@ classdef SSIT
                     % If fit was in linear space, need to convert to log
                     % space before returning parameters.
                     if ~allFitOptions.logForm
-                        pars = log(x0);
+                        output = log(x0);
                     end
 
             end
 
-            pars = exp(x0);
+            output = exp(x0);
 
             if strcmp(obj.solutionScheme,'FSP')&&allFitOptions.suppressFSPExpansion
                 obj.fspOptions.fspTol = tmpFSPtol;
             end
 
-            if nargout>=4
-                % Update best parameters set in returned model.
-                obj.parameters(obj.fittingOptions.modelVarsToFit,2) = num2cell(pars);
+            % Check if the fit resulted in better parameters for max
+            % posterior and update if so.
+            if nargout>=4||strcmpi(opts.returnType,'ssit')
+                if obj.computeLikelihood(exp(x0(:)))>obj.computeLikelihood([obj.parameters{obj.fittingOptions.modelVarsToFit,2}]')
+                    % Update best parameters set in returned model.
+                    obj.parameters(obj.fittingOptions.modelVarsToFit,2) = num2cell(exp(x0(:)));
+                end
+            end
+            if strcmpi(opts.returnType,'ssit')
+                output = obj;
             end
         end
 
@@ -4196,9 +4936,8 @@ classdef SSIT
             % Switch solution scheme to 'ssa'
             if ~strcmpi(obj.solutionScheme,'ssa')
                 disp('Changing solution scheme to SSA for ABC.')
-                obj.solutionScheme = 'ssa';
                 % Run once to make sure SSA files are defined.
-                [~,~,obj] = obj.solve;
+                obj = obj.solve(solver='ssa');
             end
         
             % Define the objective in *parameter* space (theta, not log-theta)
@@ -4209,12 +4948,13 @@ classdef SSIT
                 -obj.computeLossFunctionSSA(lossFunction, pars, enforceIndependence) ...
                 - logPriorLoss(pars);
         
+            % If 'all', then change to list of indices.
+            if ischar(obj.fittingOptions.modelVarsToFit)&&strcmp(obj.fittingOptions.modelVarsToFit,'all')
+                obj.fittingOptions.modelVarsToFit = [1:size(obj.parameters,1)];
+            end
+
             % Set parGuess if not provided.
             if isempty(parGuess)
-                % If 'all', then change to list of indices.
-                if ischar(obj.fittingOptions.modelVarsToFit)&&strcmp(obj.fittingOptions.modelVarsToFit,'all')
-                    obj.fittingOptions.modelVarsToFit = [1:size(obj.parameters,1)];
-                end
                 parGuess = cell2mat(obj.parameters(obj.fittingOptions.modelVarsToFit,2));
             end
             % This line will throw the error location if something is wrong:
@@ -4222,11 +4962,13 @@ classdef SSIT
         
             % Call MH as usual (this will internally wrap fitOptions.obj as
             % @(x) allFitOptions.obj(exp(x)), working in log-parameter space).
-            [pars, minimumLossFunction, Results] = ...
-                obj.maximizeLikelihood(parGuess, fitOptions, 'MetropolisHastings');
+            [pars, bestObjectiveValue, Results] = ...
+                obj.maximizeLikelihood(parGuess, fitOptions, ...
+                'MetropolisHastings', returnType='parameters');
+            minimumLossFunction = -bestObjectiveValue;
 
             % Update model with results
-            obj.parameters(obj.fittingOptions.modelVarsToFit,2) = num2cell(pars);
+            obj.parameters(obj.fittingOptions.modelVarsToFit,2) = num2cell(pars(:));
             obj.Solutions.ABC = Results;
         end
 
@@ -4399,20 +5141,20 @@ classdef SSIT
             % Examples:
             %   F = SSIT('ToggleSwitch')
             %   F.solutionScheme = 'FSP'
-            %   [FSPsoln,bounds] = F.solve;  % Returns the solution and the
+            %   [FSPsoln,bounds] = F.solve(returnType='soln');  % Returns the solution and the
             %                                % bounds for the FSP projection
             %   F.makePlot(FSPsoln,'marginals')  % Make plot of FSP
             %                                    % marginal distributions
             %
             %   F.solutionScheme = 'fspSens'
-            %   [sensSoln,bounds] = F.solve;  % Returns the sensitivity and the
+            %   [sensSoln,bounds] = F.solve(returnType='soln');  % Returns the sensitivity and the
             %                                   bounds for the FSP projection
             %   F.makePlot(sensSoln,'marginals') % Make plot of sensitivities
             %                                      of marginal distributions
             %                                      at final time
             arguments
                 obj
-                solution
+                solution = [];
                 plotType = 'means';
                 indTimes = [];
                 includePDO = false;
@@ -4423,6 +5165,10 @@ classdef SSIT
                 movieSpecies = []
                 senseVars = []
                 plotTitle = ''
+            end
+            if isempty(solution)&&isfield(obj.Solutions,'fsp')
+                % clear solution
+                solution = obj.Solutions;
             end
             if isempty(figureNums)
                 h =  findobj('type','figure');
@@ -4439,8 +5185,8 @@ classdef SSIT
             end
 
             kfig = 1;
-            switch obj.solutionScheme
-                case 'FSP'
+            switch lower(obj.solutionScheme)
+                case 'fsp'
                     app.FspTabOutputs.solutions = solution.fsp;
                     if includePDO
                         if ~isempty(obj.pdoOptions.PDO)
@@ -4567,7 +5313,7 @@ classdef SSIT
                             ylabel('Escape PDF')
                             xlabel('time')
                     end
-                case 'SSA'
+                case 'ssa'
                     Nd = size(solution.trajs,1);
                     if isempty(indTimes)
                         indTimes = 1:length(solution.T_array);
@@ -4587,7 +5333,7 @@ classdef SSIT
                             vars = var(solution.trajs(:,indTimes,:),[],3);
                             errorbar(solution.T_array(indTimes),squeeze(mean(solution.trajs(:,indTimes,:),3)),sqrt(vars));
                     end
-                case 'fspSens'
+                case 'fspsens'
 
                     if includePDO
                         if ~isempty(obj.pdoOptions.PDO)
@@ -4730,7 +5476,8 @@ classdef SSIT
         
             % ----- timeVec -----
             if isempty(timeVec)
-                timeVec = (1:nTime).';
+                % timeVec = (1:nTime).';
+                timeVec = obj.tSpan;
             else
                 if numel(timeVec) ~= nTime
                     error('timeVec length (%d) must match number of ODE time points (%d).', numel(timeVec), nTime);
@@ -5214,6 +5961,72 @@ function plotMoments(obj, opts)
 end
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+        % verifyFSPandSSA - make plots of histograms to verify results of
+        % FSP and SSA
+        function obj = verifyFSPandSSA(obj, opts)
+           % Create a set of plots to verify that the FSP and SSA solutions
+           % are consistent with one another.
+            arguments 
+                obj
+                opts.speciesNames = []    
+                opts.HistTime double = NaN  % histogram time (closest used)
+                opts.speciesNamesFSP = [];
+                opts.speciesNamesSSA = [];                
+            end
+
+            if isnan(opts.HistTime)
+                opts.HistTime = obj.tSpan(end);
+            end
+
+            if isempty(opts.speciesNames)
+                opts.speciesNames = obj.species;
+            end
+
+            if isempty(opts.speciesNamesFSP)
+                opts.speciesNamesFSP = opts.speciesNames;
+            end
+            if isempty(opts.speciesNamesSSA)
+                opts.speciesNamesSSA = opts.speciesNames;
+            end
+
+            priorSolutionScheme = obj.solutionScheme;
+            if ~isfield(obj.Solutions,'trajs')
+                disp('No SSA trajectories found. Rerunning now');
+                obj = obj.solve(solver='ssa');
+            end
+            if ~isfield(obj.Solutions,'fsp')
+                disp('No FSP solution found. Rerunning now');
+                obj = obj.solve(solver='fsp');               
+            end
+            obj.solutionScheme = priorSolutionScheme;
+
+            disp('Both FSP and SSA solutions are available.')
+            
+            if ~iscell(opts.speciesNames)
+                opts.speciesNames = {opts.speciesNames};
+            end
+            if ~iscell(opts.speciesNamesSSA)
+                opts.speciesNamesSSA = {opts.speciesNamesSSA};
+            end
+            if ~iscell(opts.speciesNamesFSP)
+                opts.speciesNamesFSP = {opts.speciesNamesFSP};
+            end
+
+            for iS = 1:length(opts.speciesNamesFSP)
+                % Make SSA Histograms
+                f = figure;
+
+                obj.plotSSA(speciesNames=opts.speciesNamesSSA(iS), HistTime=opts.HistTime, ...
+                    makeHistogramPlot=true, histogramPlotNumber=f.Number ,makeTrajectoryPlot=false);
+                hold on
+                obj.plotFSP(speciesNames=opts.speciesNamesFSP(iS), plotType='marginals',...
+                    indTimes=length(obj.Solutions.fsp), figureNums=f.Number)
+
+                
+            end
+        end
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
         % plotSSA - Plots SSA trajectories and histograms from ssaSoln struct
         function plotSSA(obj,opts)
             arguments
@@ -5237,14 +6050,18 @@ end
                 opts.Colors = [] % [] | species ×3 RGB | cell array | colormap name  
                 opts.makeMovie = false
                 opts.videoFileName = 'ssa_trajectories.mp4'
+                opts.makeTrajectoryPlot = true
+                opts.trajectoryPlotNumber = NaN
+                opts.makeHistogramPlot = true
+                opts.histogramPlotNumber = NaN
             end
-        
+
             % ----- Extract SSA solution & sizes -----
             ssaSoln = obj.Solutions;
             numSpecies    = size(ssaSoln.trajs, 1);
             nTime         = size(ssaSoln.trajs, 2);
             numTotalTraj  = size(ssaSoln.trajs, 3);
-        
+
             % ----- Number of trajectories to draw -----
             numTraj = opts.numTraj;
             if isempty(numTraj)
@@ -5252,14 +6069,14 @@ end
             else
                 numTraj = min(numTraj, numTotalTraj);
             end
-        
+
             % ----- Species master names -----
             allNames = obj.species;
             if isempty(allNames)
                 allNames = arrayfun(@(s) sprintf('Species %d', s), 1:numSpecies, 'UniformOutput', false);
             end
             if isstring(allNames), allNames = cellstr(allNames); end
-        
+
             % ----- Select species by names (priority) or indices -----
             speciesNames = opts.speciesNames;
             speciesIdx = opts.speciesIdx;
@@ -5293,12 +6110,12 @@ end
                 selNames = allNames(spList);
             end
             nSel = numel(spList);
-        
+
             % ----- Time vector & valid window -----
             Tfull = ssaSoln.T_array(:);         % full time vector
             validIdx = Tfull >= 0;              % adjust as needed
             T = Tfull(validIdx);
-        
+
             % Histogram time index (closest to opts.HistTime)
             if isempty(opts.HistTime) || ~isfinite(opts.HistTime)
                 histTarget = 100;
@@ -5306,7 +6123,7 @@ end
                 histTarget = opts.HistTime;
             end
             [~, tHist_idx] = min(abs(Tfull - histTarget));
-        
+
             % ----- Colors for selected species -----
             C = []; useCellColors = false; cellColors = {};
             if isempty(opts.Colors)
@@ -5349,84 +6166,111 @@ end
             else
                 error('opts.Colors must be: [], colormap name, n×3 RGB, or cell array.');
             end
-        
+
             % Helper: lighten color toward white (simulate transparency)
             function lc = lighten(baseRGB, alpha)
                 lc = (1 - alpha)*[1 1 1] + alpha*baseRGB;
             end
-        
+
             % ----- TRAJECTORY PLOT -----
-            figure; hold on;
-            legendEntries = cell(1, nSel);
-            legendHandles = gobjects(1, nSel);
-        
-            randIdx = randperm(numTotalTraj, numTraj);
-        
-            for j = 1:nSel
-                s = spList(j);
-                        
-                if useCellColors
-                    baseColor = cellColors{j};
+            if opts.makeTrajectoryPlot
+                if isnan(opts.trajectoryPlotNumber)
+                    figure; hold on;
                 else
-                    baseColor = C(j, :);
+                    figure(opts.trajectoryPlotNumber); hold on;
                 end
-        
-                if ~opts.MeanOnly
-                    trajColor = baseColor;
-                    if isnumeric(baseColor)
-                        trajColor = lighten(baseColor, 0.25); % lighter lines for single trajectories
-                    end
-                    Xs = squeeze(ssaSoln.trajs(s, validIdx, :));
-                    for i = 1:numTraj
-                        plot(T, Xs(:, randIdx(i)), 'LineWidth', 0.75, 'Color', trajColor, ...
-                             'HandleVisibility', 'off');
-                    end
-                end
-        
-                Xs_full = squeeze(ssaSoln.trajs(s, validIdx, :));
-                h = plot(T, mean(Xs_full, 2), opts.lineProps{:}, 'Color', baseColor);
-                legendHandles(j) = h;
-                legendEntries{j} = selNames{j};
-            end
-        
-            % ----- Axes styling -----
-            ax = gca; ax.FontSize = opts.TickLabelSize;
-            xlabel(opts.XLabel, 'FontSize', opts.AxisLabelSize);
-            ylabel(opts.YLabel, 'FontSize', opts.AxisLabelSize);
-        
-            % ----- Title -----
-            if strlength(opts.Title) > 0
-                title(string(opts.Title), 'FontSize', opts.TitleFontSize);
-            else
-                if nSel == numSpecies
-                    title('SSA Trajectories (Starting at t = 0)', 'FontSize', opts.TitleFontSize);
-                elseif nSel == 1
-                    title(sprintf('SSA Trajectories for %s (Starting at t = 0)', selNames{1}), 'FontSize', opts.TitleFontSize);
-                else
-                    title('SSA Trajectories for Selected Species (Starting at t = 0)', 'FontSize', opts.TitleFontSize);
-                end
-            end
-        
-            % ----- Axes limits -----
-            if ~isempty(opts.XLim), xlim(opts.XLim); end
-            if ~isempty(opts.YLim), ylim(opts.YLim); end
-        
-            % ----- Legend -----
-            if ~strcmpi(opts.LegendLocation, "none")
-                lgd = legend(legendHandles, legendEntries, 'Location', char(opts.LegendLocation));
-                if ~isempty(lgd), lgd.FontSize = opts.LegendFontSize; end
-            end
-            grid on; box on; hold off;
-        
-            % ----- HISTOGRAM PLOT(S) at t ≈ opts.HistTime -----
-            figure;
-            if nSel > 1
-                numPanels = nSel;
-                numRows = ceil(sqrt(numPanels));
-                numCols = ceil(numPanels / numRows);
+                legendEntries = cell(1, nSel);
+                legendHandles = gobjects(1, nSel);
+
+                randIdx = randperm(numTotalTraj, numTraj);
+
                 for j = 1:nSel
                     s = spList(j);
-                    subplot(numRows, numCols, j);
+
+                    if useCellColors
+                        baseColor = cellColors{j};
+                    else
+                        baseColor = C(j, :);
+                    end
+
+                    if ~opts.MeanOnly
+                        trajColor = baseColor;
+                        if isnumeric(baseColor)
+                            trajColor = lighten(baseColor, 0.25); % lighter lines for single trajectories
+                        end
+                        Xs = squeeze(ssaSoln.trajs(s, validIdx, :));
+                        for i = 1:numTraj
+                            plot(T, Xs(:, randIdx(i)), 'LineWidth', 0.75, 'Color', trajColor, ...
+                                'HandleVisibility', 'off');
+                        end
+                    end
+
+                    Xs_full = squeeze(ssaSoln.trajs(s, validIdx, :));
+                    h = plot(T, mean(Xs_full, 2), opts.lineProps{:}, 'Color', baseColor);
+                    legendHandles(j) = h;
+                    legendEntries{j} = selNames{j};
+                end
+
+                % ----- Axes styling -----
+                ax = gca; ax.FontSize = opts.TickLabelSize;
+                xlabel(opts.XLabel, 'FontSize', opts.AxisLabelSize);
+                ylabel(opts.YLabel, 'FontSize', opts.AxisLabelSize);
+
+                % ----- Title -----
+                if strlength(opts.Title) > 0
+                    title(string(opts.Title), 'FontSize', opts.TitleFontSize);
+                else
+                    if nSel == numSpecies
+                        title('SSA Trajectories (Starting at t = 0)', 'FontSize', opts.TitleFontSize);
+                    elseif nSel == 1
+                        title(sprintf('SSA Trajectories for %s (Starting at t = 0)', selNames{1}), 'FontSize', opts.TitleFontSize);
+                    else
+                        title('SSA Trajectories for Selected Species (Starting at t = 0)', 'FontSize', opts.TitleFontSize);
+                    end
+                end
+
+                % ----- Axes limits -----
+                if ~isempty(opts.XLim), xlim(opts.XLim); end
+                if ~isempty(opts.YLim), ylim(opts.YLim); end
+
+                % ----- Legend -----
+                if ~strcmpi(opts.LegendLocation, "none")
+                    lgd = legend(legendHandles, legendEntries, 'Location', char(opts.LegendLocation));
+                    if ~isempty(lgd), lgd.FontSize = opts.LegendFontSize; end
+                end
+                grid on; box on; hold off;
+            end
+
+            % ----- HISTOGRAM PLOT(S) at t ≈ opts.HistTime -----
+            if opts.makeHistogramPlot
+                if isnan(opts.histogramPlotNumber)
+                    figure; hold on;
+                else
+                    figure(opts.histogramPlotNumber); hold on;
+                end
+                if nSel > 1
+                    numPanels = nSel;
+                    numRows = ceil(sqrt(numPanels));
+                    numCols = ceil(numPanels / numRows);
+                    for j = 1:nSel
+                        s = spList(j);
+                        subplot(numRows, numCols, j);
+                        X_t = squeeze(ssaSoln.trajs(s, tHist_idx, :));
+                        if useCellColors
+                            fc = cellColors{j};
+                            if ischar(fc), fc = C(j,:); end
+                        else
+                            fc = C(j, :);
+                        end
+                        histogram(X_t, 'FaceColor', fc, 'EdgeColor', 'k', 'Normalization','pdf');
+                        ax = gca; ax.FontSize = opts.TickLabelSize;
+                        xlabel(sprintf('Molecule Count', selNames{j}), 'FontSize', opts.AxisLabelSize);
+                        ylabel('Frequency', 'FontSize', opts.AxisLabelSize);
+                        title(sprintf('t ≈ %.2f (%s)', Tfull(tHist_idx), selNames{j}), 'FontSize', opts.TitleFontSize);
+                        grid on; box on;
+                    end
+                else
+                    j = 1; s = spList(j);
                     X_t = squeeze(ssaSoln.trajs(s, tHist_idx, :));
                     if useCellColors
                         fc = cellColors{j};
@@ -5434,104 +6278,89 @@ end
                     else
                         fc = C(j, :);
                     end
-                    histogram(X_t, 'FaceColor', fc, 'EdgeColor', 'k');
+                    histogram(X_t, 'FaceColor', fc, 'EdgeColor', 'k', 'Normalization','pdf');
                     ax = gca; ax.FontSize = opts.TickLabelSize;
                     xlabel(sprintf('Molecule Count', selNames{j}), 'FontSize', opts.AxisLabelSize);
                     ylabel('Frequency', 'FontSize', opts.AxisLabelSize);
                     title(sprintf('t ≈ %.2f (%s)', Tfull(tHist_idx), selNames{j}), 'FontSize', opts.TitleFontSize);
                     grid on; box on;
                 end
-            else
-                j = 1; s = spList(j);
-                X_t = squeeze(ssaSoln.trajs(s, tHist_idx, :));
-                if useCellColors
-                    fc = cellColors{j};
-                    if ischar(fc), fc = C(j,:); end
-                else
-                    fc = C(j, :);
-                end
-                histogram(X_t, 'FaceColor', fc, 'EdgeColor', 'k');
-                ax = gca; ax.FontSize = opts.TickLabelSize;
-                xlabel(sprintf('Molecule Count', selNames{j}), 'FontSize', opts.AxisLabelSize);
-                ylabel('Frequency', 'FontSize', opts.AxisLabelSize);
-                title(sprintf('t ≈ %.2f (%s)', Tfull(tHist_idx), selNames{j}), 'FontSize', opts.TitleFontSize);
-                grid on; box on;
             end
 
-            if opts.makeMovie                           
-                    T = ssaSoln.T_array;
-                    validIdx = T >= 0;
-                    T = T(validIdx);
-                    trajs = ssaSoln.trajs(:, validIdx, :);
-                
-                    speciesColors = lines(numSpecies);
-                    randIdx = randperm(numTotalTraj, numTraj); % pick trajectories to show
-                
-                    % Setup video writer
-                    v = VideoWriter(opts.videoFileName, 'MPEG-4');
-                    v.FrameRate = 10;
-                    open(v);
-                
-                    % Create figure for plotting
-                    figure;
-                    hold on;
-                
-                    % Initialize plot handles
-                    if strcmp(speciesIdx, 'all')
-                        h = gobjects(numSpecies, numTraj);
-                        for s = 1:numSpecies
-                            for i = 1:numTraj
-                                h(s, i) = plot(NaN, NaN, '-', 'Color', [speciesColors(s, :) 0.3]);
-                            end
-                        end
-                        meanLines = gobjects(1, numSpecies);
-                        for s = 1:numSpecies
-                            meanLines(s) = plot(NaN, NaN, 'Color', speciesColors(s, :), 'LineWidth', 2);
-                        end
-                    else
-                        s = speciesIdx;
-                        h = gobjects(1, numTraj);
+            if opts.makeMovie
+                T = ssaSoln.T_array;
+                validIdx = T >= 0;
+                T = T(validIdx);
+                trajs = ssaSoln.trajs(:, validIdx, :);
+
+                speciesColors = lines(numSpecies);
+                randIdx = randperm(numTotalTraj, numTraj); % pick trajectories to show
+
+                % Setup video writer
+                v = VideoWriter(opts.videoFileName, 'MPEG-4');
+                v.FrameRate = 10;
+                open(v);
+
+                % Create figure for plotting
+                figure;
+                hold on;
+
+                % Initialize plot handles
+                if strcmp(speciesIdx, 'all')
+                    h = gobjects(numSpecies, numTraj);
+                    for s = 1:numSpecies
                         for i = 1:numTraj
-                            h(i) = plot(NaN, NaN, '-', 'Color', [speciesColors(s, :) 0.3]);
+                            h(s, i) = plot(NaN, NaN, '-', 'Color', [speciesColors(s, :) 0.3]);
                         end
-                        meanLine = plot(NaN, NaN, 'Color', speciesColors(s, :), 'LineWidth', 2);
                     end
-                
-                    xlabel('Time');
-                    ylabel('Molecule Count');
+                    meanLines = gobjects(1, numSpecies);
+                    for s = 1:numSpecies
+                        meanLines(s) = plot(NaN, NaN, 'Color', speciesColors(s, :), 'LineWidth', 2);
+                    end
+                else
+                    s = speciesIdx;
+                    h = gobjects(1, numTraj);
+                    for i = 1:numTraj
+                        h(i) = plot(NaN, NaN, '-', 'Color', [speciesColors(s, :) 0.3]);
+                    end
+                    meanLine = plot(NaN, NaN, 'Color', speciesColors(s, :), 'LineWidth', 2);
+                end
+
+                xlabel('Time');
+                ylabel('Molecule Count');
+                if strcmp(speciesIdx, 'all')
+                    legend(meanLines, speciesNames, 'Location', 'Best');
+                else
+                    legend(meanLine, speciesNames{speciesIdx}, 'Location', 'Best');
+                end
+                grid on;
+
+                % Animate over time
+                for tIdx = 2:length(T)
+                    tNow = T(1:tIdx);
+
                     if strcmp(speciesIdx, 'all')
-                        legend(meanLines, speciesNames, 'Location', 'Best');
-                    else
-                        legend(meanLine, speciesNames{speciesIdx}, 'Location', 'Best');
-                    end
-                    grid on;
-                
-                    % Animate over time
-                    for tIdx = 2:length(T)
-                        tNow = T(1:tIdx);
-                
-                        if strcmp(speciesIdx, 'all')
-                            for s = 1:numSpecies
-                                Xs = squeeze(trajs(s, 1:tIdx, randIdx));
-                                for i = 1:numTraj
-                                    set(h(s, i), 'XData', tNow, 'YData', Xs(:, i));
-                                end
-                                set(meanLines(s), 'XData', tNow, 'YData', mean(Xs, 2));
-                            end
-                        else
-                            Xs = squeeze(trajs(speciesIdx, 1:tIdx, randIdx));
+                        for s = 1:numSpecies
+                            Xs = squeeze(trajs(s, 1:tIdx, randIdx));
                             for i = 1:numTraj
-                                set(h(i), 'XData', tNow, 'YData', Xs(:, i));
+                                set(h(s, i), 'XData', tNow, 'YData', Xs(:, i));
                             end
-                            set(meanLine, 'XData', tNow, 'YData', mean(Xs, 2));
+                            set(meanLines(s), 'XData', tNow, 'YData', mean(Xs, 2));
                         end
-                
-                        drawnow;
-                        frame = getframe(gcf);
-                        writeVideo(v, frame);
-                    end                
-                    close(v);
-                    disp(['Video saved to ', opts.videoFileName]);
+                    else
+                        Xs = squeeze(trajs(speciesIdx, 1:tIdx, randIdx));
+                        for i = 1:numTraj
+                            set(h(i), 'XData', tNow, 'YData', Xs(:, i));
+                        end
+                        set(meanLine, 'XData', tNow, 'YData', mean(Xs, 2));
+                    end
+
+                    drawnow;
+                    frame = getframe(gcf);
+                    writeVideo(v, frame);
+                end
+                close(v);
+                disp(['Video saved to ', opts.videoFileName]);
             end
         end
 
@@ -5557,6 +6386,9 @@ end
                 opts.YLabel (1,1) string = "Molecule Count / Concentration"
                 opts.XLim double = []
                 opts.YLim double = []
+                opts.includePDO = false
+                opts.makeHistogramPlot=true
+                opts.histogramPlotNumber=NaN
             end
 
             solution = opts.solution;
@@ -5625,6 +6457,23 @@ end
                 fspSelIdx = selIdx;
             end
         
+            % ----- Apply PDO if requested -----
+            if opts.includePDO&&~isempty(obj.pdoOptions.PDO)
+                [~,indsObserved] = setdiff(obj.species,obj.pdoOptions.unobservedSpecies);
+                [~,indsUnObserved] = setdiff([1:length(obj.species)],indsObserved);
+                for iT = length(solution.fsp):-1:1
+                    p = solution.fsp{iT}.p.sumOver(indsUnObserved);
+                    solution.fsp{iT}.p = obj.pdoOptions.PDO.computeObservationDist(p);
+                end
+                if isempty(speciesNames)
+                    fspSelIdx = [1:length(indsObserved)];
+                else
+                    fspSelIdx = find(strcmp(obj.species(indsObserved),obj.species(fspSelIdx)));
+                end
+                nSel = length(fspSelIdx);
+                selNames = allNames(indsObserved(fspSelIdx));
+           end
+
             % ----- Export FSP to plottable struct -----
             rawSol = solution;   % <- copy to compute escape CDF if needed
             if plotType=="sens"
@@ -5659,7 +6508,7 @@ end
         
             switch plotType
                 case "means"
-                    figure(figureNums(kfig)); clf; kfig=kfig+1; hold on
+                    figure(figureNums(kfig)); kfig=kfig+1; hold on
                     hMean = gobjects(1, nSel);
                     tt = solution.T_array(indTimes);
                     for j = 1:nSel
@@ -5686,7 +6535,7 @@ end
                     grid on; box on; hold off;
         
                 case "meansAndDevs"
-                    figure(figureNums(kfig)); clf; kfig=kfig+1; hold on
+                    figure(figureNums(kfig)); kfig=kfig+1; hold on
                     hMean = gobjects(1, nSel);                 % handles for legend
                 
                     tt = solution.T_array(indTimes);
@@ -5729,7 +6578,7 @@ end
                 case "marginals"
                     for jj = 1:nSel
                         s = fspSelIdx(jj);
-                        f = figure(figureNums(kfig)); clf; kfig=kfig+1;
+                        f = figure(figureNums(kfig)); kfig=kfig+1;
                         f.Name = ['Marginal Distributions of ', selNames{jj}];
                         Nr = ceil(sqrt(Nt)); Nc = ceil(Nt/Nr);
                 
@@ -5748,8 +6597,10 @@ end
                                 yPlot = pmf;
                             end
                 
-                            subplot(Nr, Nc, ii); hold on
-                            stairs(xPlot, yPlot, lineProps{:}, 'Color', getC(C,jj));
+                            if Nr>1||Nc>1
+                                subplot(Nr, Nc, ii); hold on
+                            end
+                            stairs(xPlot-0.5, yPlot, lineProps{:}, 'Color', getC(C,jj));
                             set(gca,'FontSize',opts.TickLabelSize)
                             title(sprintf('t = %.3g', solution.T_array(i2)), ...
                                   'FontSize', max(opts.TitleFontSize-2,8))
@@ -5779,7 +6630,7 @@ end
                     for a = 1:nSel
                         for b = a+1:nSel
                             s1 = fspSelIdx(a); s2 = fspSelIdx(b);
-                            h = figure(figureNums(kfig)); clf; kfig=kfig+1;
+                            h = figure(figureNums(kfig)); kfig=kfig+1;
                             h.Name = sprintf('Joint Distribution of %s and %s', selNames{a}, selNames{b});
                             Nr = ceil(sqrt(Nt)); Nc = ceil(Nt/Nr);
                             for ii = 1:Nt
@@ -5849,7 +6700,7 @@ end
                     end
                 
                     % ---- Plot: CDF (top) ----
-                    figure(figureNums(kfig)); clf; kfig = kfig+1;
+                    figure(figureNums(kfig)); kfig = kfig+1;
                     subplot(2,1,1); hold on
                     hC = gobjects(1, nSinks);
                     for k = 1:nSinks
@@ -5932,7 +6783,7 @@ end
                     
                             for ii = 1:Nt
                                 it2 = indTimes(ii);
-                                f = figure(figureNums(kfig)); clf; kfig = kfig+1;
+                                f = figure(figureNums(kfig)); kfig = kfig+1;
                                 f.Name = sprintf('Marginal Sensitivities — %s @ t=%.3g', spName, solution.plotable.T_array(it2));
                     
                                 for j = 1:Np
@@ -7534,6 +8385,15 @@ end
                 opts.plotColors = struct();
                 opts.showConvergence = true;
                 opts.ESS = true;
+                opts.names = {};
+                opts.latexFileName = '';
+                opts.showMLEs = true;
+                opts.descriptions = [];
+                opts.parameterReorder = [];
+                opts.showMarginalPosteriors = false;
+                opts.priorMean = [];
+                opts.priorSig = [];
+                opts.showCovMatrix = false;
             end
             FIM = opts.FIM;
             fimScale = opts.fimScale;
@@ -7542,12 +8402,19 @@ end
             plotColors = opts.plotColors;
             showConvergence = opts.showConvergence;
             ess = opts.ESS;
+            names = opts.names;
 
-            obj.plotMHResultsStatic(obj,mhResults,FIM,fimScale,mhPlotScale,scatterFig,ess,showConvergence,plotColors)
+            obj.plotMHResultsStatic(obj,mhResults,FIM,fimScale,mhPlotScale,...
+                scatterFig,ess,showConvergence,plotColors,names,opts.latexFileName,...
+                opts.showMLEs,opts.descriptions,opts.parameterReorder,opts.showMarginalPosteriors,...
+                opts.priorMean,opts.priorSig,opts.showCovMatrix)
         end
     end
     methods (Static)
-        function plotMHResultsStatic(obj,mhResults,FIM,fimScale,mhPlotScale,scatterFig,ess,showConvergence,plotColors)
+        function plotMHResultsStatic(obj,mhResults,FIM,fimScale,mhPlotScale,...
+                scatterFig,ess,showConvergence,plotColors,names,latexFileName,...
+                showMLE,descriptions,parameterReorder,showMarginalPosteriors,...
+                priorMean,priorSig,showCovMatrix)
             arguments
                 obj
                 mhResults = [];
@@ -7558,6 +8425,15 @@ end
                 ess = true;  % display min(mhResults.ess(:)) in title    
                 showConvergence = true
                 plotColors = struct() % Optional: fields like scatter, ellipseFIM, ellipseMH, etc.
+                names = {};
+                latexFileName = '';
+                showMLE = true;
+                descriptions = [];
+                parameterReorder = [];
+                showMarginalPosteriors = false;
+                priorMean = [];
+                priorSig = [];
+                showCovMatrix = false;
             end
 
             if isfield(plotColors, 'scatter')
@@ -7592,7 +8468,12 @@ end
             if strcmp(obj.fittingOptions.modelVarsToFit,'all')
                 obj.fittingOptions.modelVarsToFit = ones(1,size(obj.parameters,1),'logical');
             end
-            parNames = obj.parameters(obj.fittingOptions.modelVarsToFit,1);
+
+            if isempty(names)
+                parNames = obj.parameters(obj.fittingOptions.modelVarsToFit,1);
+            else
+                parNames = names;
+            end
             Np = length(parNames);
 
             if ~isempty(FIM)
@@ -7679,46 +8560,183 @@ end
                 % Compute and display parameter means and standard deviations
                 mhMeans = mean(smplDone) / log(10);   % log10 scale
                 mhStds  = std(smplDone) / log(10);
+                pars = [obj.parameters{obj.fittingOptions.modelVarsToFit,2}];
+                [~,jMax] = max(mhResults.mhValue);
+                MHpars = mhResults.mhSamples(jMax,:) / log(10);
 
-                fprintf('\nMH sample means and standard deviations (log10 scale):\n');
-                for p = 1:Np
-                    fprintf('%15s: mean = % .4f, std = %.4f\n', parNames{p}, mhMeans(p), mhStds(p));
+                if isempty(parameterReorder)
+                    parameterReorder = [1:Np];
+                else
+                    Np = length(parameterReorder);
                 end
 
+                for p = 1:Np
+                    if length(descriptions)<Np
+                        descriptions{p} = '';
+                    else
+                        descriptions{p} = [descriptions{p},'&'];
+                    end
+                end
+
+                if isempty(latexFileName)
+                %  fprintf('\nMH sample means and standard deviations (log10 scale): \n');
+                %    for p = 1:Np
+                %        if showMLE
+                %            fprintf(['%15s: MLE = % .4f, mean = % .4f, std = %.4f \\hline \\\\ \n'], parNames{p}, MHpars(p), mhMeans(p), mhStds(p));
+                %        else
+                %            fprintf('%15s: mean = % .4f, std = %.4f \\hline \\\\ \n', parNames{p}, mhMeans(p), mhStds(p));
+                %        end
+                %     end
+                else
+                     fid = fopen(latexFileName,'w');
+                %     fprintf(fid,'\nMH sample means and standard deviations (log10 scale):\n');
+                %     for p = 1:Np
+                %         if showMLE
+                %             fprintf(fid,[descriptions{p},'%15s & %.2e (%.2e $\\pm$ %.2e) \\hline \\\\ \n'], parNames{p}, MHpars(p), mhMeans(p), mhStds(p));
+                %         else
+                %             fprintf(fid,[descriptions{p},'%15s & %.2e & %.2e \\hline \\\\ \n'], parNames{p}, mhMeans(p), mhStds(p));
+                %         end
+                %     end
+                end
+
+                % Compute and display parameter means and standard deviations
+                mhMeans = mean(exp(smplDone));   % log10 scale
+                mhStds  = std(exp(smplDone));
+                MHpars = exp(mhResults.mhSamples(jMax,:));
+
+                if isempty(latexFileName)
+                    fprintf('\n%%MH sample means and standard deviations (linear scale):\n');
+                    for ip = 1:Np
+                        p = parameterReorder(ip);
+                        if showMLE
+                           fprintf('%15s: MLE = % .4f, mean = % .4f, std = %.4f\n', parNames{p}, MHpars(p), mhMeans(p), mhStds(p));
+                        else
+                           fprintf('%15s: mean = % .4f, std = %.4f\n', parNames{p}, mhMeans(p), mhStds(p));
+                        end
+                    end
+                else
+                    fprintf(fid,'\n\n\n%%MH sample means and standard deviations (linear scale): \n');
+                    fprintf(fid,'%%Model & MLE & Posterior mean $\\pm$ STD)  \\\\ \\hline \n');
+                    fprintf(fid,'\\begin{tabular}{|l|l|l|l|}\n');
+                    fprintf(fid,'\\hline\n');
+                    fprintf(fid,'\\textbf{Description (units)} & \\textbf{Parameter} & \\textbf{MLE Value} &\\textbf{Posterior Mean $\\pm$ STD}\\\\ \\hline \\hline\n');
+                    for ip = 1:Np
+                        p = parameterReorder(ip);
+                        if showMLE
+                            fprintf(fid,[descriptions{ip},'%15s & %.2e & %.2e $\\pm$ %.2e  \\\\ \\hline\n'], parNames{p}, MHpars(p), mhMeans(p), mhStds(p));
+                        else
+                            fprintf(fid,[descriptions{ip},'%15s & %.2e $\\pm$ %.2e  \\\\ \\hline\n'], parNames{p}, mhMeans(p), mhStds(p));
+                        end                    
+                    end
+                    fprintf(fid,'\\end{tabular}');                    
+                end
             end
 
             fimCols = {'k','c','b','g','r'};
 
-            for i=1:Np-1
-                for j = i+1:Np
-                    subplot(Np-1,Np-1,(i-1)*(Np-1)+j-1);
+            if Np<=8
+                for ii=1:Np-1
+                    for jj = ii+1:Np
+                        subplot(Np-1,Np-1,(ii-1)*(Np-1)+jj-1);
+                        i = parameterReorder(ii);
+                        j = parameterReorder(jj);
 
-                    if exist('mhResultsSecondHalf','var')&&~isempty(mhResultsSecondHalf)
-                        scatter(smplDone(:,j)/log(10),smplDone(:,i)/log(10),20,valDoneSorted,'filled'); hold on;
-                        par0 = mean(smplDone(:,[j,i])/log(10));
-                        cov12 = cov(smplDone(:,j)/log(10),smplDone(:,i)/log(10));
-                    end
-                    if ~isempty(FIM)
-                        for iFIM = 1:length(covFIM)
-                            ssit.parest.ellipse(parsScaled([j,i]),icdf('chi2',0.9,2)*covFIM{iFIM}([j,i],[j,i]),fimCols{mod(iFIM,5)+1},'linewidth',2); hold on;
-                            plot(parsScaled(j),parsScaled(i),'ks','MarkerSize',15)
-                            % plot(smplDone(end,j)/log(10),smplDone(end,i)/log(10),'cs','MarkerSize',15)
+                        if exist('mhResultsSecondHalf','var')&&~isempty(mhResultsSecondHalf)
+                            scatter(smplDone(:,j)/log(10),smplDone(:,i)/log(10),20,valDoneSorted,'filled'); hold on;
+                            par0 = mean(smplDone(:,[j,i])/log(10));
+                            cov12 = cov(smplDone(:,j)/log(10),smplDone(:,i)/log(10));
                         end
-                    end
-                    if exist('mhResultsSecondHalf','var')&&~isempty(mhResultsSecondHalf)
-                        ssit.parest.ellipse(par0,icdf('chi2',0.9,2)*cov12,'m--','linewidth',2);  hold on;
-                        % Draw crosshairs at MH mean ± std
-                        % plot([mhMeans(j)-mhStds(j), mhMeans(j)+mhStds(j)], [mhMeans(i), mhMeans(i)], 'm-', 'LineWidth', 1.5);
-                        % plot([mhMeans(j), mhMeans(j)], [mhMeans(i)-mhStds(i), mhMeans(i)+mhStds(i)], 'm-', 'LineWidth', 1.5);
-                        %
-                        % % Annotate mean location
-                        % text(mhMeans(j), mhMeans(i), sprintf('\\leftarrow Mean'), 'Color', 'm', 'FontSize', 8, 'HorizontalAlignment', 'left');
+                        if ~isempty(FIM)
+                            for iFIM = 1:length(covFIM)
+                                ssit.parest.ellipse(parsScaled([j,i]),icdf('chi2',0.9,2)*covFIM{iFIM}([j,i],[j,i]),fimCols{mod(iFIM,5)+1},'linewidth',2); hold on;
+                                plot(parsScaled(j),parsScaled(i),'ks','MarkerSize',15)
+                                % plot(smplDone(end,j)/log(10),smplDone(end,i)/log(10),'cs','MarkerSize',15)
+                            end
+                        end
+                        if exist('mhResultsSecondHalf','var')&&~isempty(mhResultsSecondHalf)
+                            ssit.parest.ellipse(par0,icdf('chi2',0.9,2)*cov12,'m--','linewidth',2);  hold on;
+                            % Draw crosshairs at MH mean ± std
+                            % plot([mhMeans(j)-mhStds(j), mhMeans(j)+mhStds(j)], [mhMeans(i), mhMeans(i)], 'm-', 'LineWidth', 1.5);
+                            % plot([mhMeans(j), mhMeans(j)], [mhMeans(i)-mhStds(i), mhMeans(i)+mhStds(i)], 'm-', 'LineWidth', 1.5);
+                            %
+                            % % Annotate mean location
+                            % text(mhMeans(j), mhMeans(i), sprintf('\\leftarrow Mean'), 'Color', 'm', 'FontSize', 8, 'HorizontalAlignment', 'left');
 
+                        end
+                        xlabel(['$\log_{10}(',strrep(parNames{j},'$',''),')$'],'Interpreter','latex')
+                        ylabel(['$\log_{10}(',strrep(parNames{i},'$',''),')$'],'Interpreter','latex')
                     end
-                    xlabel(['log_{10}(',parNames{j},')']);
-                    ylabel(['log_{10}(',parNames{i},')']);
+                end
+            else
+                kSub = 0;
+                for ii=1:Np-1
+                    for jj = ii+1:Np
+                        kSub = kSub+1;
+                        if kSub>49
+                            figure
+                            kSub=1;
+                        end
+                        subplot(7,7,kSub);
+                        i = parameterReorder(ii);
+                        j = parameterReorder(jj);
+
+                        if exist('mhResultsSecondHalf','var')&&~isempty(mhResultsSecondHalf)
+                            scatter(smplDone(:,j)/log(10),smplDone(:,i)/log(10),20,valDoneSorted,'filled'); hold on;
+                            par0 = mean(smplDone(:,[j,i])/log(10));
+                            cov12 = cov(smplDone(:,j)/log(10),smplDone(:,i)/log(10));
+                        end
+                        if ~isempty(FIM)
+                            for iFIM = 1:length(covFIM)
+                                ssit.parest.ellipse(parsScaled([j,i]),icdf('chi2',0.9,2)*covFIM{iFIM}([j,i],[j,i]),fimCols{mod(iFIM,5)+1},'linewidth',2); hold on;
+                                plot(parsScaled(j),parsScaled(i),'ks','MarkerSize',15)
+                                % plot(smplDone(end,j)/log(10),smplDone(end,i)/log(10),'cs','MarkerSize',15)
+                            end
+                        end
+                        if exist('mhResultsSecondHalf','var')&&~isempty(mhResultsSecondHalf)
+                            ssit.parest.ellipse(par0,icdf('chi2',0.9,2)*cov12,'m--','linewidth',2);  hold on;
+                            % Draw crosshairs at MH mean ± std
+                            % plot([mhMeans(j)-mhStds(j), mhMeans(j)+mhStds(j)], [mhMeans(i), mhMeans(i)], 'm-', 'LineWidth', 1.5);
+                            % plot([mhMeans(j), mhMeans(j)], [mhMeans(i)-mhStds(i), mhMeans(i)+mhStds(i)], 'm-', 'LineWidth', 1.5);
+                            %
+                            % % Annotate mean location
+                            % text(mhMeans(j), mhMeans(i), sprintf('\\leftarrow Mean'), 'Color', 'm', 'FontSize', 8, 'HorizontalAlignment', 'left');
+
+                        end
+                        xlabel(['$\log_{10}(',strrep(parNames{j},'$',''),')$'],'Interpreter','latex')
+                        ylabel(['$\log_{10}(',strrep(parNames{i},'$',''),')$'],'Interpreter','latex')
+                    end
                 end
             end
+
+            if showMarginalPosteriors
+                f = figure;
+                nx = ceil(sqrt(length(parameterReorder)));
+                for ip = 1:Np
+                    p = parameterReorder(ip);
+                    subplot(nx,nx,ip)
+                    h = histogram(smplDone(:,p)/log(10),35,'Normalization','pdf');
+                    hold on
+                    mu = mean(smplDone(:,p)/log(10));
+                    sig2 = var(smplDone(:,p)/log(10));
+                    binCenters = (h.BinEdges(1:end-1)+h.BinEdges(2:end))/2;
+                    pFit = normpdf(binCenters,mu,sqrt(sig2));
+                    plot(binCenters,pFit,'linewidth',3)
+                    set(gca,'fontsize',15)
+                    xlabel(['$\log_{10}(',strrep(parNames{p},'$',''),')$'],'Interpreter','latex')
+                    grid on
+
+                    if ~isempty(priorMean)&&~isempty(priorSig)
+                        mu = priorMean(p);
+                        sig = priorSig(p);
+                        pFit = normpdf(binCenters,mu,sig);
+                        plot(binCenters,pFit,'linewidth',3)
+                    end
+                end
+            end
+            if showCovMatrix
+                % TODO - add function to plot the covariance matrix              
+            end
+
         end
 
         
@@ -7860,7 +8878,8 @@ end
 
             % Add path to SSIT.
             pth = which('SSIT');
-            pth = append('addpath(genpath(''',pth(1:end-19),'''));addpath(''tmpPropensityFunctions'');');
+            pth = append('addpath(genpath(''',pth(1:end-19),['''));' ...
+                'addpath(''',pth(1:end-22),'tmpPropensityFunctions'');']);
 
             % Add path to matlab executable
             matlabpath = fullfile(matlabroot, 'bin', 'matlab');
@@ -7926,6 +8945,27 @@ end
                     logFile=logfile, ...
                     runNow1=true, ...
                     runOnCluster=useCluster);
+            end
+        end
+
+        function Tutorial(obj)
+            % Open file browser for user to launch one of the example tutorials.
+            load('SSITconfig.mat');
+            J = max(strfind(pathToPropensityFuns,append(filesep,'SSIT',filesep)));
+            exampleFolder = append(pathToPropensityFuns(1:J+5),'Examples');
+            files = dir(exampleFolder);
+            J = find(contains({files.name},'example_'));
+            promptString = 'Select a tutorial to launch.';
+            dialogTitle = 'SSIT Tutorial Launcher';
+            answer = listdlg('promptString',promptString,'SelectionMode',...
+                'single','ListSize',[350,500],...
+                'ListString',{files(J).name},...
+                'Name',dialogTitle);
+            open(append(exampleFolder,filesep,files(J(answer)).name));
+
+            htmlFile = append(exampleFolder,filesep,'html',filesep,files(J(answer)).name(1:end-2),'.html');
+            if exist(htmlFile,'file')
+                web(htmlFile)
             end
         end
     end
