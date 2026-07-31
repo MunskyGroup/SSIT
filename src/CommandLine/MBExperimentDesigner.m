@@ -1,8 +1,8 @@
 classdef MBExperimentDesigner
     %MBExperimentDesigner performs sequential model-based experiment design
-    %   MBExperimentDesigner uses an SSIT model and empirical or simulated
-    %   data to design and perform rounds of experimentation. In the case
-    %   of empirical data, the user performs a round of experimentation by
+    %   MBExperimentDesigner uses a model and empirical or simulated data
+    %   to design and perform rounds of experimentation. In the case of
+    %   empirical data, the user performs a round of experimentation by
     %   supplying a dataset that is novel to the designer; in the case of
     %   simulated data, the designer utilizes a ground-truth to simulate
     %   the outcome of a designed experiment.
@@ -12,8 +12,8 @@ classdef MBExperimentDesigner
         CumulativeNumbersOfObservations (1, :) uint64
         ExperimentRounds (1, :) MBExperimentRound
         FIMScale (1, 1) string = "log"
-        GroundTruthModel (1, 1) SSIT
-        GuessedModel (1, 1) SSIT
+        GroundTruthModel (1, 1) MBExperimentModel
+        GuessedModel (1, 1) MBExperimentModel
         MaxFitIterations (1, 1) uint64 {mustBePositive} = 1;
         MHOptions (1, 1) MetropolisHastingsAlgorithmOptions
         NextExperimentDesign (1, 1) MBExperimentDesign
@@ -31,25 +31,85 @@ classdef MBExperimentDesigner
 
     properties (Dependent)
         FitOptions
-        GroundTruthModelsWithCombinedTimes (1, :) SSIT
-        GroundTruthModelsWithIndividualTimes (1, :) SSIT
-        GuessedModelsWithCombinedTimes (1, :) SSIT
-        GuessedModelsWithIndividualTimes (1, :) SSIT        
+        GroundTruthModelsWithCombinedTimes (1, :) MBExperimentModel
+        GroundTruthModelsWithIndividualTimes (1, :) MBExperimentModel
+        GuessedModelsWithCombinedTimes (1, :) MBExperimentModel
+        GuessedModelsWithIndividualTimes (1, :) MBExperimentModel        
     end
 
     methods (Static)
+        function configsOut = combineConfigurationsByTime(configsIn)
+            %combineConfigurationsByTime accepts a list of experiment
+            %configurations and outputs an equivalent list of experiment
+            %configurations such that
+            %   1. Each output configuration contains a unique non-time
+            %   configuration (set of values for input expressions and 
+            %   designed parameters).
+            %   2. As a result of the above, all time configurables
+            %   corresponding to each non-time configuration are combined
+            %   into a single time configurable.            
+            arguments
+                configsIn (1, :) MBExperimentConfiguration
+            end
+
+            d = configureDictionary(...
+                "MBExperimentNonTimeConfiguration", ...
+                "MBExperimentTimeConfigurable");
+            
+            for inIdx = 1:length(configsIn)
+                ntc = configsIn(inIdx).NonTimeConfiguration;
+                tc = configsIn(inIdx).TimeConfigurable;
+                if d.isKey(ntc)
+                    % There is already a corresponding time configurable
+                    % for this non-time configuration. Append that existing
+                    % configurable to the incoming one and update the value
+                    % accordingly.
+
+                    d(ntc) = d(ntc) + tc;
+                else
+                    % There is no existing corresponding time configurable
+                    % for this non-time configuration, so introduce a new
+                    % key-value pair.
+
+                    d(ntc) = tc;
+                end
+            end % combineConfigurationsByTime
+
+            % Having now generated a dictionary mapping all non-time
+            % configurations to combined time configurables, generate the
+            % output configurations by pairing the keys and values:
+
+            configsOut = createArray(1, d.numEntries(), ...
+                "MBExperimentConfiguration");
+            keys = d.keys();
+            for outIdx = 1:length(keys)
+                newConfig = MBExperimentConfiguration();
+                ntc = keys(outIdx);
+                newConfig.NonTimeConfiguration = ntc;
+                newConfig.TimeConfigurable = d(ntc);
+                configsOut(outIdx) = newConfig;               
+            end                          
+        end
+
         function timeSpan = getAllTimes(configurations)
             arguments
                 configurations (1, :) MBExperimentConfiguration
             end
 
-            timeSpan = [];
-            for configIdx = 1:length(configurations)
-                timeSpan = [timeSpan ...
-                    configurations(configIdx).TimeConfigurable.Values];                
+            if ~isempty(configurations)
+                % Sum all the configurations' TimeConfigurable; this has
+                % the effect of combining all their times into the Value of
+                % the sum.
+
+                tc = configurations(1).TimeConfigurable;
+                for configIdx = 2:length(configurations)
+                    tc = tc + configurations(configIdx).TimeConfigurable;
+                end
+                timeSpan = tc.Values;
+            else
+                timeSpan = []; % No configurations means no times...
             end
-            timeSpan = unique(sort(timeSpan));
-        end
+        end % getAllTimes
 
         function range = getArraySliceForModel(modelIdx, numTimes)
             arguments
@@ -59,6 +119,25 @@ classdef MBExperimentDesigner
 
             range = ((modelIdx - 1) * numTimes + 1) : (modelIdx * numTimes);
         end
+
+        function [models, configs] = multiplyModel(...
+                model, configs, combineTimes)
+            arguments                
+                model (1, 1) MBExperimentModel
+                configs (1, :) MBExperimentConfiguration
+                combineTimes (1, 1) logical
+            end
+
+            if combineTimes
+                configs = combineConfigurationsByTime(configs);
+            end
+
+            numConfigs = length(configs);
+            models = createArray(1, numConfigs, "MBExperimentModel");
+            for configIdx = 1:numConfigs
+                models(configIdx) = configs(configIdx).applyToModel(model);
+            end
+        end % multiplyModel
     end % Public static methods
 
     % TO DO: collectSummaryOfDesignedRound needs 
@@ -169,7 +248,7 @@ classdef MBExperimentDesigner
                 obj.CumulativeNumbersOfObservations, ...
                 obj.GuessedModel.fittingOptions.logPriorCovariance);            
         end
-
+      
         function [obj, round] = setupAndRunMetropolisHastings(obj, round)
             arguments
                 obj (1, 1) MBExperimentDesigner
@@ -271,7 +350,67 @@ classdef MBExperimentDesigner
                 'MaxIter', obj.MaxFitIterations);
         end
 
-        function [nextRoundResults, obj] = performNextRound(obj)
+        function models = get.GroundTruthModelsWithCombinedTimes(obj)
+            models = multiplyModel(...
+                obj.GroundTruthModel, obj.Configurations, true);
+        end
+
+        function models = get.GroundTruthModelsWithIndividualTimes(obj)
+            models = multiplyModel(...
+                obj.GroundTruthModel, obj.Configurations, false);
+        end
+
+        function models = get.GuessedModelsWithCombinedTimes(obj)
+            models = multiplyModel(...
+                obj.GuessedModel, obj.Configurations, true);
+        end
+
+        function models = get.GuessedModelsWithIndividualTimes(obj)
+            models = multiplyModel(...
+                obj.GuessedModel, obj.Configurations, false);
+        end
+
+        function [nextRoundResults, obj] = performNextRound(obj, ...
+                pathsToEmpiricalData)
+            %performNextRound performs a single round of experimentation
+            %according to the most recently specified experiment design,
+            %i.e., an apportionment of available observations across
+            %candidate experiment configurations.
+            %
+            %The way the experiment round is performed depends upon the
+            %mode: empirical versus simulated.
+            %   Empirical: The user may specify a list of paths (absolute
+            %   or relative) to files containing data to be used. All such
+            %   files, IF NOT PREVIOUSLY SUPPLIED TO THE DESIGNER, will be
+            %   read and appended to a table of empirical data. The subset
+            %   of observations in that table NOT used by this designer in
+            %   any previous round will be sampled according to the design.
+            %   The guessed model will be refit according to all empirical
+            %   data seen thus far, including in the nascent round.
+            %
+            %   Simulated: The user should not specify any paths and will
+            %   be warned when having done so. A ground-truth model must
+            %   have been specified and will be solved using the FSP. The
+            %   solution will then be downsampled according to the design.
+            %   All such data across all rounds of SIMULATED
+            %   experimentation will be stored in a dedicated table.
+            %   The guessed model will be refit according to all simulated
+            %   data seen thus far, including in the nascent round.
+
+            arguments
+                obj (1, 1) MBExperimentDesigner
+                pathsToEmpiricalData (1, :) string
+            end
+
+            if obj.UseEmpiricalData
+            else % Empirical mode
+                if ~isempty(pathsToEmpiricalData)
+                    warning("Paths to empirical data files " + ...
+                        "shouldn't be provided when designing " + ...
+                        "experiments in simulation mode!");
+                end
+
+            end % Simulation mode
         end % performNextRound
 
         function outputArg = method1(obj,inputArg)
