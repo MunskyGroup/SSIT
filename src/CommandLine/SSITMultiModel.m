@@ -19,21 +19,63 @@ classdef SSITMultiModel
         function SMM = SSITMultiModel(SSITMods,parIndices,parConstraints,stateSpaces)
             % SSITMultiModel Construct an instance of this class.
             arguments
-                SSITMods = [];
-                parIndices = [];
+                SSITMods = {};
+                parIndices = {};
                 parConstraints = [];
                 stateSpaces = [];
             end   
             SMM.SSITModels=SSITMods;
+
+            % Update so (SSIT).fittingOptions.modelVarsToFit corresponds to
+            % actual parameter indices and not the default 'all'.
+            for i = 1:length(SMM.SSITModels)
+                if ischar(SMM.SSITModels{i}.fittingOptions.modelVarsToFit)&&strcmpi(SMM.SSITModels{i}.fittingOptions.modelVarsToFit,'all')
+                    SMM.SSITModels{i}.fittingOptions.modelVarsToFit = [1:size(SMM.SSITModels{i}.parameters,1)];
+                end
+            end
+
+            % Check if the indices in multimodel have been supplied and if
+            % not check with user how they want to proceed.
+            if ~isempty(SSITMods)&&isempty(parIndices)
+                answer = questdlg('Parameter indices are required. Do you wish to use defaults?',...
+                    'Parameter Indices', ...
+                    'All Independent','All Identical','Abort','Abort');
+                switch answer
+                    case 'All Independent' 
+                        k = 0;
+                        for i = 1:length(SSITMods)
+                            parIndices{i} = k+[1:length(SSITMods{i}.fittingOptions.modelVarsToFit)];
+                            k = max(parIndices{i});
+                        end
+                    case 'All Identical' 
+                        for i = 1:length(SSITMods)
+                            parIndices{i} = [1:length(SSITMods{1}.fittingOptions.modelVarsToFit)];
+                        end
+                    case 'Abort'
+                        return
+                end
+
+            end
+            
             SMM.parameterIndices = parIndices;
             SMM.parameterConstraints = parConstraints;
+            
+            % Update statespaces if they are provide or are available.
             if ~isempty(stateSpaces)
                 SMM.fspStateSpaces = stateSpaces;
             else
                 nMod = length(SSITMods);
                 SMM.fspStateSpaces = cell(1,nMod);
+                for i = 1:nMod
+                    if isfield(SMM.SSITModels{i}.Solutions,'stateSpace')
+                        SMM.fspStateSpaces{i} = SMM.SSITModels{i}.Solutions.stateSpace;
+                    end
+                end
             end
             for i = 1:nMod
+                % if ischar(SMM.SSITModels{i}.fittingOptions.modelVarsToFit)&&strcmpi(SMM.SSITModels{i}.fittingOptions.modelVarsToFit,'all')
+                %     SMM.SSITModels{i}.fittingOptions.modelVarsToFit = [1:size(SMM.SSITModels{i}.parameters,1)];
+                % end
                 SMM.parameters(1,SMM.parameterIndices{i}) = ...
                     [SMM.SSITModels{i}.parameters{SMM.SSITModels{i}.fittingOptions.modelVarsToFit,2}];
             end
@@ -86,7 +128,7 @@ classdef SSITMultiModel
                 end
 
                 if strcmp(Model.solutionScheme,'FSP')
-                    [fspSoln,SMM.SSITModels{i}.fspOptions.bounds] = Model.solve;
+                    [fspSoln,SMM.SSITModels{i}.fspOptions.bounds] = Model.solve(returnType='soln');
                     % Initialize the structure for the current model
                     fspSolnsSMM(i).fsp = cell(numel(fspSoln.fsp), 1); % Cell array for FSP solutions
                     for f=1:numel(fspSoln.fsp)
@@ -123,8 +165,8 @@ classdef SSITMultiModel
                 end
 
                 if strcmp(Model1.solutionScheme,'FSP')
-                    [fspSoln1,SMM1.SSITModels{i}.fspOptions.bounds] = Model1.solve;
-                    [fspSoln2,SMM2.SSITModels{i}.fspOptions.bounds] = Model2.solve;
+                    [fspSoln1,SMM1.SSITModels{i}.fspOptions.bounds] = Model1.solve(returnType='soln');
+                    [fspSoln2,SMM2.SSITModels{i}.fspOptions.bounds] = Model2.solve(returnType='soln');
                     % Initialize the structure for the current model
                     fspSolnsSMM1(i).fsp = cell(numel(fspSoln1.fsp), 1); % Cell array for FSP solutions
                     fspSolnsSMM2(i).fsp = cell(numel(fspSoln2.fsp), 1); % Cell array for FSP solutions
@@ -162,7 +204,6 @@ classdef SSITMultiModel
             end
         end
 
-
         function SMM = updateModels(SMM,parameters,makeplot, fignums)
             % Updates parameters of the models to provided values and makes
             % plots of the results.
@@ -192,6 +233,24 @@ classdef SSITMultiModel
                end
             end
             SMM.parameters = parameters;
+        end
+
+        function SMM = updateSolutions(SMM)
+            % Runs SSIT for each model and stores solution using current
+            % parameter values in multimodel. 
+            SMM = updateModels(SMM);
+            p = gcp("nocreate");
+            if isempty(p)
+                for i = 1:length(SMM.SSITModels)
+                    SMM.SSITModels{i} = SMM.SSITModels{i}.solve;
+                end
+            else
+                SSITModelsL = SMM.SSITModels;
+                parfor i = 1:length(SMM.SSITModels)
+                    SSITModelsL{i} = SSITModelsL{i}.solve;
+                end
+                SMM.SSITModels = SSITModelsL;
+            end
         end
 
         function objFuns = get.logLikelihoodFunctions(SMM)
@@ -270,17 +329,20 @@ classdef SSITMultiModel
                 end
                 FIMlocal.fims{i} = SMM.SSITModels{i}.computeFIM(sensSoln,scale,MHSamplesMod);
                
-                J = SMM.SSITModels{i}.fittingOptions.modelVarsToFit;
+                % J = SMM.SSITModels{i}.fittingOptions.modelVarsToFit;
                 for iT = 1:length(SMM.SSITModels{i}.tSpan)
+                    % FIMlocal.totalFIM(SMM.parameterIndices{i},SMM.parameterIndices{i}) = ...
+                    %     FIMlocal.totalFIM(SMM.parameterIndices{i},SMM.parameterIndices{i}) +...
+                    %     SMM.SSITModels{i}.dataSet.nCells(iT)*FIMlocal.fims{i}{iT}(J,J);
                     FIMlocal.totalFIM(SMM.parameterIndices{i},SMM.parameterIndices{i}) = ...
                         FIMlocal.totalFIM(SMM.parameterIndices{i},SMM.parameterIndices{i}) +...
-                        SMM.SSITModels{i}.dataSet.nCells(iT)*FIMlocal.fims{i}{iT}(J,J);
+                        SMM.SSITModels{i}.dataSet.nCells(iT)*FIMlocal.fims{i}{iT};
                 end
             end
             SMM.FIM = FIMlocal;
         end
 
-        function [pars,likelihood,otherResults,SMM] = maximizeLikelihood(SMM,parGuess,fitOptions,fitAlgorithm)
+        function [output,likelihood,otherResults,SMM] = maximizeLikelihood(SMM,parGuess,fitOptions,fitAlgorithm,opts)
             % Search parameter space to determine which sets maximize the
             % likelihood function.  
             arguments
@@ -288,6 +350,19 @@ classdef SSITMultiModel
                 parGuess = [];
                 fitOptions = optimset('Display','iter','MaxIter',1000)
                 fitAlgorithm = 'fminsearch'
+                opts.fitOptions = []
+                opts.fitAlgorithm = []
+                opts.parGuess = []
+            end
+
+            % Parse optional options
+            returnType = 'default';
+            fieldNames = fields(opts);
+            for i = 1:length(fieldNames)
+                if ~isempty(opts.(fieldNames{i}))
+                    eval([fieldNames{i},'=opts.(fieldNames{i});']);
+                    returnType = 'ssit';
+                end
             end
 
             otherResults = [];
@@ -417,21 +492,25 @@ classdef SSITMultiModel
                     % If fit was in linear space, need to convert to log
                     % space before returning parameters.
                     if ~allFitOptions.logForm
-                        pars = log(x0);
+                        output = log(x0);
                     end
 
             end
-            pars = exp(x0);
-            SMM.parameters = pars;
-            SMM = SMM.updateModels(pars);
+            output = exp(x0);
+            SMM.parameters = output;
+            SMM = SMM.updateModels(output);
 
             if isfield(fitOptions,'suppressExpansion')&&fitOptions.suppressExpansion==true
                 for iModel = 1:length(SMM.SSITModels)
                     SMM.SSITModels{iModel}.fspOptions.fspTol = oldFspTols(iModel);
                 end
             end
+            if strcmpi(returnType,'ssit')
+                output = SMM;
+            end
 
         end
+
         function compareParameters(SMM,fignum,relative)
             % This function makes a heatmap plot to compare parameters in a
             % multi model.  This only make sense when all of the sub-models
@@ -557,5 +636,24 @@ classdef SSITMultiModel
             parConstraints = -sum(deviation2 ./ (2 * Log10Constraints(indsFree).^2));
         end
 
+        function output = MMexecute(SMM,code)
+            % Wrapper to allow for executuion of codes on all models in a
+            % SSITMultiModel. When executed with code STRING containing
+            % wildcard Model, replaces Model and runs STRING for all models
+            % {i} in the SMM.
+            % 
+            % Example: 
+            % SMMmeansSpecies7 = SMM.MMexecute('P = double(Model.Solutions.fsp{end}.p.sumOver(1:6).data); output(i) = [0:length(P)-1]*P;') 
+            arguments
+                SMM
+                code = 'P = double(Model.Solutions.fsp{end}.p.sumOver(1:6).data); output(i) = [0:length(P)-1]*P;'
+            end
+            output = [];
+            code = strrep(code,'XXX','Model');
+            for i = 1:length(SMM.SSITModels)
+                Model = SMM.SSITModels{i};
+                eval(code);
+            end
+        end
     end
 end

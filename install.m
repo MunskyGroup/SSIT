@@ -9,8 +9,16 @@ arguments
 end
 
 if isCluster
-    runTests = false;
+    % runTests = false;
+    % Turn off figures.
+    setenv('QT_QPA_PLATFORM','offscreen');
+    set(0,'DefaultFigureVisible','off')
     runExamples = false;
+    tests2run = {'poissonTest','poisson2Dtest','poissonTVtest',...
+        'miscelaneousTests','multiModelTests','modelReductionTest'};
+else
+    tests2run = {'poissonTest','poisson2Dtest','poissonTVtest',...
+        'miscelaneousTests','multiModelTests','modelReductionTest','testGui'};
 end
     
 % Check that 
@@ -20,7 +28,7 @@ if ~strcmpi(weAreIn(J(end)+1:end),'SSIT')
     if isCluster
         error('Not in correct SSIT directory -- cannot install')
     else
-        abort = questdlg({'You appear not to be in the SSIT Directory.';'Your current directory is';weAreIn;'Do you wish to abort?'}, ...
+        abort = questdlg({'You appear not to be in the SSIT Directory (or you changed its name).';'Your current directory is';weAreIn;'Do you wish to abort?'}, ...
             'Confirm Action', ...
             'Yes','No','Yes');
         if strcmpi(abort,'Yes')
@@ -30,7 +38,23 @@ if ~strcmpi(weAreIn(J(end)+1:end),'SSIT')
 end
 
 % Set the path to include all SSIT codes.  
+addpath(weAreIn)
 addpath(genpath('src'));
+
+% Install MEX codes
+disp('Installing MEX codes for Expokit')
+try
+    ssit.fsp_ode_solvers.build_expokit;
+    disp('MEX code for Expokit installed')   
+catch ME
+    disp('MEX code installation failure. Analyses will default to native MATLAB version.')
+    disp(['Error details: ' ME.message])
+    if ~isempty(ME.cause)
+        for k = 1:numel(ME.cause)
+            disp(['Cause: ' ME.cause{k}.message])
+        end
+    end
+end
 
 if ~exist("tmpPropensityFunctions","dir")
     disp('Creating director "tmpPropensityFunctions".')
@@ -64,6 +88,7 @@ catch me
     me
     return
 end
+
 % Test GUI installation (if not on cluster)
 if ~isCluster
     try
@@ -93,8 +118,8 @@ if runTests
     cleanupTest = onCleanup(@() cd(origDir));  % guarantee return
     cd('tests')
     set(0, 'DefaultFigureVisible', 'off');
-    testResults.tests = runtests({'poissonTest','poisson2Dtest','poissonTVtest',...
-        'miscelaneousTests','multiModelTests','modelReductionTest','testGui'})
+    disp('Starting Tests....')
+    testResults.tests = runtests(tests2run);
     set(0, 'DefaultFigureVisible', 'on');
     clear cleanupTest
 else
@@ -108,27 +133,36 @@ if ~isCluster&&runExamples
     if ~exist("exampleLogs","dir")
         mkdir("exampleLogs")
     end
-    ExampleFiles = {'example_1_CreateSSITModels'
-        'example_2_SolveSSITModels_ODE'
-        'example_3_SolveSSITModels_SSA'
-        'example_4_SolveSSITModels_FSP'
-        'example_5_SolveSSITModels_EscapeTimes'
-        'example_6_SensitivityAnalysis'
-        'example_7_FIM'
-        % 'example_8_LoadingandFittingData_DataLoading'
-        % 'example_8b_LoadingandFittingData_SimulatingData'
-        % 'example_9_LoadingandFittingData_MLE'
-        % 'example_10_LoadingandFittingData_MH'
-        % 'example_10b_LoadingandFittingData_MH_with_FIM'
-        % 'example_11_ComplexModels_PDO'
-        % 'example_12_PipelinesAndClusterComputing'
-        % 'example_SI_ABC'
-        % 'example_SI_Moments'
-        % 'example_SI_CrossValidation'
-        % 'example_SI_ModelReduction'
-        % 'example_SI_Hybrid'
-        % 'example_SI_MultiModel'
+    ExampleFiles = {
+        'example_00_AllManuscriptExamples.m'
+        'example_01_CreateSSITModels.m'
+        'example_02_SolveSSITModels_ODE.m'
+        'example_03_SolveSSITModels_SSA.m'
+        'example_04_SolveSSITModels_FSP.m'
+        'example_05_SolveSSITModels_EscapeTimes.m'
+        'example_06_SensitivityAnalysis.m'
+        'example_07_FIM.m'
+        'example_08_FIM_ExperimentDesign.m'
+        'example_09_LoadingandFittingData_DataLoading.m'
+        'example_10_LoadingandFittingData_MLE.m'
+        'example_11_LoadingandFittingData_MH.m'
+        'example_11b_LoadingandFittingData_MH_with_FIM.m'
+        'example_12_ComplexModels_PDO.m'
+        'example_13_ComplexModels_MultiModel.m'
+        'example_14_PipelinesAndClusterComputing.m'
+        'example_Benchmarking.m'
+        'example_ModelReduction_benchmark.m'
+        'example_SI_ABC.m'
+        'example_SI_CrossValidation.m'
+        'example_SI_Epidemics.m'
+        'example_SI_Hybrid.m'
+        'example_SI_MAPK.m'
+        'example_SI_ModelReduction.m'
+        'example_SI_Moments.m'
+        'example_SI_MultiModel.m'
+        'example_SI_SBML.m'
         };
+
     completed = zeros(1,length(ExampleFiles),'logical');
     for iEx = 1:length(ExampleFiles)
         try 

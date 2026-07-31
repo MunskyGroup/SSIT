@@ -6,7 +6,10 @@ Nt = length(tprint); % Length of time at which to print results.
 fileID = fopen([fun_name,'.m'],'w');
 % Name of m-file to be written.
 
-txt = ['function [X]=',fun_name,'(x0,N_run,parametersIn,useGPU)\r\n'];
+J = max([strfind(fun_name,'/'),strfind(fun_name,'\')]);
+funNameShort = fun_name(J+1:end);
+
+txt = ['function [X]=',funNameShort,'(x0,N_run,parametersIn,useGPU)\r\n'];
 fprintf(fileID,txt);
 fprintf(fileID,'%%This is an automatically generated MATLAB SSA Program.\r\n');
 fprintf(fileID,'%%The tools used to generate this file were covered at the.\r\n');
@@ -51,8 +54,8 @@ for i=1:Nspec
         txt2 = [txt2,',x',num2str(i),'_0_GPU'];
     end
 end
-txtAF1 = ['   ',fun_name,'_SSA_GPU = @(',txt2,')',fun_name,'_SSA(',txt2,',parametersIn);\r\n'];
-txtAF2 = [txt,'] = arrayfun(@',fun_name,'_SSA_GPU,',txt2,');\r\n'];
+txtAF1 = ['   ',funNameShort,'_SSA_GPU = @(',txt2,')',funNameShort,'_SSA(',txt2,',parametersIn);\r\n'];
+txtAF2 = [txt,'] = arrayfun(@',funNameShort,'_SSA_GPU,',txt2,');\r\n'];
 
 fprintf(fileID,txtAF1);
 fprintf(fileID,txtAF2);
@@ -85,7 +88,7 @@ for i=1:Nspec
         txt2 = [txt2,',x',num2str(i),'_0'];
     end
 end
-txt3 = [txt0,'] = ',fun_name,'_SSA(',txt2,',parametersIn);\r\n'];
+txt3 = [txt0,'] = ',funNameShort,'_SSA(',txt2,',parametersIn);\r\n'];
 % fprintf(fileID,txt3);
 txt = ['    [x] = collectFun(',txt2,',parametersIn);\r\n'];
 fprintf(fileID,txt);
@@ -126,7 +129,7 @@ for i=1:Nspec
         txt2 = [txt2,',x',num2str(i)];
     end
 end
-txt = [txt,'] = ',fun_name,'_SSA(',txt2,',parametersIn)\r\n'];
+txt = [txt,'] = ',funNameShort,'_SSA(',txt2,',parametersIn)\r\n'];
 fprintf(fileID,txt);
 
 
@@ -217,7 +220,7 @@ end
 txt = ['function [x] = collectFun(',txt2,',parametersIn)\r\n'];
 fprintf(fileID,txt);
 fprintf(fileID,'%% This function runs the SSA and gathers the results into a single matrix.\r\n');
-txt4 = ['[',txt3,'] = ',fun_name,'_SSA(',txt2,',parametersIn);\r\n'];
+txt4 = ['[',txt3,'] = ',funNameShort,'_SSA(',txt2,',parametersIn);\r\n'];
 fprintf(fileID,txt4);
 txt5 = ['x=','[',txt3,'];\r\n'];
 fprintf(fileID,txt5);

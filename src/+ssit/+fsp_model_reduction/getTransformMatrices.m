@@ -21,24 +21,10 @@ if isfield(fspSoln,'fsp')
     % Sort the FSP solution into the right order for the statespace.
     if max(contains(SolnNeeded,redType))
         Solns = zeros(nStates,nTimes);
-        % inds = state2key(fspSoln.fsp{end}.p.data.subs'-1);
-        % inds2 = fspSoln.stateSpace.state2indMap(inds)
-        % inds2 = zeros(1,length(inds));
-        % for iv=1:length(inds)
-        %     try
-        %         inds2(iv) = fspSoln.stateSpace.state2indMap(inds(iv));
-        %     catch
-        %         1+1
-        %     end
-        % end
         for i=1:nTimes
-            % try
-                inds = state2key(fspSoln.fsp{i}.p.data.subs'-1);
+                inds = num2cell(uint64(fspSoln.fsp{i}.p.data.subs'-1),1);
                 inds2 = fspSoln.stateSpace.state2indMap(inds);
-                Solns(inds2(1:length(fspSoln.fsp{i}.p.data.vals)),i) = fspSoln.fsp{i}.p.data.vals;
-            % catch
-            %     1+1
-            % end
+                Solns(inds2(1:length(fspSoln.fsp{i}.p.data.vals)),i) = fspSoln.fsp{i}.p.data.vals;          
         end  
     end
 elseif isfield(fspSoln,'fullSolutionsNow')
@@ -50,8 +36,8 @@ switch redType
     case 'No Transform'
         %'No Transform' --
         %   No model reduction is used.  This is meant only for testing.
-        phi = eye(size(fspSoln.A_total,1));
-        phi_inv = phi';
+        phi = speye(size(fspSoln.A_total,1));
+        phi_inv = phi;
     case {'Linear State Lumping','LNSL'}
         %'Linear State Lumping' (LNSL) -- 
         %   State space is divided into linearly distributed bins.
@@ -65,12 +51,15 @@ switch redType
             bins{i} = unique(floor(linspace(1,spmax(i)+1,redOrder+1)))-1;
         end
 
+        % map each state to its corresponding bin
         phi_map = zeros(nStates,nSpecies);
-        for j=1:nStates
-            for i=1:nSpecies
-                phi_map(j,i) = find(fspSoln.stateSpace.states(i,j)<=bins{i},1,"first");
-            end
+        for i = 1:nSpecies
+            phi_map(:,i) = discretize( ...
+                fspSoln.stateSpace.states(i,:), ...
+                [-Inf; bins{i}(:)], ...
+                'IncludedEdge','right')';
         end
+
         binns = max(phi_map);
         cprod = [1,cumprod(binns(1:end-1))]';
         phi_inds = (phi_map-1)*cprod+1;
@@ -101,11 +90,13 @@ switch redType
 
         % map each state to its corresponding bin
         phi_map = zeros(nStates,nSpecies);
-        for j=1:nStates
-            for i=1:nSpecies
-                phi_map(j,i) = find(fspSoln.stateSpace.states(i,j)<=bins{i},1,"first");
-            end
+        for i = 1:nSpecies
+            phi_map(:,i) = discretize( ...
+                fspSoln.stateSpace.states(i,:), ...
+                [-Inf; bins{i}(:)], ...
+                'IncludedEdge','right')';
         end
+
         binns = max(phi_map);
         cprod = [1,cumprod(binns(1:end-1))]';
         phi_inds = (phi_map-1)*cprod+1;
@@ -170,13 +161,15 @@ switch redType
             end
         end
 
-        % create map from state to corresponding bins
+        % map each state to its corresponding bin
         phi_map = zeros(nStates,nSpecies);
-        for j=1:nStates
-            for i=1:nSpecies
-                phi_map(j,i) = find(fspSoln.stateSpace.states(i,j)<=bins{i},1,"first");
-            end
+        for i = 1:nSpecies
+            phi_map(:,i) = discretize( ...
+                fspSoln.stateSpace.states(i,:), ...
+                [-Inf; bins{i}(:)], ...
+                'IncludedEdge','right')';
         end
+
         binns = max(phi_map);
         cprod = [1,cumprod(binns(1:end-1))]';
         phi_inds = (phi_map-1)*cprod+1;
@@ -273,13 +266,15 @@ switch redType
             end
         end
 
-        % create map from state to corresponding bins
+        % map each state to its corresponding bin
         phi_map = zeros(nStates,nSpecies);
-        for j=1:nStates
-            for i=1:nSpecies
-                phi_map(j,i) = find(fspSoln.stateSpace.states(i,j)<=bins{i},1,"first");
-            end
+        for i = 1:nSpecies
+            phi_map(:,i) = discretize( ...
+                fspSoln.stateSpace.states(i,:), ...
+                [-Inf; bins{i}(:)], ...
+                'IncludedEdge','right')';
         end
+
         binns = max(phi_map);
         cprod = [1,cumprod(binns(1:end-1))]';
         phi_inds = (phi_map-1)*cprod+1;
@@ -337,19 +332,12 @@ switch redType
         % %  functions that are randomly placed throughout the statespace.
         % [phi,phi_inv] = ssit.fsp_model_reduction.radiaBasisPhi(fspSoln.stateSpace.states,redOrder,0,1);
 end
+phi = sparse(phi); phi_inv = sparse(phi_inv);
 end
 function keys =  state2key( states )
 % Hash function to convert a N-dimensional integer vector into a unique
 % string "i1  i2  i3 ..."
 
-% N = size(states, 2);
-% keys = cell(1,N);
-% 
-% for n = 1:N
-%     str = num2str(states(:,n)');    
-%     keys{n} = str;
-% end
-N = size(states, 2);
-keys = mat2cell(uint64(states)',ones(1,N))';
+keys = num2cell(uint64(states), 1)';
 
 end

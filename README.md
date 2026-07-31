@@ -48,11 +48,10 @@ The SSIT allows users to specify and solve the **Chemical Master Equation** (CME
 # Dependencies
 For all basic functionalities:
 - MATLAB R2023b or later
-- Symbolic Computing Toolbox
-- Image Processing Toolbox
-- Global Optimization Toolbox (for model fitting only)
-- Parallel Computing Toolbox (optional). 
-- SimBiology Toolbox (for loading/saving SBML models only)
+  - Symbolic Computing Toolbox
+  - Global Optimization Toolbox (for model fitting only)
+  - Parallel Computing Toolbox (optional). 
+  - SimBiology Toolbox (for loading/saving SBML models only)
 
 # Installation and Testing
 Clone this package to a local folder on your computer. Then, navigate to this new folder in matlab and run the installation script from the MATLAB command window.
@@ -157,13 +156,12 @@ Model = Model.loadData('../ExampleData/DUSP1_Dex_100nM_Rep1_Rep2.csv', ...
     {'rna','RNA_nuc'});
 Model.tSpan = unique([Model.initialTime,Model.dataSet.times]);
 fitOptions = optimset('Display','iter','MaxIter',100);
-[pars,likelihood] = Model.maximizeLikelihood([],fitOptions);
+Model = Model.maximizeLikelihood(fitOptions=fitOptions);
 ```
 
-**Update Model and Make Plots of Results**
+**Make Plots of Results**
 
 ```matlab
-Model.parameters(:,2) = num2cell(pars);
 Model.makeFitPlot;
 ```
 
@@ -366,12 +364,40 @@ For more general insight on the use of quantitative models in biology, please re
 
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 <!-- TRAFFIC_STATS_START -->
-Total Clones: **5373**  
-Unique Cloners: **2225**  
-Total Views: **1280**  
-Unique Visitors: **299**
+Total Clones: **6295**  
+Unique Cloners: **2475**  
+Total Views: **1441**  
+Unique Visitors: **335**
 <!-- TRAFFIC_STATS_END -->
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 

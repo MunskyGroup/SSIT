@@ -19,7 +19,8 @@ classdef ExpokitPiecewise
         end
         
         function [tExport, solutionsNow, fspStopStatus] = solve(obj,...
-                tStart, tOut, initSolution, ~, jac, fspErrorCondition)
+                tStart, tOut, initSolution, ~, jac, fspErrorCondition,...
+                fixedEvents)
         %SOLVE Advance the solution of the FSP-truncated CME up until
         %either the final time point or when the FSP error is exceeded for
         %the current set of states.
@@ -85,13 +86,13 @@ classdef ExpokitPiecewise
             while tryAgain==1
                 SINKS = length(initSolution)-nSinks+1:length(initSolution)-fspErrorCondition.nEscapeSinks;
                 [~, ~, ~, tExportStep, solutionsNowStep, ~, tryAgain, te, ye] = ssit.fsp_ode_solvers.mexpv_modified_2(tOutStep(end), jac(tStartStep), initSolution, expvTol, m,...
-                    [], tOutStep, fspTol, SINKS, tStartStep, fspErrorCondition);
+                    [], tOutStep, fspTol, SINKS, tStartStep, fspErrorCondition, false, fixedEvents);
  
                 if tryAgain==0;break;end
                 if m>300
                     warning('Expokit expansion truncated at 300');
                     [~, ~, ~, tExportStep, solutionsNowStep, ~, tryAgain, te, ye] = ssit.fsp_ode_solvers.mexpv_modified_2(tOutStep(end), jac(tStartStep), initSolution, expvTol, m,...
-                        [], tOutStep, fspTol, SINKS, tStartStep, fspErrorCondition);
+                        [], tOutStep, fspTol, SINKS, tStartStep, fspErrorCondition, false, fixedEvents);
                 end
                 m=m+5;
             end

@@ -28,7 +28,7 @@ Toggle = Toggle.formPropensitiesGeneral('Toggle');
 %% Solve Toggle Model
 Toggle.fspOptions.fspTol = 0.001;
 tic
-[~,~,Toggle] = Toggle.solve;
+Toggle = Toggle.solve(solver='FSP');
 toc
 Toggle.plotFSP(speciesNames={'Px','Py'});
 
@@ -220,7 +220,7 @@ MAPK.customConstraintFuns = ...
 
 MAPK.fspOptions.fspTol = 0.001;
 tic
-[~,~,MAPK] = MAPK.solve;
+MAPK = MAPK.solve(solver='FSP');
 toc
 MAPK.plotFSP(speciesNames={'MKP3','K','Kpp'})
 
@@ -230,13 +230,13 @@ MAPKSSA.Solutions = [];
 % Run once to write C Codes.
 MAPKSSA.solutionScheme = 'ssa';
 MAPKSSA.ssaOptions.Nsims = 10;
-[~,~,MAPKSSA] = MAPKSSA.solve;
+MAPKSSA = MAPKSSA.solve(solver='SSA');
 
 %% Now run for ful set of simulations.
 MAPKSSA.ssaOptions.Nsims = 1e4;
 MAPKSSA.ssaOptions.useParallel = false;
 tic
-[~,~,MAPKSSA] = MAPKSSA.solve;
+MAPKSSA = MAPKSSA.solve(solver='SSA');
 toc
 hold on
 plot(MAPKSSA.tSpan,mean(MAPKSSA.Solutions.trajs(1,:,:),3),'c--','linewidth',1)
@@ -299,7 +299,7 @@ Schlogle.ssaOptions.useParallel = false;
 Schlogle.tSpan = linspace(0, 1, 101);
 Schlogle.ssaOptions.Nsims = 1000000;
 tic
-[~, ~, Schlogle] = Schlogle.solve;
+Schlogle = Schlogle.solve(solver='SSA');
 toc
 
 close all
