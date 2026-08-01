@@ -319,7 +319,7 @@ classdef MBExperimentDesigner
         end % designNextExperiment
 
         function [models, configs] = multiplyModel(obj, ...
-                model, configs, combineTimes, cache)
+                model, configs, combineTimes, refitToNewData, cache)
             %multiplyModel accepts a source model, a list of experiment
             %configurations, and a Boolean indicating whether measurement
             %times should be combined for otherwise similar configurations,
@@ -336,24 +336,26 @@ classdef MBExperimentDesigner
             %           ii. Data must have been utilized in a performed
             %           experiment round.
             %       c. Fitting the collection of output models to the data
-            %       and updating all models' fitted parameters accordingly.
+            %       and updating all models' fitted parameters accordingly,
+            %       IF the caller has indicated that models should be refit
+            %       (which should NOT be done for ground-truth models).
 
             arguments                
                 obj (1, 1) MBExperimentDesigner
                 model (1, 1) MBExperimentModel
                 configs (1, :) MBExperimentConfiguration
                 combineTimes (1, 1) logical
+                refitToNewData (1, 1) logical
                 cache (1, 1) MBExperimentDependentModelsCache = [];
             end
 
             if ~isempty(cache)
                 % If an input cache has been provided, assume nothing needs
-                % to be regenerated/reloaded/recalculated, then begin to
+                % to be regenerated/reloaded/refit, then begin to
                 % check:
                 regenerateConfigs = false;
                 regenerateModels = false;
                 reloadData = false;
-                refitModels = false;
 
                 % If the configs have changed, then everything will need to
                 % be regenerated:
@@ -377,7 +379,6 @@ classdef MBExperimentDesigner
                 if regenerateConfigs
                     regenerateModels = true;
                     reloadData = true;
-                    refitModels = true;
                 end
 
                 % Even if the configs haven't changed, models need to be
@@ -401,24 +402,23 @@ classdef MBExperimentDesigner
                 elseif obj.PerformingRoundNumber > ...
                         cache.LastPerformedExperimentRound
                     reloadData = true;
-                end
-
-                % If data need to be reloaded, then models will need to be
-                % refit accordingly.
-
-                if reloadData
-                    refitModels = true;
-                end
+                end               
             else % [Input cache provided]
                 % If no input cache is provided, everything needs to be
                 % regenerated/reloaded/recalculated.
 
-                cache = MBExperimentDependentModelsCache;
+                cache = MBExperimentDependentModelsCache();
                 regenerateConfigs = true;
                 regenerateModels = true;
                 reloadData = true;
-                refitModels = true;
             end % [No input cache provided]
+
+            % If data need to be reloaded, then models that should be
+            % refit to new data will need to be refit accordingly: 
+
+            refitModels = refitToNewData && reloadData; 
+
+            % Regenerate configs if necessary:
 
             if regenerateConfigs
                 if combineTimes
@@ -427,24 +427,109 @@ classdef MBExperimentDesigner
             else
                 configs = cache.Configs;
             end
-
-            numConfigs = length(configs);
+            numConfigs = length(configs); % Also the number of models
+            
+            % Regenerate models if necessary:
 
             if regenerateModels
                 models = createArray(1, numConfigs, "MBExperimentModel");
+
                 for configIdx = 1:numConfigs
                     models(configIdx) = ...
                         configs(configIdx).applyToModel(model);
                 end
+
+                haveData = zeros(1, numConfigs, "logical");
+                stateSpaces = cell(1, numConfigs);
             else
                 models = cache.Models;
+                haveData = cache.ModelsHaveData;
+                stateSpaces = cache.ModelStateSpaces;
             end
+
+            % Reload data if necessary:
 
             if reloadData
-            end
+                % Get the correct data to (re)load:
+
+                if obj.UseEmpiricalData
+                    data = obj.EmpiricalDataTable;
+                else
+                    data = obj.SimulatedDataTable;
+                end
+
+                mapToUse = obj.ModelToDataColumnsMap;
+
+                % In parallel, subset the data for each model, solve the
+                % model using FSP, and assign the solved model (including
+                % its solution, which contains the state space) back to the
+                % list of models.
+               
+                parfor modelIdx = 1:length(models)
+                    curConfig = configs(modelIdx);
+                    curData = curConfig.applyToData(data);
+                    haveData(modelIdx) = height(curData) > 0;
+                    if haveData(modelIdx)
+                        curModel = models(modelIdx);
+
+                        curModel = curModel.loadData(curData, mapToUse);
+                        curModel.fspOptions.fspTol = 1e-4;
+                        curModel = curModel.solve(solver = "fsp");
+
+                        models(modelIdx) = curModel;
+                        stateSpaces(modelIdx) = ...
+                            curModel.Solutions.stateSpace;
+                    end                 
+                end
+            end % [Reload data]
 
             if refitModels
-            end
+                fitParameters = model.fittingOptions.modelVarsToFit;
+                parameters = model.parameters(fitParameters, 2);
+
+                for fitRoundIdx = 1:obj.NumberOfFitRounds
+
+                    % Find the best parameter values, i.e., those that
+                    % maximize the (log-)likelihood of all data given all
+                    % models:
+
+                    objective = @(x) -getLogLikelihoodOfDataGivenModels(...
+                        x, models, haveData, stateSpaces);                    
+                    parameters = exp(fminsearch(...
+                        objective, log(parameters), obj.FitOptions));
+
+                    % Update and resolve all models:
+
+                    model.parameters(fitParameters, 2) = ...
+                        num2cell(parameters);
+
+                    parfor modelIdx = 1:numConfigs
+                        if hasData(modelIdx)
+                            curModel = model(modelIdx);
+
+                            curModel.parameters(fitParameters, 2) = ...
+                                num2cell(parameters);
+                            curModel.fspOptions.fspTol = 1e-8;
+
+                            curModel = curModel.solve(solver = "fsp");
+
+                            models(modelIdx) = curModel;
+                            stateSpaces(modelIdx) = ...
+                                curModel.Solutions.stateSpace;
+                        end                       
+                    end % [Model]
+                end % [Fit round]
+            end % [Refit models]
+
+            % Having completed the multiplication, update the cache:
+
+            cache.Configs = configs;
+            cache.LastPerformedExperimentRound = obj.PerformingRoundNumber;
+            cache.Models = models;
+            cache.ModelsHaveData = haveData;
+            cache.ModelStateSpaces = stateSpaces;
+            cache.SourceModel = model;
+            cache.UseEmpiricalData = obj.UseEmpiricalData;        
         end % multiplyModel
       
         function [obj, round] = setupAndRunMetropolisHastings(obj, round)

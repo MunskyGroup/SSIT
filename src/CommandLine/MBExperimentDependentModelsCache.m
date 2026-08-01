@@ -13,6 +13,8 @@ classdef MBExperimentDependentModelsCache
         Configs (1, :) MBExperimentConfiguration
         LastPerformedExperimentRound (1, 1) uint64 = 0
         Models (1, :) MBExperimentModel
+        ModelsHaveData (1, :) logical
+        ModelStateSpaces (1, :) cell 
         SourceModel (1, 1) MBExperimentModel
         UseEmpiricalData (1, 1) logical = false
     end
