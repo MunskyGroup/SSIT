@@ -129,6 +129,31 @@ classdef MBExperimentDesign
             end
         end % getAsObservationMatrix
 
+        function numObservationsMap = ...
+                getMostObservationsAtAnyTimeForNonTimeConfigurations(obj)
+            arguments
+                obj (1, 1) MBExperimentDesign                
+            end
+
+            numObservationsMap = configureDictionary(...
+                "MBExperimentNonTimeConfiguration", "uint64");
+
+            k = obj.ConfigurationToNumObservationsMap.keys();
+            for keyIdx = 1:length(k)
+                curKey = k(keyIdx);
+                curNonTimeConfig = curKey.NonTimeConfiguration;
+                if numObservationsMap.isKey(curNonTimeConfig)
+                    curValue = numObservationsMap(curNonTimeConfig);
+                    numObservationsMap(curNonTimeConfig) = max(...
+                        curValue, ...
+                        obj.ConfigurationToNumObservationsMap(curKey));
+                else
+                    numObservationsMap(curNonTimeConfig) = ...
+                        obj.ConfigurationToNumObservationsMap(curKey);
+                end
+            end            
+        end % getMostObservationsAtAnyTimeForNonTimeConfigurations
+
         function observations = getObservationsForConfiguration(...
                 obj, configuration)
             arguments

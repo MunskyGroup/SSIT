@@ -92,7 +92,8 @@ classdef MBExperimentParameterConfigurable < ...
         end % applyToModel
 
         function disp(obj)
-            fprintf('%s = %s\n', obj.ParameterName, obj.Values)           
+            fprintf("%s = %s\n", ...
+                obj.ParameterName, join(string(obj.Values), ", "))           
         end
 
         function rows = findSubsetOfData(obj, data)

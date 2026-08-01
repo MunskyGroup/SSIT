@@ -42,6 +42,6 @@ classdef MBAbstractExperimentConfigurable < matlab.mixin.Heterogeneous
 
             isEqual = strcmp(class(obj1), class(obj2)) && ...
                 equalsSibling(obj1, obj2);
-        end
-    end
+        end % eq
+    end % Public methods
 end

@@ -4,6 +4,10 @@ classdef MBExperimentNonTimeConfiguration
     %values for all designed parameters and for all input expressions of a 
     %model.
 
+    properties (Dependent)
+        FilenameString
+    end
+
     properties
         NonTimeConfigurables (1, :) ...
             MBAbstractExperimentNonTimeConfigurable ...
@@ -11,6 +15,15 @@ classdef MBExperimentNonTimeConfiguration
     end
 
     methods
+        function disp(obj)
+            if ~isempty(obj.NonTimeConfigurables)
+                disp(obj.NonTimeConfigurables(1))
+                for configIdx = 2:length(obj.NonTimeConfigurables)                    
+                    disp(obj.NonTimeConfigurables(configIdx))
+                end
+            end            
+        end % disp
+
         function isEqual = eq(obj1, obj2)
             arguments
                 obj1 (1, 1) MBExperimentNonTimeConfiguration
@@ -42,6 +55,20 @@ classdef MBExperimentNonTimeConfiguration
                 end
             end % [Lengths match]
         end % eq (==)
+
+        function filenameString = get.FilenameString(obj)
+            %FilenameString represents the configuration as a string
+            %suitable for use in a filename.
+
+            configurableStrings = ...
+                createArray(1, length(obj.NonTimeConfigurables), "string");
+            for configIdx = 1:length(obj.NonTimeConfigurables)
+                configurableStrings(configIdx) = ...
+                    obj.NonTimeConfigurables(configIdx).FilenameString;
+            end
+
+            filenameString = join(configurableStrings, "_");
+        end
     end % Public methods
 end % class
 

@@ -4,28 +4,51 @@ classdef MBExperimentDesigner
     %   to design and perform rounds of experimentation. In the case of
     %   empirical data, the user performs a round of experimentation by
     %   supplying a dataset that is novel to the designer; in the case of
-    %   simulated data, the designer utilizes a ground-truth to simulate
-    %   the outcome of a designed experiment.
+    %   simulated data, the designer utilizes a ground-truth model to 
+    %   simulate the outcome of a designed experiment.
+
+    properties (Constant)
+        TABLE_ROUND_COLUMN = "UTILIZED_IN_PERFORMED_ROUND"
+    end
+
+    properties (SetAccess = private)
+        CacheOfGroundTruthModelsWithCombinedTimes (1, 1) ...
+            MBExperimentDependentModelsCache
+        CacheOfGroundTruthModelsWithIndividualTimes (1, 1) ...
+            MBExperimentDependentModelsCache
+        CacheOfGuessedModelsWithCombinedTimes (1, 1) ...
+            MBExperimentDependentModelsCache
+        CacheOfGuessedModelsWithIndividualTimes (1, 1) ...
+            MBExperimentDependentModelsCache
+        EmpiricalDataFiles (1, :) string        
+        EmpiricalDataTable (1, 1) table
+        PerformingRoundNumber (1, 1) uint64 {mustBePositive} = 0
+        SimulatedDataFiles (1, :) string
+        SimulatedDataTable (1, 1) table        
+    end
 
     properties
         Configurations (1, :) MBExperimentConfiguration
         CumulativeNumbersOfObservations (1, :) uint64
+        ErrorOnInsufficientAvailableObservations (1, 1) logical = false
         ExperimentRounds (1, :) MBExperimentRound
         FIMScale (1, 1) string = "log"
         GroundTruthModel (1, 1) MBExperimentModel
         GuessedModel (1, 1) MBExperimentModel
-        MaxFitIterations (1, 1) uint64 {mustBePositive} = 1;
+        MaxFitIterations (1, 1) uint64 {mustBePositive} = 1
         MHOptions (1, 1) MetropolisHastingsAlgorithmOptions
+        ModelToDataColumnsMap (1, 1) dictionary = ...
+            configureDictionary("string", "string")
         NextExperimentDesign (1, 1) MBExperimentDesign
         NumberOfFIMSamples (1, 1) uint64 {mustBePositive} = 1
         NumberOfFitRounds (1, 1) uint64 {mustBePositive} = 1
-        NumberOfMHSamplesForBurnIn (1, 1) uint64 {mustBePositive} = 1;
-        NumberOfMHSamplesForProduction (1, 1) uint64 {mustBePositive} = 100;
-        NumberOfMHSamplesForTuning (1, 1) uint64 {mustBePositive} = 100;
-        NumberOfMHSamplesToThin (1, 1) uint64 {mustBePositive} = 2;
+        NumberOfMHSamplesForBurnIn (1, 1) uint64 {mustBePositive} = 1
+        NumberOfMHSamplesForProduction (1, 1) uint64 {mustBePositive} = 100
+        NumberOfMHSamplesForTuning (1, 1) uint64 {mustBePositive} = 100
+        NumberOfMHSamplesToThin (1, 1) uint64 {mustBePositive} = 2
         Property1
         Strategy (1, 1) MBAbstractExperimentDesignStrategy = ...
-            MBExperimentRandomDesignStrategy();        
+            MBExperimentRandomDesignStrategy()        
         UseEmpiricalData (1, 1) logical = false
     end
 
@@ -119,32 +142,78 @@ classdef MBExperimentDesigner
 
             range = ((modelIdx - 1) * numTimes + 1) : (modelIdx * numTimes);
         end
-
-        function [models, configs] = multiplyModel(...
-                model, configs, combineTimes)
-            arguments                
-                model (1, 1) MBExperimentModel
-                configs (1, :) MBExperimentConfiguration
-                combineTimes (1, 1) logical
-            end
-
-            if combineTimes
-                configs = combineConfigurationsByTime(configs);
-            end
-
-            numConfigs = length(configs);
-            models = createArray(1, numConfigs, "MBExperimentModel");
-            for configIdx = 1:numConfigs
-                models(configIdx) = configs(configIdx).applyToModel(model);
-            end
-        end % multiplyModel
     end % Public static methods
 
     % TO DO: collectSummaryOfDesignedRound needs 
-    % fimResults, nextExperiment, nCellsVec,
-    % FIMOptNextExpt
+    % nextExperiment, nCellsVec   
 
     methods (Access = private)
+        function obj = buildDataTable(obj, dataFiles)
+            arguments
+                obj (1, 1) MBExperimentDesigner
+                dataFiles (1, :) string
+            end
+
+            if obj.UseEmpiricalData
+                existingDataFiles = obj.EmpiricalDataFiles;
+            else
+                existingDataFiles = obj.SimulatedDataFiles;
+            end
+
+            % Subset the list of incoming data files to those not already
+            % seen.
+
+            dataFileIndicesNotAlreadySeen = ...
+                createArray(1, length(dataFiles), "logical");
+            for fileIdx = 1:length(dataFiles)
+                dataFileIndicesNotAlreadySeen(fileIdx) = ~any(...
+                    strcmp(existingDataFiles, dataFiles(fileIdx)));
+            end
+            dataFiles = dataFiles(dataFileIndicesNotAlreadySeen);
+
+            % Create a table from all new incoming data files, if there are
+            % any. Then create a new column indicating the round, if any,
+            % in which the observation (row) was utilized. This is
+            % initialized to NaN rather than to zero for clarity and for
+            % fast lookup of which observations have (or haven't) been
+            % utilized.
+
+            if ~isempty(dataFiles)
+                ds = tabularTextDatastore(dataFiles);
+                T = ds.readall;
+                T.(obj.TABLE_ROUND_COLUMN) = NaN(height(T), 1);
+
+                if obj.UseEmpiricalData
+                    % Use the ModelToDataColumnsMap to rename columns to
+                    % match corresponding features of the model
+                    % (parameters, species, input expressions).
+
+                    varNames = string(T.Properties.VariableNames);
+                    d = obj.ModelToDataColumnsMap;
+                    k = d.keys;
+                    for keyIdx = 1:d.numEntries()
+                        modelColumn = k(keyIdx);
+                        dataColumn = d(modelColumn);                        
+                        varNames(strcmp(varNames, dataColumn)) = ...
+                            modelColumn;
+                    end
+                    T.Properties.VariableNames = varNames;
+                end
+
+                % Append the new table to the corresponding existing table
+                % and the new data files to the corresponding list of
+                % existing data files.
+
+                if obj.UseEmpiricalData
+                    obj.EmpiricalDataFiles = [existingDataFiles dataFiles];
+                    obj.EmpiricalDataTable = [obj.EmpiricalDataTable; T];
+                else
+                    obj.SimulatedDataFiles = [existingDataFiles dataFiles];
+                    obj.SimulatedDataTable = [obj.SimulatedDataTable; T];
+                end
+            end % [New incoming data files exist]
+        end % buildDataTable
+
         function round = collectSummaryOfDesignedRound(obj, round)
             arguments
                 obj (1, 1) MBExperimentDesigner
@@ -229,7 +298,7 @@ classdef MBExperimentDesigner
             round.FIMCurrentExpt_True = totalFim(fimTrue, ...
                 obj.CumulativeNumbersOfObservations, ...
                 obj.GuessedModel.fittingOptions.logPriorCovariance);
-        end
+        end % computeFIMsForDesignedRound
 
         function round = designNextExperiment(obj, round)
             arguments
@@ -247,7 +316,136 @@ classdef MBExperimentDesigner
                 cellVecForOptimalFIMCalculation + ...
                 obj.CumulativeNumbersOfObservations, ...
                 obj.GuessedModel.fittingOptions.logPriorCovariance);            
-        end
+        end % designNextExperiment
+
+        function [models, configs] = multiplyModel(obj, ...
+                model, configs, combineTimes, cache)
+            %multiplyModel accepts a source model, a list of experiment
+            %configurations, and a Boolean indicating whether measurement
+            %times should be combined for otherwise similar configurations,
+            %and it generates a cache of models, configurations, and
+            %related properties such that
+            %   1. Each output configuration is the result of combining the
+            %   measurement times in the corresponding source
+            %   configurations (if indicated),
+            %   2. Each output model is the result of
+            %       a. Applying the corresponding configuration to the
+            %       source model, including the measurement times;
+            %       b. Loading all existing relevant data into the model:
+            %           i. Data must match the configuration, and
+            %           ii. Data must have been utilized in a performed
+            %           experiment round.
+            %       c. Fitting the collection of output models to the data
+            %       and updating all models' fitted parameters accordingly.
+
+            arguments                
+                obj (1, 1) MBExperimentDesigner
+                model (1, 1) MBExperimentModel
+                configs (1, :) MBExperimentConfiguration
+                combineTimes (1, 1) logical
+                cache (1, 1) MBExperimentDependentModelsCache = [];
+            end
+
+            if ~isempty(cache)
+                % If an input cache has been provided, assume nothing needs
+                % to be regenerated/reloaded/recalculated, then begin to
+                % check:
+                regenerateConfigs = false;
+                regenerateModels = false;
+                reloadData = false;
+                refitModels = false;
+
+                % If the configs have changed, then everything will need to
+                % be regenerated:
+                %   1. Models are generated by applying each config to the
+                %   source model.
+                %   2. Data are loaded according to the config.
+                %   3. Models are fit according to the loaded data.
+
+                if length(configs) ~= length(cache.Configs)
+                    regenerateConfigs = true;
+                else
+                    for configIdx = 1:length(configs)
+                        if ~(configs(configIdx) == ...
+                                cache.Configs(configIdx))
+                            regenerateConfigs = true;
+                            break
+                        end
+                    end
+                end % [Regenerate configs?]
+
+                if regenerateConfigs
+                    regenerateModels = true;
+                    reloadData = true;
+                    refitModels = true;
+                end
+
+                % Even if the configs haven't changed, models need to be
+                % regenerated if the source model has changed:
+
+                if ~(model == cache.SourceModel)
+                    regenerateModels = true;
+                end
+
+                % Even if neither the models nor configs have changed, data
+                % need to be reloaded if 
+                %   1. A different type of data is being used in this round
+                %   (simulated versus empirical), and therefore a different
+                %   source data table,
+                %   OR
+                %   2. More data have been acquired (as indicated by an
+                %   outdated number of performed experiment round).
+
+                if obj.UseEmpiricalData ~= cache.UseEmpiricalData
+                    reloadData = true;
+                elseif obj.PerformingRoundNumber > ...
+                        cache.LastPerformedExperimentRound
+                    reloadData = true;
+                end
+
+                % If data need to be reloaded, then models will need to be
+                % refit accordingly.
+
+                if reloadData
+                    refitModels = true;
+                end
+            else % [Input cache provided]
+                % If no input cache is provided, everything needs to be
+                % regenerated/reloaded/recalculated.
+
+                cache = MBExperimentDependentModelsCache;
+                regenerateConfigs = true;
+                regenerateModels = true;
+                reloadData = true;
+                refitModels = true;
+            end % [No input cache provided]
+
+            if regenerateConfigs
+                if combineTimes
+                    configs = combineConfigurationsByTime(configs);
+                end
+            else
+                configs = cache.Configs;
+            end
+
+            numConfigs = length(configs);
+
+            if regenerateModels
+                models = createArray(1, numConfigs, "MBExperimentModel");
+                for configIdx = 1:numConfigs
+                    models(configIdx) = ...
+                        configs(configIdx).applyToModel(model);
+                end
+            else
+                models = cache.Models;
+            end
+
+            if reloadData
+            end
+
+            if refitModels
+            end
+        end % multiplyModel
       
         function [obj, round] = setupAndRunMetropolisHastings(obj, round)
             arguments
@@ -297,7 +495,134 @@ classdef MBExperimentDesigner
             obj.GuessedModel.parameters(...
                 obj.GuessedModel.fittingOptions.modelVarsToFit, 2) = ...
                 num2cell(round.MHResults.Parameters);            
-        end
+        end % setupAndRunMetropolisHastings
+
+        function obj = sampleObservationsPerDesign(obj)
+            arguments
+                obj (1, 1) MBExperimentDesigner
+            end
+
+            if obj.UseEmpiricalData
+                T = obj.EmpiricalDataTable;
+            else
+                T = obj.SimulatedDataTable;
+            end
+
+            unsampledRows = isnan(T.(obj.TABLE_ROUND_COLUMN));
+
+            design = obj.NextExperimentDesign;
+            configs = design.Configurations;
+
+            numConfigs = length(configs);
+            for configIdx = 1:numConfigs
+                curConfig = configs(configIdx);
+                curNumObservations = design.getObservationsForConfiguration(...
+                    curConfig);
+                if curNumObservations > 0
+                    % If the design involves making observations for this
+                    % configuration, then find
+                    %   1. The subset of the data pertaining to this
+                    %   configuration.
+                    %   2. The UNSAMPLED subset of the first subset (by
+                    %   logical conjunction).
+                    %   3. A third subset of the second subset equal in
+                    %   length to the number of desired observations.
+
+                    rowsForCurConfig = curConfig.findSubsetOfData(T);
+                    unsampledRowsForCurConfig = ...
+                        unsampledRows & rowsForCurConfig;
+                    rowsToSample = find(...
+                        unsampledRowsForCurConfig, curNumObservations);
+
+                    if obj.ErrorOnInsufficientAvailableObservations && ...
+                            length(rowsToSample) < curNumObservations
+                        error("Desired " + curNumObservations + ...
+                            " but only " + length(rowsToSample) + ...
+                            " were available for configuration " + ...
+                            curConfig.FilenameString)
+                    end
+
+                    % Having found the desired number of appropriate rows
+                    % to sample, sample them by assigning their values in
+                    % the "round" column to the number of the round being
+                    % performed.
+
+                    T.(obj.TABLE_ROUND_COLUMN)(rowsToSample) = ...
+                        obj.PerformingRoundNumber;
+                end % [observations desired for this configuration]
+            end % [for each configuration]
+
+            % Finally, having sampled sufficiently many desired and
+            % available observations for each configuration, assign the
+            % updated table back to the appropriate property:
+
+            if obj.UseEmpiricalData
+                obj.EmpiricalDataTable = T;
+            else
+                obj.SimulatedDataTable = T;
+            end
+        end % sampleObservationsPerDesign
+
+        function outputFiles = simulateSystem(obj)
+            arguments
+                obj (1, 1) MBExperimentDesigner
+            end
+
+            % From the design, obtain a map from the non-time
+            % configurations to the maximum number of observations at any
+            % corresponding time point. We do this to ensure that, because
+            % each simulated model combines all time points for a given
+            % non-time configuration, we will have sufficiently many
+            % observations for each configuration (non-time plus time).
+
+            numObservationsMap = ...
+                getMostObservationsAtAnyTimeForNonTimeConfigurations(...
+                obj.NextExperimentDesign);
+
+            % Obtain a list of true models, one for experiment
+            % configuration after having combined measurement times. Note
+            % that there is a 1-1 map between models and configs.
+
+            [models, configs] = multiplyModel(...
+                obj.GroundTruthModel, obj.Configurations, true);
+
+            numConfigs = length(configs);
+            maxObservations = zeros(1, numConfigs, "uint64");
+            for configIdx = 1:numConfigs
+                curNonTimeConfig = configs(configIdx).NonTimeConfiguration;
+
+                % If the non-time configuration is not a key of the map,
+                % that means that design specifies no observations at any
+                % time for that configuration, so the value should remain
+                % zero.
+
+                if numObservationsMap.isKey(curNonTimeConfig)
+                    maxObservations(configIdx) = ...
+                        numObservationsMap(curNonTimeConfig);
+                end
+            end
+
+            numModels = length(models);
+            outputFiles = createArray(1, numModels, "string");
+            for modelIdx = 1:numModels
+                outputFiles(modelIdx) = "SimulatedData_" + ...
+                    "Round_" + obj.PerformingRoundNumber + ...
+                    "Model_" + modelIdx + ".csv";
+            end
+
+            parfor modelIdx = 1:numModels
+                curModel = models(modelIdx);                
+                curModel.ssaOptions.nSimsPerExpt = ...
+                    maxObservations(modelIdx);
+                curModel.ssaOptions.Nexp = 1;
+
+                if curModel.ssaOptions.nSimsPerExpt ~= 0
+                    curModel.sampleDataFromFSP(...
+                        [], ... % Leave empty to use existing FSP solution
+                        outputFiles(modelIdx));
+                end
+            end % [for each model]
+        end % simulateSystem
     end % Private methods
 
     methods

@@ -3,6 +3,10 @@ classdef MBExperimentConfiguration
     %assignment of a single value for all "configurables": the non-time
     %configurations (input expressions and designed parameters of a model)
     %and the measurement time(s).
+
+    properties (Dependent)
+        FilenameString
+    end
     
     properties
         NonTimeConfiguration (1, 1) MBExperimentNonTimeConfiguration
@@ -27,24 +31,10 @@ classdef MBExperimentConfiguration
                 data (1, 1) table
             end
 
-            rowsToKeep = obj.TimeConfigurable.findSubsetOfData(data);
+            % Identify and return the appropriate subset of the data rows 
+            % and all data columns.
 
-            nonTimeConfigs = obj.NonTimeConfiguration.NonTimeConfigurables;
-            for configIdx = 1:length(nonTimeConfigs)
-                % All rows must match, i.e., have the desired value for
-                % each non-time configurable and one of the desired values
-                % for the time configurable. This is equivalent to logical
-                % conjunction ("and").
-                
-                curRowsToKeep = ...
-                    nonTimeConfigs(configIdx).findSubsetOfData(data);
-                rowsToKeep = and(rowsToKeep, curRowsToKeep);
-            end
-
-            % Return the identified subset of the data rows and all data
-            % columns.
-
-            data = data(rowsToKeep, :);
+            data = data(obj.findSubsetOfData(data), :);
         end % applyToData
 
         function model = applyToModel(obj, model)
@@ -64,5 +54,64 @@ classdef MBExperimentConfiguration
 
             model = obj.TimeConfigurable.applyToModel(model);
         end % applyToModel
-    end
+
+        function disp(obj)
+            disp(obj.NonTimeConfiguration)
+            disp(obj.TimeConfigurable)
+        end % disp
+
+        function isEqual = eq(obj1, obj2)
+            arguments
+                obj1 (1, 1) MBExperimentConfiguration
+                obj2 (1, 1) MBExperimentConfiguration
+            end
+
+            isEqual = ...
+                (obj1.NonTimeConfiguration == ...
+                obj2.NonTimeConfiguration) && ...
+                (obj1.TimeConfigurable == obj2.TimeConfigurable);
+        end
+
+        function rows = findSubsetOfData(obj, data)
+            %findSubsetOfData takes a dataset in the form of a MATLAB table
+            %and finds its subset that matches this configuration:
+            %
+            %   1. The value of each column corresponding to a non-time
+            %   configurable will equal the single value of that
+            %   configurable.
+            %   AND
+            %   2. The value of each column corresponding to the time
+            %   configurable will equal one of the values of the time
+            %   configurable.
+
+            arguments
+                obj (1, 1) MBExperimentConfiguration
+                data (1, 1) table
+            end
+
+            rows = obj.TimeConfigurable.findSubsetOfData(data);
+
+            nonTimeConfigs = obj.NonTimeConfiguration.NonTimeConfigurables;
+            for configIdx = 1:length(nonTimeConfigs)
+                % All rows must match, i.e., have the desired value for
+                % each non-time configurable and one of the desired values
+                % for the time configurable. This is equivalent to logical
+                % conjunction ("and").
+
+                curRowsToKeep = ...
+                    nonTimeConfigs(configIdx).findSubsetOfData(data);
+                rows = and(rows, curRowsToKeep);
+            end
+        end % findSubsetOfData
+
+        function filenameString = get.FilenameString(obj)
+            %FilenameString represents the configuration as a string
+            %suitable for use in a filename.
+           
+            filenameString = join([...
+                obj.NonTimeConfiguration.FilenameString ...
+                obj.TimeConfigurable.FilenameString], ...
+                "_");
+        end
+    end % Public methods
 end

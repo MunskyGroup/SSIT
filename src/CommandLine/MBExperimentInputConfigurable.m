@@ -61,7 +61,8 @@ classdef MBExperimentInputConfigurable < ...
         end % applyToModel
 
         function disp(obj)
-            fprintf('%s = %s\n', obj.InputName, obj.Values)           
+            fprintf("%s = %s\n", ...
+                obj.InputName, join(string(obj.Values), ", "))           
         end
 
         function rows = findSubsetOfData(obj, data)

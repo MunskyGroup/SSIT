@@ -52,7 +52,7 @@ classdef MBExperimentTimeConfigurable < MBAbstractExperimentConfigurable
         end % applyToModel
 
         function disp(obj)           
-            disp(['Time = ' num2str(obj.Values)])            
+            disp("Time = " + join(string(obj.Values), ", "))            
         end
 
         function rows = findSubsetOfData(obj, data)
