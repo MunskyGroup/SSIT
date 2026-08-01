@@ -165,10 +165,10 @@ classdef SSIT
         tSpan = linspace(0,10,21);
         % Chosen solution scheme ('FSP','SSA','ode'), default: 'FSP'
         solutionScheme = 'FSP'
+        % Chosen integrator for ODEs {'ode23s' (default), 'ode15s', 'ode45'}.
+        odeIntegrator = 'ode23s'       
         % Chosen sets of solution schemes to get and store (choose members
         % from ('FSP','SSA','ode').  Default is empty.
-        odeIntegrator = 'ode23s'
-        % Chosen integrator for ODEs {'ode23s' (default), 'ode15s', 'ode45'}.
         solutionSchemes = {};
         % Settings for model reduction tools
         %   defaults:
@@ -563,8 +563,8 @@ classdef SSIT
                 addpath(pathFuns);
             end
 
-            if strcmpi(obj.solutionScheme,'ode')
-                obj = clearPropensityFiles(obj,prefixName,'ode');
+            if strcmpi(obj.solutionScheme, "ode")
+                obj = clearPropensityFiles(obj, prefixName, "ode");
                 momentOdeFileName = pathToPropensityFuns + filesep + ...
                     prefixName + "_mean";
                 try
@@ -590,8 +590,9 @@ classdef SSIT
                     disp('Could not write ODE equations (possibly due to incompatible logical functions in propensities).')
                 end
                 return
-            elseif strcmpi(obj.solutionScheme,'moments')||strcmpi(obj.solutionScheme,'gaussian')
-                obj = clearPropensityFiles(obj,prefixName,'moments');
+            elseif strcmpi(obj.solutionScheme, "moments") || ...
+                    strcmpi(obj.solutionScheme, "gaussian")
+                obj = clearPropensityFiles(obj, prefixName, "moments");
                 try
                     momentOdeFileName = ...
                         pathToPropensityFuns + filesep + prefixName + ...
@@ -618,7 +619,7 @@ classdef SSIT
                     disp('Could not write moments equations (possibly due to incompatible logical functions in propensities).')
                 end
                 return
-            elseif strcmpi(obj.solutionScheme,'ssa')
+            elseif strcmpi(obj.solutionScheme, "ssa")
                 % propensity functions do not need to be compiled in
                 % advance for SSA calls.
                 return
@@ -783,15 +784,15 @@ classdef SSIT
                 n = 100
             end
             obj2 = obj;
-            obj2.solutionScheme = 'ssa';
+            obj2.solutionScheme = "ssa";
             obj2.ssaOptions.Nsims = n;
 
             if obj2.fspOptions.initApproxSS
                 obj2.tSpan = linspace(0,1000,101);
             end
-            X = obj2.solve(returnType='soln');
+            X = obj2.solve(returnType = "soln");
 
-            obj.solutionScheme = 'fsp';
+            obj.solutionScheme = "fsp";
             obj.fspOptions.bounds = ...
                 max(abs(obj.fspConstraints.f(reshape(X.trajs,size(X.trajs,1),[]))),[],2);
             obj.fspOptions.bounds(1:length(obj.species),1) = 0;
@@ -2079,7 +2080,7 @@ classdef SSIT
                 if isfield(obj.Solutions,'fsp')
                     fspSoln = obj.Solutions.fsp;
                 else
-                    Soln = obj.solve(returnType='soln');
+                    Soln = obj.solve(returnType = "soln");
                     fspSoln = Soln.fsp;
                 end
             end
@@ -2330,12 +2331,12 @@ classdef SSIT
             end
 
             % Header
-            disp('------------------------------------------------------------')
-            disp(['Data file: ', DATA.dataFileName])
-            disp('------------------------------------------------------------')
-            disp('Species summary:')
-            disp('  Model name (Data name)        min        max        mean')
-            disp('  --------------------------------------------------------')
+            disp("------------------------------------------------------------")
+            disp("Data files: " + join(DATA.dataFileName, ", "))
+            disp("------------------------------------------------------------")
+            disp("Species summary:")
+            disp("  Model name (Data name)        min        max        mean")
+            disp("  --------------------------------------------------------")
 
             %% Species statistics
             numberOfSpecies = length(obj.species);
@@ -2479,19 +2480,20 @@ classdef SSIT
 
         %% Model Analysis Functions
         function obj = fspSolve(obj)
-            obj = obj.solve(solver='fsp');
+            obj = obj.solve(solver = "fsp");
         end
+
         function [Solution, bConstraints, obj] = solve(obj,stateSpace,saveFile,fspSoln,opts)
             arguments
                 obj
                 stateSpace = [];
                 saveFile=[];
                 fspSoln=[];
-                opts.solver = []
-                opts.returnType = 'ssit';
+                opts.solver (1, 1) string = ""
+                opts.returnType (1, 1) string = "ssit";
             end
             % Solve the model using the specified method in
-            %    obj.solutionScheme (default: 'FSP')
+            %    obj.solutionScheme (default: "FSP")
             % Inputs:
             %   obj
             %   stateSpace = [];
@@ -2499,24 +2501,27 @@ classdef SSIT
             %   fspSoln = [];
             % Example:
             %   F = SSIT('ToggleSwitch')
-            %   F.solutionScheme = 'FSP'
+            %   F.solutionScheme = "FSP"
             %   [soln,bounds] = F.solve(returnType='soln');  % Returns the solution and the
             %                             % bounds for the FSP projection
-            %   F.solutionScheme = 'fspSens'
+            %   F.solutionScheme = "fspSens"
             %   [soln,bounds] = F.solve(returnType='soln');  % Returns the sensitivity and the
             %                             % bounds for the FSP projection
             % See also: SSIT.makePlot for information on how to visualize
             % the solution data. 
 
-            if ~isempty(opts.solver)
+            if strlength(opts.solver) > 0
                 obj.solutionScheme = opts.solver;
             end
 
-            if ~isempty(obj.specialEvents)&&~strcmpi(obj.solutionScheme(1:3),'fsp')
-                error('Special Events are currently supported only for FSP analyses')
-            elseif strcmpi(obj.solutionScheme(1:3),'fspsens')&&~strcmpi(obj.sensOptions.solutionMethod,'finiteDifference')
+            if ~isempty(obj.specialEvents) && ...
+                    ~startsWith(lower(obj.solutionScheme), "fsp")
+                error("Special Events are currently supported only for FSP analyses")
+            elseif startsWith(lower(obj.solutionScheme), "fspsens") ...
+                    && ~strcmpi(...
+                    obj.sensOptions.solutionMethod, "finiteDifference")
                 warning('Special Events are only supported for FSP sensitivity using finite difference.')
-                obj.sensOptions.solutionMethod='finiteDifference';
+                obj.sensOptions.solutionMethod = "finiteDifference";
             end
             
             if ~isfield(obj.fspOptions,'minSSEscapeRate')
@@ -2526,27 +2531,28 @@ classdef SSIT
                 obj.fspOptions.krylovSize = 20;
             end
             try
-                if strcmp(opts.returnType,'ssit') || nargout >= 2
+                if strcmp(opts.returnType, "ssit") || nargout >= 2
                     [Solution, bConstraints, obj] = obj.solveHelper(stateSpace,saveFile,fspSoln);
                 else
                     Solution = obj.solveHelper(stateSpace,saveFile,fspSoln);
                 end
             catch
                 obj.propensitiesGeneral = [];
-                if strcmpi(obj.solutionScheme,'fsp')||strcmpi(obj.solutionScheme,'fspsens')
+                if strcmpi(obj.solutionScheme, "fsp") || ...
+                        strcmpi(obj.solutionScheme, "fspsens")
                     newPropFileName = string(obj.propensityFilePrefix) + ...
                         "_" + string(char(randi([97 122])));
                     disp("(Re)Forming Propensity Function Files under new name: " + newPropFileName);
                     obj = obj.formPropensitiesGeneral(newPropFileName);
                 end
-                if strcmp(opts.returnType,'ssit') || nargout >= 2
+                if strcmp(opts.returnType, "ssit") || nargout >= 2
                     [Solution, bConstraints, obj] = obj.solveHelper(stateSpace,saveFile,fspSoln);
                 else
                     Solution = obj.solveHelper(stateSpace,saveFile,fspSoln);
                 end
             end
             switch opts.returnType
-                case 'ssit'
+                case "ssit"
                     Solution = obj;
             end
         end
@@ -2572,13 +2578,15 @@ classdef SSIT
                 stateSpace = obj.fspOptions.stateSpace;
             end
 
-            if strcmpi(obj.solutionScheme(1:3),'fsp')
+            if startsWith(lower(obj.solutionScheme), "fsp")
                 propensityGeneral = obj.propensitiesGeneral;
                 if isempty(propensityGeneral)
                     disp('Forming Propensity Functions.')
                     obj = formPropensitiesGeneral(obj);
-                elseif ~isempty(obj.hybridOptions)&&~strcmp(obj.solutionScheme,'ode')&&...
-                        isfield(propensityGeneral{1},'ODEstoichVector')&&length(obj.hybridOptions.upstreamODEs)~=length(propensityGeneral{1}.ODEstoichVector)
+                elseif ~isempty(obj.hybridOptions) && ...
+                        ~strcmp(obj.solutionScheme, "ode") && ...
+                        isfield(propensityGeneral{1},'ODEstoichVector') && ...
+                        length(obj.hybridOptions.upstreamODEs)~=length(propensityGeneral{1}.ODEstoichVector)
                     disp('(Re)Forming Propensity Functions Due to Detected Change in Hybrid Model Dimension.')
                     obj = formPropensitiesGeneral(...
                         obj, "hybrid", true);
@@ -2597,13 +2605,14 @@ classdef SSIT
                     useReducedModel = false;
                     modRedTransformMatrices = [];
                 end
-            elseif strcmpi(obj.solutionScheme,'moments')||strcmpi(obj.solutionScheme,'momentsgaussian')
+            elseif strcmpi(obj.solutionScheme, "moments") || ...
+                    strcmpi(obj.solutionScheme, "momentsgaussian")
                 propensityGeneral = obj.propensitiesGeneralMoments;
                 if isempty(propensityGeneral)
                     disp('Forming Propensity Functions.')
                     obj = formPropensitiesGeneral(obj);
                 end
-            elseif strcmpi(obj.solutionScheme,'ode')
+            elseif strcmpi(obj.solutionScheme, "ode")
                 propensityGeneral = obj.propensitiesGeneralMean;
                 if isempty(propensityGeneral)
                     disp('Forming Propensity Functions.')
@@ -3255,7 +3264,8 @@ classdef SSIT
                         sensSoln = obj.Solutions.sens;
                     else
                         % disp({'Running Sensitivity Calculation';'You can skip this step by providing sensSoln.'})
-                        sensSoln = obj.solve(solver='fspSens',returnType='soln');
+                        sensSoln = obj.solve(...
+                            solver = "fspSens", returnType = "soln");
                         sensSoln = sensSoln.sens;
                     end
                 end
@@ -3559,13 +3569,16 @@ classdef SSIT
         end
 
         %% Data Loading and Fitting
-        function [obj] = loadData(obj,dataFileName,linkedSpecies,conditions,savedColumns)
+        function [obj] = loadData(obj, ...
+                dataSources, linkedSpecies, conditions, savedColumns)
             % SSIT.loadData - Reads data from given file and associates
             % it with specified model species and experimental conditions.
             %
             % Inputs:
             %   * obj
-            %   * dataFileName - name of data file, e.g., "dataFile.csv"
+            %   * dataSources - one of the following:
+            %     * one or more tables
+            %     * one or more names of data file, e.g., "dataFile.csv"            
             %   * linkedSpecies - one of two possible data types
             %     * dictionary (recommended) mapping strings to strings.
             %     The KEY is the name of a species given to the SSIT model
@@ -3601,20 +3614,21 @@ classdef SSIT
             %    {'Drug_Conc',100},{'replica'});
             arguments
                 obj
-                dataFileName
+                dataSources (1, :)
                 linkedSpecies = configureDictionary("string", "string");
                 conditions = {};
                 savedColumns = {};
             end
-            obj.dataSet =[];
-            if ischar(dataFileName)||isstring(dataFileName)
-                TAB = readtable(dataFileName);
-            elseif iscell(dataFileName)
-                TAB = table;
-                for iCell = 1:length(dataFileName)
-                    iTAB = readtable(dataFileName{iCell});
-                    TAB = [TAB;iTAB];
-                end
+
+            obj.dataSet = [];
+
+            if istable(dataSources)
+                TAB = vertcat(dataSources);
+            elseif iscell(dataSources)
+                ds = tabularTextDatastore(dataSources);
+                TAB = ds.readall;                
+            elseif ischar(dataSources) || isstring(dataSources)
+                TAB = readtable(dataSources);            
             end
 
             % Find time column
@@ -3753,7 +3767,12 @@ classdef SSIT
                 TAB.Properties.VariableNames, obj.species, 'stable');
             TAB = TAB(:, [1, iA']);            
 
-            obj.dataSet.dataFileName = dataFileName;
+            if istable(dataSources)
+                obj.dataSet.dataFileName = "TABLE";
+            else
+                obj.dataSet.dataFileName = dataSources;
+            end
+
             % obj.dataSet.DATA = table2cell(TAB);
 
             % Update to a constrained copy of the data in the obj.
@@ -3871,11 +3890,11 @@ classdef SSIT
             % Update Model and PDO parameters using supplied guess
             obj.parameters(indsParsToFit,2) =  num2cell(pars(1:nModelPars));
 
-            obj.solutionScheme = 'ode'; % Chosen solutuon scheme
+            obj.solutionScheme = "ode"; % Chosen solution scheme
             for i=1:size(obj.parameters,1)
                 obj.parameters{i,2} = round(obj.parameters{i,2},12);
             end
-            solutions = obj.solve(returnType='soln');  % Solve the ODE analysis
+            solutions = obj.solve(returnType = "soln");  % Solve the ODE analysis
 
             obj.parameters =  originalPars;
 
@@ -3992,11 +4011,11 @@ classdef SSIT
                 % Call routines to find the FSP solution with or without
                 % sensitivity.
                 if computeSensitivity&&nargout>=2
-                    obj.solutionScheme = 'fspSens'; % Chosen solution scheme
-                    [solutions] = obj.solve(stateSpace,returnType='soln');  % Solve the FSP analysis
+                    obj.solutionScheme = "fspSens"; % Chosen solution scheme
+                    [solutions] = obj.solve(stateSpace, returnType = "soln");  % Solve the FSP analysis
                 else
-                    obj.solutionScheme = 'FSP'; % Chosen solution scheme
-                    [solutions] = obj.solve(stateSpace,returnType='soln');  % Solve the FSP analysis
+                    obj.solutionScheme = "FSP"; % Chosen solution scheme
+                    [solutions] = obj.solve(stateSpace, returnType = "soln");  % Solve the FSP analysis
                 end
                 obj.parameters =  originalPars; % Reset back to the original parameters.
                 % end
@@ -4337,7 +4356,7 @@ classdef SSIT
                 reuseExistingSolution = false
             end
 
-            if ~strcmpi(obj.solutionScheme,'ssa')
+            if ~strcmpi(obj.solutionScheme, "ssa")
                 error('computeLossFunctionSSA only meant for models using SSA solution scheme. Please change solutionScheme and try again.')
             end
 
@@ -4384,7 +4403,7 @@ classdef SSIT
                 obj.parameters(indsParsToFit,2) =  num2cell(pars(1:nModelPars));
 
                 % Solve model
-                [solutions] = obj.solve(returnType='soln');  % Solve the SSA analysis
+                [solutions] = obj.solve(returnType = "soln");  % Solve the SSA analysis
 
                 obj.parameters =  originalPars; % Reset back to the original parameters.
             end
@@ -4516,7 +4535,7 @@ classdef SSIT
             obj.fittingOptions.modelVarsToFit = parIndices;  % Choose which parameters to vary.
             pars0 = [obj.parameters{obj.fittingOptions.modelVarsToFit,2}];
 
-            fspSoln = obj.solve(returnType='soln');
+            fspSoln = obj.solve(returnType = "soln");
             stateSpace = fspSoln.stateSpace;
 
             Ngrid=length(scalingRange);
@@ -4562,7 +4581,7 @@ classdef SSIT
                 opts.parGuess = [];
                 opts.fitOptions = [];
                 opts.fitAlgorithm = [];
-                opts.returnType = 'ssit';
+                opts.returnType (1, 1) string = "ssit";
             end
             % Compute the maximum likelihood estimate (if priors are not
             % provided) or the maximum posterior estimate (if priors are
@@ -4585,7 +4604,8 @@ classdef SSIT
                 allFitOptions.(fNames{i}) = fitOptions.(fNames{i});
             end
 
-            if isempty(obj.propensitiesGeneral)&&strcmpi(obj.solutionScheme(1:3),'fsp') 
+            if isempty(obj.propensitiesGeneral) && ...
+                    startsWith(lower(obj.solutionScheme), "fsp") 
                 obj = formPropensitiesGeneral(obj);
             end
 
@@ -4596,19 +4616,19 @@ classdef SSIT
                 parGuess = [obj.parameters{obj.fittingOptions.modelVarsToFit,2}]';
             end
 
-            if strcmpi(obj.solutionScheme,'fspsens')   % Set solution scheme to FSP.
-                obj.solutionScheme='FSP';
+            if strcmpi(obj.solutionScheme, "fspsens") % Solution scheme is FSP + sensitivity
+                obj.solutionScheme = "FSP";
             end
 
-            if strcmpi(obj.solutionScheme,'FSP')   % Set solution scheme to FSP.
-                [FSPsoln,~,obj] = obj.solve(returnType='soln');  % Solve the FSP analysis
+            if strcmpi(obj.solutionScheme, "FSP") % Solution scheme is FSP.
+                [FSPsoln,~,obj] = obj.solve(returnType = "soln");  % Solve the FSP analysis
                 % obj.fspOptions.bounds = bounds;% Save bound for faster analyses
                 if allFitOptions.suppressFSPExpansion
                     tmpFSPtol = obj.fspOptions.fspTol;
                     obj.fspOptions.fspTol = inf;
                 end
                 objFun = @(x)-obj.computeLikelihood(exp(x),FSPsoln.stateSpace);  % We want to MAXIMIZE the likelihood.
-            elseif strcmpi(obj.solutionScheme,'ode')  % Set solution scheme to ode.
+            elseif strcmpi(obj.solutionScheme, "ode") % Solution scheme is ODE.
                 objFun = @(x)-obj.computeLikelihoodODE(exp(x));  % We want to MAXIMIZE the likelihood.
             end
 
@@ -4677,12 +4697,12 @@ classdef SSIT
                     allFitOptions.thin = 1;
                     CovScale = 1.0;
 
-                    if ~strcmpi(returnType,'ssit')
+                    if ~strcmpi(returnType, "ssit")
                         error('AdaptMH only available for returnType of "SSST".')
                     end
                     
                     obj = obj.maximizeLikelihood(parGuess,allFitOptions,...
-                        'metropolishastings',returnType='ssit');
+                        'metropolishastings', returnType = "ssit");
 
                     if obj.Solutions.mhResults.mhAcceptance*allFitOptions.numberOfSamples<2*length(obj.parameters)
                         error(['Initial Acceptance too small: ',num2str(obj.Solutions.mhResults.mhAcceptance),'. Decrease proposal or request longer chain.'])
@@ -4779,8 +4799,8 @@ classdef SSIT
                     if allFitOptions.useFIMforMetHast
                         disp('Computing FIM for use in proposal distribution')
                         TMP = obj;
-                        TMP.solutionScheme = 'fspSens'; % Set solutions scheme to FSP Sensitivity
-                        [sensSoln] = TMP.solve(returnType='soln');  % Solve the sensitivity problem
+                        TMP.solutionScheme = "fspSens"; % Set solutions scheme to FSP Sensitivity
+                        [sensSoln] = TMP.solve(returnType = "soln");  % Solve the sensitivity problem
 
                         if allFitOptions.logForm
                             fimResults = TMP.computeFIM(sensSoln.sens,'log');
@@ -4879,19 +4899,20 @@ classdef SSIT
 
             output = exp(x0);
 
-            if strcmp(obj.solutionScheme,'FSP')&&allFitOptions.suppressFSPExpansion
+            if strcmp(obj.solutionScheme, "FSP") && ...
+                    allFitOptions.suppressFSPExpansion
                 obj.fspOptions.fspTol = tmpFSPtol;
             end
 
             % Check if the fit resulted in better parameters for max
             % posterior and update if so.
-            if nargout>=4||strcmpi(opts.returnType,'ssit')
+            if nargout>=4||strcmpi(opts.returnType, "ssit")
                 if obj.computeLikelihood(exp(x0(:)))>obj.computeLikelihood([obj.parameters{obj.fittingOptions.modelVarsToFit,2}]')
                     % Update best parameters set in returned model.
                     obj.parameters(obj.fittingOptions.modelVarsToFit,2) = num2cell(exp(x0(:)));
                 end
             end
-            if strcmpi(opts.returnType,'ssit')
+            if strcmpi(opts.returnType, "ssit")
                 output = obj;
             end
         end
@@ -4935,10 +4956,10 @@ classdef SSIT
             end
 
             % Switch solution scheme to 'ssa'
-            if ~strcmpi(obj.solutionScheme,'ssa')
+            if ~strcmpi(obj.solutionScheme, "ssa")
                 disp('Changing solution scheme to SSA for ABC.')
                 % Run once to make sure SSA files are defined.
-                obj = obj.solve(solver='ssa');
+                obj = obj.solve(solver = "ssa");
             end
         
             % Define the objective in *parameter* space (theta, not log-theta)
@@ -4965,7 +4986,7 @@ classdef SSIT
             % @(x) allFitOptions.obj(exp(x)), working in log-parameter space).
             [pars, bestObjectiveValue, Results] = ...
                 obj.maximizeLikelihood(parGuess, fitOptions, ...
-                'MetropolisHastings', returnType='parameters');
+                'MetropolisHastings', returnType = "parameters");
             minimumLossFunction = -bestObjectiveValue;
 
             % Update model with results
@@ -5993,11 +6014,11 @@ end
             priorSolutionScheme = obj.solutionScheme;
             if ~isfield(obj.Solutions,'trajs')
                 disp('No SSA trajectories found. Rerunning now');
-                obj = obj.solve(solver='ssa');
+                obj = obj.solve(solver = "ssa");
             end
             if ~isfield(obj.Solutions,'fsp')
                 disp('No FSP solution found. Rerunning now');
-                obj = obj.solve(solver='fsp');               
+                obj = obj.solve(solver = "fsp");               
             end
             obj.solutionScheme = priorSolutionScheme;
 
