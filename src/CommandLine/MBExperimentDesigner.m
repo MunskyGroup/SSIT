@@ -1,4 +1,4 @@
-classdef MBExperimentDesigner
+classdef MBExperimentDesigner < handle
     %MBExperimentDesigner performs sequential model-based experiment design
     %   MBExperimentDesigner uses a model and empirical or simulated data
     %   to design and perform rounds of experimentation. In the case of
@@ -46,7 +46,6 @@ classdef MBExperimentDesigner
         NumberOfMHSamplesForProduction (1, 1) uint64 {mustBePositive} = 100
         NumberOfMHSamplesForTuning (1, 1) uint64 {mustBePositive} = 100
         NumberOfMHSamplesToThin (1, 1) uint64 {mustBePositive} = 2
-        Property1
         Strategy (1, 1) MBAbstractExperimentDesignStrategy = ...
             MBExperimentRandomDesignStrategy()        
         UseEmpiricalData (1, 1) logical = false
@@ -144,11 +143,8 @@ classdef MBExperimentDesigner
         end
     end % Public static methods
 
-    % TO DO: collectSummaryOfDesignedRound needs 
-    % nextExperiment, nCellsVec   
-
     methods (Access = private)
-        function obj = buildDataTable(obj, dataFiles)
+        function buildDataTable(obj, dataFiles)
             arguments
                 obj (1, 1) MBExperimentDesigner
                 dataFiles (1, :) string
@@ -213,6 +209,10 @@ classdef MBExperimentDesigner
                 end
             end % [New incoming data files exist]
         end % buildDataTable
+
+
+        % TO DO: collectSummaryOfDesignedRound needs 
+        % nextExperiment, nCellsVec   
 
         function round = collectSummaryOfDesignedRound(obj, round)
             arguments
@@ -532,7 +532,7 @@ classdef MBExperimentDesigner
             cache.UseEmpiricalData = obj.UseEmpiricalData;        
         end % multiplyModel
       
-        function [obj, round] = setupAndRunMetropolisHastings(obj, round)
+        function round = setupAndRunMetropolisHastings(obj, round)
             arguments
                 obj (1, 1) MBExperimentDesigner
                 round (1, 1) MBExperimentRound
@@ -582,7 +582,7 @@ classdef MBExperimentDesigner
                 num2cell(round.MHResults.Parameters);            
         end % setupAndRunMetropolisHastings
 
-        function obj = sampleObservationsPerDesign(obj)
+        function sampleObservationsPerDesign(obj)
             arguments
                 obj (1, 1) MBExperimentDesigner
             end
@@ -668,8 +668,13 @@ classdef MBExperimentDesigner
             % configuration after having combined measurement times. Note
             % that there is a 1-1 map between models and configs.
 
-            [models, configs] = multiplyModel(...
-                obj.GroundTruthModel, obj.Configurations, true);
+            % The first method handles updating (if necessary) the cache 
+            % and returning the models. We can then query the cache for the
+            % configs:
+
+            models = obj.GroundTruthModelsWithCombinedTimes;
+            configs = ...
+                obj.CacheOfGroundTruthModelsWithCombinedTimes.Configs;
 
             numConfigs = length(configs);
             maxObservations = zeros(1, numConfigs, "uint64");
@@ -714,10 +719,10 @@ classdef MBExperimentDesigner
         function obj = MBExperimentDesigner(inputArg1,inputArg2)
             %UNTITLED Construct an instance of this class
             %   Detailed explanation goes here
-            obj.Property1 = inputArg1 + inputArg2;
+            
         end
 
-        function [nextDesign, obj] = designNextRound(obj)
+        function nextDesign = designNextRound(obj)
             %designNextRound determines an experiment design, i.e., an
             %apportionment of available observations across candidate
             %experiment configurations, accordingly to the design strategy
@@ -761,27 +766,50 @@ classdef MBExperimentDesigner
         end
 
         function models = get.GroundTruthModelsWithCombinedTimes(obj)
-            models = multiplyModel(...
-                obj.GroundTruthModel, obj.Configurations, true);
+            obj.CacheOfGroundTruthModelsWithCombinedTimes = ...
+                obj.multiplyModel(obj.GroundTruthModel, ...
+                    obj.Configurations, ...
+                    true, ... % Combine times
+                    false, ... % Ground-truth models, so DON'T refit 
+                    obj.CacheOfGroundTruthModelsWithCombinedTimes);
+            models = ...
+                obj.CacheOfGroundTruthModelsWithCombinedTimes.Models;
         end
 
         function models = get.GroundTruthModelsWithIndividualTimes(obj)
-            models = multiplyModel(...
-                obj.GroundTruthModel, obj.Configurations, false);
+            obj.CacheOfGroundTruthModelsWithIndividualTimes = ...
+                obj.multiplyModel(obj.GroundTruthModel, ...
+                    obj.Configurations, ...
+                    false, ... % DON'T combine times
+                    false, ... % Ground-truth models, so DON'T refit
+                    obj.CacheOfGroundTruthModelsWithIndividualTimes);
+            models = ...
+                obj.CacheOfGroundTruthModelsWithIndividualTimes.Models;           
         end
 
         function models = get.GuessedModelsWithCombinedTimes(obj)
-            models = multiplyModel(...
-                obj.GuessedModel, obj.Configurations, true);
+            obj.CacheOfGuessedModelsWithCombinedTimes = ...
+                obj.multiplyModel(obj.GuessedModel, ...
+                    obj.Configurations, ...
+                    true, ... % Combine times
+                    true, ... % Guessed models, so DO refit to new data
+                    obj.CacheOfGuessedModelsWithCombinedTimes);
+            models = ...
+                obj.CacheOfGuessedModelsWithCombinedTimes.Models;
         end
 
         function models = get.GuessedModelsWithIndividualTimes(obj)
-            models = multiplyModel(...
-                obj.GuessedModel, obj.Configurations, false);
+            obj.CacheOfGuessedModelsWithIndividualTimes = ...
+                obj.multiplyModel(obj.GuessedModel, ...
+                    obj.Configurations, ...
+                    false, ... % DON'T combine times
+                    true, ... % Guessed models, so DO refit to new data
+                    obj.CacheOfGuessedModelsWithIndividualTimes);
+            models = ...
+                obj.CacheOfGuessedModelsWithIndividualTimes.Models;
         end
 
-        function [nextRoundResults, obj] = performNextRound(obj, ...
-                pathsToEmpiricalData)
+        function performNextRound(obj, pathsToEmpiricalData)
             %performNextRound performs a single round of experimentation
             %according to the most recently specified experiment design,
             %i.e., an apportionment of available observations across
@@ -812,21 +840,30 @@ classdef MBExperimentDesigner
                 pathsToEmpiricalData (1, :) string
             end
 
-            if obj.UseEmpiricalData
-            else % Empirical mode
-                if ~isempty(pathsToEmpiricalData)
+            % First, handle any provided empirical data files.
+
+            if ~isempty(pathsToEmpiricalData)
+                if obj.UseEmpiricalData
+                    obj.buildDataTable(pathsToEmpiricalData);
+                else % Empirical mode with data paths provided                
                     warning("Paths to empirical data files " + ...
                         "shouldn't be provided when designing " + ...
                         "experiments in simulation mode!");
-                end
+                end % Simulation mode with data paths provided
+            end % Data paths provided
 
+            % Next, simulate the system, if appropriate, according to the 
+            % current design.
+
+            if ~obj.UseEmpiricalData
+                outputFiles = obj.simulateSystem();
+                obj.buildDataTable(outputFiles);
             end % Simulation mode
-        end % performNextRound
 
-        function outputArg = method1(obj,inputArg)
-            %METHOD1 Summary of this method goes here
-            %   Detailed explanation goes here
-            outputArg = obj.Property1 + inputArg;
-        end
+            % Finally, regardless of the experimental mode, sample
+            % according to the current design.
+
+            obj.sampleObservationsPerDesign();
+        end % performNextRound
     end % Public methods
-end
+end % MBExperimentDesigner
