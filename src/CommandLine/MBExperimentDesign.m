@@ -222,6 +222,19 @@ classdef MBExperimentDesign
             end
         end % getTheoreticalObservationMatrix
 
+        function obj = MBExperimentDesign(configurations)
+            arguments
+                configurations (1, :) MBExperimentConfiguration
+            end
+
+            % Create an "empty" design, with zero observations for every
+            % supplied configuration.
+
+            for configIdx = 1:length(configurations)
+                obj.ConfigurationToNumObservationsMap(configuration) = 0;
+            end
+        end
+
         function sum = plus(obj1, obj2)
             arguments
                 obj1 (1, 1) MBExperimentDesign
