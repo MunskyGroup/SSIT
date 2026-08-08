@@ -28,13 +28,4 @@ classdef MBExperimentRandomDesignStrategy < ...
             cellVecForOptimalFIMCalculation = Obs';            
         end % apportionObservationsInternal
     end % Protected methods
-
-    methods
-        function obj = MBExperimentRandomDesignStrategy(inputArg1,inputArg2)
-            %UNTITLED Construct an instance of this class
-            %   Detailed explanation goes here
-            obj.Info = MBExperimentDesignStrategyInfo;
-            obj.Property1 = inputArg1 + inputArg2;
-        end
-    end % Public methods
 end
