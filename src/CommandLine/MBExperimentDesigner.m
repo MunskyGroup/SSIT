@@ -20,21 +20,24 @@ classdef MBExperimentDesigner < handle
             MBExperimentDependentModelsCache
         CacheOfGuessedModelsWithIndividualTimes (1, 1) ...
             MBExperimentDependentModelsCache
-        EmpiricalDataFiles (1, :) string        
-        EmpiricalDataTable (1, 1) table
+        CumulativeNumbersOfObservations (1, :) uint64
+        DesignedExperimentRounds (1, :) MBExperimentRound = ...
+            createArray(0, 0, "MBExperimentRound")
+        EmpiricalDataFiles (1, :) string = createArray(0, 0, "string")       
+        EmpiricalDataTable (1, 1) table = table
+        GroundTruthModel (1, 1) MBExperimentModel = []
         PerformingRoundNumber (1, 1) uint64 {mustBePositive} = 0
-        SimulatedDataFiles (1, :) string
-        SimulatedDataTable (1, 1) table        
-    end
+        ReadyToPerformNextRound (1, 1) logical = false
+        SimulatedDataFiles (1, :) string = createArray(0, 0, "string")
+        SimulatedDataTable (1, 1) table = table
+    end % Read-only properties
 
     properties
-        Configurations (1, :) MBExperimentConfiguration
-        CumulativeNumbersOfObservations (1, :) uint64
-        ErrorOnInsufficientAvailableObservations (1, 1) logical = false
-        ExperimentRounds (1, :) MBExperimentRound
-        FIMScale (1, 1) string = "log"
-        GroundTruthModel (1, 1) MBExperimentModel
-        GuessedModel (1, 1) MBExperimentModel
+        Configurations (1, :) MBExperimentConfiguration = ...
+            createArray(0, 0, "MBExperimentConfiguration")
+        ErrorOnInsufficientAvailableObservations (1, 1) logical = false       
+        FIMScale (1, 1) string = "log"       
+        GuessedModel (1, 1) MBExperimentModel = []
         MaxFitIterations (1, 1) uint64 {mustBePositive} = 1
         MHOptions (1, 1) MetropolisHastingsAlgorithmOptions
         ModelToDataColumnsMap (1, 1) dictionary = ...
@@ -48,7 +51,7 @@ classdef MBExperimentDesigner < handle
         NumberOfMHSamplesToThin (1, 1) uint64 {mustBePositive} = 2
         Strategy (1, 1) MBAbstractExperimentDesignStrategy = ...
             MBExperimentRandomDesignStrategy()        
-        UseEmpiricalData (1, 1) logical = false
+        UseEmpiricalData (1, 1) logical = true
     end
 
     properties (Dependent)
@@ -56,7 +59,7 @@ classdef MBExperimentDesigner < handle
         GroundTruthModelsWithCombinedTimes (1, :) MBExperimentModel
         GroundTruthModelsWithIndividualTimes (1, :) MBExperimentModel
         GuessedModelsWithCombinedTimes (1, :) MBExperimentModel
-        GuessedModelsWithIndividualTimes (1, :) MBExperimentModel        
+        GuessedModelsWithIndividualTimes (1, :) MBExperimentModel                
     end
 
     methods (Static)
@@ -716,10 +719,71 @@ classdef MBExperimentDesigner < handle
     end % Private methods
 
     methods
-        function obj = MBExperimentDesigner(inputArg1,inputArg2)
-            %UNTITLED Construct an instance of this class
-            %   Detailed explanation goes here
-            
+        function obj = MBExperimentDesigner(...
+                configurations, ...
+                guessedModel, ...
+                initialStrategy, ...
+                initialDesign, ...
+                groundTruthModel)
+            %MBExperimentDesigner Construct an instance of the experiment
+            %designer class. This constructor only takes parameters for
+            %those properties that must be set and remain fixed at 
+            %construction time.
+            %
+            %In order for simulation to be possible, a ground-truth model
+            %must have been specified, and since it does not make sense for
+            %ground truth (from the perspective of a sequence of experiment
+            %designs) to change in the course of that sequence, we require
+            %that it be set at construction time if at all and prevent
+            %modifications to it thereafter.
+            %
+            %In order for model-based experiment design to occur, a guessed
+            %model must of course be provided. While that model can change
+            %and likely will change over time, we also require that the
+            %initial version be provided at construction time for clarity
+            %of design.
+
+            arguments
+                configurations (1, :) MBExperimentConfiguration
+                guessedModel (1, 1) MBExperimentModel
+                initialStrategy (1, 1) ...
+                    MBAbstractExperimentDesignStrategy ...
+                    {mustBeScalarOrEmpty} = []
+                initialDesign MBExperimentDesign {mustBeScalarOrEmpty} = []
+                groundTruthModel MBExperimentModel ...
+                    {mustBeScalarOrEmpty} = []
+            end
+
+            obj.Configurations = configurations;
+
+            obj.GuessedModel = guessedModel;
+
+            if ~isempty(initialStrategy)
+                % If no initial strategy is provided, we will use the
+                % default (random) strategy.
+
+                obj.Strategy = initialStrategy;
+            end
+
+            if isempty(initialDesign)
+                initialDesign = MBExperimentDesign(configurations);
+                obj.NextExperimentDesign = ...
+                    obj.Strategy.apportionObservations(initialDesign);
+            else
+                obj.NextExperimentDesign = initialDesign;
+            end
+
+            obj.GroundTruthModel = groundTruthModel;
+            if isempty(obj.GroundTruthModel)
+                obj.UseEmpiricalData = true;
+            end
+
+            obj.ReadyToPerformNextRound = true;
+        % 
+        % properties
+        %     
+        %     CumulativeNumbersOfObservations (1, :) uint64
+        %     NextExperimentDesign (1, 1) MBExperimentDesign        
         end
 
         function nextDesign = designNextRound(obj)
@@ -754,10 +818,12 @@ classdef MBExperimentDesigner < handle
             % and saving the experiment design for ready use in the next
             % invocation of performNextRound.            
 
-            obj.ExperimentRounds(end + 1) = round;
+            obj.DesignedExperimentRounds(end + 1) = round;
 
             obj.NextExperimentDesign = round.NextExperimentDesign;
             nextDesign = obj.NextExperimentDesign;
+
+            obj.ReadyToPerformNextRound = true;
         end % designNextRound
 
         function options = get.FitOptions(obj)
@@ -837,10 +903,21 @@ classdef MBExperimentDesigner < handle
 
             arguments
                 obj (1, 1) MBExperimentDesigner
-                pathsToEmpiricalData (1, :) string
+                pathsToEmpiricalData (1, :) string = []
             end
 
-            % First, handle any provided empirical data files.
+            % First, ensure that there is a next round to perform, i.e.,
+            % that a new, unperformed round has been designed.
+
+            if ~obj.ReadyToPerformNextRound
+                error("performNextRound was called out of order. " + ...
+                    "This means that either a suitable model and " + ...
+                    "configurations have not been specified, or " + ...
+                    "designNextRound has not been called since " + ...
+                    "the last call to performNextRound.")
+            end
+
+            % Next, handle any provided empirical data files.
 
             if ~isempty(pathsToEmpiricalData)
                 if obj.UseEmpiricalData
@@ -861,9 +938,12 @@ classdef MBExperimentDesigner < handle
             end % Simulation mode
 
             % Finally, regardless of the experimental mode, sample
-            % according to the current design.
+            % according to the current design. This design will therefore
+            % have been used, so we are not ready to perform a new round:
 
             obj.sampleObservationsPerDesign();
+
+            obj.ReadyToPerformNextRound = false;
         end % performNextRound
     end % Public methods
 end % MBExperimentDesigner
