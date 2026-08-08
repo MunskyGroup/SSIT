@@ -3,8 +3,9 @@ classdef MBExperimentModel < SSIT
     %design can be based. It extends the SSIT class with certain properties
     %needed for experiment design.
 
-    properties
-        Property1
+    properties (SetAccess = private)
+        MeanPriorLog10 (1, :) double
+        StandardDeviationPriorLog10 (1, :) double
     end
 
     methods
@@ -108,6 +109,35 @@ classdef MBExperimentModel < SSIT
 
             isEqual = isEqual && (obj1.initialTime == obj2.initialTime);
 
+            % Either both model or neither must be a hybrid model, i.e., a
+            % combination of deterministic and stochastic equations. If
+            % both are hybrid, then the same species must be modeled using
+            % ODEs:
+
+            isEqual = isEqual && (obj1.useHybrid == obj2.useHybrid);
+            if isEqual && obj1.useHybrid
+                isEqual = isEqual && ...
+                    (size(obj1.hybridOptions.upstreamODEs) == ...
+                    size(obj2.hybridOptions.upstreamODEs));
+                isEqual = isEqual && all(strcmp(...
+                    obj1.hybridOptions.upstreamODEs, ...
+                    obj2.hybridOptions.upstreamODEs));
+            end
+
+            % Priors must match in value:
+
+            isEqual = isEqual && ...
+                size(obj1.MeanPriorLog10) == size(obj2.MeanPriorLog10);
+            isEqual = isEqual && all(...
+                obj1.MeanPriorLog10 == obj2.MeanPriorLog10);
+
+            isEqual = isEqual && ...
+                size(obj1.StandardDeviationPriorLog10) == ...
+                size(obj2.StandardDeviationPriorLog10);
+            isEqual = isEqual && all(...
+                obj1.StandardDeviationPriorLog10 == ...
+                obj2.StandardDeviationPriorLog10);
+
             % The following are currently UNSUPPORTED in the design process
             % and therefore must be empty/false:
             %
@@ -146,27 +176,51 @@ classdef MBExperimentModel < SSIT
             % therefore ignored in equality comparison:
             %
             % description
-            % GUIProps
-               
-        % Option to use hybrid model (deterministic + stochastic species)
-        %   default: false
-        useHybrid = false
-        % Struct to define which species of the hybrid model will be
-        % modelled using ODEs
-        %   default: struct('upstreamODEs',[]);
-        %   example: Model.hybridOptions.upstreamODEs = {'offGene','onGene'};
-        hybridOptions = struct('upstreamODEs',[]);
-        
+            % GUIProps              
         end % eq
 
-        function outputArg = method1(obj,inputArg)
-            %METHOD1 Summary of this method goes here
-            %   Detailed explanation goes here
-            outputArg = obj.Property1 + inputArg;
+        function isValidPrior(obj, value)
+            arguments
+                obj (1, 1) MBExperimentModel
+                value (1, :) double
+            end
+
+            varsToFit = obj.fittingOptions.modelVarsToFit;
+            if ischar(varsToFit) && strcmp(varsToFit, 'all')
+                numFitParameters = length(obj.parameters(:, 2));
+            else
+                numFitParameters = length(varsToFit);
+            end
+
+            if length(value) ~= numFitParameters
+                error("Attempt to set " + length(value) + " priors " + ...
+                    "for a model that has " + ...
+                    numFitParameters + " fit parameters")
+            end
         end
 
-        function obj = set.Property1(obj, value)
-            obj.fittingOptions.logPriorCovariance = value;
+        function obj = setPriorsLog10(obj, means, standardDeviations)
+            arguments
+                obj (1, 1) MBExperimentModel
+                means (:, 1) double {isValidPrior(obj, means)}
+                standardDeviations (:, 1) double ...
+                    {isValidPrior(obj, standardDeviations)}
+            end
+
+            % The arguments block reshapes the means and standard
+            % deviations as column vectors, which is what we will want for
+            % calculations of the logPrior* fields of the fittingOptions 
+            % struct. However, in keeping with SSIT convention, we will 
+            % store them as properties in the model as row vectors. 
+
+            obj.MeanPriorLog10 = means';
+            obj.StandardDeviationPriorLog10 = standardDeviations';
+
+            obj.fittingOptions.logPrior = @(p) ...
+                -(log10(p(:)) - means) .^ 2 ./ ...
+                (2 * standardDeviations .^ 2);
+            obj.fittingOptions.logPriorCovariance = ...
+                diag(standardDeviations .^ 2 * log(10^2));
         end
-    end
+    end % Public methods
 end
