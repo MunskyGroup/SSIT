@@ -72,7 +72,7 @@ switch lower(example)
         fitParameters = [1:3];
         nT = 21;
         ModelTrue.tSpan = linspace(0,10,nT);
-        fimMetric = 'DetCovariance'; %'Determinant'';
+        fimMetric = 'D-cov'; %'Determinant'';
         nSamplesMH = 1000; % Number of MH Samples to run
 
         %% Prior
@@ -235,7 +235,7 @@ for iInput = 1:nInputs
 
     %% Generate Model Propensity Functions and Solve True Model
     for i=1:3
-        [ModelSolution{iInput},ModelTrue{iInput}.fspOptions.bounds] = ModelTrue{iInput}.solve;
+        ModelTrue{iInput} = ModelTrue{iInput}.solve(solver = "fsp");        
     end
 
     %% FIM options
@@ -380,9 +380,12 @@ for iExpt = 1:nExptRounds
             ModelGuess{iInput} = ModelGuess{iInput}.loadData(dataFile{iInput},dataToFit);
             ModelGuess{iInput}.tSpan = ModelTrue{iInput}.tSpan;
             ModelGuess{iInput}.fspOptions.fspTol = 1e-4;
-            [fspSoln,ModelGuess{iInput}.fspOptions.bounds] = ModelGuess{iInput}.solve;
+
+            ModelGuess{iInput} = ModelGuess{iInput}.solve(solver = "fsp");
+            stateSpaces{iInput} = ModelGuess{iInput}.Solutions.stateSpace;
+            %[fspSoln,ModelGuess{iInput}.fspOptions.bounds] = ModelGuess{iInput}.solve;
             % ModelGuess{iInput}.fspOptions.fspTol = inf;
-            stateSpaces{iInput} = fspSoln.stateSpace;
+            %stateSpaces{iInput} = fspSoln.stateSpace;
         end
     end
 
@@ -397,8 +400,11 @@ for iExpt = 1:nExptRounds
             ModelGuess{iInput}.parameters(fitParameters,2) = num2cell(newPars);
             ModelGuess{iInput}.fspOptions.fspTol = 1e-8;
             % Solve to re-set fsp bounds and state space.
-            [fspSoln,ModelGuess{iInput}.fspOptions.bounds] = ModelGuess{iInput}.solve;
-            stateSpaces{iInput} = fspSoln.stateSpace;
+            ModelGuess{iInput} = ModelGuess{iInput}.solve(solver = "fsp");
+            stateSpaces{iInput} = ModelGuess{iInput}.Solutions.stateSpace;
+
+            % [fspSoln,ModelGuess{iInput}.fspOptions.bounds] = ModelGuess{iInput}.solve;
+            % stateSpaces{iInput} = fspSoln.stateSpace;
             % ModelGuess{iInput}.fspOptions.fspTol = inf;
         end
     end
@@ -499,8 +505,10 @@ for iExpt = 1:nExptRounds
             for iInput = 1:nInputs
                 ModelGuess{iInput}.fspOptions.fspTol = 1e-4;
                 ModelGuess{iInput}.parameters(ModelGuess{iInput}.fittingOptions.modelVarsToFit,2) = num2cell(newPars);
-                [fspSoln,ModelGuess{iInput}.fspOptions.bounds] = ModelGuess{iInput}.solve;
-                stateSpaces{iInput} = fspSoln.stateSpace;
+                ModelGuess{iInput} = ModelGuess{iInput}.solve(solver = "fsp");
+                stateSpaces{iInput} = ModelGuess{iInput}.Solutions.stateSpace;
+                % [fspSoln,ModelGuess{iInput}.fspOptions.bounds] = ModelGuess{iInput}.solve;
+                % stateSpaces{iInput} = fspSoln.stateSpace;
                 % ModelGuess{iInput}.fspOptions.fspTol = inf;
             end
 
@@ -513,8 +521,10 @@ for iExpt = 1:nExptRounds
             for iInput = 1:nInputs
                 ModelGuess{iInput}.parameters(fitParameters,2) = num2cell(newPars);
                 ModelGuess{iInput}.fspOptions.fspTol = 1e-4;
-                [fspSoln,ModelGuess{iInput}.fspOptions.bounds] = ModelGuess{iInput}.solve;
-                stateSpaces{iInput} = fspSoln.stateSpace;
+                ModelGuess{iInput} = ModelGuess{iInput}.solve(solver = "fsp");
+                stateSpaces{iInput} = ModelGuess{iInput}.Solutions.stateSpace;
+                % [fspSoln,ModelGuess{iInput}.fspOptions.bounds] = ModelGuess{iInput}.solve;
+                % stateSpaces{iInput} = fspSoln.stateSpace;
                 % ModelGuess{iInput}.fspOptions.fspTol = inf;
             end
 
@@ -549,8 +559,10 @@ for iExpt = 1:nExptRounds
         for iInput = 1:nInputs
             ModelGuess{iInput}.fspOptions.fspTol = 1e-4;
             ModelGuess{iInput}.parameters(ModelGuess{iInput}.fittingOptions.modelVarsToFit,2) = num2cell(newPars);
-            [fspSoln,ModelGuess{iInput}.fspOptions.bounds] = ModelGuess{iInput}.solve;
-            stateSpaces{iInput} = fspSoln.stateSpace;
+            ModelGuess{iInput} = ModelGuess{iInput}.solve(solver = "fsp");
+            stateSpaces{iInput} = ModelGuess{iInput}.Solutions.stateSpace;
+            % [fspSoln,ModelGuess{iInput}.fspOptions.bounds] = ModelGuess{iInput}.solve;
+            % stateSpaces{iInput} = fspSoln.stateSpace;
             % ModelGuess{iInput}.fspOptions.fspTol = inf;
         end
     end
