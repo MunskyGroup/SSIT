@@ -38,16 +38,24 @@ classdef MBExperimentDesign
             arguments
                 obj (1, 1) MBExperimentDesign
                 nonTimeConfigurations (1, :) ...
-                    MBExperimentNonTimeConfiguration = []
+                    MBExperimentNonTimeConfiguration = createArray(...
+                        0, 0, "MBExperimentNonTimeConfiguration");
                 times (1, :) double = []
             end
 
             k = obj.ConfigurationToNumObservationsMap.keys();
 
+            % If we need to fill either the configurations or the times, we
+            % need to enumerate over all unique values. For the times, we
+            % can simply populate an array and then extract the unique
+            % values; for the non-time configurations, the easiest way is
+            % to make them keys of a "dummy" dictionary and then extract
+            % the keys.
+
             fillConfigurations = isempty(nonTimeConfigurations);
             if fillConfigurations
-                nonTimeConfigurations = createArray(1, length(k), ...
-                    "MBExperimentNonTimeConfiguration");
+                nonTimeConfigMap = configureDictionary(...
+                    "MBExperimentNonTimeConfiguration", "double");
             end
 
             fillTimes = isempty(times);
@@ -57,30 +65,60 @@ classdef MBExperimentDesign
 
             if fillConfigurations || fillTimes
                 for keyIdx = 1:length(k)
-                    curExperimentConfig = ...
-                        obj.ConfigurationToNumObservationsMap(k(keyIdx));
+                    curConfig = k(keyIdx);
 
                     if fillConfigurations
-                        nonTimeConfigurations(keyIdx) = ...
-                            curExperimentConfig.NonTimeConfiguration;
+                        nonTimeConfigMap(...
+                            curConfig.NonTimeConfiguration) = 0;                        
                     end
 
                     if fillTimes
                         times(keyIdx) = ...
-                            curExperimentConfig.TimeConfigurable.getSingleValue();
+                            curConfig.TimeConfigurable.getSingleValue();
                     end
+                end
+
+                if fillConfigurations
+                    nonTimeConfigurations = nonTimeConfigMap.keys();
                 end
             end % [Fill something]
             
             times = unique(sort(times));
 
             Obs = zeros(length(nonTimeConfigurations), length(times));
-        end
+        end % buildObservationMatrix
     end % Private methods
 
     methods
+        function obj = excludeConfiguration(obj, configuration)
+            % excludeConfiguration removes a configuration completely from
+            % the design. This is NOT equivalent to setting the number of
+            % corresponding observations to zero; the latter is a weaker
+            % change, since the configuration will still be included in the
+            % list of candidate configurations.
+
+            arguments
+                obj (1, 1) MBExperimentDesign
+                configuration (1, 1) MBExperimentConfiguration ...
+                    {mustHaveSingleValueForAllConfigurables(configuration)}
+            end
+
+            % If the configuration is not currently present in the map,
+            % this will have no effect but will also raise no error.
+
+            obj.ConfigurationToNumObservationsMap.remove(configuration);
+        end % excludeConfiguration
+
         function configs = get.Configurations(obj)
-            configs = obj.ConfigurationToNumObservationsMap.keys();
+            % MATLAB behaves strangely in returning a 0x1 array rather than
+            % a 0x0 array when there are no keys. This causes issues in
+            % downstream methods like MBExperimentConfiguration.disp:
+
+            if obj.NumberOfConfigurations > 0
+                configs = obj.ConfigurationToNumObservationsMap.keys();
+            else
+                configs = createArray(0, 0, "MBExperimentConfiguration");
+            end
         end
 
         function numConfigs = get.NumberOfConfigurations(obj)
@@ -108,7 +146,8 @@ classdef MBExperimentDesign
             arguments
                 obj (1, 1) MBExperimentDesign
                 nonTimeConfigurations (1, :) ...
-                    MBExperimentNonTimeConfiguration = []
+                    MBExperimentNonTimeConfiguration = createArray(...
+                        0, 0, "MBExperimentNonTimeConfiguration");
                 times (1, :) double = []
             end
 
@@ -192,7 +231,8 @@ classdef MBExperimentDesign
             arguments
                 obj (1, 1) MBExperimentDesign
                 nonTimeConfigurations (1, :) ...
-                    MBExperimentNonTimeConfiguration = []
+                    MBExperimentNonTimeConfiguration = createArray(...
+                        0, 0, "MBExperimentNonTimeConfiguration");
                 times (1, :) double = []
             end
 
@@ -224,16 +264,18 @@ classdef MBExperimentDesign
 
         function obj = MBExperimentDesign(configurations)
             arguments
-                configurations (1, :) MBExperimentConfiguration
+                configurations (1, :) MBExperimentConfiguration = ...
+                    createArray(0, 0, "MBExperimentConfiguration")
             end
 
             % Create an "empty" design, with zero observations for every
-            % supplied configuration.
+            % supplied configuration (if any).
 
             for configIdx = 1:length(configurations)
-                obj.ConfigurationToNumObservationsMap(configuration) = 0;
+                curConfig = configurations(configIdx);
+                obj.ConfigurationToNumObservationsMap(curConfig) = 0;
             end
-        end
+        end % MBExperimentDesign
 
         function sum = plus(obj1, obj2)
             arguments
@@ -294,8 +336,7 @@ classdef MBExperimentDesign
                 obj (1, 1) MBExperimentDesign
                 Obs (:, :) uint64
                 nonTimeConfigurations (1, :) ...
-                    MBExperimentNonTimeConfiguration {mustBeNonempty, ...
-                    mustHaveSingleValueForAllConfigurables(nonTimeConfigurations)} 
+                    MBExperimentNonTimeConfiguration {mustBeNonempty} 
                 times (1, :) double {mustBeNonempty, mustBeNonnegative}
             end
 
@@ -346,25 +387,24 @@ classdef MBExperimentDesign
 end % MBExperimentDesign
 
 function mustHaveSingleValueForAllConfigurables(configurations)
-arguments
-    configurations (1, :) MBExperimentConfiguration
-end
-
-% Here, we validate that every configurable in each configuration only has 
-% a single value, via the getSingleValue method on each configurable, since
-% that method will error and print the values if there are multiple of
-% them.
-
-for configIdx = 1:length(configurations)
-    curConfig = configurations(configIdx);
-    nonTimeConfig = curConfig.NonTimeConfiguration;
-    for nonTimeConfigIdx = 1:length(nonTimeConfig.NonTimeConfigurables)
-        curNonTimeConfigurable = ...
-            nonTimeConfig.NonTimeConfigurables(nonTimeConfigIdx);
-        curNonTimeConfigurable.getSingleValue();
+    arguments
+        configurations (1, :) MBExperimentConfiguration
     end
-
-    curConfig.TimeConfigurable.getSingleValue();
-end
-
+    
+    % Here, we validate that every configurable in each configuration only has 
+    % a single value, via the getSingleValue method on each configurable, since
+    % that method will error and print the values if there are multiple of
+    % them.
+    
+    for configIdx = 1:length(configurations)
+        curConfig = configurations(configIdx);
+        nonTimeConfig = curConfig.NonTimeConfiguration;
+        for nonTimeConfigIdx = 1:length(nonTimeConfig.NonTimeConfigurables)
+            curNonTimeConfigurable = ...
+                nonTimeConfig.NonTimeConfigurables(nonTimeConfigIdx);
+            curNonTimeConfigurable.getSingleValue();
+        end
+    
+        curConfig.TimeConfigurable.getSingleValue();
+    end
 end
