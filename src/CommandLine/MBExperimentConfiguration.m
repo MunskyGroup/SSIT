@@ -113,5 +113,19 @@ classdef MBExperimentConfiguration
                 obj.TimeConfigurable.FilenameString], ...
                 "_");
         end
+
+        function obj = setConfigurable(obj, configurable)
+            arguments
+                obj (1, 1) MBExperimentConfiguration
+                configurable (1, 1) MBAbstractExperimentConfigurable
+            end
+
+            if isa(configurable, "MBExperimentTimeConfigurable")
+                obj.TimeConfigurable = configurable;
+            else
+                obj.NonTimeConfiguration.NonTimeConfigurables(end + 1) ...
+                    = configurable;
+            end
+        end % setConfigurable
     end % Public methods
 end
