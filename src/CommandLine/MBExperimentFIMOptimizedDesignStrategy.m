@@ -2,16 +2,6 @@ classdef MBExperimentFIMOptimizedDesignStrategy < ...
         MBAbstractExperimentDesignStrategy
 
     methods (Access = private)
-        function info = FIMInfo(obj)
-            arguments (Output)
-                info (1, 1) MBExperimentFIMOptimizedDesignStrategyInfo
-            end
-            % FIMInfo provides a cast of the strategy's info so that all of
-            % the properties can be readily obtained.
-
-            info = MBExperimentFIMOptimizedDesignStrategyInfo(obj.Info); 
-        end
-
         function k = findBestMove(obj,Ncp,NcMax)
             arguments
                 obj (1, 1) MBExperimentFIMOptimizedDesignStrategy
@@ -78,6 +68,14 @@ classdef MBExperimentFIMOptimizedDesignStrategy < ...
             end
         end % totalFIM
     end % Private methods
+
+    methods (Static, Access = protected)
+        function info = createInfoInternal()
+            % Descendants can override to use a descendant strategy info.
+
+            info = MBExperimentFIMOptimizedDesignStrategyInfo();
+        end
+    end % Static protected methods
 
     methods (Access = protected)
         function [design, cellVecForOptimalFIMCalculation] = ...
@@ -188,4 +186,17 @@ classdef MBExperimentFIMOptimizedDesignStrategy < ...
             info.NcFixed = round.CumulativeNumbersOfObservations;
         end % incorporateRoundDetailsInternal
     end % Protected methods
+
+    methods
+        function info = FIMInfo(obj)
+            arguments (Output)
+                info (1, 1) MBExperimentFIMOptimizedDesignStrategyInfo
+            end
+            % FIMInfo provides a cast of the strategy's info so that all of
+            % the properties can be readily obtained.
+
+            %info = MBExperimentFIMOptimizedDesignStrategyInfo(obj.Info); 
+            info = obj.Info;
+        end
+    end % Public methods
 end

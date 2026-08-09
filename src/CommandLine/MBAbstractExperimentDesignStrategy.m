@@ -6,19 +6,28 @@ classdef MBAbstractExperimentDesignStrategy
         Info (1, 1) MBExperimentDesignStrategyInfo {mustBeValid(Info)}
     end
 
+    methods (Static, Access = protected)
+        function info = createInfoInternal()
+            % Descendants can override to use a descendant strategy info.
+            
+            info = MBExperimentDesignStrategyInfo();
+        end
+    end % Static protected methods
+
     methods (Abstract, Access = protected)
         [design, cellVecForOptimalFIMCalculation] = ...
             apportionObservationsInternal(obj, design)                
     end % Abstract protected methods
 
     methods (Access = protected)
-        function obj = incorporateRoundDetailsInternal(obj, round)
+        function obj = incorporateRoundDetailsInternal(obj, ~)
             arguments
                 obj (1, 1) MBAbstractExperimentDesignStrategy
-                round (1, 1) MBExperimentRound
+                ~
             end
 
-            % Do nothing here - descendants can override.
+            % Do nothing here - descendants can override. The second
+            % argument is for the experiment round, ignored here.
         end
     end % Protected methods
 
@@ -43,21 +52,25 @@ classdef MBAbstractExperimentDesignStrategy
 
             obj = incorporateRoundDetailsInternal(obj, round);
         end
+
+        function obj = MBAbstractExperimentDesignStrategy()
+            obj.Info = ...
+                obj.createInfoInternal();
+        end
     end % Public methods
-end
+end % Class
 
 function mustNotExceedMaximumObservations(design, strategy)
-arguments
-    design (1, 1) MBExperimentDesign
-    strategy (1, 1) MBAbstractExperimentDesignStrategy
-end
-
-if design.NumberOfObservations > ...
-        strategy.Info.NumberOfObservationsPerExperiment
-    error("Too many observations (" + ...
-        num2str(design.NumberOfObservations) + ...
-        ") were apportioned to an experiment with a maximum of " + ...
-        num2str(strategy.Info.NumberOfObservationsPerExperiment))
-end
-
+    arguments
+        design (1, 1) MBExperimentDesign
+        strategy (1, 1) MBAbstractExperimentDesignStrategy
+    end
+    
+    if design.NumberOfObservations > ...
+            strategy.Info.NumberOfObservationsPerExperiment
+        error("Too many observations (" + ...
+            num2str(design.NumberOfObservations) + ...
+            ") were apportioned to an experiment with a maximum of " + ...
+            num2str(strategy.Info.NumberOfObservationsPerExperiment))
+    end
 end
