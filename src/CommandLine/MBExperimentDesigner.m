@@ -825,37 +825,6 @@ classdef MBExperimentDesigner < handle
     end % Private methods
 
     methods
-        function excludeConfigurations(obj, configs)
-            arguments
-                obj (1, 1) MBExperimentDesigner
-                configs (1, :)
-            end
-
-            configsToExclude = resolveConfigurations(configs);
-            for excludeConfigIdx = 1:length(configsToExclude)
-                configToExclude = configsToExclude(excludeConfigIdx);
-
-                % Remove the config from the list of configurations:
-
-                for configIdx = length(obj.Configurations):-1:1
-                    if obj.Configurations(configIdx) == configToExclude
-                        % The Configurations setter validates that the
-                        % configurations are all unique, so at most one
-                        % configuration should match each configuration to
-                        % exclude:
-
-                        obj.Configurations(configIdx) = [];
-                        break
-                    end
-                end
-
-                % Remove the config from the next experiment design:
-
-                obj.NextExperimentDesign.excludeConfiguration(...
-                    configToExclude);
-            end
-        end % excludeConfigurations
-
         function nextDesign = designNextRound(obj)
             %designNextRound determines an experiment design, i.e., an
             %apportionment of available observations across candidate
@@ -915,6 +884,37 @@ classdef MBExperimentDesigner < handle
                 rethrow ME
             end % [Design, with potential faults]                  
         end % designNextRound
+
+        function excludeConfigurations(obj, configs)
+            arguments
+                obj (1, 1) MBExperimentDesigner
+                configs (1, :)
+            end
+
+            configsToExclude = resolveConfigurations(configs);
+            for excludeConfigIdx = 1:length(configsToExclude)
+                configToExclude = configsToExclude(excludeConfigIdx);
+
+                % Remove the config from the list of configurations:
+
+                for configIdx = length(obj.Configurations):-1:1
+                    if obj.Configurations(configIdx) == configToExclude
+                        % The Configurations setter validates that the
+                        % configurations are all unique, so at most one
+                        % configuration should match each configuration to
+                        % exclude:
+
+                        obj.Configurations(configIdx) = [];
+                        break
+                    end
+                end
+
+                % Remove the config from the next experiment design:
+
+                obj.NextExperimentDesign.excludeConfiguration(...
+                    configToExclude);
+            end
+        end % excludeConfigurations
 
         function options = get.FitOptions(obj)
             options = optimset('Display', 'iter', ...
