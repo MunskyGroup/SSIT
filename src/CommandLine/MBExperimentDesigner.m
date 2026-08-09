@@ -24,16 +24,19 @@ classdef MBExperimentDesigner < handle
         DesignedExperimentRounds (1, :) MBExperimentRound = ...
             createArray(0, 0, "MBExperimentRound")
         EmpiricalDataFiles (1, :) string = createArray(0, 0, "string")       
-        EmpiricalDataTable (1, 1) table = table
+        EmpiricalDataTable table = table()
         GroundTruthModel (1, 1) MBExperimentModel = []
-        PerformingRoundNumber (1, 1) uint64 {mustBePositive} = 0
+        PerformingRoundNumber (1, 1) uint64 = 0
         ReadyToPerformNextRound (1, 1) logical = false
         SimulatedDataFiles (1, :) string = createArray(0, 0, "string")
-        SimulatedDataTable (1, 1) table = table
+        SimulatedDataTable table = table()
     end % Read-only properties
 
     properties
-        Configurations (1, :) MBExperimentConfiguration = ...
+        % Note that the class of Configurations property is not restricted 
+        % to MBExperimentConfiguration here; the setter accepts multiple
+        % classes of arguments and handles necessary conversions.
+        Configurations (1, :) = ...
             createArray(0, 0, "MBExperimentConfiguration")
         ErrorOnInsufficientAvailableObservations (1, 1) logical = false       
         FIMScale (1, 1) string = "log"       
@@ -61,6 +64,35 @@ classdef MBExperimentDesigner < handle
         GuessedModelsWithCombinedTimes (1, :) MBExperimentModel
         GuessedModelsWithIndividualTimes (1, :) MBExperimentModel                
     end
+
+    methods (Static, Access = private)
+        function configurations = resolveConfigurations(configs)
+            % This helper method "resolves" the input argument into a list
+            % of configurations:
+            % If a list of configurations proper (i.e., 
+            % MBExperimentConfiguration) is provided, the list is cloned.
+            % If a list of CONFIGURABLES (i.e., 
+            % MBAbstractExperimentConfigurable) is provided, the 
+            % configurables will be "multiplied" into distinct 
+            % configurations, each with a single value for each
+            % configurable.
+
+            arguments
+                configs (1, :)
+            end
+
+            if isa(configs, "MBExperimentConfiguration")
+                configurations = configs;
+            elseif isa(configs, "MBAbstractExperimentConfigurable")
+                configurations = ...
+                    MBExperimentDesigner.multiplyConfigurables(configs);
+            else
+                error("Attempt to create or modify experiment " + ...
+                    "configurations using an unsupported class: " + ...
+                    class(configs));
+            end
+        end % resolveConfigurations
+    end % Private static methods
 
     methods (Static)
         function configsOut = combineConfigurationsByTime(configsIn)
@@ -144,6 +176,78 @@ classdef MBExperimentDesigner < handle
 
             range = ((modelIdx - 1) * numTimes + 1) : (modelIdx * numTimes);
         end
+
+        function configurations = multiplyConfigurables(configurables)
+            arguments
+                configurables (1, :) MBAbstractExperimentConfigurable
+            end
+
+            if isempty(configurables)
+                configurations = createArray(0, 0, ...
+                    "MBExperimentConfiguration");
+            else                
+                if isscalar(configurables)
+                    % We multiply the single configurable into N
+                    % configurations, where N is the number of possible
+                    % values of the configurable:
+
+                    N = configurables.numberOfValues();
+
+                    configurations = createArray(...
+                        1, N, "MBExperimentConfiguration");
+                    
+                    multipliedConfigurables = configurables.multiply();
+
+                    for configIdx = 1:N
+                        configurations(configIdx) = ...
+                            configurations(configIdx).setConfigurable(...
+                                multipliedConfigurables(configIdx));
+                    end                    
+                else
+                    % We operate recursively by first multiplying all 
+                    % configurables except the last one; suppose that this 
+                    % results in M configurations, whereas the last 
+                    % configurable has N possible values. Then we will have
+                    % M*N configurations after multiplying by the last 
+                    % configurable.
+
+                    preMultipliedConfigurations = ...
+                        MBExperimentDesigner.multiplyConfigurables(...
+                            configurables(1:end-1));          
+                    
+                    M = length(preMultipliedConfigurations);
+
+                    lastConfigurables = configurables(end).multiply();
+                    N = length(lastConfigurables);           
+
+                    configurations = ...
+                        createArray(1, M * N, "MBExperimentConfiguration");
+
+                    % We will "stripe" the configurations such that the
+                    % first N correspond to the first "pre-multiplied"
+                    % configuration with the incorporation of the N values
+                    % of the "last" configurable, the second N correspond
+                    % to the second "pre-multiplied" configuration with the
+                    % incorporation of the "last" configurable, etc.
+
+                    configurationIdx = 1;
+                    for preMultipliedConfigIdx = 1:M
+                        preConfig = preMultipliedConfigurations(...
+                            preMultipliedConfigIdx);
+
+                        for lastConfigurableIdx = 1:N
+                            configurable = lastConfigurables(...
+                                lastConfigurableIdx);
+
+                            configurations(configurationIdx) = ...
+                                preConfig.setConfigurable(configurable);
+
+                            configurationIdx = configurationIdx + 1;
+                        end
+                    end % [penultimate configurables]
+                end % [configurables contains 2+]
+            end % [configurables is non-empty]
+        end % multiplyConfigurables        
     end % Public static methods
 
     methods (Access = private)
@@ -719,72 +823,36 @@ classdef MBExperimentDesigner < handle
     end % Private methods
 
     methods
-        function obj = MBExperimentDesigner(...
-                configurations, ...
-                guessedModel, ...
-                initialStrategy, ...
-                initialDesign, ...
-                groundTruthModel)
-            %MBExperimentDesigner Construct an instance of the experiment
-            %designer class. This constructor only takes parameters for
-            %those properties that must be set and remain fixed at 
-            %construction time.
-            %
-            %In order for simulation to be possible, a ground-truth model
-            %must have been specified, and since it does not make sense for
-            %ground truth (from the perspective of a sequence of experiment
-            %designs) to change in the course of that sequence, we require
-            %that it be set at construction time if at all and prevent
-            %modifications to it thereafter.
-            %
-            %In order for model-based experiment design to occur, a guessed
-            %model must of course be provided. While that model can change
-            %and likely will change over time, we also require that the
-            %initial version be provided at construction time for clarity
-            %of design.
-
+        function excludeConfigurations(obj, configs)
             arguments
-                configurations (1, :) MBExperimentConfiguration
-                guessedModel (1, 1) MBExperimentModel
-                initialStrategy (1, 1) ...
-                    MBAbstractExperimentDesignStrategy ...
-                    {mustBeScalarOrEmpty} = []
-                initialDesign MBExperimentDesign {mustBeScalarOrEmpty} = []
-                groundTruthModel MBExperimentModel ...
-                    {mustBeScalarOrEmpty} = []
+                obj (1, 1) MBExperimentDesigner
+                configs (1, :)
             end
 
-            obj.Configurations = configurations;
+            configsToExclude = resolveConfigurations(configs);
+            for excludeConfigIdx = 1:length(configsToExclude)
+                configToExclude = configsToExclude(excludeConfigIdx);
 
-            obj.GuessedModel = guessedModel;
+                % Remove the config from the list of configurations:
 
-            if ~isempty(initialStrategy)
-                % If no initial strategy is provided, we will use the
-                % default (random) strategy.
+                for configIdx = length(obj.Configurations):-1:1
+                    if obj.Configurations(configIdx) == configToExclude
+                        % The Configurations setter validates that the
+                        % configurations are all unique, so at most one
+                        % configuration should match each configuration to
+                        % exclude:
 
-                obj.Strategy = initialStrategy;
+                        obj.Configurations(configIdx) = [];
+                        break
+                    end
+                end
+
+                % Remove the config from the next experiment design:
+
+                obj.NextExperimentDesign.excludeConfiguration(...
+                    configToExclude);
             end
-
-            if isempty(initialDesign)
-                initialDesign = MBExperimentDesign(configurations);
-                obj.NextExperimentDesign = ...
-                    obj.Strategy.apportionObservations(initialDesign);
-            else
-                obj.NextExperimentDesign = initialDesign;
-            end
-
-            obj.GroundTruthModel = groundTruthModel;
-            if isempty(obj.GroundTruthModel)
-                obj.UseEmpiricalData = true;
-            end
-
-            obj.ReadyToPerformNextRound = true;
-        % 
-        % properties
-        %     
-        %     CumulativeNumbersOfObservations (1, :) uint64
-        %     NextExperimentDesign (1, 1) MBExperimentDesign        
-        end
+        end % excludeConfigurations
 
         function nextDesign = designNextRound(obj)
             %designNextRound determines an experiment design, i.e., an
@@ -840,7 +908,7 @@ classdef MBExperimentDesigner < handle
                     obj.CacheOfGroundTruthModelsWithCombinedTimes);
             models = ...
                 obj.CacheOfGroundTruthModelsWithCombinedTimes.Models;
-        end
+        end % get.GroundTruthModelsWithCombinedTimes
 
         function models = get.GroundTruthModelsWithIndividualTimes(obj)
             obj.CacheOfGroundTruthModelsWithIndividualTimes = ...
@@ -851,7 +919,7 @@ classdef MBExperimentDesigner < handle
                     obj.CacheOfGroundTruthModelsWithIndividualTimes);
             models = ...
                 obj.CacheOfGroundTruthModelsWithIndividualTimes.Models;           
-        end
+        end % get.GroundTruthModelsWithIndividualTimes
 
         function models = get.GuessedModelsWithCombinedTimes(obj)
             obj.CacheOfGuessedModelsWithCombinedTimes = ...
@@ -862,7 +930,7 @@ classdef MBExperimentDesigner < handle
                     obj.CacheOfGuessedModelsWithCombinedTimes);
             models = ...
                 obj.CacheOfGuessedModelsWithCombinedTimes.Models;
-        end
+        end % get.GuessedModelsWithCombinedTimes
 
         function models = get.GuessedModelsWithIndividualTimes(obj)
             obj.CacheOfGuessedModelsWithIndividualTimes = ...
@@ -873,7 +941,73 @@ classdef MBExperimentDesigner < handle
                     obj.CacheOfGuessedModelsWithIndividualTimes);
             models = ...
                 obj.CacheOfGuessedModelsWithIndividualTimes.Models;
-        end
+        end % get.GuessedModelsWithIndividualTimes
+
+        function obj = MBExperimentDesigner(...
+                configurations, ...
+                guessedModel, ...
+                initialStrategy, ...
+                initialDesign, ...
+                groundTruthModel)
+            %MBExperimentDesigner Construct an instance of the experiment
+            %designer class. This constructor only takes parameters for
+            %those properties that must be set and remain fixed at 
+            %construction time.
+            %
+            %In order for simulation to be possible, a ground-truth model
+            %must have been specified, and since it does not make sense for
+            %ground truth (from the perspective of a sequence of experiment
+            %designs) to change in the course of that sequence, we require
+            %that it be set at construction time if at all and prevent
+            %modifications to it thereafter.
+            %
+            %In order for model-based experiment design to occur, a guessed
+            %model must of course be provided. While that model can change
+            %and likely will change over time, we also require that the
+            %initial version be provided at construction time for clarity
+            %of design.
+
+            arguments
+                configurations (1, :)
+                guessedModel (1, 1) MBExperimentModel
+                initialStrategy (1, 1) ...
+                    MBAbstractExperimentDesignStrategy ...
+                    {mustBeScalarOrEmpty} = []
+                initialDesign MBExperimentDesign {mustBeScalarOrEmpty} = []
+                groundTruthModel MBExperimentModel ...
+                    {mustBeScalarOrEmpty} = []
+            end
+
+            obj.Configurations = configurations;
+
+            obj.GuessedModel = guessedModel;
+
+            if ~isempty(initialStrategy)
+                % If no initial strategy is provided, we will use the
+                % default (random) strategy.
+
+                obj.Strategy = initialStrategy;
+            end
+
+            if isempty(initialDesign)
+                initialDesign = MBExperimentDesign(configurations);
+                obj.NextExperimentDesign = ...
+                    obj.Strategy.apportionObservations(initialDesign);
+            else
+                obj.NextExperimentDesign = initialDesign;
+            end
+
+            obj.GroundTruthModel = groundTruthModel;
+            if isempty(obj.GroundTruthModel)
+                obj.UseEmpiricalData = true;
+            end
+
+            obj.ReadyToPerformNextRound = true;
+            % 
+            % properties
+            %     
+            %     CumulativeNumbersOfObservations (1, :) uint64       
+        end % MBExperimentDesigner
 
         function performNextRound(obj, pathsToEmpiricalData)
             %performNextRound performs a single round of experimentation
@@ -915,6 +1049,8 @@ classdef MBExperimentDesigner < handle
                     "configurations have not been specified, or " + ...
                     "designNextRound has not been called since " + ...
                     "the last call to performNextRound.")
+            else
+                obj.PerformingRoundNumber = obj.PerformingRoundNumber + 1;
             end
 
             % Next, handle any provided empirical data files.
@@ -944,6 +1080,45 @@ classdef MBExperimentDesigner < handle
             obj.sampleObservationsPerDesign();
 
             obj.ReadyToPerformNextRound = false;
-        end % performNextRound
+        end % performNextRound        
+
+        function set.Configurations(obj, configs)
+            % This setter allows the user the flexibility to set the
+            % configurations by providing either a list of configurations
+            % proper (i.e., MBExperimentConfiguration) or a list of
+            % CONFIGURABLES (i.e., MBAbstractExperimentConfigurable). In
+            % the latter case, the configurables will be "multiplied" into
+            % distinct configurations, each with a single value for each
+            % configurable.
+
+            arguments
+                obj (1, 1) MBExperimentDesigner
+                configs (1, :)
+            end
+
+            configurations = MBExperimentDesigner.resolveConfigurations(...
+                configs);
+            configurationsMustBeUnique(configurations);
+            obj.Configurations = configurations;
+        end % set.Configurations
     end % Public methods
 end % MBExperimentDesigner
+
+function configurationsMustBeUnique(configurations)
+    arguments
+        configurations (1, :) MBExperimentConfiguration
+    end
+
+    % There is no elegant way to validate uniqueness in this case other
+    % than by pairwise comparison; we will exploit symmetry, however.
+
+    for configIdx1 = 1:length(configurations)
+        for configIdx2 = (1 + configIdx1):length(configurations)
+            if configurations(configIdx1) == configurations(configIdx2)
+                error("In a list of configurations that should " + ...
+                    "have been unique, two were identical, at " + ...
+                    "indices " + configIdx1 + " and " + configIdx2);
+            end
+        end
+    end
+end
