@@ -965,6 +965,20 @@ classdef MBExperimentDesigner < handle
                 obj.CacheOfGuessedModelsWithIndividualTimes.Models;
         end % get.GuessedModelsWithIndividualTimes
 
+        function includeConfigurations(obj, configs)
+            arguments
+                obj (1, 1) MBExperimentDesigner
+                configs (1, :)
+            end
+
+            configsToInclude = resolveConfigurations(configs);
+            for includeConfigIdx = 1:length(configsToInclude)
+                configToInclude = configsToInclude(includeConfigIdx);
+                obj.NextExperimentDesign.includeConfiguration(...
+                    configToInclude);
+            end
+        end % includeConfigurations
+
         function obj = MBExperimentDesigner(...
                 configurations, ...
                 guessedModel, ...

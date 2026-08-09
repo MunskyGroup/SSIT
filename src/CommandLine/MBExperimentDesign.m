@@ -262,6 +262,22 @@ classdef MBExperimentDesign
             end
         end % getTheoreticalObservationMatrix
 
+        function obj = includeConfiguration(obj, configuration)
+            % includeConfiguration introduces a configuration into the 
+            % design IF it is not already present, i.e., an existing 
+            % observation count will not be altered.
+
+            arguments
+                obj (1, 1) MBExperimentDesign
+                configuration (1, 1) MBExperimentConfiguration ...
+                    {mustHaveSingleValueForAllConfigurables(configuration)}
+            end
+    
+            if ~isKey(obj.ConfigurationToNumObservationsMap, configuration)
+                obj.ConfigurationToNumObservationsMap(configuration) = 0;
+            end
+        end % includeConfiguration
+
         function obj = MBExperimentDesign(configurations)
             arguments
                 configurations (1, :) MBExperimentConfiguration = ...
