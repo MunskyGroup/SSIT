@@ -25,8 +25,10 @@ classdef MBExperimentDesigner < handle
             createArray(0, 0, "MBExperimentRound")
         EmpiricalDataFiles (1, :) string = createArray(0, 0, "string")       
         EmpiricalDataTable table = table()
+        GlobalRNGStream RandStream = []
         GroundTruthModel (1, 1) MBExperimentModel = []
-        PerformingRoundNumber (1, 1) uint64 = 0
+        LocalRNGStream RandStream = []
+        PerformingRoundNumber (1, 1) uint64 = 0        
         ReadyToPerformNextRound (1, 1) logical = false
         SimulatedDataFiles (1, :) string = createArray(0, 0, "string")
         SimulatedDataTable table = table()
@@ -863,35 +865,55 @@ classdef MBExperimentDesigner < handle
             round = MBExperimentRound();
             round.CumulativeNumbersOfObservations = ...
                 obj.CumulativeNumbersOfObservations;
-            
-            % 1. Fit new parameter values to updated data
-            % 2. Tune and run Metropolis-Hastings; update parameters to
-            % those of MLE estimator
 
-            % 3. Compute FIMs from Metropolis-Hastings results
-            
-            round = obj.computeFIMsForDesignedRound(round);
-            
-            % 4. Design the next experiment, i.e., apportion available 
-            % observations to configurations.
+            % First, switch to using our local RNG stream, if available.
+            % This is the last point before randomness will be utilized,
+            % e.g., in sampling parameter space. It is also the last point
+            % where we are guaranteed not to error.
 
-            obj.Strategy = obj.Strategy.incorporateRoundDetails(round);
-            round = obj.designNextExperiment(round);
-            
-            % 5. Collect remaining statistics and summary of next round
+            if ~isempty(obj.LocalRNGStream)
+                obj.GlobalRNGStream = ...
+                    RandStream.setGlobalStream(obj.LocalRNGStream);
+            else
+                obj.GlobalRNGStream = RandStream.getGlobalStream();
+            end
 
-            round = obj.collectSummaryOfDesignedRound(round);
+            try
+                % 1. Fit new parameter values to updated data
+                % 2. Tune and run Metropolis-Hastings; update parameters to
+                % those of MLE estimator
 
-            % 6. Finalize by including the round in the sequence of rounds
-            % and saving the experiment design for ready use in the next
-            % invocation of performNextRound.            
+                % 3. Compute FIMs from Metropolis-Hastings results
 
-            obj.DesignedExperimentRounds(end + 1) = round;
+                round = obj.computeFIMsForDesignedRound(round);
 
-            obj.NextExperimentDesign = round.NextExperimentDesign;
-            nextDesign = obj.NextExperimentDesign;
+                % 4. Design the next experiment, i.e., apportion available 
+                % observations to configurations.
 
-            obj.ReadyToPerformNextRound = true;
+                obj.Strategy = obj.Strategy.incorporateRoundDetails(round);
+                round = obj.designNextExperiment(round);
+
+                % 5. Collect remaining statistics and summary of next round
+
+                round = obj.collectSummaryOfDesignedRound(round);
+
+                % 6. Finalize by including the round in the sequence of 
+                % rounds and saving the experiment design for ready use in
+                % the next invocation of performNextRound.            
+
+                obj.DesignedExperimentRounds(end + 1) = round;
+
+                obj.NextExperimentDesign = round.NextExperimentDesign;
+                nextDesign = obj.NextExperimentDesign;
+
+                obj.ReadyToPerformNextRound = true;
+
+                RandStream.setGlobalStream(obj.GlobalRNGStream);
+            catch ME
+                % Reset the global stream and rethrow the error:
+                RandStream.setGlobalStream(obj.GlobalRNGStream);
+                rethrow ME
+            end % [Design, with potential faults]                  
         end % designNextRound
 
         function options = get.FitOptions(obj)
@@ -948,7 +970,8 @@ classdef MBExperimentDesigner < handle
                 guessedModel, ...
                 initialStrategy, ...
                 initialDesign, ...
-                groundTruthModel)
+                groundTruthModel, ...
+                rngSeed)
             %MBExperimentDesigner Construct an instance of the experiment
             %designer class. This constructor only takes parameters for
             %those properties that must be set and remain fixed at 
@@ -976,6 +999,8 @@ classdef MBExperimentDesigner < handle
                 initialDesign MBExperimentDesign {mustBeScalarOrEmpty} = []
                 groundTruthModel MBExperimentModel ...
                     {mustBeScalarOrEmpty} = []
+                % RandStream bounds integer (non-shuffle) seeds in uint32
+                rngSeed uint32 {mustBeScalarOrEmpty} = []
             end
 
             obj.Configurations = configurations;
@@ -1000,6 +1025,11 @@ classdef MBExperimentDesigner < handle
             obj.GroundTruthModel = groundTruthModel;
             if isempty(obj.GroundTruthModel)
                 obj.UseEmpiricalData = true;
+            end
+
+            if ~isempty(rngSeed)
+                obj.LocalRNGStream = ...
+                    RandStream.create("mt19937ar", "Seed", rngSeed);
             end
 
             obj.ReadyToPerformNextRound = true;
@@ -1053,33 +1083,54 @@ classdef MBExperimentDesigner < handle
                 obj.PerformingRoundNumber = obj.PerformingRoundNumber + 1;
             end
 
-            % Next, handle any provided empirical data files.
+            % Next, switch to using our local RNG stream, if available.
+            % This is the last point before randomness will be utilized,
+            % e.g., in sampling from available data. It is also the last
+            % point where we are guaranteed not to error.
 
-            if ~isempty(pathsToEmpiricalData)
-                if obj.UseEmpiricalData
-                    obj.buildDataTable(pathsToEmpiricalData);
-                else % Empirical mode with data paths provided                
-                    warning("Paths to empirical data files " + ...
-                        "shouldn't be provided when designing " + ...
-                        "experiments in simulation mode!");
-                end % Simulation mode with data paths provided
-            end % Data paths provided
+            if ~isempty(obj.LocalRNGStream)
+                obj.GlobalRNGStream = ...
+                    RandStream.setGlobalStream(obj.LocalRNGStream);
+            else
+                obj.GlobalRNGStream = RandStream.getGlobalStream();
+            end
 
-            % Next, simulate the system, if appropriate, according to the 
-            % current design.
+            try
+                % Next, handle any provided empirical data files.
 
-            if ~obj.UseEmpiricalData
-                outputFiles = obj.simulateSystem();
-                obj.buildDataTable(outputFiles);
-            end % Simulation mode
+                if ~isempty(pathsToEmpiricalData)
+                    if obj.UseEmpiricalData
+                        obj.buildDataTable(pathsToEmpiricalData);
+                    else % Empirical mode with data paths provided                
+                        warning("Paths to empirical data files " + ...
+                            "shouldn't be provided when designing " + ...
+                            "experiments in simulation mode!");
+                    end % Simulation mode with data paths provided
+                end % Data paths provided
 
-            % Finally, regardless of the experimental mode, sample
-            % according to the current design. This design will therefore
-            % have been used, so we are not ready to perform a new round:
+                % Next, simulate the system, if appropriate, according to 
+                % the current design.
 
-            obj.sampleObservationsPerDesign();
+                if ~obj.UseEmpiricalData
+                    outputFiles = obj.simulateSystem();
+                    obj.buildDataTable(outputFiles);
+                end % Simulation mode
 
-            obj.ReadyToPerformNextRound = false;
+                % Finally, regardless of the experimental mode, sample
+                % according to the current design. This design will 
+                % therefore have been used, so we are not ready to perform
+                % a new round:
+
+                obj.sampleObservationsPerDesign();
+
+                obj.ReadyToPerformNextRound = false;
+
+                RandStream.setGlobalStream(obj.GlobalRNGStream);
+            catch ME
+                % Reset the global stream and rethrow the error:
+                RandStream.setGlobalStream(obj.GlobalRNGStream);
+                rethrow ME
+            end % [Performance, with potential faults]
         end % performNextRound        
 
         function set.Configurations(obj, configs)
