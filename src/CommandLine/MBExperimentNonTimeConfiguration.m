@@ -77,7 +77,7 @@ arguments
     configurables (1, :) MBAbstractExperimentNonTimeConfigurable
 end
 
-% To be a valid configuration, a list of non-time configurations must
+% To be a valid configuration, a list of non-time configurables must
 % satisfy the following properties:
 %   1. Each configurable has a single value.
 %   2. No two configurables have the same name. Even if different types of
