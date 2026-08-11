@@ -106,24 +106,27 @@ classdef MBExperimentParameterConfigurable < ...
 
             arguments
                 obj (1, 1) MBExperimentParameterConfigurable
-                data (1, 1) table
+                data table
             end
 
-            rowsToKeep = data.(obj.ParameterName) == obj.Values(1);
-
-            for valIdx = 2:length(obj.Values)
-                % If there are multiple values, then each row that matches
-                % any of the values should be kept. This is equivalent to
-                % logical disjunction ("or").
-
-                curRowsToKeep = ...
-                    data.(obj.ParameterName) == obj.Values(valIdx);
-                rowsToKeep = or(rowsToKeep, curRowsToKeep);
-            end
-
-            % Return the identified subset of the data rows.
-
-            rows = rowsToKeep;
+            rows = [];
+            if ~isempty(data)
+                rowsToKeep = data.(obj.ParameterName) == obj.Values(1);
+    
+                for valIdx = 2:length(obj.Values)
+                    % If there are multiple values, then each row that 
+                    % matches any of the values should be kept. This is 
+                    % equivalent to logical disjunction ("or").
+    
+                    curRowsToKeep = ...
+                        data.(obj.ParameterName) == obj.Values(valIdx);
+                    rowsToKeep = or(rowsToKeep, curRowsToKeep);
+                end
+    
+                % Return the identified subset of the data rows.
+    
+                rows = rowsToKeep;
+            end % [Non-empty data]
         end % findSubsetOfData
 
         function filenameString = get.FilenameString(obj)

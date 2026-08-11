@@ -28,13 +28,15 @@ classdef MBExperimentConfiguration
 
             arguments
                 obj (1, 1) MBExperimentConfiguration
-                data (1, 1) table
+                data table
             end
 
             % Identify and return the appropriate subset of the data rows 
             % and all data columns.
 
-            data = data(obj.findSubsetOfData(data), :);
+            if ~isempty(data)
+                data = data(obj.findSubsetOfData(data), :);
+            end
         end % applyToData
 
         function model = applyToModel(obj, model)
@@ -86,22 +88,26 @@ classdef MBExperimentConfiguration
 
             arguments
                 obj (1, 1) MBExperimentConfiguration
-                data (1, 1) table
+                data table
             end
 
-            rows = obj.TimeConfigurable.findSubsetOfData(data);
-
-            nonTimeConfigs = obj.NonTimeConfiguration.NonTimeConfigurables;
-            for configIdx = 1:length(nonTimeConfigs)
-                % All rows must match, i.e., have the desired value for
-                % each non-time configurable and one of the desired values
-                % for the time configurable. This is equivalent to logical
-                % conjunction ("and").
-
-                curRowsToKeep = ...
-                    nonTimeConfigs(configIdx).findSubsetOfData(data);
-                rows = and(rows, curRowsToKeep);
-            end
+            rows = [];
+            if ~isempty(data)
+                rows = obj.TimeConfigurable.findSubsetOfData(data);
+    
+                nonTimeConfigs = ...
+                    obj.NonTimeConfiguration.NonTimeConfigurables;
+                for configIdx = 1:length(nonTimeConfigs)
+                    % All rows must match, i.e., have the desired value for
+                    % each non-time configurable and one of the desired values
+                    % for the time configurable. This is equivalent to logical
+                    % conjunction ("and").
+    
+                    curRowsToKeep = ...
+                        nonTimeConfigs(configIdx).findSubsetOfData(data);
+                    rows = and(rows, curRowsToKeep);
+                end
+            end % [Non-empty data]
         end % findSubsetOfData
 
         function filenameString = get.FilenameString(obj)

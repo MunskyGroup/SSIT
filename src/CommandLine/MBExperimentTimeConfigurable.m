@@ -64,23 +64,26 @@ classdef MBExperimentTimeConfigurable < MBAbstractExperimentConfigurable
 
             arguments
                 obj (1, 1) MBExperimentTimeConfigurable
-                data (1, 1) table
+                data table
             end
 
-            rowsToKeep = data.time == obj.Values(1);
-
-            for valIdx = 2:length(obj.Values)
-                % If there are multiple values, then each row that matches
-                % any of the values should be kept. This is equivalent to
-                % logical disjunction ("or").
-
-                curRowsToKeep = data.time == obj.Values(valIdx);
-                rowsToKeep = or(rowsToKeep, curRowsToKeep);
-            end
-
-            % Return the identified subset of the data rows.
-
-            rows = rowsToKeep;
+            rows = [];
+            if ~isempty(data)
+                rowsToKeep = data.time == obj.Values(1);
+    
+                for valIdx = 2:length(obj.Values)
+                    % If there are multiple values, then each row that 
+                    % matches any of the values should be kept. This is 
+                    % equivalent to logical disjunction ("or").
+    
+                    curRowsToKeep = data.time == obj.Values(valIdx);
+                    rowsToKeep = or(rowsToKeep, curRowsToKeep);
+                end
+    
+                % Return the identified subset of the data rows.
+    
+                rows = rowsToKeep;
+            end % [Non-empty data] 
         end % findSubsetOfData
 
         function filenameString = get.FilenameString(obj)
