@@ -1093,6 +1093,7 @@ classdef MBExperimentDesigner < handle
         function obj = MBExperimentDesigner(...
                 configurations, ...
                 guessedModel, ...
+                idString, ...
                 initialStrategy, ...
                 initialDesign, ...
                 groundTruthModel, ...
@@ -1118,6 +1119,7 @@ classdef MBExperimentDesigner < handle
             arguments
                 configurations (1, :) {mustBeNonempty}
                 guessedModel (1, 1) MBExperimentModel {mustBeNonempty}
+                idString (1, 1) string = ""
                 initialStrategy (1, 1) ...
                     MBAbstractExperimentDesignStrategy ...
                     {mustBeScalarOrEmpty} = []
@@ -1131,6 +1133,14 @@ classdef MBExperimentDesigner < handle
             obj.Configurations = configurations;
 
             obj.GuessedModel = guessedModel;
+
+            if isempty(idString)
+                % Generate a ten-character alphabetic string; 'a' = 97 and
+                % 'z' = 122.
+
+                idString = string(char(randi([97 122], [1 10])));
+            end
+            obj.IDString = idString;
 
             if ~isempty(initialStrategy)
                 % If no initial strategy is provided, we will use the
@@ -1170,7 +1180,9 @@ classdef MBExperimentDesigner < handle
                     RandStream.create("mt19937ar", "Seed", rngSeed);
             end
 
-            obj.ReadyToPerformNextRound = true;       
+            obj.ReadyToPerformNextRound = true;
+
+            disp("Created an experiment designer with ID " + obj.IDString)
         end % MBExperimentDesigner
 
         function performNextRound(obj, pathsToEmpiricalData)
