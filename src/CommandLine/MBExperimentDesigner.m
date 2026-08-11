@@ -1280,8 +1280,12 @@ classdef MBExperimentDesigner < handle
 
                 RandStream.setGlobalStream(obj.GlobalRNGStream);
             catch ME
-                % Reset the global stream and rethrow the error:
+                % Reset the global stream, decrement the count of performed
+                % rounds (since this one didn't succeed), and rethrow the 
+                % error:
+
                 RandStream.setGlobalStream(obj.GlobalRNGStream);
+                obj.PerformingRoundNumber = obj.PerformingRoundNumber - 1;
                 rethrow ME
             end % [Performance, with potential faults]
         end % performNextRound        
