@@ -44,13 +44,13 @@ classdef MBExperimentDesigner < handle
         ErrorOnInsufficientAvailableObservations (1, 1) logical = false       
         FIMScale (1, 1) string = "log"       
         GuessedModel (1, 1) MBExperimentModel = []
-        MaxFitIterations (1, 1) uint64 {mustBePositive} = 1
+        MaxFitIterations (1, 1) uint64 {mustBePositive} = 200
         MHOptions (1, 1) MetropolisHastingsAlgorithmOptions
         ModelToDataColumnsMap (1, 1) dictionary = ...
             configureDictionary("string", "string")
         NextExperimentDesign (1, 1) MBExperimentDesign
         NumberOfFIMSamples (1, 1) uint64 {mustBePositive} = 1
-        NumberOfFitRounds (1, 1) uint64 {mustBePositive} = 1
+        NumberOfFitRounds (1, 1) uint64 {mustBePositive} = 3
         NumberOfMHSamplesForBurnIn (1, 1) uint64 {mustBePositive} = 1
         NumberOfMHSamplesForProduction (1, 1) uint64 {mustBePositive} = 100
         NumberOfMHSamplesForTuning (1, 1) uint64 {mustBePositive} = 100
@@ -152,21 +152,36 @@ classdef MBExperimentDesigner < handle
             end                          
         end
 
-        function timeSpan = getAllTimes(configurations)
+        function timeSpan = getAllTimes(objectsWithTimes)
             arguments
-                configurations (1, :) MBExperimentConfiguration
+                objectsWithTimes (1, :) 
             end
 
-            if ~isempty(configurations)
-                % Sum all the configurations' TimeConfigurable; this has
-                % the effect of combining all their times into the Value of
-                % the sum.
-
-                tc = configurations(1).TimeConfigurable;
-                for configIdx = 2:length(configurations)
-                    tc = tc + configurations(configIdx).TimeConfigurable;
+            if ~isempty(objectsWithTimes)
+                if isa(objectsWithTimes, "MBExperimentConfiguration")
+                    % Sum all the configurations' TimeConfigurable; this 
+                    % has the effect of combining all their times into the 
+                    % Value of the sum.
+    
+                    tc = objectsWithTimes(1).TimeConfigurable;
+                    for configIdx = 2:length(objectsWithTimes)
+                        tc = tc + ...
+                            objectsWithTimes(configIdx).TimeConfigurable;
+                    end
+                    timeSpan = tc.Values;
+                elseif isa(objectsWithTimes, "MBExperimentModel")
+                    % Create a TimeConfigurable and combine all of the
+                    % models' timespans using it.
+                    tc = MBExperimentTimeConfigurable;
+                    for modelIdx = 1:length(objectsWithTimes)
+                        tc.Values = ...
+                            [tc.Values objectsWithTimes(modelIdx).tSpan];                        
+                    end
+                    timeSpan = tc.Values;
+                else
+                    error("getAllTimes was called with objects of " + ...
+                        "an unsupported class: " + class(objectsWithTimes))
                 end
-                timeSpan = tc.Values;
             else
                 timeSpan = []; % No configurations means no times...
             end
@@ -338,7 +353,8 @@ classdef MBExperimentDesigner < handle
 
             % Compute and Save Covariance from MH from CURRENT stage.
             
-            round.ParametersFound = round.MHResults.Parameters;
+            round.ParametersFound = ...
+                exp(round.MHResults.ParametersLogSpace);
             round.CovarianceLogMH = cov(round.MHResults.Samples);
             round.CovarianceMH = cov(exp(round.MHResults.Samples));            
 
@@ -423,8 +439,10 @@ classdef MBExperimentDesigner < handle
                 obj.Strategy.apportionObservations(...
                     round.NextExperimentDesign);
 
-            round.FIMOptNextExpt = totalFim(round.FIMResults, ...
-                cellVecForOptimalFIMCalculation + ...
+            % Previously passed cellVecForOptimalFIMCalculation + ...
+            % obj.CumulativeExperimentDesign
+            round.FIMOptNextExpt = totalFim(round.FIMResults, ...                
+                round.NextExperimentDesign + ...
                 obj.CumulativeExperimentDesign, ...
                 obj.GuessedModel.fittingOptions.logPriorCovariance);            
         end % designNextExperiment
@@ -484,7 +502,13 @@ classdef MBExperimentDesigner < handle
                 %   source model.
                 %   2. Data are loaded according to the config.
                 %   3. Models are fit according to the loaded data.
+                % Note that to compare apples to apples, if we are going to
+                % combine times, we need to apply that now to the incoming
+                % configs:
 
+                if combineTimes
+                    configs = obj.combineConfigurationsByTime(configs);
+                end
                 if length(configs) ~= length(cache.Configs)
                     regenerateConfigs = true;
                 else
@@ -580,12 +604,23 @@ classdef MBExperimentDesigner < handle
             % Reload data if necessary:
 
             if reloadData
-                % Get the correct data to (re)load:
+                % Get the correct data to (re)load. Note that even if data
+                % are available in the table, they are not applicable
+                % unless they have been utilized in a previously performed
+                % round; we therefore need to subset appropriately. Note
+                % also that it is perfectly possible for the data to be
+                % empty; this will occur during the first performed round
+                % when data are to be simulated.
 
                 if obj.UseEmpiricalData
                     data = obj.EmpiricalDataTable;
                 else
                     data = obj.SimulatedDataTable;
+                end
+
+                if ~isempty(data)
+                    sampledRows = ~isnan(data.(obj.TABLE_ROUND_COLUMN));
+                    data = data(sampledRows, :);
                 end
 
                 mapToUse = obj.ModelToDataColumnsMap;
@@ -594,6 +629,8 @@ classdef MBExperimentDesigner < handle
                 % model using FSP, and assign the solved model (including
                 % its solution, which contains the state space) back to the
                 % list of models.
+
+                allTimes = obj.getAllTimes(models);
                
                 parfor modelIdx = 1:length(models)
                     curConfig = configs(modelIdx);
@@ -602,20 +639,33 @@ classdef MBExperimentDesigner < handle
                     if haveData(modelIdx)
                         curModel = models(modelIdx);
 
+                        % loadData sets the time span of the model to match
+                        % the times for which data are available. However,
+                        % we want all experimental times to be included in
+                        % model solution and FSP calculation. Therefore, we
+                        % set the time span back to match the set of all
+                        % experimental times.
+
                         curModel = curModel.loadData(curData, mapToUse);
+                        curModel.tSpan = allTimes;
+
                         curModel.fspOptions.fspTol = 1e-4;
                         curModel = curModel.solve(solver = "fsp");
 
                         models(modelIdx) = curModel;
-                        stateSpaces(modelIdx) = ...
+                        stateSpaces{modelIdx} = ...
                             curModel.Solutions.stateSpace;
                     end                 
                 end % [Model]
             end % [Reload data]
 
             if refitModels
-                fitParameters = model.fittingOptions.modelVarsToFit;
-                parameters = model.parameters(fitParameters, 2);
+                fitParameters = model.FitParameters;
+
+                % Convert the parameters to an array of double so that
+                % their logarithms can be found:
+
+                parameters = [model.parameters{fitParameters, 2}];
 
                 for fitRoundIdx = 1:obj.NumberOfFitRounds
 
@@ -634,8 +684,8 @@ classdef MBExperimentDesigner < handle
                         num2cell(parameters);
 
                     parfor modelIdx = 1:numConfigs
-                        if hasData(modelIdx)
-                            curModel = model(modelIdx);
+                        if haveData(modelIdx)
+                            curModel = models(modelIdx);
 
                             curModel.parameters(fitParameters, 2) = ...
                                 num2cell(parameters);
@@ -644,7 +694,7 @@ classdef MBExperimentDesigner < handle
                             curModel = curModel.solve(solver = "fsp");
 
                             models(modelIdx) = curModel;
-                            stateSpaces(modelIdx) = ...
+                            stateSpaces{modelIdx} = ...
                                 curModel.Solutions.stateSpace;
                         end                       
                     end % [Model]
@@ -722,6 +772,9 @@ classdef MBExperimentDesigner < handle
 
             runner.MHOptions = obj.MHOptions;
 
+            runner.ModelsHaveData = ...
+                obj.CacheOfGuessedModelsWithCombinedTimes.ModelsHaveData;
+
             runner.NumberOfSamplesForBurnIn = ...
                 obj.NumberOfMHSamplesForBurnIn;
             runner.NumberOfSamplesForProduction = ...
@@ -739,17 +792,24 @@ classdef MBExperimentDesigner < handle
             runner.ObservationsMatrix = ...
                 round.CumulativeExperimentDesign.getAsObservationMatrix();
 
-            runner.ParameterGuesses = [obj.GuessedModel.parameters{...
-                obj.GuessedModel.fittingOptions.modelVarsToFit, 2}];
+            guessedModel = ...
+                obj.CacheOfGuessedModelsWithCombinedTimes.SourceModel;
+            runner.ParameterGuesses = [guessedModel.parameters{...
+                guessedModel.FitParameters, 2}];
+
+            runner.StateSpaces = ...
+                obj.CacheOfGuessedModelsWithCombinedTimes.ModelStateSpaces;
             
             % The first method handles updating (if necessary) the cache 
             % and returning the models. We can then query the cache for the
-            % FIMs:
+            % FIMs. We will use these later in the round, so we will
+            % simultaneously store them there.
             
             runner.TrueModelsWithCombinedTimes = ...
                 obj.GroundTruthModelsWithCombinedTimes;
             runner.FIMTrue = ...
                 obj.CacheOfGroundTruthModelsWithCombinedTimes.FIMs;
+            round.FIMTrue = runner.FIMTrue;
             
             runner.UsingSimulatedData = ~obj.UseEmpiricalData;
             
@@ -762,8 +822,8 @@ classdef MBExperimentDesigner < handle
             [round.MHResults, ~] = runner.run();
             
             obj.GuessedModel.parameters(...
-                obj.GuessedModel.fittingOptions.modelVarsToFit, 2) = ...
-                num2cell(round.MHResults.Parameters);            
+                obj.GuessedModel.FitParameters, 2) = ...
+                num2cell(exp(round.MHResults.ParametersLogSpace));            
         end % setupAndRunMetropolisHastings
 
         function sampleObservationsPerDesign(obj)
@@ -937,7 +997,7 @@ classdef MBExperimentDesigner < handle
             round = MBExperimentRound();
             round.CumulativeExperimentDesign = ...
                 obj.CumulativeExperimentDesign;
-
+            
             % First, switch to using our local RNG stream, if available.
             % This is the last point before randomness will be utilized,
             % e.g., in sampling parameter space. It is also the last point
@@ -951,9 +1011,16 @@ classdef MBExperimentDesigner < handle
             end
 
             try
-                % 1. Fit new parameter values to updated data
+                % 1. Fit new parameter values to updated data.
                 % 2. Tune and run Metropolis-Hastings; update parameters to
-                % those of MLE estimator
+                % those of MLE estimator.
+                % We handle both of these steps in one; by assigning the
+                % guessed models with combined times to the runner, we
+                % trigger the recalculation of the corresponding cache.
+                % Since we have new data, this will involve refitting of
+                % the model parameters.
+
+                round = obj.setupAndRunMetropolisHastings(round);
 
                 % 3. Compute FIMs from Metropolis-Hastings results
 
@@ -984,7 +1051,7 @@ classdef MBExperimentDesigner < handle
             catch ME
                 % Reset the global stream and rethrow the error:
                 RandStream.setGlobalStream(obj.GlobalRNGStream);
-                rethrow ME
+                rethrow(ME)
             end % [Design, with potential faults]                  
         end % designNextRound
 
