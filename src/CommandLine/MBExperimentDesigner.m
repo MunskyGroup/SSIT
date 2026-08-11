@@ -1148,6 +1148,8 @@ classdef MBExperimentDesigner < handle
                     false, ... % Ground-truth models, so DON'T refit 
                     true, ... % Recompute FIMs
                     obj.CacheOfGroundTruthModelsWithCombinedTimes);
+            obj.GroundTruthModel = ...
+                obj.CacheOfGroundTruthModelsWithCombinedTimes.SourceModel;
             models = ...
                 obj.CacheOfGroundTruthModelsWithCombinedTimes.Models;
         end % get.GroundTruthModelsWithCombinedTimes
@@ -1160,6 +1162,8 @@ classdef MBExperimentDesigner < handle
                     false, ... % Ground-truth models, so DON'T refit
                     false, ... % DON'T recompute FIMs (see method above)
                     obj.CacheOfGroundTruthModelsWithIndividualTimes);
+            obj.GroundTruthModel = ...
+                obj.CacheOfGroundTruthModelsWithIndividualTimes.SourceModel;
             models = ...
                 obj.CacheOfGroundTruthModelsWithIndividualTimes.Models;           
         end % get.GroundTruthModelsWithIndividualTimes
@@ -1172,6 +1176,8 @@ classdef MBExperimentDesigner < handle
                     true, ... % Guessed models, so DO refit to new data
                     false, ... % DON'T recompute FIMs
                     obj.CacheOfGuessedModelsWithCombinedTimes);
+            obj.GuessedModel = ...
+                obj.CacheOfGuessedModelsWithCombinedTimes.SourceModel;
             models = ...
                 obj.CacheOfGuessedModelsWithCombinedTimes.Models;
         end % get.GuessedModelsWithCombinedTimes
@@ -1184,6 +1190,8 @@ classdef MBExperimentDesigner < handle
                     true, ... % Guessed models, so DO refit to new data
                     false, ... % DON'T recompute FIMs
                     obj.CacheOfGuessedModelsWithIndividualTimes);
+            obj.GuessedModel = ...
+                obj.CacheOfGuessedModelsWithIndividualTimes.SourceModel;
             models = ...
                 obj.CacheOfGuessedModelsWithIndividualTimes.Models;
         end % get.GuessedModelsWithIndividualTimes
