@@ -8,7 +8,7 @@ classdef MetropolisHastingsAlgorithmRunner
     end
     
     properties        
-        GuessedModelsWithCombinedTimes (1, :) SSIT
+        GuessedModelsWithCombinedTimes (1, :) MBExperimentModel
         FIMCovarianceScale (1, 1) double {mustBePositive} = 1;
         FIMScale (1, 1) string = "log"
         FIMTrue
@@ -25,7 +25,7 @@ classdef MetropolisHastingsAlgorithmRunner
         ParameterGuesses (1, :) double = [];
         ProposalDistribution
         StateSpaces (1, :) = [];
-        TrueModelsWithCombinedTimes (1, :) SSIT
+        TrueModelsWithCombinedTimes (1, :) MBExperimentModel
         UsingSimulatedData (1, 1) logical = true
     end
 
@@ -220,7 +220,7 @@ classdef MetropolisHastingsAlgorithmRunner
                     obj.IDString + "_" + obj.IDNumber + ".mat";
         
                 % Delete old file if it exists.
-                delete(MHFitOptions.saveFile)
+                delete(obj.MHOptions.SaveFile)
         
                 % Call function to assemble total likelihood function
                 obj.ObjectiveFunction = ...
