@@ -995,11 +995,29 @@ classdef MBExperimentDesigner < handle
             % design, since these will necessarily be the only relevant
             % configurations at this point.
 
-            configurations = obj.CumulativeExperimentDesign.Configurations;
-            if isempty(configurations)
-                configurations = obj.Configurations;
+            if (obj.NextExperimentDesign.NumberOfConfigurations > 0)
+                tempDesign = obj.NextExperimentDesign;
+            else
+                if isempty(obj.Configurations)
+                    error("Both the designer's configurations and " + ...
+                        "next experiment design are empty. Please " + ...
+                        "respecify the configurations and retry " + ...
+                        "your previous operation.")
+                else
+                    tempDesign = MBExperimentDesign(obj.Configurations);
+                end
             end
-        end
+
+            tempDesign = tempDesign + obj.CumulativeExperimentDesign;
+
+            configurations = tempDesign.Configurations;
+            if isempty(configurations)
+                error("The designer's configurations and next and " + ...
+                    "previous experiment designs are all empty. " + ...
+                    "Please respecify the configurations and retry " + ...
+                    "your previous operation.")
+            end
+        end % get.ConfigurationsForCaches
 
         function options = get.FitOptions(obj)
             options = optimset('Display', 'iter', ...
@@ -1098,8 +1116,8 @@ classdef MBExperimentDesigner < handle
             %of design.
 
             arguments
-                configurations (1, :)
-                guessedModel (1, 1) MBExperimentModel
+                configurations (1, :) {mustBeNonempty}
+                guessedModel (1, 1) MBExperimentModel {mustBeNonempty}
                 initialStrategy (1, 1) ...
                     MBAbstractExperimentDesignStrategy ...
                     {mustBeScalarOrEmpty} = []
@@ -1127,6 +1145,15 @@ classdef MBExperimentDesigner < handle
                     obj.Strategy.apportionObservations(initialDesign);
             else
                 obj.NextExperimentDesign = initialDesign;
+
+                % The following should not change the configurations, but
+                % it avoids bugs when the provided design and
+                % configurations disagree with one another. Essentially, we
+                % assume that if the user has provided a design, that
+                % design is more likely to be correct.
+
+                obj.Configurations = ...
+                    obj.NextExperimentDesign.Configurations;
             end
 
             obj.GroundTruthModel = groundTruthModel;
