@@ -80,10 +80,23 @@ classdef MBExperimentInputConfigurable < ...
 
             rows = [];
             if ~isempty(data)
-                % We use strcmp because the values are strings and 
-                % potentially case-sensitive.
-    
-                rowsToKeep = strcmp(data.(obj.InputName), obj.Values(1));
+                % In general, input expressions can take string values, but
+                % MATLAB may cast particular table columns to different
+                % data types. We therefore need to check the type of the
+                % corresponding column to determine whether double equality
+                % or strcmp (for case sensitivity) should be utilized:
+
+                column = strcmp(...
+                    data.Properties.VariableNames, obj.InputName);
+                varType = data.Properties.VariableTypes(column);
+
+                if varType == "double"
+                    rowsToKeep = ...
+                        data.(obj.InputName) == double(obj.Values(1));
+                else
+                    rowsToKeep = strcmp(...
+                        data.(obj.InputName), obj.Values(1));
+                end
     
                 for valIdx = 2:length(obj.Values)
                     % If there are multiple values, then each row that 
