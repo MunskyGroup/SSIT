@@ -168,6 +168,35 @@ classdef MBExperimentDesign
             end
         end % getAsObservationMatrix
 
+        function [Obs, nonTimeConfigurations, times] = ...
+                getAsObservationVector(obj, nonTimeConfigurations, times)
+            % getAsObservationVector returns a vector containing the number
+            % of observations to be made at each non-time configuration and
+            % measurement time. If M is the number of non-time
+            % configurations and N is the number of measurement times, the
+            % first N entries will correspond to the observations for the
+            % first non-time configuration. This is the format expected by
+            % FIM-related methods.            
+            %
+            % The user can provide non-time configurations and/or times of
+            % interest, none of which need to be included in any of the
+            % configurations. If either is provided, it, rather than its             
+            % counterpart in the observations map, will be used in creating
+            % the relevant entries of the vector.
+
+            arguments
+                obj (1, 1) MBExperimentDesign
+                nonTimeConfigurations (1, :) ...
+                    MBExperimentNonTimeConfiguration = createArray(...
+                    0, 0, "MBExperimentNonTimeConfiguration");
+                times (1, :) double = []
+            end
+
+            [Obs, nonTimeConfigurations, times] = ...
+                obj.buildObservationMatrix(nonTimeConfigurations, times);
+            Obs = reshape(Obs', [1 numel(Obs)]);            
+        end % getAsObservationVector
+
         function numObservationsMap = ...
                 getMostObservationsAtAnyTimeForNonTimeConfigurations(obj)
             arguments
