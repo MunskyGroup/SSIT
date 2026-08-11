@@ -14,8 +14,10 @@ classdef MetropolisHastingsAlgorithmRunner
         FIMTrue
         FitOptions
         IDNumber (1, 1) uint64 = 0
-        IDString (1, 1) string = ""       
+        IDString (1, 1) string = ""
+        InTestingMode (1, 1) logical = false
         MHOptions (1, 1) MetropolisHastingsAlgorithmOptions       
+        ModelsHaveData (1, :) logical = false
         NumberOfSamplesForBurnIn (1, 1) uint64 {mustBePositive} = 1;
         NumberOfSamplesForProduction (1, 1) uint64 {mustBePositive} = 100;
         NumberOfSamplesForTuning (1, 1) uint64 {mustBePositive} = 100;
@@ -80,7 +82,7 @@ classdef MetropolisHastingsAlgorithmRunner
                     fimResults, nCellsVec, logPriorCovariance);
             end
 
-            subsetVars = refModel.fittingOptions.modelVarsToFit;
+            subsetVars = refModel.FitParameters;
             FIMfree = FIM{1}(subsetVars, subsetVars);
 
             if min(eig(FIMfree)) < 0.1
@@ -112,7 +114,7 @@ classdef MetropolisHastingsAlgorithmRunner
             end
             
             [results.Samples, results.Acceptance, ...
-                results.Value, results.Parameters] = ...
+                results.Value, results.ParametersLogSpace] = ...
                 ssit.parest.metropolisHastingsSample(...
                     log(obj.ParameterGuesses), ...
                     numberOfSamples, ...
@@ -141,11 +143,11 @@ classdef MetropolisHastingsAlgorithmRunner
             stateSpaces = [];
 
             parfor modelIdx = 1:length(oldModels)
-                curModel = oldModels{modelIdx};
+                curModel = oldModels(modelIdx);
 
                 curModel.fspOptions.fspTol = 1e-4;
                 curModel.parameters(...
-                    curModel.fittingOptions.modelVarsToFit, 2) = ...
+                    curModel.FitParameters, 2) = ...
                     num2cell(parameters);
                 [curFspSoln, curModel.fspOptions.bounds] = ...
                     curModel.solve;
@@ -162,6 +164,8 @@ classdef MetropolisHastingsAlgorithmRunner
                 proposedGuessesLogSpace (1, :) double
                 updateUnconditionally (1, 1) logical = false
             end
+
+            updateOccurred = false;
 
             newGuesses = exp(proposedGuessesLogSpace);
 
@@ -226,12 +230,12 @@ classdef MetropolisHastingsAlgorithmRunner
                 obj.ObjectiveFunction = ...
                     @(x) getLogLikelihoodOfDataGivenModels(...
                     x, obj.GuessedModelsWithCombinedTimes, ...
-                    hasData, obj.StateSpaces);
+                    obj.ModelsHaveData, obj.StateSpaces);
         
                 %% Compute FIM for use in MH Proposal Function
                 obj = obj.computeFIMForUseInMH();
                        
-                if testing
+                if obj.InTestingMode
                     obj.MHOptions.Progress = true;
                 end
         
@@ -245,13 +249,13 @@ classdef MetropolisHastingsAlgorithmRunner
                 % will continue tuning, after running another fminsearch
                 % starting at the new parameter set.
                 
-                [obj, updateOccurred] = ...
-                    obj.updateParameterGuesses(results.Parameters, false);
+                [obj, updateOccurred] = obj.updateParameterGuesses(...
+                    results.ParametersLogSpace, false);
                 if updateOccurred
                     obj.ObjectiveFunction = @(x) ...
                         -getLogLikelihoodOfDataGivenModels(...
                         x, obj.GuessedModelsWithCombinedTimes, ...
-                        hasData, obj.StateSpaces);
+                        obj.ModelsHaveData, obj.StateSpaces);
                     newParameters = exp(fminsearch(...
                         obj.ObjectiveFunction, ...
                         obj.ParameterGuesses, obj.FitOptions));
@@ -276,16 +280,17 @@ classdef MetropolisHastingsAlgorithmRunner
             % objective function to take advantage of the most recently
             % calculated state spaces.
 
+            
             obj.ObjectiveFunction = @(x) ...
                 -getLogLikelihoodOfDataGivenModels(...
                 x, obj.GuessedModelsWithCombinedTimes, ...
-                hasData, obj.StateSpaces);
+                obj.ModelsHaveData, obj.StateSpaces);
             results = obj.querySampler();
 
             % Update parameters if necessary.
 
-            [obj, ~] = ...
-                obj.updateParameterGuesses(results.Parameters, false);
+            [obj, ~] = obj.updateParameterGuesses(...
+                results.ParametersLogSpace, false);
             stateSpaces = obj.StateSpaces;
         end % run
     end % Public methods
