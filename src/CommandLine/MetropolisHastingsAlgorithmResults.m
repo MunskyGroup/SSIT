@@ -5,7 +5,7 @@ classdef MetropolisHastingsAlgorithmResults
 
     properties
         Acceptance
-        Parameters
+        ParametersLogSpace
         Samples
         Value
     end
