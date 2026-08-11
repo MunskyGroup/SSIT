@@ -11,25 +11,12 @@ classdef MBExperimentDependentModelsCache
 
     properties (Access = ?MBExperimentDesigner)
         Configs (1, :) MBExperimentConfiguration
+        FIMs (1, :) cell
         LastPerformedExperimentRound (1, 1) uint64 = 0
         Models (1, :) MBExperimentModel
         ModelsHaveData (1, :) logical
         ModelStateSpaces (1, :) cell 
         SourceModel (1, 1) MBExperimentModel
         UseEmpiricalData (1, 1) logical = false
-    end
-
-    methods
-        function obj = untitled(inputArg1,inputArg2)
-            %UNTITLED Construct an instance of this class
-            %   Detailed explanation goes here
-            obj.Property1 = inputArg1 + inputArg2;
-        end
-
-        function outputArg = method1(obj,inputArg)
-            %METHOD1 Summary of this method goes here
-            %   Detailed explanation goes here
-            outputArg = obj.Property1 + inputArg;
-        end
     end
 end
