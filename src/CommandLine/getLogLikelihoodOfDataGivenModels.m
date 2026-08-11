@@ -38,12 +38,12 @@ parfor modelIdx = 1:length(models)
     % If there are no data associated with the model, there is no
     % corresponding likelihood to calculate:
 
-    if hasData(modelIdx)
+    if modelsHaveData(modelIdx)
         if modelIdx == modelIdxForIncludingPrior
-            logL = logL + models{modelIdx}.computeLikelihood(...
+            logL = logL + models(modelIdx).computeLikelihood(...
                 exp(parametersLogSpace), stateSpaces{modelIdx});        
         else
-            tempModel = models{modelIdx};
+            tempModel = models(modelIdx);
             tempModel.fittingOptions.logPrior = [];
             logL = logL + tempModel.computeLikelihood(...
                 exp(parametersLogSpace), stateSpaces{modelIdx});            
