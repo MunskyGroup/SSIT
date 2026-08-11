@@ -3614,7 +3614,7 @@ classdef SSIT
             %    {'Drug_Conc',100},{'replica'});
             arguments
                 obj
-                dataSources (1, :)
+                dataSources
                 linkedSpecies = configureDictionary("string", "string");
                 conditions = {};
                 savedColumns = {};
