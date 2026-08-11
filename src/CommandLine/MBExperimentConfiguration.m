@@ -99,9 +99,9 @@ classdef MBExperimentConfiguration
                     obj.NonTimeConfiguration.NonTimeConfigurables;
                 for configIdx = 1:length(nonTimeConfigs)
                     % All rows must match, i.e., have the desired value for
-                    % each non-time configurable and one of the desired values
-                    % for the time configurable. This is equivalent to logical
-                    % conjunction ("and").
+                    % each non-time configurable and one of the desired 
+                    % values for the time configurable. This is equivalent 
+                    % to logical conjunction ("and").
     
                     curRowsToKeep = ...
                         nonTimeConfigs(configIdx).findSubsetOfData(data);
