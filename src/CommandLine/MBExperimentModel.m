@@ -8,6 +8,10 @@ classdef MBExperimentModel < SSIT
         StandardDeviationPriorLog10 (1, :) double
     end
 
+    properties (Dependent)
+        FitParameters
+    end
+
     methods
         function isEqual = eq(obj1, obj2)
             %This method implements an equality comparator for the
@@ -33,10 +37,10 @@ classdef MBExperimentModel < SSIT
 
             isEqual = isEqual && ...
                 all(size(obj1.parameters) == size(obj2.parameters));
-            isEqual = isEqual && all(...
-                strcmp(obj1.parameters{:, 1}, obj2.parameters{:, 1}));
-            isEqual = isEqual && all(...
-                obj1.parameters{:, 2} == obj2.parameters{:, 2});
+            isEqual = isEqual && ...
+                isequal(obj1.parameters(:, 1), obj2.parameters(:, 1));
+            isEqual = isEqual && ...
+                isequal(obj1.parameters(:, 2), obj2.parameters(:, 2));
 
             % Species must match in name:
 
@@ -76,12 +80,15 @@ classdef MBExperimentModel < SSIT
             isEqual = isEqual && all(...
                 size(obj1.inputExpressions) == ...
                 size(obj2.inputExpressions));
-            isEqual = isEqual && all(strcmp(...
-                obj1.inputExpressions{:, 1}, ...
-                obj2.inputExpressions{:, 1}));
-            isEqual = isEqual && all(strcmp(...
-                obj1.inputExpressions{:, 2}, ...
-                obj2.inputExpressions{:, 2}));
+            if ~isempty(obj1.inputExpressions)
+                % See if isequal() can be used to eliminate call to strcmp
+                isEqual = isEqual && all(strcmp(...
+                    obj1.inputExpressions{:, 1}, ...
+                    obj2.inputExpressions{:, 1}));
+                isEqual = isEqual && all(strcmp(...
+                    obj1.inputExpressions{:, 2}, ...
+                    obj2.inputExpressions{:, 2}));
+            end
 
             % Constraint functions for FSP must match in value:
 
@@ -180,6 +187,18 @@ classdef MBExperimentModel < SSIT
             % description
             % GUIProps              
         end % eq
+
+        function parameters = get.FitParameters(obj)
+            arguments
+                obj (1, 1) MBExperimentModel
+            end
+
+            if obj.fittingOptions.modelVarsToFit == "all"
+                parameters = 1 : length(obj.parameters(:, 1));
+            else
+                parameters = obj.fittingOptions.modelVarsToFit;
+            end
+        end
 
         function isValidPrior(obj, value)
             arguments
