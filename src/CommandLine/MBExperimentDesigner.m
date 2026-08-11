@@ -20,7 +20,7 @@ classdef MBExperimentDesigner < handle
             MBExperimentDependentModelsCache
         CacheOfGuessedModelsWithIndividualTimes (1, 1) ...
             MBExperimentDependentModelsCache
-        CumulativeNumbersOfObservations (1, :) uint64
+        CumulativeExperimentDesign (1, 1) MBExperimentDesign
         DesignedExperimentRounds (1, :) MBExperimentRound = ...
             createArray(0, 0, "MBExperimentRound")
         EmpiricalDataFiles (1, :) string = createArray(0, 0, "string")       
@@ -319,7 +319,6 @@ classdef MBExperimentDesigner < handle
             end % [New incoming data files exist]
         end % buildDataTable
 
-
         % TO DO: collectSummaryOfDesignedRound needs 
         % nextExperiment, nCellsVec   
 
@@ -331,7 +330,8 @@ classdef MBExperimentDesigner < handle
             
             round.FIMPredNextExpt = totalFim(...
                 round.FIMResults, ...
-                nextExperiment+obj.CumulativeNumbersOfObservations, ...
+                round.NextExperimentDesign + ...
+                    obj.CumulativeExperimentDesign, ...
                 obj.GuessedModel.fittingOptions.logPriorCovariance);
 
             % Compute and Save Covariance from MH from CURRENT stage.
@@ -400,12 +400,12 @@ classdef MBExperimentDesigner < handle
 
             % FIM current experiment
             round.FIMCurrentExpt = totalFim(fimResults, ...
-                obj.CumulativeNumbersOfObservations, ...
+                obj.CumulativeExperimentDesign, ...
                 obj.GuessedModel.fittingOptions.logPriorCovariance);
 
             % True FIM for current experiment
             round.FIMCurrentExpt_True = totalFim(fimTrue, ...
-                obj.CumulativeNumbersOfObservations, ...
+                obj.CumulativeExperimentDesign, ...
                 obj.GuessedModel.fittingOptions.logPriorCovariance);
         end % computeFIMsForDesignedRound
 
@@ -423,12 +423,13 @@ classdef MBExperimentDesigner < handle
 
             round.FIMOptNextExpt = totalFim(round.FIMResults, ...
                 cellVecForOptimalFIMCalculation + ...
-                obj.CumulativeNumbersOfObservations, ...
+                obj.CumulativeExperimentDesign, ...
                 obj.GuessedModel.fittingOptions.logPriorCovariance);            
         end % designNextExperiment
 
         function [models, configs] = multiplyModel(obj, ...
-                model, configs, combineTimes, refitToNewData, cache)
+                model, configs, combineTimes, refitToNewData, ...
+                recomputeFIMs, cache)
             %multiplyModel accepts a source model, a list of experiment
             %configurations, and a Boolean indicating whether measurement
             %times should be combined for otherwise similar configurations,
@@ -447,7 +448,13 @@ classdef MBExperimentDesigner < handle
             %       c. Fitting the collection of output models to the data
             %       and updating all models' fitted parameters accordingly,
             %       IF the caller has indicated that models should be refit
-            %       (which should NOT be done for ground-truth models).
+            %       (which should NOT be done for ground-truth models),
+            %   3. Fisher Information Matrices (FIMs) are recomputed for
+            %   the models, IF explicitly requested by the caller. This
+            %   should only be done for ground-truth models and in the
+            %   absence of data, where the purpose is to compute the "true
+            %   FIMs" for all experiment configurations, which may change
+            %   over the sequence of experiment design.
 
             arguments                
                 obj (1, 1) MBExperimentDesigner
@@ -455,6 +462,7 @@ classdef MBExperimentDesigner < handle
                 configs (1, :) MBExperimentConfiguration
                 combineTimes (1, 1) logical
                 refitToNewData (1, 1) logical
+                recomputeFIMs (1, 1) logical
                 cache (1, 1) MBExperimentDependentModelsCache = [];
             end
 
@@ -630,6 +638,40 @@ classdef MBExperimentDesigner < handle
                 end % [Fit round]
             end % [Refit models]
 
+            % Recompute the FIMs. Even if requested, this will only need to
+            % be done if models have either been regenerated (due to new
+            % configurations) or refit:
+
+            if recomputeFIMs && (regenerateConfigs || refitModels)
+                % The FIM computation process is such that it is not
+                % particularly wasteful, if at all, to simply compute the
+                % FIM for all times for each model, and this makes indexing
+                % and slicing the FIM cell array much simpler:
+
+                times = obj.getAllTimes(configs);
+                FIMs = cell(numConfigs, times);
+                linearFIMs = cell(1, numConfigs * times);                
+                scale = obj.FIMScale;
+
+                parfor modelIdx = 1:numConfigs
+                    curModel = models(modelIdx);
+                    curModel.tSpan = times;
+                    FIMs{modelIdx, :} = curModel.computeFIM([], scale);                                         
+                end % [Models]
+
+                % Reshape the FIM cell array from a matrix to a row vector:
+
+                for modelIdx = 1:numConfigs
+                    curSlice = obj.getArraySliceForModel(...
+                        modelIdx, length(times));
+                    linearFIMs(curSlice) = FIMs{modelIdx, :}';
+                end
+
+                % Finally, update the cache:
+
+                cache.FIMs = FIMs;
+            end % [Recompute FIMs]
+
             % Having completed the multiplication, update the cache:
 
             cache.Configs = configs;
@@ -651,8 +693,6 @@ classdef MBExperimentDesigner < handle
             
             runner.FIMScale = obj.FIMScale;
 
-            % FIMTrue               
-
             runner.FitOptions = obj.FitOptions;       
             
             runner.GuessedModelsWithCombinedTimes = ...
@@ -672,17 +712,22 @@ classdef MBExperimentDesigner < handle
             runner.ParameterGuesses = [obj.GuessedModel.parameters{...
                 obj.GuessedModel.fittingOptions.modelVarsToFit, 2}];
             
-            % StateSpaces (1, :) = [];         
-
+            % The first method handles updating (if necessary) the cache 
+            % and returning the models. We can then query the cache for the
+            % FIMs:
+            
             runner.TrueModelsWithCombinedTimes = ...
                 obj.GroundTruthModelsWithCombinedTimes;
+            runner.FIMTrue = ...
+                obj.CacheOfGroundTruthModelsWithCombinedTimes.FIMs;
             
             runner.UsingSimulatedData = ~obj.UseEmpiricalData;
             
             % Although the runner also provides up-to-date state spaces for
-            % models, we do not utilize them downstream from here. We will,
-            % however, of course update the parameters in the guessed model
-            % based on the M-H results.
+            % models, we do not explicitly utilize them downstream from
+            % here. We will, however, of course update the parameters in 
+            % the guessed model based on the M-H results. That will trigger
+            % a refitting of the models in subsequent rounds of design.
 
             [round.MHResults, ~] = runner.run();
             
@@ -832,8 +877,8 @@ classdef MBExperimentDesigner < handle
             %associated with the designer.
 
             round = MBExperimentRound();
-            round.CumulativeNumbersOfObservations = ...
-                obj.CumulativeNumbersOfObservations;
+            round.CumulativeExperimentDesign = ...
+                obj.CumulativeExperimentDesign;
 
             % First, switch to using our local RNG stream, if available.
             % This is the last point before randomness will be utilized,
@@ -922,11 +967,16 @@ classdef MBExperimentDesigner < handle
         end
 
         function models = get.GroundTruthModelsWithCombinedTimes(obj)
+            % For this, and only this, group of models will we compute
+            % FIMs; these will serve as the "true FIMs" for experiment
+            % design purposes.
+
             obj.CacheOfGroundTruthModelsWithCombinedTimes = ...
                 obj.multiplyModel(obj.GroundTruthModel, ...
                     obj.Configurations, ...
                     true, ... % Combine times
                     false, ... % Ground-truth models, so DON'T refit 
+                    true, ... % Recompute FIMs
                     obj.CacheOfGroundTruthModelsWithCombinedTimes);
             models = ...
                 obj.CacheOfGroundTruthModelsWithCombinedTimes.Models;
@@ -938,6 +988,7 @@ classdef MBExperimentDesigner < handle
                     obj.Configurations, ...
                     false, ... % DON'T combine times
                     false, ... % Ground-truth models, so DON'T refit
+                    false, ... % DON'T recompute FIMs (see method above)
                     obj.CacheOfGroundTruthModelsWithIndividualTimes);
             models = ...
                 obj.CacheOfGroundTruthModelsWithIndividualTimes.Models;           
@@ -949,6 +1000,7 @@ classdef MBExperimentDesigner < handle
                     obj.Configurations, ...
                     true, ... % Combine times
                     true, ... % Guessed models, so DO refit to new data
+                    false, ... % DON'T recompute FIMs
                     obj.CacheOfGuessedModelsWithCombinedTimes);
             models = ...
                 obj.CacheOfGuessedModelsWithCombinedTimes.Models;
@@ -960,6 +1012,7 @@ classdef MBExperimentDesigner < handle
                     obj.Configurations, ...
                     false, ... % DON'T combine times
                     true, ... % Guessed models, so DO refit to new data
+                    false, ... % DON'T recompute FIMs
                     obj.CacheOfGuessedModelsWithIndividualTimes);
             models = ...
                 obj.CacheOfGuessedModelsWithIndividualTimes.Models;
@@ -1042,6 +1095,10 @@ classdef MBExperimentDesigner < handle
             end
 
             if ~isempty(rngSeed)
+                % mt19937ar is the Mersenne Twister (MATLAB main client
+                % default). Parallel workers will use their own independent
+                % Threefry generators.
+                
                 obj.LocalRNGStream = ...
                     RandStream.create("mt19937ar", "Seed", rngSeed);
             end
