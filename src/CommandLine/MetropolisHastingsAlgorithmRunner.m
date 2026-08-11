@@ -19,6 +19,7 @@ classdef MetropolisHastingsAlgorithmRunner
         NumberOfSamplesForTuning (1, 1) uint64 {mustBePositive} = 100;
         NumberOfSamplesToThin (1, 1) uint64 {mustBePositive} = 2;
         ObjectiveFunction
+        ObservationsMatrix (:, :) uint64 = []
         ParameterGuesses (1, :) double = [];
         ProposalDistribution
         StateSpaces (1, :) = [];
@@ -47,24 +48,28 @@ classdef MetropolisHastingsAlgorithmRunner
             nCellsVec = zeros(1, numModels * numTimes);
 
             if obj.UsingSimulatedData
-                % Use the real FIM for the MH if we are using simulated data.
+                % Use the real FIM for the MH if we are using simulated 
+                % data.
                 
                 for modelIdx = 1:numModels
                     range = MBExperimentDesigner.getArraySliceForModel(...
                         modelIdx, numTimes);
-                    nCellsVec(1, range) = nTotalCells(modelIdx,:);
+                    nCellsVec(1, range) = ...
+                        obj.ObservationsMatrix(modelIdx, :);
                 end
                 FIM = refModel.evaluateExperiment(...
                     obj.FIMTrue, nCellsVec, logPriorCovariance);
             else
                 fimResults = cell(numModels * numTimes, 1);
                 for modelIdx = 1:numModels
-                    curModel = obj.GuessedModelsWithCombinedTimes(modelIdx);
+                    curModel = obj.GuessedModelsWithCombinedTimes(...
+                        modelIdx);
                     range = MBExperimentDesigner.getArraySliceForModel(...
                         modelIdx, numTimes);
                     fimResults(range, 1) = curModel.computeFIM(...
                         [], obj.FIMScale);
-                    nCellsVec(1, range) = nTotalCells(modelIdx, :);
+                    nCellsVec(1, range) = ...
+                        obj.ObservationsMatrix(modelIdx, :);
                 end
 
                 % Call function to assemble full FIM from cell
@@ -192,10 +197,12 @@ classdef MetropolisHastingsAlgorithmRunner
                 timeSpan = MBExperimentDesigner.getAllTimes(...
                     obj.GuessedModelsWithCombinedTimes);
                 for modelIdx = 1:numModels
-                    curModel = obj.GuessedModelsWithCombinedTimes(modelIdx);                    
+                    curModel = obj.GuessedModelsWithCombinedTimes(...
+                        modelIdx);                    
                     curModel.tSpan = timeSpan;
                     curModel.fspOptions.fspTol = 1e-8;                    
-                    obj.GuessedModelsWithCombinedTimes(modelIdx) = curModel;
+                    obj.GuessedModelsWithCombinedTimes(modelIdx) = ...
+                        curModel;
                 end
             end
             %% MH Tuning then running.
