@@ -15,6 +15,34 @@ classdef MBExperimentNonTimeConfiguration
     end
 
     methods
+        function data = annotateData(obj, data)
+            %annotateData takes a data table and appends one or columns
+            %indicating the value of each non-time configurable in this
+            %configuration. Care must be taken to ensure that the data
+            %being annotated in this way were truly generated using the
+            %calling non-time configuration. Since non-trivial care is
+            %important, some validation of the table is done.
+
+            arguments
+                obj (1, 1) MBExperimentNonTimeConfiguration
+                data table {mustBeNonempty}
+            end
+
+            for configIdx = 1:length(obj.NonTimeConfigurables)
+                % Create a new column, spanning the height of the table,
+                % where all elements contain the (single) value of the
+                % configurable. Append this column to the table using the
+                % appropriate variable name.
+
+                curConfigurable = obj.NonTimeConfigurables(configIdx);
+                varName = curConfigurable.getVarName();
+                value = curConfigurable.getSingleValue();
+                newColumn = repmat(value, [height(data) 1]);
+
+                data.(varName) = newColumn;
+            end % [Configurable]
+        end % annotateData
+
         function disp(obj)
             if ~isempty(obj.NonTimeConfigurables)
                 disp(obj.NonTimeConfigurables(1))
