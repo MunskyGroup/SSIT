@@ -27,6 +27,7 @@ classdef MBExperimentDesigner < handle
         EmpiricalDataTable table = table()
         GlobalRNGStream RandStream = []
         GroundTruthModel (1, 1) MBExperimentModel = []
+        IDString (1, 1) string = ""
         LocalRNGStream RandStream = []
         PerformingRoundNumber (1, 1) uint64 = 0        
         ReadyToPerformNextRound (1, 1) logical = false
@@ -60,6 +61,7 @@ classdef MBExperimentDesigner < handle
     end
 
     properties (Dependent)
+        ConfigurationsForCaches (1, :) MBExperimentConfiguration
         FitOptions
         GroundTruthModelsWithCombinedTimes (1, :) MBExperimentModel
         GroundTruthModelsWithIndividualTimes (1, :) MBExperimentModel
@@ -694,9 +696,12 @@ classdef MBExperimentDesigner < handle
             runner.FIMScale = obj.FIMScale;
 
             runner.FitOptions = obj.FitOptions;       
-            
+
             runner.GuessedModelsWithCombinedTimes = ...
                 obj.GuessedModelsWithCombinedTimes;
+
+            runner.IDString = obj.IDString;
+            runner.IDNumber = length(obj.DesignedExperimentRounds) + 1;
 
             runner.MHOptions = obj.MHOptions;
 
@@ -708,6 +713,14 @@ classdef MBExperimentDesigner < handle
                 obj.NumberOfMHSamplesForTuning;
             runner.NumberOfSamplesToThin = ...
                 obj.NumberOfMHSamplesToThin;
+
+            % Because the runner utilizes the cumulative experiment design,
+            % the corresponding observations matrix should be constructed
+            % from that design. That design SHOULD include all
+            % configurations and times, current and former.
+
+            runner.ObservationsMatrix = ...
+                round.CumulativeExperimentDesign.getAsObservationMatrix();
 
             runner.ParameterGuesses = [obj.GuessedModel.parameters{...
                 obj.GuessedModel.fittingOptions.modelVarsToFit, 2}];
@@ -961,6 +974,33 @@ classdef MBExperimentDesigner < handle
             end
         end % excludeConfigurations
 
+        function configurations = get.ConfigurationsForCaches(obj)
+            arguments
+                obj (1, 1) MBExperimentDesigner
+            end
+
+            % When obtaining configurations and thereby models for caches,
+            % we want to include all configurations in the cumulative
+            % experiment design, even if those configurations are not
+            % available for the current round of design. This is because
+            % some methods will want to evaluate all experiments done thus
+            % far. Since there are ways to indicate which configurations
+            % are not available for the current round of design, the code
+            % architecture is simpler if ALL configurations, models, and
+            % observations are included.
+            % That said, at the start of the designer's lifecycle (the
+            % performance of the first round), the cumulative design will
+            % not have been set, so in that case we will defer to the
+            % configurations specified for the current (i.e., first)
+            % design, since these will necessarily be the only relevant
+            % configurations at this point.
+
+            configurations = obj.CumulativeExperimentDesign.Configurations;
+            if isempty(configurations)
+                configurations = obj.Configurations;
+            end
+        end
+
         function options = get.FitOptions(obj)
             options = optimset('Display', 'iter', ...
                 'MaxIter', obj.MaxFitIterations);
@@ -973,7 +1013,7 @@ classdef MBExperimentDesigner < handle
 
             obj.CacheOfGroundTruthModelsWithCombinedTimes = ...
                 obj.multiplyModel(obj.GroundTruthModel, ...
-                    obj.Configurations, ...
+                    obj.ConfigurationsForCaches, ...
                     true, ... % Combine times
                     false, ... % Ground-truth models, so DON'T refit 
                     true, ... % Recompute FIMs
@@ -985,7 +1025,7 @@ classdef MBExperimentDesigner < handle
         function models = get.GroundTruthModelsWithIndividualTimes(obj)
             obj.CacheOfGroundTruthModelsWithIndividualTimes = ...
                 obj.multiplyModel(obj.GroundTruthModel, ...
-                    obj.Configurations, ...
+                    obj.ConfigurationsForCaches, ...
                     false, ... % DON'T combine times
                     false, ... % Ground-truth models, so DON'T refit
                     false, ... % DON'T recompute FIMs (see method above)
@@ -997,7 +1037,7 @@ classdef MBExperimentDesigner < handle
         function models = get.GuessedModelsWithCombinedTimes(obj)
             obj.CacheOfGuessedModelsWithCombinedTimes = ...
                 obj.multiplyModel(obj.GuessedModel, ...
-                    obj.Configurations, ...
+                    obj.ConfigurationsForCaches, ...
                     true, ... % Combine times
                     true, ... % Guessed models, so DO refit to new data
                     false, ... % DON'T recompute FIMs
@@ -1009,7 +1049,7 @@ classdef MBExperimentDesigner < handle
         function models = get.GuessedModelsWithIndividualTimes(obj)
             obj.CacheOfGuessedModelsWithIndividualTimes = ...
                 obj.multiplyModel(obj.GuessedModel, ...
-                    obj.Configurations, ...
+                    obj.ConfigurationsForCaches, ...
                     false, ... % DON'T combine times
                     true, ... % Guessed models, so DO refit to new data
                     false, ... % DON'T recompute FIMs
@@ -1103,11 +1143,7 @@ classdef MBExperimentDesigner < handle
                     RandStream.create("mt19937ar", "Seed", rngSeed);
             end
 
-            obj.ReadyToPerformNextRound = true;
-            % 
-            % properties
-            %     
-            %     CumulativeNumbersOfObservations (1, :) uint64       
+            obj.ReadyToPerformNextRound = true;       
         end % MBExperimentDesigner
 
         function performNextRound(obj, pathsToEmpiricalData)
@@ -1188,11 +1224,18 @@ classdef MBExperimentDesigner < handle
                 end % Simulation mode
 
                 % Finally, regardless of the experimental mode, sample
-                % according to the current design. This design will 
-                % therefore have been used, so we are not ready to perform
-                % a new round:
+                % according to the current design. As a result, the current
+                % design has now become part of the cumulative design, so
+                % that latter should be incremented accordingly and the
+                % current design cleared, and thus we are not ready to 
+                % immediately perform a new round:
 
                 obj.sampleObservationsPerDesign();
+
+                obj.CumulativeExperimentDesign = ...
+                    obj.CumulativeExperimentDesign + ...
+                    obj.NextExperimentDesign;
+                obj.NextExperimentDesign = MBExperimentDesign(); % Empty
 
                 obj.ReadyToPerformNextRound = false;
 
