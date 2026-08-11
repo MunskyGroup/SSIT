@@ -6,7 +6,9 @@ classdef MBExperimentRound
         CovarianceMH
         CovarianceLogMH        
         CovarianceFIM_Prediction
-        CumulativeNumbersOfObservations (1, :) uint64 % Before the round
+        % The cumulative experiment design refers to all PERFORMED rounds 
+        % preceding this DESIGNED one.
+        CumulativeExperimentDesign (1, 1) MBExperimentDesign
         FIMCurrentExpt
         FIMCurrentExptTrue
         FIMOptNextExpt cell
