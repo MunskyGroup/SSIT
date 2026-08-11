@@ -25,10 +25,10 @@ classdef MBExperimentDesigner < handle
             createArray(0, 0, "MBExperimentRound")
         EmpiricalDataFiles (1, :) string = createArray(0, 0, "string")       
         EmpiricalDataTable table = table()
-        GlobalRNGStream RandStream = []
+        GlobalRNGStream RandStream = RandStream.getGlobalStream()
         GroundTruthModel (1, 1) MBExperimentModel = []
         IDString (1, 1) string = ""
-        LocalRNGStream RandStream = []
+        LocalRNGStream = []
         PerformingRoundNumber (1, 1) uint64 = 0        
         ReadyToPerformNextRound (1, 1) logical = false
         SimulatedDataFiles (1, :) string = createArray(0, 0, "string")
@@ -429,7 +429,7 @@ classdef MBExperimentDesigner < handle
                 obj.GuessedModel.fittingOptions.logPriorCovariance);            
         end % designNextExperiment
 
-        function [models, configs] = multiplyModel(obj, ...
+        function cache = multiplyModel(obj, ...
                 model, configs, combineTimes, refitToNewData, ...
                 recomputeFIMs, cache)
             %multiplyModel accepts a source model, a list of experiment
@@ -457,6 +457,8 @@ classdef MBExperimentDesigner < handle
             %   absence of data, where the purpose is to compute the "true
             %   FIMs" for all experiment configurations, which may change
             %   over the sequence of experiment design.
+            %The method returns the (re)generated cache, from which all
+            %desired properties (models, configs, etc.) can be fetched.
 
             arguments                
                 obj (1, 1) MBExperimentDesigner
@@ -541,25 +543,34 @@ classdef MBExperimentDesigner < handle
 
             if regenerateConfigs
                 if combineTimes
-                    configs = combineConfigurationsByTime(configs);
+                    configs = obj.combineConfigurationsByTime(configs);
                 end
             else
                 configs = cache.Configs;
             end
             numConfigs = length(configs); % Also the number of models
             
-            % Regenerate models if necessary:
+            % Regenerate models if necessary. Even in the absence of data,
+            % the models can (and in the case of ground-truth models,
+            % should) be solved.
 
             if regenerateModels
                 models = createArray(1, numConfigs, "MBExperimentModel");
 
-                for configIdx = 1:numConfigs
-                    models(configIdx) = ...
-                        configs(configIdx).applyToModel(model);
-                end
-
                 haveData = zeros(1, numConfigs, "logical");
                 stateSpaces = cell(1, numConfigs);
+
+                parfor configIdx = 1:numConfigs
+                    curConfig = configs(configIdx);
+                    curModel = curConfig.applyToModel(model);
+                    
+                    curModel.fspOptions.fspTol = 1e-4;
+                    curModel = curModel.solve(solver = "fsp");
+
+                    models(configIdx) = curModel;
+                    stateSpaces{configIdx} = ...
+                        curModel.Solutions.stateSpace;                    
+                end % [Model]                
             else
                 models = cache.Models;
                 haveData = cache.ModelsHaveData;
@@ -599,7 +610,7 @@ classdef MBExperimentDesigner < handle
                         stateSpaces(modelIdx) = ...
                             curModel.Solutions.stateSpace;
                     end                 
-                end
+                end % [Model]
             end % [Reload data]
 
             if refitModels
@@ -651,27 +662,33 @@ classdef MBExperimentDesigner < handle
                 % and slicing the FIM cell array much simpler:
 
                 times = obj.getAllTimes(configs);
-                FIMs = cell(numConfigs, times);
-                linearFIMs = cell(1, numConfigs * times);                
-                scale = obj.FIMScale;
+                numTimes = length(times);
+                FIMs = cell(numConfigs, numTimes);
+                linearFIMs = cell(1, numConfigs * numTimes);                
+                scale = obj.FIMScale; % Avoid broadcasting the designer
 
                 parfor modelIdx = 1:numConfigs
                     curModel = models(modelIdx);
                     curModel.tSpan = times;
-                    FIMs{modelIdx, :} = curModel.computeFIM([], scale);                                         
+
+                    % In computing the FIM, we don't use a sensitivity
+                    % solution since we don't have one (we solve models
+                    % using FSP, not FSP+sensitivity).
+
+                    FIMs(modelIdx, :) = curModel.computeFIM([], scale);                                         
                 end % [Models]
 
                 % Reshape the FIM cell array from a matrix to a row vector:
 
                 for modelIdx = 1:numConfigs
                     curSlice = obj.getArraySliceForModel(...
-                        modelIdx, length(times));
-                    linearFIMs(curSlice) = FIMs{modelIdx, :}';
+                        modelIdx, numTimes);
+                    linearFIMs(curSlice) = FIMs(modelIdx, :)';
                 end
 
                 % Finally, update the cache:
 
-                cache.FIMs = FIMs;
+                cache.FIMs = linearFIMs;
             end % [Recompute FIMs]
 
             % Having completed the multiplication, update the cache:
@@ -829,7 +846,7 @@ classdef MBExperimentDesigner < handle
 
             numObservationsMap = ...
                 getMostObservationsAtAnyTimeForNonTimeConfigurations(...
-                obj.NextExperimentDesign);
+                    obj.NextExperimentDesign);
 
             % Obtain a list of true models, one for experiment
             % configuration after having combined measurement times. Note
@@ -843,8 +860,14 @@ classdef MBExperimentDesigner < handle
             configs = ...
                 obj.CacheOfGroundTruthModelsWithCombinedTimes.Configs;
 
-            numConfigs = length(configs);
-            maxObservations = zeros(1, numConfigs, "uint64");
+            numConfigs = length(configs); % Also the number of models
+
+            % The maximum observations are left as doubles for
+            % compatibility with SSIT, which leaves ssaOptions.nSimsPerExpt
+            % as a double:           
+
+            maxObservations = zeros(1, numConfigs);
+
             for configIdx = 1:numConfigs
                 curNonTimeConfig = configs(configIdx).NonTimeConfiguration;
 
@@ -858,27 +881,49 @@ classdef MBExperimentDesigner < handle
                         numObservationsMap(curNonTimeConfig);
                 end
             end
+            
+            outputFiles = createArray(1, numConfigs, "string");
+            outputFilesWritten = createArray(1, numConfigs, "logical");
 
-            numModels = length(models);
-            outputFiles = createArray(1, numModels, "string");
-            for modelIdx = 1:numModels
-                outputFiles(modelIdx) = "SimulatedData_" + ...
-                    "Round_" + obj.PerformingRoundNumber + ...
-                    "Model_" + modelIdx + ".csv";
+            for modelIdx = 1:numConfigs
+                outputFiles(modelIdx) = "SimulatedData" + ...
+                    "_Designer_" + obj.IDString + ...
+                    "_Round_" + obj.PerformingRoundNumber + ...
+                    "_Model_" + modelIdx + ".csv";
             end
 
-            parfor modelIdx = 1:numModels
+            parfor modelIdx = 1:numConfigs
+                curNonTimeConfig = configs(modelIdx).NonTimeConfiguration;
                 curModel = models(modelIdx);                
                 curModel.ssaOptions.nSimsPerExpt = ...
                     maxObservations(modelIdx);
                 curModel.ssaOptions.Nexp = 1;
 
-                if curModel.ssaOptions.nSimsPerExpt ~= 0
+                outputFilesWritten(modelIdx) = ...
+                    curModel.ssaOptions.nSimsPerExpt ~= 0;
+
+                if outputFilesWritten(modelIdx)
                     curModel.sampleDataFromFSP(...
                         [], ... % Leave empty to use existing FSP solution
                         outputFiles(modelIdx));
-                end
-            end % [for each model]
+                    
+                    % sampleDataFromFSP does not print any information
+                    % about the inputs (or other configurables) used to
+                    % generate the data. We need to annotate the data here
+                    % so that we will know downstream which subset of the
+                    % accumulated data were simulated under which
+                    % conditions:
+
+                    T = readtable(outputFiles(modelIdx));
+                    T = curNonTimeConfig.annotateData(T);
+                    writetable(T, outputFiles(modelIdx));
+                end % [File was written for this model]
+            end % [Model]
+
+            % Subset the list of output files to those that were written:
+
+            outputFiles = outputFiles(outputFilesWritten);
+
         end % simulateSystem
     end % Private methods
 
@@ -1134,7 +1179,7 @@ classdef MBExperimentDesigner < handle
 
             obj.GuessedModel = guessedModel;
 
-            if isempty(idString)
+            if strlength(idString) == 0
                 % Generate a ten-character alphabetic string; 'a' = 97 and
                 % 'z' = 122.
 
@@ -1166,11 +1211,11 @@ classdef MBExperimentDesigner < handle
                     obj.NextExperimentDesign.Configurations;
             end
 
-            obj.GroundTruthModel = groundTruthModel;
-            if isempty(obj.GroundTruthModel)
-                obj.UseEmpiricalData = true;
+            if isempty(groundTruthModel)
+                obj.UseEmpiricalData = true;            
             end
-
+            obj.GroundTruthModel = groundTruthModel;
+            
             if ~isempty(rngSeed)
                 % mt19937ar is the Mersenne Twister (MATLAB main client
                 % default). Parallel workers will use their own independent
@@ -1286,7 +1331,7 @@ classdef MBExperimentDesigner < handle
 
                 RandStream.setGlobalStream(obj.GlobalRNGStream);
                 obj.PerformingRoundNumber = obj.PerformingRoundNumber - 1;
-                rethrow ME
+                rethrow(ME)
             end % [Performance, with potential faults]
         end % performNextRound        
 
