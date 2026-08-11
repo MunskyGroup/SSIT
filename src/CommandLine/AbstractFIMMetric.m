@@ -3,7 +3,7 @@ classdef AbstractFIMMetric
     %determinant) of an FIM upon demand.
 
     methods (Access = protected)
-        function submatrix = getSubmatrixOfFIM(obj, FIM)
+        function submatrix = getSubmatrixOfFIM(~, FIM)
             % By default, all entries within the FIM will be considered, so
             % the submatrix equals the full matrix. Descendants can
             % override.
