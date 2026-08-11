@@ -96,13 +96,16 @@ dflts  = {[] [] [],[],[] 0,1,false,1,false,'tmpMHResults', ...
 [pdf,logpdf,proppdf,logproppdf, proprnd,burnin,thin,sym,nchain,progress,saveFileName, ...
     computeESS,essMaxLag,essMethod] = internal.stats.parseArgs(pnames, dflts, varargin{:});
 
-if exist(saveFileName,'file')||exist([saveFileName,'.mat'],'file')
-    load(saveFileName,'value','smpl','bestfound'); 
+saveFileName = string(saveFileName);
+
+if exist(saveFileName, "file") || exist(saveFileName + ".mat", "file")
+    load(saveFileName, "value", "smpl", "bestfound"); 
     k = find(value~=0,1,'last');
     start = smpl(k,:);
     burnin=0;
     iStart = k*thin+1;
-    disp(['Found an interrupted MH run -- resuming from broken chain at step ',num2str(iStart)])
+    disp("Found an interrupted MH run -- " + ...
+        "resuming from broken chain at step " + iStart)
 else
     iStart = 1-burnin;
 end
@@ -235,10 +238,11 @@ for i = iStart:nsamples*thin
     
     if progress&&mod(i,20)==0
         waitbar((i+burnin)/(burnin+nsamples*thin),D,...
-            ['Running MetHast, Acceptance = ',num2str(accept/(i+burnin))]);
+            "Running MetHast, Acceptance = " + accept/(i+burnin));
         figure(123);clf;plot(value(value~=0));
     elseif mod(i,ceil(nsamples*thin/20))==0
-        disp(['Completed ',num2str(i),' out of ',num2str(nsamples*thin),' samples. Acceptance = ',num2str(accept/(i+burnin))])
+        disp("Completed " + i + " out of " + nsamples*thin + ...
+            " samples. Acceptance = " + accept/(i+burnin))
     end
 
     if mod(i,100)==0
