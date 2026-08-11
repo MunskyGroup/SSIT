@@ -11,7 +11,10 @@ classdef MBExperimentDependentModelsCache
 
     properties (Access = ?MBExperimentDesigner)
         Configs (1, :) MBExperimentConfiguration
-        FIMs (1, :) cell
+        % evaluateExperiment expects a column vector of FIMs, so it is most
+        % efficient for us to convert it here, since we will pull from the
+        % cache whenever possible.
+        FIMs (:, 1) cell
         LastPerformedExperimentRound (1, 1) uint64 = 0
         Models (1, :) MBExperimentModel
         ModelsHaveData (1, :) logical
