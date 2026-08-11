@@ -14,6 +14,7 @@ classdef MBExperimentRound
         FIMOptNextExpt cell
         FIMPredNextExpt
         FIMResults
+        FIMTrue
         MHResults (1, 1) MetropolisHastingsAlgorithmResults 
         NextExperimentDesign (1, 1) MBExperimentDesign
         ParametersFound
