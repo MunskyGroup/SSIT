@@ -18,10 +18,14 @@ classdef MetropolisHastingsAlgorithmRunner
         InTestingMode (1, 1) logical = false
         MHOptions (1, 1) %MetropolisHastingsAlgorithmOptions       
         ModelsHaveData (1, :) logical = false
-        NumberOfSamplesForBurnIn (1, 1) uint64 {mustBePositive} = 1;
-        NumberOfSamplesForProduction (1, 1) uint64 {mustBePositive} = 100;
-        NumberOfSamplesForTuning (1, 1) uint64 {mustBePositive} = 100;
-        NumberOfSamplesToThin (1, 1) uint64 {mustBePositive} = 2;
+        NumberOfSamplesForBurnIn (1, 1) double ...
+            {mustBeInteger, mustBePositive} = 1;
+        NumberOfSamplesForProduction (1, 1) double ...
+            {mustBeInteger, mustBePositive} = 100;
+        NumberOfSamplesForTuning (1, 1) double ...
+            {mustBeInteger, mustBePositive} = 100;
+        NumberOfSamplesToThin (1, 1) double ...
+            {mustBeInteger, mustBeNonnegative} = 2;
         ObjectiveFunction
         ObservationsMatrix (:, :) uint64 = []
         ParameterGuesses (1, :) double = [];
@@ -122,6 +126,11 @@ classdef MetropolisHastingsAlgorithmRunner
             else
                 numberOfSamples = obj.NumberOfSamplesForProduction;
             end
+
+            % DEBUGGING: metropolisHastingsSample malfunctions if
+            % numberOfSamples is a uint
+
+            numberOfSamples = double(numberOfSamples);
             
             [results.Samples, results.Acceptance, ...
                 results.Value, results.ParametersLogSpace] = ...
@@ -161,7 +170,7 @@ classdef MetropolisHastingsAlgorithmRunner
                 curModel.fspOptions.fspTol = 1e-4;
                 % DEBUGGING: Must use "raw" SSIT property for fit parameters:
                 curModel.FitParameters = curModel.fittingOptions.modelVarsToFit;
-                
+
                 curModel.parameters(...
                     curModel.FitParameters, 2) = ...
                     num2cell(parameters);
