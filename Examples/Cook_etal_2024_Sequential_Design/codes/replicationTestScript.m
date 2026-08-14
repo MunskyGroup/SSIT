@@ -1,0 +1,1 @@
+[TestCasesBFBD,finalExperimentDesignBFBD] = sequentialExptDesignBatchRunner('Poisson',1,1,true,false,[4]);

@@ -6,7 +6,7 @@ function [logL] = getLogLikelihoodOfDataGivenModels(parametersLogSpace, ...
 % common prior.
 arguments (Input)
     parametersLogSpace
-    models (1, :) SSIT
+    models (1, :) %SSIT Debugging: this is a cell in the CDC code
     modelsHaveData (1, :) logical
     stateSpaces (1, :)
 end
@@ -40,10 +40,15 @@ parfor modelIdx = 1:length(models)
 
     if modelsHaveData(modelIdx)
         if modelIdx == modelIdxForIncludingPrior
-            logL = logL + models(modelIdx).computeLikelihood(...
-                exp(parametersLogSpace), stateSpaces{modelIdx});        
+            % DEBUGGING:
+            logL = logL + models{modelIdx}.computeLikelihood(...
+                exp(parametersLogSpace), stateSpaces{modelIdx}); 
+            % logL = logL + models(modelIdx).computeLikelihood(...
+            %     exp(parametersLogSpace), stateSpaces{modelIdx});        
         else
-            tempModel = models(modelIdx);
+            % DEBUGGING:
+            tempModel = models{modelIdx}; 
+            % tempModel = models(modelIdx); 
             tempModel.fittingOptions.logPrior = [];
             logL = logL + tempModel.computeLikelihood(...
                 exp(parametersLogSpace), stateSpaces{modelIdx});            

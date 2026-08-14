@@ -8,7 +8,7 @@ classdef MetropolisHastingsAlgorithmRunner
     end
     
     properties        
-        GuessedModelsWithCombinedTimes (1, :) MBExperimentModel
+        GuessedModelsWithCombinedTimes (1, :) %MBExperimentModel
         FIMCovarianceScale (1, 1) double {mustBePositive} = 1;
         FIMScale (1, 1) string = "log"
         FIMTrue
@@ -16,7 +16,7 @@ classdef MetropolisHastingsAlgorithmRunner
         IDNumber (1, 1) uint64 = 0
         IDString (1, 1) string = ""
         InTestingMode (1, 1) logical = false
-        MHOptions (1, 1) MetropolisHastingsAlgorithmOptions       
+        MHOptions (1, 1) %MetropolisHastingsAlgorithmOptions       
         ModelsHaveData (1, :) logical = false
         NumberOfSamplesForBurnIn (1, 1) uint64 {mustBePositive} = 1;
         NumberOfSamplesForProduction (1, 1) uint64 {mustBePositive} = 100;
@@ -27,7 +27,7 @@ classdef MetropolisHastingsAlgorithmRunner
         ParameterGuesses (1, :) double = [];
         ProposalDistribution
         StateSpaces (1, :) = [];
-        TrueModelsWithCombinedTimes (1, :) MBExperimentModel
+        TrueModelsWithCombinedTimes (1, :) %MBExperimentModel
         UsingSimulatedData (1, 1) logical = true
     end
 
@@ -40,13 +40,18 @@ classdef MetropolisHastingsAlgorithmRunner
             % Certain functions called here are effectively static, so we
             % will use the first guessed model as the caller.
 
-            refModel = obj.GuessedModelsWithCombinedTimes(1);
+            % DEBUGGING: Need to use cell indexing when testing with models
+            % from CDC example:
+            refModel = obj.GuessedModelsWithCombinedTimes{1};
+            %refModel = obj.GuessedModelsWithCombinedTimes(1);
             logPriorCovariance = ...
                 refModel.fittingOptions.logPriorCovariance;
 
             numModels = length(obj.GuessedModelsWithCombinedTimes);
-            timeSpan = MBExperimentDesigner.getAllTimes(...
-                obj.GuessedModelsWithCombinedTimes);
+            % DEBUGGING: Cannot call getAllTimes; must fetch from refModel
+            timeSpan = refModel.tSpan;
+            % timeSpan = MBExperimentDesigner.getAllTimes(...
+            %     obj.GuessedModelsWithCombinedTimes);
             numTimes = length(timeSpan);
 
             nCellsVec = zeros(1, numModels * numTimes);
@@ -66,8 +71,11 @@ classdef MetropolisHastingsAlgorithmRunner
             else
                 fimResults = cell(numModels * numTimes, 1);
                 for modelIdx = 1:numModels
-                    curModel = obj.GuessedModelsWithCombinedTimes(...
-                        modelIdx);
+                    % DEBUGGING: Need to use cell indexing when testing with models
+                    % from CDC example:
+                    curModel = obj.GuessedModelsWithCombinedTimes{modelIdx};
+                    % curModel = obj.GuessedModelsWithCombinedTimes(...
+                    %     modelIdx);
                     range = MBExperimentDesigner.getArraySliceForModel(...
                         modelIdx, numTimes);
                     fimResults(range, 1) = curModel.computeFIM(...
@@ -82,7 +90,9 @@ classdef MetropolisHastingsAlgorithmRunner
                     fimResults, nCellsVec, logPriorCovariance);
             end
 
-            subsetVars = refModel.FitParameters;
+            % DEBUGGING: Must use "raw" SSIT property for fit parameters:
+            subsetVars = refModel.fittingOptions.modelVarsToFit;
+            % subsetVars = refModel.FitParameters;
             FIMfree = FIM{1}(subsetVars, subsetVars);
 
             if min(eig(FIMfree)) < 0.1
@@ -143,9 +153,15 @@ classdef MetropolisHastingsAlgorithmRunner
             stateSpaces = [];
 
             parfor modelIdx = 1:length(oldModels)
-                curModel = oldModels(modelIdx);
+                % DEBUGGING: Need to use cell indexing when testing with models
+                % from CDC example:
+                curModel = oldModels{modelIdx};
+                % curModel = oldModels(modelIdx);
 
                 curModel.fspOptions.fspTol = 1e-4;
+                % DEBUGGING: Must use "raw" SSIT property for fit parameters:
+                curModel.FitParameters = curModel.fittingOptions.modelVarsToFit;
+                
                 curModel.parameters(...
                     curModel.FitParameters, 2) = ...
                     num2cell(parameters);
@@ -200,15 +216,26 @@ classdef MetropolisHastingsAlgorithmRunner
 
             if ~obj.UsingSimulatedData
                 numModels = length(obj.GuessedModelsWithCombinedTimes);
-                timeSpan = MBExperimentDesigner.getAllTimes(...
-                    obj.GuessedModelsWithCombinedTimes);
+                % DEBUGGING: Cannot call getAllTimes; must fetch from refModel
+                timeSpan = obj.GuessedModelsWithCombinedTimes{1}.tSpan;
+                % timeSpan = MBExperimentDesigner.getAllTimes(...
+                %     obj.GuessedModelsWithCombinedTimes);                
                 for modelIdx = 1:numModels
-                    curModel = obj.GuessedModelsWithCombinedTimes(...
-                        modelIdx);                    
+                    % DEBUGGING: Need to use cell indexing when testing with models
+                    % from CDC example:
+                    curModel = obj.GuessedModelsWithCombinedTimes{...
+                        modelIdx};
+                    % curModel = obj.GuessedModelsWithCombinedTimes(...
+                    %     modelIdx);                    
                     curModel.tSpan = timeSpan;
-                    curModel.fspOptions.fspTol = 1e-8;                    
-                    obj.GuessedModelsWithCombinedTimes(modelIdx) = ...
+                    curModel.fspOptions.fspTol = 1e-8;
+
+                    % DEBUGGING: Need to use cell indexing when testing with models
+                    % from CDC example:
+                    obj.GuessedModelsWithCombinedTimes{modelIdx} = ...
                         curModel;
+                    % obj.GuessedModelsWithCombinedTimes(modelIdx) = ...
+                    %     curModel;
                 end
             end
             %% MH Tuning then running.
