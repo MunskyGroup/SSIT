@@ -34,7 +34,10 @@ if any(modelsHaveData)
     modelIdxForIncludingPrior = modelsHaveData(indices(end));
 end
 
-parfor modelIdx = 1:length(models)
+% DEBUGGING: Unrecognized function or variable 'err_loc' in some workers
+% when parallelizing this using a hybrid CDC/MB code.
+
+for modelIdx = 1:length(models)
     % If there are no data associated with the model, there is no
     % corresponding likelihood to calculate:
 
