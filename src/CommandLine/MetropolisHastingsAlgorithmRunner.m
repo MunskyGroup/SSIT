@@ -159,9 +159,9 @@ classdef MetropolisHastingsAlgorithmRunner
 
             oldModels = obj.GuessedModelsWithCombinedTimes;
             parameters = obj.ParameterGuesses;
-            stateSpaces = [];
+            stateSpaces = cell(1, length(oldModels));
 
-            parfor modelIdx = 1:length(oldModels)
+            for modelIdx = 1:length(oldModels)
                 % DEBUGGING: Need to use cell indexing when testing with models
                 % from CDC example:
                 curModel = oldModels{modelIdx};
@@ -169,14 +169,17 @@ classdef MetropolisHastingsAlgorithmRunner
 
                 curModel.fspOptions.fspTol = 1e-4;
                 % DEBUGGING: Must use "raw" SSIT property for fit parameters:
-                curModel.FitParameters = curModel.fittingOptions.modelVarsToFit;
-
+                
                 curModel.parameters(...
-                    curModel.FitParameters, 2) = ...
+                    curModel.fittingOptions.modelVarsToFit, 2) = ...
                     num2cell(parameters);
-                [curFspSoln, curModel.fspOptions.bounds] = ...
-                    curModel.solve;
-                stateSpaces{modelIdx} = curFspSoln.stateSpace;
+                % curModel.FitParameters = curModel.fittingOptions.modelVarsToFit;
+                % curModel.parameters(...
+                %     curModel.FitParameters, 2) = ...
+                %     num2cell(parameters);
+
+                curModel = curModel.solve(solver = "fsp");
+                stateSpaces{modelIdx} = curModel.Solutions.stateSpace;
             end
 
             obj.StateSpaces = stateSpaces;
@@ -292,11 +295,12 @@ classdef MetropolisHastingsAlgorithmRunner
                         -getLogLikelihoodOfDataGivenModels(...
                         x, obj.GuessedModelsWithCombinedTimes, ...
                         obj.ModelsHaveData, obj.StateSpaces);
-                    newParameters = exp(fminsearch(...
+                    newParametersLogSpace = fminsearch(...
                         obj.ObjectiveFunction, ...
-                        obj.ParameterGuesses, obj.FitOptions));
+                        log(obj.ParameterGuesses), obj.FitOptions);
 
-                    obj = obj.updateParameterGuesses(newParameters, true);
+                    obj = obj.updateParameterGuesses(...
+                        newParametersLogSpace, true);
 
                     % Run another tuning round with new starting point.
                     obj.IsTuning = true;
