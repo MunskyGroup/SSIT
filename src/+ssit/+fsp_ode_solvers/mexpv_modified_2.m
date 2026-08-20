@@ -109,6 +109,7 @@ arguments
 end
 
 [n] = size(Ain,1);
+err_loc = 0;
 % if m==0
 %     m = min(n,30);
 % end
@@ -322,8 +323,7 @@ while tNow < t_out && i_prt<=length(Time_array)
 
         % Define defaults for variables (needed for C conversion).
         F = zeros(size(H));
-        err_loc = 0;
-
+        
         while ireject <= mxrej
             mx = mb + k1;
             F = expm(sgn*t_step*H(1:mx,1:mx));
