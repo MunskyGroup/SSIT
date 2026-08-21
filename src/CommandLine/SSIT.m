@@ -5220,7 +5220,13 @@ classdef SSIT
                         end
                     end
                     app.FspPrintTimesField.Value = mat2str(obj.tSpan);
-                    solution = exportFSPResults(app);
+
+                    if strcmpi(plotType,'joints')
+                        solution = exportFSPResults(app);
+                    else
+                        solution = exportFSPResults(app,constructJoints=false);
+                    end
+                     
                     Nd = length(solution.Marginals{end});
                     if isempty(indTimes)
                         indTimes = 1:length(solution.T_array);
@@ -6505,8 +6511,11 @@ end
             else
                 app.FspTabOutputs.solutions = solution.fsp;
                 app.FspPrintTimesField.Value = mat2str(obj.tSpan);
-                solution = exportFSPResults(app);
-                % Time selection
+                if strcmpi(plotType,'joints')
+                    solution = exportFSPResults(app);
+                else
+                    solution = exportFSPResults(app,constructJoints=false);
+                end                % Time selection
                 if isempty(indTimes)
                     indTimes = 1:length(obj.tSpan); 
                 end

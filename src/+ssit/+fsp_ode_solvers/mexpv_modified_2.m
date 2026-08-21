@@ -183,7 +183,7 @@ wout = vin;
 
 %%
 anorm = norm(Ain,'inf');
-mxrej = 10;  btol  = 1.0e-4;
+mxrej = 10;  btol  = 1.0e-5;
 gamma = 0.9; delta = 1.2;
 mb    = m; t_out   = abs(t);
 s_error = 0;
@@ -280,6 +280,7 @@ while tNow < t_out && i_prt<=length(Time_array)
     % end
     if sum(abs((Ain*w)))<(btol/(max(Time_array)-min(Time_array)))
         % Detect SS and quit early
+        err_loc = btol;
         t_step = min([Time_array(i_prt)-tNow,nextFixedTime-tNow]);
     else
 
@@ -384,7 +385,7 @@ while tNow < t_out && i_prt<=length(Time_array)
     % 
     wnorm = norm(w,1);
     % if ineg > 0
-    %     w = (1/wnorm)*w;
+    w = (1/wnorm)*w;
     % end
     roundoff = abs(1.0d0-wnorm)/n;
     
