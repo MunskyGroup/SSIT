@@ -1,25 +1,30 @@
-function handleOut = matlabFunctionSSIT(symbolicExpression,VarNames,fn,isSparse,logVarsReps)
+function handleOut = matlabFunctionSSIT(...
+    symbolicExpression, VarNames, fn, isSparse, logVarsReps)
 % This function writes m files for SSIT propensity functions.
 arguments
-    symbolicExpression
-    VarNames
-    fn
-    isSparse = false;
-    logVarsReps = {};
+    symbolicExpression sym
+    VarNames cell
+    fn (1, 1) string {mustBeNonzeroLengthText}
+    isSparse (1, 1) logical = false;
+    logVarsReps cell = {};
 end
 
-if ~strcmp(fn(end-1:end),'.m')
-    fn(end+1:end+2) = '.m';
+[path, name, ext] = fileparts(fn);
+% Ensure that the filename ends in .m if it doesn't already.
+if ~endsWith(ext, ".m")
+    ext = ext + ".m";
 end
-
-jFilName = max([strfind(fn,'/'),strfind(fn,'\')]);
+fn = path + filesep + name + ext;
+[~, name, ~] = fileparts(fn);
 
 fid = fopen(fn, 'w');
 
-txt = ['function result = ',fn(jFilName+1:end-2),'(in1,in2,in3,in4)\r\n'];
+txt = "function result = " + name + "(in1,in2,in3,in4)\r\n";
 fprintf(fid, txt);
 
-fprintf(fid,['%%This is an automatically generated on ',datestr(now),'.\r\n']);
+fprintf(fid, ...
+    "%%This was automatically generated on " + ...
+    string(datetime("now")) + ".\r\n");
 fprintf(fid,'%%\r\n');
 
 fprintf(fid,'arguments\r\n');
@@ -31,18 +36,26 @@ fprintf(fid,'  in4 = [];\r\n');
 fprintf(fid,'end\r\n');
 fprintf(fid,'\r\n');
 
+% TODO - Diagnose bug that occurs if treating symbolic expression and
+% logVarsReps as strings. The following error message is obtained when
+% % trying to create the ToggleSwitch model:
+% Operands to the short-circuit AND (&&) and OR (||) operators must be convertible to logical scalars. Use
+% the ANY or ALL functions to reduce array operands to logical scalars. For elementwise operations, use the
+% AND (&) and OR (|) operators instead.
 charSymb = char(symbolicExpression);
 for j = 1:length(VarNames)
     vName = VarNames{j};
     for i = 1:length(vName)
-        cVn = char(vName(i));
-        if contains(charSymb,cVn)||...
-                (~isempty(logVarsReps)&&max(contains(logVarsReps(:,1),cVn)))
+        charVn = char(vName(i));
+        if contains(charSymb,charVn)||...
+                (~isempty(logVarsReps)&&max(contains(logVarsReps(:,1),charVn)))
             if isSparse
-                fprintf(fid,[cVn,'=sparse(in',num2str(j),'(',num2str(i),',:));\r\n']);
+                sparsityString = "sparse";
             else
-                fprintf(fid,[cVn,'=in',num2str(j),'(',num2str(i),',:);\r\n']);
+                sparsityString = "";
             end
+            fprintf(fid, string(charVn) + "=" + sparsityString + ...
+                "(in" + j + "(" + i + ",:));\r\n");            
         end
     end
     fprintf(fid,'\r\n');
@@ -55,30 +68,35 @@ end
 %     % txt = ['result = sparse(',num2str(I),'],[',num2str(J),']',char((symbolicExpression(symbolicExpression~=0))),';\r\n'];  
 %     txt = ['result = sparse([',num2str(I'),'],[',num2str(J'),'],',char(symbolicExpression(sub2ind(size(symbolicExpression),I,J))'),');\r\n'];  
 % else
-    txt = ['result = ',char(symbolicExpression),';\r\n'];
+
+    txt = "result = " + charSymb + ";\r\n";
 % end
 
 if ~isempty(logVarsReps)
     % Replace first string in function name
     for i = 1:size(logVarsReps,1)
-        txt = strrep(txt,[logVarsReps{i,2}],['(',logVarsReps{i,1},')']);
+        txt = strrep(txt, [logVarsReps{i,2}], ...
+            "(" + logVarsReps{i,1} + ")");
     end
 
 end
 
 txt = stripOmitnanClause(txt);
 
-multDivideSym = {'*','/','^'};
-for j = 1:3
-    txt = strrep(txt,multDivideSym{j},['.',multDivideSym{j}]);
-end
-txt = strrep(txt,'..','.');
+% Ensure that all multiplication, division, and exponentiation is
+% element-wise
 
+multDivideSym = {"*", "/", "^"};
+for j = 1:length(multDivideSym)
+    txt = strrep(txt, multDivideSym{j}, "." + multDivideSym{j});
+end
+% The above might have introduced some double-dots that need to be removed.
+txt = strrep(txt, "..", "."); 
 
 fprintf(fid,txt);
 fclose(fid);
 
-handleOut = str2func(fn(jFilName+1:end-2));
+handleOut = str2func(name);
 
 end
 
@@ -240,6 +258,3 @@ while i <= numel(txt)
 end
 
 end
-
-
-
