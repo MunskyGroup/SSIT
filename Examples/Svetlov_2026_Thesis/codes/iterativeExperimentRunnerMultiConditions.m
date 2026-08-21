@@ -235,7 +235,8 @@ for iInput = 1:nInputs
 
     %% Generate Model Propensity Functions and Solve True Model
     for i=1:3
-        [ModelSolution{iInput},ModelTrue{iInput}.fspOptions.bounds] = ModelTrue{iInput}.solve;
+        ModelTrue{iInput} = ModelTrue{iInput}.solve(solver = "fsp");
+        %[ModelSolution{iInput},ModelTrue{iInput}.fspOptions.bounds] = ModelTrue{iInput}.solve;
     end
 
     %% FIM options
@@ -293,128 +294,4 @@ ModelGuess = cell(1,nInputs);
 for iInput = 1:nInputs
     ModelTrue{iInput}.fittingOptions.modelVarsToFit = fitParameters;
     ModelGuess{iInput} = ModelTrue{iInput};
-end
-% Randomize the initial parameter set.
-newPars = initialParameterGuess;
-
-%% Initialize cells for saving results
-covMH = cell(1,nExptRounds);
-covLogMH = cell(1,nExptRounds);
-covLogFIM_Prediction = cell(1,nExptRounds);
-covFIM_Prediction = cell(1,nExptRounds);
-parametersFound = cell(1,nExptRounds);
-exptDesigns = cell(1,nExptRounds);
-FIMpredNextExpt = cell(1,nExptRounds);
-FIMcurrentExptSaved = cell(1,nExptRounds);
-FIMcurrentExptTrueSaved = cell(1,nExptRounds);
-MHResultsSaved = cell(1,nExptRounds);
-
-%% Loop over subsequent experiments
-% Keep track of accumulated data in each experiment design
-allDataSoFar = cell(1,nInputs);  
-nTotalCells = zeros(nInputs,nT); 
-
-for iExpt = 1:nExptRounds
-    clc
-    disp(['Round: ',num2str(iExpt)])
-    nTotalCells = nTotalCells + nextExperiment;
- 
-    switch data
-        case 'real'
-            % Sample from real data
-            [~,dataFile,allDataSoFar,maxAvailable] = sampleGRExperiment('ExampleData/Data.csv',...
-                ModelTrue{1}.tSpan,[1,10,100],nTotalCells,iExpt,datFileName);
-            dataToFit = {'cytGR','normgrcyt';'nucGR','normgrnuc'};
-        case 'simulated'
-            % Generate "Fake" data
-            dataFile = cell(1,nInputs);
-            for iInput = 1:nInputs
-                % Check that tSpan has right number of time points
-                if length(ModelTrue{iInput}.tSpan)~=nT
-                    error('Length of tSpan does not match experiment time points.')
-                end
-
-                dataFile{iInput} = ['simData/FakeExperiment_',datFileName,'_',num2str(iInput),'.csv'];
-
-                % Experiment settings - number of sims and 1 replica
-                ModelTrue{iInput}.ssaOptions.nSimsPerExpt = max(nextExperiment(iInput,:));
-                ModelTrue{iInput}.ssaOptions.Nexp = 1;
-                
-                if ModelTrue{iInput}.ssaOptions.nSimsPerExpt>0
-                    % Sample and save the simulated data
-                    ModelTrue{iInput}.sampleDataFromFSP(ModelSolution{iInput},...
-                        dataFile{iInput});
-
-                    % DownSelect fake data to specified number of cells at each time
-                    X = importdata(dataFile{iInput});
-
-                    for iT = 1:length(ModelTrue{iInput}.tSpan)
-                        if nextExperiment(iInput,iT)>0
-                            % Find the next nextExperiment(iInput,iT) data
-                            % points at chosen time point and chosen input.
-                            J = find(X.data(:,1)==ModelTrue{iInput}.tSpan(iT),nextExperiment(iInput,iT));
-
-                            % Add new data to previous data set
-                            allDataSoFar{iInput} = [allDataSoFar{iInput};X.data(J,:)];
-                        end
-                    end
-                end
-                % Save generated data to file.
-                A = table;
-                if ~isempty(allDataSoFar{iInput})
-                    for j=1:length(X.colheaders)
-                        A.(X.colheaders{j}) = allDataSoFar{iInput}(:,j);
-                        writetable(A,dataFile{iInput})
-                    end
-                end
-            end
-
-    end
-
-    % Add Data to Model
-    hasData = zeros(1,nInputs,'logical');
-    stateSpaces = cell(1,nInputs);
-    for iInput = 1:nInputs
-        if ~isempty(allDataSoFar{iInput})&&max(sum(allDataSoFar{iInput}))>0
-            hasData(iInput) = true;
-            ModelGuess{iInput} = ModelGuess{iInput}.loadData(dataFile{iInput},dataToFit);
-            ModelGuess{iInput}.tSpan = ModelTrue{iInput}.tSpan;
-            ModelGuess{iInput}.fspOptions.fspTol = 1e-4;
-            [fspSoln,ModelGuess{iInput}.fspOptions.bounds] = ModelGuess{iInput}.solve;
-            % ModelGuess{iInput}.fspOptions.fspTol = inf;
-            stateSpaces{iInput} = fspSoln.stateSpace;
-        end
-    end
-
-    % Fit Model to data.
-    for iFitIter=1:nFitRounds
-        % Call function to assemble total likelihood function
-        objFunc = @(x)-getObjective(x,ModelGuess,hasData,stateSpaces);
-        newPars = exp(fminsearch(objFunc,log(newPars),fitOptions));
-        
-        % Update models with new parameters
-        for iInput = 1:nInputs
-            ModelGuess{iInput}.parameters(fitParameters,2) = num2cell(newPars);
-            ModelGuess{iInput}.fspOptions.fspTol = 1e-8;
-            % Solve to re-set fsp bounds and state space.
-            [fspSoln,ModelGuess{iInput}.fspOptions.bounds] = ModelGuess{iInput}.solve;
-            stateSpaces{iInput} = fspSoln.stateSpace;
-            % ModelGuess{iInput}.fspOptions.fspTol = inf;
-        end
-    end
-    
-    % Show fit plots if requested.
-    if showPlots
-        for iInput = 1:nInputs
-            if ~isempty(allDataSoFar{iInput})&&max(sum(allDataSoFar{iInput}))>0
-                ModelGuess{iInput}.fspOptions.fspTol = 1e-8;
-                ModelGuess{iInput}.makeFitPlot([],1);
-                % ModelGuess{iInput}.fspOptions.fspTol = inf;
-            end
-        end
-    end
-
-
-
-
 end
