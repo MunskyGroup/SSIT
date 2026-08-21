@@ -9,7 +9,7 @@ ModelTrue.parameters = {'kr', 10; 'gr', 0.3; 'kD', 5};
 
 muLog10Prior = [0,0,0];
 sigLog10Prior = [1 1 1];
-ModelTrue.setPriorsLog10(muLog10Prior, sigLog10Prior);
+ModelTrue = ModelTrue.setPriorsLog10(muLog10Prior, sigLog10Prior);
 %dataToFit = {'rna','exp1_s1'};
 %fitParameters = [1:3];
 
@@ -65,9 +65,11 @@ design = design.setFromObservationMatrix(Obs, nonTimeConfigurations, times);
 designer = MBExperimentDesigner(...
     [inputConfigurable timeConfigurable], ...
     ModelGuess, ...
+    "", ... % idString
     strategy, ...
     design, ...
-    ModelTrue);
+    ModelTrue, ...
+    1);
 designer.NumberOfMHSamplesForProduction = 1000;
 designer.UseEmpiricalData = false;
 designer.NumberOfFIMSamples = 10;
@@ -76,3 +78,6 @@ designer.NumberOfFIMSamples = 10;
 %nRounds = 8;
 %nFIMsamples = 10;
 %datType = 'simulated';
+
+designer.performNextRound();
+design = designer.designNextRound();
