@@ -3300,6 +3300,40 @@ classdef SSIT
             end
         end
 
+        function [MLEsamples] = estimateMLEspread(obj,opts)
+            % This function generates nMLE sets of simulated data and then
+            % attempts to find the MLE for each.  It then returns this set
+            % as a matrix with nMLE rows, which can then be plotted against
+            % the FIM to verify the CRLB.
+            arguments
+                obj
+                opts.nMLE = 100;
+                opts.makeFIMPlots = true;
+            end
+
+            % Generate simulated data.
+
+            % Loop over the simulation tests
+
+            parfor iSim = 1:nMLE
+                mod = Obj;
+
+                % Load Data
+
+                % Fit Model
+                fitOptions = optimset('Display','iter','MaxIter',2000);
+                mod = STL1_4state.maximizeLikelihood(fitOptions=fitOptions,returnType='pars');
+
+            end
+
+            % If requested, make FIM / MLE scatter plots for visual
+            % verification of CRLB.
+            if opts.makeFIMPlots
+            end
+
+
+        end
+
         function [fimTotal,mleCovEstimate,fimMetrics] = evaluateExperiment(obj,...
                 fimResults,cellCounts,priorCoVariance)
             % This function evaluates the provided experiment design (in
