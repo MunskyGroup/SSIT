@@ -2995,6 +2995,7 @@ classdef SSIT
                 opts.fspSoln = [];
                 opts.saveFile = [];
                 opts.nCells = [];
+                opts.species2save = {};
             end
             % Parse optional options
             % returnType = 'default';
@@ -3305,31 +3306,76 @@ classdef SSIT
             % attempts to find the MLE for each.  It then returns this set
             % as a matrix with nMLE rows, which can then be plotted against
             % the FIM to verify the CRLB.
+            %
+            % Optional arguments:
+            % nMLE (100) - number of MLE fits to conduct.
+            % makeFIMPlots (true) - generate figures to compare MLE scatter
+            %                       and FIM ellipses.
+            % saveFile ('defaultSimData.csv') - name of file containing
+            %                       simulation data. If this file does not
+            %                       yet, exist, it will be created.
+            % nCells (vector of integers) - number of cells to me measured
+            %                               at each time point. If not
+            %                               provided will try to use
+            %                               obj.dataSet.nCells.
             arguments
                 obj
                 opts.nMLE = 100;
+                opts.saveFile = 'defaultSimData.csv';
                 opts.makeFIMPlots = true;
+                opts.nCells = [];
+                opts.observableSpecies = [];
+            end
+
+            if isempty(opts.nCells)
+                if ~isempty(obj.dataSet)
+                    opts.nCells = obj.dataSet.nCells;
+                    warning('Generating data equal to size of loaded data in Model:')
+                    opts.nCells
+                else
+                    error('Number of cells (nCells) per experiment time point needs to be provided.')
+                end
+            elseif length(opts.nCells)>length(obj.tSpan)
+                error('Number of cells (nCells) vector is longer than specified time span.')
+            end
+
+            if isempty(opts.observableSpecies)
+                if ~isempty(obj.pdoOptions.unobservedSpecies)
+                    opts.observableSpecies = setdiff(obj.species,obj.pdoOptions.unobservedSpecies);
+                    disp('Opservable species not specified -- using unobservable species saved in PDO')
+                else
+                    opts.observableSpecies = obj.species;
+                    disp('Opservable species not specified -- assuming complete observations')
+                end
             end
 
             % Generate simulated data.
+            tmpNexp = obj.ssaOptions.Nexp; % Record value of Nexp.
+            obj.ssaOptions.Nexp = opts.nMLE;
+            obj.sampleDataFromFSP(saveFile=opts.saveFile,nCells=opts.nCells,species2save=opts.observableSpecies)
+            obj.ssaOptions.Nexp =tmpNexp; % Restore value of Nexp.
 
             % Loop over the simulation tests
 
-            parfor iSim = 1:nMLE
-                mod = Obj;
-
-                % Load Data
-
-                % Fit Model
-                fitOptions = optimset('Display','iter','MaxIter',2000);
-                mod = STL1_4state.maximizeLikelihood(fitOptions=fitOptions,returnType='pars');
-
-            end
-
-            % If requested, make FIM / MLE scatter plots for visual
-            % verification of CRLB.
-            if opts.makeFIMPlots
-            end
+            % parfor iSim = 1:opts.nMLE
+            %     mod = obj.loadData(opts.saveFile,...
+            %                {'mRNA','RNA_STL1_total_TS3Full'});
+            % 
+            % 
+            % 
+            % 
+            %     % Load Data
+            % 
+            %     % Fit Model
+            %     fitOptions = optimset('Display','iter','MaxIter',2000);
+            %     mod = STL1_4state.maximizeLikelihood(fitOptions=fitOptions,returnType='pars');
+            % 
+            % end
+            % 
+            % % If requested, make FIM / MLE scatter plots for visual
+            % % verification of CRLB.
+            % if opts.makeFIMPlots
+            % end
 
 
         end

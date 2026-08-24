@@ -77,6 +77,11 @@ Model = Model.solve;
 
 Model.plotFSP
 
+%% Verification of FIM using CRLB (spread of MLE)
+nCellsInExperiment = 0*Model.tSpan;
+nCellsInExperiment([1,11,31]) = 200;
+Model.estimateMLEspread(nCells=nCellsInExperiment,observableSpecies={'mRNA'})
+
 %% FIM Calculations
 Sarray = [1:5];
 
