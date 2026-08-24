@@ -3128,7 +3128,7 @@ classdef SSIT
                             warning('off')
 
                             tableColumn = ...
-                                "exp" + ie + "_" + obj.species{s};
+                                "exp" + ie + "_" + species2save{s};
                             if distortedMode
                                 tableColumn = tableColumn + "_Distorted";
                             end
