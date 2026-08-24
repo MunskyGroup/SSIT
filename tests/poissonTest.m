@@ -30,7 +30,7 @@ classdef poissonTest < matlab.unittest.TestCase
             testCase1.Poiss.ssaOptions.Nexp = 2;
             TMPdata = testCase1.Poiss.sampleDataFromFSP(testCase1.PoissSolution,'testData.csv');
 
-            testCase1.Poiss = testCase1.Poiss.loadData('testData.csv',{'rna','exp1_s1'});
+            testCase1.Poiss = testCase1.Poiss.loadData('testData.csv');
 
             %% ODE model for Poisson process
             testCase1.PoissODE = testCase1.Poiss;
@@ -230,7 +230,7 @@ classdef poissonTest < matlab.unittest.TestCase
             testCase.Poiss = testCase.Poiss.solve(testCase.PoissSolution,'testDataSSANEW.csv');
             
             % load new data and check that the loss function is now zero.
-            testCase.Poiss = testCase.Poiss.loadData('testDataSSANEW.csv',{'rna','exp1_s1'});
+            testCase.Poiss = testCase.Poiss.loadData('testDataSSANEW.csv');
             
             [lossFunction] = testCase.Poiss.computeLossFunctionSSA('cdf_one_norm',[],true,true);
 
@@ -667,7 +667,7 @@ classdef poissonTest < matlab.unittest.TestCase
             delete('exampleResultsTest.mat')
             model = testCase.Poiss;
             save('TemporarySaveFile',"model")
-            DataSettings = {'testData.csv',{'rna','exp1_s1'}};
+            DataSettings = {'testData.csv'};
             Pipeline = 'fittingPipelineExample';
             pipelineArgs.maxIter = 10;
             pipelineArgs.display = 'none';
@@ -699,14 +699,13 @@ classdef poissonTest < matlab.unittest.TestCase
 
             % Test Data Summaries
             Mod = testCase.Poiss.loadData('testDataSSANEW.csv',...
-                {'rna','exp1_s1'},...
-                {[],[],'TAB.exp1_s1>=5&TAB.exp1_s1<=12'});
+                {},...
+                {[],[],'TAB.rna>=5&TAB.rna<=12'});
             Mod.summarizeData
             Mod = testCase.Poiss.loadData('testDataSSANEW.csv',...
-                {'rna','exp1_s1'},...
-                {'exp1_s1',5,'>='});
+                {},...
+                {'rna',5,'>='});
             Mod.summarizeData
-
         end
 
         function TestAdvancedDataLoading(testCase)
