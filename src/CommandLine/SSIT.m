@@ -3356,7 +3356,7 @@ classdef SSIT
             end
         end
 
-        function [MLEsamples] = estimateMLEspread(obj,opts)
+        function [MLE] = estimateMLEspread(obj,opts)
             % This function generates nMLE sets of simulated data and then
             % attempts to find the MLE for each.  It then returns this set
             % as a matrix with nMLE rows, which can then be plotted against
@@ -3370,16 +3370,58 @@ classdef SSIT
             %                       simulation data. If this file does not
             %                       yet, exist, it will be created.
             % nCells (vector of integers) - number of cells to me measured
-            %                               at each time point. If not
-            %                               provided will try to use
-            %                               obj.dataSet.nCells.
+            %                       at each time point. If not provided
+            %                       will try to use obj.dataSet.nCells.
+            % observableSpecies (cell array) - names of species that are
+            %                       free to be fit.
+            % freePars (vector of integers) - indices of parameters that
+            %                       are free to be indentified from data.
+            %                       If skipped, the default will be to
+            %                       consider parameters in
+            %                       obj.fittingOptions.modelVarsToFit.
             arguments
                 obj
-                opts.nMLE = 100;
-                opts.saveFile = 'defaultSimData.csv';
+                opts.nMLE = [];
+                opts.simsSaveFile = [];
                 opts.makeFIMPlots = true;
                 opts.nCells = [];
                 opts.observableSpecies = [];
+                opts.freePars = [];
+                opts.startPars = [];
+                opts.MLESaveFile = [];
+                opts.restart = false;
+            end
+
+            if isempty(opts.nMLE)
+                if isempty(opts.startPars)
+                    opts.nMLE = 100;
+                else
+                    opts.nMLE = size(opts.startPars,1);
+                end
+            end
+
+            if isempty(opts.simsSaveFile)
+                opts.simsSaveFile = 'defaultSimData.csv';
+            end
+
+            if ~contains(opts.simsSaveFile,'.')
+                opts.simsSaveFile = append(opts.simsSaveFile,'.csv');
+            end
+
+            if ~strcmp(opts.simsSaveFile(end-3:end),'.csv')
+                error('simsSaveFile must be a csv file.')
+            end
+
+            if isempty(opts.MLESaveFile)
+                opts.MLESaveFile = append(opts.simsSaveFile(1:end-3),'.mat');
+            end
+
+            if ~isempty(opts.MLESaveFile)&&~contains(opts.MLESaveFile,'.')
+                opts.MLESaveFile = append(opts.MLESaveFile,'.mat');
+            end
+
+            if ~strcmp(opts.MLESaveFile(end-3:end),'.mat')
+                error('MLESaveFile must be a csv file.')
             end
 
             if isempty(opts.nCells)
@@ -3402,37 +3444,72 @@ classdef SSIT
                     opts.observableSpecies = obj.species;
                     disp('Opservable species not specified -- assuming complete observations')
                 end
+            else
+                obj.pdoOptions.unobservedSpecies = setdiff(obj.species,opts.observableSpecies);
             end
 
-            % Generate simulated data.
-            tmpNexp = obj.ssaOptions.Nexp; % Record value of Nexp.
-            obj.ssaOptions.Nexp = opts.nMLE;
-            obj.sampleDataFromFSP(saveFile=opts.saveFile,nCells=opts.nCells,species2save=opts.observableSpecies)
-            obj.ssaOptions.Nexp =tmpNexp; % Restore value of Nexp.
+            if isempty(opts.freePars)
+                if isstr(obj.fittingOptions.modelVarsToFit)||ischar(obj.fittingOptions.modelVarsToFit)
+                    opts.freePars = [1:size(obj.parameters,1)];
+                    obj.fittingOptions.modelVarsToFit = opts.freePars;
+                elseif islogical(obj.fittingOptions.modelVarsToFit)
+                    opts.freePars = find(obj.fittingOptions.modelVarsToFit);
+                else          
+                    opts.freePars = obj.fittingOptions.modelVarsToFit;
+                end
+            else
+                obj.fittingOptions.modelVarsToFit = opts.freePars;
+            end
 
+            if isempty(opts.startPars)
+                opts.startPars = repmat([obj.parameters{obj.fittingOptions.modelVarsToFit,2}],opts.nMLE,1);
+            elseif size(opts.startPars,1)==1
+                opts.startPars = repmat(opts.startPars,opts.nMLE,1);
+            elseif size(opts.startPars,1)~=opts.nMLE
+                error('Height of startPars matrix must be equal to nMLE')
+            end
+
+            % Generate simulated data if needed.
+            if opts.restart||~exist(opts.simsSaveFile,"file")
+                tmpNexp = obj.ssaOptions.Nexp; % Record value of Nexp.
+                obj.ssaOptions.Nexp = opts.nMLE;
+                obj = obj.solve(solver='fsp');
+                obj.sampleDataFromFSP(saveFile=opts.simsSaveFile,nCells=opts.nCells,species2save=opts.observableSpecies);
+                obj.ssaOptions.Nexp =tmpNexp; % Restore value of Nexp.
+            end
+
+            MLEsamples = NaN*ones(opts.nMLE,length(opts.freePars));
+            MLEValues = NaN*ones(opts.nMLE,1);
+
+            fitOptions = optimset('Display','none','MaxIter',1000);
             % Loop over the simulation tests
+            parfor iSim = 1:opts.nMLE         
+                % Load Data
+                dataFields = cell(length(opts.observableSpecies),2);
+                for iSp = 1:length(opts.observableSpecies)
+                    dataFields(iSp,:) = {opts.observableSpecies{iSp},['exp',num2str(iSim),'_',opts.observableSpecies{iSp}]};
+                end
+                mod = obj.loadData(opts.simsSaveFile,dataFields);
 
-            % parfor iSim = 1:opts.nMLE
-            %     mod = obj.loadData(opts.saveFile,...
-            %                {'mRNA','RNA_STL1_total_TS3Full'});
-            % 
-            % 
-            % 
-            % 
-            %     % Load Data
-            % 
-            %     % Fit Model
-            %     fitOptions = optimset('Display','iter','MaxIter',2000);
-            %     mod = STL1_4state.maximizeLikelihood(fitOptions=fitOptions,returnType='pars');
-            % 
-            % end
-            % 
-            % % If requested, make FIM / MLE scatter plots for visual
-            % % verification of CRLB.
-            % if opts.makeFIMPlots
-            % end
+                % Fit Model
+               [MLEsamples(iSim,:),MLEValues(iSim)] = mod.maximizeLikelihood(fitOptions=fitOptions,...
+                    returnType='pars',...
+                    parGuess=opts.startPars(iSim,:));
+            end
 
+            MLE.mhSamples = log(MLEsamples);
+            MLE.mhValue = MLEValues;
 
+            save(opts.MLESaveFile,'MLEsamples')
+
+            % If requested, make FIM / MLE scatter plots for visual
+            % verification of CRLB.
+            if opts.makeFIMPlots
+                FIMs = obj.computeFIM(scale='log',freePars=opts.freePars,...
+                    observed=opts.observableSpecies);
+                FIMTotal = obj.totalFim(FIMs,opts.nCells);
+                obj.plotMHResults(MLE,FIM=FIMTotal,fimScale='log',truncateChain=false);
+            end
         end
 
         function [fimTotal,mleCovEstimate,fimMetrics] = evaluateExperiment(obj,...
@@ -3713,9 +3790,11 @@ classdef SSIT
 
             if isempty(linkedSpecies)
                 linkedSpecies = configureDictionary("string", "string");
+                missingLinkedSpecies = true;
             elseif iscell(linkedSpecies)
                 linkedSpecies = ...
                     createLinkedSpeciesDictionary(linkedSpecies, obj);
+                missingLinkedSpecies = false;
             end
            
             TAB2 = table;
@@ -3724,24 +3803,26 @@ classdef SSIT
             % Automatically handled simulated data by linking species from
             % the first simulation experiment.
             columns = TAB.Properties.VariableNames;
-            for colIdx = 1:length(columns)
-                curColumnName = columns{colIdx};
-                tokens = regexp(curColumnName, "exp1_(\w+)", "tokens");
-                if ~isempty(tokens)
-                    % We have found a corresponding species name in the
-                    % model, so copy the column while updating its name
-                    % accordingly. Add the mapping to the dictionary of
-                    % linked species.
+            if missingLinkedSpecies
+                for colIdx = 1:length(columns)
+                    curColumnName = columns{colIdx};
+                    tokens = regexp(curColumnName, "exp1_(\w+)", "tokens");
+                    if ~isempty(tokens)
+                        % We have found a corresponding species name in the
+                        % model, so copy the column while updating its name
+                        % accordingly. Add the mapping to the dictionary of
+                        % linked species.
 
-                    matchedSpeciesName = string(tokens{1});
-                    TAB2.(matchedSpeciesName) = TAB.(curColumnName);
-                    linkedSpecies(matchedSpeciesName) = curColumnName;
-                elseif ~strcmp(curColumnName, timeField{1})
-                    % There is no match, so copy the column to the name
-                    % under its existing name, unless it is the time
-                    % column, which we have already copied and renamed.
-                    
-                    TAB2.(curColumnName) = TAB.(curColumnName);
+                        matchedSpeciesName = string(tokens{1});
+                        TAB2.(matchedSpeciesName) = TAB.(curColumnName);
+                        linkedSpecies(matchedSpeciesName) = curColumnName;
+                    elseif ~strcmp(curColumnName, timeField{1})
+                        % There is no match, so copy the column to the name
+                        % under its existing name, unless it is the time
+                        % column, which we have already copied and renamed.
+
+                        TAB2.(curColumnName) = TAB.(curColumnName);
+                    end
                 end
             end
 
@@ -8474,7 +8555,7 @@ end
                 opts.scatterFig = [];
                 opts.plotColors = struct();
                 opts.showConvergence = true;
-                opts.ESS = true;
+                opts.ESS = false;
                 opts.names = {};
                 opts.latexFileName = '';
                 opts.showMLEs = true;
@@ -8484,6 +8565,7 @@ end
                 opts.priorMean = [];
                 opts.priorSig = [];
                 opts.showCovMatrix = false;
+                opts.truncateChain = true;
             end
             FIM = opts.FIM;
             fimScale = opts.fimScale;
@@ -8497,14 +8579,14 @@ end
             obj.plotMHResultsStatic(obj,mhResults,FIM,fimScale,mhPlotScale,...
                 scatterFig,ess,showConvergence,plotColors,names,opts.latexFileName,...
                 opts.showMLEs,opts.descriptions,opts.parameterReorder,opts.showMarginalPosteriors,...
-                opts.priorMean,opts.priorSig,opts.showCovMatrix)
+                opts.priorMean,opts.priorSig,opts.showCovMatrix,opts.truncateChain)
         end
     end
     methods (Static)
         function plotMHResultsStatic(obj,mhResults,FIM,fimScale,mhPlotScale,...
                 scatterFig,ess,showConvergence,plotColors,names,latexFileName,...
                 showMLE,descriptions,parameterReorder,showMarginalPosteriors,...
-                priorMean,priorSig,showCovMatrix)
+                priorMean,priorSig,showCovMatrix,truncateChain)
             arguments
                 obj
                 mhResults = [];
@@ -8512,7 +8594,7 @@ end
                 fimScale = 'lin';
                 mhPlotScale = 'log10';
                 scatterFig = [];
-                ess = true;  % display min(mhResults.ess(:)) in title    
+                ess = false;  % display min(mhResults.ess(:)) in title    
                 showConvergence = true
                 plotColors = struct() % Optional: fields like scatter, ellipseFIM, ellipseMH, etc.
                 names = {};
@@ -8524,6 +8606,7 @@ end
                 priorMean = [];
                 priorSig = [];
                 showCovMatrix = false;
+                truncateChain = true;
             end
 
             if isfield(plotColors, 'scatter')
@@ -8605,7 +8688,7 @@ end
 
             if ~isempty(mhResults)
                 % Make figures for MH convergence
-                if showConvergence
+                if showConvergence&&isfield(mhResults,'mhValue')
                     fg = figure; set(0,'CurrentFigure',fg)
                     plot(mhResults.mhValue);
                     xlabel('Iteration number');
@@ -8642,8 +8725,10 @@ end
 
                 % Select second half of MH chain.
                 mhResultsSecondHalf = mhResults;
-                mhResultsSecondHalf.mhValue = mhResultsSecondHalf.mhValue(floor(end/2):end);
-                mhResultsSecondHalf.mhSamples = mhResultsSecondHalf.mhSamples(floor(end/2):end,:);
+                if truncateChain
+                    mhResultsSecondHalf.mhValue = mhResultsSecondHalf.mhValue(floor(end/2):end);
+                    mhResultsSecondHalf.mhSamples = mhResultsSecondHalf.mhSamples(floor(end/2):end,:);
+                end
                 [valDoneSorted,J] = sort(mhResultsSecondHalf.mhValue);
                 smplDone = mhResultsSecondHalf.mhSamples(J,:);
 
