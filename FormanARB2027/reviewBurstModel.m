@@ -190,7 +190,7 @@ Model.plotFSP
 %% Verification of FIM using CRLB (spread of MLE)
 nCellsInExperiment = 0*Model.tSpan;
 nCellsInExperiment([1,11,31]) = 200;
-nMLE = 10;
+nMLE = 200;
 Model.fittingOptions.modelVarsToFit = [1:5];
 MLE = Model.estimateMLEspread(nCells=nCellsInExperiment,observableSpecies={'mRNA'},nMLE=nMLE,simsSaveFile='BurstFIMSims.csv',freePars=[1:5],restart=true);
 MLE = Model.estimateMLEspread(nCells=nCellsInExperiment,observableSpecies={'mRNA'},nMLE=nMLE,simsSaveFile='BurstFIMSims.csv',freePars=[1:5],startPars=exp(MLE.mhSamples),restart=false);
