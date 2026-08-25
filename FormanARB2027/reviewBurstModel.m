@@ -1,3 +1,9 @@
+%% 
+clear
+clc
+close all
+addpath(genpath('..'))
+
 %% Plots of means and fano factor versus parameters.
 
 kr = 100;
@@ -34,6 +40,110 @@ ax2.XColor = 'none';
 ax2.YColor = 'none';
 linkaxes([ax1 ax2]);
 ax2.Position = ax1.Position;
+
+%% 
+% find star
+star_koff = 10;
+mu = 2; 
+g = (mu*gr)/kr;
+star_kon = (g*star_koff)/(1-g);
+
+% find collision point with mu == 25 line
+% vary kon 
+mu = 25;
+g = (mu*gr)/kr;
+final_kon = (g*star_koff)/(1-g);
+
+% vary koff 
+final_koff = (kr*star_kon)/(mu*gr)-star_kon;
+
+% plot on figure 1
+% Coordinates
+x0 = log10(star_koff);
+y0 = log10(star_kon);
+
+x1 = log10(final_koff);
+y1 = log10(star_kon);
+
+x2 = log10(star_koff);
+y2 = log10(final_kon);
+
+% Arrows
+quiver(ax1, x0, y0, x1-x0, y1-y0, 0, ...
+    'Color', 'b', 'LineWidth', 3, 'MaxHeadSize', 0.5);
+
+quiver(ax1, x0, y0, x2-x0, y2-y0, 0, ...
+    'Color', 'r', 'LineWidth', 3, 'MaxHeadSize', 0.5);
+
+% Star
+plot(ax1, x0, y0, 'k*', ...
+    'MarkerSize', 20, 'LineWidth', 3);
+plot(ax1, x0, y0, 'b*', ...
+    'MarkerSize', 14, 'LineWidth', 1.5);
+
+% Squares
+plot(ax1, x1, y1, 's', ...
+    'MarkerSize', 12, ...
+    'MarkerEdgeColor', 'k', ...
+    'MarkerFaceColor', 'b', ...
+    'LineWidth', 4);
+
+plot(ax1, x2, y2, 's', ...
+    'MarkerSize', 12, ...
+    'MarkerEdgeColor', 'k', ...
+    'MarkerFaceColor', 'r', ...
+    'LineWidth', 4);
+
+%% plot mean and std during transition from mu == 2 to mu == 25
+alpha = linspace(0,1);
+
+kons = star_kon*(1-alpha)+(final_kon)*alpha;
+f = kons./(kons+star_koff);
+kon_vary_mean = (kr/gr).*f;
+kon_vary_sigma = (1 + ((1-f)*kr)./(kons+star_koff+gr)).*kon_vary_mean;
+
+koffs = star_koff*(1-alpha)+(final_koff)*alpha;
+f = star_kon./(star_kon+koffs);
+koff_vary_mean = (kr/gr).*f; 
+koff_vary_sigma = (1 + ((1-f)*kr)./(star_kon+koffs+gr)).*koff_vary_mean;
+
+kon_vary_std = sqrt(kon_vary_sigma);
+koff_vary_std = sqrt(koff_vary_sigma);
+
+%%
+figure(2); clf;
+hold on;
+
+koff_color = 'b';   % varying koff
+kon_color  = 'r';   % varying kon
+
+errorbar(alpha, kon_vary_mean, kon_vary_std, ...
+    'o', ...
+    'Color', kon_color, ...
+    'MarkerFaceColor', kon_color, ...
+    'MarkerEdgeColor', kon_color, ...
+    'LineWidth', 1.2, ...
+    'MarkerSize', 4);
+
+
+errorbar(alpha, koff_vary_mean, koff_vary_std, ...
+    'o', ...
+    'Color', koff_color, ...
+    'MarkerFaceColor', koff_color, ...
+    'MarkerEdgeColor', koff_color, ...
+    'LineWidth', 1.2, ...
+    'MarkerSize', 4);
+
+xlabel('\alpha', 'FontSize', 16);
+ylabel('Mean', 'FontSize', 16);
+
+legend('Vary k_{on}', 'Vary k_{off}', ...
+    'Location', 'best');
+
+set(gca, 'FontSize', 14);
+box on;
+
+
 
 %% Burst Frequency Model
 
