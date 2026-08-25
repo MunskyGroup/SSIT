@@ -44,15 +44,15 @@ Model.species = {'gON','mRNA'};
 Model.initialCondition = [0;0];
 
 %                                     PRIOR
-Model.parameters = {'kon0',0.1;...  % logn(-1,2)
-    'koff0',1;...                   % logn(0,2)
+Model.parameters = {'kon0',0.01;...  % logn(-1,2)
+    'koff0',0.1;...                   % logn(0,2)
     'kr',10;...                     % logn(1,2)
     'g',0.01;...                    % logn(-2,2)
     'kD',10;...                     % logn(1,2)
     'S0',1;...                      % NA (initial input concentration)
     'S1',5};                        % NA (final input concentration)
 
-Model.inputExpressions = {'Iu','S0+S1*(t>0)'};
+Model.inputExpressions = {'Iu','S0+(S1-S0)*(t>0)'};
 
 Model = Model.addReaction(struct(...
     'propensity',{'kon0*(Iu/(kD+Iu))*(1-gON)'},...
@@ -80,7 +80,18 @@ Model.plotFSP
 %% Verification of FIM using CRLB (spread of MLE)
 nCellsInExperiment = 0*Model.tSpan;
 nCellsInExperiment([1,11,31]) = 200;
-Model.estimateMLEspread(nCells=nCellsInExperiment,observableSpecies={'mRNA'})
+nMLE = 10;
+Model.fittingOptions.modelVarsToFit = [1:5];
+MLE = Model.estimateMLEspread(nCells=nCellsInExperiment,observableSpecies={'mRNA'},nMLE=nMLE,simsSaveFile='BurstFIMSims.csv',freePars=[1:5],restart=true);
+MLE = Model.estimateMLEspread(nCells=nCellsInExperiment,observableSpecies={'mRNA'},nMLE=nMLE,simsSaveFile='BurstFIMSims.csv',freePars=[1:5],startPars=exp(MLE.mhSamples),restart=false);
+
+FIMs = Model.computeFIM(scale='log',freePars=[1:5],...
+    observed={'mRNA'});
+FIMTotal = Model.totalFim(FIMs,nCellsInExperiment);
+
+Model.plotMHResults(MLE,FIM=FIMTotal,fimScale='log',truncateChain=false);
+
+return
 
 %% FIM Calculations
 Sarray = [1:5];
