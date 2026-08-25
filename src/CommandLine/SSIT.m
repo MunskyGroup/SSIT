@@ -3390,6 +3390,7 @@ classdef SSIT
                 opts.startPars = [];
                 opts.MLESaveFile = [];
                 opts.restart = false;
+                opts.nIter = 1000;
             end
 
             if isempty(opts.nMLE)
@@ -3481,7 +3482,7 @@ classdef SSIT
             MLEsamples = NaN*ones(opts.nMLE,length(opts.freePars));
             MLEValues = NaN*ones(opts.nMLE,1);
 
-            fitOptions = optimset('Display','none','MaxIter',1000);
+            fitOptions = optimset('Display','none','MaxIter',opts.nIter);
             % Loop over the simulation tests
             parfor iSim = 1:opts.nMLE         
                 % Load Data
@@ -3800,8 +3801,8 @@ classdef SSIT
             TAB2 = table;
             TAB2.time = TAB.(timeField{1});
 
-            % Automatically handled simulated data by linking species from
-            % the first simulation experiment.
+            % % Automatically handled simulated data by linking species from
+            % % the first simulation experiment.
             columns = TAB.Properties.VariableNames;
             if missingLinkedSpecies
                 for colIdx = 1:length(columns)
@@ -4153,11 +4154,15 @@ classdef SSIT
                 % Call routines to find the FSP solution with or without
                 % sensitivity.
                 if computeSensitivity&&nargout>=2
-                    obj.solutionScheme = 'fspSens'; % Chosen solution scheme
-                    [solutions] = obj.solve(stateSpace,returnType='soln');  % Solve the FSP analysis
+                    % obj.solutionScheme = 'fspSens'; % Chosen solution scheme
+                    % [solutions] = obj.solve(stateSpace,returnType='soln');  % Solve the FSP analysis
+                    obj = obj.solve(solver='fspSens');
+                    solutions = obj.Solutions;
                 else
-                    obj.solutionScheme = 'FSP'; % Chosen solution scheme
-                    [solutions] = obj.solve(stateSpace,returnType='soln');  % Solve the FSP analysis
+                    % obj.solutionScheme = 'FSP'; % Chosen solution scheme
+                    % [solutions] = obj.solve(stateSpace,returnType='soln');  % Solve the FSP analysis
+                    obj = obj.solve(solver='fsp');
+                    solutions = obj.Solutions;
                 end
                 obj.parameters =  originalPars; % Reset back to the original parameters.
                 % end
