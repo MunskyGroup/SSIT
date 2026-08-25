@@ -4,7 +4,7 @@ clc
 close all
 addpath(genpath('..'))
 
-%% Plots of means and fano factor versus parameters.
+%% Plots of means and fano factor versus parameters. Paper Figure 1
 
 kr = 100;
 gr = 1;
@@ -41,7 +41,7 @@ ax2.YColor = 'none';
 linkaxes([ax1 ax2]);
 ax2.Position = ax1.Position;
 
-%% 
+%% Plot key points on figure 1. Paper Figure 1
 % find star
 star_koff = 10;
 mu = 2; 
@@ -94,7 +94,7 @@ plot(ax1, x2, y2, 's', ...
     'MarkerFaceColor', 'r', ...
     'LineWidth', 4);
 
-%% plot mean and std during transition from mu == 2 to mu == 25
+%% plot mean and std during transition from mu == 2 to mu == 25. Paper Figure 1
 alpha = linspace(0,1);
 
 kons = star_kon*(1-alpha)+(final_kon)*alpha;
@@ -110,7 +110,6 @@ koff_vary_sigma = (1 + ((1-f)*kr)./(star_kon+koffs+gr)).*koff_vary_mean;
 kon_vary_std = sqrt(kon_vary_sigma);
 koff_vary_std = sqrt(koff_vary_sigma);
 
-%%
 figure(2); clf;
 hold on;
 
@@ -142,7 +141,6 @@ legend('Vary k_{on}', 'Vary k_{off}', ...
 
 set(gca, 'FontSize', 14);
 box on;
-
 
 
 %% Burst Frequency Model
@@ -187,10 +185,54 @@ Model = Model.solve;
 
 Model.plotFSP
 
+
+
 %% Verification of FIM using CRLB (spread of MLE)
 nCellsInExperiment = 0*Model.tSpan;
 nCellsInExperiment([1,11,31]) = 200;
 Model.estimateMLEspread(nCells=nCellsInExperiment,observableSpecies={'mRNA'})
+
+
+%% 1D plots of likelihood function - Kr
+Model = Model.loadData('defaultSimData.csv', {'mRNA', 'exp1_mRNA'});
+Model.solutionScheme = 'fsp';
+Model = Model.solve;
+Model.solutionScheme = 'fspsens';
+Model = Model.solve;
+
+pars = cell2mat(Model.parameters(:,2));
+
+varyingPar = logspace(-2,2);
+likelihoods = zeros(size(varyingPar));
+gradients = cell(size(varyingPar));
+
+for i = 1:length(varyingPar)
+    pars(3) = varyingPar(i);
+    [logL, grad, ~] = Model.computeLikelihood(pars, [], true);
+    likelihoods(i) = logL;
+    gradients{i} = grad;
+end
+
+figure(3)
+semilogx(varyingPar, likelihoods)
+
+
+%% 1D plots of likelihood function - gamma
+pars = cell2mat(Model.parameters(:,2));
+varyingPar = logspace(-4,0);
+likelihoods = zeros(size(varyingPar));
+gradients = cell(size(varyingPar));
+
+for i = 1:length(varyingPar)
+    pars(4) = varyingPar(i);
+    [logL, grad, ~] = Model.computeLikelihood(pars, [], true);
+    likelihoods(i) = logL;
+    gradients{i} = grad;
+end
+
+figure(4)
+semilogx(varyingPar, likelihoods)
+
 
 %% FIM Calculations
 Sarray = [1:5];
