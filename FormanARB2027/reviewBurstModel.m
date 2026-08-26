@@ -50,7 +50,7 @@ star_kon = (g*star_koff)/(1-g);
 
 % find collision point with mu == 25 line
 % vary kon 
-mu = 25;
+mu = 75;
 g = (mu*gr)/kr;
 final_kon = (g*star_koff)/(1-g);
 
@@ -94,53 +94,59 @@ plot(ax1, x2, y2, 's', ...
     'MarkerFaceColor', 'r', ...
     'LineWidth', 4);
 
-%% plot mean and std during transition from mu == 2 to mu == 25. Paper Figure 1
-alpha = linspace(0,1);
+%% plot mean and std during transition from mu == 2 to mu == 75. Paper Figure 1
+Model_chg = SSIT('Empty');
 
-kons = star_kon*(1-alpha)+(final_kon)*alpha;
-f = kons./(kons+star_koff);
-kon_vary_mean = (kr/gr).*f;
-kon_vary_sigma = (1 + ((1-f)*kr)./(kons+star_koff+gr)).*kon_vary_mean;
+Model_chg.species = {'gON','mRNA'};
 
-koffs = star_koff*(1-alpha)+(final_koff)*alpha;
-f = star_kon./(star_kon+koffs);
-koff_vary_mean = (kr/gr).*f; 
-koff_vary_sigma = (1 + ((1-f)*kr)./(star_kon+koffs+gr)).*koff_vary_mean;
+Model_chg.initialCondition = [0;0];
 
-kon_vary_std = sqrt(kon_vary_sigma);
-koff_vary_std = sqrt(koff_vary_sigma);
+Model_chg.parameters = {'kon0', star_kon;...
+    'koff0', star_koff;... 
+    'kr',100;... 
+    'g',gr;... 
+    'kon1', star_kon; ...
+    'koff1', star_koff; ...
+    };
 
-figure(2); clf;
-hold on;
+Model_chg = Model_chg.addReaction(struct(...
+    'propensity',{'kon1*(t>0)*(1-gON) + kon0*(t<=0)*(1-gON)'},...
+    'stoichiometry',{{'gON',1}}));
 
-koff_color = 'b';   % varying koff
-kon_color  = 'r';   % varying kon
+Model_chg = Model_chg.addReaction(struct(...
+    'propensity',{'koff1*(t>0)*gON + koff0*(t<=0)*gON'},...
+    'stoichiometry',{{'gON',-1}}));
 
-errorbar(alpha, kon_vary_mean, kon_vary_std, ...
-    'o', ...
-    'Color', kon_color, ...
-    'MarkerFaceColor', kon_color, ...
-    'MarkerEdgeColor', kon_color, ...
-    'LineWidth', 1.2, ...
-    'MarkerSize', 4);
+Model_chg = Model_chg.addReaction(struct(...
+    'propensity',{'kr*gON'},...
+    'stoichiometry',{{'mRNA',1}}));
 
+Model_chg = Model_chg.addReaction(struct(...
+    'propensity',{'g*mRNA'},...
+    'stoichiometry',{{'mRNA',-1}}));
 
-errorbar(alpha, koff_vary_mean, koff_vary_std, ...
-    'o', ...
-    'Color', koff_color, ...
-    'MarkerFaceColor', koff_color, ...
-    'MarkerEdgeColor', koff_color, ...
-    'LineWidth', 1.2, ...
-    'MarkerSize', 4);
+Model_chg.fspOptions.initApproxSS = true;
+Model_chg.tSpan = linspace(0,10,31);
 
-xlabel('\alpha', 'FontSize', 16);
-ylabel('Mean', 'FontSize', 16);
+Model_chg = Model_chg.solve;
+Model_chg.plotFSP(plotType='marginals', SpeciesIdx=[2], indTimes=31, figureNums=2)
 
-legend('Vary k_{on}', 'Vary k_{off}', ...
-    'Location', 'best');
+Model_chg.parameters{5,2} = star_kon;
+Model_chg.parameters{6,2} = final_koff;
+Model_chg = Model_chg.solve;
+Model_chg.plotFSP(plotType='marginals', SpeciesIdx=[2], indTimes=31, figureNums=3)
+Model_chg.plotFSP(plotType='meansAndDevs', SpeciesIdx=[2], Colors=[0 0 1], figureNums=5)
 
-set(gca, 'FontSize', 14);
-box on;
+Model_chg.parameters{6,2} = star_koff;
+Model_chg.parameters{5,2} = final_kon;
+Model_chg = Model_chg.solve;
+Model_chg.plotFSP(plotType='marginals', SpeciesIdx=[2], indTimes=31, figureNums=4)
+Model_chg.plotFSP(plotType='meansAndDevs', SpeciesIdx=[2], Colors=[1 0 0], figureNums=5)
+
+for figNum = [2 3 4]
+    figure(figNum);
+    xlim([0 120]);
+end
 
 
 %% Burst Frequency Model
@@ -201,10 +207,6 @@ Model.plotFSP
 
 %% 1D plots of likelihood function - Kr
 Model = Model.loadData('BurstFIMSims.csv', {'mRNA', 'exp1_mRNA'});
-% Model.solutionScheme = 'fsp';
-% Model = Model.solve;
-% Model.solutionScheme = 'fspsens';
-% Model = Model.solve;
 
 pars = cell2mat(Model.parameters(:,2));
 inter_idx = 25;
