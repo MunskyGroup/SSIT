@@ -188,21 +188,18 @@ Model.plotFSP
 
 
 %% Verification of FIM using CRLB (spread of MLE)
-nCellsInExperiment = 0*Model.tSpan;
-nCellsInExperiment([1,11,31]) = 200;
-nMLE = 200;
-Model.fittingOptions.modelVarsToFit = [1:5];
-MLE = Model.estimateMLEspread(nCells=nCellsInExperiment,observableSpecies={'mRNA'},nMLE=nMLE,simsSaveFile='BurstFIMSims.csv',freePars=[1:5],restart=true);
-MLE = Model.estimateMLEspread(nCells=nCellsInExperiment,observableSpecies={'mRNA'},nMLE=nMLE,simsSaveFile='BurstFIMSims.csv',freePars=[1:5],startPars=exp(MLE.mhSamples),restart=false);
-
-FIMs = Model.computeFIM(scale='log',freePars=[1:5],...
-    observed={'mRNA'});
-FIMTotal = Model.totalFim(FIMs,nCellsInExperiment);
-
-Model.plotMHResults(MLE,FIM=FIMTotal,fimScale='log',truncateChain=false);
-
-return
-
+% nCellsInExperiment = 0*Model.tSpan;
+% nCellsInExperiment([1,11,31]) = 200;
+% nMLE = 200;
+% Model.fittingOptions.modelVarsToFit = [1:5];
+% MLE = Model.estimateMLEspread(nCells=nCellsInExperiment,observableSpecies={'mRNA'},nMLE=nMLE,simsSaveFile='BurstFIMSims.csv',freePars=[1:5],restart=true);
+% MLE = Model.estimateMLEspread(nCells=nCellsInExperiment,observableSpecies={'mRNA'},nMLE=nMLE,simsSaveFile='BurstFIMSims.csv',freePars=[1:5],startPars=exp(MLE.mhSamples),restart=false);
+% 
+% FIMs = Model.computeFIM(scale='log',freePars=[1:5],...
+%     observed={'mRNA'});
+% FIMTotal = Model.totalFim(FIMs,nCellsInExperiment);
+% 
+% Model.plotMHResults(MLE,FIM=FIMTotal,fimScale='log',truncateChain=false);
 
 %% 1D plots of likelihood function - Kr
 Model = Model.loadData('defaultSimData.csv', {'mRNA', 'exp1_mRNA'});
