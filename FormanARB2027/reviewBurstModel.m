@@ -145,7 +145,7 @@ Model_chg = Model_chg.addReaction(struct(...
     'stoichiometry',{{'mRNA',-1}}));
 
 Model_chg.fspOptions.initApproxSS = true;
-Model_chg.tSpan = linspace(0,10,31);
+Model_chg.tSpan = linspace(0,20,31);
 
 Model_chg = Model_chg.solve;
 Model_chg.plotFSP(plotType='marginals', SpeciesIdx=[2], indTimes=31, figureNums=2)
