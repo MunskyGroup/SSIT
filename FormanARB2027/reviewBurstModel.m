@@ -185,8 +185,6 @@ Model = Model.solve;
 
 Model.plotFSP
 
-
-
 %% Verification of FIM using CRLB (spread of MLE)
 % nCellsInExperiment = 0*Model.tSpan;
 % nCellsInExperiment([1,11,31]) = 200;
@@ -202,27 +200,112 @@ Model.plotFSP
 % Model.plotMHResults(MLE,FIM=FIMTotal,fimScale='log',truncateChain=false);
 
 %% 1D plots of likelihood function - Kr
-Model = Model.loadData('defaultSimData.csv', {'mRNA', 'exp1_mRNA'});
-Model.solutionScheme = 'fsp';
-Model = Model.solve;
-Model.solutionScheme = 'fspsens';
-Model = Model.solve;
+Model = Model.loadData('BurstFIMSims.csv', {'mRNA', 'exp1_mRNA'});
+% Model.solutionScheme = 'fsp';
+% Model = Model.solve;
+% Model.solutionScheme = 'fspsens';
+% Model = Model.solve;
 
 pars = cell2mat(Model.parameters(:,2));
+inter_idx = 25;
+par_idx = 3;
 
 varyingPar = logspace(-2,2);
 likelihoods = zeros(size(varyingPar));
-gradients = cell(size(varyingPar));
 
 for i = 1:length(varyingPar)
-    pars(3) = varyingPar(i);
-    [logL, grad, ~] = Model.computeLikelihood(pars, [], true);
+    pars(par_idx) = varyingPar(i); i
+    computeGrad = false;
+    if i == inter_idx
+        computeGrad = true;
+    end
+    [logL, grad, ~] = Model.computeLikelihood(pars, [], computeGrad);
     likelihoods(i) = logL;
-    gradients{i} = grad;
+    if i == inter_idx
+        gradients = grad;
+    end
 end
 
+fims = Model.computeFIM(scale='log',freePars=[1:5],...
+    observed={'mRNA'});
+fim = Model.totalFim(fims,nCellsInExperiment);
+
+
+
+%%
 figure(3)
-semilogx(varyingPar, likelihoods)
+semilogx(varyingPar, likelihoods, 'b-'); hold on
+grid on
+
+% Save original axis limits
+xlim0 = xlim;
+ylim0 = ylim;
+
+% Point and slope
+x1 = varyingPar(inter_idx);
+y1 = likelihoods(inter_idx);
+m = gradients(par_idx)*x1*log(10);
+
+% ---------------- Tangent line ----------------
+lineDecade = 0.5;
+x = logspace(log10(x1)-lineDecade, log10(x1)+lineDecade, 50);
+y = y1 + m*(log10(x)-log10(x1));
+semilogx(x, y, 'Color', [0 0.5 0],  'LineWidth', 2)
+
+% Point
+semilogx(x1, y1, 'ro', 'MarkerFaceColor', 'r')
+
+% % ---------------- Small slope triangle ----------------
+% triDecade = 0.08;
+% 
+% x2 = x1*10^triDecade;
+% y2 = y1;
+% y3 = y1 + m*triDecade;
+% 
+% % Run
+% semilogx([x1 x2], [y1 y2], 'k-', 'LineWidth', 1.5)
+% 
+% % Rise
+% semilogx([x2 x2], [y2 y3], 'k-', 'LineWidth', 1.5)
+
+% % ---------------- Restore original axes ----------------
+% xlim(xlim0)
+% ylim(ylim0)
+
+% Peak parameter and likelihood
+pars = cell2mat(Model.parameters(:,2));
+[~, idx] = min(abs(varyingPar - pars(par_idx)));
+x1 = varyingPar(idx);
+y1 = likelihoods(idx);
+
+% Hessian / curvature
+d2 = -fim{1}(par_idx,par_idx);
+
+% Work entirely in log10(parameter) space
+u1 = log10(x1);
+
+% Small region around peak
+width = 0.5;
+u = linspace(u1-width, u1+width, 100);
+x_quad = 10.^u;
+
+% Convert curvature from linear parameter space to log space
+d2_log = d2 * (x1)^2;
+
+% Taylor expansion around peak (first derivative ~ 0)
+y_quad = y1 + 0.5*d2_log*(u-u1).^2;
+
+% Plot quadratic
+semilogx(x_quad, y_quad, ...
+    'Color',[1 0.5 0], ...
+    'LineWidth',2);
+
+xlabel('varyingPar')
+ylabel('Likelihood')
+title(sprintf('Slope = %.3g', m))
+legend('Likelihood', 'Tangent', 'Point', 'Location', 'best')
+
+
 
 
 %% 1D plots of likelihood function - gamma
@@ -233,9 +316,15 @@ gradients = cell(size(varyingPar));
 
 for i = 1:length(varyingPar)
     pars(4) = varyingPar(i);
+    computeGrad = false;
+    if i == inter_idx
+        computeGrad = true;
+    end
     [logL, grad, ~] = Model.computeLikelihood(pars, [], true);
     likelihoods(i) = logL;
-    gradients{i} = grad;
+    if i == inter_idx
+        gradients = grad;
+    end
 end
 
 figure(4)
