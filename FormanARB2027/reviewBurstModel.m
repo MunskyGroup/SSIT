@@ -22,6 +22,20 @@ end
 figure(1); clf;
 ax1 = axes;
 [~,cF] = contourf(ax1,log10(kArr),log10(kArr),log10(FANO),linspace(0,log10(64),30)); hold on;
+mu = 2;
+g = mu*gr/kr;
+kons = g*kArr/(1-g);
+plot(log10(kArr), log10(kons), 'k--', 'LineWidth', 2)
+
+mu = 25;
+g = mu*gr/kr;
+kons = g*kArr/(1-g);
+plot(log10(kArr), log10(kons), 'k--', 'LineWidth', 2)
+
+mu = 75;
+g = mu*gr/kr;
+kons = g*kArr/(1-g);
+plot(log10(kArr), log10(kons), 'k--', 'LineWidth', 2)
 
 colormap(ax1,jet)
 cb = colorbar(ax1);
@@ -32,14 +46,18 @@ set(gca,'xtick',[-2:3],'ytick',[-2:3],...
     'XTickLabel',{'10^{-2}','10^{-1}','10^{0}','10^{1}','10^{2}','10^{3}'},...
     'YTickLabel',{'10^{-2}','10^{-1}','10^{0}','10^{1}','10^{2}','10^{3}'},...
     'FontSize',16);
+xlim([-2 3]);
+ylim([-2 3]);
 
-ax2 = axes;
-[~,cM] = contour(ax2,log10(kArr),log10(kArr),MEAN,[2,25,75],'k--','LineWidth',2);
-ax2.Color = 'none';
-ax2.XColor = 'none';
-ax2.YColor = 'none';
-linkaxes([ax1 ax2]);
-ax2.Position = ax1.Position;
+% ax2 = axes;
+% [~,cM] = contour(ax2,log10(kArr),log10(kArr),MEAN,[2,25,75],'k--','LineWidth',2);
+% ax2.Color = 'none';
+% ax2.XColor = 'none';
+% ax2.YColor = 'none';
+% linkaxes([ax1 ax2]);
+% ax2.Position = ax1.Position;
+
+
 
 %% Plot key points on figure 1. Paper Figure 1
 % find star
@@ -70,15 +88,15 @@ y2 = log10(final_kon);
 
 % Arrows
 quiver(ax1, x0, y0, x1-x0, y1-y0, 0, ...
-    'Color', 'b', 'LineWidth', 3, 'MaxHeadSize', 0.5);
+    'Color', 'b', 'LineWidth', 3, 'MaxHeadSize', 0.25);
 
 quiver(ax1, x0, y0, x2-x0, y2-y0, 0, ...
-    'Color', 'r', 'LineWidth', 3, 'MaxHeadSize', 0.5);
+    'Color', 'r', 'LineWidth', 3, 'MaxHeadSize', 0.25);
 
 % Star
 plot(ax1, x0, y0, 'k*', ...
     'MarkerSize', 20, 'LineWidth', 3);
-plot(ax1, x0, y0, 'b*', ...
+plot(ax1, x0, y0, 'k*', ...
     'MarkerSize', 14, 'LineWidth', 1.5);
 
 % Squares
