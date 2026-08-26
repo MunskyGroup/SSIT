@@ -115,11 +115,8 @@ plot(ax1, x0, y0, 'k*', ...
 
 %% plot mean and std during transition from mu == 2 to mu == 75. Paper Figure 1
 Model_chg = SSIT('Empty');
-
 Model_chg.species = {'gON','mRNA'};
-
 Model_chg.initialCondition = [0;0];
-
 Model_chg.parameters = {'kon0', star_kon;...
     'koff0', star_koff;... 
     'kr',100;... 
@@ -128,12 +125,15 @@ Model_chg.parameters = {'kon0', star_kon;...
     'koff1', star_koff; ...
     };
 
+Model_chg.inputExpressions = {'I', ...
+    '(t>0)*(1-exp(-t/tau))'};
+
 Model_chg = Model_chg.addReaction(struct(...
-    'propensity',{'kon1*(t>0)*(1-gON) + kon0*(t<=0)*(1-gON)'},...
+    'propensity',{'(kon0 + (kon1-kon0)*I)*(1-gON)'},...
     'stoichiometry',{{'gON',1}}));
 
 Model_chg = Model_chg.addReaction(struct(...
-    'propensity',{'koff1*(t>0)*gON + koff0*(t<=0)*gON'},...
+    'propensity',{'(koff0 + (koff1-koff0)*I)*gON'},...
     'stoichiometry',{{'gON',-1}}));
 
 Model_chg = Model_chg.addReaction(struct(...
@@ -169,8 +169,9 @@ end
 
 
 %% Burst Frequency Model
-
 Model = SSIT('Empty');
+
+% compute kon0, s0, s1, and 
 
 Model.species = {'gON','mRNA'};
 
@@ -225,11 +226,18 @@ Model.plotFSP
 % Model.plotMHResults(MLE,FIM=FIMTotal,fimScale='log',truncateChain=false);
 
 %% 1D plots of likelihood function - Kr
-Model = Model.loadData('BurstFIMSims.csv', {'mRNA', 'exp1_mRNA'});
+nCellsInExperiment = zeros(size(Model_chg.tSpan));
+nCellsInExperiment([2,13,31]) = 200;
+Model_chg.parameters{5,2} = star_kon;
+Model_chg.parameters{6,2} = final_koff;
+Model_chg.ssaOptions.Nexp = 1;
+Model_chg = Model_chg.solve;
+Model_chg.sampleDataFromFSP(saveFile='likelihoodData.csv',nCells=nCellsInExperiment,species2save={'mRNA'});
+Model_chg = Model_chg.loadData('likelihoodData.csv', {'mRNA', 'exp1_mRNA'});
 
-pars = cell2mat(Model.parameters(:,2));
-inter_idx = 25;
-par_idx = 3;
+pars = cell2mat(Model_chg.parameters(:,2));
+inter_idx = 35;
+par_idx = 5;
 
 varyingPar = logspace(-2,2);
 likelihoods = zeros(size(varyingPar));
@@ -240,21 +248,20 @@ for i = 1:length(varyingPar)
     if i == inter_idx
         computeGrad = true;
     end
-    [logL, grad, ~] = Model.computeLikelihood(pars, [], computeGrad);
+    [logL, grad, ~] = Model_chg.computeLikelihood(pars, [], computeGrad);
     likelihoods(i) = logL;
     if i == inter_idx
         gradients = grad;
     end
 end
 
-fims = Model.computeFIM(scale='log',freePars=[1:5],...
+fims = Model_chg.computeFIM(scale='log',freePars=[1:6],...
     observed={'mRNA'});
-fim = Model.totalFim(fims,nCellsInExperiment);
-
+fim = Model_chg.totalFim(fims,nCellsInExperiment);
 
 
 %%
-figure(3)
+figure(6)
 semilogx(varyingPar, likelihoods, 'b-'); hold on
 grid on
 
@@ -294,7 +301,7 @@ semilogx(x1, y1, 'ro', 'MarkerFaceColor', 'r')
 % ylim(ylim0)
 
 % Peak parameter and likelihood
-pars = cell2mat(Model.parameters(:,2));
+pars = cell2mat(Model_chg.parameters(:,2));
 [~, idx] = min(abs(varyingPar - pars(par_idx)));
 x1 = varyingPar(idx);
 y1 = likelihoods(idx);
@@ -306,7 +313,7 @@ d2 = -fim{1}(par_idx,par_idx);
 u1 = log10(x1);
 
 % Small region around peak
-width = 0.5;
+width = 0.25;
 u = linspace(u1-width, u1+width, 100);
 x_quad = 10.^u;
 
@@ -327,7 +334,7 @@ title(sprintf('Slope = %.3g', m))
 legend('Likelihood', 'Tangent', 'Point', 'Location', 'best')
 
 
-
+return
 
 %% 1D plots of likelihood function - gamma
 pars = cell2mat(Model.parameters(:,2));
