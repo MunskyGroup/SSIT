@@ -126,7 +126,7 @@ Model_chg.parameters = {'kon0', star_kon;...
     };
 
 Model_chg.inputExpressions = {'I', ...
-    '(t>0)*(1-exp(-t/tau))'};
+    't>=1'};
 
 Model_chg = Model_chg.addReaction(struct(...
     'propensity',{'(kon0 + (kon1-kon0)*I)*(1-gON)'},...
@@ -145,27 +145,142 @@ Model_chg = Model_chg.addReaction(struct(...
     'stoichiometry',{{'mRNA',-1}}));
 
 Model_chg.fspOptions.initApproxSS = true;
-Model_chg.tSpan = linspace(0,20,31);
+Model_chg.tSpan = linspace(0,25,31);
 
 Model_chg = Model_chg.solve;
-Model_chg.plotFSP(plotType='marginals', SpeciesIdx=[2], indTimes=31, figureNums=2)
+Model_chg.plotFSP(plotType='marginals', SpeciesIdx=[2], indTimes=31, figureNums=2, Title='')
 
 Model_chg.parameters{5,2} = star_kon;
 Model_chg.parameters{6,2} = final_koff;
 Model_chg = Model_chg.solve;
-Model_chg.plotFSP(plotType='marginals', SpeciesIdx=[2], indTimes=31, figureNums=3)
-Model_chg.plotFSP(plotType='meansAndDevs', SpeciesIdx=[2], Colors=[0 0 1], figureNums=5)
+Model_chg.plotFSP(plotType='marginals', SpeciesIdx=[2], indTimes=31, figureNums=3, Title='')
+Model_chg.plotFSP(plotType='meansAndDevs', SpeciesIdx=[2], Colors=[0 0 1], figureNums=5, Title='')
 
 Model_chg.parameters{6,2} = star_koff;
 Model_chg.parameters{5,2} = final_kon;
 Model_chg = Model_chg.solve;
-Model_chg.plotFSP(plotType='marginals', SpeciesIdx=[2], indTimes=31, figureNums=4)
-Model_chg.plotFSP(plotType='meansAndDevs', SpeciesIdx=[2], Colors=[1 0 0], figureNums=5)
+Model_chg.plotFSP(plotType='marginals', SpeciesIdx=[2], indTimes=31, figureNums=4, Title='')
+Model_chg.plotFSP(plotType='meansAndDevs', SpeciesIdx=[2], Colors=[1 0 0], figureNums=5, Title='')
 
 for figNum = [2 3 4]
     figure(figNum);
     xlim([0 120]);
+
+    ax = gca;
+    ax.Children.LineWidth = 4;
+    ax.LineWidth = 2;
 end
+
+figure(5);
+ax = gca;
+set(findobj(ax, '-property', 'LineWidth'), 'LineWidth', 3);
+ax.LineWidth = 2;
+
+%% Export figures as SVG for PowerPoint
+% Annual Review of Biochemistry
+%
+% Canvas: 6.33 x 7.9 inches
+% Each figure row: 1.975 inches high
+
+outputFolder = 'AnnualReview_Figures';
+
+if ~exist(outputFolder, 'dir')
+    mkdir(outputFolder);
+end
+
+fullWidth = 6.33;
+thirdWidth = 6.33 / 3;
+quarterHeight = 7.9 / 4;
+
+% Figure 1B
+fig = figure(1);
+ax = gca;
+
+% Remove title and axis labels
+ax.Title.String = '';
+ax.XLabel.String = '';
+ax.YLabel.String = '';
+
+fig.Units = 'inches';
+fig.Position(3:4) = [fullWidth quarterHeight];
+
+exportgraphics(fig, ...
+    fullfile(outputFolder, 'figure1b.svg'), ...
+    'ContentType', 'vector');
+
+
+
+% Figure 1C-I, II, III
+figNums = [2 3 4];
+fileNames = {'figure1cI.svg', 'figure1cII.svg', 'figure1cIII.svg'};
+
+for i = 1:3
+
+    fig = figure(figNums(i));
+    ax = gca;
+
+    % Explicitly remove title
+    sgtitle(fig, '');
+
+    ax.Title.String = '';
+    ax.Title.Visible = 'off';
+
+    ax.Subtitle.String = '';
+    ax.Subtitle.Visible = 'off';
+
+    % Explicitly remove axis labels
+    ax.XLabel.String = '';
+    ax.XLabel.Visible = 'off';
+
+    ax.YLabel.String = '';
+    ax.YLabel.Visible = 'off';
+
+    % Keep requested x-axis limits
+    xlim(ax, [0 120]);
+
+    % Set physical dimensions
+    fig.Units = 'inches';
+    fig.Position(3:4) = [thirdWidth quarterHeight];
+
+    % Export
+    exportgraphics(fig, ...
+        fullfile(outputFolder, fileNames{i}), ...
+        'ContentType', 'vector');
+
+end
+
+% Figure 1D
+
+fig = figure(5);
+ax = gca;
+
+% Remove title and axis labels
+ax.Title.String = '';
+ax.Title.Visible = 'off';
+
+ax.XLabel.String = '';
+ax.XLabel.Visible = 'off';
+
+ax.YLabel.String = '';
+ax.YLabel.Visible = 'off';
+
+% Remove legend
+leg = findobj(fig, 'Type', 'Legend');
+
+if ~isempty(leg)
+    delete(leg);
+end
+
+% Set physical dimensions
+fig.Units = 'inches';
+fig.Position(3:4) = [fullWidth quarterHeight];
+
+% Export
+exportgraphics(fig, ...
+    fullfile(outputFolder, 'figure1d.svg'), ...
+    'ContentType', 'vector');
+
+disp('All SVG figures exported successfully.');
 
 
 %% Burst Frequency Model
@@ -226,138 +341,138 @@ Model.plotFSP
 % Model.plotMHResults(MLE,FIM=FIMTotal,fimScale='log',truncateChain=false);
 
 %% 1D plots of likelihood function - Kr
-nCellsInExperiment = zeros(size(Model_chg.tSpan));
-nCellsInExperiment([2,13,31]) = 200;
-Model_chg.parameters{5,2} = star_kon;
-Model_chg.parameters{6,2} = final_koff;
-Model_chg.ssaOptions.Nexp = 1;
-Model_chg = Model_chg.solve;
-Model_chg.sampleDataFromFSP(saveFile='likelihoodData.csv',nCells=nCellsInExperiment,species2save={'mRNA'});
-Model_chg = Model_chg.loadData('likelihoodData.csv', {'mRNA', 'exp1_mRNA'});
-
-pars = cell2mat(Model_chg.parameters(:,2));
-inter_idx = 35;
-par_idx = 5;
-
-varyingPar = logspace(-2,2);
-likelihoods = zeros(size(varyingPar));
-
-for i = 1:length(varyingPar)
-    pars(par_idx) = varyingPar(i); i
-    computeGrad = false;
-    if i == inter_idx
-        computeGrad = true;
-    end
-    [logL, grad, ~] = Model_chg.computeLikelihood(pars, [], computeGrad);
-    likelihoods(i) = logL;
-    if i == inter_idx
-        gradients = grad;
-    end
-end
-
-fims = Model_chg.computeFIM(scale='log',freePars=[1:6],...
-    observed={'mRNA'});
-
-nCellsInExperiment = Model.dataSet.nCells;
-fim = Model_chg.totalFim(fims,nCellsInExperiment);
-
-%%
-figure(6)
-semilogx(varyingPar, likelihoods, 'b-'); hold on
-grid on
-
-% Save original axis limits
-xlim0 = xlim;
-ylim0 = ylim;
-
-% Point and slope
-x1 = varyingPar(inter_idx);
-y1 = likelihoods(inter_idx);
-m = gradients(par_idx)*x1*log(10);
-
-% ---------------- Tangent line ----------------
-lineDecade = 0.5;
-x = logspace(log10(x1)-lineDecade, log10(x1)+lineDecade, 50);
-y = y1 + m*(log10(x)-log10(x1));
-semilogx(x, y, 'Color', [0 0.5 0],  'LineWidth', 2)
-
-% Point
-semilogx(x1, y1, 'ro', 'MarkerFaceColor', 'r')
-
-% % ---------------- Small slope triangle ----------------
-% triDecade = 0.08;
+% nCellsInExperiment = zeros(size(Model_chg.tSpan));
+% nCellsInExperiment([2,13,31]) = 200;
+% Model_chg.parameters{5,2} = star_kon;
+% Model_chg.parameters{6,2} = final_koff;
+% Model_chg.ssaOptions.Nexp = 1;
+% Model_chg = Model_chg.solve;
+% Model_chg.sampleDataFromFSP(saveFile='likelihoodData.csv',nCells=nCellsInExperiment,species2save={'mRNA'});
+% Model_chg = Model_chg.loadData('likelihoodData.csv', {'mRNA', 'exp1_mRNA'});
 % 
-% x2 = x1*10^triDecade;
-% y2 = y1;
-% y3 = y1 + m*triDecade;
+% pars = cell2mat(Model_chg.parameters(:,2));
+% inter_idx = 35;
+% par_idx = 5;
 % 
-% % Run
-% semilogx([x1 x2], [y1 y2], 'k-', 'LineWidth', 1.5)
+% varyingPar = logspace(-2,2);
+% likelihoods = zeros(size(varyingPar));
 % 
-% % Rise
-% semilogx([x2 x2], [y2 y3], 'k-', 'LineWidth', 1.5)
-
-% % ---------------- Restore original axes ----------------
-% xlim(xlim0)
-% ylim(ylim0)
-
-% Peak parameter and likelihood
-pars = cell2mat(Model_chg.parameters(:,2));
-[~, idx] = min(abs(varyingPar - pars(par_idx)));
-x1 = varyingPar(idx);
-y1 = likelihoods(idx);
-
-% Hessian / curvature
-d2 = -fim{1}(par_idx,par_idx);
-
-% Work entirely in log10(parameter) space
-u1 = log10(x1);
-
-% Small region around peak
-width = 0.25;
-u = linspace(u1-width, u1+width, 100);
-x_quad = 10.^u;
-
-% Convert curvature from linear parameter space to log space
-d2_log = d2 * (x1)^2;
-
-% Taylor expansion around peak (first derivative ~ 0)
-y_quad = y1 + 0.5*d2_log*(u-u1).^2;
-
-% Plot quadratic
-semilogx(x_quad, y_quad, ...
-    'Color',[1 0.5 0], ...
-    'LineWidth',2);
-
-xlabel('varyingPar')
-ylabel('Likelihood')
-title(sprintf('Slope = %.3g', m))
-legend('Likelihood', 'Tangent', 'Point', 'Location', 'best')
-
-
-return
-
-%% 1D plots of likelihood function - gamma
-pars = cell2mat(Model.parameters(:,2));
-varyingPar = logspace(-4,0);
-likelihoods = zeros(size(varyingPar));
-gradients = cell(size(varyingPar));
-
-for i = 1:length(varyingPar)
-    pars(4) = varyingPar(i);
-    computeGrad = false;
-    if i == inter_idx
-        computeGrad = true;
-    end
-    [logL, grad, ~] = Model.computeLikelihood(pars, [], true);
-    likelihoods(i) = logL;
-    if i == inter_idx
-        gradients = grad;
-    end
-end
-
-figure(4)
-semilogx(varyingPar, likelihoods)
+% for i = 1:length(varyingPar)
+%     pars(par_idx) = varyingPar(i); i
+%     computeGrad = false;
+%     if i == inter_idx
+%         computeGrad = true;
+%     end
+%     [logL, grad, ~] = Model_chg.computeLikelihood(pars, [], computeGrad);
+%     likelihoods(i) = logL;
+%     if i == inter_idx
+%         gradients = grad;
+%     end
+% end
+% 
+% fims = Model_chg.computeFIM(scale='log',freePars=[1:6],...
+%     observed={'mRNA'});
+% 
+% nCellsInExperiment = Model.dataSet.nCells;
+% fim = Model_chg.totalFim(fims,nCellsInExperiment);
+% 
+% %%
+% figure(6)
+% semilogx(varyingPar, likelihoods, 'b-'); hold on
+% grid on
+% 
+% % Save original axis limits
+% xlim0 = xlim;
+% ylim0 = ylim;
+% 
+% % Point and slope
+% x1 = varyingPar(inter_idx);
+% y1 = likelihoods(inter_idx);
+% m = gradients(par_idx)*x1*log(10);
+% 
+% % ---------------- Tangent line ----------------
+% lineDecade = 0.5;
+% x = logspace(log10(x1)-lineDecade, log10(x1)+lineDecade, 50);
+% y = y1 + m*(log10(x)-log10(x1));
+% semilogx(x, y, 'Color', [0 0.5 0],  'LineWidth', 2)
+% 
+% % Point
+% semilogx(x1, y1, 'ro', 'MarkerFaceColor', 'r')
+% 
+% % % ---------------- Small slope triangle ----------------
+% % triDecade = 0.08;
+% % 
+% % x2 = x1*10^triDecade;
+% % y2 = y1;
+% % y3 = y1 + m*triDecade;
+% % 
+% % % Run
+% % semilogx([x1 x2], [y1 y2], 'k-', 'LineWidth', 1.5)
+% % 
+% % % Rise
+% % semilogx([x2 x2], [y2 y3], 'k-', 'LineWidth', 1.5)
+% 
+% % % ---------------- Restore original axes ----------------
+% % xlim(xlim0)
+% % ylim(ylim0)
+% 
+% % Peak parameter and likelihood
+% pars = cell2mat(Model_chg.parameters(:,2));
+% [~, idx] = min(abs(varyingPar - pars(par_idx)));
+% x1 = varyingPar(idx);
+% y1 = likelihoods(idx);
+% 
+% % Hessian / curvature
+% d2 = -fim{1}(par_idx,par_idx);
+% 
+% % Work entirely in log10(parameter) space
+% u1 = log10(x1);
+% 
+% % Small region around peak
+% width = 0.25;
+% u = linspace(u1-width, u1+width, 100);
+% x_quad = 10.^u;
+% 
+% % Convert curvature from linear parameter space to log space
+% d2_log = d2 * (x1)^2;
+% 
+% % Taylor expansion around peak (first derivative ~ 0)
+% y_quad = y1 + 0.5*d2_log*(u-u1).^2;
+% 
+% % Plot quadratic
+% semilogx(x_quad, y_quad, ...
+%     'Color',[1 0.5 0], ...
+%     'LineWidth',2);
+% 
+% xlabel('varyingPar')
+% ylabel('Likelihood')
+% title(sprintf('Slope = %.3g', m))
+% legend('Likelihood', 'Tangent', 'Point', 'Location', 'best')
+% 
+% 
+% return
+% 
+% %% 1D plots of likelihood function - gamma
+% pars = cell2mat(Model.parameters(:,2));
+% varyingPar = logspace(-4,0);
+% likelihoods = zeros(size(varyingPar));
+% gradients = cell(size(varyingPar));
+% 
+% for i = 1:length(varyingPar)
+%     pars(4) = varyingPar(i);
+%     computeGrad = false;
+%     if i == inter_idx
+%         computeGrad = true;
+%     end
+%     [logL, grad, ~] = Model.computeLikelihood(pars, [], true);
+%     likelihoods(i) = logL;
+%     if i == inter_idx
+%         gradients = grad;
+%     end
+% end
+% 
+% figure(4)
+% semilogx(varyingPar, likelihoods)
 
 
 %% FIM Calculations
