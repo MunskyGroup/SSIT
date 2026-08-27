@@ -22,6 +22,20 @@ end
 figure(1); clf;
 ax1 = axes;
 [~,cF] = contourf(ax1,log10(kArr),log10(kArr),log10(FANO),linspace(0,log10(64),30)); hold on;
+mu = 2;
+g = mu*gr/kr;
+kons = g*kArr/(1-g);
+plot(log10(kArr), log10(kons), 'k--', 'LineWidth', 2)
+
+mu = 25;
+g = mu*gr/kr;
+kons = g*kArr/(1-g);
+plot(log10(kArr), log10(kons), 'k--', 'LineWidth', 2)
+
+mu = 75;
+g = mu*gr/kr;
+kons = g*kArr/(1-g);
+plot(log10(kArr), log10(kons), 'k--', 'LineWidth', 2)
 
 colormap(ax1,jet)
 cb = colorbar(ax1);
@@ -32,14 +46,18 @@ set(gca,'xtick',[-2:3],'ytick',[-2:3],...
     'XTickLabel',{'10^{-2}','10^{-1}','10^{0}','10^{1}','10^{2}','10^{3}'},...
     'YTickLabel',{'10^{-2}','10^{-1}','10^{0}','10^{1}','10^{2}','10^{3}'},...
     'FontSize',16);
+xlim([-2 3]);
+ylim([-2 3]);
 
-ax2 = axes;
-[~,cM] = contour(ax2,log10(kArr),log10(kArr),MEAN,[2,25,75],'k--','LineWidth',2);
-ax2.Color = 'none';
-ax2.XColor = 'none';
-ax2.YColor = 'none';
-linkaxes([ax1 ax2]);
-ax2.Position = ax1.Position;
+% ax2 = axes;
+% [~,cM] = contour(ax2,log10(kArr),log10(kArr),MEAN,[2,25,75],'k--','LineWidth',2);
+% ax2.Color = 'none';
+% ax2.XColor = 'none';
+% ax2.YColor = 'none';
+% linkaxes([ax1 ax2]);
+% ax2.Position = ax1.Position;
+
+
 
 %% Plot key points on figure 1. Paper Figure 1
 % find star
@@ -50,7 +68,7 @@ star_kon = (g*star_koff)/(1-g);
 
 % find collision point with mu == 25 line
 % vary kon 
-mu = 25;
+mu = 75;
 g = (mu*gr)/kr;
 final_kon = (g*star_koff)/(1-g);
 
@@ -68,84 +86,92 @@ y1 = log10(star_kon);
 x2 = log10(star_koff);
 y2 = log10(final_kon);
 
+
+% Squares
+plot(ax1, x1, y1, 's', ...
+    'MarkerSize', 15, ...
+    'MarkerEdgeColor', 'k', ...
+    'MarkerFaceColor', 'b', ...
+    'LineWidth', 5);
+
+plot(ax1, x2, y2, 's', ...
+    'MarkerSize', 15, ...
+    'MarkerEdgeColor', 'k', ...
+    'MarkerFaceColor', 'r', ...
+    'LineWidth', 5);
+
 % Arrows
 quiver(ax1, x0, y0, x1-x0, y1-y0, 0, ...
-    'Color', 'b', 'LineWidth', 3, 'MaxHeadSize', 0.5);
+    Color='b', LineWidth=3, MaxHeadSize=0.15, ShowArrowHead='on');
 
 quiver(ax1, x0, y0, x2-x0, y2-y0, 0, ...
-    'Color', 'r', 'LineWidth', 3, 'MaxHeadSize', 0.5);
+    Color='r', LineWidth=3, MaxHeadSize=0.15, ShowArrowHead='on');
 
 % Star
 plot(ax1, x0, y0, 'k*', ...
     'MarkerSize', 20, 'LineWidth', 3);
-plot(ax1, x0, y0, 'b*', ...
+plot(ax1, x0, y0, 'k*', ...
     'MarkerSize', 14, 'LineWidth', 1.5);
 
-% Squares
-plot(ax1, x1, y1, 's', ...
-    'MarkerSize', 12, ...
-    'MarkerEdgeColor', 'k', ...
-    'MarkerFaceColor', 'b', ...
-    'LineWidth', 4);
+%% plot mean and std during transition from mu == 2 to mu == 75. Paper Figure 1
+Model_chg = SSIT('Empty');
+Model_chg.species = {'gON','mRNA'};
+Model_chg.initialCondition = [0;0];
+Model_chg.parameters = {'kon0', star_kon;...
+    'koff0', star_koff;... 
+    'kr',100;... 
+    'g',gr;... 
+    'kon1', star_kon; ...
+    'koff1', star_koff; ...
+    };
 
-plot(ax1, x2, y2, 's', ...
-    'MarkerSize', 12, ...
-    'MarkerEdgeColor', 'k', ...
-    'MarkerFaceColor', 'r', ...
-    'LineWidth', 4);
+Model_chg.inputExpressions = {'I', ...
+    '(t>0)*(1-exp(-t/tau))'};
 
-%% plot mean and std during transition from mu == 2 to mu == 25. Paper Figure 1
-alpha = linspace(0,1);
+Model_chg = Model_chg.addReaction(struct(...
+    'propensity',{'(kon0 + (kon1-kon0)*I)*(1-gON)'},...
+    'stoichiometry',{{'gON',1}}));
 
-kons = star_kon*(1-alpha)+(final_kon)*alpha;
-f = kons./(kons+star_koff);
-kon_vary_mean = (kr/gr).*f;
-kon_vary_sigma = (1 + ((1-f)*kr)./(kons+star_koff+gr)).*kon_vary_mean;
+Model_chg = Model_chg.addReaction(struct(...
+    'propensity',{'(koff0 + (koff1-koff0)*I)*gON'},...
+    'stoichiometry',{{'gON',-1}}));
 
-koffs = star_koff*(1-alpha)+(final_koff)*alpha;
-f = star_kon./(star_kon+koffs);
-koff_vary_mean = (kr/gr).*f; 
-koff_vary_sigma = (1 + ((1-f)*kr)./(star_kon+koffs+gr)).*koff_vary_mean;
+Model_chg = Model_chg.addReaction(struct(...
+    'propensity',{'kr*gON'},...
+    'stoichiometry',{{'mRNA',1}}));
 
-kon_vary_std = sqrt(kon_vary_sigma);
-koff_vary_std = sqrt(koff_vary_sigma);
+Model_chg = Model_chg.addReaction(struct(...
+    'propensity',{'g*mRNA'},...
+    'stoichiometry',{{'mRNA',-1}}));
 
-figure(2); clf;
-hold on;
+Model_chg.fspOptions.initApproxSS = true;
+Model_chg.tSpan = linspace(0,20,31);
 
-koff_color = 'b';   % varying koff
-kon_color  = 'r';   % varying kon
+Model_chg = Model_chg.solve;
+Model_chg.plotFSP(plotType='marginals', SpeciesIdx=[2], indTimes=31, figureNums=2)
 
-errorbar(alpha, kon_vary_mean, kon_vary_std, ...
-    'o', ...
-    'Color', kon_color, ...
-    'MarkerFaceColor', kon_color, ...
-    'MarkerEdgeColor', kon_color, ...
-    'LineWidth', 1.2, ...
-    'MarkerSize', 4);
+Model_chg.parameters{5,2} = star_kon;
+Model_chg.parameters{6,2} = final_koff;
+Model_chg = Model_chg.solve;
+Model_chg.plotFSP(plotType='marginals', SpeciesIdx=[2], indTimes=31, figureNums=3)
+Model_chg.plotFSP(plotType='meansAndDevs', SpeciesIdx=[2], Colors=[0 0 1], figureNums=5)
 
+Model_chg.parameters{6,2} = star_koff;
+Model_chg.parameters{5,2} = final_kon;
+Model_chg = Model_chg.solve;
+Model_chg.plotFSP(plotType='marginals', SpeciesIdx=[2], indTimes=31, figureNums=4)
+Model_chg.plotFSP(plotType='meansAndDevs', SpeciesIdx=[2], Colors=[1 0 0], figureNums=5)
 
-errorbar(alpha, koff_vary_mean, koff_vary_std, ...
-    'o', ...
-    'Color', koff_color, ...
-    'MarkerFaceColor', koff_color, ...
-    'MarkerEdgeColor', koff_color, ...
-    'LineWidth', 1.2, ...
-    'MarkerSize', 4);
-
-xlabel('\alpha', 'FontSize', 16);
-ylabel('Mean', 'FontSize', 16);
-
-legend('Vary k_{on}', 'Vary k_{off}', ...
-    'Location', 'best');
-
-set(gca, 'FontSize', 14);
-box on;
+for figNum = [2 3 4]
+    figure(figNum);
+    xlim([0 120]);
+end
 
 
 %% Burst Frequency Model
-
 Model = SSIT('Empty');
+
+% compute kon0, s0, s1, and 
 
 Model.species = {'gON','mRNA'};
 
@@ -200,15 +226,18 @@ Model.plotFSP
 % Model.plotMHResults(MLE,FIM=FIMTotal,fimScale='log',truncateChain=false);
 
 %% 1D plots of likelihood function - Kr
-Model = Model.loadData('BurstFIMSims.csv', {'mRNA', 'exp1_mRNA'});
-% Model.solutionScheme = 'fsp';
-% Model = Model.solve;
-% Model.solutionScheme = 'fspsens';
-% Model = Model.solve;
+nCellsInExperiment = zeros(size(Model_chg.tSpan));
+nCellsInExperiment([2,13,31]) = 200;
+Model_chg.parameters{5,2} = star_kon;
+Model_chg.parameters{6,2} = final_koff;
+Model_chg.ssaOptions.Nexp = 1;
+Model_chg = Model_chg.solve;
+Model_chg.sampleDataFromFSP(saveFile='likelihoodData.csv',nCells=nCellsInExperiment,species2save={'mRNA'});
+Model_chg = Model_chg.loadData('likelihoodData.csv', {'mRNA', 'exp1_mRNA'});
 
-pars = cell2mat(Model.parameters(:,2));
-inter_idx = 25;
-par_idx = 3;
+pars = cell2mat(Model_chg.parameters(:,2));
+inter_idx = 35;
+par_idx = 5;
 
 varyingPar = logspace(-2,2);
 likelihoods = zeros(size(varyingPar));
@@ -219,23 +248,21 @@ for i = 1:length(varyingPar)
     if i == inter_idx
         computeGrad = true;
     end
-    [logL, grad, ~] = Model.computeLikelihood(pars, [], computeGrad);
+    [logL, grad, ~] = Model_chg.computeLikelihood(pars, [], computeGrad);
     likelihoods(i) = logL;
     if i == inter_idx
         gradients = grad;
     end
 end
 
-fims = Model.computeFIM(scale='log',freePars=[1:5],...
+fims = Model_chg.computeFIM(scale='log',freePars=[1:6],...
     observed={'mRNA'});
 
 nCellsInExperiment = Model.dataSet.nCells;
-fim = Model.totalFim(fims,nCellsInExperiment);
-
-
+fim = Model_chg.totalFim(fims,nCellsInExperiment);
 
 %%
-figure(3)
+figure(6)
 semilogx(varyingPar, likelihoods, 'b-'); hold on
 grid on
 
@@ -275,7 +302,7 @@ semilogx(x1, y1, 'ro', 'MarkerFaceColor', 'r')
 % ylim(ylim0)
 
 % Peak parameter and likelihood
-pars = cell2mat(Model.parameters(:,2));
+pars = cell2mat(Model_chg.parameters(:,2));
 [~, idx] = min(abs(varyingPar - pars(par_idx)));
 x1 = varyingPar(idx);
 y1 = likelihoods(idx);
@@ -287,7 +314,7 @@ d2 = -fim{1}(par_idx,par_idx);
 u1 = log10(x1);
 
 % Small region around peak
-width = 0.5;
+width = 0.25;
 u = linspace(u1-width, u1+width, 100);
 x_quad = 10.^u;
 
@@ -308,7 +335,7 @@ title(sprintf('Slope = %.3g', m))
 legend('Likelihood', 'Tangent', 'Point', 'Location', 'best')
 
 
-
+return
 
 %% 1D plots of likelihood function - gamma
 pars = cell2mat(Model.parameters(:,2));
