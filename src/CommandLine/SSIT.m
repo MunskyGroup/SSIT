@@ -8253,11 +8253,15 @@ end
                 eigDisp  = log10(max(eigVals, epsVal))
                 fimLabel = ['log_{10} ' baseLabel];
                 eigLabel = 'log_{10} eigenvalues';
+
+                theta0 = log10(theta0);
+                paramBase = 'log_{10} ';
             elseif strcmp(scale,'lin')
                 fimDisp  = fimSym;
                 eigDisp  = eigVals;
                 fimLabel = baseLabel;
                 eigLabel = 'Eigenvalues';
+                paramBase = '';
             else
                 error("plotFIMResults requires 'scale' to be specified as 'lin' or 'log'.");
             end
@@ -8371,6 +8375,7 @@ end
             % Resolve a single ellipse color/spec (fallback)
             [ellipseHasColor, ellipseColorOrSpec] = resolveEllipseColorFallback(C);
         
+            lims = struct;
             if isempty(ellipsePairs)
                 % grid of all upper-triangular pairs
                 for iParam = 1:nParams-1
@@ -8388,11 +8393,45 @@ end
                         plot(mu(1), mu(2), 's', 'MarkerSize', 8, ...
                             'MarkerEdgeColor', centerSqColor, 'MarkerFaceColor', 'w', 'LineWidth', 2);
         
-                        xlabel(paramNames{jParam}, 'Interpreter', 'tex', 'FontSize', opts.AxisLabelSize);
-                        ylabel(paramNames{iParam}, 'Interpreter', 'tex', 'FontSize', opts.AxisLabelSize);
-                        set(gca, 'FontSize', opts.TickLabelSize); axis equal; grid on;
+                        
+                        if iParam == jParam-1
+                            xlabel([paramBase, paramNames{jParam}], 'Interpreter', 'tex', 'FontSize', opts.AxisLabelSize);
+                            ylabel([paramBase, paramNames{iParam}], 'Interpreter', 'tex', 'FontSize', opts.AxisLabelSize);
+                        end
+                        set(gca, 'FontSize', opts.TickLabelSize); grid on;
+
+                        if isfield(lims,paramNames{jParam})
+                            set(gca,'XLim',lims.(paramNames{jParam}));
+                        else
+                            lims.(paramNames{jParam}) = get(gca,'XLim');
+                            set(gca,'XLim',lims.(paramNames{jParam}));
+                        end
+                        if isfield(lims,paramNames{iParam})
+                            set(gca,'YLim',lims.(paramNames{iParam}))
+                        else
+                            lims.(paramNames{iParam}) = get(gca,'YLim');
+                            set(gca,'YLim',lims.(paramNames{iParam}))
+                       end
+                       ax(iParam,jParam-1) = gca;
                     end
                 end
+                % Use the first valid subplot as the reference size
+                % refAx = ax(1,1);
+                % refPos = get(refAx,'Position');
+
+                % for iParam = 1:nParams-1
+                %     for jParam = iParam+1:nParams
+                %         if isgraphics(ax(iParam,jParam-1))
+                % 
+                %             pos = get(ax(iParam,jParam-1),'Position');
+                % 
+                %             % Preserve location, but force identical width and height
+                %             pos(3:4) = refPos(3:4);
+                % 
+                %             set(ax(iParam,jParam-1),'Position',pos);
+                %         end
+                %     end
+                % end
             else
                 % subset layout
                 if ~ismatrix(ellipsePairs) || size(ellipsePairs,2) ~= 2
