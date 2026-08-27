@@ -228,6 +228,8 @@ end
 
 fims = Model.computeFIM(scale='log',freePars=[1:5],...
     observed={'mRNA'});
+
+nCellsInExperiment = Model.dataSet.nCells;
 fim = Model.totalFim(fims,nCellsInExperiment);
 
 
@@ -333,7 +335,7 @@ semilogx(varyingPar, likelihoods)
 
 %% FIM Calculations
 Sarray = [1:5];
-
+Model.tSpan = [0:30];
 Model.solutionScheme = 'fspsens';
 FIM = cell(length(Sarray),length(Sarray),length(Model.tSpan));
 for iS0 = 1:length(Sarray)
@@ -366,6 +368,25 @@ for it = 1:length(itimes)
     FIM_Dynamic = FIM_Dynamic + Ncells/length(itimes)*FIM{iS1,iS2,itimes(it)};
 end
 disp(['Determinant of FIM for dynamic measurements: ',num2str(det(FIM_Dynamic))])
+
+%% Plots of FIM predicted uncertainties
+freePars = [1:4];
+f1 = figure(11);
+f2 = figure(12);
+f3 = figure(13);
+
+% The following plots the heatmap showing the
+Model.plotFIMResults(FIM_Dynamic^(-1), 'log',...
+    Model.parameters(freePars,1),...
+    [Model.parameters{freePars,2}],...
+    PlotEllipses=true,EllipseFigure=f1,...
+    FigureHandle=f3,...
+    Colors=struct('EllipseColors',[0.9 0.6 0.2],...
+    'CenterSquare',[0.96,0.47,0.16]),...
+    LogThreshold=-1,...
+    HeatMapType='invfim',...
+    MatrixType='invfim');
+
 
 %% Optimized Experiment Design
 % AllFims = reshape(FIM,numel(FIM),1);
