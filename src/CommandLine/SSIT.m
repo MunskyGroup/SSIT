@@ -8181,6 +8181,7 @@ end
                 opts.LegendLocation (1,1) string = "best"
                 opts.MatrixType (1,1) string {mustBeMember(opts.MatrixType,["fim","invfim"])} = "fim"
                 opts.LogThreshold (1,1) double = 0
+                opts.HeatMapType (1,1) string {mustBeMember(opts.HeatMapType,["fim","invfim"])}  = "fim"
             end
         
             % -------- Extract numeric FIM --------
@@ -8194,7 +8195,11 @@ end
             if isempty(paramNames)
                 paramNames = arrayfun(@(i) sprintf('\\theta_{%d}', i), 1:nParams, 'UniformOutput', false);
             end
-            if isempty(theta0), theta0 = zeros(1,nParams); end
+            
+            if isempty(theta0)
+                theta0 = zeros(1,nParams);
+            end
+            
             if numel(theta0) ~= nParams
                 error('theta0 must be a vector of length %d (number of parameters).', nParams);
             end
@@ -8220,21 +8225,29 @@ end
                 posValues = 1*(fimSym>=10^opts.LogThreshold)+...
                     -1*(fimSym<=-10^opts.LogThreshold); 
 
-                logMag = max(0,log10(abs(fimSym)-opts.LogThreshold)).*posValues;
+                logMag = max(0,log10(abs(fimSym))-opts.LogThreshold).*posValues;
                 fimDisp = logMag;
 
                 x1 = max(abs(logMag),[],'all');
-                rangeColors = [-x1,-opts.LogThreshold,opts.LogThreshold,x1];
 
-                if opts.LogThreshold~=0
+                if opts.LogThreshold>0
+                    rangeColors = [-x1,-abs(opts.LogThreshold),abs(opts.LogThreshold),x1];
                     cbTicks = [floor(rangeColors(1)):rangeColors(2),0,rangeColors(3):ceil(rangeColors(4))];
+                    cbTickLabels = [arrayfun(@(v) sprintf('-10^{%g}', v), -cbTicks(1:end/2)+opts.LogThreshold, 'UniformOutput', false),['\pm 10^{',num2str(opts.LogThreshold),'}'],...
+                        arrayfun(@(v) sprintf('10^{%g}', v), cbTicks(end/2+1:end)+opts.LogThreshold, 'UniformOutput', false)];
+                elseif opts.LogThreshold<0
+                    rangeColors = [-x1,0,x1];
+                    cbTicks = [floor(rangeColors(1)):0,1:ceil(rangeColors(3))];
+                    cbTickLabels = [arrayfun(@(v) sprintf('-10^{%g}', v), -cbTicks(1:end/2)+opts.LogThreshold, 'UniformOutput', false),['\pm 10^{',num2str(opts.LogThreshold),'}'],...
+                        arrayfun(@(v) sprintf('10^{%g}', v), cbTicks(end/2+1:end)+opts.LogThreshold, 'UniformOutput', false)];
                 else
-                    cbTicks = [floor(rangeColors(1)):0,1:ceil(rangeColors(4))];
+                    rangeColors = [-x1,0,x1];
+                    cbTicks = [floor(rangeColors(1)):0,1:ceil(rangeColors(3))];
+                    cbTickLabels = [arrayfun(@(v) sprintf('-10^{%g}', v), -cbTicks(1:end/2), 'UniformOutput', false),'0',...
+                        arrayfun(@(v) sprintf('10^{%g}', v), cbTicks(end/2+1:end), 'UniformOutput', false)];
                 end
-                cbTickLabels = [arrayfun(@(v) sprintf('-10^{%g}', v), -cbTicks(1:end/2), 'UniformOutput', false),'~~',...
-                    arrayfun(@(v) sprintf('10^{%g}', v), cbTicks(end/2+1:end), 'UniformOutput', false)];
 
-                C.HeatmapColormap = blueWhiteFlatRed(-x1,0,0,x1);
+                C.HeatmapColormap = blueWhiteFlatRed(cbTicks(1),0,0,cbTicks(end));
 
                 epsVal   = 1e-16;
                 eigDisp  = log10(max(eigVals, epsVal))
@@ -8282,11 +8295,13 @@ end
             title(fimLabel, 'FontSize', opts.AxisLabelSize, 'FontWeight', 'bold');
             cb.Label.String = fimLabel; cb.Label.FontSize = opts.AxisLabelSize;
             
+            clim([cbTicks(1),cbTicks(end)])
+
             if exist('cbTickLabels','var')
                 cb.TickLabels = cbTickLabels;
                 cb.Ticks = cbTicks;
             end
-        
+   
             % (2) diag(FIM)
             subplot(2,2,2);
             hBarDiag = bar(diagInfo);
@@ -8296,7 +8311,7 @@ end
             set(gca, 'XTick', 1:nParams, 'XTickLabel', paramNames, ...
                      'TickLabelInterpreter', 'tex', 'FontSize', opts.TickLabelSize);
             xlabel('Parameter', 'FontSize', opts.AxisLabelSize);
-            ylabel('Diagonal entry of FIM', 'FontSize', opts.AxisLabelSize);
+            ylabel(append('Diagonal entry of ',baseLabel), 'FontSize', opts.AxisLabelSize);
             title('Per-parameter information', 'FontSize', opts.AxisLabelSize, 'FontWeight', 'bold');
         
             % (3) eigenvalues
@@ -8311,7 +8326,7 @@ end
             if isfinite(condInfo)
                 ttl = sprintf('FIM spectrum (cond. ≈ %.2e)', condInfo);
             else
-                ttl = 'FIM spectrum';
+                ttl = append(baseLabel,' spectrum');
             end
             title(ttl, 'FontSize', opts.AxisLabelSize, 'FontWeight', 'bold');
         
