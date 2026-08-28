@@ -3045,6 +3045,7 @@ classdef SSIT
                 opts.fspSoln = [];
                 opts.saveFile = [];
                 opts.nCells = [];
+                opts.species2save = {};
             end
             % Parse optional options
             % returnType = 'default';
@@ -3136,7 +3137,7 @@ classdef SSIT
                             warning('off')
 
                             tableColumn = ...
-                                "exp" + ie + "_" + obj.species{s};
+                                "exp" + ie + "_" + species2save{s};
                             if distortedMode
                                 tableColumn = tableColumn + "_Distorted";
                             end
@@ -3362,6 +3363,163 @@ classdef SSIT
                         fimResults{it,1} = diag(freeVals) * fimResults{it,1} * diag(freeVals);
                     end
                 end
+            end
+        end
+
+        function [MLE] = estimateMLEspread(obj,opts)
+            % This function generates nMLE sets of simulated data and then
+            % attempts to find the MLE for each.  It then returns this set
+            % as a matrix with nMLE rows, which can then be plotted against
+            % the FIM to verify the CRLB.
+            %
+            % Optional arguments:
+            % nMLE (100) - number of MLE fits to conduct.
+            % makeFIMPlots (true) - generate figures to compare MLE scatter
+            %                       and FIM ellipses.
+            % saveFile ('defaultSimData.csv') - name of file containing
+            %                       simulation data. If this file does not
+            %                       yet, exist, it will be created.
+            % nCells (vector of integers) - number of cells to me measured
+            %                       at each time point. If not provided
+            %                       will try to use obj.dataSet.nCells.
+            % observableSpecies (cell array) - names of species that are
+            %                       free to be fit.
+            % freePars (vector of integers) - indices of parameters that
+            %                       are free to be indentified from data.
+            %                       If skipped, the default will be to
+            %                       consider parameters in
+            %                       obj.fittingOptions.modelVarsToFit.
+            arguments
+                obj
+                opts.nMLE = [];
+                opts.simsSaveFile = [];
+                opts.makeFIMPlots = true;
+                opts.nCells = [];
+                opts.observableSpecies = [];
+                opts.freePars = [];
+                opts.startPars = [];
+                opts.MLESaveFile = [];
+                opts.restart = false;
+                opts.nIter = 1000;
+            end
+
+            if isempty(opts.nMLE)
+                if isempty(opts.startPars)
+                    opts.nMLE = 100;
+                else
+                    opts.nMLE = size(opts.startPars,1);
+                end
+            end
+
+            if isempty(opts.simsSaveFile)
+                opts.simsSaveFile = 'defaultSimData.csv';
+            end
+
+            if ~contains(opts.simsSaveFile,'.')
+                opts.simsSaveFile = append(opts.simsSaveFile,'.csv');
+            end
+
+            if ~strcmp(opts.simsSaveFile(end-3:end),'.csv')
+                error('simsSaveFile must be a csv file.')
+            end
+
+            if isempty(opts.MLESaveFile)
+                opts.MLESaveFile = append(opts.simsSaveFile(1:end-3),'.mat');
+            end
+
+            if ~isempty(opts.MLESaveFile)&&~contains(opts.MLESaveFile,'.')
+                opts.MLESaveFile = append(opts.MLESaveFile,'.mat');
+            end
+
+            if ~strcmp(opts.MLESaveFile(end-3:end),'.mat')
+                error('MLESaveFile must be a csv file.')
+            end
+
+            if isempty(opts.nCells)
+                if ~isempty(obj.dataSet)
+                    opts.nCells = obj.dataSet.nCells;
+                    warning('Generating data equal to size of loaded data in Model:')
+                    opts.nCells
+                else
+                    error('Number of cells (nCells) per experiment time point needs to be provided.')
+                end
+            elseif length(opts.nCells)>length(obj.tSpan)
+                error('Number of cells (nCells) vector is longer than specified time span.')
+            end
+
+            if isempty(opts.observableSpecies)
+                if ~isempty(obj.pdoOptions.unobservedSpecies)
+                    opts.observableSpecies = setdiff(obj.species,obj.pdoOptions.unobservedSpecies);
+                    disp('Opservable species not specified -- using unobservable species saved in PDO')
+                else
+                    opts.observableSpecies = obj.species;
+                    disp('Opservable species not specified -- assuming complete observations')
+                end
+            else
+                obj.pdoOptions.unobservedSpecies = setdiff(obj.species,opts.observableSpecies);
+            end
+
+            if isempty(opts.freePars)
+                if isstr(obj.fittingOptions.modelVarsToFit)||ischar(obj.fittingOptions.modelVarsToFit)
+                    opts.freePars = [1:size(obj.parameters,1)];
+                    obj.fittingOptions.modelVarsToFit = opts.freePars;
+                elseif islogical(obj.fittingOptions.modelVarsToFit)
+                    opts.freePars = find(obj.fittingOptions.modelVarsToFit);
+                else          
+                    opts.freePars = obj.fittingOptions.modelVarsToFit;
+                end
+            else
+                obj.fittingOptions.modelVarsToFit = opts.freePars;
+            end
+
+            if isempty(opts.startPars)
+                opts.startPars = repmat([obj.parameters{obj.fittingOptions.modelVarsToFit,2}],opts.nMLE,1);
+            elseif size(opts.startPars,1)==1
+                opts.startPars = repmat(opts.startPars,opts.nMLE,1);
+            elseif size(opts.startPars,1)~=opts.nMLE
+                error('Height of startPars matrix must be equal to nMLE')
+            end
+
+            % Generate simulated data if needed.
+            if opts.restart||~exist(opts.simsSaveFile,"file")
+                tmpNexp = obj.ssaOptions.Nexp; % Record value of Nexp.
+                obj.ssaOptions.Nexp = opts.nMLE;
+                obj = obj.solve(solver='fsp');
+                obj.sampleDataFromFSP(saveFile=opts.simsSaveFile,nCells=opts.nCells,species2save=opts.observableSpecies);
+                obj.ssaOptions.Nexp =tmpNexp; % Restore value of Nexp.
+            end
+
+            MLEsamples = NaN*ones(opts.nMLE,length(opts.freePars));
+            MLEValues = NaN*ones(opts.nMLE,1);
+
+            fitOptions = optimset('Display','none','MaxIter',opts.nIter);
+            % Loop over the simulation tests
+            parfor iSim = 1:opts.nMLE         
+                % Load Data
+                dataFields = cell(length(opts.observableSpecies),2);
+                for iSp = 1:length(opts.observableSpecies)
+                    dataFields(iSp,:) = {opts.observableSpecies{iSp},['exp',num2str(iSim),'_',opts.observableSpecies{iSp}]};
+                end
+                mod = obj.loadData(opts.simsSaveFile,dataFields);
+
+                % Fit Model
+               [MLEsamples(iSim,:),MLEValues(iSim)] = mod.maximizeLikelihood(fitOptions=fitOptions,...
+                    returnType='pars',...
+                    parGuess=opts.startPars(iSim,:));
+            end
+
+            MLE.mhSamples = log(MLEsamples);
+            MLE.mhValue = MLEValues;
+
+            save(opts.MLESaveFile,'MLEsamples')
+
+            % If requested, make FIM / MLE scatter plots for visual
+            % verification of CRLB.
+            if opts.makeFIMPlots
+                FIMs = obj.computeFIM(scale='log',freePars=opts.freePars,...
+                    observed=opts.observableSpecies);
+                FIMTotal = obj.totalFim(FIMs,opts.nCells);
+                obj.plotMHResults(MLE,FIM=FIMTotal,fimScale='log',truncateChain=false);
             end
         end
 
@@ -3647,35 +3805,39 @@ classdef SSIT
 
             if isempty(linkedSpecies)
                 linkedSpecies = configureDictionary("string", "string");
+                missingLinkedSpecies = true;
             elseif iscell(linkedSpecies)
                 linkedSpecies = ...
                     createLinkedSpeciesDictionary(linkedSpecies, obj);
+                missingLinkedSpecies = false;
             end
            
             TAB2 = table;
             TAB2.time = TAB.(timeField{1});
 
-            % Automatically handled simulated data by linking species from
-            % the first simulation experiment.
+            % % Automatically handled simulated data by linking species from
+            % % the first simulation experiment.
             columns = TAB.Properties.VariableNames;
-            for colIdx = 1:length(columns)
-                curColumnName = columns{colIdx};
-                tokens = regexp(curColumnName, "exp1_(\w+)", "tokens");
-                if ~isempty(tokens)
-                    % We have found a corresponding species name in the
-                    % model, so copy the column while updating its name
-                    % accordingly. Add the mapping to the dictionary of
-                    % linked species.
+            if missingLinkedSpecies
+                for colIdx = 1:length(columns)
+                    curColumnName = columns{colIdx};
+                    tokens = regexp(curColumnName, "exp1_(\w+)", "tokens");
+                    if ~isempty(tokens)
+                        % We have found a corresponding species name in the
+                        % model, so copy the column while updating its name
+                        % accordingly. Add the mapping to the dictionary of
+                        % linked species.
 
-                    matchedSpeciesName = string(tokens{1});
-                    TAB2.(matchedSpeciesName) = TAB.(curColumnName);
-                    linkedSpecies(matchedSpeciesName) = curColumnName;
-                elseif ~strcmp(curColumnName, timeField{1})
-                    % There is no match, so copy the column to the name
-                    % under its existing name, unless it is the time
-                    % column, which we have already copied and renamed.
-                    
-                    TAB2.(curColumnName) = TAB.(curColumnName);
+                        matchedSpeciesName = string(tokens{1});
+                        TAB2.(matchedSpeciesName) = TAB.(curColumnName);
+                        linkedSpecies(matchedSpeciesName) = curColumnName;
+                    elseif ~strcmp(curColumnName, timeField{1})
+                        % There is no match, so copy the column to the name
+                        % under its existing name, unless it is the time
+                        % column, which we have already copied and renamed.
+
+                        TAB2.(curColumnName) = TAB.(curColumnName);
+                    end
                 end
             end
 
@@ -4011,11 +4173,15 @@ classdef SSIT
                 % Call routines to find the FSP solution with or without
                 % sensitivity.
                 if computeSensitivity&&nargout>=2
-                    obj.solutionScheme = "fspSens"; % Chosen solution scheme
-                    [solutions] = obj.solve(stateSpace, returnType = "soln");  % Solve the FSP analysis
+                    % obj.solutionScheme = 'fspSens'; % Chosen solution scheme
+                    % [solutions] = obj.solve(stateSpace,returnType='soln');  % Solve the FSP analysis
+                    obj = obj.solve(solver='fspSens');
+                    solutions = obj.Solutions;
                 else
-                    obj.solutionScheme = "FSP"; % Chosen solution scheme
-                    [solutions] = obj.solve(stateSpace, returnType = "soln");  % Solve the FSP analysis
+                    % obj.solutionScheme = 'FSP'; % Chosen solution scheme
+                    % [solutions] = obj.solve(stateSpace,returnType='soln');  % Solve the FSP analysis
+                    obj = obj.solve(solver='fsp');
+                    solutions = obj.Solutions;
                 end
                 obj.parameters =  originalPars; % Reset back to the original parameters.
                 % end
@@ -8036,6 +8202,7 @@ end
                 opts.LegendLocation (1,1) string = "best"
                 opts.MatrixType (1,1) string {mustBeMember(opts.MatrixType,["fim","invfim"])} = "fim"
                 opts.LogThreshold (1,1) double = 0
+                opts.HeatMapType (1,1) string {mustBeMember(opts.HeatMapType,["fim","invfim"])}  = "fim"
             end
         
             % -------- Extract numeric FIM --------
@@ -8049,7 +8216,11 @@ end
             if isempty(paramNames)
                 paramNames = arrayfun(@(i) sprintf('\\theta_{%d}', i), 1:nParams, 'UniformOutput', false);
             end
-            if isempty(theta0), theta0 = zeros(1,nParams); end
+            
+            if isempty(theta0)
+                theta0 = zeros(1,nParams);
+            end
+            
             if numel(theta0) ~= nParams
                 error('theta0 must be a vector of length %d (number of parameters).', nParams);
             end
@@ -8075,31 +8246,43 @@ end
                 posValues = 1*(fimSym>=10^opts.LogThreshold)+...
                     -1*(fimSym<=-10^opts.LogThreshold); 
 
-                logMag = max(0,log10(abs(fimSym)-opts.LogThreshold)).*posValues;
+                logMag = max(0,log10(abs(fimSym))-opts.LogThreshold).*posValues;
                 fimDisp = logMag;
 
                 x1 = max(abs(logMag),[],'all');
-                rangeColors = [-x1,-opts.LogThreshold,opts.LogThreshold,x1];
 
-                if opts.LogThreshold~=0
+                if opts.LogThreshold>0
+                    rangeColors = [-x1,-abs(opts.LogThreshold),abs(opts.LogThreshold),x1];
                     cbTicks = [floor(rangeColors(1)):rangeColors(2),0,rangeColors(3):ceil(rangeColors(4))];
+                    cbTickLabels = [arrayfun(@(v) sprintf('-10^{%g}', v), -cbTicks(1:end/2)+opts.LogThreshold, 'UniformOutput', false),['\pm 10^{',num2str(opts.LogThreshold),'}'],...
+                        arrayfun(@(v) sprintf('10^{%g}', v), cbTicks(end/2+1:end)+opts.LogThreshold, 'UniformOutput', false)];
+                elseif opts.LogThreshold<0
+                    rangeColors = [-x1,0,x1];
+                    cbTicks = [floor(rangeColors(1)):0,1:ceil(rangeColors(3))];
+                    cbTickLabels = [arrayfun(@(v) sprintf('-10^{%g}', v), -cbTicks(1:end/2)+opts.LogThreshold, 'UniformOutput', false),['\pm 10^{',num2str(opts.LogThreshold),'}'],...
+                        arrayfun(@(v) sprintf('10^{%g}', v), cbTicks(end/2+1:end)+opts.LogThreshold, 'UniformOutput', false)];
                 else
-                    cbTicks = [floor(rangeColors(1)):0,1:ceil(rangeColors(4))];
+                    rangeColors = [-x1,0,x1];
+                    cbTicks = [floor(rangeColors(1)):0,1:ceil(rangeColors(3))];
+                    cbTickLabels = [arrayfun(@(v) sprintf('-10^{%g}', v), -cbTicks(1:end/2), 'UniformOutput', false),'0',...
+                        arrayfun(@(v) sprintf('10^{%g}', v), cbTicks(end/2+1:end), 'UniformOutput', false)];
                 end
-                cbTickLabels = [arrayfun(@(v) sprintf('-10^{%g}', v), -cbTicks(1:end/2), 'UniformOutput', false),'~~',...
-                    arrayfun(@(v) sprintf('10^{%g}', v), cbTicks(end/2+1:end), 'UniformOutput', false)];
 
-                C.HeatmapColormap = blueWhiteFlatRed(-x1,0,0,x1);
+                C.HeatmapColormap = blueWhiteFlatRed(cbTicks(1),0,0,cbTicks(end));
 
                 epsVal   = 1e-16;
                 eigDisp  = log10(max(eigVals, epsVal))
                 fimLabel = ['log_{10} ' baseLabel];
                 eigLabel = 'log_{10} eigenvalues';
+
+                theta0 = log10(theta0);
+                paramBase = 'log_{10} ';
             elseif strcmp(scale,'lin')
                 fimDisp  = fimSym;
                 eigDisp  = eigVals;
                 fimLabel = baseLabel;
                 eigLabel = 'Eigenvalues';
+                paramBase = '';
             else
                 error("plotFIMResults requires 'scale' to be specified as 'lin' or 'log'.");
             end
@@ -8137,11 +8320,13 @@ end
             title(fimLabel, 'FontSize', opts.AxisLabelSize, 'FontWeight', 'bold');
             cb.Label.String = fimLabel; cb.Label.FontSize = opts.AxisLabelSize;
             
+            clim([cbTicks(1),cbTicks(end)])
+
             if exist('cbTickLabels','var')
                 cb.TickLabels = cbTickLabels;
                 cb.Ticks = cbTicks;
             end
-        
+   
             % (2) diag(FIM)
             subplot(2,2,2);
             hBarDiag = bar(diagInfo);
@@ -8151,7 +8336,7 @@ end
             set(gca, 'XTick', 1:nParams, 'XTickLabel', paramNames, ...
                      'TickLabelInterpreter', 'tex', 'FontSize', opts.TickLabelSize);
             xlabel('Parameter', 'FontSize', opts.AxisLabelSize);
-            ylabel('Diagonal entry of FIM', 'FontSize', opts.AxisLabelSize);
+            ylabel(append('Diagonal entry of ',baseLabel), 'FontSize', opts.AxisLabelSize);
             title('Per-parameter information', 'FontSize', opts.AxisLabelSize, 'FontWeight', 'bold');
         
             % (3) eigenvalues
@@ -8166,7 +8351,7 @@ end
             if isfinite(condInfo)
                 ttl = sprintf('FIM spectrum (cond. ≈ %.2e)', condInfo);
             else
-                ttl = 'FIM spectrum';
+                ttl = append(baseLabel,' spectrum');
             end
             title(ttl, 'FontSize', opts.AxisLabelSize, 'FontWeight', 'bold');
         
@@ -8211,6 +8396,7 @@ end
             % Resolve a single ellipse color/spec (fallback)
             [ellipseHasColor, ellipseColorOrSpec] = resolveEllipseColorFallback(C);
         
+            lims = struct;
             if isempty(ellipsePairs)
                 % grid of all upper-triangular pairs
                 for iParam = 1:nParams-1
@@ -8228,11 +8414,45 @@ end
                         plot(mu(1), mu(2), 's', 'MarkerSize', 8, ...
                             'MarkerEdgeColor', centerSqColor, 'MarkerFaceColor', 'w', 'LineWidth', 2);
         
-                        xlabel(paramNames{jParam}, 'Interpreter', 'tex', 'FontSize', opts.AxisLabelSize);
-                        ylabel(paramNames{iParam}, 'Interpreter', 'tex', 'FontSize', opts.AxisLabelSize);
-                        set(gca, 'FontSize', opts.TickLabelSize); axis equal; grid on;
+                        
+                        if iParam == jParam-1
+                            xlabel([paramBase, paramNames{jParam}], 'Interpreter', 'tex', 'FontSize', opts.AxisLabelSize);
+                            ylabel([paramBase, paramNames{iParam}], 'Interpreter', 'tex', 'FontSize', opts.AxisLabelSize);
+                        end
+                        set(gca, 'FontSize', opts.TickLabelSize); grid on;
+
+                        if isfield(lims,paramNames{jParam})
+                            set(gca,'XLim',lims.(paramNames{jParam}));
+                        else
+                            lims.(paramNames{jParam}) = get(gca,'XLim');
+                            set(gca,'XLim',lims.(paramNames{jParam}));
+                        end
+                        if isfield(lims,paramNames{iParam})
+                            set(gca,'YLim',lims.(paramNames{iParam}))
+                        else
+                            lims.(paramNames{iParam}) = get(gca,'YLim');
+                            set(gca,'YLim',lims.(paramNames{iParam}))
+                       end
+                       ax(iParam,jParam-1) = gca;
                     end
                 end
+                % Use the first valid subplot as the reference size
+                % refAx = ax(1,1);
+                % refPos = get(refAx,'Position');
+
+                % for iParam = 1:nParams-1
+                %     for jParam = iParam+1:nParams
+                %         if isgraphics(ax(iParam,jParam-1))
+                % 
+                %             pos = get(ax(iParam,jParam-1),'Position');
+                % 
+                %             % Preserve location, but force identical width and height
+                %             pos(3:4) = refPos(3:4);
+                % 
+                %             set(ax(iParam,jParam-1),'Position',pos);
+                %         end
+                %     end
+                % end
             else
                 % subset layout
                 if ~ismatrix(ellipsePairs) || size(ellipsePairs,2) ~= 2
@@ -8415,7 +8635,7 @@ end
                 opts.scatterFig = [];
                 opts.plotColors = struct();
                 opts.showConvergence = true;
-                opts.ESS = true;
+                opts.ESS = false;
                 opts.names = {};
                 opts.latexFileName = '';
                 opts.showMLEs = true;
@@ -8425,6 +8645,7 @@ end
                 opts.priorMean = [];
                 opts.priorSig = [];
                 opts.showCovMatrix = false;
+                opts.truncateChain = true;
             end
             FIM = opts.FIM;
             fimScale = opts.fimScale;
@@ -8438,14 +8659,14 @@ end
             obj.plotMHResultsStatic(obj,mhResults,FIM,fimScale,mhPlotScale,...
                 scatterFig,ess,showConvergence,plotColors,names,opts.latexFileName,...
                 opts.showMLEs,opts.descriptions,opts.parameterReorder,opts.showMarginalPosteriors,...
-                opts.priorMean,opts.priorSig,opts.showCovMatrix)
+                opts.priorMean,opts.priorSig,opts.showCovMatrix,opts.truncateChain)
         end
     end
     methods (Static)
         function plotMHResultsStatic(obj,mhResults,FIM,fimScale,mhPlotScale,...
                 scatterFig,ess,showConvergence,plotColors,names,latexFileName,...
                 showMLE,descriptions,parameterReorder,showMarginalPosteriors,...
-                priorMean,priorSig,showCovMatrix)
+                priorMean,priorSig,showCovMatrix,truncateChain)
             arguments
                 obj
                 mhResults = [];
@@ -8453,7 +8674,7 @@ end
                 fimScale = 'lin';
                 mhPlotScale = 'log10';
                 scatterFig = [];
-                ess = true;  % display min(mhResults.ess(:)) in title    
+                ess = false;  % display min(mhResults.ess(:)) in title    
                 showConvergence = true
                 plotColors = struct() % Optional: fields like scatter, ellipseFIM, ellipseMH, etc.
                 names = {};
@@ -8465,6 +8686,7 @@ end
                 priorMean = [];
                 priorSig = [];
                 showCovMatrix = false;
+                truncateChain = true;
             end
 
             if isfield(plotColors, 'scatter')
@@ -8546,7 +8768,7 @@ end
 
             if ~isempty(mhResults)
                 % Make figures for MH convergence
-                if showConvergence
+                if showConvergence&&isfield(mhResults,'mhValue')
                     fg = figure; set(0,'CurrentFigure',fg)
                     plot(mhResults.mhValue);
                     xlabel('Iteration number');
@@ -8583,8 +8805,10 @@ end
 
                 % Select second half of MH chain.
                 mhResultsSecondHalf = mhResults;
-                mhResultsSecondHalf.mhValue = mhResultsSecondHalf.mhValue(floor(end/2):end);
-                mhResultsSecondHalf.mhSamples = mhResultsSecondHalf.mhSamples(floor(end/2):end,:);
+                if truncateChain
+                    mhResultsSecondHalf.mhValue = mhResultsSecondHalf.mhValue(floor(end/2):end);
+                    mhResultsSecondHalf.mhSamples = mhResultsSecondHalf.mhSamples(floor(end/2):end,:);
+                end
                 [valDoneSorted,J] = sort(mhResultsSecondHalf.mhValue);
                 smplDone = mhResultsSecondHalf.mhSamples(J,:);
 
