@@ -89,29 +89,29 @@ y2 = log10(final_kon);
 
 % Squares
 plot(ax1, x1, y1, 's', ...
-    'MarkerSize', 15, ...
+    'MarkerSize', 12, ...
     'MarkerEdgeColor', 'k', ...
     'MarkerFaceColor', 'b', ...
-    'LineWidth', 5);
+    'LineWidth', 3);
 
 plot(ax1, x2, y2, 's', ...
-    'MarkerSize', 15, ...
+    'MarkerSize', 12, ...
     'MarkerEdgeColor', 'k', ...
     'MarkerFaceColor', 'r', ...
-    'LineWidth', 5);
+    'LineWidth', 3);
 
 % Arrows
 quiver(ax1, x0, y0, x1-x0, y1-y0, 0, ...
-    Color='b', LineWidth=3, MaxHeadSize=0.15, ShowArrowHead='on');
+    Color='b', LineWidth=2, MaxHeadSize=0.25, ShowArrowHead='on');
 
 quiver(ax1, x0, y0, x2-x0, y2-y0, 0, ...
-    Color='r', LineWidth=3, MaxHeadSize=0.15, ShowArrowHead='on');
+    Color='r', LineWidth=2, MaxHeadSize=0.25, ShowArrowHead='on');
 
 % Star
 plot(ax1, x0, y0, 'k*', ...
-    'MarkerSize', 20, 'LineWidth', 3);
-plot(ax1, x0, y0, 'k*', ...
-    'MarkerSize', 14, 'LineWidth', 1.5);
+    'MarkerSize', 15, 'LineWidth', 3);
+% plot(ax1, x0, y0, 'k*', ...
+%     'MarkerSize', 14, 'LineWidth', 1.5);
 
 %% plot mean and std during transition from mu == 2 to mu == 75. Paper Figure 1
 Model_chg = SSIT('Empty');
@@ -191,6 +191,7 @@ end
 fullWidth = 6.33;
 thirdWidth = 6.33 / 3;
 quarterHeight = 7.9 / 4;
+sixtenthHeight = 7.9/16;
 
 % Figure 1B
 fig = figure(1);
@@ -200,15 +201,14 @@ ax = gca;
 ax.Title.String = '';
 ax.XLabel.String = '';
 ax.YLabel.String = '';
-
+ax.XTickLabel = [];
+ax.YTickLabel = [];
 fig.Units = 'inches';
-fig.Position(3:4) = [fullWidth quarterHeight];
+fig.Position(3:4) = [fullWidth 6*sixtenthHeight];
 
 exportgraphics(fig, ...
     fullfile(outputFolder, 'figure1b.svg'), ...
     'ContentType', 'vector');
-
-
 
 % Figure 1C-I, II, III
 figNums = [2 3 4];
@@ -235,12 +235,17 @@ for i = 1:3
     ax.YLabel.String = '';
     ax.YLabel.Visible = 'off';
 
+    ax.YGrid = 'off';
+
+    ax.XTickLabel = [];
+    ax.YTickLabel = [];
+
     % Keep requested x-axis limits
     xlim(ax, [0 120]);
 
     % Set physical dimensions
     fig.Units = 'inches';
-    fig.Position(3:4) = [thirdWidth quarterHeight];
+    fig.Position(3:4) = [thirdWidth 2*sixtenthHeight];
 
     % Export
     exportgraphics(fig, ...
@@ -264,6 +269,12 @@ ax.XLabel.Visible = 'off';
 ax.YLabel.String = '';
 ax.YLabel.Visible = 'off';
 
+ax.XTickLabel = [];
+ax.YTickLabel = [];
+
+cb = colorbar(ax);
+cb.TickLabels = [];
+
 % Remove legend
 leg = findobj(fig, 'Type', 'Legend');
 
@@ -283,6 +294,328 @@ exportgraphics(fig, ...
 disp('All SVG figures exported successfully.');
 
 
+
+%% Simple experiment and eigenvector analysis
+Model_chg.tSpan = linspace(0,7.5,31); % update time specific to the time scale
+nCellsInExperiment = 0*Model_chg.tSpan;
+nCellsInExperiment([1,31]) = 200;
+FIMs = Model_chg.computeFIM(scale='log',freePars=[1:5],...
+    observed={'mRNA'});
+FIMTotal = Model_chg.totalFim(FIMs,nCellsInExperiment);
+
+fprintf('FIM for step change in kon at 1 for intuitive design')
+f = FIMTotal{1}
+c = cond(f)
+[V, D] = eig(f)
+e = 1/2*(f*f')^-1
+[V, D] = eig(e)
+
+Model_chg.plotFIMResults(f, 'log', Model_chg.parameters(1:5), PlotEllipses=true, Colors=struct('EllipseColors',[0.9 0.6 0.2],...
+    'CenterSquare',[0.96,0.47,0.16]))
+% I really like this plot. It shows how the intial steady state has the
+% least amount of information. 
+
+%% Larger experiment and analysis
+nCellsInExperiment = 0*Model_chg.tSpan;
+nCellsInExperiment([1,3,5,10, 15, 20, 25, 31]) = 1000;
+FIMs = Model_chg.computeFIM(scale='log',freePars=[1:5],...
+    observed={'mRNA'});
+FIMTotal = Model_chg.totalFim(FIMs,nCellsInExperiment);
+
+fprintf('FIM for step change in kon at 1 for intuitive design')
+f = FIMTotal{1}
+c = cond(f) 
+[V, D] = eig(f)
+e = 1/2*(f*f')^-1
+[V, D] = eig(e)
+
+Model_chg.plotFIMResults(f, 'log', Model_chg.parameters(1:5),  PlotEllipses=true, Colors=struct('EllipseColors',[0.9 0.6 0.2],...
+    'CenterSquare',[0.96,0.47,0.16]))
+% see marginal improvement in intial steady state 
+
+
+%% Setup
+rng(1);
+
+% True parameters
+theta_true = [100, 50];
+
+% Number of observations
+n = 10;
+
+% Generate data
+ds = theta_true(1) + theta_true(2) * randn(n,1);
+
+% Log-likelihood
+logL = @(ds, m, s) sum(log(normpdf(ds, m, s)));
+
+%% Single dataset
+
+theta1_domain = linspace(0, theta_true(1)*2, 500);
+likelihoods = zeros(size(theta1_domain));
+
+for i = 1:length(theta1_domain)
+    likelihoods(i) = logL(ds, theta1_domain(i), theta_true(2));
+end
+
+[value, idx] = max(likelihoods);
+theta1_mle = theta1_domain(idx);
+
+figure(10);
+clf;
+
+plot(theta1_domain, likelihoods, ...
+    'Color', [0.15 0.35 0.65], ...
+    'LineWidth', 2);
+
+hold on;
+
+% True parameter
+xline(theta_true(1), ...
+    '--k', ...
+    'LineWidth', 2);
+
+% MLE
+xline(theta1_mle, ...
+    '--r', ...
+    'LineWidth', 2);
+
+% Formatting
+xlabel('\theta_1', 'FontSize', 14);
+ylabel('Log-likelihood', 'FontSize', 14);
+
+legend({'Log-likelihood', ...
+        'True \theta_1', ...
+        'MLE'}, ...
+        'Location', 'best', ...
+        'Box', 'off');
+
+set(gca, ...
+    'FontSize', 12, ...
+    'LineWidth', 1.2, ...
+    'TickDir', 'out', ...
+    'Box', 'off');
+
+grid off;
+
+title(sprintf('Single dataset (n = %d)', n), ...
+    'FontSize', 14, ...
+    'FontWeight', 'normal');
+
+%% Multiple datasets
+
+all_thetas = [100, 50;
+              100, 50;
+              100, 100;
+              100, 100];
+
+N = [5, 10, 5, 10];
+
+nDatasets = 1000;
+
+for j = 1:length(N)
+
+    theta_true = all_thetas(j,:);
+    n = N(j);
+
+    theta1_domain = linspace(0, theta_true(1)*2, 500);
+    mle_estimates = zeros(nDatasets, 1);
+
+    figure(10+j);
+    clf;
+
+    curveColor = [0.25 0.45 0.70];
+    mleColor = [0.85 0.15 0.15];
+
+    % Top: likelihood curves
+    ax1 = axes('Position', [0.10 0.46 0.68 0.44]);
+    hold(ax1, 'on');
+
+    colors = ax1.ColorOrder;
+
+    for k = 1:nDatasets
+
+        % Generate dataset
+        ds = theta_true(1) + theta_true(2) * randn(n,1);
+
+        % Calculate log-likelihood
+        likelihoods = zeros(size(theta1_domain));
+
+        for i = 1:length(theta1_domain)
+            likelihoods(i) = logL(ds, ...
+                theta1_domain(i), ...
+                theta_true(2));
+        end
+
+        % Exact MLE
+        mle_estimates(k) = mean(ds);
+
+        likelihoods = likelihoods - max(likelihoods);
+
+        % Plot likelihood
+        if k < 50
+            c = colors(mod(k-1, size(colors,1))+1, :);
+
+            plot(ax1, theta1_domain, likelihoods, ...
+                'Color', c, ...
+                'LineWidth', 1.5);
+        end
+    end
+
+    ylim(ax1, [min(likelihoods(:)) 1]);
+
+    % True parameter
+    xline(ax1, theta_true(1), ...
+        '--k', ...
+        'LineWidth', 2);
+
+    ax1.XAxisLocation = 'bottom';
+
+    xlim(ax1, [0 theta_true(1)*2]);
+
+    ylabel(ax1, 'Log-likelihood', ...
+        'FontSize', 13);
+
+    title(ax1, sprintf( ...
+        '\\theta_1 = %g, \\theta_2 = %g, n = %d', ...
+        theta_true(1), theta_true(2), n), ...
+        'FontSize', 14, ...
+        'FontWeight', 'normal');
+
+    set(ax1, ...
+        'FontSize', 11, ...
+        'LineWidth', 1.2, ...
+        'TickDir', 'out', ...
+        'Box', 'off', ...
+        'XColor', 'k');
+
+    grid(ax1, 'off');
+
+    % MLE markers
+    plot(ax1, mle_estimates(1:50), ...
+        zeros(size(mle_estimates(1:50))), ...
+        'x', ...
+        'Color', mleColor, ...
+        'MarkerSize', 8, ...
+        'LineWidth', 1.5);
+
+
+    % Right: zoomed-in likelihood curves
+    axZoom = axes('Position', [0.82 0.46 0.15 0.44]);
+    hold(axZoom, 'on');
+
+    colors = axZoom.ColorOrder;
+
+    % Zoom window
+    zoomWidth = 1;
+    xlim(axZoom, ...
+        [theta_true(1)-zoomWidth theta_true(1)+zoomWidth]);
+
+    minLikelihoods = zeros(size(likelihoods));
+    maxLikelihoods = zeros(size(likelihoods));
+    zoom_theta_dom = linspace(theta_true(1)-zoomWidth, theta_true(1)+zoomWidth, length(theta1_domain));
+    % Use same y limits as main panel
+    ylim(axZoom, ax1.YLim);
+
+    % Replot likelihood curves in zoomed region
+    for k = 1:min(49, nDatasets)
+
+        ds = theta_true(1) + theta_true(2) * randn(n,1);
+
+        likelihoods = zeros(size(zoom_theta_dom));
+
+        for i = 1:length(zoom_theta_dom)
+            likelihoods(i) = logL(ds, ...
+                zoom_theta_dom(i), ...
+                theta_true(2));
+        end
+
+        likelihoods = likelihoods - max(likelihoods);
+        minLikelihoods(k) = min(likelihoods);
+        maxLikelihoods(k) = max(likelihoods);
+        c = colors(mod(k-1, size(colors,1))+1, :);
+
+        plot(axZoom, zoom_theta_dom, likelihoods, ...
+            'Color', c, ...
+            'LineWidth', 1.5);
+    end
+
+    ylim(axZoom, [-0.2 0]);
+
+    % True parameter
+    xline(axZoom, theta_true(1), ...
+        '--k', ...
+        'LineWidth', 2);
+
+    % Formatting zoom panel
+    set(axZoom, ...
+        'FontSize', 10, ...
+        'LineWidth', 1.2, ...
+        'TickDir', 'out', ...
+        'Box', 'on');
+
+    grid(axZoom, 'off');
+
+    xlabel(axZoom, '\theta_1');
+
+    % Remove y-axis labels from zoom panel
+    axZoom.YTickLabel = [];
+
+
+    % Bottom: histogram
+    ax2 = axes('Position', [0.10 0.08 0.68 0.38]);
+    hold(ax2, 'on');
+
+    histogram(ax2, mle_estimates, ...
+        'NumBins', 20, ...
+        'FaceColor', curveColor, ...
+        'FaceAlpha', 0.75, ...
+        'EdgeColor', 'none');
+
+    % Flip histogram upside down
+    ax2.YDir = 'reverse';
+
+    % True parameter
+    xline(ax2, theta_true(1), ...
+        '--k', ...
+        'LineWidth', 2);
+
+    xlim(ax2, [0 theta_true(1)*2]);
+
+    % Remove histogram x-axis
+    ax2.XTick = [];
+    ax2.XColor = 'none';
+
+    % Remove histogram y-axis
+    ax2.YTick = [];
+    % ax2.YColor = 'none';
+
+    ax2.Box = 'off';
+
+    set(ax2, ...
+        'FontSize', 11, ...
+        'LineWidth', 1.2, ...
+        'TickDir', 'out');
+
+    grid(ax2, 'off');
+
+    % Put likelihood axes in front
+    uistack(ax1, 'top');
+
+end
+
+
+
+
+
+
+
+
+
+
+
+
+return 
 %% Burst Frequency Model
 Model = SSIT('Empty');
 
@@ -325,6 +658,8 @@ Model.tSpan = linspace(0,300,31);
 Model = Model.solve;
 
 Model.plotFSP
+
+%% 
 
 %% Verification of FIM using CRLB (spread of MLE)
 % nCellsInExperiment = 0*Model.tSpan;
