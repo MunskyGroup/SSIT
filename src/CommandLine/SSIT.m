@@ -3792,13 +3792,13 @@ classdef SSIT
             % subsequent attempts to index using strings will error.
 
             if isempty(linkedSpecies)
-                linkedSpecies = configureDictionary("string", "string");
-                missingLinkedSpecies = true;
+                linkedSpecies = configureDictionary("string", "string");                
             elseif iscell(linkedSpecies)
                 linkedSpecies = ...
-                    createLinkedSpeciesDictionary(linkedSpecies, obj);
-                missingLinkedSpecies = false;
+                    createLinkedSpeciesDictionary(linkedSpecies, obj);                
             end
+
+            missingLinkedSpecies = linkedSpecies.numEntries == 0;
            
             TAB2 = table;
             TAB2.time = TAB.(timeField{1});
