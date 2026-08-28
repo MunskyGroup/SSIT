@@ -3066,9 +3066,11 @@ classdef SSIT
             % determine which species should be included in the output.
             if isempty(species2save)
                 if obj.useHybrid
-                    species2save = setdiff(obj.species,obj.hybridOptions.upstreamODEs);
+                    species2save = setdiff(...
+                        obj.species, obj.hybridOptions.upstreamODEs);
                 else
-                    species2save = obj.species;
+                    species2save = setdiff(...
+                        obj.species, obj.pdoOptions.unobservedSpecies);
                 end
             end            
             if obj.useHybrid
