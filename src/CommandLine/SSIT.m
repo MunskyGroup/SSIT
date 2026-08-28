@@ -3075,9 +3075,11 @@ classdef SSIT
             % determine which species should be included in the output.
             if isempty(species2save)
                 if obj.useHybrid
-                    species2save = setdiff(obj.species,obj.hybridOptions.upstreamODEs);
+                    species2save = setdiff(...
+                        obj.species, obj.hybridOptions.upstreamODEs);
                 else
-                    species2save = obj.species;
+                    species2save = setdiff(...
+                        obj.species, obj.pdoOptions.unobservedSpecies);
                 end
             end            
             if obj.useHybrid
@@ -3804,13 +3806,13 @@ classdef SSIT
             % subsequent attempts to index using strings will error.
 
             if isempty(linkedSpecies)
-                linkedSpecies = configureDictionary("string", "string");
-                missingLinkedSpecies = true;
+                linkedSpecies = configureDictionary("string", "string");                
             elseif iscell(linkedSpecies)
                 linkedSpecies = ...
-                    createLinkedSpeciesDictionary(linkedSpecies, obj);
-                missingLinkedSpecies = false;
+                    createLinkedSpeciesDictionary(linkedSpecies, obj);                
             end
+
+            missingLinkedSpecies = linkedSpecies.numEntries == 0;
            
             TAB2 = table;
             TAB2.time = TAB.(timeField{1});
