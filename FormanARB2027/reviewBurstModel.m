@@ -409,7 +409,7 @@ all_thetas = [100, 50;
               100, 100;
               100, 100];
 
-N = [5, 10, 5, 10];
+N = [10, 5, 10, 5];
 
 nDatasets = 1000;
 
@@ -418,8 +418,11 @@ for j = 1:length(N)
     theta_true = all_thetas(j,:);
     n = N(j);
 
-    theta1_domain = linspace(0, theta_true(1)*2, 500);
+    theta1_domain = linspace(0, theta_true(1)*2, 1000);
     mle_estimates = zeros(nDatasets, 1);
+
+    % Store likelihood curves so the zoom is exactly the same data
+    all_likelihoods = zeros(nDatasets, length(theta1_domain));
 
     figure(10+j);
     clf;
@@ -427,11 +430,12 @@ for j = 1:length(N)
     curveColor = [0.25 0.45 0.70];
     mleColor = [0.85 0.15 0.15];
 
+    % Use one color order for both panels
+    colors = turbo(49);
+
     % Top: likelihood curves
     ax1 = axes('Position', [0.10 0.46 0.68 0.44]);
     hold(ax1, 'on');
-
-    colors = ax1.ColorOrder;
 
     for k = 1:nDatasets
 
@@ -450,19 +454,21 @@ for j = 1:length(N)
         % Exact MLE
         mle_estimates(k) = mean(ds);
 
+        % Shift maximum to zero
         likelihoods = likelihoods - max(likelihoods);
 
-        % Plot likelihood
-        if k < 50
-            c = colors(mod(k-1, size(colors,1))+1, :);
+        % Store likelihood
+        all_likelihoods(k,:) = likelihoods;
 
+        % Plot first 49 datasets
+        if k < 50
             plot(ax1, theta1_domain, likelihoods, ...
-                'Color', c, ...
+                'Color', colors(k,:), ...
                 'LineWidth', 1.5);
         end
     end
 
-    ylim(ax1, [min(likelihoods(:)) 1]);
+    ylim(ax1, [min(all_likelihoods(1:49,:), [], 'all') 0.5]);
 
     % True parameter
     xline(ax1, theta_true(1), ...
@@ -491,7 +497,7 @@ for j = 1:length(N)
 
     grid(ax1, 'off');
 
-    % MLE markers
+    % MLE markers directly on x-axis
     plot(ax1, mle_estimates(1:50), ...
         zeros(size(mle_estimates(1:50))), ...
         'x', ...
@@ -501,46 +507,26 @@ for j = 1:length(N)
 
 
     % Right: zoomed-in likelihood curves
+    leftIdx = find(theta1_domain >= theta_true(1)-zoomWidth, 1);
+    rightIdx = find(theta1_domain <= theta_true(1)+zoomWidth, 1, 'last');
+
     axZoom = axes('Position', [0.82 0.46 0.15 0.44]);
     hold(axZoom, 'on');
 
-    colors = axZoom.ColorOrder;
-
-    % Zoom window
     zoomWidth = 1;
+
     xlim(axZoom, ...
         [theta_true(1)-zoomWidth theta_true(1)+zoomWidth]);
 
-    minLikelihoods = zeros(size(likelihoods));
-    maxLikelihoods = zeros(size(likelihoods));
-    zoom_theta_dom = linspace(theta_true(1)-zoomWidth, theta_true(1)+zoomWidth, length(theta1_domain));
-    % Use same y limits as main panel
-    ylim(axZoom, ax1.YLim);
-
-    % Replot likelihood curves in zoomed region
-    for k = 1:min(49, nDatasets)
-
-        ds = theta_true(1) + theta_true(2) * randn(n,1);
-
-        likelihoods = zeros(size(zoom_theta_dom));
-
-        for i = 1:length(zoom_theta_dom)
-            likelihoods(i) = logL(ds, ...
-                zoom_theta_dom(i), ...
-                theta_true(2));
-        end
-
-        likelihoods = likelihoods - max(likelihoods);
-        minLikelihoods(k) = min(likelihoods);
-        maxLikelihoods(k) = max(likelihoods);
-        c = colors(mod(k-1, size(colors,1))+1, :);
-
-        plot(axZoom, zoom_theta_dom, likelihoods, ...
-            'Color', c, ...
+    % Use same y range as main plot
+    % ylim(axZoom, [min(all_likelihoods(1:49, leftIdx:rightIdx), [], 'all'), 0.01]);
+    ylim(axZoom, [-3, 0.01]);
+    % Plot EXACT SAME curves with EXACT SAME colors
+    for k = 1:49
+        plot(axZoom, theta1_domain, all_likelihoods(k,:), ...
+            'Color', colors(k,:), ...
             'LineWidth', 1.5);
     end
-
-    ylim(axZoom, [-0.2 0]);
 
     % True parameter
     xline(axZoom, theta_true(1), ...
@@ -558,7 +544,7 @@ for j = 1:length(N)
 
     xlabel(axZoom, '\theta_1');
 
-    % Remove y-axis labels from zoom panel
+    % Remove y-axis labels
     axZoom.YTickLabel = [];
 
 
@@ -567,7 +553,7 @@ for j = 1:length(N)
     hold(ax2, 'on');
 
     histogram(ax2, mle_estimates, ...
-        'NumBins', 20, ...
+        'NumBins', 50, ...
         'FaceColor', curveColor, ...
         'FaceAlpha', 0.75, ...
         'EdgeColor', 'none');
@@ -586,9 +572,8 @@ for j = 1:length(N)
     ax2.XTick = [];
     ax2.XColor = 'none';
 
-    % Remove histogram y-axis
+    % Remove histogram y-axis numbers
     ax2.YTick = [];
-    % ax2.YColor = 'none';
 
     ax2.Box = 'off';
 
@@ -602,10 +587,44 @@ for j = 1:length(N)
     % Put likelihood axes in front
     uistack(ax1, 'top');
 
+    % Histogram of absolute finite-difference slopes
+    axSlope = axes('Position', [0.82 0.08 0.15 0.30]);
+    hold(axSlope, 'on');
+
+    dx = theta1_domain(rightIdx) - theta1_domain(leftIdx);
+
+    slopes = zeros(49,1);
+
+    for k = 1:999
+        slopes(k) = ...
+            (all_likelihoods(k,rightIdx) - ...
+             all_likelihoods(k,leftIdx)) / dx;
+    end
+
+    absSlopes = abs(slopes);
+
+    % Histogram
+    histogram(axSlope, absSlopes, ...
+        'NumBins', 15, ...
+        'FaceColor', curveColor, ...
+        'FaceAlpha', 0.75, ...
+        'EdgeColor', 'none');
+
+    xlabel(axSlope, '|slope|');
+    % ylabel(axSlope, 'Count');
+
+    set(axSlope, ...
+        'FontSize', 10, ...
+        'LineWidth', 1.2, ...
+        'TickDir', 'out', ...
+        'Box', 'off');
+
+    xlim(axSlope, [0, 0.2])
+    axSlope.YTick = [];
+    grid(axSlope, 'off');
+
+
 end
-
-
-
 
 
 
