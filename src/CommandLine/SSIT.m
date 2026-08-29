@@ -3069,8 +3069,7 @@ classdef SSIT
                     species2save = setdiff(...
                         obj.species, obj.hybridOptions.upstreamODEs);
                 else
-                    species2save = setdiff(...
-                        obj.species, obj.pdoOptions.unobservedSpecies);
+                    species2save = obj.species;
                 end
             end            
             if obj.useHybrid
