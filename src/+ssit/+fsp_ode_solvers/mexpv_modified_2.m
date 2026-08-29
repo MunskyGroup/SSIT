@@ -183,7 +183,7 @@ wout = vin;
 
 %%
 anorm = norm(Ain,'inf');
-mxrej = 10;  btol  = 1.0e-4;
+mxrej = 10;  btol  = 1.0e-5;
 gamma = 0.9; delta = 1.2;
 mb    = m; t_out   = abs(t);
 s_error = 0;
@@ -308,7 +308,7 @@ while tNow < t_out && i_prt<=length(Time_array)
             [H,V,k1,mb,t_step] = ssit.fsp_ode_solvers.mexFunctionExpokit(n,m,w,beta,Acsr,btol,...
                 Time_array(i_prt),tNow,k1_in,mb_in,t_step_in,orthDepth);
         catch
-            [H,V,k1,mb,t_step] = ssit.fsp_ode_solvers.ExpensiveTask(n,m,w,beta,A,btol,...
+            [H,V,k1,mb,t_step] = ssit.fsp_ode_solvers.ExpensiveTask(n,m,w,beta,Ain,btol,...
                 Time_array(i_prt),tNow,k1_in,mb_in,t_step_in,orthDepth);
         end
 
@@ -384,7 +384,7 @@ while tNow < t_out && i_prt<=length(Time_array)
     % 
     wnorm = norm(w,1);
     % if ineg > 0
-    %     w = (1/wnorm)*w;
+    w = (1/wnorm)*w;
     % end
     roundoff = abs(1.0d0-wnorm)/n;
     
