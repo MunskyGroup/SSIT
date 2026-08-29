@@ -3802,12 +3802,17 @@ classdef SSIT
             TAB2 = table;
             TAB2.time = TAB.(timeField{1});
 
-            % % Automatically handled simulated data by linking species from
-            % % the first simulation experiment.
             columns = TAB.Properties.VariableNames;
-            if missingLinkedSpecies
-                for colIdx = 1:length(columns)
-                    curColumnName = columns{colIdx};
+            
+            for colIdx = 1:length(columns)
+                curColumnName = columns{colIdx};
+                curColumnMatched = false;
+
+                % Automatically handle simulated data by linking 
+                % species from the first simulation experiment, IF no
+                % "manual" links are provided:
+
+                if missingLinkedSpecies
                     tokens = regexp(curColumnName, "exp1_(\w+)", "tokens");
                     if ~isempty(tokens)
                         % We have found a corresponding species name in the
@@ -3815,18 +3820,22 @@ classdef SSIT
                         % accordingly. Add the mapping to the dictionary of
                         % linked species.
 
+                        curColumnMatched = true;
+
                         matchedSpeciesName = string(tokens{1});
                         TAB2.(matchedSpeciesName) = TAB.(curColumnName);
                         linkedSpecies(matchedSpeciesName) = curColumnName;
-                    elseif ~strcmp(curColumnName, timeField{1})
-                        % There is no match, so copy the column to the name
-                        % under its existing name, unless it is the time
-                        % column, which we have already copied and renamed.
-
-                        TAB2.(curColumnName) = TAB.(curColumnName);
                     end
                 end
-            end
+                if ~curColumnMatched && ...
+                        ~strcmp(curColumnName, timeField{1})
+                    % There is no match, so copy the column to the name
+                    % under its existing name, unless it is the time
+                    % column, which we have already copied and renamed.
+
+                    TAB2.(curColumnName) = TAB.(curColumnName);
+                end                    
+            end % Columns           
 
             % The new TAB2 consists of a time column and all original
             % columns of TAB with renaming of any automatically link-able
