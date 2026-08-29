@@ -44,10 +44,10 @@ end
 end
 
 function mustBeValidLinkedSpeciesArray(array)
-    % First, we must ensure that the array is two-dimensional. ndims does
-    % not suffice, because it returns 2 for both matrices and vectors.
+    % First, we must ensure that the array is two-dimensional. Row vectors,
+    % which are valid here, are deemed to be matrices.
 
-    assert(ismatrix(array) && ~isvector(array), ...
+    assert(ismatrix(array), ...
         "A linked species cell array was not exactly two-dimensional!")
    
     [numberOfRows, numberOfColumns] = size(array);
