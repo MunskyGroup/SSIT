@@ -3802,87 +3802,35 @@ classdef SSIT
             TAB2 = table;
             TAB2.time = TAB.(timeField{1});
 
+            % % Automatically handled simulated data by linking species from
+            % % the first simulation experiment.
             columns = TAB.Properties.VariableNames;
-
-            % If we are loading simulated data, there may have been
-            % multiple experiments contained in the same data set. If so,
-            % no single experiment is definitive, so we cannot
-            % automatically link a particular experiment's results to a
-            % given species. However, if there is only a single experiment,
-            % then automatic linking can and should be done.
-
-            % Only link automatically if no "manual" links are given:
-
-            tryAutomaticLinking = missingLinkedSpecies;
-            regexToUse = "";
-
-            if tryAutomaticLinking
-
-                % See how many experiments we have:
-
-                experimentNumbersFound = NaN(1, length(columns)); 
-
+            if missingLinkedSpecies
                 for colIdx = 1:length(columns)
                     curColumnName = columns{colIdx};
-                    tokens = regexp(curColumnName, ...
-                        "exp(\d+)_(\w+)", "tokens");
-                    if ~isempty(tokens)
-                        % Convert the tokens cell to a string array; the
-                        % first element will be the experiment number.
-
-                        tokenArray = string(tokens{1});
-                        experimentNumbersFound(colIdx) = ...
-                            double(tokenArray(1));
-                    end
-                end % Columns
-                % Isolate the unique values of the experiment numbers. If
-                % there are multiple, we will not link automatically. If
-
-                experimentNumbersFound = ...
-                    sort(unique(rmmissing(experimentNumbersFound)));
-                tryAutomaticLinking = isscalar(experimentNumbersFound);
-                if tryAutomaticLinking
-                    regexToUse = "exp" + experimentNumbersFound + "_(\w+)";
-                end
-            end % Try automatic linking
-
-            for colIdx = 1:length(columns)
-                curColumnName = columns{colIdx};
-                curColumnNameMatched = false;
-
-                % First, handle simulated data by automatically linking 
-                % species, IF
-                %   Only a single experiment is present AND
-                %   No manual links were specified.
-
-                if tryAutomaticLinking
-                    tokens = regexp(curColumnName, regexToUse, "tokens");
+                    tokens = regexp(curColumnName, "exp1_(\w+)", "tokens");
                     if ~isempty(tokens)
                         % We have found a corresponding species name in the
                         % model, so copy the column while updating its name
                         % accordingly. Add the mapping to the dictionary of
                         % linked species.
 
-                        curColumnNameMatched = true;
                         matchedSpeciesName = string(tokens{1});
                         TAB2.(matchedSpeciesName) = TAB.(curColumnName);
                         linkedSpecies(matchedSpeciesName) = curColumnName;
+                    elseif ~strcmp(curColumnName, timeField{1})
+                        % There is no match, so copy the column to the name
+                        % under its existing name, unless it is the time
+                        % column, which we have already copied and renamed.
+
+                        TAB2.(curColumnName) = TAB.(curColumnName);
                     end
                 end
-
-                if ~curColumnNameMatched && ...
-                        ~strcmp(curColumnName, timeField{1})
-                    % There is no match, so copy the column to the name
-                    % under its existing name, unless it is the time
-                    % column, which we have already copied and renamed.
-
-                    TAB2.(curColumnName) = TAB.(curColumnName);
-                end                
-            end % Columns
+            end
 
             % The new TAB2 consists of a time column and all original
             % columns of TAB with renaming of any automatically link-able
-            % columns (of the form exp#_speciesName).
+            % columns (of the form exp1_s#).
 
             matchedSpecies = linkedSpecies.keys();
             for matchedSpeciesIdx = 1:length(matchedSpecies)
@@ -4021,7 +3969,6 @@ classdef SSIT
             obj.dataSet.mean = zeros(sz(1),length(sz)-1);
             obj.dataSet.var = zeros(sz(1),length(sz)-1);
             for i=1:sz(1)
-                tmpInt = {}; % Avoids uninitialized tmpInt
                 for j=2:length(sz)
                     tmpInt{j-1} = [1:sz(j)];
                 end
