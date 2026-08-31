@@ -334,7 +334,7 @@ Model_chg.plotFIMResults(f, 'log', Model_chg.parameters(1:5),  PlotEllipses=true
 % see marginal improvement in intial steady state 
 
 
-%% Setup
+%% Setup - MLE FIM relationship
 rng(1);
 
 % True parameters
@@ -349,7 +349,7 @@ ds = theta_true(1) + theta_true(2) * randn(n,1);
 % Log-likelihood
 logL = @(ds, m, s) sum(log(normpdf(ds, m, s)));
 
-%% Single dataset
+%% MLE FIM relationship - Single dataset
 
 theta1_domain = linspace(0, theta_true(1)*2, 500);
 likelihoods = zeros(size(theta1_domain));
@@ -402,7 +402,7 @@ title(sprintf('Single dataset (n = %d)', n), ...
     'FontSize', 14, ...
     'FontWeight', 'normal');
 
-%% Multiple datasets
+%% MLE FIM relationship - Multiple datasets
 
 all_thetas = [100, 50;
               100, 50;
@@ -411,9 +411,10 @@ all_thetas = [100, 50;
 
 N = [10, 5, 10, 5];
 
-nDatasets = 1000;
+nDatasets = 10000;
 
-for j = 1:length(N)
+% for j = 1:length(N)
+for j = 1:1
 
     theta_true = all_thetas(j,:);
     n = N(j);
@@ -507,13 +508,13 @@ for j = 1:length(N)
 
 
     % Right: zoomed-in likelihood curves
+    zoomWidth = 1;
+    
     leftIdx = find(theta1_domain >= theta_true(1)-zoomWidth, 1);
     rightIdx = find(theta1_domain <= theta_true(1)+zoomWidth, 1, 'last');
 
     axZoom = axes('Position', [0.82 0.46 0.15 0.44]);
     hold(axZoom, 'on');
-
-    zoomWidth = 1;
 
     xlim(axZoom, ...
         [theta_true(1)-zoomWidth theta_true(1)+zoomWidth]);
@@ -556,7 +557,11 @@ for j = 1:length(N)
         'NumBins', 50, ...
         'FaceColor', curveColor, ...
         'FaceAlpha', 0.75, ...
-        'EdgeColor', 'none');
+        'EdgeColor', 'none', ...
+        'Normalization', 'pdf');
+
+    pmle = normpdf(theta1_domain, theta_true(1), theta_true(2)/sqrt(n));
+    plot(ax2, theta1_domain, pmle)
 
     % Flip histogram upside down
     ax2.YDir = 'reverse';
@@ -601,7 +606,7 @@ for j = 1:length(N)
              all_likelihoods(k,leftIdx)) / dx;
     end
 
-    absSlopes = abs(slopes);
+    absSlopes = slopes.^2; % square it instead of abs
 
     % Histogram
     histogram(axSlope, absSlopes, ...
@@ -610,7 +615,7 @@ for j = 1:length(N)
         'FaceAlpha', 0.75, ...
         'EdgeColor', 'none');
 
-    xlabel(axSlope, '|slope|');
+    xlabel(axSlope, '$(\frac{d\log L}{d\theta})^2$', 'Interpreter', 'latex');
     % ylabel(axSlope, 'Count');
 
     set(axSlope, ...
@@ -619,12 +624,97 @@ for j = 1:length(N)
         'TickDir', 'out', ...
         'Box', 'off');
 
-    xlim(axSlope, [0, 0.2])
+    xlim(axSlope, [0, 0.03])
     axSlope.YTick = [];
     grid(axSlope, 'off');
 
 
 end
+
+
+%% MLE FIM relationship - P(thetaMLE given theta*)
+figure(12)
+clf
+hold on;
+
+for j = 1:length(N)
+    theta_true = all_thetas(j,:);
+    n = N(j);
+
+    r = theta_true(2)/sqrt(n);
+
+    pmle = normpdf(theta1_domain, theta_true(1), r);
+    plot(theta1_domain, pmle)
+end
+
+
+%% MLE FIM relationship - S(thetaMLE given theta*)
+figure(13)
+clf
+hold on
+
+nSamples = 10000;
+
+for j = 1:length(N)
+
+    theta_true = all_thetas(j,:);
+    n = N(j);
+
+    % Theoretical distribution of MLE
+    r = theta_true(2)/sqrt(n);
+
+    % Sample MLE directly from theoretical MLE distribution
+    mle_samples = theta_true(1) + r*randn(nSamples,1);
+
+    % Score evaluated at the TRUE theta_1
+    slopes = n*(mle_samples - theta_true(1)) / theta_true(2)^2;
+
+    % Squared slope
+    slopeSquared = slopes.^2;
+
+    % Histogram
+    histogram(slopeSquared, ...
+        'NumBins', 50, ...
+        'Normalization', 'pdf', ...
+        'FaceAlpha', 0.7);
+
+    % Empirical mean
+    empiricalMean = mean(slopeSquared);
+
+    % Theoretical mean = Fisher information
+    theoreticalMean = n / theta_true(2)^2;
+
+    % Plot empirical mean
+    xline(empiricalMean, ...
+        '--r', ...
+        'LineWidth', 2);
+
+    % Plot theoretical mean
+    xline(theoreticalMean, ...
+        '--k', ...
+        'LineWidth', 2);
+
+    % Print values
+    fprintf('n = %d, theta_2 = %.2f\n', n, theta_true(2));
+    fprintf('Empirical mean  = %.6f\n', empiricalMean);
+    fprintf('Theoretical mean = %.6f\n\n', theoreticalMean);
+
+end
+
+xlabel('$(d\log L/d\theta_1)^2$', 'Interpreter', 'latex')
+ylabel('Density')
+
+legend('Histogram', ...
+       'Empirical mean', ...
+       'Theoretical mean', ...
+       'Location', 'best')
+
+xlim([0, 0.01])
+
+
+
+
+%% 
 
 
 
@@ -635,6 +725,15 @@ end
 
 
 return 
+
+
+%%
+
+
+%%
+
+
+%%
 %% Burst Frequency Model
 Model = SSIT('Empty');
 
