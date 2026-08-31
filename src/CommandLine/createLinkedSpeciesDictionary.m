@@ -44,7 +44,12 @@ end
 end
 
 function mustBeValidLinkedSpeciesArray(array)
-    mustBeMatrix(array); % Ensure that the array is two-dimensional
+    % First, we must ensure that the array is two-dimensional. Row vectors,
+    % which are valid here, are deemed to be matrices.
+
+    assert(ismatrix(array), ...
+        "A linked species cell array was not exactly two-dimensional!")
+   
     [numberOfRows, numberOfColumns] = size(array);
 
     if numberOfColumns < 2

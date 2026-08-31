@@ -3069,8 +3069,7 @@ classdef SSIT
                     species2save = setdiff(...
                         obj.species, obj.hybridOptions.upstreamODEs);
                 else
-                    species2save = setdiff(...
-                        obj.species, obj.pdoOptions.unobservedSpecies);
+                    species2save = obj.species;
                 end
             end            
             if obj.useHybrid
@@ -3803,12 +3802,17 @@ classdef SSIT
             TAB2 = table;
             TAB2.time = TAB.(timeField{1});
 
-            % % Automatically handled simulated data by linking species from
-            % % the first simulation experiment.
             columns = TAB.Properties.VariableNames;
-            if missingLinkedSpecies
-                for colIdx = 1:length(columns)
-                    curColumnName = columns{colIdx};
+            
+            for colIdx = 1:length(columns)
+                curColumnName = columns{colIdx};
+                curColumnMatched = false;
+
+                % Automatically handle simulated data by linking 
+                % species from the first simulation experiment, IF no
+                % "manual" links are provided:
+
+                if missingLinkedSpecies
                     tokens = regexp(curColumnName, "exp1_(\w+)", "tokens");
                     if ~isempty(tokens)
                         % We have found a corresponding species name in the
@@ -3816,18 +3820,22 @@ classdef SSIT
                         % accordingly. Add the mapping to the dictionary of
                         % linked species.
 
+                        curColumnMatched = true;
+
                         matchedSpeciesName = string(tokens{1});
                         TAB2.(matchedSpeciesName) = TAB.(curColumnName);
                         linkedSpecies(matchedSpeciesName) = curColumnName;
-                    elseif ~strcmp(curColumnName, timeField{1})
-                        % There is no match, so copy the column to the name
-                        % under its existing name, unless it is the time
-                        % column, which we have already copied and renamed.
-
-                        TAB2.(curColumnName) = TAB.(curColumnName);
                     end
                 end
-            end
+                if ~curColumnMatched && ...
+                        ~strcmp(curColumnName, timeField{1})
+                    % There is no match, so copy the column to the name
+                    % under its existing name, unless it is the time
+                    % column, which we have already copied and renamed.
+
+                    TAB2.(curColumnName) = TAB.(curColumnName);
+                end                    
+            end % Columns           
 
             % The new TAB2 consists of a time column and all original
             % columns of TAB with renaming of any automatically link-able
@@ -8247,6 +8255,10 @@ end
                     cbTicks = [floor(rangeColors(1)):0,1:ceil(rangeColors(3))];
                     cbTickLabels = [arrayfun(@(v) sprintf('-10^{%g}', v), -cbTicks(1:end/2), 'UniformOutput', false),'0',...
                         arrayfun(@(v) sprintf('10^{%g}', v), cbTicks(end/2+1:end), 'UniformOutput', false)];
+                end
+
+                if length(cbTicks)==1
+                    error('LogThreshold is set too high.')
                 end
 
                 C.HeatmapColormap = blueWhiteFlatRed(cbTicks(1),0,0,cbTicks(end));
