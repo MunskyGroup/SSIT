@@ -8247,6 +8247,10 @@ end
                         arrayfun(@(v) sprintf('10^{%g}', v), cbTicks(end/2+1:end), 'UniformOutput', false)];
                 end
 
+                if length(cbTicks)==1
+                    error('LogThreshold is set too high.')
+                end
+
                 C.HeatmapColormap = blueWhiteFlatRed(cbTicks(1),0,0,cbTicks(end));
 
                 epsVal   = 1e-16;
