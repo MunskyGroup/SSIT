@@ -176,7 +176,7 @@ ax = gca;
 set(findobj(ax, '-property', 'LineWidth'), 'LineWidth', 3);
 ax.LineWidth = 2;
 
-%% Export figures as SVG for PowerPoint
+%% Export figures for Paper Figure 1
 % Annual Review of Biochemistry
 %
 % Canvas: 6.33 x 7.9 inches
@@ -309,28 +309,58 @@ c = cond(f)
 [V, D] = eig(f)
 e = 1/2*(f*f')^-1
 [V, D] = eig(e)
+[lambda,idx] = sort(diag(D),'descend');
+D = diag(lambda);
+V = V(:,idx);
 
-Model_chg.plotFIMResults(f, 'log', Model_chg.parameters(1:5), PlotEllipses=true, Colors=struct('EllipseColors',[0.9 0.6 0.2],...
-    'CenterSquare',[0.96,0.47,0.16]))
+% Model_chg.plotFIMResults(f, 'log', Model_chg.parameters(1:5), PlotEllipses=true, Colors=struct('EllipseColors',[0.9 0.6 0.2],...
+%     'CenterSquare',[0.96,0.47,0.16]))
+
+figure(18)
+plotHeatmap( ...
+    f, ...
+    Model_chg.parameters(1:5,1), ...
+    Model_chg.parameters(1:5,1), ...
+    'FIM', ...
+    'fim');
+
+
+figure(19)
+plotHeatmap( ...
+    e, ...
+    Model_chg.parameters(1:5,1), ...
+    Model_chg.parameters(1:5,1), ...
+    'FIM inverse', ...
+    'covariance');
+
+figure(20)
+plotHeatmap( ...
+    V * D, ...
+    Model_chg.parameters(1:5,1), ...
+    {'EV1', 'EV2', 'EV3', 'EV4', 'EV5'}, ...
+    'Eigen Vectors of FIM inverse', ...
+    'eigen');
+
+
 % I really like this plot. It shows how the intial steady state has the
 % least amount of information. 
 
 %% Larger experiment and analysis
-nCellsInExperiment = 0*Model_chg.tSpan;
-nCellsInExperiment([1,3,5,10, 15, 20, 25, 31]) = 1000;
-FIMs = Model_chg.computeFIM(scale='log',freePars=[1:5],...
-    observed={'mRNA'});
-FIMTotal = Model_chg.totalFim(FIMs,nCellsInExperiment);
-
-fprintf('FIM for step change in kon at 1 for intuitive design')
-f = FIMTotal{1}
-c = cond(f) 
-[V, D] = eig(f)
-e = 1/2*(f*f')^-1
-[V, D] = eig(e)
-
-Model_chg.plotFIMResults(f, 'log', Model_chg.parameters(1:5),  PlotEllipses=true, Colors=struct('EllipseColors',[0.9 0.6 0.2],...
-    'CenterSquare',[0.96,0.47,0.16]))
+% nCellsInExperiment = 0*Model_chg.tSpan;
+% nCellsInExperiment([1,3,5,10, 15, 20, 25, 31]) = 1000;
+% FIMs = Model_chg.computeFIM(scale='log',freePars=[1:5],...
+%     observed={'mRNA'});
+% FIMTotal = Model_chg.totalFim(FIMs,nCellsInExperiment);
+% 
+% fprintf('FIM for step change in kon at 1 for intuitive design')
+% f = FIMTotal{1}
+% c = cond(f) 
+% [V, D] = eig(f)
+% e = 1/2*(f*f')^-1
+% [V, D] = eig(e)
+% 
+% Model_chg.plotFIMResults(f, 'log', Model_chg.parameters(1:5),  PlotEllipses=true, Colors=struct('EllipseColors',[0.9 0.6 0.2],...
+%     'CenterSquare',[0.96,0.47,0.16]))
 % see marginal improvement in intial steady state 
 
 
@@ -500,7 +530,7 @@ for j = 1:1
 
     % MLE markers directly on x-axis
     plot(ax1, mle_estimates(1:50), ...
-        zeros(size(mle_estimates(1:50))), ...
+        ones(size(mle_estimates(1:50)))*min(all_likelihoods(1:49,:), [], 'all'), ...
         'x', ...
         'Color', mleColor, ...
         'MarkerSize', 8, ...
@@ -508,45 +538,45 @@ for j = 1:1
 
 
     % Right: zoomed-in likelihood curves
-    zoomWidth = 1;
-    
-    leftIdx = find(theta1_domain >= theta_true(1)-zoomWidth, 1);
-    rightIdx = find(theta1_domain <= theta_true(1)+zoomWidth, 1, 'last');
-
-    axZoom = axes('Position', [0.82 0.46 0.15 0.44]);
-    hold(axZoom, 'on');
-
-    xlim(axZoom, ...
-        [theta_true(1)-zoomWidth theta_true(1)+zoomWidth]);
-
-    % Use same y range as main plot
-    % ylim(axZoom, [min(all_likelihoods(1:49, leftIdx:rightIdx), [], 'all'), 0.01]);
-    ylim(axZoom, [-3, 0.01]);
-    % Plot EXACT SAME curves with EXACT SAME colors
-    for k = 1:49
-        plot(axZoom, theta1_domain, all_likelihoods(k,:), ...
-            'Color', colors(k,:), ...
-            'LineWidth', 1.5);
-    end
-
-    % True parameter
-    xline(axZoom, theta_true(1), ...
-        '--k', ...
-        'LineWidth', 2);
-
-    % Formatting zoom panel
-    set(axZoom, ...
-        'FontSize', 10, ...
-        'LineWidth', 1.2, ...
-        'TickDir', 'out', ...
-        'Box', 'on');
-
-    grid(axZoom, 'off');
-
-    xlabel(axZoom, '\theta_1');
-
-    % Remove y-axis labels
-    axZoom.YTickLabel = [];
+    % zoomWidth = 1;
+    % 
+    % leftIdx = find(theta1_domain >= theta_true(1)-zoomWidth, 1);
+    % rightIdx = find(theta1_domain <= theta_true(1)+zoomWidth, 1, 'last');
+    % 
+    % axZoom = axes('Position', [0.82 0.46 0.15 0.44]);
+    % hold(axZoom, 'on');
+    % 
+    % xlim(axZoom, ...
+    %     [theta_true(1)-zoomWidth theta_true(1)+zoomWidth]);
+    % 
+    % % Use same y range as main plot
+    % % ylim(axZoom, [min(all_likelihoods(1:49, leftIdx:rightIdx), [], 'all'), 0.01]);
+    % ylim(axZoom, [-3, 0.01]);
+    % % Plot EXACT SAME curves with EXACT SAME colors
+    % for k = 1:49
+    %     plot(axZoom, theta1_domain, all_likelihoods(k,:), ...
+    %         'Color', colors(k,:), ...
+    %         'LineWidth', 1.5);
+    % end
+    % 
+    % % True parameter
+    % xline(axZoom, theta_true(1), ...
+    %     '--k', ...
+    %     'LineWidth', 2);
+    % 
+    % % Formatting zoom panel
+    % set(axZoom, ...
+    %     'FontSize', 10, ...
+    %     'LineWidth', 1.2, ...
+    %     'TickDir', 'out', ...
+    %     'Box', 'on');
+    % 
+    % grid(axZoom, 'off');
+    % 
+    % xlabel(axZoom, '\theta_1');
+    % 
+    % % Remove y-axis labels
+    % axZoom.YTickLabel = [];
 
 
     % Bottom: histogram
@@ -593,40 +623,40 @@ for j = 1:1
     uistack(ax1, 'top');
 
     % Histogram of absolute finite-difference slopes
-    axSlope = axes('Position', [0.82 0.08 0.15 0.30]);
-    hold(axSlope, 'on');
-
-    dx = theta1_domain(rightIdx) - theta1_domain(leftIdx);
-
-    slopes = zeros(49,1);
-
-    for k = 1:999
-        slopes(k) = ...
-            (all_likelihoods(k,rightIdx) - ...
-             all_likelihoods(k,leftIdx)) / dx;
-    end
-
-    absSlopes = slopes.^2; % square it instead of abs
-
-    % Histogram
-    histogram(axSlope, absSlopes, ...
-        'NumBins', 15, ...
-        'FaceColor', curveColor, ...
-        'FaceAlpha', 0.75, ...
-        'EdgeColor', 'none');
-
-    xlabel(axSlope, '$(\frac{d\log L}{d\theta})^2$', 'Interpreter', 'latex');
-    % ylabel(axSlope, 'Count');
-
-    set(axSlope, ...
-        'FontSize', 10, ...
-        'LineWidth', 1.2, ...
-        'TickDir', 'out', ...
-        'Box', 'off');
-
-    xlim(axSlope, [0, 0.03])
-    axSlope.YTick = [];
-    grid(axSlope, 'off');
+    % axSlope = axes('Position', [0.82 0.08 0.15 0.30]);
+    % hold(axSlope, 'on');
+    % 
+    % dx = theta1_domain(rightIdx) - theta1_domain(leftIdx);
+    % 
+    % slopes = zeros(49,1);
+    % 
+    % for k = 1:999
+    %     slopes(k) = ...
+    %         (all_likelihoods(k,rightIdx) - ...
+    %          all_likelihoods(k,leftIdx)) / dx;
+    % end
+    % 
+    % absSlopes = slopes.^2; % square it instead of abs
+    % 
+    % % Histogram
+    % histogram(axSlope, absSlopes, ...
+    %     'NumBins', 15, ...
+    %     'FaceColor', curveColor, ...
+    %     'FaceAlpha', 0.75, ...
+    %     'EdgeColor', 'none');
+    % 
+    % xlabel(axSlope, '$(\frac{d\log L}{d\theta})^2$', 'Interpreter', 'latex');
+    % % ylabel(axSlope, 'Count');
+    % 
+    % set(axSlope, ...
+    %     'FontSize', 10, ...
+    %     'LineWidth', 1.2, ...
+    %     'TickDir', 'out', ...
+    %     'Box', 'off');
+    % 
+    % xlim(axSlope, [0, 0.03])
+    % axSlope.YTick = [];
+    % grid(axSlope, 'off');
 
 
 end
@@ -644,8 +674,10 @@ for j = 1:length(N)
     r = theta_true(2)/sqrt(n);
 
     pmle = normpdf(theta1_domain, theta_true(1), r);
-    plot(theta1_domain, pmle)
+    plot(theta1_domain, pmle, 'LineWidth', 3)
 end
+
+xline(theta_true(1), 'k--', 'LineWidth', 3)
 
 
 %% MLE FIM relationship - S(thetaMLE given theta*)
@@ -713,22 +745,234 @@ xlim([0, 0.01])
 
 
 
+%% Central Limit Theorem demonstration
 
-%% 
+% Mixture weights
+w = [0.75, 0.25];
+
+% Component means
+muComp = [2, 7];
+
+% Component standard deviations
+sigmaComp = [0.5, 2];
+
+% Population mean
+mu = sum(w .* muComp);
+
+% Population variance
+sigma2 = sum(w .* (sigmaComp.^2 + muComp.^2)) - mu^2;
+sigma = sqrt(sigma2);
+
+
+% Simulation settings
+
+nRepeats = 10000;
+
+% Number of observations averaged in each experiment
+nValues = [1 5 100];
+
+
+% Plot the original distribution
+
+x = linspace(-2, 14, 1000);
+
+pdf = w(1) * normpdf(x, muComp(1), sigmaComp(1)) + ...
+      w(2) * normpdf(x, muComp(2), sigmaComp(2));
+
+figure(14)
+clf
+hold on
+
+plot(x, pdf, ...
+    'k-', ...
+    'LineWidth', 2.5);
+
+xline(mu, ...
+    '--r', ...
+    'LineWidth', 1.5);
+
+xlabel('$x$', 'Interpreter', 'latex')
+ylabel('Density')
+
+title('Starting distribution')
+
+legend('PDF', 'Population mean', ...
+    'Location', 'northeast')
+
+box off
+
+
+% Central Limit Theorem
+
+
+for j = 1:length(nValues)
+
+    figure(14+j)
+    clf
+
+    n = nValues(j);
+
+    % Generate samples
+
+    % Select mixture component for every observation
+    component = rand(nRepeats, n) > w(1);
+
+    % Generate observations from the two Gaussian components
+    samples = zeros(nRepeats, n);
+
+    idx1 = ~component;
+    idx2 = component;
+
+    samples(idx1) = muComp(1) + sigmaComp(1) * randn(sum(idx1(:)), 1);
+    samples(idx2) = muComp(2) + sigmaComp(2) * randn(sum(idx2(:)), 1);
+
+    % Calculate mean of each experiment
+
+    sampleMeans = mean(samples, 2);
+
+
+    % Plot histogram
+
+    nexttile
+    hold on
+
+    histogram(sampleMeans, ...
+        'NumBins', 50, ...
+        'Normalization', 'pdf', ...
+        'FaceColor', [0.25 0.45 0.70], ...
+        'FaceAlpha', 0.70, ...
+        'EdgeColor', 'none');
+
+
+    % CLT prediction
+
+    sigmaMean = sigma / sqrt(n);
+
+    xTheory = linspace( ...
+        min(sampleMeans), ...
+        max(sampleMeans), ...
+        1000);
+
+    pdfTheory = normpdf( ...
+        xTheory, ...
+        mu, ...
+        sigmaMean);
+
+    plot(xTheory, pdfTheory, ...
+        'r-', ...
+        'LineWidth', 2);
+
+
+    % Population mean
+
+    xline(mu, ...
+        '--k', ...
+        'LineWidth', 1.5);
+
+
+    % Formatting
+
+    title(sprintf('$n = %d$', n), ...
+        'Interpreter', 'latex')
+
+    xlabel('$\bar{X}$', ...
+        'Interpreter', 'latex')
+
+    ylabel('Density')
+
+    box off
+end
 
 
 
+%% Export Figures for Paper Figure 2
+outputFolder = 'AnnualReview_Figures';
+
+if ~exist(outputFolder, 'dir')
+    mkdir(outputFolder);
+end
+
+% Overall paper canvas
+fullWidth = 6.33;
+fullHeight = 7.9;
+
+% 4 x 3 grid
+plotWidth = fullWidth / 4;
+plotHeight = fullHeight / 3;
+
+for figNum = 10:20
+
+    fig = figure(figNum);
+
+    % Remove figure-level title
+    sgtitle(fig, '');
+
+    % Find all axes
+    axesList = findall(fig, 'Type', 'Axes');
+
+    for i = 1:length(axesList)
+
+        ax = axesList(i);
+
+        % Remove title
+        ax.Title.String = '';
+        ax.Title.Visible = 'off';
+
+        % Remove axis labels
+        ax.XLabel.String = '';
+        ax.XLabel.Visible = 'off';
+
+        ax.YLabel.String = '';
+        ax.YLabel.Visible = 'off';
+
+        % Remove ticks and tick labels
+        ax.XTick = [];
+        ax.YTick = [];
+
+        ax.XTickLabel = [];
+        ax.YTickLabel = [];
+
+        % Remove tick marks
+        ax.TickLength = [0 0];
+
+    end
+
+    % Remove legends
+    legends = findall(fig, 'Type', 'Legend');
+
+    if ~isempty(legends)
+        delete(legends);
+    end
+
+    % Remove colorbar labels/ticks
+    colorbars = findall(fig, 'Type', 'ColorBar');
+
+    for i = 1:length(colorbars)
+
+        cb = colorbars(i);
+
+        cb.TickLabels = [];
+        cb.Label.String = '';
+
+    end
+
+    % Set physical dimensions for 4 x 3 grid
+    fig.Units = 'inches';
+    fig.Position(3:4) = [plotWidth plotHeight];
+
+    % Export
+    fileName = sprintf('figure%d.svg', figNum);
+
+    exportgraphics(fig, ...
+        fullfile(outputFolder, fileName), ...
+        'ContentType', 'vector');
+
+end
+
+disp('Figures 10-20 exported successfully.');
 
 
-
-
-
-
-return 
-
-
-%%
-
+return
 
 %%
 
@@ -1088,3 +1332,216 @@ ModelGen.fspOptions.initApproxSS = true;
 ModelGen = ModelGen.solve;
 
 ModelGen.plotFSP
+
+
+
+
+
+
+
+
+
+%% Functions 
+function plotHeatmap(M, rowNames, colNames, titleText, scaleType)
+
+    if size(M,1) ~= length(rowNames)
+        error('Number of row names must equal number of rows.');
+    end
+
+    if size(M,2) ~= length(colNames)
+        error('Number of column names must equal number of columns.');
+    end
+
+    rowNames = cellstr(rowNames);
+    colNames = cellstr(colNames);
+
+    nColors = 256;
+
+    blue = [0.05 0.25 0.75];
+    white = [1 1 1];
+    red = [0.80 0.10 0.10];
+
+    nHalf = nColors / 2;
+
+    blueToWhite = [
+        linspace(blue(1), white(1), nHalf)', ...
+        linspace(blue(2), white(2), nHalf)', ...
+        linspace(blue(3), white(3), nHalf)'
+    ];
+
+    whiteToRed = [
+        linspace(white(1), red(1), nHalf)', ...
+        linspace(white(2), red(2), nHalf)', ...
+        linspace(white(3), red(3), nHalf)'
+    ];
+
+
+    if strcmpi(scaleType, 'fim')
+
+        % -------------------------------------------------------------
+        % FIM
+        %
+        % Signed logarithmic scale.
+        %
+        % Negative -> blue
+        % Zero     -> white
+        % Positive -> red
+        %
+        % Equal spacing corresponds to powers of 10.
+        % -------------------------------------------------------------
+
+        Mplot = zeros(size(M));
+
+        idx = M ~= 0;
+
+        Mplot(idx) = sign(M(idx)) .* log10(abs(M(idx)));
+
+        maxLog = max(abs(Mplot(:)));
+
+        imagesc(Mplot);
+
+        clim([-maxLog maxLog]);
+
+        colormap([blueToWhite; whiteToRed]);
+
+        cb = colorbar;
+
+        exponent = ceil(maxLog);
+
+        tickPositions = -exponent:exponent;
+
+        tickPositions = tickPositions( ...
+            tickPositions >= -maxLog & ...
+            tickPositions <= maxLog);
+
+        tickLabels = cell(size(tickPositions));
+
+        for k = 1:length(tickPositions)
+
+            p = tickPositions(k);
+
+            if p == 0
+                tickLabels{k} = '0';
+            elseif p < 0
+                tickLabels{k} = sprintf('$-10^{%d}$', abs(p));
+            else
+                tickLabels{k} = sprintf('$10^{%d}$', p);
+            end
+
+        end
+
+        cb.Ticks = tickPositions;
+        cb.TickLabels = tickLabels;
+        cb.TickLabelInterpreter = 'latex';
+        cb.Label.String = 'FIM';
+
+    elseif strcmpi(scaleType, 'eigen')
+    
+        % Plot V*D exactly as supplied.
+        % No logarithm, no transformation.
+    
+        imagesc(M);
+    
+        maxValue = max(abs(M(:)));
+    
+        % Symmetric colour scale around zero
+        clim([-maxValue maxValue]);
+    
+        colormap([blueToWhite; whiteToRed]);
+    
+        cb = colorbar;
+    
+        % Show actual values
+        cb.Ticks = linspace(-maxValue, maxValue, 7);
+    
+        cb.TickLabels = arrayfun( ...
+            @(x) sprintf('%.3g', x), ...
+            cb.Ticks, ...
+            'UniformOutput', false);
+    
+        cb.Label.String = 'Eigenvector $\times$ Eigenvalue';
+        cb.TickLabelInterpreter = 'latex';
+
+    elseif strcmpi(scaleType, 'covariance')
+
+        % -------------------------------------------------------------
+        % COVARIANCE
+        %
+        % Actual covariance values.
+        %
+        % Scale starts at zero.
+        % Positive -> white to red.
+        %
+        % No logarithm is applied.
+        % -------------------------------------------------------------
+
+        if any(M(:) < 0)
+            error(['Covariance matrix contains negative values. ', ...
+                   'This mode expects a covariance matrix with ', ...
+                   'non-negative entries.']);
+        end
+
+        imagesc(M);
+
+        maxValue = max(M(:));
+
+        clim([0 maxValue]);
+
+        % White -> red
+        colormap([
+            linspace(white(1), red(1), nColors)', ...
+            linspace(white(2), red(2), nColors)', ...
+            linspace(white(3), red(3), nColors)'
+        ]);
+
+        cb = colorbar;
+
+        % Nice linear ticks starting at zero
+        nTicks = 5;
+
+        tickValues = linspace(0, maxValue, nTicks);
+
+        cb.Ticks = tickValues;
+
+        cb.TickLabels = arrayfun( ...
+            @(x) sprintf('%.1f', x), ...
+            tickValues, ...
+            'UniformOutput', false);
+
+        cb.Label.String = 'Covariance';
+
+
+    else
+
+        error(['scaleType must be ''fim'', ''eigen'', ', ...
+               'or ''covariance''.']);
+
+    end
+
+
+    ax = gca;
+
+    ax.XTick = 1:length(colNames);
+    ax.YTick = 1:length(rowNames);
+
+    ax.XTickLabel = colNames;
+    ax.YTickLabel = rowNames;
+
+    ax.FontSize = 11;
+    ax.LineWidth = 1.2;
+    ax.TickDir = 'out';
+    ax.Box = 'on';
+
+    axis square
+
+    xlabel('Parameter');
+    ylabel('Parameter');
+
+    if nargin >= 4 && ~isempty(titleText)
+        title(titleText, ...
+            'FontSize', 14, ...
+            'FontWeight', 'normal');
+    end
+
+end
+
