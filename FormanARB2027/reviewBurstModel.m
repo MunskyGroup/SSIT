@@ -351,20 +351,20 @@ plotHeatmap( ...
 % FIMs = Model_chg.computeFIM(scale='log',freePars=[1:5],...
 %     observed={'mRNA'});
 % FIMTotal = Model_chg.totalFim(FIMs,nCellsInExperiment);
-% 
-% fprintf('FIM for step change in kon at 1 for intuitive design')
-% f = FIMTotal{1}
-% c = cond(f) 
-% [V, D] = eig(f)
-% e = 1/2*(f*f')^-1
-% [V, D] = eig(e)
-% 
-% Model_chg.plotFIMResults(f, 'log', Model_chg.parameters(1:5),  PlotEllipses=true, Colors=struct('EllipseColors',[0.9 0.6 0.2],...
-%     'CenterSquare',[0.96,0.47,0.16]))
+
+fprintf('FIM for step change in kon at 1 for intuitive design')
+f = FIMTotal{1}
+c = cond(f) 
+[V, D] = eig(f)
+e = 1/2*(f*f')^-1
+[V, D] = eig(e)
+
+Model_chg.plotFIMResults(f, 'log', Model_chg.parameters(1:5), [Model_chg.parameters{1:5,2}] ,PlotEllipses=true, Colors=struct('EllipseColors',[0.9 0.6 0.2],...
+    'CenterSquare',[0.96,0.47,0.16]))
 % see marginal improvement in intial steady state 
 
 
-%% Setup - MLE FIM relationship
+%% Setup - MLE FIM relationship - Gaussian
 rng(1);
 
 % True parameters
@@ -379,7 +379,7 @@ ds = theta_true(1) + theta_true(2) * randn(n,1);
 % Log-likelihood
 logL = @(ds, m, s) sum(log(normpdf(ds, m, s)));
 
-%% MLE FIM relationship - Single dataset
+%% MLE FIM relationship - Single dataset - Gaussian
 
 theta1_domain = linspace(0, theta_true(1)*2, 500);
 likelihoods = zeros(size(theta1_domain));
@@ -432,7 +432,7 @@ title(sprintf('Single dataset (n = %d)', n), ...
     'FontSize', 14, ...
     'FontWeight', 'normal');
 
-%% MLE FIM relationship - Multiple datasets
+%% MLE FIM relationship - Multiple datasets - Gaussian
 
 all_thetas = [100, 50;
               100, 50;
@@ -495,7 +495,7 @@ for j = 1:1
         if k < 50
             plot(ax1, theta1_domain, likelihoods, ...
                 'Color', colors(k,:), ...
-                'LineWidth', 1.5);
+                'LineWidth', 1);
         end
     end
 
@@ -534,7 +534,7 @@ for j = 1:1
         'x', ...
         'Color', mleColor, ...
         'MarkerSize', 8, ...
-        'LineWidth', 1.5);
+        'LineWidth', 1);
 
 
     % Right: zoomed-in likelihood curves
@@ -662,7 +662,7 @@ for j = 1:1
 end
 
 
-%% MLE FIM relationship - P(thetaMLE given theta*)
+%% MLE FIM relationship - P(thetaMLE given theta*) - Gaussian
 figure(12)
 clf
 hold on;
@@ -680,7 +680,7 @@ end
 xline(theta_true(1), 'k--', 'LineWidth', 3)
 
 
-%% MLE FIM relationship - S(thetaMLE given theta*)
+%% MLE FIM relationship - S(thetaMLE given theta*) - Gaussian
 figure(13)
 clf
 hold on
@@ -885,7 +885,7 @@ end
 
 
 
-%% Export Figures for Paper Figure 2
+%% Export Figures for Paper Supplimental Figure
 outputFolder = 'AnnualReview_Figures';
 
 if ~exist(outputFolder, 'dir')
@@ -972,12 +972,477 @@ end
 disp('Figures 10-20 exported successfully.');
 
 
+
+%%
+
+%%
+
+%% MLE FIM relationship - Single cell - Bursting Model
+Model_chg.tSpan = linspace(0,25,31);
+nCellsInExperiment = zeros(size(Model_chg.tSpan));
+nCellsInExperiment([1]) = 1;
+Model_chg.parameters{2,2} = star_koff;
+Model_chg.parameters{1,2} = final_kon;
+Model_chg.parameters{6,2} = star_koff;
+Model_chg.parameters{5,2} = final_kon;
+Model_chg = Model_chg.solve;
+Model_chg.ssaOptions.Nexp = 5000;
+
+Model_chg.fittingOptions.modelVarsToFit = [1];
+
+% Model_chg.plotFSP(plotType='meansAndDevs', SpeciesIdx=[2], Title='testing steady state') % Test successful 
+Model_chg.sampleDataFromFSP(saveFile='dataForFIMIntro.csv',nCells=nCellsInExperiment,species2save={'mRNA'});
+Model_chg = Model_chg.loadData('dataForFIMIntro.csv', {'mRNA', 'exp1_mRNA'});
+
+kon_domain = logspace(-2,2.5, 200); 
+count_domain = 0:200;
+
+pars = [Model_chg.parameters{:,2}];
+
+likelihoods = zeros(size(kon_domain));
+for i = 1:length(kon_domain)
+    pars(1) = kon_domain(i);
+    l = Model_chg.computeLikelihood(pars);
+    likelihoods(i) = l;
+end
+
+%%
+figure(101)
+plot(kon_domain, likelihoods, 'LineWidth', 1.5)
+hold on
+
+% Find MLE
+[~, max_idx] = max(likelihoods);
+mle = kon_domain(max_idx);
+
+% True parameter
+xline(final_kon, 'k--', 'LineWidth', 2)
+
+% MLE
+xline(mle, 'r-', 'LineWidth', 2)
+
+set(gca, 'XScale', 'log')
+
+xlabel('k_{on}')
+ylabel('Log-Likelihood')
+legend('Likelihood', 'True k_{on}', 'MLE', 'Location', 'best')
+grid on
+
+T = array2table(count_domain, ...
+    'VariableNames', compose("exp%d_mRNA", count_domain));
+
+T.time = 0;
+T = movevars(T, 'time', 'Before', 1);
+
+writetable(T, 'fakeData.csv');
+
+%% MLE FIM relationship - Multiple cell - Bursting Model - Compute
+
+likelihoods = zeros([length(count_domain), length(kon_domain)]);
+for i = 1:length(kon_domain)
+    pars(1) = kon_domain(i);
+    Model_chg.parameters(:,2) = num2cell(pars);
+    Model_chg = Model_chg.solve;
+    for j = 1:length(count_domain)
+        Model_chg = Model_chg.loadData('fakeData.csv', {'mRNA', sprintf('exp%d_mRNA',j-1)});
+        l = Model_chg.computeLikelihood(pars, Model_chg.Solutions.stateSpace, false, true);
+        likelihoods(j, i) = l;
+    end
+end
+save('likeloodFunctions.mat', 'likelihoods')
+
+
+%% MLE FIM relationship - Multiple cell - Bursting Model - Display
+load("likeloodFunctions.mat")
+
+T = readtable('dataForFIMIntro.csv');
+samples = T{1, 2:end};
+
+L = likelihoods(samples(1:20)+1,:);
+
+[~, max_idx] = max(L, [], 2);
+mle = kon_domain(max_idx);
+
+figure(102);
+hold on
+
+plot(kon_domain, L, 'lineWidth', 1.5)
+set(gca, 'XScale', 'log')
+
+ylims = ylim;
+ymin = ylims(1);
+
+plot(mle, ymin * ones(size(mle)), 'rx', ...
+    'MarkerSize', 12, 'LineWidth', 2)
+
+xline(final_kon, 'k--', 'lineWidth', 2)
+
+%% MLE FIM relationship - MLE Spread - Bursting Model
+L = likelihoods(samples+1,:);
+[~, max_idx] = max(L, [], 2);
+mle = kon_domain(max_idx);
+mle_log = log(mle);
+mleVar_log = var(mle_log);
+
+figure(103);
+clf
+
+% Define bins uniformly in log10 space
+nBins = 25;
+xlims = [min(mle), max(mle)];
+
+log_edges = linspace(log10(xlims(1)), ...
+                     log10(xlims(2)), nBins+1);
+
+bin_edges = 10.^log_edges;
+
+histogram(mle, bin_edges, ...
+    'Normalization', 'pdf', ...
+    'FaceColor', [0.2 0.5 0.8], ...
+    'EdgeColor', 'none')
+
+hold on
+
+xline(final_kon, 'k--', 'LineWidth', 2)
+xline(mean(mle), 'r', 'LineWidth', 2)
+
+set(gca, 'XScale', 'log')
+xlim(xlims)
+
+xlabel('MLE k_{on}')
+ylabel('Probability Density')
+grid on
+
+%% MLE FIM relationship - sensitivity and FIM prediction - Bursting Model
+L = likelihoods(samples+1,:);
+
+% Numerical derivative of each likelihood curve
+dL_dkon = zeros(size(L));
+
+for j = 1:size(L,1)
+    dL_dkon(j,:) = gradient(L(j,:), kon_domain);
+end
+
+% Evaluate sensitivity at the true parameter
+sensitivity = zeros(size(samples));
+
+for j = 1:size(L,1)
+    sensitivity(j) = interp1(kon_domain, dL_dkon(j,:), ...
+                             final_kon, 'linear');
+end
+
+% Sensitivity squared
+sensitivity_squared = sensitivity.^2;
+
+% Plot histogram
+figure(104); 
+hold on;
+histogram(sensitivity_squared, 50, 'Normalization', 'pdf')
+xlabel('Sensitivity^2')
+ylabel('Probability Density')
+title('Sensitivity Squared at True Parameter')
+
+
+% Empirical MLE variance -> information in log space
+% xline(1/mleVar_log, 'b--', 'LineWidth', 2)
+
+% Model FIM
+FIM = Model_chg.computeFIM();
+FIMEstimate = FIM{1};
+xline(FIMEstimate, 'r', 'LineWidth', 2)
+
+xline(mean(sensitivity_squared), 'k--', 'LineWidth', 2)
+
+
+% legend('Sensitivity^2', ...
+%        'Mean sensitivity^2', ...
+%        '1 / MLE variance', ...
+%        'FIM')
+
+
+
+%% MLE and sensitivity for multiple cell numbers
+
+rng(1);  % Reproducibility
+
+% Can contain as many cell numbers as you want
+cell_numbers = [2 4 10 50 100 200 500];
+nSets = 10000;
+
+% All available single-cell likelihood curves
+L_all = likelihoods(samples+1,:);
+
+MLEs = cell(length(cell_numbers),1);
+SensitivitySquared = cell(length(cell_numbers),1);
+
+% Calculate MLEs and sensitivity for all cell numbers
+
+for n = 1:length(cell_numbers)
+
+    nCells = cell_numbers(n);
+
+    MLEs{n} = zeros(nSets,1);
+    SensitivitySquared{n} = zeros(nSets,1);
+
+    for k = 1:nSets
+
+        % Randomly select cells
+        idx = randperm(size(L_all,1), nCells);
+
+        % Sum log-likelihoods across cells
+        L_sum = sum(L_all(idx,:), 1);
+
+        % Find MLE
+        [~, max_idx] = max(L_sum);
+        MLEs{n}(k) = kon_domain(max_idx);
+
+        % Sensitivity of summed log-likelihood
+        dL_dkon = gradient(L_sum, kon_domain);
+
+        % Evaluate sensitivity at true kon
+        sensitivity = interp1(kon_domain, dL_dkon, ...
+                              final_kon, 'linear');
+
+        % Sensitivity squared
+        SensitivitySquared{n}(k) = sensitivity^2;
+    end
+
+    fprintf('Finished %d cells\n', nCells);
+end
+
+
+% Plot ONLY the first 4 cell numbers
+
+figure(105);
+clf
+
+nPlot = min(4, length(cell_numbers));
+
+reference_MLE = MLEs{1};
+
+xlims = [min(reference_MLE), max(reference_MLE)];
+
+nBins = 32;
+
+log_edges = linspace(log10(xlims(1)), ...
+                     log10(xlims(2)), nBins+1);
+
+bin_edges = 10.^log_edges;
+
+for n = 1:nPlot
+
+    subplot(2,2,n)
+
+    histogram(MLEs{n}, bin_edges, ...
+        'Normalization', 'pdf', ...
+        'FaceColor', [0.2 0.5 0.8], ...
+        'FaceAlpha', 0.45, ...
+        'EdgeColor', 'none')
+
+    hold on
+
+    % True parameter
+    xline(final_kon, 'k--', 'LineWidth', 2)
+
+    % Mean MLE
+    xline(mean(MLEs{n}), 'r-', 'LineWidth', 2)
+
+    set(gca, 'XScale', 'log')
+    xlim(xlims)
+
+    xlabel('MLE k_{on}')
+    ylabel('Probability Density')
+    title(sprintf('%d Cells', cell_numbers(n)))
+
+    grid on
+end
+
+
+
+%% 
+mleVar = zeros(size(cell_numbers));
+fimVar = zeros(size(cell_numbers));
+
+for n = 1:length(cell_numbers)
+
+    % Empirical variance of MLE
+    mleVar(n) = var(MLEs{n});
+
+    % FIM prediction
+    fimVar(n) = 1 / (cell_numbers(n) * FIMEstimate);
+
+end
+
+figure(106);
+clf
+
+plot(cell_numbers, mleVar, 'ko-', ...
+    'LineWidth', 2, ...
+    'MarkerFaceColor', 'k')
+hold on
+
+plot(cell_numbers, fimVar, 'r^-', ...
+    'LineWidth', 2, ...
+    'MarkerFaceColor', 'r')
+
+xlabel('Number of Cells')
+ylabel('Variance of k_{on}')
+legend('MLE variance', 'FIM prediction', ...
+    'Location', 'best')
+
+grid on
+
+set(gca, 'XScale', 'log')
+set(gca, 'YScale', 'log')
+
+
+%% MSE of MLE vs number of cells
+
+mleMSE = zeros(size(cell_numbers));
+
+for n = 1:length(cell_numbers)
+
+    % MLE estimates for this number of cells
+    estimates = MLEs{n};
+
+    % Mean squared error relative to true parameter
+    mleMSE(n) = mean((estimates - final_kon).^2);
+
+end
+
+% Plot
+
+figure(107);
+clf
+
+plot(cell_numbers, mleMSE, 'ko-', ...
+    'LineWidth', 2, ...
+    'MarkerFaceColor', 'k')
+
+set(gca, 'XScale', 'log')
+set(gca, 'YScale', 'log')
+
+xlabel('Number of Cells')
+ylabel('MLE MSE')
+title('MLE Mean Squared Error vs Number of Cells')
+
+grid on
+
+
+
+%% MSE between MLE variance and FIM variance
+
+varMSE = (mleVar - fimVar).^2;
+
+figure(108);
+clf
+
+plot(cell_numbers, varMSE, 'ko-', ...
+    'LineWidth', 2, ...
+    'MarkerFaceColor', 'k')
+
+set(gca, 'XScale', 'log')
+set(gca, 'YScale', 'log')
+
+xlabel('Number of Cells')
+ylabel('MSE: MLE Variance vs FIM Variance')
+title('MSE Between Empirical Variance and FIM Estimate')
+
+grid on
+
+
+%% Export Figures for Paper Supplimental Figure
+outputFolder = 'AnnualReview_Figures';
+
+if ~exist(outputFolder, 'dir')
+    mkdir(outputFolder);
+end
+
+% Overall paper canvas
+fullWidth = 6.33;
+fullHeight = 7.9;
+
+% 4 x 3 grid
+plotWidth = fullWidth / 4;
+plotHeight = fullHeight / 3;
+
+for figNum = 101:108
+
+    fig = figure(figNum);
+
+    % Remove figure-level title
+    sgtitle(fig, '');
+
+    % Find all axes
+    axesList = findall(fig, 'Type', 'Axes');
+
+    for i = 1:length(axesList)
+
+        ax = axesList(i);
+
+        % Remove title
+        ax.Title.String = '';
+        ax.Title.Visible = 'off';
+
+        % Remove axis labels
+        ax.XLabel.String = '';
+        ax.XLabel.Visible = 'off';
+
+        ax.YLabel.String = '';
+        ax.YLabel.Visible = 'off';
+
+        % Remove ticks and tick labels
+        ax.XTick = [];
+        ax.YTick = [];
+
+        ax.XTickLabel = [];
+        ax.YTickLabel = [];
+
+        % Remove tick marks
+        ax.TickLength = [0 0];
+
+    end
+
+    % Remove legends
+    legends = findall(fig, 'Type', 'Legend');
+
+    if ~isempty(legends)
+        delete(legends);
+    end
+
+    % Remove colorbar labels/ticks
+    colorbars = findall(fig, 'Type', 'ColorBar');
+
+    for i = 1:length(colorbars)
+
+        cb = colorbars(i);
+
+        cb.TickLabels = [];
+        cb.Label.String = '';
+
+    end
+
+    % Set physical dimensions for 4 x 3 grid
+    fig.Units = 'inches';
+    fig.Position(3:4) = [plotWidth plotHeight];
+
+    % Export
+    fileName = sprintf('figure%d.svg', figNum);
+
+    exportgraphics(fig, ...
+        fullfile(outputFolder, fileName), ...
+        'ContentType', 'vector');
+
+end
+
+disp('Figures 10-20 exported successfully.');
+
+
+
+
+%%
 return
 
-%%
-
-
-%%
 %% Burst Frequency Model
 Model = SSIT('Empty');
 
@@ -1021,7 +1486,7 @@ Model = Model.solve;
 
 Model.plotFSP
 
-%% 
+
 
 %% Verification of FIM using CRLB (spread of MLE)
 % nCellsInExperiment = 0*Model.tSpan;
