@@ -298,8 +298,8 @@ disp('All SVG figures exported successfully.');
 %% Simple experiment and eigenvector analysis
 Model_chg.tSpan = linspace(0,7.5,31); % update time specific to the time scale
 nCellsInExperiment = 0*Model_chg.tSpan;
-nCellsInExperiment([1,31]) = 200;
-FIMs = Model_chg.computeFIM(scale='log',freePars=[1:5],...
+nCellsInExperiment([1]) = 1;
+FIMs = Model_chg.computeFIM(scale='log',freePars=[1:4],...
     observed={'mRNA'});
 FIMTotal = Model_chg.totalFim(FIMs,nCellsInExperiment);
 
@@ -313,33 +313,30 @@ e = 1/2*(f*f')^-1
 D = diag(lambda);
 V = V(:,idx);
 
-% Model_chg.plotFIMResults(f, 'log', Model_chg.parameters(1:5), PlotEllipses=true, Colors=struct('EllipseColors',[0.9 0.6 0.2],...
+% Model_chg.plotFIMResults(f, 'log', Model_chg.parameters(1:4), PlotEllipses=true, Colors=struct('EllipseColors',[0.9 0.6 0.2],...
 %     'CenterSquare',[0.96,0.47,0.16]))
 
 figure(18)
 plotHeatmap( ...
     f, ...
-    Model_chg.parameters(1:5,1), ...
-    Model_chg.parameters(1:5,1), ...
-    'FIM', ...
-    'fim');
+    Model_chg.parameters(1:4,1), ...
+    Model_chg.parameters(1:4,1), ...
+    'FIM');
 
 
 figure(19)
 plotHeatmap( ...
     e, ...
-    Model_chg.parameters(1:5,1), ...
-    Model_chg.parameters(1:5,1), ...
-    'FIM inverse', ...
-    'covariance');
+    Model_chg.parameters(1:4,1), ...
+    Model_chg.parameters(1:4,1), ...
+    'FIM inverse');
 
 figure(20)
 plotHeatmap( ...
     V * D, ...
-    Model_chg.parameters(1:5,1), ...
-    {'EV1', 'EV2', 'EV3', 'EV4', 'EV5'}, ...
-    'Eigen Vectors of FIM inverse', ...
-    'eigen');
+    Model_chg.parameters(1:4,1), ...
+    {'EV1', 'EV2', 'EV3', 'EV4'}, ...
+    'Eigen Vectors of FIM inverse');
 
 
 % I really like this plot. It shows how the intial steady state has the
@@ -352,15 +349,15 @@ plotHeatmap( ...
 %     observed={'mRNA'});
 % FIMTotal = Model_chg.totalFim(FIMs,nCellsInExperiment);
 
-fprintf('FIM for step change in kon at 1 for intuitive design')
-f = FIMTotal{1}
-c = cond(f) 
-[V, D] = eig(f)
-e = 1/2*(f*f')^-1
-[V, D] = eig(e)
-
-Model_chg.plotFIMResults(f, 'log', Model_chg.parameters(1:5), [Model_chg.parameters{1:5,2}] ,PlotEllipses=true, Colors=struct('EllipseColors',[0.9 0.6 0.2],...
-    'CenterSquare',[0.96,0.47,0.16]))
+% fprintf('FIM for step change in kon at 1 for intuitive design')
+% f = FIMTotal{1}
+% c = cond(f) 
+% [V, D] = eig(f)
+% e = 1/2*(f*f')^-1
+% [V, D] = eig(e)
+% 
+% Model_chg.plotFIMResults(f, 'log', Model_chg.parameters(1:5), [Model_chg.parameters{1:5,2}] ,PlotEllipses=true, Colors=struct('EllipseColors',[0.9 0.6 0.2],...
+%     'CenterSquare',[0.96,0.47,0.16]))
 % see marginal improvement in intial steady state 
 
 
@@ -897,7 +894,7 @@ fullWidth = 6.33;
 fullHeight = 7.9;
 
 % 4 x 3 grid
-plotWidth = fullWidth / 4;
+plotWidth = fullWidth / 3;
 plotHeight = fullHeight / 3;
 
 for figNum = 10:20
@@ -1007,9 +1004,22 @@ for i = 1:length(kon_domain)
 end
 
 %%
-figure(101)
+figure(101);
+clf
 plot(kon_domain, likelihoods, 'LineWidth', 1.5)
 hold on
+
+% ax.Box = 'on';
+% ax.LineWidth = 1;
+
+ax = gca;
+ax.Box = 'on';
+ax.LineWidth = 1.5;
+ax.FontSize = 11;
+ax.FontWeight = 'bold';
+ax.XColor = 'k';
+ax.YColor = 'k';
+ax.TickLength = [0.015 0.015];
 
 % Find MLE
 [~, max_idx] = max(likelihoods);
@@ -1026,7 +1036,7 @@ set(gca, 'XScale', 'log')
 xlabel('k_{on}')
 ylabel('Log-Likelihood')
 legend('Likelihood', 'True k_{on}', 'MLE', 'Location', 'best')
-grid on
+% grid on
 
 T = array2table(count_domain, ...
     'VariableNames', compose("exp%d_mRNA", count_domain));
@@ -1038,18 +1048,20 @@ writetable(T, 'fakeData.csv');
 
 %% MLE FIM relationship - Multiple cell - Bursting Model - Compute
 
-likelihoods = zeros([length(count_domain), length(kon_domain)]);
-for i = 1:length(kon_domain)
-    pars(1) = kon_domain(i);
-    Model_chg.parameters(:,2) = num2cell(pars);
-    Model_chg = Model_chg.solve;
-    for j = 1:length(count_domain)
-        Model_chg = Model_chg.loadData('fakeData.csv', {'mRNA', sprintf('exp%d_mRNA',j-1)});
-        l = Model_chg.computeLikelihood(pars, Model_chg.Solutions.stateSpace, false, true);
-        likelihoods(j, i) = l;
+if false
+    likelihoods = zeros([length(count_domain), length(kon_domain)]);
+    for i = 1:length(kon_domain)
+        pars(1) = kon_domain(i);
+        Model_chg.parameters(:,2) = num2cell(pars);
+        Model_chg = Model_chg.solve;
+        for j = 1:length(count_domain)
+            Model_chg = Model_chg.loadData('fakeData.csv', {'mRNA', sprintf('exp%d_mRNA',j-1)});
+            l = Model_chg.computeLikelihood(pars, Model_chg.Solutions.stateSpace, false, true);
+            likelihoods(j, i) = l;
+        end
     end
+    save('likeloodFunctions.mat', 'likelihoods')
 end
-save('likeloodFunctions.mat', 'likelihoods')
 
 
 %% MLE FIM relationship - Multiple cell - Bursting Model - Display
@@ -1064,6 +1076,7 @@ L = likelihoods(samples(1:20)+1,:);
 mle = kon_domain(max_idx);
 
 figure(102);
+clf
 hold on
 
 plot(kon_domain, L, 'lineWidth', 1.5)
@@ -1076,6 +1089,15 @@ plot(mle, ymin * ones(size(mle)), 'rx', ...
     'MarkerSize', 12, 'LineWidth', 2)
 
 xline(final_kon, 'k--', 'lineWidth', 2)
+
+ax = gca;
+ax.Box = 'on';
+ax.LineWidth = 1.5;
+ax.FontSize = 11;
+ax.FontWeight = 'bold';
+ax.XColor = 'k';
+ax.YColor = 'k';
+ax.TickLength = [0.015 0.015];
 
 %% MLE FIM relationship - MLE Spread - Bursting Model
 L = likelihoods(samples+1,:);
@@ -1111,7 +1133,16 @@ xlim(xlims)
 
 xlabel('MLE k_{on}')
 ylabel('Probability Density')
-grid on
+% grid on
+
+ax = gca;
+ax.Box = 'on';
+ax.LineWidth = 1.5;
+ax.FontSize = 11;
+ax.FontWeight = 'bold';
+ax.XColor = 'k';
+ax.YColor = 'k';
+ax.TickLength = [0.015 0.015];
 
 %% MLE FIM relationship - sensitivity and FIM prediction - Bursting Model
 L = likelihoods(samples+1,:);
@@ -1142,6 +1173,7 @@ xlabel('Sensitivity^2')
 ylabel('Probability Density')
 title('Sensitivity Squared at True Parameter')
 
+xlim([0,0.02])
 
 % Empirical MLE variance -> information in log space
 % xline(1/mleVar_log, 'b--', 'LineWidth', 2)
@@ -1152,6 +1184,15 @@ FIMEstimate = FIM{1};
 xline(FIMEstimate, 'r', 'LineWidth', 2)
 
 xline(mean(sensitivity_squared), 'k--', 'LineWidth', 2)
+
+ax = gca;
+ax.Box = 'on';
+ax.LineWidth = 1.5;
+ax.FontSize = 11;
+ax.FontWeight = 'bold';
+ax.XColor = 'k';
+ax.YColor = 'k';
+ax.TickLength = [0.015 0.015];
 
 
 % legend('Sensitivity^2', ...
@@ -1254,8 +1295,17 @@ for n = 1:nPlot
     ylabel('Probability Density')
     title(sprintf('%d Cells', cell_numbers(n)))
 
-    grid on
+    % grid on
 end
+
+ax = gca;
+ax.Box = 'on';
+ax.LineWidth = 1.5;
+ax.FontSize = 11;
+ax.FontWeight = 'bold';
+ax.XColor = 'k';
+ax.YColor = 'k';
+ax.TickLength = [0.015 0.015];
 
 
 
@@ -1290,7 +1340,7 @@ ylabel('Variance of k_{on}')
 legend('MLE variance', 'FIM prediction', ...
     'Location', 'best')
 
-grid on
+% grid on
 
 set(gca, 'XScale', 'log')
 set(gca, 'YScale', 'log')
@@ -1326,7 +1376,16 @@ xlabel('Number of Cells')
 ylabel('MLE MSE')
 title('MLE Mean Squared Error vs Number of Cells')
 
-grid on
+% grid on
+
+ax = gca;
+ax.Box = 'on';
+ax.LineWidth = 1.5;
+ax.FontSize = 11;
+ax.FontWeight = 'bold';
+ax.XColor = 'k';
+ax.YColor = 'k';
+ax.TickLength = [0.015 0.015];
 
 
 
@@ -1348,7 +1407,16 @@ xlabel('Number of Cells')
 ylabel('MSE: MLE Variance vs FIM Variance')
 title('MSE Between Empirical Variance and FIM Estimate')
 
-grid on
+% grid on
+
+ax = gca;
+ax.Box = 'on';
+ax.LineWidth = 1.5;
+ax.FontSize = 11;
+ax.FontWeight = 'bold';
+ax.XColor = 'k';
+ax.YColor = 'k';
+ax.TickLength = [0.015 0.015];
 
 
 %% Export Figures for Paper Supplimental Figure
@@ -1363,7 +1431,7 @@ fullWidth = 6.33;
 fullHeight = 7.9;
 
 % 4 x 3 grid
-plotWidth = fullWidth / 4;
+plotWidth = fullWidth / 3;
 plotHeight = fullHeight / 3;
 
 for figNum = 101:108
@@ -1392,14 +1460,14 @@ for figNum = 101:108
         ax.YLabel.Visible = 'off';
 
         % Remove ticks and tick labels
-        ax.XTick = [];
-        ax.YTick = [];
+        % ax.XTick = [];
+        % ax.YTick = [];
 
         ax.XTickLabel = [];
         ax.YTickLabel = [];
 
         % Remove tick marks
-        ax.TickLength = [0 0];
+        % ax.TickLength = [0 0];
 
     end
 
@@ -1435,7 +1503,7 @@ for figNum = 101:108
 
 end
 
-disp('Figures 10-20 exported successfully.');
+disp('Figures 101-108 exported successfully.');
 
 
 
@@ -1807,206 +1875,345 @@ ModelGen.plotFSP
 
 
 %% Functions 
-function plotHeatmap(M, rowNames, colNames, titleText, scaleType)
+function plotHeatmap(M, rowNames, colNames, titleText)
 
-    if size(M,1) ~= length(rowNames)
+    % =============================================================
+    % Signed-logarithmic heatmap
+    %
+    % ORIGINAL MATRIX M IS NEVER MODIFIED.
+    %
+    % Negative -> blue
+    % Zero     -> white
+    % Positive -> red
+    %
+    % Powers of 10 are equally spaced in colour space.
+    % =============================================================
+
+    if size(M,1) ~= numel(rowNames)
         error('Number of row names must equal number of rows.');
     end
 
-    if size(M,2) ~= length(colNames)
+    if size(M,2) ~= numel(colNames)
         error('Number of column names must equal number of columns.');
     end
 
     rowNames = cellstr(rowNames);
     colNames = cellstr(colNames);
 
-    nColors = 256;
+    % -------------------------------------------------------------
+    % Colours
+    % -------------------------------------------------------------
 
-    blue = [0.05 0.25 0.75];
-    white = [1 1 1];
-    red = [0.80 0.10 0.10];
+    blue  = [0.05 0.25 0.75];
+    white = [1.00 1.00 1.00];
+    red   = [0.80 0.10 0.10];
 
-    nHalf = nColors / 2;
+    % -------------------------------------------------------------
+    % Get largest magnitude
+    % -------------------------------------------------------------
 
-    blueToWhite = [
-        linspace(blue(1), white(1), nHalf)', ...
-        linspace(blue(2), white(2), nHalf)', ...
-        linspace(blue(3), white(3), nHalf)'
-    ];
+    maxValue = max(abs(M(:)));
 
-    whiteToRed = [
-        linspace(white(1), red(1), nHalf)', ...
-        linspace(white(2), red(2), nHalf)', ...
-        linspace(white(3), red(3), nHalf)'
-    ];
+    if maxValue == 0
+        maxValue = 1;
+    end
 
+    % -------------------------------------------------------------
+    % Determine decade range
+    %
+    % Example:
+    %
+    % maxValue = 4e15
+    %
+    % gives approximately:
+    %
+    % 1e12  1e13  1e14  1e15  1e16
+    %
+    % -------------------------------------------------------------
 
-    if strcmpi(scaleType, 'fim')
+    maxExponent = ceil(log10(maxValue));
 
-        % -------------------------------------------------------------
-        % FIM
-        %
-        % Signed logarithmic scale.
-        %
-        % Negative -> blue
-        % Zero     -> white
-        % Positive -> red
-        %
-        % Equal spacing corresponds to powers of 10.
-        % -------------------------------------------------------------
+    nDecades = 4;
 
-        Mplot = zeros(size(M));
+    minExponent = maxExponent - nDecades;
 
-        idx = M ~= 0;
+    % -------------------------------------------------------------
+    % Convert M -> COLOR COORDINATE
+    %
+    % M itself is NOT changed.
+    %
+    % Coordinate:
+    %
+    % negative values : [-1,0]
+    % zero            : 0
+    % positive values : [0,1]
+    %
+    % The magnitude is logarithmically positioned.
+    % -------------------------------------------------------------
 
-        Mplot(idx) = sign(M(idx)) .* log10(abs(M(idx)));
+    C = zeros(size(M));
 
-        maxLog = max(abs(Mplot(:)));
+    idx = M ~= 0;
 
-        imagesc(Mplot);
+    if any(idx(:))
 
-        clim([-maxLog maxLog]);
+        magnitude = abs(M(idx));
 
-        colormap([blueToWhite; whiteToRed]);
+        t = (log10(magnitude) - minExponent) / ...
+            (maxExponent - minExponent);
 
-        cb = colorbar;
+        % Clamp
+        t = max(0, min(1, t));
 
-        exponent = ceil(maxLog);
+        C(idx) = sign(M(idx)) .* t;
 
-        tickPositions = -exponent:exponent;
+    end
 
-        tickPositions = tickPositions( ...
-            tickPositions >= -maxLog & ...
-            tickPositions <= maxLog);
+    % -------------------------------------------------------------
+    % Convert colour coordinate to RGB
+    % -------------------------------------------------------------
 
-        tickLabels = cell(size(tickPositions));
+    RGB = zeros([size(M), 3]);
 
-        for k = 1:length(tickPositions)
+    for i = 1:size(M,1)
 
-            p = tickPositions(k);
+        for j = 1:size(M,2)
 
-            if p == 0
-                tickLabels{k} = '0';
-            elseif p < 0
-                tickLabels{k} = sprintf('$-10^{%d}$', abs(p));
+            c = C(i,j);
+
+            if c < 0
+
+                % Blue -> white
+                q = abs(c);
+
+                RGB(i,j,:) = ...
+                    blue + q .* (white - blue);
+
+            elseif c > 0
+
+                % White -> red
+                q = c;
+
+                RGB(i,j,:) = ...
+                    white + q .* (red - white);
+
             else
-                tickLabels{k} = sprintf('$10^{%d}$', p);
+
+                % EXACTLY ZERO
+                RGB(i,j,:) = white;
+
             end
 
         end
 
-        cb.Ticks = tickPositions;
-        cb.TickLabels = tickLabels;
-        cb.TickLabelInterpreter = 'latex';
-        cb.Label.String = 'FIM';
-
-    elseif strcmpi(scaleType, 'eigen')
-    
-        % Plot V*D exactly as supplied.
-        % No logarithm, no transformation.
-    
-        imagesc(M);
-    
-        maxValue = max(abs(M(:)));
-    
-        % Symmetric colour scale around zero
-        clim([-maxValue maxValue]);
-    
-        colormap([blueToWhite; whiteToRed]);
-    
-        cb = colorbar;
-    
-        % Show actual values
-        cb.Ticks = linspace(-maxValue, maxValue, 7);
-    
-        cb.TickLabels = arrayfun( ...
-            @(x) sprintf('%.3g', x), ...
-            cb.Ticks, ...
-            'UniformOutput', false);
-    
-        cb.Label.String = 'Eigenvector $\times$ Eigenvalue';
-        cb.TickLabelInterpreter = 'latex';
-
-    elseif strcmpi(scaleType, 'covariance')
-
-        % -------------------------------------------------------------
-        % COVARIANCE
-        %
-        % Actual covariance values.
-        %
-        % Scale starts at zero.
-        % Positive -> white to red.
-        %
-        % No logarithm is applied.
-        % -------------------------------------------------------------
-
-        if any(M(:) < 0)
-            error(['Covariance matrix contains negative values. ', ...
-                   'This mode expects a covariance matrix with ', ...
-                   'non-negative entries.']);
-        end
-
-        imagesc(M);
-
-        maxValue = max(M(:));
-
-        clim([0 maxValue]);
-
-        % White -> red
-        colormap([
-            linspace(white(1), red(1), nColors)', ...
-            linspace(white(2), red(2), nColors)', ...
-            linspace(white(3), red(3), nColors)'
-        ]);
-
-        cb = colorbar;
-
-        % Nice linear ticks starting at zero
-        nTicks = 5;
-
-        tickValues = linspace(0, maxValue, nTicks);
-
-        cb.Ticks = tickValues;
-
-        cb.TickLabels = arrayfun( ...
-            @(x) sprintf('%.1f', x), ...
-            tickValues, ...
-            'UniformOutput', false);
-
-        cb.Label.String = 'Covariance';
-
-
-    else
-
-        error(['scaleType must be ''fim'', ''eigen'', ', ...
-               'or ''covariance''.']);
-
     end
 
+    % -------------------------------------------------------------
+    % Plot RGB image
+    % -------------------------------------------------------------
+
+    image(RGB);
 
     ax = gca;
 
-    ax.XTick = 1:length(colNames);
-    ax.YTick = 1:length(rowNames);
+    axis image;
+
+    % -------------------------------------------------------------
+    % Create a custom colourbar
+    %
+    % We make a separate invisible image whose colour coordinate
+    % runs from -1 to +1.
+    % -------------------------------------------------------------
+
+    hold on;
+
+    % Dummy invisible image used only for the colourbar
+    dummy = imagesc([-1 1; -1 1]);
+
+    dummy.Visible = 'off';
+
+    % Use the same blue-white-red colormap
+    n = 256;
+
+    nBlue = 128;
+    nRed  = 128;
+
+    blueMap = [
+        linspace(blue(1), white(1), nBlue)', ...
+        linspace(blue(2), white(2), nBlue)', ...
+        linspace(blue(3), white(3), nBlue)'
+    ];
+
+    redMap = [
+        linspace(white(1), red(1), nRed)', ...
+        linspace(white(2), red(2), nRed)', ...
+        linspace(white(3), red(3), nRed)'
+    ];
+
+    colormap(ax, [blueMap; redMap]);
+
+    % -------------------------------------------------------------
+    % Colorbar
+    % -------------------------------------------------------------
+
+    cb = colorbar;
+
+    clim([-1 1]);
+
+    % -------------------------------------------------------------
+    % Construct tick positions DIRECTLY.
+    %
+    % This is the important part:
+    %
+    % -1, -0.75, -0.5, -0.25, 0, ...
+    %
+    % are strictly increasing.
+    % -------------------------------------------------------------
+
+    exponents = minExponent:maxExponent;
+
+    % Positions corresponding to powers of ten
+    %
+    % minExponent -> 0
+    % maxExponent -> 1
+
+    decadePosition = ...
+        (exponents - minExponent) ./ ...
+        (maxExponent - minExponent);
+
+    % Negative side
+    negativePositions = -fliplr(decadePosition);
+
+    % Positive side
+    positivePositions = decadePosition;
+
+    % Combine in increasing order
+    tickPositions = [
+        negativePositions ...
+        0 ...
+        positivePositions
+    ];
+
+    % Remove duplicate zero if it occurs
+    tickPositions = unique(tickPositions, 'sorted');
+
+    % -------------------------------------------------------------
+    % Labels
+    % -------------------------------------------------------------
+
+    tickLabels = cell(size(tickPositions));
+
+    for k = 1:numel(tickPositions)
+
+        p = tickPositions(k);
+
+        if p == 0
+
+            tickLabels{k} = '0';
+
+        else
+
+            % Recover exponent from position
+            e = minExponent + ...
+                abs(p) * (maxExponent - minExponent);
+
+            e = round(e);
+
+            if p < 0
+                tickLabels{k} = sprintf('$-10^{%d}$', e);
+            else
+                tickLabels{k} = sprintf('$10^{%d}$', e);
+            end
+
+        end
+
+    end
+
+    cb.Ticks = tickPositions;
+    cb.TickLabels = tickLabels;
+
+    cb.TickLabelInterpreter = 'latex';
+    cb.Label.String = 'Value';
+
+    % -------------------------------------------------------------
+    % Axes
+    % -------------------------------------------------------------
+
+    ax.XTick = 1:numel(colNames);
+    ax.YTick = 1:numel(rowNames);
 
     ax.XTickLabel = colNames;
     ax.YTickLabel = rowNames;
 
     ax.FontSize = 11;
-    ax.LineWidth = 1.2;
+    ax.LineWidth = 0.5;
     ax.TickDir = 'out';
     ax.Box = 'on';
-
-    axis square
+    
+    hold on
+    
+    % Vertical cell boundaries
+    for x = 0.5:1:size(M,2)+0.5
+        plot([x x], [0.5 size(M,1)+0.5], ...
+            'Color', [0.5 0.5 0.5], ...
+            'LineWidth', 0.5);
+    end
+    
+    % Horizontal cell boundaries
+    for y = 0.5:1:size(M,1)+0.5
+        plot([0.5 size(M,2)+0.5], [y y], ...
+            'Color', [0.5 0.5 0.5], ...
+            'LineWidth', 0.5);
+    end
+    
+    hold off
 
     xlabel('Parameter');
     ylabel('Parameter');
 
+    axis square;
+
+    % -------------------------------------------------------------
+    % +/- symbols
+    % -------------------------------------------------------------
+
+    for i = 1:size(M,1)
+
+        for j = 1:size(M,2)
+
+            if M(i,j) > 0
+                symbol = '+';
+
+            elseif M(i,j) < 0
+                symbol = '−';
+
+            else
+                symbol = '0';
+            end
+
+            text(j, i, symbol, ...
+                'HorizontalAlignment', 'center', ...
+                'VerticalAlignment', 'middle', ...
+                'FontSize', 9, ...
+                'FontWeight', 'bold', ...
+                'Color', 'black');
+
+        end
+
+    end
+
+    % -------------------------------------------------------------
+    % Title
+    % -------------------------------------------------------------
+
     if nargin >= 4 && ~isempty(titleText)
+
         title(titleText, ...
             'FontSize', 14, ...
             'FontWeight', 'normal');
+
     end
 
-end
+    hold off;
 
+end
