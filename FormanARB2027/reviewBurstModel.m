@@ -1573,7 +1573,7 @@ Model = Model.addReaction(struct(...
 Model.fspOptions.initApproxSS = true;
 Model.tSpan = linspace(0,300,31);
 
-Model = Model.solve;
+% Model = Model.solve;
 
 % Model.plotFSP
 
@@ -1592,6 +1592,37 @@ Model = Model.solve;
 % FIMTotal = Model.totalFim(FIMs,nCellsInExperiment);
 % 
 % Model.plotMHResults(MLE,FIM=FIMTotal,fimScale='log',truncateChain=false);
+
+
+%% PDO - Effect on Distributions
+% Pick a parameter set that has an interesting looking PDF.
+%                                     PRIOR
+Model.parameters = {'kon0',0.01;...  % logn(-1,2)
+    'koff0',0.01;...                   % logn(0,2)
+    'kr',10;...                     % logn(1,2)
+    'g',0.01;...                    % logn(-2,2)
+    'kD',10;...                     % logn(1,2)
+    'S0',1;...                      % NA (initial input concentration)
+    'S1',5};                        % NA (final input concentration)
+
+f1 = figure(1); clf;
+Model.fspOptions.bounds = [];
+Model = Model.solve(solver='fsp');
+Model.plotFSP(figureNums=f1,plotType='marginals',indTimes=length(Model.tSpan),speciesNames='mRNA',Colors={'r'})
+
+% Add a Binomial PDO 
+dropOut = 0.9; % fraction dropout
+Model_BinomialPDO = Model;
+Model_BinomialPDO.pdoOptions.type = 'Binomial';
+Model_BinomialPDO.pdoOptions.unobservedSpecies = 'gON';
+Model_BinomialPDO.pdoOptions.props.CaptureProbabilityS1 = 0;    % Gene State is not measured
+Model_BinomialPDO.pdoOptions.props.CaptureProbabilityS2 = 1-dropOut; % 95% dropout from RNA
+[~,Model_BinomialPDO] = Model_BinomialPDO.generatePDO;
+hold on
+Model_BinomialPDO.plotFSP(figureNums=f1,plotType='marginals',indTimes=length(Model_BinomialPDO.tSpan),...
+    speciesNames='mRNA',includePDO=true,Colors={'k'})
+% set(gca,'yscale','log','ylim',[1e-5,1])
+
 
 %% 1D plots of likelihood function - Kr
 % nCellsInExperiment = zeros(size(Model_chg.tSpan));
