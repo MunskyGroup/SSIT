@@ -970,9 +970,6 @@ disp('Figures 10-20 exported successfully.');
 
 
 
-%%
-
-%%
 
 %% MLE FIM relationship - Single cell - Bursting Model
 Model_chg.tSpan = linspace(0,25,31);
@@ -1003,7 +1000,7 @@ for i = 1:length(kon_domain)
     likelihoods(i) = l;
 end
 
-%%
+%% MLE FIM relationship - Single cell - Plotting
 figure(101);
 clf
 plot(kon_domain, likelihoods, 'LineWidth', 1.5)
@@ -1038,6 +1035,7 @@ ylabel('Log-Likelihood')
 legend('Likelihood', 'True k_{on}', 'MLE', 'Location', 'best')
 % grid on
 
+%% MLE FIM relationship - Multiple cell - Bursting Model - Compute
 T = array2table(count_domain, ...
     'VariableNames', compose("exp%d_mRNA", count_domain));
 
@@ -1045,8 +1043,6 @@ T.time = 0;
 T = movevars(T, 'time', 'Before', 1);
 
 writetable(T, 'fakeData.csv');
-
-%% MLE FIM relationship - Multiple cell - Bursting Model - Compute
 
 if false
     likelihoods = zeros([length(count_domain), length(kon_domain)]);
@@ -1064,7 +1060,7 @@ if false
 end
 
 
-%% MLE FIM relationship - Multiple cell - Bursting Model - Display
+%% MLE FIM relationship - Multiple cell - Bursting Model - Plotting
 load("likeloodFunctions.mat")
 
 T = readtable('dataForFIMIntro.csv');
@@ -1099,7 +1095,7 @@ ax.XColor = 'k';
 ax.YColor = 'k';
 ax.TickLength = [0.015 0.015];
 
-%% MLE FIM relationship - MLE Spread - Bursting Model
+%% MLE FIM relationship - MLE Spread
 L = likelihoods(samples+1,:);
 [~, max_idx] = max(L, [], 2);
 mle = kon_domain(max_idx);
@@ -1144,7 +1140,7 @@ ax.XColor = 'k';
 ax.YColor = 'k';
 ax.TickLength = [0.015 0.015];
 
-%% MLE FIM relationship - sensitivity and FIM prediction - Bursting Model
+%% MLE FIM relationship - sensitivity and FIM prediction
 L = likelihoods(samples+1,:);
 
 % Numerical derivative of each likelihood curve
@@ -1309,7 +1305,7 @@ ax.TickLength = [0.015 0.015];
 
 
 
-%% 
+%% MLE variance and FIM Convergence 
 mleVar = zeros(size(cell_numbers));
 fimVar = zeros(size(cell_numbers));
 
@@ -1509,7 +1505,34 @@ disp('Figures 101-108 exported successfully.');
 
 
 %%
-return
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+% return
 
 %% Burst Frequency Model
 Model = SSIT('Empty');
@@ -1552,7 +1575,7 @@ Model.tSpan = linspace(0,300,31);
 
 Model = Model.solve;
 
-Model.plotFSP
+% Model.plotFSP
 
 
 
@@ -1741,23 +1764,9 @@ for it = 1:length(itimes)
 end
 disp(['Determinant of FIM for dynamic measurements: ',num2str(det(FIM_Dynamic))])
 
-%% Plots of FIM predicted uncertainties
-freePars = [1:4];
-f1 = figure(11);
-f2 = figure(12);
-f3 = figure(13);
-
-% The following plots the heatmap showing the
-Model.plotFIMResults(FIM_Opt^(-1)/log(10)^2, 'log',...
-    Model.parameters(freePars,1),...
-    [Model.parameters{freePars,2}],...
-    PlotEllipses=true,EllipseFigure=f1,...
-    FigureHandle=f3,...
-    Colors=struct('EllipseColors',[0.9 0.6 0.2],...
-    'CenterSquare',[0.96,0.47,0.16]),...
-    LogThreshold=-4,...
-    HeatMapType='invfim',...
-    MatrixType='invfim');
+% TODO - make plots of these measurements along the length of input
+% TODO - make plots of each optimality vs NCells for each stratagy
+% TODO - make plot of FIM-1 for the original experiment
 
 
 %% Optimized Experiment Design
@@ -1794,7 +1803,137 @@ for i = 1:length(OptExperiment)
 end
 disp(['Determinant of FIM for optimized measurements: ',num2str(det(FIM_Opt))])
 
+
+%% Plots of FIM predicted uncertainties
+freePars = [1:4];
+f1 = figure(201);
+f2 = figure(202);
+f3 = figure(203);
+
+% The following plots the heatmap showing the
+Model.plotFIMResults(FIM_Opt^(-1)/log(10)^2, 'log',...
+    Model.parameters(freePars,1),...
+    [Model.parameters{freePars,2}],...
+    PlotEllipses=true,EllipseFigure=f1,...
+    FigureHandle=f3,...
+    Colors=struct('EllipseColors',[0.9 0.6 0.2],...
+    'CenterSquare',[0.96,0.47,0.16]),...
+    LogThreshold=-4,...
+    HeatMapType='invfim',...
+    MatrixType='invfim');
+
+
+%%
+f4 = figure(204)
+Model.plotFIMResults(FIM_Opt^(-1)/log(10)^2, 'log',...
+    Model.parameters(freePars,1),...
+    [Model.parameters{freePars,2}],...
+    PlotEllipses=true,EllipseFigure=f4,...
+    EllipsePairs=[1,2], ...
+    FigureHandle=f3,...
+    Colors=struct('EllipseColors',[0.9 0.6 0.2],...
+    'CenterSquare',[0.96,0.47,0.16]),...
+    LogThreshold=-4,...
+    HeatMapType='invfim',...
+    MatrixType='invfim');
+
+hold on
+
+C = FIM_Opt^(-1)/log(10)^2;
+
+% Parameters corresponding to your ellipse pair
+C2 = C([1 2],[1 2]);
+
+% Eigenvectors/eigenvalues
+[V,D] = eig(C2);
+
+% Sort eigenvalues from smallest to largest
+[lambda,idx] = sort(diag(D));
+V = V(:,idx);
+
+% Center of ellipse
+x0 = log10(Model.parameters{2,2});
+y0 = log10(Model.parameters{1,2});
+
+% Scale factor for visualization
+scale = 2;
+
+% Small eigenvalue direction
+quiver(x0,y0,...
+    V(2,1)*sqrt(lambda(1))*scale,...
+    V(1,1)*sqrt(lambda(1))*scale,...
+    0,...
+    'LineWidth',2,...
+    'Color','r',...
+    'MaxHeadSize',0.5);
+
+% Large eigenvalue direction
+quiver(x0,y0,...
+    V(2,2)*sqrt(lambda(2))*scale,...
+    V(1,2)*sqrt(lambda(2))*scale,...
+    0,...
+    'LineWidth',2,...
+    'Color','b',...
+    'MaxHeadSize',0.5);
+
+% TODO - Add MLE estimates to plot
+% TODO - change exp for this to acheive MLE spread
+% TODO - plot FIM-1 for optimatlity descriptions 
+%% 
+nCellsInExperiment = zeros(size(Model.tSpan));
+nCellsInExperiment([1]) = 1;
+Model = Model.solve;
+Model.ssaOptions.Nexp = 5000;
+
+Model.fittingOptions.modelVarsToFit = [1];
+
+% Model_chg.plotFSP(plotType='meansAndDevs', SpeciesIdx=[2], Title='testing steady state') % Test successful 
+Model.sampleDataFromFSP(saveFile='dataForFIMIntro.csv',nCells=nCellsInExperiment,species2save={'mRNA'});
+Model = Model.loadData('dataForFIMIntro.csv', {'mRNA', 'exp1_mRNA'});
+
+
+
+
 return
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+%%
+
+
+%%
+
+
+%%
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 %% Generalized model
 % 
 % In the most general form of this model, the parameter 'alpha' determines
