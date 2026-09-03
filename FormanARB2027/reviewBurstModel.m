@@ -504,7 +504,8 @@ for j = 1:length(N)
         'Color', mleColor, ...
         'MarkerSize', 8, ...
         'LineWidth', 1.5);
-
+   
+    zoomWidth = 1;
 
     % Right: zoomed-in likelihood curves
     leftIdx = find(theta1_domain >= theta_true(1)-zoomWidth, 1);
@@ -513,7 +514,6 @@ for j = 1:length(N)
     axZoom = axes('Position', [0.82 0.46 0.15 0.44]);
     hold(axZoom, 'on');
 
-    zoomWidth = 1;
 
     xlim(axZoom, ...
         [theta_true(1)-zoomWidth theta_true(1)+zoomWidth]);
