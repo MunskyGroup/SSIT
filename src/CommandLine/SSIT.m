@@ -4112,6 +4112,13 @@ classdef SSIT
             if reuseExistingSolution
                 solutions = obj.Solutions;  % Solve the FSP analysis
 
+                if strcmp(obj.fittingOptions.pdoVarsToFit,'all')
+                    indsPdoParsToFit = [1:length(obj.pdoOptions.props.ParameterGuess)];
+                else
+                    indsPdoParsToFit = obj.fittingOptions.pdoVarsToFit;
+                end
+                nPdoPars = length(indsPdoParsToFit);
+
             else
                 % Reset state space if it has inconsistencies
                 if ~isempty(stateSpace)&&size(stateSpace.states,2)~=length(stateSpace.state2indMap.keys)
