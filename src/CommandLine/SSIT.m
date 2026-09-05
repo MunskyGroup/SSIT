@@ -3109,11 +3109,13 @@ classdef SSIT
                     nDpossible = size(PDO,1);
                     Q = Solution.trajs(iS,:,:);
                     for iD = 1:length(Q(:))
-                        Q(iD) = randsample([0:nDpossible-1],1,true,PDO(:,Q(iD)+1));
+                        if ~isnan(Q(iD))
+                            Q(iD) = randsample([0:nDpossible-1],1,true,PDO(:,Q(iD)+1));
+                        end
                     end
                     Solution.trajsDistorted(iS,:,:) = Q;
                 end
-                trajsToWrite = Solution.trajsDistorted;
+                trajsToWriteDistorted = Solution.trajsDistorted;
                 disp('PDO applied to FSP Samples')
             end
 
@@ -3130,15 +3132,17 @@ classdef SSIT
 
                             tableColumn = ...
                                 "exp" + ie + "_" + species2save{s};
-                            if distortedMode
-                                tableColumn = tableColumn + "_Distorted";
-                            end
 
                             trajObservations = ...
                                 nCells(iT)*(ie-1)+(1:nCells(iT));
 
                             A.(tableColumn)(tableRows) = ...
-                                trajsToWrite(s, iT, trajObservations);                            
+                                trajsToWrite(s, iT, trajObservations);
+                            if distortedMode
+                                tableColumn = tableColumn + "_Distorted";
+                                A.(tableColumn)(tableRows) = ...
+                                    trajsToWriteDistorted(s, iT, trajObservations);
+                            end
                         end
                     end
                     k = k + nCells(iT);
@@ -3392,6 +3396,8 @@ classdef SSIT
                 opts.MLESaveFile = [];
                 opts.restart = false;
                 opts.nIter = 1000;
+                opts.useDistortions = false;
+                opts.correctDistortions = true;
             end
 
             if isempty(opts.nMLE)
@@ -3483,13 +3489,21 @@ classdef SSIT
             MLEsamples = NaN*ones(opts.nMLE,length(opts.freePars));
             MLEValues = NaN*ones(opts.nMLE,1);
 
+            if ~opts.correctDistortions
+                obj.pdoOptions.PDO = [];
+            end
+
             fitOptions = optimset('Display','none','MaxIter',opts.nIter);
             % Loop over the simulation tests
             parfor iSim = 1:opts.nMLE         
                 % Load Data
                 dataFields = cell(length(opts.observableSpecies),2);
                 for iSp = 1:length(opts.observableSpecies)
-                    dataFields(iSp,:) = {opts.observableSpecies{iSp},['exp',num2str(iSim),'_',opts.observableSpecies{iSp}]};
+                    if opts.useDistortions
+                        dataFields(iSp,:) = {opts.observableSpecies{iSp},['exp',num2str(iSim),'_',opts.observableSpecies{iSp},'_Distorted']};
+                    else
+                        dataFields(iSp,:) = {opts.observableSpecies{iSp},['exp',num2str(iSim),'_',opts.observableSpecies{iSp}]};
+                    end
                 end
                 mod = obj.loadData(opts.simsSaveFile,dataFields);
 
