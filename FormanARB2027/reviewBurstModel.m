@@ -1599,30 +1599,65 @@ Model.tSpan = linspace(0,300,31);
 %                                     PRIOR
 Model.parameters = {'kon0',0.01;...  % logn(-1,2)
     'koff0',0.01;...                   % logn(0,2)
-    'kr',10;...                     % logn(1,2)
-    'g',0.01;...                    % logn(-2,2)
-    'kD',10;...                     % logn(1,2)
+    'kr',1;...                     % logn(1,2)
+    'g',0.1;...                    % logn(-2,2)
+    'kD',3;...                     % logn(1,2)
     'S0',1;...                      % NA (initial input concentration)
     'S1',5};                        % NA (final input concentration)
 
 f1 = figure(1); clf;
 Model.fspOptions.bounds = [];
+Model.fspOptions.stateSpace = [];
 Model = Model.solve(solver='fsp');
 Model.plotFSP(figureNums=f1,plotType='marginals',indTimes=length(Model.tSpan),speciesNames='mRNA',Colors={'r'})
 
 % Add a Binomial PDO 
-dropOut = 0.9; % fraction dropout
+f2 = figure(2); clf;
+dropOut = 0.6; % fraction dropout
 Model_BinomialPDO = Model;
 Model_BinomialPDO.pdoOptions.type = 'Binomial';
 Model_BinomialPDO.pdoOptions.unobservedSpecies = 'gON';
 Model_BinomialPDO.pdoOptions.props.CaptureProbabilityS1 = 0;    % Gene State is not measured
 Model_BinomialPDO.pdoOptions.props.CaptureProbabilityS2 = 1-dropOut; % 95% dropout from RNA
-[~,Model_BinomialPDO] = Model_BinomialPDO.generatePDO;
+[~,Model_BinomialPDO] = Model_BinomialPDO.generatePDO(showPlot=true,Title='Binomial PDO');
+
+figure(f1)
 hold on
 Model_BinomialPDO.plotFSP(figureNums=f1,plotType='marginals',indTimes=length(Model_BinomialPDO.tSpan),...
     speciesNames='mRNA',includePDO=true,Colors={'k'})
 % set(gca,'yscale','log','ylim',[1e-5,1])
 
+%% PDO - Show effect on MLE estimation.
+% First, generate the MLE scatter plot and FIM overlay (same as above).
+freePars = [1:4];
+nCellsInExperiment = 0*Model.tSpan;
+nCellsInExperiment([1,11,31]) = 200;
+nMLE = 40;
+MLE_noDistortion = Model_BinomialPDO.estimateMLEspread(nCells=nCellsInExperiment,...
+    observableSpecies={'mRNA'},nMLE=nMLE,simsSaveFile='BurstFIMSimsPDO.csv',...
+    freePars=freePars,restart=true,useDistortions=false,correctDistortions=false,...
+    nIter = 500);
+
+%% Next, find MLE estimates WITHOUT correcting for the distortion. 
+nMLE = 40;
+MLE_PDO_Uncorrected = Model_BinomialPDO.estimateMLEspread(nCells=nCellsInExperiment,...
+    observableSpecies={'mRNA'},nMLE=nMLE,simsSaveFile='BurstFIMSimsPDO.csv',...
+    freePars=freePars,restart=true,useDistortions=true,correctDistortions=false,...
+    nIter = 500);
+% MLE_PDO_Uncorrected = Model_BinomialPDO.estimateMLEspread(nCells=nCellsInExperiment,...
+%     observableSpecies={'mRNA'},nMLE=nMLE,simsSaveFile='BurstFIMSimsPDO.csv',...
+%     freePars=freePars,restart=true,useDistortions=true,correctDistortions=false,...
+%     nIter = 500,startPars=exp(MLE_PDO_Uncorrected.mhSamples));
+
+%% Next, find MLE estimates with correcting for the distortion. 
+MLE_PDO_Corrected = Model_BinomialPDO.estimateMLEspread(nCells=nCellsInExperiment,...
+    observableSpecies={'mRNA'},nMLE=nMLE,simsSaveFile='BurstFIMSimsPDO.csv',...
+    freePars=freePars,restart=false,useDistortions=true,correctDistortions=true,...
+    nIter = 500);
+% MLE_PDO_Corrected = Model_BinomialPDO.estimateMLEspread(nCells=nCellsInExperiment,...
+%     observableSpecies={'mRNA'},nMLE=nMLE,simsSaveFile='BurstFIMSimsPDO.csv',...
+%     freePars=freePars,restart=false,useDistortions=true,correctDistortions=true,...
+%     nIter = 500,startPars=exp(MLE_PDO_Corrected.mhSamples));
 
 %% 1D plots of likelihood function - Kr
 % nCellsInExperiment = zeros(size(Model_chg.tSpan));
