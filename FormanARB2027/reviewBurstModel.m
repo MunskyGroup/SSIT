@@ -1420,7 +1420,22 @@ ax.YColor = 'k';
 ax.TickLength = [0.015 0.015];
 
 
-%% Export Figures for Paper Supplimental Figure
+%% MLE FIM convergence in 2D and eigen vectors
+figure(109)
+clf
+
+fim = Model.computeFIM(freePars=(1:2),scale='log');
+
+%% box heat map of sigma and lambda
+figure(110)
+clf
+
+%% eigne rotated MLE and FIM convergence
+figure(111)
+clf
+
+
+%% Export Figures for Paper
 outputFolder = 'AnnualReview_Figures';
 
 if ~exist(outputFolder, 'dir')
