@@ -4,6 +4,9 @@ clc
 close all
 addpath(genpath('..'))
 
+%% Figure 1
+%% Figure 1
+%% Figure 1
 %% Plots of means and fano factor versus parameters. Paper Figure 1
 
 kr = 100;
@@ -294,7 +297,9 @@ exportgraphics(fig, ...
 disp('All SVG figures exported successfully.');
 
 
-
+%% Figure 2
+%% Figure 2
+%% Figure 2
 %% Simple experiment and eigenvector analysis
 Model_chg.tSpan = linspace(0,7.5,31); % update time specific to the time scale
 nCellsInExperiment = 0*Model_chg.tSpan;
@@ -1503,37 +1508,9 @@ disp('Figures 101-108 exported successfully.');
 
 
 
-
-%%
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-% return
-
+%% Figure 3
+%% Figure 3
+%% Figure 3
 %% Burst Frequency Model
 Model = SSIT('Empty');
 
@@ -1594,70 +1571,7 @@ Model.tSpan = linspace(0,300,31);
 % Model.plotMHResults(MLE,FIM=FIMTotal,fimScale='log',truncateChain=false);
 
 
-%% PDO - Effect on Distributions
-% Pick a parameter set that has an interesting looking PDF.
-%                                     PRIOR
-Model.parameters = {'kon0',0.01;...  % logn(-1,2)
-    'koff0',0.01;...                   % logn(0,2)
-    'kr',1;...                     % logn(1,2)
-    'g',0.1;...                    % logn(-2,2)
-    'kD',3;...                     % logn(1,2)
-    'S0',1;...                      % NA (initial input concentration)
-    'S1',5};                        % NA (final input concentration)
 
-f1 = figure(1); clf;
-Model.fspOptions.bounds = [];
-Model.fspOptions.stateSpace = [];
-Model = Model.solve(solver='fsp');
-Model.plotFSP(figureNums=f1,plotType='marginals',indTimes=length(Model.tSpan),speciesNames='mRNA',Colors={'r'})
-
-% Add a Binomial PDO 
-f2 = figure(2); clf;
-dropOut = 0.6; % fraction dropout
-Model_BinomialPDO = Model;
-Model_BinomialPDO.pdoOptions.type = 'Binomial';
-Model_BinomialPDO.pdoOptions.unobservedSpecies = 'gON';
-Model_BinomialPDO.pdoOptions.props.CaptureProbabilityS1 = 0;    % Gene State is not measured
-Model_BinomialPDO.pdoOptions.props.CaptureProbabilityS2 = 1-dropOut; % 95% dropout from RNA
-[~,Model_BinomialPDO] = Model_BinomialPDO.generatePDO(showPlot=true,Title='Binomial PDO');
-
-figure(f1)
-hold on
-Model_BinomialPDO.plotFSP(figureNums=f1,plotType='marginals',indTimes=length(Model_BinomialPDO.tSpan),...
-    speciesNames='mRNA',includePDO=true,Colors={'k'})
-% set(gca,'yscale','log','ylim',[1e-5,1])
-
-%% PDO - Show effect on MLE estimation.
-% First, generate the MLE scatter plot and FIM overlay (same as above).
-freePars = [1:4];
-nCellsInExperiment = 0*Model.tSpan;
-nCellsInExperiment([1,11,31]) = 200;
-nMLE = 40;
-MLE_noDistortion = Model_BinomialPDO.estimateMLEspread(nCells=nCellsInExperiment,...
-    observableSpecies={'mRNA'},nMLE=nMLE,simsSaveFile='BurstFIMSimsPDO.csv',...
-    freePars=freePars,restart=true,useDistortions=false,correctDistortions=false,...
-    nIter = 500);
-
-%% Next, find MLE estimates WITHOUT correcting for the distortion. 
-nMLE = 40;
-MLE_PDO_Uncorrected = Model_BinomialPDO.estimateMLEspread(nCells=nCellsInExperiment,...
-    observableSpecies={'mRNA'},nMLE=nMLE,simsSaveFile='BurstFIMSimsPDO.csv',...
-    freePars=freePars,restart=true,useDistortions=true,correctDistortions=false,...
-    nIter = 500);
-% MLE_PDO_Uncorrected = Model_BinomialPDO.estimateMLEspread(nCells=nCellsInExperiment,...
-%     observableSpecies={'mRNA'},nMLE=nMLE,simsSaveFile='BurstFIMSimsPDO.csv',...
-%     freePars=freePars,restart=true,useDistortions=true,correctDistortions=false,...
-%     nIter = 500,startPars=exp(MLE_PDO_Uncorrected.mhSamples));
-
-%% Next, find MLE estimates with correcting for the distortion. 
-MLE_PDO_Corrected = Model_BinomialPDO.estimateMLEspread(nCells=nCellsInExperiment,...
-    observableSpecies={'mRNA'},nMLE=nMLE,simsSaveFile='BurstFIMSimsPDO.csv',...
-    freePars=freePars,restart=false,useDistortions=true,correctDistortions=true,...
-    nIter = 500);
-% MLE_PDO_Corrected = Model_BinomialPDO.estimateMLEspread(nCells=nCellsInExperiment,...
-%     observableSpecies={'mRNA'},nMLE=nMLE,simsSaveFile='BurstFIMSimsPDO.csv',...
-%     freePars=freePars,restart=false,useDistortions=true,correctDistortions=true,...
-%     nIter = 500,startPars=exp(MLE_PDO_Corrected.mhSamples));
 
 %% 1D plots of likelihood function - Kr
 % nCellsInExperiment = zeros(size(Model_chg.tSpan));
@@ -1801,7 +1715,10 @@ Model.solutionScheme = 'fspsens';
 FIM = cell(length(Sarray),length(Sarray),length(Model.tSpan));
 for iS0 = 1:length(Sarray)
     for iS1 = 1:length(Sarray)
-        Model = Model.changeParameter({'S0',Sarray(iS0);'S1',Sarray(iS1)-Sarray(iS0)});
+        % Model = Model.changeParameter({'S0',Sarray(iS0);'S1',Sarray(iS1)-Sarray(iS0)});
+        % This leads to problems because the associated input expression
+        % 'S0+(S1-S0)*(t>0)' already accounts for the shift Sarray(iS1)-Sarray(iS0) 
+        Model = Model.changeParameter({'S0',Sarray(iS0);'S1',Sarray(iS1)});
         Model = Model.solve;
         FIM(iS0,iS1,:) = Model.computeFIM(freePars=(1:4),scale='log');
     end
@@ -1882,23 +1799,22 @@ Model.plotFIMResults(FIM_Opt^(-1)/log(10)^2, 'log',...
     [Model.parameters{freePars,2}],...
     PlotEllipses=true,EllipseFigure=f1,...
     FigureHandle=f3,...
-    Colors=struct('EllipseColors',[0.9 0.6 0.2],...
-    'CenterSquare',[0.96,0.47,0.16]),...
     LogThreshold=-4,...
     HeatMapType='invfim',...
     MatrixType='invfim');
 
+    % Colors=struct('EllipseColors',[0.9 0.6 0.2],...
+    % 'CenterSquare',[0.96,0.47,0.16]),...
 
-%%
-f4 = figure(204)
+
+%% Plot eigen values and fim
+f4 = figure(204);
 Model.plotFIMResults(FIM_Opt^(-1)/log(10)^2, 'log',...
     Model.parameters(freePars,1),...
     [Model.parameters{freePars,2}],...
     PlotEllipses=true,EllipseFigure=f4,...
     EllipsePairs=[1,2], ...
     FigureHandle=f3,...
-    Colors=struct('EllipseColors',[0.9 0.6 0.2],...
-    'CenterSquare',[0.96,0.47,0.16]),...
     LogThreshold=-4,...
     HeatMapType='invfim',...
     MatrixType='invfim');
@@ -1945,7 +1861,7 @@ quiver(x0,y0,...
 % TODO - Add MLE estimates to plot
 % TODO - change exp for this to acheive MLE spread
 % TODO - plot FIM-1 for optimatlity descriptions 
-%% 
+%% IDK what I was doing here 
 nCellsInExperiment = zeros(size(Model.tSpan));
 nCellsInExperiment([1]) = 1;
 Model = Model.solve;
@@ -1977,29 +1893,79 @@ return
 
 
 
+%% Figure 4
+%% Figure 4
+%% Figure 4
+%% PDO - Effect on Distributions
+% Pick a parameter set that has an interesting looking PDF.
+%                                     PRIOR
+Model.parameters = {'kon0',0.01;...  % logn(-1,2)
+    'koff0',0.01;...                   % logn(0,2)
+    'kr',1;...                     % logn(1,2)
+    'g',0.1;...                    % logn(-2,2)
+    'kD',3;...                     % logn(1,2)
+    'S0',1;...                      % NA (initial input concentration)
+    'S1',5};                        % NA (final input concentration)
+
+f1 = figure(1); clf;
+Model.fspOptions.bounds = [];
+Model.fspOptions.stateSpace = [];
+Model = Model.solve(solver='fsp');
+Model.plotFSP(figureNums=f1,plotType='marginals',indTimes=length(Model.tSpan),speciesNames='mRNA',Colors={'r'})
+
+% Add a Binomial PDO 
+f2 = figure(2); clf;
+dropOut = 0.6; % fraction dropout
+Model_BinomialPDO = Model;
+Model_BinomialPDO.pdoOptions.type = 'Binomial';
+Model_BinomialPDO.pdoOptions.unobservedSpecies = 'gON';
+Model_BinomialPDO.pdoOptions.props.CaptureProbabilityS1 = 0;    % Gene State is not measured
+Model_BinomialPDO.pdoOptions.props.CaptureProbabilityS2 = 1-dropOut; % 95% dropout from RNA
+[~,Model_BinomialPDO] = Model_BinomialPDO.generatePDO(showPlot=true,Title='Binomial PDO');
+
+figure(f1)
+hold on
+Model_BinomialPDO.plotFSP(figureNums=f1,plotType='marginals',indTimes=length(Model_BinomialPDO.tSpan),...
+    speciesNames='mRNA',includePDO=true,Colors={'k'})
+% set(gca,'yscale','log','ylim',[1e-5,1])
+
+%% PDO - Show effect on MLE estimation.
+% First, generate the MLE scatter plot and FIM overlay (same as above).
+freePars = [1:4];
+nCellsInExperiment = 0*Model.tSpan;
+nCellsInExperiment([1,11,31]) = 200;
+nMLE = 40;
+MLE_noDistortion = Model_BinomialPDO.estimateMLEspread(nCells=nCellsInExperiment,...
+    observableSpecies={'mRNA'},nMLE=nMLE,simsSaveFile='BurstFIMSimsPDO.csv',...
+    freePars=freePars,restart=true,useDistortions=false,correctDistortions=false,...
+    nIter = 500);
+
+%% Next, find MLE estimates WITHOUT correcting for the distortion. 
+nMLE = 40;
+MLE_PDO_Uncorrected = Model_BinomialPDO.estimateMLEspread(nCells=nCellsInExperiment,...
+    observableSpecies={'mRNA'},nMLE=nMLE,simsSaveFile='BurstFIMSimsPDO.csv',...
+    freePars=freePars,restart=true,useDistortions=true,correctDistortions=false,...
+    nIter = 500);
+% MLE_PDO_Uncorrected = Model_BinomialPDO.estimateMLEspread(nCells=nCellsInExperiment,...
+%     observableSpecies={'mRNA'},nMLE=nMLE,simsSaveFile='BurstFIMSimsPDO.csv',...
+%     freePars=freePars,restart=true,useDistortions=true,correctDistortions=false,...
+%     nIter = 500,startPars=exp(MLE_PDO_Uncorrected.mhSamples));
+
+%% Next, find MLE estimates with correcting for the distortion. 
+MLE_PDO_Corrected = Model_BinomialPDO.estimateMLEspread(nCells=nCellsInExperiment,...
+    observableSpecies={'mRNA'},nMLE=nMLE,simsSaveFile='BurstFIMSimsPDO.csv',...
+    freePars=freePars,restart=false,useDistortions=true,correctDistortions=true,...
+    nIter = 500);
+% MLE_PDO_Corrected = Model_BinomialPDO.estimateMLEspread(nCells=nCellsInExperiment,...
+%     observableSpecies={'mRNA'},nMLE=nMLE,simsSaveFile='BurstFIMSimsPDO.csv',...
+%     freePars=freePars,restart=false,useDistortions=true,correctDistortions=true,...
+%     nIter = 500,startPars=exp(MLE_PDO_Corrected.mhSamples));
+
+
+
 %%
-
-
 %%
-
-
 %%
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 %% Generalized model
 % 
 % In the most general form of this model, the parameter 'alpha' determines
