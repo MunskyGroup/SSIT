@@ -347,23 +347,6 @@ plotHeatmap( ...
 % I really like this plot. It shows how the intial steady state has the
 % least amount of information. 
 
-%% Larger experiment and analysis
-% nCellsInExperiment = 0*Model_chg.tSpan;
-% nCellsInExperiment([1,3,5,10, 15, 20, 25, 31]) = 1000;
-% FIMs = Model_chg.computeFIM(scale='log',freePars=[1:5],...
-%     observed={'mRNA'});
-% FIMTotal = Model_chg.totalFim(FIMs,nCellsInExperiment);
-
-% fprintf('FIM for step change in kon at 1 for intuitive design')
-% f = FIMTotal{1}
-% c = cond(f) 
-% [V, D] = eig(f)
-% e = 1/2*(f*f')^-1
-% [V, D] = eig(e)
-% 
-% Model_chg.plotFIMResults(f, 'log', Model_chg.parameters(1:5), [Model_chg.parameters{1:5,2}] ,PlotEllipses=true, Colors=struct('EllipseColors',[0.9 0.6 0.2],...
-%     'CenterSquare',[0.96,0.47,0.16]))
-% see marginal improvement in intial steady state 
 
 
 %% Setup - MLE FIM relationship - Gaussian
@@ -1428,6 +1411,11 @@ Model.species = {'gON','mRNA'};
 
 Model.initialCondition = [0;0];
 
+% this model and parameters have some weirdness that makes it unsuitable
+% for a tutorial. First is this never hits steady state in 300 time.
+% Additionally it starts with 0 rna at steady state. Finally the steps are
+% hard to control for a tutorial. I will be switching to Model_chg and this
+% will probably be removed in the final version 
 %                                     PRIOR
 Model.parameters = {'kon0',0.01;...  % logn(-1,2)
     'koff0',0.1;...                   % logn(0,2)
@@ -1462,21 +1450,30 @@ Model.tSpan = linspace(0,300,31);
 
 % Model.plotFSP
 
+%% Update Model_chg so it reflect figure 1b red line (vary kon) 
+Model_chg.tSpan = linspace(0,10,31);
+Model_chg.parameters{1,2} = star_kon;
+Model_chg.parameters{2,2} = star_koff;
+Model_chg.parameters{5,2} = final_kon;
+Model_chg.parameters{6,2} = star_koff;
+Model_chg = Model_chg.solve;
 
+% Model_chg.plotFSP(plotType='meansAndDevs', SpeciesIdx=[2], Colors=[1 0
+% 0], Title='') % verify shape of result
 
 %% Verification of FIM using CRLB (spread of MLE)
-nCellsInExperiment = 0*Model.tSpan;
-nCellsInExperiment([1,11,31]) = 200;
+nCellsInExperiment = 0*Model_chg.tSpan;
+nCellsInExperiment([1,6,31]) = 200;
 nMLE = 200;
-Model.fittingOptions.modelVarsToFit = [1:2];
+Model_chg.fittingOptions.modelVarsToFit = [1:2];
 if false
     % TODO: There is a bias, idk from where, might be the size
-    MLE = Model.estimateMLEspread(nCells=nCellsInExperiment,observableSpecies={'mRNA'},nMLE=nMLE,simsSaveFile='BurstFIMSims.csv',freePars=[1:2],restart=true);
-    MLE = Model.estimateMLEspread(nCells=nCellsInExperiment,observableSpecies={'mRNA'},nMLE=nMLE,simsSaveFile='BurstFIMSims.csv',freePars=[1:2],startPars=exp(MLE.mhSamples),restart=false);
-    FIMs = Model.computeFIM(scale='log',freePars=[1:2],...
+    MLE = Model_chg.estimateMLEspread(nCells=nCellsInExperiment,observableSpecies={'mRNA'},nMLE=nMLE,simsSaveFile='BurstFIMSims.csv',freePars=[1:2],restart=true);
+    MLE = Model_chg.estimateMLEspread(nCells=nCellsInExperiment,observableSpecies={'mRNA'},nMLE=nMLE,simsSaveFile='BurstFIMSims.csv',freePars=[1:2],startPars=exp(MLE.mhSamples),restart=false);
+    FIMs = Model_chg.computeFIM(scale='log',freePars=[1:2],...
         observed={'mRNA'});
-    FIMTotal = Model.totalFim(FIMs,nCellsInExperiment);
-    Model.plotMHResults(MLE,FIM=FIMTotal,fimScale='log',truncateChain=false);
+    FIMTotal = Model_chg.totalFim(FIMs,nCellsInExperiment);
+    Model_chg.plotMHResults(MLE,FIM=FIMTotal,fimScale='log',truncateChain=false);
 end
 
 
@@ -1486,23 +1483,16 @@ clf
 f2 = figure(150); % default fim analsysis
 clf
 
-% Model_chg.parameters{2,2} = star_koff;
-% Model_chg.parameters{1,2} = star_kon;
-% Model_chg.parameters{6,2} = star_koff;
-% Model_chg.parameters{5,2} = final_kon;
-% Model_chg.tSpan = linspace(0,10,31);
-% Model_chg.fittingOptions.modelVarsToFit = 'all';
-% nCellsInExperiment = 0*Model_chg.tSpan;
-% nCellsInExperiment([1,11,31]) = 200;
-FIMs = Model.computeFIM(scale='log',freePars=[1:2],...
+
+FIMs = Model_chg.computeFIM(scale='log',freePars=[1:2],...
     observed={'mRNA'});
-FIMTotal = Model.totalFim(FIMs,nCellsInExperiment);
+FIMTotal = Model_chg.totalFim(FIMs,nCellsInExperiment);
 
 FIM = FIMTotal{1};
 
-Model.plotFIMResults(FIM^(-1)/log(10)^2, 'log',...
-    Model.parameters(1:2,1),...
-    [Model.parameters{1:2,2}],...
+Model_chg.plotFIMResults(FIM^(-1)/log(10)^2, 'log',...
+    Model_chg.parameters(1:2,1),...
+    [Model_chg.parameters{1:2,2}],...
     PlotEllipses=true, ...
     EllipseFigure=f1,...
     Colors = struct('EllipseColors',[0, 0, 0],'CenterSquare',[0,0,0]), ...
@@ -1527,8 +1517,8 @@ C2 = C([1 2],[1 2]);
 V = V(:,idx);
 
 % Center of ellipse
-x0 = log10(Model.parameters{2,2});
-y0 = log10(Model.parameters{1,2});
+x0 = log10(Model_chg.parameters{2,2});
+y0 = log10(Model_chg.parameters{1,2});
 
 % Scale factor for visualization
 scale = 2;
@@ -1594,8 +1584,8 @@ if det(V) < 0
 end
 
 % Center
-x0 = log10(Model.parameters{2,2});
-y0 = log10(Model.parameters{1,2});
+x0 = log10(Model_chg.parameters{2,2});
+y0 = log10(Model_chg.parameters{1,2});
 mu = [x0; y0];
 
 % Chi-square scaling
@@ -1745,16 +1735,16 @@ clf
 f2 = figure(250); % default fim analsysis
 clf
 
-Model.fittingOptions.modelVarsToFit = [1:4];
-FIMs = Model.computeFIM(scale='log',freePars=[1:4],...
+Model_chg.fittingOptions.modelVarsToFit = [1:6];
+FIMs = Model_chg.computeFIM(scale='log',freePars=[1:6],...
     observed={'mRNA'});
-FIMTotal = Model.totalFim(FIMs,nCellsInExperiment);
+FIMTotal = Model_chg.totalFim(FIMs,nCellsInExperiment);
 
 FIM = FIMTotal{1};
 
-Model.plotFIMResults(FIM^(-1)/log(10)^2, 'log',...
-    Model.parameters(1:4,1),...
-    [Model.parameters{1:4,2}],...
+Model_chg.plotFIMResults(FIM^(-1)/log(10)^2, 'log',...
+    Model_chg.parameters(1:6,1),...
+    [Model_chg.parameters{1:6,2}],...
     PlotEllipses=true, ...
     EllipseFigure=f1,...
     Colors = struct('EllipseColors',[0, 0, 0],'CenterSquare',[0,0,0]), ...
@@ -1779,8 +1769,8 @@ C2 = C([1 2],[1 2]);
 V = V(:,idx);
 
 % Center of ellipse
-x0 = log10(Model.parameters{2,2});
-y0 = log10(Model.parameters{1,2});
+x0 = log10(Model_chg.parameters{2,2});
+y0 = log10(Model_chg.parameters{1,2});
 
 % Scale factor for visualization
 scale = 2;
@@ -1805,7 +1795,7 @@ quiver(x0,y0,...
 
 figure(202); % heatmap of I^(-1)
 clf
-plotHeatmap(C, {'k_{on}', 'k_{off}', 'k_r', '\gamma'}, {'k_{on}', 'k_{off}', 'k_r', '\gamma'}, 'I^{-1}')
+plotHeatmap(C, {'k_{on,init}', 'k_{off,init}', 'k_r', '\gamma', 'k_{on,final}', 'k_{off,final}'}, {'k_{on,init}', 'k_{off,init}', 'k_r', '\gamma', 'k_{on,final}', 'k_{off,final}'}, 'I^{-1}')
 
 
 figure(203); % heatmap of eig(I^(-1))
@@ -1824,8 +1814,8 @@ D = diag(lambda);
 
 % Plot V*D
 plotHeatmap(V*D, ...
-    {'k_{on}', 'k_{off}', 'k_r', '\gamma'}, ...
-    {'\lambda_{1}', '\lambda_{2}', '\lambda_{3}', '\lambda_{4}'}, ...
+    {'k_{on,init}', 'k_{off,init}', 'k_r', '\gamma', 'k_{on,final}', 'k_{off,final}'}, ...
+    {'\lambda_{1}', '\lambda_{2}', '\lambda_{3}', '\lambda_{4}', '\lambda_{5}', '\lambda_{6}'}, ...
     'V(I^{-1}) \lambda(I^{-1})')
 
 % Make eigenvector orientation deterministic
@@ -1840,8 +1830,8 @@ if det(V) < 0
 end
 
 % Center
-x0 = log10(Model.parameters{2,2});
-y0 = log10(Model.parameters{1,2});
+x0 = log10(Model_chg.parameters{2,2});
+y0 = log10(Model_chg.parameters{1,2});
 mu = [x0; y0];
 
 % Chi-square scaling
@@ -1975,9 +1965,9 @@ disp(['Determinant of FIM for optimized measurements: ',num2str(det(FIM_Opt))])
 
 %% Plots of FIM predicted uncertainties
 freePars = [1:4];
-f1 = figure(201);
-f2 = figure(202);
-f3 = figure(203);
+f1 = figure(205);
+f2 = figure(206);
+f3 = figure(207);
 
 % The following plots the heatmap showing the
 Model.plotFIMResults(FIM_Opt^(-1)/log(10)^2, 'log',...
@@ -2370,24 +2360,51 @@ ModelGen.plotFSP
 % semilogx(varyingPar, likelihoods)
 
 
+%% Larger experiment and analysis
+% nCellsInExperiment = 0*Model_chg.tSpan;
+% nCellsInExperiment([1,3,5,10, 15, 20, 25, 31]) = 1000;
+% FIMs = Model_chg.computeFIM(scale='log',freePars=[1:5],...
+%     observed={'mRNA'});
+% FIMTotal = Model_chg.totalFim(FIMs,nCellsInExperiment);
 
-
+% fprintf('FIM for step change in kon at 1 for intuitive design')
+% f = FIMTotal{1}
+% c = cond(f) 
+% [V, D] = eig(f)
+% e = 1/2*(f*f')^-1
+% [V, D] = eig(e)
+% 
+% Model_chg.plotFIMResults(f, 'log', Model_chg.parameters(1:5), [Model_chg.parameters{1:5,2}] ,PlotEllipses=true, Colors=struct('EllipseColors',[0.9 0.6 0.2],...
+%     'CenterSquare',[0.96,0.47,0.16]))
+% see marginal improvement in intial steady state 
 
 
 %% Functions 
 function plotHeatmap(M, rowNames, colNames, titleText)
 
     % =============================================================
-    % Signed-logarithmic heatmap
-    %
-    % ORIGINAL MATRIX M IS NEVER MODIFIED.
+    % SIGNED LOG HEATMAP
     %
     % Negative -> blue
     % Zero     -> white
     % Positive -> red
     %
-    % Powers of 10 are equally spaced in colour space.
+    % Uses:
+    %
+    %   c = sign(M) * log10(1 + abs(M)/scale) / log10(1 + max/scale)
+    %
+    % This gives:
+    %
+    %   M = 0       -> exactly white
+    %   small M     -> very close to white
+    %   large M     -> increasingly saturated
+    %
+    % The original matrix M is NEVER modified.
     % =============================================================
+
+    % -------------------------------------------------------------
+    % Check inputs
+    % -------------------------------------------------------------
 
     if size(M,1) ~= numel(rowNames)
         error('Number of row names must equal number of rows.');
@@ -2409,7 +2426,7 @@ function plotHeatmap(M, rowNames, colNames, titleText)
     red   = [0.80 0.10 0.10];
 
     % -------------------------------------------------------------
-    % Get largest magnitude
+    % Maximum magnitude
     % -------------------------------------------------------------
 
     maxValue = max(abs(M(:)));
@@ -2419,58 +2436,41 @@ function plotHeatmap(M, rowNames, colNames, titleText)
     end
 
     % -------------------------------------------------------------
-    % Determine decade range
+    % SCALE controls how strongly small values are compressed
     %
-    % Example:
+    % Larger scale:
+    %   more values remain close to white
     %
-    % maxValue = 4e15
+    % Smaller scale:
+    %   more sensitive to small values
     %
-    % gives approximately:
+    % For your matrix, maxValue ~= 0.273.
     %
-    % 1e12  1e13  1e14  1e15  1e16
+    % Using scale = maxValue means:
     %
+    %   0.2727 -> full colour
+    %   0.01   -> light colour
+    %   0.001  -> very close to white
+    %   0.0002 -> essentially white
     % -------------------------------------------------------------
 
-    maxExponent = ceil(log10(maxValue));
-
-    nDecades = 4;
-
-    minExponent = maxExponent - nDecades;
+    scale = maxValue;
 
     % -------------------------------------------------------------
-    % Convert M -> COLOR COORDINATE
-    %
-    % M itself is NOT changed.
-    %
-    % Coordinate:
-    %
-    % negative values : [-1,0]
-    % zero            : 0
-    % positive values : [0,1]
-    %
-    % The magnitude is logarithmically positioned.
+    % Convert M -> signed colour coordinate [-1,+1]
     % -------------------------------------------------------------
 
-    C = zeros(size(M));
+    magnitude = abs(M);
 
-    idx = M ~= 0;
+    C = sign(M) .* ...
+        (log10(1 + magnitude ./ scale) ./ ...
+         log10(1 + maxValue ./ scale));
 
-    if any(idx(:))
-
-        magnitude = abs(M(idx));
-
-        t = (log10(magnitude) - minExponent) / ...
-            (maxExponent - minExponent);
-
-        % Clamp
-        t = max(0, min(1, t));
-
-        C(idx) = sign(M(idx)) .* t;
-
-    end
+    % Force exact zeros to exactly zero
+    C(M == 0) = 0;
 
     % -------------------------------------------------------------
-    % Convert colour coordinate to RGB
+    % Convert colour coordinate -> RGB
     % -------------------------------------------------------------
 
     RGB = zeros([size(M), 3]);
@@ -2483,7 +2483,6 @@ function plotHeatmap(M, rowNames, colNames, titleText)
 
             if c < 0
 
-                % Blue -> white
                 q = abs(c);
 
                 RGB(i,j,:) = ...
@@ -2491,7 +2490,6 @@ function plotHeatmap(M, rowNames, colNames, titleText)
 
             elseif c > 0
 
-                % White -> red
                 q = c;
 
                 RGB(i,j,:) = ...
@@ -2499,7 +2497,6 @@ function plotHeatmap(M, rowNames, colNames, titleText)
 
             else
 
-                % EXACTLY ZERO
                 RGB(i,j,:) = white;
 
             end
@@ -2518,21 +2515,12 @@ function plotHeatmap(M, rowNames, colNames, titleText)
 
     axis image;
 
-    % -------------------------------------------------------------
-    % Create a custom colourbar
-    %
-    % We make a separate invisible image whose colour coordinate
-    % runs from -1 to +1.
-    % -------------------------------------------------------------
-
     hold on;
 
-    % Dummy invisible image used only for the colourbar
-    dummy = imagesc([-1 1; -1 1]);
+    % -------------------------------------------------------------
+    % Colormap
+    % -------------------------------------------------------------
 
-    dummy.Visible = 'off';
-
-    % Use the same blue-white-red colormap
     n = 256;
 
     nBlue = 128;
@@ -2553,49 +2541,57 @@ function plotHeatmap(M, rowNames, colNames, titleText)
     colormap(ax, [blueMap; redMap]);
 
     % -------------------------------------------------------------
-    % Colorbar
+    % Dummy image for colourbar
     % -------------------------------------------------------------
 
-    cb = colorbar;
+    dummy = imagesc([-1 1; -1 1]);
+    dummy.Visible = 'off';
 
     clim([-1 1]);
 
     % -------------------------------------------------------------
-    % Construct tick positions DIRECTLY.
-    %
-    % This is the important part:
-    %
-    % -1, -0.75, -0.5, -0.25, 0, ...
-    %
-    % are strictly increasing.
+    % Colourbar
     % -------------------------------------------------------------
+
+    cb = colorbar;
+
+    % -------------------------------------------------------------
+    % Choose physically meaningful tick values
+    %
+    % Include powers of ten spanning the data range.
+    % -------------------------------------------------------------
+
+    minExponent = floor(log10(min(abs(M(M ~= 0)))));
+
+    maxExponent = ceil(log10(maxValue));
 
     exponents = minExponent:maxExponent;
 
-    % Positions corresponding to powers of ten
-    %
-    % minExponent -> 0
-    % maxExponent -> 1
+    tickValues = 10.^exponents;
 
-    decadePosition = ...
-        (exponents - minExponent) ./ ...
-        (maxExponent - minExponent);
+    % Keep only useful values
+    tickValues = tickValues(tickValues <= maxValue);
+
+    % Always include maximum
+    tickValues = unique([tickValues maxValue]);
+
+    % -------------------------------------------------------------
+    % Convert physical value -> colour coordinate
+    % -------------------------------------------------------------
+
+    positivePositions = ...
+        log10(1 + tickValues ./ scale) ./ ...
+        log10(1 + maxValue ./ scale);
 
     % Negative side
-    negativePositions = -fliplr(decadePosition);
+    negativePositions = -fliplr(positivePositions);
 
-    % Positive side
-    positivePositions = decadePosition;
-
-    % Combine in increasing order
+    % All positions
     tickPositions = [
         negativePositions ...
         0 ...
         positivePositions
     ];
-
-    % Remove duplicate zero if it occurs
-    tickPositions = unique(tickPositions, 'sorted');
 
     % -------------------------------------------------------------
     % Labels
@@ -2607,22 +2603,38 @@ function plotHeatmap(M, rowNames, colNames, titleText)
 
         p = tickPositions(k);
 
-        if p == 0
+        if abs(p) < eps
 
             tickLabels{k} = '0';
 
         else
 
-            % Recover exponent from position
-            e = minExponent + ...
-                abs(p) * (maxExponent - minExponent);
+            % Find corresponding physical magnitude
+            ap = abs(p);
 
-            e = round(e);
+            value = scale * ...
+                (10.^(ap * log10(1 + maxValue/scale)) - 1);
 
-            if p < 0
-                tickLabels{k} = sprintf('$-10^{%d}$', e);
+            exponent = log10(value);
+
+            if abs(exponent - round(exponent)) < 1e-8
+
+                exponent = round(exponent);
+
+                if p < 0
+                    tickLabels{k} = sprintf('$-10^{%d}$', exponent);
+                else
+                    tickLabels{k} = sprintf('$10^{%d}$', exponent);
+                end
+
             else
-                tickLabels{k} = sprintf('$10^{%d}$', e);
+
+                if p < 0
+                    tickLabels{k} = sprintf('$-%.2g$', value);
+                else
+                    tickLabels{k} = sprintf('$%.2g$', value);
+                end
+
             end
 
         end
@@ -2649,29 +2661,28 @@ function plotHeatmap(M, rowNames, colNames, titleText)
     ax.LineWidth = 0.5;
     ax.TickDir = 'out';
     ax.Box = 'on';
-    
-    hold on
-    
-    % Vertical cell boundaries
+
+    % -------------------------------------------------------------
+    % Cell boundaries
+    % -------------------------------------------------------------
+
     for x = 0.5:1:size(M,2)+0.5
-        plot([x x], [0.5 size(M,1)+0.5], ...
-            'Color', [0.5 0.5 0.5], ...
-            'LineWidth', 0.5);
+
+        plot([x x], ...
+             [0.5 size(M,1)+0.5], ...
+             'Color', [0.5 0.5 0.5], ...
+             'LineWidth', 0.5);
+
     end
-    
-    % Horizontal cell boundaries
+
     for y = 0.5:1:size(M,1)+0.5
-        plot([0.5 size(M,2)+0.5], [y y], ...
-            'Color', [0.5 0.5 0.5], ...
-            'LineWidth', 0.5);
+
+        plot([0.5 size(M,2)+0.5], ...
+             [y y], ...
+             'Color', [0.5 0.5 0.5], ...
+             'LineWidth', 0.5);
+
     end
-    
-    hold off
-
-    xlabel('Parameter');
-    ylabel('Parameter');
-
-    axis square;
 
     % -------------------------------------------------------------
     % +/- symbols
@@ -2682,13 +2693,17 @@ function plotHeatmap(M, rowNames, colNames, titleText)
         for j = 1:size(M,2)
 
             if M(i,j) > 0
+
                 symbol = '+';
 
             elseif M(i,j) < 0
+
                 symbol = '−';
 
             else
+
                 symbol = '0';
+
             end
 
             text(j, i, symbol, ...
@@ -2701,6 +2716,15 @@ function plotHeatmap(M, rowNames, colNames, titleText)
         end
 
     end
+
+    % -------------------------------------------------------------
+    % Labels
+    % -------------------------------------------------------------
+
+    xlabel('Parameter');
+    ylabel('Parameter');
+
+    axis square;
 
     % -------------------------------------------------------------
     % Title
