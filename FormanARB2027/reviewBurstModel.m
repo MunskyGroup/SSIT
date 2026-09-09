@@ -2140,6 +2140,53 @@ MLE_PDO_Corrected = Model_BinomialPDO.estimateMLEspread(nCells=nCellsInExperimen
 %     nIter = 500,startPars=exp(MLE_PDO_Corrected.mhSamples));
 
 %% Fig 4G -- CRLB vs drop out.
+N = 50;
+vDropOut = linspace(0,0.98,N);
+OptExptVsDropOut = zeros(50,length(Model.tSpan));
+ModelPDO = Model;
+ModelPDO = ModelPDO.solve(solver='fspsens');
+ModelPDO.pdoOptions.type = 'Binomial';
+ModelPDO.pdoOptions.unobservedSpecies = 'gON';
+TotalFim = cell(N,1);
+detFIMOrig = zeros(N,1);
+detFIMOpt = zeros(N,1);
+nCellsOrig = zeros(N,1);
+nCellsOpt = zeros(N,1);
+for i = 1:N
+    dropOut = vDropOut(i);
+    ModelPDO.pdoOptions.props.CaptureProbabilityS1 = 0;    % Gene State is not measured
+    ModelPDO.pdoOptions.props.CaptureProbabilityS2 = 1-dropOut; % 95% dropout from RNA
+    [~,ModelPDO] = ModelPDO.generatePDO;
+    FIMs = ModelPDO.computeFIM(scale='log',freePars=[1:4],...
+        observed={'mRNA'});
+    OptExperiment(i,:) = ModelPDO.optimizeCellCounts(FIMs,600,'D-opt');
+    TotalFimOrig(i,1) = ModelPDO.totalFim(FIMs,nCellsInExperiment);
+    TotalFimOpt(i,1) = ModelPDO.totalFim(FIMs,OptExperiment(i,:));
+    detFIMOrig(i) = det(TotalFimOrig{i,1});
+    detFIMOpt(i) = det(TotalFimOpt{i,1});
+    nCellsOrig(i) = 600*(detFIMOrig(1)/detFIMOrig(i))^(1/4);
+    nCellsOpt(i) = 600*(detFIMOrig(1)/detFIMOpt(i))^(1/4);
+end
+figure(41); clf;
+plot(vDropOut,1./detFIMOrig,'b',vDropOut,1./detFIMOpt,'r--','linewidth',3)  
+set(gca,'yscale','log')
+xlabel('Drop Out Fraction')
+ylabel('Det(FIM^{-1})')
+
+figure(42); clf;
+plot(vDropOut,nCellsOrig,'b',vDropOut,nCellsOpt,'r--','linewidth',3)  
+set(gca,'yscale','log')
+xlabel('Drop Out Fraction')
+ylabel('Required Number of Cells')
+
+figure(43); clf;
+pcolor(vDropOut,[Model.tSpan,Model.tSpan(end)+Model.tSpan(end)-Model.tSpan(end-1)],[OptExperiment,zeros(N,1)]'/600)  
+% set(gca,'yscale','log')
+ylabel('Measurement Time')
+xlabel('Drop Out Fraction')
+c = colorbar;
+c.Label.String = 'Fraction of Cells'
+
 
 %% Fig 4H -- Required #Cells vs drop out.
 %% Fig 4I -- Optial Experiment vs. Drop Out
