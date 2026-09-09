@@ -2139,7 +2139,13 @@ MLE_PDO_Corrected = Model_BinomialPDO.estimateMLEspread(nCells=nCellsInExperimen
 %     freePars=freePars,restart=false,useDistortions=true,correctDistortions=true,...
 %     nIter = 500,startPars=exp(MLE_PDO_Corrected.mhSamples));
 
-%% Fig 4G -- CRLB vs drop out.
+%% Fig 4G,H,I -- CRLB vs drop out.
+% In this section, we compute the FIM for different dropout fractions.  The
+% current analysis only allows for a single define experiment (i.e., the
+% change from a pre-specified S0 to a pre-specified S1). The experiment
+% design option is to decide on the time points at which to take the
+% observations and how many cells to observe at each time point.
+
 N = 50;
 vDropOut = linspace(0,0.98,N);
 OptExptVsDropOut = zeros(50,length(Model.tSpan));
@@ -2167,12 +2173,17 @@ for i = 1:N
     nCellsOrig(i) = 600*(detFIMOrig(1)/detFIMOrig(i))^(1/4);
     nCellsOpt(i) = 600*(detFIMOrig(1)/detFIMOpt(i))^(1/4);
 end
+
+% Plot the determinant of the inverse FIM versus the drop out rate
 figure(41); clf;
 plot(vDropOut,1./detFIMOrig,'b',vDropOut,1./detFIMOpt,'r--','linewidth',3)  
 set(gca,'yscale','log')
 xlabel('Drop Out Fraction')
 ylabel('Det(FIM^{-1})')
 
+% Plot the nmber of cells that need to be measured to achieve the same
+% information (same expected determinant of FIM) as was achieved when we
+% did the original experiment design with 600 cells.
 figure(42); clf;
 plot(vDropOut,nCellsOrig,'b',vDropOut,nCellsOpt,'r--','linewidth',3)  
 set(gca,'yscale','log')
@@ -2180,13 +2191,16 @@ xlabel('Drop Out Fraction')
 ylabel('Required Number of Cells')
 
 figure(43); clf;
+% Plot the optimal experiment design versus the dropout rate, constrained
+% to have the same original number of cells (600).  In this plot, the
+% colors will represent the fraction of cells that are measure at each time
+% point.
 pcolor(vDropOut,[Model.tSpan,Model.tSpan(end)+Model.tSpan(end)-Model.tSpan(end-1)],[OptExperiment,zeros(N,1)]'/600)  
 % set(gca,'yscale','log')
 ylabel('Measurement Time')
 xlabel('Drop Out Fraction')
 c = colorbar;
 c.Label.String = 'Fraction of Cells'
-
 
 %% Fig 4H -- Required #Cells vs drop out.
 %% Fig 4I -- Optial Experiment vs. Drop Out
