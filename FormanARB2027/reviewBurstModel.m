@@ -2072,7 +2072,9 @@ return
 %% Figure 4
 %% Figure 4
 %% Figure 4
-%% PDO - Effect on Distributions
+
+
+%% Fig 4A-C: PDO - Effect on Distributions
 % Pick a parameter set that has an interesting looking PDF.
 %                                     PRIOR
 Model.parameters = {'kon0',0.01;...  % logn(-1,2)
@@ -2105,7 +2107,7 @@ Model_BinomialPDO.plotFSP(figureNums=f1,plotType='marginals',indTimes=length(Mod
     speciesNames='mRNA',includePDO=true,Colors={'k'})
 % set(gca,'yscale','log','ylim',[1e-5,1])
 
-%% PDO - Show effect on MLE estimation.
+%% Fig 4D PDO - MLE scatter plot and FIM overlay No Msmt Noise, No PDO Correction (same as above).
 % First, generate the MLE scatter plot and FIM overlay (same as above).
 freePars = [1:4];
 nCellsInExperiment = 0*Model.tSpan;
@@ -2116,7 +2118,7 @@ MLE_noDistortion = Model_BinomialPDO.estimateMLEspread(nCells=nCellsInExperiment
     freePars=freePars,restart=true,useDistortions=false,correctDistortions=false,...
     nIter = 500);
 
-%% Next, find MLE estimates WITHOUT correcting for the distortion. 
+%% Fig 4E PDO - MLE scatter plot and FIM overlay + Msmt Noise, No PDO Correction.
 nMLE = 40;
 MLE_PDO_Uncorrected = Model_BinomialPDO.estimateMLEspread(nCells=nCellsInExperiment,...
     observableSpecies={'mRNA'},nMLE=nMLE,simsSaveFile='BurstFIMSimsPDO.csv',...
@@ -2127,7 +2129,7 @@ MLE_PDO_Uncorrected = Model_BinomialPDO.estimateMLEspread(nCells=nCellsInExperim
 %     freePars=freePars,restart=true,useDistortions=true,correctDistortions=false,...
 %     nIter = 500,startPars=exp(MLE_PDO_Uncorrected.mhSamples));
 
-%% Next, find MLE estimates with correcting for the distortion. 
+%% Fig 4F PDO - MLE scatter plot and FIM overlay + Msmt Noise, + PDO Correction.
 MLE_PDO_Corrected = Model_BinomialPDO.estimateMLEspread(nCells=nCellsInExperiment,...
     observableSpecies={'mRNA'},nMLE=nMLE,simsSaveFile='BurstFIMSimsPDO.csv',...
     freePars=freePars,restart=false,useDistortions=true,correctDistortions=true,...
@@ -2136,6 +2138,14 @@ MLE_PDO_Corrected = Model_BinomialPDO.estimateMLEspread(nCells=nCellsInExperimen
 %     observableSpecies={'mRNA'},nMLE=nMLE,simsSaveFile='BurstFIMSimsPDO.csv',...
 %     freePars=freePars,restart=false,useDistortions=true,correctDistortions=true,...
 %     nIter = 500,startPars=exp(MLE_PDO_Corrected.mhSamples));
+
+%% Fig 4G -- CRLB vs drop out.
+
+%% Fig 4H -- Required #Cells vs drop out.
+%% Fig 4I -- Optial Experiment vs. Drop Out
+
+
+
 
 
 
