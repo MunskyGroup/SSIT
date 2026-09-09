@@ -1885,64 +1885,137 @@ grid on;
 
 
 %% FIM Calculations
-Sarray = [1:5];
-Model.tSpan = [0:30];
-Model.solutionScheme = 'fspsens';
-FIM = cell(length(Sarray),length(Sarray),length(Model.tSpan));
+% Sarray = [1:5];
+Sarray = linspace(star_kon, final_kon, 5);
+% Model.tSpan = [0:30];
+Model_chg.solutionScheme = 'fspsens';
+FIM = cell(length(Sarray),length(Sarray),length(Model_chg.tSpan));
 for iS0 = 1:length(Sarray)
     for iS1 = 1:length(Sarray)
         % Model = Model.changeParameter({'S0',Sarray(iS0);'S1',Sarray(iS1)-Sarray(iS0)});
         % This leads to problems because the associated input expression
         % 'S0+(S1-S0)*(t>0)' already accounts for the shift Sarray(iS1)-Sarray(iS0) 
-        Model = Model.changeParameter({'S0',Sarray(iS0);'S1',Sarray(iS1)});
-        Model = Model.solve;
-        FIM(iS0,iS1,:) = Model.computeFIM(freePars=(1:4),scale='log');
+        Model_chg = Model_chg.changeParameter({'kon0',Sarray(iS0);'kon1',Sarray(iS1)});
+        Model_chg = Model_chg.solve;
+        FIM(iS0,iS1,:) = Model_chg.computeFIM(freePars=(1:6),scale='log');
     end
 end
 
-%% FIM for different experiment designs.
+%% Draw experiments
 Ncells = 600;
-% Measurment at one steady state values.
-iS = 3;
-FIM_One_SS = Ncells*FIM{iS,iS,1};
-disp(['Determinant of FIM for one SS measurement: ',num2str(det(FIM_One_SS))])
 
-% Measurment at two steady state values.
-iS1 = 1;
-iS2 = 5;
-FIM_Two_SS = Ncells/2*FIM{iS1,iS1,1}+Ncells/2*FIM{iS2,iS2,1};
-disp(['Determinant of FIM for two SS measurements: ',num2str(det(FIM_Two_SS))])
+% exp 1 - steady states
+exp1NCells = zeros(size(FIM));
+exp1NCells(1,5, [1,31]) = Ncells/2;
+
+figure(205)
+hold on
+y = (Model_chg.tSpan > 1)*Sarray(5) + ...
+    (Model_chg.tSpan <= 1)*Sarray(1);
+plot(Model_chg.tSpan, y)
+xx = [Model_chg.tSpan(1), Model_chg.tSpan(31)];
+yy = [y(1), y(31)];
+plot(xx, yy, 'x', ...
+    'MarkerSize', 20, ...
+    'LineWidth', 3, ...
+    'Color', 'k');
+
+% exp 2 - steady state plus one during transition
+exp2NCells = zeros(size(FIM));
+exp2NCells(1,5, [1,6,31]) = Ncells/3;
+
+figure(206)
+hold on
+y = (Model_chg.tSpan > 1)*Sarray(5) + ...
+    (Model_chg.tSpan <= 1)*Sarray(1);
+plot(Model_chg.tSpan, y)
+xx = [Model_chg.tSpan(1),Model_chg.tSpan(6), Model_chg.tSpan(31)];
+yy = [y(1), y(6), y(31)];
+plot(xx, yy, 'x', ...
+    'MarkerSize', 40/3, ...
+    'LineWidth', 3, ...
+    'Color', 'k');
+
+
+% exp 3 - multiple of exp 2
+exp3NCells = zeros(size(FIM));
+exp3NCells(1, 5, [1,6,31]) = Ncells/6;
+exp3NCells(5, 3, [1,6,31]) = Ncells/6;
+
+figure(207)
+hold on
+y = (Model_chg.tSpan > 1)*Sarray(5) + ...
+    (Model_chg.tSpan <= 1)*Sarray(1);
+plot(Model_chg.tSpan, y)
+xx = [Model_chg.tSpan(1), Model_chg.tSpan(6), Model_chg.tSpan(31)];
+yy = [y(1), y(6), y(31)];
+plot(xx, yy, 'x', ...
+    'MarkerSize', 40/6, ...
+    'LineWidth', 3, ...
+    'Color', 'k');
+y = (Model_chg.tSpan > 1)*Sarray(3) + ...
+    (Model_chg.tSpan <= 1)*Sarray(5);
+plot(Model_chg.tSpan, y)
+xx = [Model_chg.tSpan(1), Model_chg.tSpan(6), Model_chg.tSpan(31)];
+yy = [y(1), y(6), y(31)];
+plot(xx, yy, 'x', ...
+    'MarkerSize', 40/6, ...
+    'LineWidth', 3, ...
+    'Color', 'k');
+
+
+
+%% FIM for different experiment designs.
+FIM_Exp1 = zeros(size(FIM{1}));
+for i = 1:size(FIM,1)
+    for j = 1:size(FIM,2)
+        for k = 1:size(FIM,3)
+            FIM_Exp1 = FIM_Exp1 + ...
+                exp1NCells(i,j,k) .* FIM{i,j,k};
+        end
+    end
+end
+disp(['Determinant of FIM for experiment 1: ',num2str(det(FIM_Exp1))])
+
+FIM_Exp2 = zeros(size(FIM{1}));
+for i = 1:size(FIM,1)
+    for j = 1:size(FIM,2)
+        for k = 1:size(FIM,3)
+            FIM_Exp2 = FIM_Exp2 + ...
+                exp2NCells(i,j,k) .* FIM{i,j,k};
+        end
+    end
+end
+disp(['Determinant of FIM for experiment 2: ',num2str(det(FIM_Exp2))])
 
 % Measurement at change from one SS to another at three time points.
-iS1 = 1;
-iS2 = 5;
-itimes = [1,11,31];
-FIM_Dynamic = 0;
-for it = 1:length(itimes)
-    FIM_Dynamic = FIM_Dynamic + Ncells/length(itimes)*FIM{iS1,iS2,itimes(it)};
+FIM_Exp3 = zeros(size(FIM{1}));
+for i = 1:size(FIM,1)
+    for j = 1:size(FIM,2)
+        for k = 1:size(FIM,3)
+            FIM_Exp3 = FIM_Exp3 + ...
+                exp3NCells(i,j,k) .* FIM{i,j,k};
+        end
+    end
 end
-disp(['Determinant of FIM for dynamic measurements: ',num2str(det(FIM_Dynamic))])
-
-% TODO - make plots of these measurements along the length of input
-% TODO - make plots of each optimality vs NCells for each stratagy
-% TODO - make plot of FIM-1 for the original experiment
+disp(['Determinant of FIM for experiment 3: ',num2str(det(FIM_Exp3))])
 
 
 %% Optimized Experiment Design
 % AllFims = reshape(FIM,numel(FIM),1);
-allFims = {};%cell(numel(FIM),1);
-indsFims = [];zeros(numel(FIM),3);
+allFims = {}; %cell(numel(FIM),1);
+indsFims = []; zeros(numel(FIM),3);
 k = 0;
 for iS0 = 1:length(Sarray)
     for iS1 = 1:length(Sarray)
-        for iT = 1:length(Model.tSpan)
+        for iT = 1:length(Model_chg.tSpan)
             k = k+1;
             allFims(k,1) = FIM(iS0,iS1,iT);
             indsFims(k,:) = [iS0,iS1,iT];
         end
     end
 end
-OptExperiment = Model.optimizeCellCounts(allFims,600,'D-opt');
+OptExperiment = Model_chg.optimizeCellCounts(allFims,600,'D-opt');
 J = find(OptExperiment);
 disp(['Optimized Experiment Design:'])
 for j = 1:length(J)
@@ -1952,7 +2025,7 @@ for j = 1:length(J)
     if paramIndices(3)==1||paramIndices(1)==paramIndices(2) % SS experiment
         disp(['   ',num2str(optimizedParams),' cells at steady state for S0 = ',num2str(Sarray(paramIndices(1)))])
     else
-        disp(['   ',num2str(optimizedParams),' cells at time ',num2str(Model.tSpan(paramIndices(3))),' for S0 = ',num2str(Sarray(paramIndices(1))),' and S1 = ',num2str(Sarray(paramIndices(2)))])
+        disp(['   ',num2str(optimizedParams),' cells at time ',num2str(Model_chg.tSpan(paramIndices(3))),' for S0 = ',num2str(Sarray(paramIndices(1))),' and S1 = ',num2str(Sarray(paramIndices(2)))])
     end
 end
 
@@ -1961,6 +2034,64 @@ for i = 1:length(OptExperiment)
     FIM_Opt = FIM_Opt + OptExperiment(i)*allFims{i};
 end
 disp(['Determinant of FIM for optimized measurements: ',num2str(det(FIM_Opt))])
+
+
+
+%% Plot FIM 
+figure(208);
+clf;
+plotHeatmap(FIM_Exp1^(-1), {'k_{on,init}', 'k_{off,init}', 'k_r', '\gamma', 'k_{on,final}', 'k_{off,final}'}, ...
+    {'k_{on,init}', 'k_{off,init}', 'k_r', '\gamma', 'k_{on,final}', 'k_{off,final}'}, ...
+    'I^{-1} - Exp 1')
+
+figure(209);
+plotHeatmap(FIM_Exp2^(-1), {'k_{on,init}', 'k_{off,init}', 'k_r', '\gamma', 'k_{on,final}', 'k_{off,final}'}, ...
+    {'k_{on,init}', 'k_{off,init}', 'k_r', '\gamma', 'k_{on,final}', 'k_{off,final}'}, ...
+    'I^{-1} - Exp 2')
+
+figure(210);
+clf;
+plotHeatmap(FIM_Exp3^(-1), {'k_{on,init}', 'k_{off,init}', 'k_r', '\gamma', 'k_{on,final}', 'k_{off,final}'}, ...
+    {'k_{on,init}', 'k_{off,init}', 'k_r', '\gamma', 'k_{on,final}', 'k_{off,final}'}, ...
+    'I^{-1} - Exp 3')
+
+figure(211);
+clf;
+plotHeatmap(FIM_Opt^(-1), {'k_{on,init}', 'k_{off,init}', 'k_r', '\gamma', 'k_{on,final}', 'k_{off,final}'}, ...
+    {'k_{on,init}', 'k_{off,init}', 'k_r', '\gamma', 'k_{on,final}', 'k_{off,final}'}, ...
+    'I^{-1} - Exp Opt')
+
+% Use figure 209 as the reference
+refFig = figure(209);
+refAx = gca;
+refCb = colorbar(refAx);
+
+% Get reference settings
+refCLim = refAx.CLim;
+refCMap = colormap(refAx);
+
+% Apply to the other figures
+for figNum = [208 210 211]
+
+    fig = figure(figNum);
+    ax = gca;
+
+    % Same colors
+    colormap(ax, refCMap);
+
+    % Same color scaling
+    clim(ax, refCLim);
+
+    % Get this figure's colorbar
+    cb = colorbar(ax);
+
+    % Same ticks and labels
+    cb.Ticks = refCb.Ticks;
+    cb.TickLabels = refCb.TickLabels;
+    cb.TickLabelInterpreter = refCb.TickLabelInterpreter;
+    cb.Label.String = refCb.Label.String;
+
+end
 
 
 %% Plots of FIM predicted uncertainties
@@ -2072,13 +2203,11 @@ return
 %% Figure 4
 %% Figure 4
 %% Figure 4
-
-
-%% Fig 4A-C: PDO - Effect on Distributions
+%% PDO - Effect on Distributions
 % Pick a parameter set that has an interesting looking PDF.
 %                                     PRIOR
 Model.parameters = {'kon0',0.01;...  % logn(-1,2)
-    'koff0',0.01;...                 % logn(0,2)
+    'koff0',0.01;...                   % logn(0,2)
     'kr',1;...                     % logn(1,2)
     'g',0.1;...                    % logn(-2,2)
     'kD',3;...                     % logn(1,2)
@@ -2107,7 +2236,7 @@ Model_BinomialPDO.plotFSP(figureNums=f1,plotType='marginals',indTimes=length(Mod
     speciesNames='mRNA',includePDO=true,Colors={'k'})
 % set(gca,'yscale','log','ylim',[1e-5,1])
 
-%% Fig 4D PDO - MLE scatter plot and FIM overlay No Msmt Noise, No PDO Correction (same as above).
+%% PDO - Show effect on MLE estimation.
 % First, generate the MLE scatter plot and FIM overlay (same as above).
 freePars = [1:4];
 nCellsInExperiment = 0*Model.tSpan;
@@ -2118,18 +2247,18 @@ MLE_noDistortion = Model_BinomialPDO.estimateMLEspread(nCells=nCellsInExperiment
     freePars=freePars,restart=true,useDistortions=false,correctDistortions=false,...
     nIter = 500);
 
-%% Fig 4E PDO - MLE scatter plot and FIM overlay + Msmt Noise, No PDO Correction.
+%% Next, find MLE estimates WITHOUT correcting for the distortion. 
 nMLE = 40;
 MLE_PDO_Uncorrected = Model_BinomialPDO.estimateMLEspread(nCells=nCellsInExperiment,...
     observableSpecies={'mRNA'},nMLE=nMLE,simsSaveFile='BurstFIMSimsPDO.csv',...
-    freePars=freePars,restart=false,useDistortions=true,correctDistortions=false,...
+    freePars=freePars,restart=true,useDistortions=true,correctDistortions=false,...
     nIter = 500);
 % MLE_PDO_Uncorrected = Model_BinomialPDO.estimateMLEspread(nCells=nCellsInExperiment,...
 %     observableSpecies={'mRNA'},nMLE=nMLE,simsSaveFile='BurstFIMSimsPDO.csv',...
 %     freePars=freePars,restart=true,useDistortions=true,correctDistortions=false,...
 %     nIter = 500,startPars=exp(MLE_PDO_Uncorrected.mhSamples));
 
-%% Fig 4F PDO - MLE scatter plot and FIM overlay + Msmt Noise, + PDO Correction.
+%% Next, find MLE estimates with correcting for the distortion. 
 MLE_PDO_Corrected = Model_BinomialPDO.estimateMLEspread(nCells=nCellsInExperiment,...
     observableSpecies={'mRNA'},nMLE=nMLE,simsSaveFile='BurstFIMSimsPDO.csv',...
     freePars=freePars,restart=false,useDistortions=true,correctDistortions=true,...
@@ -2437,30 +2566,32 @@ ModelGen.plotFSP
 
 
 %% Functions 
-function plotHeatmap(M, rowNames, colNames, titleText)
+function plotHeatmap(M,rowNames,colNames,titleText,logThreshold)
+% plotHeatmap
+%
+% Standalone heatmap using the same log transformation and colormap
+% as plotFIMResults.
+%
+%   M             : matrix to display
+%   rowNames      : row names
+%   colNames      : column names
+%   titleText     : optional title
+%   logThreshold  : optional log10 threshold, default = 0
+%
+% Example:
+%
+%   plotHeatmap(M,params,params,'FIM',-4)
 
-    % =============================================================
-    % SIGNED LOG HEATMAP
-    %
-    % Negative -> blue
-    % Zero     -> white
-    % Positive -> red
-    %
-    % Uses:
-    %
-    %   c = sign(M) * log10(1 + abs(M)/scale) / log10(1 + max/scale)
-    %
-    % This gives:
-    %
-    %   M = 0       -> exactly white
-    %   small M     -> very close to white
-    %   large M     -> increasingly saturated
-    %
-    % The original matrix M is NEVER modified.
-    % =============================================================
+    if nargin < 4
+        titleText = '';
+    end
+
+    if nargin < 5
+        logThreshold = -6;
+    end
 
     % -------------------------------------------------------------
-    % Check inputs
+    % Check dimensions
     % -------------------------------------------------------------
 
     if size(M,1) ~= numel(rowNames)
@@ -2475,237 +2606,133 @@ function plotHeatmap(M, rowNames, colNames, titleText)
     colNames = cellstr(colNames);
 
     % -------------------------------------------------------------
-    % Colours
+    % EXACT SAME LOG TRANSFORMATION AS plotFIMResults
     % -------------------------------------------------------------
 
-    blue  = [0.05 0.25 0.75];
-    white = [1.00 1.00 1.00];
-    red   = [0.80 0.10 0.10];
+    threshold = 10^logThreshold;
+
+    posValues = ...
+        1*(M >= threshold) + ...
+       -1*(M <= -threshold);
+
+    logMag = ...
+        max(0,log10(abs(M))-logThreshold) .* posValues;
+
+    fimDisp = logMag;
 
     % -------------------------------------------------------------
-    % Maximum magnitude
+    % Color range
     % -------------------------------------------------------------
 
-    maxValue = max(abs(M(:)));
+    x1 = max(abs(fimDisp),[],'all');
 
-    if maxValue == 0
-        maxValue = 1;
+    if x1 == 0
+        error('LogThreshold is set too high.');
     end
 
     % -------------------------------------------------------------
-    % SCALE controls how strongly small values are compressed
-    %
-    % Larger scale:
-    %   more values remain close to white
-    %
-    % Smaller scale:
-    %   more sensitive to small values
-    %
-    % For your matrix, maxValue ~= 0.273.
-    %
-    % Using scale = maxValue means:
-    %
-    %   0.2727 -> full colour
-    %   0.01   -> light colour
-    %   0.001  -> very close to white
-    %   0.0002 -> essentially white
+    % Same colorbar logic as plotFIMResults
     % -------------------------------------------------------------
 
-    scale = maxValue;
+    if logThreshold > 0
 
-    % -------------------------------------------------------------
-    % Convert M -> signed colour coordinate [-1,+1]
-    % -------------------------------------------------------------
+        rangeColors = ...
+            [-x1,-abs(logThreshold),abs(logThreshold),x1];
 
-    magnitude = abs(M);
+        cbTicks = [ ...
+            floor(rangeColors(1)):rangeColors(2), ...
+            0, ...
+            rangeColors(3):ceil(rangeColors(4))];
 
-    C = sign(M) .* ...
-        (log10(1 + magnitude ./ scale) ./ ...
-         log10(1 + maxValue ./ scale));
+        cbTickLabels = [ ...
+            arrayfun(@(v) sprintf('-10^{%g}', ...
+                -v+logThreshold), ...
+                cbTicks(1:end/2), ...
+                'UniformOutput',false), ...
+            {['\pm 10^{',num2str(logThreshold),'}']}, ...
+            arrayfun(@(v) sprintf('10^{%g}', ...
+                v+logThreshold), ...
+                cbTicks(end/2+1:end), ...
+                'UniformOutput',false)];
 
-    % Force exact zeros to exactly zero
-    C(M == 0) = 0;
+    elseif logThreshold < 0
 
-    % -------------------------------------------------------------
-    % Convert colour coordinate -> RGB
-    % -------------------------------------------------------------
+        rangeColors = [-x1,0,x1];
 
-    RGB = zeros([size(M), 3]);
+        cbTicks = [ ...
+            floor(rangeColors(1)):0, ...
+            1:ceil(rangeColors(3))];
 
-    for i = 1:size(M,1)
+        cbTickLabels = [ ...
+            arrayfun(@(v) sprintf('-10^{%g}', ...
+                -v+logThreshold), ...
+                cbTicks(1:end/2), ...
+                'UniformOutput',false), ...
+            {['\pm 10^{',num2str(logThreshold),'}']}, ...
+            arrayfun(@(v) sprintf('10^{%g}', ...
+                v+logThreshold), ...
+                cbTicks(end/2+1:end), ...
+                'UniformOutput',false)];
 
-        for j = 1:size(M,2)
+    else
 
-            c = C(i,j);
+        rangeColors = [-x1,0,x1];
 
-            if c < 0
+        cbTicks = [ ...
+            floor(rangeColors(1)):0, ...
+            1:ceil(rangeColors(3))];
 
-                q = abs(c);
-
-                RGB(i,j,:) = ...
-                    blue + q .* (white - blue);
-
-            elseif c > 0
-
-                q = c;
-
-                RGB(i,j,:) = ...
-                    white + q .* (red - white);
-
-            else
-
-                RGB(i,j,:) = white;
-
-            end
-
-        end
+        cbTickLabels = [ ...
+            arrayfun(@(v) sprintf('-10^{%g}', ...
+                -v), ...
+                cbTicks(1:end/2), ...
+                'UniformOutput',false), ...
+            {'0'}, ...
+            arrayfun(@(v) sprintf('10^{%g}', ...
+                v), ...
+                cbTicks(end/2+1:end), ...
+                'UniformOutput',false)];
 
     end
 
     % -------------------------------------------------------------
-    % Plot RGB image
+    % Colormap -- EXACT SAME FUNCTION AS plotFIMResults
     % -------------------------------------------------------------
 
-    image(RGB);
+    cmap = blueWhiteFlatRed( ...
+        cbTicks(1), ...
+        0, ...
+        0, ...
+        cbTicks(end));
+
+    % -------------------------------------------------------------
+    % Plot
+    % -------------------------------------------------------------
+
+    imagesc(fimDisp);
 
     ax = gca;
 
-    axis image;
+    axis square;
 
-    hold on;
+    colormap(ax,cmap);
 
-    % -------------------------------------------------------------
-    % Colormap
-    % -------------------------------------------------------------
-
-    n = 256;
-
-    nBlue = 128;
-    nRed  = 128;
-
-    blueMap = [
-        linspace(blue(1), white(1), nBlue)', ...
-        linspace(blue(2), white(2), nBlue)', ...
-        linspace(blue(3), white(3), nBlue)'
-    ];
-
-    redMap = [
-        linspace(white(1), red(1), nRed)', ...
-        linspace(white(2), red(2), nRed)', ...
-        linspace(white(3), red(3), nRed)'
-    ];
-
-    colormap(ax, [blueMap; redMap]);
+    clim([cbTicks(1),cbTicks(end)]);
 
     % -------------------------------------------------------------
-    % Dummy image for colourbar
-    % -------------------------------------------------------------
-
-    dummy = imagesc([-1 1; -1 1]);
-    dummy.Visible = 'off';
-
-    clim([-1 1]);
-
-    % -------------------------------------------------------------
-    % Colourbar
+    % Colorbar
     % -------------------------------------------------------------
 
     cb = colorbar;
 
-    % -------------------------------------------------------------
-    % Choose physically meaningful tick values
-    %
-    % Include powers of ten spanning the data range.
-    % -------------------------------------------------------------
-
-    minExponent = floor(log10(min(abs(M(M ~= 0)))));
-
-    maxExponent = ceil(log10(maxValue));
-
-    exponents = minExponent:maxExponent;
-
-    tickValues = 10.^exponents;
-
-    % Keep only useful values
-    tickValues = tickValues(tickValues <= maxValue);
-
-    % Always include maximum
-    tickValues = unique([tickValues maxValue]);
-
-    % -------------------------------------------------------------
-    % Convert physical value -> colour coordinate
-    % -------------------------------------------------------------
-
-    positivePositions = ...
-        log10(1 + tickValues ./ scale) ./ ...
-        log10(1 + maxValue ./ scale);
-
-    % Negative side
-    negativePositions = -fliplr(positivePositions);
-
-    % All positions
-    tickPositions = [
-        negativePositions ...
-        0 ...
-        positivePositions
-    ];
-
-    % -------------------------------------------------------------
-    % Labels
-    % -------------------------------------------------------------
-
-    tickLabels = cell(size(tickPositions));
-
-    for k = 1:numel(tickPositions)
-
-        p = tickPositions(k);
-
-        if abs(p) < eps
-
-            tickLabels{k} = '0';
-
-        else
-
-            % Find corresponding physical magnitude
-            ap = abs(p);
-
-            value = scale * ...
-                (10.^(ap * log10(1 + maxValue/scale)) - 1);
-
-            exponent = log10(value);
-
-            if abs(exponent - round(exponent)) < 1e-8
-
-                exponent = round(exponent);
-
-                if p < 0
-                    tickLabels{k} = sprintf('$-10^{%d}$', exponent);
-                else
-                    tickLabels{k} = sprintf('$10^{%d}$', exponent);
-                end
-
-            else
-
-                if p < 0
-                    tickLabels{k} = sprintf('$-%.2g$', value);
-                else
-                    tickLabels{k} = sprintf('$%.2g$', value);
-                end
-
-            end
-
-        end
-
-    end
-
-    cb.Ticks = tickPositions;
-    cb.TickLabels = tickLabels;
-
+    cb.Ticks = cbTicks;
+    cb.TickLabels = cbTickLabels;
     cb.TickLabelInterpreter = 'latex';
+
     cb.Label.String = 'Value';
 
     % -------------------------------------------------------------
-    % Axes
+    % Axis formatting
     % -------------------------------------------------------------
 
     ax.XTick = 1:numel(colNames);
@@ -2719,16 +2746,21 @@ function plotHeatmap(M, rowNames, colNames, titleText)
     ax.TickDir = 'out';
     ax.Box = 'on';
 
+    xlabel('Parameter');
+    ylabel('Parameter');
+
     % -------------------------------------------------------------
     % Cell boundaries
     % -------------------------------------------------------------
+
+    hold on;
 
     for x = 0.5:1:size(M,2)+0.5
 
         plot([x x], ...
              [0.5 size(M,1)+0.5], ...
-             'Color', [0.5 0.5 0.5], ...
-             'LineWidth', 0.5);
+             'Color',[0.5 0.5 0.5], ...
+             'LineWidth',0.5);
 
     end
 
@@ -2736,65 +2768,104 @@ function plotHeatmap(M, rowNames, colNames, titleText)
 
         plot([0.5 size(M,2)+0.5], ...
              [y y], ...
-             'Color', [0.5 0.5 0.5], ...
-             'LineWidth', 0.5);
+             'Color',[0.5 0.5 0.5], ...
+             'LineWidth',0.5);
 
     end
 
     % -------------------------------------------------------------
-    % +/- symbols
+    % +/- overlay
     % -------------------------------------------------------------
 
     for i = 1:size(M,1)
 
         for j = 1:size(M,2)
 
-            if M(i,j) > 0
+            if M(i,j) >= threshold
 
-                symbol = '+';
+                txt = '+';
 
-            elseif M(i,j) < 0
+            elseif M(i,j) <= -threshold
 
-                symbol = '−';
+                txt = '-';
 
             else
 
-                symbol = '0';
+                continue;
 
             end
 
-            text(j, i, symbol, ...
-                'HorizontalAlignment', 'center', ...
-                'VerticalAlignment', 'middle', ...
-                'FontSize', 9, ...
-                'FontWeight', 'bold', ...
-                'Color', 'black');
+            text(j,i,txt, ...
+                'HorizontalAlignment','center', ...
+                'VerticalAlignment','middle', ...
+                'FontWeight','bold', ...
+                'Color','k');
 
         end
 
     end
 
-    % -------------------------------------------------------------
-    % Labels
-    % -------------------------------------------------------------
-
-    xlabel('Parameter');
-    ylabel('Parameter');
-
-    axis square;
+    hold off;
 
     % -------------------------------------------------------------
     % Title
     % -------------------------------------------------------------
 
-    if nargin >= 4 && ~isempty(titleText)
+    if ~isempty(titleText)
 
         title(titleText, ...
-            'FontSize', 14, ...
-            'FontWeight', 'normal');
+            'FontSize',14, ...
+            'FontWeight','normal');
 
     end
 
-    hold off;
+end
+
+
+% =============================================================
+% Blue -> white -> red
+% EXACTLY the same helper used in plotFIMResults
+% =============================================================
+
+function cmap = blueWhiteFlatRed(x1,x2,x3,x4,n)
+
+    if nargin < 5
+        n = 256;
+    end
+
+    xs = linspace(x1,x4,n);
+
+    blue  = [0 0 0.6];
+    white = [1 1 1];
+    red   = [0.6 0 0];
+
+    cmap = zeros(n,3);
+
+    for i = 1:n
+
+        x = xs(i);
+
+        if x <= x2
+
+            t = (x-x1)/(x2-x1);
+
+            cmap(i,:) = ...
+                (1-t)*blue + t*white;
+
+        elseif x <= x3
+
+            cmap(i,:) = white;
+
+        else
+
+            t = (x-x3)/(x4-x3);
+
+            cmap(i,:) = ...
+                (1-t)*white + t*red;
+
+        end
+
+    end
 
 end
+
