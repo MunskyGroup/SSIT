@@ -4,6 +4,9 @@ clc
 close all
 addpath(genpath('..'))
 
+%% Figure 1
+%% Figure 1
+%% Figure 1
 %% Plots of means and fano factor versus parameters. Paper Figure 1
 
 kr = 100;
@@ -294,7 +297,9 @@ exportgraphics(fig, ...
 disp('All SVG figures exported successfully.');
 
 
-
+%% Figure 2
+%% Figure 2
+%% Figure 2
 %% Simple experiment and eigenvector analysis
 Model_chg.tSpan = linspace(0,7.5,31); % update time specific to the time scale
 nCellsInExperiment = 0*Model_chg.tSpan;
@@ -342,23 +347,6 @@ plotHeatmap( ...
 % I really like this plot. It shows how the intial steady state has the
 % least amount of information. 
 
-%% Larger experiment and analysis
-% nCellsInExperiment = 0*Model_chg.tSpan;
-% nCellsInExperiment([1,3,5,10, 15, 20, 25, 31]) = 1000;
-% FIMs = Model_chg.computeFIM(scale='log',freePars=[1:5],...
-%     observed={'mRNA'});
-% FIMTotal = Model_chg.totalFim(FIMs,nCellsInExperiment);
-
-% fprintf('FIM for step change in kon at 1 for intuitive design')
-% f = FIMTotal{1}
-% c = cond(f) 
-% [V, D] = eig(f)
-% e = 1/2*(f*f')^-1
-% [V, D] = eig(e)
-% 
-% Model_chg.plotFIMResults(f, 'log', Model_chg.parameters(1:5), [Model_chg.parameters{1:5,2}] ,PlotEllipses=true, Colors=struct('EllipseColors',[0.9 0.6 0.2],...
-%     'CenterSquare',[0.96,0.47,0.16]))
-% see marginal improvement in intial steady state 
 
 
 %% Setup - MLE FIM relationship - Gaussian
@@ -1414,8 +1402,243 @@ ax.XColor = 'k';
 ax.YColor = 'k';
 ax.TickLength = [0.015 0.015];
 
+%% Burst Frequency Model
+Model = SSIT('Empty');
 
-%% Export Figures for Paper Supplimental Figure
+% compute kon0, s0, s1, and 
+
+Model.species = {'gON','mRNA'};
+
+Model.initialCondition = [0;0];
+
+% this model and parameters have some weirdness that makes it unsuitable
+% for a tutorial. First is this never hits steady state in 300 time.
+% Additionally it starts with 0 rna at steady state. Finally the steps are
+% hard to control for a tutorial. I will be switching to Model_chg and this
+% will probably be removed in the final version 
+%                                     PRIOR
+Model.parameters = {'kon0',0.01;...  % logn(-1,2)
+    'koff0',0.1;...                   % logn(0,2)
+    'kr',10;...                     % logn(1,2)
+    'g',0.01;...                    % logn(-2,2)
+    'kD',10;...                     % logn(1,2)
+    'S0',1;...                      % NA (initial input concentration)
+    'S1',5};                        % NA (final input concentration)
+
+Model.inputExpressions = {'Iu','S0+(S1-S0)*(t>0)'};
+
+Model = Model.addReaction(struct(...
+    'propensity',{'kon0*(Iu/(kD+Iu))*(1-gON)'},...
+    'stoichiometry',{{'gON',1}}));
+
+Model = Model.addReaction(struct(...
+    'propensity',{'koff0*gON'},...
+    'stoichiometry',{{'gON',-1}}));
+
+Model = Model.addReaction(struct(...
+    'propensity',{'kr*gON'},...
+    'stoichiometry',{{'mRNA',1}}));
+
+Model = Model.addReaction(struct(...
+    'propensity',{'g*mRNA'},...
+    'stoichiometry',{{'mRNA',-1}}));
+
+Model.fspOptions.initApproxSS = true;
+Model.tSpan = linspace(0,300,31);
+
+% Model = Model.solve;
+
+% Model.plotFSP
+
+%% Update Model_chg so it reflect figure 1b red line (vary kon) 
+Model_chg.tSpan = linspace(0,10,31);
+Model_chg.parameters{1,2} = star_kon;
+Model_chg.parameters{2,2} = star_koff;
+Model_chg.parameters{5,2} = final_kon;
+Model_chg.parameters{6,2} = star_koff;
+Model_chg = Model_chg.solve;
+
+% Model_chg.plotFSP(plotType='meansAndDevs', SpeciesIdx=[2], Colors=[1 0
+% 0], Title='') % verify shape of result
+
+%% Verification of FIM using CRLB (spread of MLE)
+nCellsInExperiment = 0*Model_chg.tSpan;
+nCellsInExperiment([1,6,31]) = 200;
+nMLE = 200;
+Model_chg.fittingOptions.modelVarsToFit = [1:2];
+if false
+    % TODO: There is a bias, idk from where, might be the size
+    MLE = Model_chg.estimateMLEspread(nCells=nCellsInExperiment,observableSpecies={'mRNA'},nMLE=nMLE,simsSaveFile='BurstFIMSims.csv',freePars=[1:2],restart=true);
+    MLE = Model_chg.estimateMLEspread(nCells=nCellsInExperiment,observableSpecies={'mRNA'},nMLE=nMLE,simsSaveFile='BurstFIMSims.csv',freePars=[1:2],startPars=exp(MLE.mhSamples),restart=false);
+    FIMs = Model_chg.computeFIM(scale='log',freePars=[1:2],...
+        observed={'mRNA'});
+    FIMTotal = Model_chg.totalFim(FIMs,nCellsInExperiment);
+    Model_chg.plotMHResults(MLE,FIM=FIMTotal,fimScale='log',truncateChain=false);
+end
+
+
+%% MLE FIM convergence in 2D and eigen vectors
+f1 = figure(109); % fim ellipse
+clf
+f2 = figure(150); % default fim analsysis
+clf
+
+
+FIMs = Model_chg.computeFIM(scale='log',freePars=[1:2],...
+    observed={'mRNA'});
+FIMTotal = Model_chg.totalFim(FIMs,nCellsInExperiment);
+
+FIM = FIMTotal{1};
+
+Model_chg.plotFIMResults(FIM^(-1)/log(10)^2, 'log',...
+    Model_chg.parameters(1:2,1),...
+    [Model_chg.parameters{1:2,2}],...
+    PlotEllipses=true, ...
+    EllipseFigure=f1,...
+    Colors = struct('EllipseColors',[0, 0, 0],'CenterSquare',[0,0,0]), ...
+    EllipsePairs=[1,2], ...
+    FigureHandle=f2,...
+    LogThreshold=-4,...
+    HeatMapType='invfim',...
+    MatrixType='invfim');
+
+hold on
+
+C = FIM^(-1)/log(10)^2;
+
+% Parameters corresponding to your ellipse pair
+C2 = C([1 2],[1 2]);
+
+% Eigenvectors/eigenvalues
+[V,D] = eig(C2);
+
+% Sort eigenvalues from smallest to largest
+[lambda,idx] = sort(diag(D));
+V = V(:,idx);
+
+% Center of ellipse
+x0 = log10(Model_chg.parameters{2,2});
+y0 = log10(Model_chg.parameters{1,2});
+
+% Scale factor for visualization
+scale = 2;
+
+% Small eigenvalue direction
+quiver(x0,y0,...
+    V(2,1)*sqrt(lambda(1))*scale,...
+    V(1,1)*sqrt(lambda(1))*scale,...
+    0,...
+    'LineWidth',2,...
+    'Color','r',...
+    'MaxHeadSize',0.5);
+
+% Large eigenvalue direction
+quiver(x0,y0,...
+    V(2,2)*sqrt(lambda(2))*scale,...
+    V(1,2)*sqrt(lambda(2))*scale,...
+    0,...
+    'LineWidth',2,...
+    'Color','b',...
+    'MaxHeadSize',0.5);
+
+
+if false
+    % TODO: add MLE to this plot 
+
+end
+
+figure(110); % heatmap of I^(-1)
+clf
+plotHeatmap(C, {'k_{on}', 'k_{off}'}, {'k_{on}', 'k_{off}'}, 'I^{-1}')
+
+
+figure(111); % heatmap of eig(I^(-1))
+clf
+
+[V, D] = eig(C);
+
+% Sort eigenvalues from largest to smallest
+[lambda, idx] = sort(diag(D), 'descend');
+
+% Reorder eigenvectors to match
+V = V(:, idx);
+
+% Rebuild diagonal eigenvalue matrix
+D = diag(lambda);
+
+% Plot V*D
+plotHeatmap(V*D, ...
+    {'k_{on}', 'k_{off}'}, ...
+    {'\lambda_{1}', '\lambda_{2}'}, ...
+    'V(I^{-1}) \lambda(I^{-1})')
+
+% Make eigenvector orientation deterministic
+% Largest eigenvector should point generally in +x direction
+if V(1,1) < 0
+    V(:,1) = -V(:,1);
+end
+
+% Make second eigenvector form a right-handed coordinate system
+if det(V) < 0
+    V(:,2) = -V(:,2);
+end
+
+% Center
+x0 = log10(Model_chg.parameters{2,2});
+y0 = log10(Model_chg.parameters{1,2});
+mu = [x0; y0];
+
+% Chi-square scaling
+chi2val = icdf('chi2',0.95,2);
+
+% Principal-axis lengths
+a = sqrt(chi2val * lambda(1));   % LARGE variance -> x
+b = sqrt(chi2val * lambda(2));   % SMALL variance  -> y
+
+% Parameterize ellipse DIRECTLY in eigenvector coordinates
+t = linspace(0,2*pi,300);
+
+xEllipse = a*cos(t);
+yEllipse = b*sin(t);
+
+% Plot in eigenvector coordinates
+figure(112);
+clf;
+hold on;
+
+plot(xEllipse,yEllipse,...
+    'k-',...
+    'LineWidth',2);
+
+plot(0,0,...
+    'ks',...
+    'MarkerSize',8,...
+    'MarkerFaceColor','w',...
+    'LineWidth',2);
+
+% Principal axes
+quiver(0,0,...
+    a,0,...
+    0,...
+    'r',...
+    'LineWidth',2,...
+    'MaxHeadSize',0.5);
+
+quiver(0,0,...
+    0,b,...
+    0,...
+    'b',...
+    'LineWidth',2,...
+    'MaxHeadSize',0.5);
+
+xlabel('Largest variance eigenvector');
+ylabel('Smallest variance eigenvector');
+
+axis equal;
+grid on;
+
+
+%% Export Figures for Paper
 outputFolder = 'AnnualReview_Figures';
 
 if ~exist(outputFolder, 'dir')
@@ -1430,7 +1653,7 @@ fullHeight = 7.9;
 plotWidth = fullWidth / 3;
 plotHeight = fullHeight / 3;
 
-for figNum = 101:108
+for figNum = 101:112
 
     fig = figure(figNum);
 
@@ -1503,97 +1726,352 @@ disp('Figures 101-108 exported successfully.');
 
 
 
+%% Figure 3
+%% Figure 3
+%% Figure 3
+%% MLE FIM convergence in 2D and eigen vectors
+f1 = figure(201); % fim ellipse
+clf
+f2 = figure(250); % default fim analsysis
+clf
 
-%%
+Model_chg.fittingOptions.modelVarsToFit = [1:6];
+FIMs = Model_chg.computeFIM(scale='log',freePars=[1:6],...
+    observed={'mRNA'});
+FIMTotal = Model_chg.totalFim(FIMs,nCellsInExperiment);
 
+FIM = FIMTotal{1};
 
+Model_chg.plotFIMResults(FIM^(-1)/log(10)^2, 'log',...
+    Model_chg.parameters(1:6,1),...
+    [Model_chg.parameters{1:6,2}],...
+    PlotEllipses=true, ...
+    EllipseFigure=f1,...
+    Colors = struct('EllipseColors',[0, 0, 0],'CenterSquare',[0,0,0]), ...
+    EllipsePairs=[1,2], ...
+    FigureHandle=f2,...
+    LogThreshold=-4,...
+    HeatMapType='invfim',...
+    MatrixType='invfim');
 
+hold on
 
+C = FIM^(-1)/log(10)^2;
 
+% Parameters corresponding to your ellipse pair
+C2 = C([1 2],[1 2]);
 
+% Eigenvectors/eigenvalues
+[V,D] = eig(C2);
 
+% Sort eigenvalues from smallest to largest
+[lambda,idx] = sort(diag(D));
+V = V(:,idx);
 
+% Center of ellipse
+x0 = log10(Model_chg.parameters{2,2});
+y0 = log10(Model_chg.parameters{1,2});
 
+% Scale factor for visualization
+scale = 2;
 
+% Small eigenvalue direction
+quiver(x0,y0,...
+    V(2,1)*sqrt(lambda(1))*scale,...
+    V(1,1)*sqrt(lambda(1))*scale,...
+    0,...
+    'LineWidth',2,...
+    'Color','r',...
+    'MaxHeadSize',0.5);
 
+% Large eigenvalue direction
+quiver(x0,y0,...
+    V(2,2)*sqrt(lambda(2))*scale,...
+    V(1,2)*sqrt(lambda(2))*scale,...
+    0,...
+    'LineWidth',2,...
+    'Color','b',...
+    'MaxHeadSize',0.5);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-% return
-
-%% Burst Frequency Model
-Model = SSIT('Empty');
-
-% compute kon0, s0, s1, and 
-
-Model.species = {'gON','mRNA'};
-
-Model.initialCondition = [0;0];
-
-%                                     PRIOR
-Model.parameters = {'kon0',0.01;...  % logn(-1,2)
-    'koff0',0.1;...                   % logn(0,2)
-    'kr',10;...                     % logn(1,2)
-    'g',0.01;...                    % logn(-2,2)
-    'kD',10;...                     % logn(1,2)
-    'S0',1;...                      % NA (initial input concentration)
-    'S1',5};                        % NA (final input concentration)
-
-Model.inputExpressions = {'Iu','S0+(S1-S0)*(t>0)'};
-
-Model = Model.addReaction(struct(...
-    'propensity',{'kon0*(Iu/(kD+Iu))*(1-gON)'},...
-    'stoichiometry',{{'gON',1}}));
-
-Model = Model.addReaction(struct(...
-    'propensity',{'koff0*gON'},...
-    'stoichiometry',{{'gON',-1}}));
-
-Model = Model.addReaction(struct(...
-    'propensity',{'kr*gON'},...
-    'stoichiometry',{{'mRNA',1}}));
-
-Model = Model.addReaction(struct(...
-    'propensity',{'g*mRNA'},...
-    'stoichiometry',{{'mRNA',-1}}));
-
-Model.fspOptions.initApproxSS = true;
-Model.tSpan = linspace(0,300,31);
-
-% Model = Model.solve;
-
-% Model.plotFSP
+figure(202); % heatmap of I^(-1)
+clf
+plotHeatmap(C, {'k_{on,init}', 'k_{off,init}', 'k_r', '\gamma', 'k_{on,final}', 'k_{off,final}'}, {'k_{on,init}', 'k_{off,init}', 'k_r', '\gamma', 'k_{on,final}', 'k_{off,final}'}, 'I^{-1}')
 
 
+figure(203); % heatmap of eig(I^(-1))
+clf
 
-%% Verification of FIM using CRLB (spread of MLE)
-% nCellsInExperiment = 0*Model.tSpan;
-% nCellsInExperiment([1,11,31]) = 200;
-% nMLE = 200;
-% Model.fittingOptions.modelVarsToFit = [1:5];
-% MLE = Model.estimateMLEspread(nCells=nCellsInExperiment,observableSpecies={'mRNA'},nMLE=nMLE,simsSaveFile='BurstFIMSims.csv',freePars=[1:5],restart=true);
-% MLE = Model.estimateMLEspread(nCells=nCellsInExperiment,observableSpecies={'mRNA'},nMLE=nMLE,simsSaveFile='BurstFIMSims.csv',freePars=[1:5],startPars=exp(MLE.mhSamples),restart=false);
-% 
-% FIMs = Model.computeFIM(scale='log',freePars=[1:5],...
-%     observed={'mRNA'});
-% FIMTotal = Model.totalFim(FIMs,nCellsInExperiment);
-% 
-% Model.plotMHResults(MLE,FIM=FIMTotal,fimScale='log',truncateChain=false);
+[V, D] = eig(C);
+
+% Sort eigenvalues from largest to smallest
+[lambda, idx] = sort(diag(D), 'descend');
+
+% Reorder eigenvectors to match
+V = V(:, idx);
+
+% Rebuild diagonal eigenvalue matrix
+D = diag(lambda);
+
+% Plot V*D
+plotHeatmap(V*D, ...
+    {'k_{on,init}', 'k_{off,init}', 'k_r', '\gamma', 'k_{on,final}', 'k_{off,final}'}, ...
+    {'\lambda_{1}', '\lambda_{2}', '\lambda_{3}', '\lambda_{4}', '\lambda_{5}', '\lambda_{6}'}, ...
+    'V(I^{-1}) \lambda(I^{-1})')
+
+% Make eigenvector orientation deterministic
+% Largest eigenvector should point generally in +x direction
+if V(1,1) < 0
+    V(:,1) = -V(:,1);
+end
+
+% Make second eigenvector form a right-handed coordinate system
+if det(V) < 0
+    V(:,2) = -V(:,2);
+end
+
+% Center
+x0 = log10(Model_chg.parameters{2,2});
+y0 = log10(Model_chg.parameters{1,2});
+mu = [x0; y0];
+
+% Chi-square scaling
+chi2val = icdf('chi2',0.95,2);
+
+% Principal-axis lengths
+a = sqrt(chi2val * lambda(1));   % LARGE variance -> x
+b = sqrt(chi2val * lambda(2));   % SMALL variance  -> y
+
+% Parameterize ellipse DIRECTLY in eigenvector coordinates
+t = linspace(0,2*pi,300);
+
+xEllipse = a*cos(t);
+yEllipse = b*sin(t);
+
+% Plot in eigenvector coordinates
+figure(204);
+clf;
+hold on;
+
+plot(xEllipse,yEllipse,...
+    'k-',...
+    'LineWidth',2);
+
+plot(0,0,...
+    'ks',...
+    'MarkerSize',8,...
+    'MarkerFaceColor','w',...
+    'LineWidth',2);
+
+% Principal axes
+quiver(0,0,...
+    a,0,...
+    0,...
+    'r',...
+    'LineWidth',2,...
+    'MaxHeadSize',0.5);
+
+quiver(0,0,...
+    0,b,...
+    0,...
+    'b',...
+    'LineWidth',2,...
+    'MaxHeadSize',0.5);
+
+xlabel('Largest variance eigenvector');
+ylabel('Smallest variance eigenvector');
+
+axis equal;
+grid on;
 
 
+%% FIM Calculations
+Sarray = [1:5];
+Model.tSpan = [0:30];
+Model.solutionScheme = 'fspsens';
+FIM = cell(length(Sarray),length(Sarray),length(Model.tSpan));
+for iS0 = 1:length(Sarray)
+    for iS1 = 1:length(Sarray)
+        % Model = Model.changeParameter({'S0',Sarray(iS0);'S1',Sarray(iS1)-Sarray(iS0)});
+        % This leads to problems because the associated input expression
+        % 'S0+(S1-S0)*(t>0)' already accounts for the shift Sarray(iS1)-Sarray(iS0) 
+        Model = Model.changeParameter({'S0',Sarray(iS0);'S1',Sarray(iS1)});
+        Model = Model.solve;
+        FIM(iS0,iS1,:) = Model.computeFIM(freePars=(1:4),scale='log');
+    end
+end
+
+%% FIM for different experiment designs.
+Ncells = 600;
+% Measurment at one steady state values.
+iS = 3;
+FIM_One_SS = Ncells*FIM{iS,iS,1};
+disp(['Determinant of FIM for one SS measurement: ',num2str(det(FIM_One_SS))])
+
+% Measurment at two steady state values.
+iS1 = 1;
+iS2 = 5;
+FIM_Two_SS = Ncells/2*FIM{iS1,iS1,1}+Ncells/2*FIM{iS2,iS2,1};
+disp(['Determinant of FIM for two SS measurements: ',num2str(det(FIM_Two_SS))])
+
+% Measurement at change from one SS to another at three time points.
+iS1 = 1;
+iS2 = 5;
+itimes = [1,11,31];
+FIM_Dynamic = 0;
+for it = 1:length(itimes)
+    FIM_Dynamic = FIM_Dynamic + Ncells/length(itimes)*FIM{iS1,iS2,itimes(it)};
+end
+disp(['Determinant of FIM for dynamic measurements: ',num2str(det(FIM_Dynamic))])
+
+% TODO - make plots of these measurements along the length of input
+% TODO - make plots of each optimality vs NCells for each stratagy
+% TODO - make plot of FIM-1 for the original experiment
+
+
+%% Optimized Experiment Design
+% AllFims = reshape(FIM,numel(FIM),1);
+allFims = {};%cell(numel(FIM),1);
+indsFims = [];zeros(numel(FIM),3);
+k = 0;
+for iS0 = 1:length(Sarray)
+    for iS1 = 1:length(Sarray)
+        for iT = 1:length(Model.tSpan)
+            k = k+1;
+            allFims(k,1) = FIM(iS0,iS1,iT);
+            indsFims(k,:) = [iS0,iS1,iT];
+        end
+    end
+end
+OptExperiment = Model.optimizeCellCounts(allFims,600,'D-opt');
+J = find(OptExperiment);
+disp(['Optimized Experiment Design:'])
+for j = 1:length(J)
+    % Store optimized parameters and their corresponding indices
+    optimizedParams = OptExperiment(J(j));
+    paramIndices = indsFims(J(j), :);
+    if paramIndices(3)==1||paramIndices(1)==paramIndices(2) % SS experiment
+        disp(['   ',num2str(optimizedParams),' cells at steady state for S0 = ',num2str(Sarray(paramIndices(1)))])
+    else
+        disp(['   ',num2str(optimizedParams),' cells at time ',num2str(Model.tSpan(paramIndices(3))),' for S0 = ',num2str(Sarray(paramIndices(1))),' and S1 = ',num2str(Sarray(paramIndices(2)))])
+    end
+end
+
+FIM_Opt = 0;
+for i = 1:length(OptExperiment)
+    FIM_Opt = FIM_Opt + OptExperiment(i)*allFims{i};
+end
+disp(['Determinant of FIM for optimized measurements: ',num2str(det(FIM_Opt))])
+
+
+%% Plots of FIM predicted uncertainties
+freePars = [1:4];
+f1 = figure(205);
+f2 = figure(206);
+f3 = figure(207);
+
+% The following plots the heatmap showing the
+Model.plotFIMResults(FIM_Opt^(-1)/log(10)^2, 'log',...
+    Model.parameters(freePars,1),...
+    [Model.parameters{freePars,2}],...
+    PlotEllipses=true,EllipseFigure=f1,...
+    FigureHandle=f3,...
+    LogThreshold=-4,...
+    HeatMapType='invfim',...
+    MatrixType='invfim');
+
+    % Colors=struct('EllipseColors',[0.9 0.6 0.2],...
+    % 'CenterSquare',[0.96,0.47,0.16]),...
+
+
+%% Plot eigen values and fim
+f4 = figure(204);
+Model.plotFIMResults(FIM_Opt^(-1)/log(10)^2, 'log',...
+    Model.parameters(freePars,1),...
+    [Model.parameters{freePars,2}],...
+    PlotEllipses=true,EllipseFigure=f4,...
+    EllipsePairs=[1,2], ...
+    FigureHandle=f3,...
+    LogThreshold=-4,...
+    HeatMapType='invfim',...
+    MatrixType='invfim');
+
+hold on
+
+C = FIM_Opt^(-1)/log(10)^2;
+
+% Parameters corresponding to your ellipse pair
+C2 = C([1 2],[1 2]);
+
+% Eigenvectors/eigenvalues
+[V,D] = eig(C2);
+
+% Sort eigenvalues from smallest to largest
+[lambda,idx] = sort(diag(D));
+V = V(:,idx);
+
+% Center of ellipse
+x0 = log10(Model.parameters{2,2});
+y0 = log10(Model.parameters{1,2});
+
+% Scale factor for visualization
+scale = 2;
+
+% Small eigenvalue direction
+quiver(x0,y0,...
+    V(2,1)*sqrt(lambda(1))*scale,...
+    V(1,1)*sqrt(lambda(1))*scale,...
+    0,...
+    'LineWidth',2,...
+    'Color','r',...
+    'MaxHeadSize',0.5);
+
+% Large eigenvalue direction
+quiver(x0,y0,...
+    V(2,2)*sqrt(lambda(2))*scale,...
+    V(1,2)*sqrt(lambda(2))*scale,...
+    0,...
+    'LineWidth',2,...
+    'Color','b',...
+    'MaxHeadSize',0.5);
+
+% TODO - Add MLE estimates to plot
+% TODO - change exp for this to acheive MLE spread
+% TODO - plot FIM-1 for optimatlity descriptions 
+%% IDK what I was doing here 
+nCellsInExperiment = zeros(size(Model.tSpan));
+nCellsInExperiment([1]) = 1;
+Model = Model.solve;
+Model.ssaOptions.Nexp = 5000;
+
+Model.fittingOptions.modelVarsToFit = [1];
+
+% Model_chg.plotFSP(plotType='meansAndDevs', SpeciesIdx=[2], Title='testing steady state') % Test successful 
+Model.sampleDataFromFSP(saveFile='dataForFIMIntro.csv',nCells=nCellsInExperiment,species2save={'mRNA'});
+Model = Model.loadData('dataForFIMIntro.csv', {'mRNA', 'exp1_mRNA'});
+
+
+
+
+return
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+%% Figure 4
+%% Figure 4
+%% Figure 4
 %% PDO - Effect on Distributions
 % Pick a parameter set that has an interesting looking PDF.
 %                                     PRIOR
@@ -1659,6 +2137,94 @@ MLE_PDO_Corrected = Model_BinomialPDO.estimateMLEspread(nCells=nCellsInExperimen
 %     freePars=freePars,restart=false,useDistortions=true,correctDistortions=true,...
 %     nIter = 500,startPars=exp(MLE_PDO_Corrected.mhSamples));
 
+
+
+%%
+%%
+%%
+%% Generalized model
+% 
+% In the most general form of this model, the parameter 'alpha' determines
+% if the model is burst size regulate (koff, alpha=0) or burst frequency
+% regulated (kon, alpha=1) or something in between.
+ModelGen = SSIT('Empty');
+
+ModelGen.species = {'gON','mRNA'};
+
+ModelGen.initialCondition = [0;0];
+
+%                                     PRIOR
+ModelGen.parameters = {'kon0',0.1;...  % logn(-1,2)
+    'koff0',1;...                   % logn(0,2)
+    'kr',10;...                     % logn(1,2)
+    'g',0.01;...                    % logn(-2,2)
+    'kD',10;...                     % logn(1,2)
+    'alpha',1e-6;...                   % n(0,2)
+    'S0',1;...                      % NA (initial input concentration)
+    'S1',5};                        % NA (final input concentration)
+
+ModelGen.inputExpressions = {'Iu','S0+S1*(t>0)'};
+
+ModelGen = ModelGen.addReaction(struct(...
+    'propensity',{'kon0*((1-alpha)+(alpha)*Iu/(kD+Iu))*(1-gON)'},...
+    'stoichiometry',{{'gON',1}}));
+
+ModelGen = ModelGen.addReaction(struct(...
+    'propensity',{'koff0*((alpha)+(1-alpha)*(kD+Iu)/Iu)*gON'},...
+    'stoichiometry',{{'gON',-1}}));
+
+ModelGen = ModelGen.addReaction(struct(...
+    'propensity',{'kr*gON'},...
+    'stoichiometry',{{'mRNA',1}}));
+
+ModelGen = ModelGen.addReaction(struct(...
+    'propensity',{'g*mRNA'},...
+    'stoichiometry',{{'mRNA',-1}}));
+
+ModelGen.tSpan = linspace(0,300,31);
+
+ModelGen = ModelGen.solve;
+
+ModelGen.plotFSP
+
+%% Parameters for key points.
+kr = 100;
+gr = 1;
+KD = 10;
+kon0a = 2.5;
+koff0a = 10;
+S0 = KD/24;
+S1 = 23*KD/24;
+
+%                                     PRIOR
+ModelGen.parameters = {'kon0',kon0;...  % logn(-1,2)
+    'koff0',koff0;...                   % logn(0,2)
+    'kr',kr;...                     % logn(1,2)
+    'g',gr;...                    % logn(-2,2)
+    'kD',KD;...                     % logn(1,2)
+    'alpha',-6;...                   % n(0,2)
+    'S0',S0;...                      % NA (initial input concentration)
+    'S1',S1};                        % NA (final input concentration)
+
+ModelGen.tSpan = linspace(0,6,61);
+
+ModelGen.fspOptions.initApproxSS = true;
+ModelGen = ModelGen.solve;
+
+ModelGen.plotFSP
+
+
+
+
+
+
+
+
+
+
+%% Extra Stuff
+%% Extra Stuff
+%% Extra Stuff
 %% 1D plots of likelihood function - Kr
 % nCellsInExperiment = zeros(size(Model_chg.tSpan));
 % nCellsInExperiment([2,13,31]) = 200;
@@ -1794,305 +2360,51 @@ MLE_PDO_Corrected = Model_BinomialPDO.estimateMLEspread(nCells=nCellsInExperimen
 % semilogx(varyingPar, likelihoods)
 
 
-%% FIM Calculations
-Sarray = [1:5];
-Model.tSpan = [0:30];
-Model.solutionScheme = 'fspsens';
-FIM = cell(length(Sarray),length(Sarray),length(Model.tSpan));
-for iS0 = 1:length(Sarray)
-    for iS1 = 1:length(Sarray)
-        Model = Model.changeParameter({'S0',Sarray(iS0);'S1',Sarray(iS1)-Sarray(iS0)});
-        Model = Model.solve;
-        FIM(iS0,iS1,:) = Model.computeFIM(freePars=(1:4),scale='log');
-    end
-end
-
-%% FIM for different experiment designs.
-Ncells = 600;
-% Measurment at one steady state values.
-iS = 3;
-FIM_One_SS = Ncells*FIM{iS,iS,1};
-disp(['Determinant of FIM for one SS measurement: ',num2str(det(FIM_One_SS))])
-
-% Measurment at two steady state values.
-iS1 = 1;
-iS2 = 5;
-FIM_Two_SS = Ncells/2*FIM{iS1,iS1,1}+Ncells/2*FIM{iS2,iS2,1};
-disp(['Determinant of FIM for two SS measurements: ',num2str(det(FIM_Two_SS))])
-
-% Measurement at change from one SS to another at three time points.
-iS1 = 1;
-iS2 = 5;
-itimes = [1,11,31];
-FIM_Dynamic = 0;
-for it = 1:length(itimes)
-    FIM_Dynamic = FIM_Dynamic + Ncells/length(itimes)*FIM{iS1,iS2,itimes(it)};
-end
-disp(['Determinant of FIM for dynamic measurements: ',num2str(det(FIM_Dynamic))])
-
-% TODO - make plots of these measurements along the length of input
-% TODO - make plots of each optimality vs NCells for each stratagy
-% TODO - make plot of FIM-1 for the original experiment
-
-
-%% Optimized Experiment Design
-% AllFims = reshape(FIM,numel(FIM),1);
-allFims = {};%cell(numel(FIM),1);
-indsFims = [];zeros(numel(FIM),3);
-k = 0;
-for iS0 = 1:length(Sarray)
-    for iS1 = 1:length(Sarray)
-        for iT = 1:length(Model.tSpan)
-            k = k+1;
-            allFims(k,1) = FIM(iS0,iS1,iT);
-            indsFims(k,:) = [iS0,iS1,iT];
-        end
-    end
-end
-OptExperiment = Model.optimizeCellCounts(allFims,600,'D-opt');
-J = find(OptExperiment);
-disp(['Optimized Experiment Design:'])
-for j = 1:length(J)
-    % Store optimized parameters and their corresponding indices
-    optimizedParams = OptExperiment(J(j));
-    paramIndices = indsFims(J(j), :);
-    if paramIndices(3)==1||paramIndices(1)==paramIndices(2) % SS experiment
-        disp(['   ',num2str(optimizedParams),' cells at steady state for S0 = ',num2str(Sarray(paramIndices(1)))])
-    else
-        disp(['   ',num2str(optimizedParams),' cells at time ',num2str(Model.tSpan(paramIndices(3))),' for S0 = ',num2str(Sarray(paramIndices(1))),' and S1 = ',num2str(Sarray(paramIndices(2)))])
-    end
-end
-
-FIM_Opt = 0;
-for i = 1:length(OptExperiment)
-    FIM_Opt = FIM_Opt + OptExperiment(i)*allFims{i};
-end
-disp(['Determinant of FIM for optimized measurements: ',num2str(det(FIM_Opt))])
-
-
-%% Plots of FIM predicted uncertainties
-freePars = [1:4];
-f1 = figure(201);
-f2 = figure(202);
-f3 = figure(203);
-
-% The following plots the heatmap showing the
-Model.plotFIMResults(FIM_Opt^(-1)/log(10)^2, 'log',...
-    Model.parameters(freePars,1),...
-    [Model.parameters{freePars,2}],...
-    PlotEllipses=true,EllipseFigure=f1,...
-    FigureHandle=f3,...
-    Colors=struct('EllipseColors',[0.9 0.6 0.2],...
-    'CenterSquare',[0.96,0.47,0.16]),...
-    LogThreshold=-4,...
-    HeatMapType='invfim',...
-    MatrixType='invfim');
-
-
-%%
-f4 = figure(204)
-Model.plotFIMResults(FIM_Opt^(-1)/log(10)^2, 'log',...
-    Model.parameters(freePars,1),...
-    [Model.parameters{freePars,2}],...
-    PlotEllipses=true,EllipseFigure=f4,...
-    EllipsePairs=[1,2], ...
-    FigureHandle=f3,...
-    Colors=struct('EllipseColors',[0.9 0.6 0.2],...
-    'CenterSquare',[0.96,0.47,0.16]),...
-    LogThreshold=-4,...
-    HeatMapType='invfim',...
-    MatrixType='invfim');
-
-hold on
-
-C = FIM_Opt^(-1)/log(10)^2;
-
-% Parameters corresponding to your ellipse pair
-C2 = C([1 2],[1 2]);
-
-% Eigenvectors/eigenvalues
-[V,D] = eig(C2);
-
-% Sort eigenvalues from smallest to largest
-[lambda,idx] = sort(diag(D));
-V = V(:,idx);
-
-% Center of ellipse
-x0 = log10(Model.parameters{2,2});
-y0 = log10(Model.parameters{1,2});
-
-% Scale factor for visualization
-scale = 2;
-
-% Small eigenvalue direction
-quiver(x0,y0,...
-    V(2,1)*sqrt(lambda(1))*scale,...
-    V(1,1)*sqrt(lambda(1))*scale,...
-    0,...
-    'LineWidth',2,...
-    'Color','r',...
-    'MaxHeadSize',0.5);
-
-% Large eigenvalue direction
-quiver(x0,y0,...
-    V(2,2)*sqrt(lambda(2))*scale,...
-    V(1,2)*sqrt(lambda(2))*scale,...
-    0,...
-    'LineWidth',2,...
-    'Color','b',...
-    'MaxHeadSize',0.5);
-
-% TODO - Add MLE estimates to plot
-% TODO - change exp for this to acheive MLE spread
-% TODO - plot FIM-1 for optimatlity descriptions 
-%% 
-nCellsInExperiment = zeros(size(Model.tSpan));
-nCellsInExperiment([1]) = 1;
-Model = Model.solve;
-Model.ssaOptions.Nexp = 5000;
-
-Model.fittingOptions.modelVarsToFit = [1];
-
-% Model_chg.plotFSP(plotType='meansAndDevs', SpeciesIdx=[2], Title='testing steady state') % Test successful 
-Model.sampleDataFromFSP(saveFile='dataForFIMIntro.csv',nCells=nCellsInExperiment,species2save={'mRNA'});
-Model = Model.loadData('dataForFIMIntro.csv', {'mRNA', 'exp1_mRNA'});
-
-
-
-
-return
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-%%
-
-
-%%
-
-
-%%
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-%% Generalized model
+%% Larger experiment and analysis
+% nCellsInExperiment = 0*Model_chg.tSpan;
+% nCellsInExperiment([1,3,5,10, 15, 20, 25, 31]) = 1000;
+% FIMs = Model_chg.computeFIM(scale='log',freePars=[1:5],...
+%     observed={'mRNA'});
+% FIMTotal = Model_chg.totalFim(FIMs,nCellsInExperiment);
+
+% fprintf('FIM for step change in kon at 1 for intuitive design')
+% f = FIMTotal{1}
+% c = cond(f) 
+% [V, D] = eig(f)
+% e = 1/2*(f*f')^-1
+% [V, D] = eig(e)
 % 
-% In the most general form of this model, the parameter 'alpha' determines
-% if the model is burst size regulate (koff, alpha=0) or burst frequency
-% regulated (kon, alpha=1) or something in between.
-ModelGen = SSIT('Empty');
-
-ModelGen.species = {'gON','mRNA'};
-
-ModelGen.initialCondition = [0;0];
-
-%                                     PRIOR
-ModelGen.parameters = {'kon0',0.1;...  % logn(-1,2)
-    'koff0',1;...                   % logn(0,2)
-    'kr',10;...                     % logn(1,2)
-    'g',0.01;...                    % logn(-2,2)
-    'kD',10;...                     % logn(1,2)
-    'alpha',1e-6;...                   % n(0,2)
-    'S0',1;...                      % NA (initial input concentration)
-    'S1',5};                        % NA (final input concentration)
-
-ModelGen.inputExpressions = {'Iu','S0+S1*(t>0)'};
-
-ModelGen = ModelGen.addReaction(struct(...
-    'propensity',{'kon0*((1-alpha)+(alpha)*Iu/(kD+Iu))*(1-gON)'},...
-    'stoichiometry',{{'gON',1}}));
-
-ModelGen = ModelGen.addReaction(struct(...
-    'propensity',{'koff0*((alpha)+(1-alpha)*(kD+Iu)/Iu)*gON'},...
-    'stoichiometry',{{'gON',-1}}));
-
-ModelGen = ModelGen.addReaction(struct(...
-    'propensity',{'kr*gON'},...
-    'stoichiometry',{{'mRNA',1}}));
-
-ModelGen = ModelGen.addReaction(struct(...
-    'propensity',{'g*mRNA'},...
-    'stoichiometry',{{'mRNA',-1}}));
-
-ModelGen.tSpan = linspace(0,300,31);
-
-ModelGen = ModelGen.solve;
-
-ModelGen.plotFSP
-
-%% Parameters for key points.
-kr = 100;
-gr = 1;
-KD = 10;
-kon0a = 2.5;
-koff0a = 10;
-S0 = KD/24;
-S1 = 23*KD/24;
-
-%                                     PRIOR
-ModelGen.parameters = {'kon0',kon0;...  % logn(-1,2)
-    'koff0',koff0;...                   % logn(0,2)
-    'kr',kr;...                     % logn(1,2)
-    'g',gr;...                    % logn(-2,2)
-    'kD',KD;...                     % logn(1,2)
-    'alpha',-6;...                   % n(0,2)
-    'S0',S0;...                      % NA (initial input concentration)
-    'S1',S1};                        % NA (final input concentration)
-
-ModelGen.tSpan = linspace(0,6,61);
-
-ModelGen.fspOptions.initApproxSS = true;
-ModelGen = ModelGen.solve;
-
-ModelGen.plotFSP
-
-
-
-
-
-
-
+% Model_chg.plotFIMResults(f, 'log', Model_chg.parameters(1:5), [Model_chg.parameters{1:5,2}] ,PlotEllipses=true, Colors=struct('EllipseColors',[0.9 0.6 0.2],...
+%     'CenterSquare',[0.96,0.47,0.16]))
+% see marginal improvement in intial steady state 
 
 
 %% Functions 
 function plotHeatmap(M, rowNames, colNames, titleText)
 
     % =============================================================
-    % Signed-logarithmic heatmap
-    %
-    % ORIGINAL MATRIX M IS NEVER MODIFIED.
+    % SIGNED LOG HEATMAP
     %
     % Negative -> blue
     % Zero     -> white
     % Positive -> red
     %
-    % Powers of 10 are equally spaced in colour space.
+    % Uses:
+    %
+    %   c = sign(M) * log10(1 + abs(M)/scale) / log10(1 + max/scale)
+    %
+    % This gives:
+    %
+    %   M = 0       -> exactly white
+    %   small M     -> very close to white
+    %   large M     -> increasingly saturated
+    %
+    % The original matrix M is NEVER modified.
     % =============================================================
+
+    % -------------------------------------------------------------
+    % Check inputs
+    % -------------------------------------------------------------
 
     if size(M,1) ~= numel(rowNames)
         error('Number of row names must equal number of rows.');
@@ -2114,7 +2426,7 @@ function plotHeatmap(M, rowNames, colNames, titleText)
     red   = [0.80 0.10 0.10];
 
     % -------------------------------------------------------------
-    % Get largest magnitude
+    % Maximum magnitude
     % -------------------------------------------------------------
 
     maxValue = max(abs(M(:)));
@@ -2124,58 +2436,41 @@ function plotHeatmap(M, rowNames, colNames, titleText)
     end
 
     % -------------------------------------------------------------
-    % Determine decade range
+    % SCALE controls how strongly small values are compressed
     %
-    % Example:
+    % Larger scale:
+    %   more values remain close to white
     %
-    % maxValue = 4e15
+    % Smaller scale:
+    %   more sensitive to small values
     %
-    % gives approximately:
+    % For your matrix, maxValue ~= 0.273.
     %
-    % 1e12  1e13  1e14  1e15  1e16
+    % Using scale = maxValue means:
     %
+    %   0.2727 -> full colour
+    %   0.01   -> light colour
+    %   0.001  -> very close to white
+    %   0.0002 -> essentially white
     % -------------------------------------------------------------
 
-    maxExponent = ceil(log10(maxValue));
-
-    nDecades = 4;
-
-    minExponent = maxExponent - nDecades;
+    scale = maxValue;
 
     % -------------------------------------------------------------
-    % Convert M -> COLOR COORDINATE
-    %
-    % M itself is NOT changed.
-    %
-    % Coordinate:
-    %
-    % negative values : [-1,0]
-    % zero            : 0
-    % positive values : [0,1]
-    %
-    % The magnitude is logarithmically positioned.
+    % Convert M -> signed colour coordinate [-1,+1]
     % -------------------------------------------------------------
 
-    C = zeros(size(M));
+    magnitude = abs(M);
 
-    idx = M ~= 0;
+    C = sign(M) .* ...
+        (log10(1 + magnitude ./ scale) ./ ...
+         log10(1 + maxValue ./ scale));
 
-    if any(idx(:))
-
-        magnitude = abs(M(idx));
-
-        t = (log10(magnitude) - minExponent) / ...
-            (maxExponent - minExponent);
-
-        % Clamp
-        t = max(0, min(1, t));
-
-        C(idx) = sign(M(idx)) .* t;
-
-    end
+    % Force exact zeros to exactly zero
+    C(M == 0) = 0;
 
     % -------------------------------------------------------------
-    % Convert colour coordinate to RGB
+    % Convert colour coordinate -> RGB
     % -------------------------------------------------------------
 
     RGB = zeros([size(M), 3]);
@@ -2188,7 +2483,6 @@ function plotHeatmap(M, rowNames, colNames, titleText)
 
             if c < 0
 
-                % Blue -> white
                 q = abs(c);
 
                 RGB(i,j,:) = ...
@@ -2196,7 +2490,6 @@ function plotHeatmap(M, rowNames, colNames, titleText)
 
             elseif c > 0
 
-                % White -> red
                 q = c;
 
                 RGB(i,j,:) = ...
@@ -2204,7 +2497,6 @@ function plotHeatmap(M, rowNames, colNames, titleText)
 
             else
 
-                % EXACTLY ZERO
                 RGB(i,j,:) = white;
 
             end
@@ -2223,21 +2515,12 @@ function plotHeatmap(M, rowNames, colNames, titleText)
 
     axis image;
 
-    % -------------------------------------------------------------
-    % Create a custom colourbar
-    %
-    % We make a separate invisible image whose colour coordinate
-    % runs from -1 to +1.
-    % -------------------------------------------------------------
-
     hold on;
 
-    % Dummy invisible image used only for the colourbar
-    dummy = imagesc([-1 1; -1 1]);
+    % -------------------------------------------------------------
+    % Colormap
+    % -------------------------------------------------------------
 
-    dummy.Visible = 'off';
-
-    % Use the same blue-white-red colormap
     n = 256;
 
     nBlue = 128;
@@ -2258,49 +2541,57 @@ function plotHeatmap(M, rowNames, colNames, titleText)
     colormap(ax, [blueMap; redMap]);
 
     % -------------------------------------------------------------
-    % Colorbar
+    % Dummy image for colourbar
     % -------------------------------------------------------------
 
-    cb = colorbar;
+    dummy = imagesc([-1 1; -1 1]);
+    dummy.Visible = 'off';
 
     clim([-1 1]);
 
     % -------------------------------------------------------------
-    % Construct tick positions DIRECTLY.
-    %
-    % This is the important part:
-    %
-    % -1, -0.75, -0.5, -0.25, 0, ...
-    %
-    % are strictly increasing.
+    % Colourbar
     % -------------------------------------------------------------
+
+    cb = colorbar;
+
+    % -------------------------------------------------------------
+    % Choose physically meaningful tick values
+    %
+    % Include powers of ten spanning the data range.
+    % -------------------------------------------------------------
+
+    minExponent = floor(log10(min(abs(M(M ~= 0)))));
+
+    maxExponent = ceil(log10(maxValue));
 
     exponents = minExponent:maxExponent;
 
-    % Positions corresponding to powers of ten
-    %
-    % minExponent -> 0
-    % maxExponent -> 1
+    tickValues = 10.^exponents;
 
-    decadePosition = ...
-        (exponents - minExponent) ./ ...
-        (maxExponent - minExponent);
+    % Keep only useful values
+    tickValues = tickValues(tickValues <= maxValue);
+
+    % Always include maximum
+    tickValues = unique([tickValues maxValue]);
+
+    % -------------------------------------------------------------
+    % Convert physical value -> colour coordinate
+    % -------------------------------------------------------------
+
+    positivePositions = ...
+        log10(1 + tickValues ./ scale) ./ ...
+        log10(1 + maxValue ./ scale);
 
     % Negative side
-    negativePositions = -fliplr(decadePosition);
+    negativePositions = -fliplr(positivePositions);
 
-    % Positive side
-    positivePositions = decadePosition;
-
-    % Combine in increasing order
+    % All positions
     tickPositions = [
         negativePositions ...
         0 ...
         positivePositions
     ];
-
-    % Remove duplicate zero if it occurs
-    tickPositions = unique(tickPositions, 'sorted');
 
     % -------------------------------------------------------------
     % Labels
@@ -2312,22 +2603,38 @@ function plotHeatmap(M, rowNames, colNames, titleText)
 
         p = tickPositions(k);
 
-        if p == 0
+        if abs(p) < eps
 
             tickLabels{k} = '0';
 
         else
 
-            % Recover exponent from position
-            e = minExponent + ...
-                abs(p) * (maxExponent - minExponent);
+            % Find corresponding physical magnitude
+            ap = abs(p);
 
-            e = round(e);
+            value = scale * ...
+                (10.^(ap * log10(1 + maxValue/scale)) - 1);
 
-            if p < 0
-                tickLabels{k} = sprintf('$-10^{%d}$', e);
+            exponent = log10(value);
+
+            if abs(exponent - round(exponent)) < 1e-8
+
+                exponent = round(exponent);
+
+                if p < 0
+                    tickLabels{k} = sprintf('$-10^{%d}$', exponent);
+                else
+                    tickLabels{k} = sprintf('$10^{%d}$', exponent);
+                end
+
             else
-                tickLabels{k} = sprintf('$10^{%d}$', e);
+
+                if p < 0
+                    tickLabels{k} = sprintf('$-%.2g$', value);
+                else
+                    tickLabels{k} = sprintf('$%.2g$', value);
+                end
+
             end
 
         end
@@ -2354,29 +2661,28 @@ function plotHeatmap(M, rowNames, colNames, titleText)
     ax.LineWidth = 0.5;
     ax.TickDir = 'out';
     ax.Box = 'on';
-    
-    hold on
-    
-    % Vertical cell boundaries
+
+    % -------------------------------------------------------------
+    % Cell boundaries
+    % -------------------------------------------------------------
+
     for x = 0.5:1:size(M,2)+0.5
-        plot([x x], [0.5 size(M,1)+0.5], ...
-            'Color', [0.5 0.5 0.5], ...
-            'LineWidth', 0.5);
+
+        plot([x x], ...
+             [0.5 size(M,1)+0.5], ...
+             'Color', [0.5 0.5 0.5], ...
+             'LineWidth', 0.5);
+
     end
-    
-    % Horizontal cell boundaries
+
     for y = 0.5:1:size(M,1)+0.5
-        plot([0.5 size(M,2)+0.5], [y y], ...
-            'Color', [0.5 0.5 0.5], ...
-            'LineWidth', 0.5);
+
+        plot([0.5 size(M,2)+0.5], ...
+             [y y], ...
+             'Color', [0.5 0.5 0.5], ...
+             'LineWidth', 0.5);
+
     end
-    
-    hold off
-
-    xlabel('Parameter');
-    ylabel('Parameter');
-
-    axis square;
 
     % -------------------------------------------------------------
     % +/- symbols
@@ -2387,13 +2693,17 @@ function plotHeatmap(M, rowNames, colNames, titleText)
         for j = 1:size(M,2)
 
             if M(i,j) > 0
+
                 symbol = '+';
 
             elseif M(i,j) < 0
+
                 symbol = '−';
 
             else
+
                 symbol = '0';
+
             end
 
             text(j, i, symbol, ...
@@ -2406,6 +2716,15 @@ function plotHeatmap(M, rowNames, colNames, titleText)
         end
 
     end
+
+    % -------------------------------------------------------------
+    % Labels
+    % -------------------------------------------------------------
+
+    xlabel('Parameter');
+    ylabel('Parameter');
+
+    axis square;
 
     % -------------------------------------------------------------
     % Title
