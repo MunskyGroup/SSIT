@@ -1419,20 +1419,233 @@ ax.XColor = 'k';
 ax.YColor = 'k';
 ax.TickLength = [0.015 0.015];
 
+%% Burst Frequency Model
+Model = SSIT('Empty');
+
+% compute kon0, s0, s1, and 
+
+Model.species = {'gON','mRNA'};
+
+Model.initialCondition = [0;0];
+
+%                                     PRIOR
+Model.parameters = {'kon0',0.01;...  % logn(-1,2)
+    'koff0',0.1;...                   % logn(0,2)
+    'kr',10;...                     % logn(1,2)
+    'g',0.01;...                    % logn(-2,2)
+    'kD',10;...                     % logn(1,2)
+    'S0',1;...                      % NA (initial input concentration)
+    'S1',5};                        % NA (final input concentration)
+
+Model.inputExpressions = {'Iu','S0+(S1-S0)*(t>0)'};
+
+Model = Model.addReaction(struct(...
+    'propensity',{'kon0*(Iu/(kD+Iu))*(1-gON)'},...
+    'stoichiometry',{{'gON',1}}));
+
+Model = Model.addReaction(struct(...
+    'propensity',{'koff0*gON'},...
+    'stoichiometry',{{'gON',-1}}));
+
+Model = Model.addReaction(struct(...
+    'propensity',{'kr*gON'},...
+    'stoichiometry',{{'mRNA',1}}));
+
+Model = Model.addReaction(struct(...
+    'propensity',{'g*mRNA'},...
+    'stoichiometry',{{'mRNA',-1}}));
+
+Model.fspOptions.initApproxSS = true;
+Model.tSpan = linspace(0,300,31);
+
+% Model = Model.solve;
+
+% Model.plotFSP
+
+
+
+%% Verification of FIM using CRLB (spread of MLE)
+nCellsInExperiment = 0*Model.tSpan;
+nCellsInExperiment([1,11,31]) = 200;
+nMLE = 200;
+Model.fittingOptions.modelVarsToFit = [1:2];
+if false
+    % TODO: There is a bias, idk from where, might be the size
+    MLE = Model.estimateMLEspread(nCells=nCellsInExperiment,observableSpecies={'mRNA'},nMLE=nMLE,simsSaveFile='BurstFIMSims.csv',freePars=[1:2],restart=true);
+    MLE = Model.estimateMLEspread(nCells=nCellsInExperiment,observableSpecies={'mRNA'},nMLE=nMLE,simsSaveFile='BurstFIMSims.csv',freePars=[1:2],startPars=exp(MLE.mhSamples),restart=false);
+    FIMs = Model.computeFIM(scale='log',freePars=[1:2],...
+        observed={'mRNA'});
+    FIMTotal = Model.totalFim(FIMs,nCellsInExperiment);
+    Model.plotMHResults(MLE,FIM=FIMTotal,fimScale='log',truncateChain=false);
+end
+
 
 %% MLE FIM convergence in 2D and eigen vectors
-figure(109)
+f1 = figure(109); % fim ellipse
+clf
+f2 = figure(150); % default fim analsysis
 clf
 
-fim = Model.computeFIM(freePars=(1:2),scale='log');
+% Model_chg.parameters{2,2} = star_koff;
+% Model_chg.parameters{1,2} = star_kon;
+% Model_chg.parameters{6,2} = star_koff;
+% Model_chg.parameters{5,2} = final_kon;
+% Model_chg.tSpan = linspace(0,10,31);
+% Model_chg.fittingOptions.modelVarsToFit = 'all';
+% nCellsInExperiment = 0*Model_chg.tSpan;
+% nCellsInExperiment([1,11,31]) = 200;
+FIMs = Model.computeFIM(scale='log',freePars=[1:2],...
+    observed={'mRNA'});
+FIMTotal = Model.totalFim(FIMs,nCellsInExperiment);
 
-%% box heat map of sigma and lambda
-figure(110)
+FIM = FIMTotal{1};
+
+Model.plotFIMResults(FIM^(-1)/log(10)^2, 'log',...
+    Model.parameters(1:2,1),...
+    [Model.parameters{1:2,2}],...
+    PlotEllipses=true, ...
+    EllipseFigure=f1,...
+    Colors = struct('EllipseColors',[0, 0, 0],'CenterSquare',[0,0,0]), ...
+    EllipsePairs=[1,2], ...
+    FigureHandle=f2,...
+    LogThreshold=-4,...
+    HeatMapType='invfim',...
+    MatrixType='invfim');
+
+hold on
+
+C = FIM^(-1)/log(10)^2;
+
+% Parameters corresponding to your ellipse pair
+C2 = C([1 2],[1 2]);
+
+% Eigenvectors/eigenvalues
+[V,D] = eig(C2);
+
+% Sort eigenvalues from smallest to largest
+[lambda,idx] = sort(diag(D));
+V = V(:,idx);
+
+% Center of ellipse
+x0 = log10(Model.parameters{2,2});
+y0 = log10(Model.parameters{1,2});
+
+% Scale factor for visualization
+scale = 2;
+
+% Small eigenvalue direction
+quiver(x0,y0,...
+    V(2,1)*sqrt(lambda(1))*scale,...
+    V(1,1)*sqrt(lambda(1))*scale,...
+    0,...
+    'LineWidth',2,...
+    'Color','r',...
+    'MaxHeadSize',0.5);
+
+% Large eigenvalue direction
+quiver(x0,y0,...
+    V(2,2)*sqrt(lambda(2))*scale,...
+    V(1,2)*sqrt(lambda(2))*scale,...
+    0,...
+    'LineWidth',2,...
+    'Color','b',...
+    'MaxHeadSize',0.5);
+
+
+if false
+    % TODO: add MLE to this plot 
+
+end
+
+figure(110); % heatmap of I^(-1)
+clf
+plotHeatmap(C, {'k_{on}', 'k_{off}'}, {'k_{on}', 'k_{off}'}, 'I^{-1}')
+
+
+figure(111); % heatmap of eig(I^(-1))
 clf
 
-%% eigne rotated MLE and FIM convergence
-figure(111)
-clf
+[V, D] = eig(C);
+
+% Sort eigenvalues from largest to smallest
+[lambda, idx] = sort(diag(D), 'descend');
+
+% Reorder eigenvectors to match
+V = V(:, idx);
+
+% Rebuild diagonal eigenvalue matrix
+D = diag(lambda);
+
+% Plot V*D
+plotHeatmap(V*D, ...
+    {'k_{on}', 'k_{off}'}, ...
+    {'\lambda_{1}', '\lambda_{2}'}, ...
+    'V(I^{-1}) \lambda(I^{-1})')
+
+% Make eigenvector orientation deterministic
+% Largest eigenvector should point generally in +x direction
+if V(1,1) < 0
+    V(:,1) = -V(:,1);
+end
+
+% Make second eigenvector form a right-handed coordinate system
+if det(V) < 0
+    V(:,2) = -V(:,2);
+end
+
+% Center
+x0 = log10(Model.parameters{2,2});
+y0 = log10(Model.parameters{1,2});
+mu = [x0; y0];
+
+% Chi-square scaling
+chi2val = icdf('chi2',0.95,2);
+
+% Principal-axis lengths
+a = sqrt(chi2val * lambda(1));   % LARGE variance -> x
+b = sqrt(chi2val * lambda(2));   % SMALL variance  -> y
+
+% Parameterize ellipse DIRECTLY in eigenvector coordinates
+t = linspace(0,2*pi,300);
+
+xEllipse = a*cos(t);
+yEllipse = b*sin(t);
+
+% Plot in eigenvector coordinates
+figure(112);
+clf;
+hold on;
+
+plot(xEllipse,yEllipse,...
+    'k-',...
+    'LineWidth',2);
+
+plot(0,0,...
+    'ks',...
+    'MarkerSize',8,...
+    'MarkerFaceColor','w',...
+    'LineWidth',2);
+
+% Principal axes
+quiver(0,0,...
+    a,0,...
+    0,...
+    'r',...
+    'LineWidth',2,...
+    'MaxHeadSize',0.5);
+
+quiver(0,0,...
+    0,b,...
+    0,...
+    'b',...
+    'LineWidth',2,...
+    'MaxHeadSize',0.5);
+
+xlabel('Largest variance eigenvector');
+ylabel('Smallest variance eigenvector');
+
+axis equal;
+grid on;
 
 
 %% Export Figures for Paper
@@ -1450,7 +1663,7 @@ fullHeight = 7.9;
 plotWidth = fullWidth / 3;
 plotHeight = fullHeight / 3;
 
-for figNum = 101:108
+for figNum = 101:112
 
     fig = figure(figNum);
 
@@ -1526,201 +1739,159 @@ disp('Figures 101-108 exported successfully.');
 %% Figure 3
 %% Figure 3
 %% Figure 3
-%% Burst Frequency Model
-Model = SSIT('Empty');
+%% MLE FIM convergence in 2D and eigen vectors
+f1 = figure(201); % fim ellipse
+clf
+f2 = figure(250); % default fim analsysis
+clf
 
-% compute kon0, s0, s1, and 
+Model.fittingOptions.modelVarsToFit = [1:4];
+FIMs = Model.computeFIM(scale='log',freePars=[1:4],...
+    observed={'mRNA'});
+FIMTotal = Model.totalFim(FIMs,nCellsInExperiment);
 
-Model.species = {'gON','mRNA'};
+FIM = FIMTotal{1};
 
-Model.initialCondition = [0;0];
+Model.plotFIMResults(FIM^(-1)/log(10)^2, 'log',...
+    Model.parameters(1:4,1),...
+    [Model.parameters{1:4,2}],...
+    PlotEllipses=true, ...
+    EllipseFigure=f1,...
+    Colors = struct('EllipseColors',[0, 0, 0],'CenterSquare',[0,0,0]), ...
+    EllipsePairs=[1,2], ...
+    FigureHandle=f2,...
+    LogThreshold=-4,...
+    HeatMapType='invfim',...
+    MatrixType='invfim');
 
-%                                     PRIOR
-Model.parameters = {'kon0',0.01;...  % logn(-1,2)
-    'koff0',0.1;...                   % logn(0,2)
-    'kr',10;...                     % logn(1,2)
-    'g',0.01;...                    % logn(-2,2)
-    'kD',10;...                     % logn(1,2)
-    'S0',1;...                      % NA (initial input concentration)
-    'S1',5};                        % NA (final input concentration)
+hold on
 
-Model.inputExpressions = {'Iu','S0+(S1-S0)*(t>0)'};
+C = FIM^(-1)/log(10)^2;
 
-Model = Model.addReaction(struct(...
-    'propensity',{'kon0*(Iu/(kD+Iu))*(1-gON)'},...
-    'stoichiometry',{{'gON',1}}));
+% Parameters corresponding to your ellipse pair
+C2 = C([1 2],[1 2]);
 
-Model = Model.addReaction(struct(...
-    'propensity',{'koff0*gON'},...
-    'stoichiometry',{{'gON',-1}}));
+% Eigenvectors/eigenvalues
+[V,D] = eig(C2);
 
-Model = Model.addReaction(struct(...
-    'propensity',{'kr*gON'},...
-    'stoichiometry',{{'mRNA',1}}));
+% Sort eigenvalues from smallest to largest
+[lambda,idx] = sort(diag(D));
+V = V(:,idx);
 
-Model = Model.addReaction(struct(...
-    'propensity',{'g*mRNA'},...
-    'stoichiometry',{{'mRNA',-1}}));
+% Center of ellipse
+x0 = log10(Model.parameters{2,2});
+y0 = log10(Model.parameters{1,2});
 
-Model.fspOptions.initApproxSS = true;
-Model.tSpan = linspace(0,300,31);
+% Scale factor for visualization
+scale = 2;
 
-% Model = Model.solve;
+% Small eigenvalue direction
+quiver(x0,y0,...
+    V(2,1)*sqrt(lambda(1))*scale,...
+    V(1,1)*sqrt(lambda(1))*scale,...
+    0,...
+    'LineWidth',2,...
+    'Color','r',...
+    'MaxHeadSize',0.5);
 
-% Model.plotFSP
+% Large eigenvalue direction
+quiver(x0,y0,...
+    V(2,2)*sqrt(lambda(2))*scale,...
+    V(1,2)*sqrt(lambda(2))*scale,...
+    0,...
+    'LineWidth',2,...
+    'Color','b',...
+    'MaxHeadSize',0.5);
 
-
-
-%% Verification of FIM using CRLB (spread of MLE)
-% nCellsInExperiment = 0*Model.tSpan;
-% nCellsInExperiment([1,11,31]) = 200;
-% nMLE = 200;
-% Model.fittingOptions.modelVarsToFit = [1:5];
-% MLE = Model.estimateMLEspread(nCells=nCellsInExperiment,observableSpecies={'mRNA'},nMLE=nMLE,simsSaveFile='BurstFIMSims.csv',freePars=[1:5],restart=true);
-% MLE = Model.estimateMLEspread(nCells=nCellsInExperiment,observableSpecies={'mRNA'},nMLE=nMLE,simsSaveFile='BurstFIMSims.csv',freePars=[1:5],startPars=exp(MLE.mhSamples),restart=false);
-% 
-% FIMs = Model.computeFIM(scale='log',freePars=[1:5],...
-%     observed={'mRNA'});
-% FIMTotal = Model.totalFim(FIMs,nCellsInExperiment);
-% 
-% Model.plotMHResults(MLE,FIM=FIMTotal,fimScale='log',truncateChain=false);
+figure(202); % heatmap of I^(-1)
+clf
+plotHeatmap(C, {'k_{on}', 'k_{off}', 'k_r', '\gamma'}, {'k_{on}', 'k_{off}', 'k_r', '\gamma'}, 'I^{-1}')
 
 
+figure(203); % heatmap of eig(I^(-1))
+clf
 
+[V, D] = eig(C);
 
-%% 1D plots of likelihood function - Kr
-% nCellsInExperiment = zeros(size(Model_chg.tSpan));
-% nCellsInExperiment([2,13,31]) = 200;
-% Model_chg.parameters{5,2} = star_kon;
-% Model_chg.parameters{6,2} = final_koff;
-% Model_chg.ssaOptions.Nexp = 1;
-% Model_chg = Model_chg.solve;
-% Model_chg.sampleDataFromFSP(saveFile='likelihoodData.csv',nCells=nCellsInExperiment,species2save={'mRNA'});
-% Model_chg = Model_chg.loadData('likelihoodData.csv', {'mRNA', 'exp1_mRNA'});
-% 
-% pars = cell2mat(Model_chg.parameters(:,2));
-% inter_idx = 35;
-% par_idx = 5;
-% 
-% varyingPar = logspace(-2,2);
-% likelihoods = zeros(size(varyingPar));
-% 
-% for i = 1:length(varyingPar)
-%     pars(par_idx) = varyingPar(i); i
-%     computeGrad = false;
-%     if i == inter_idx
-%         computeGrad = true;
-%     end
-%     [logL, grad, ~] = Model_chg.computeLikelihood(pars, [], computeGrad);
-%     likelihoods(i) = logL;
-%     if i == inter_idx
-%         gradients = grad;
-%     end
-% end
-% 
-% fims = Model_chg.computeFIM(scale='log',freePars=[1:6],...
-%     observed={'mRNA'});
-% 
-% nCellsInExperiment = Model.dataSet.nCells;
-% fim = Model_chg.totalFim(fims,nCellsInExperiment);
-% 
-% %%
-% figure(6)
-% semilogx(varyingPar, likelihoods, 'b-'); hold on
-% grid on
-% 
-% % Save original axis limits
-% xlim0 = xlim;
-% ylim0 = ylim;
-% 
-% % Point and slope
-% x1 = varyingPar(inter_idx);
-% y1 = likelihoods(inter_idx);
-% m = gradients(par_idx)*x1*log(10);
-% 
-% % ---------------- Tangent line ----------------
-% lineDecade = 0.5;
-% x = logspace(log10(x1)-lineDecade, log10(x1)+lineDecade, 50);
-% y = y1 + m*(log10(x)-log10(x1));
-% semilogx(x, y, 'Color', [0 0.5 0],  'LineWidth', 2)
-% 
-% % Point
-% semilogx(x1, y1, 'ro', 'MarkerFaceColor', 'r')
-% 
-% % % ---------------- Small slope triangle ----------------
-% % triDecade = 0.08;
-% % 
-% % x2 = x1*10^triDecade;
-% % y2 = y1;
-% % y3 = y1 + m*triDecade;
-% % 
-% % % Run
-% % semilogx([x1 x2], [y1 y2], 'k-', 'LineWidth', 1.5)
-% % 
-% % % Rise
-% % semilogx([x2 x2], [y2 y3], 'k-', 'LineWidth', 1.5)
-% 
-% % % ---------------- Restore original axes ----------------
-% % xlim(xlim0)
-% % ylim(ylim0)
-% 
-% % Peak parameter and likelihood
-% pars = cell2mat(Model_chg.parameters(:,2));
-% [~, idx] = min(abs(varyingPar - pars(par_idx)));
-% x1 = varyingPar(idx);
-% y1 = likelihoods(idx);
-% 
-% % Hessian / curvature
-% d2 = -fim{1}(par_idx,par_idx);
-% 
-% % Work entirely in log10(parameter) space
-% u1 = log10(x1);
-% 
-% % Small region around peak
-% width = 0.25;
-% u = linspace(u1-width, u1+width, 100);
-% x_quad = 10.^u;
-% 
-% % Convert curvature from linear parameter space to log space
-% d2_log = d2 * (x1)^2;
-% 
-% % Taylor expansion around peak (first derivative ~ 0)
-% y_quad = y1 + 0.5*d2_log*(u-u1).^2;
-% 
-% % Plot quadratic
-% semilogx(x_quad, y_quad, ...
-%     'Color',[1 0.5 0], ...
-%     'LineWidth',2);
-% 
-% xlabel('varyingPar')
-% ylabel('Likelihood')
-% title(sprintf('Slope = %.3g', m))
-% legend('Likelihood', 'Tangent', 'Point', 'Location', 'best')
-% 
-% 
-% return
-% 
-% %% 1D plots of likelihood function - gamma
-% pars = cell2mat(Model.parameters(:,2));
-% varyingPar = logspace(-4,0);
-% likelihoods = zeros(size(varyingPar));
-% gradients = cell(size(varyingPar));
-% 
-% for i = 1:length(varyingPar)
-%     pars(4) = varyingPar(i);
-%     computeGrad = false;
-%     if i == inter_idx
-%         computeGrad = true;
-%     end
-%     [logL, grad, ~] = Model.computeLikelihood(pars, [], true);
-%     likelihoods(i) = logL;
-%     if i == inter_idx
-%         gradients = grad;
-%     end
-% end
-% 
-% figure(4)
-% semilogx(varyingPar, likelihoods)
+% Sort eigenvalues from largest to smallest
+[lambda, idx] = sort(diag(D), 'descend');
+
+% Reorder eigenvectors to match
+V = V(:, idx);
+
+% Rebuild diagonal eigenvalue matrix
+D = diag(lambda);
+
+% Plot V*D
+plotHeatmap(V*D, ...
+    {'k_{on}', 'k_{off}', 'k_r', '\gamma'}, ...
+    {'\lambda_{1}', '\lambda_{2}', '\lambda_{3}', '\lambda_{4}'}, ...
+    'V(I^{-1}) \lambda(I^{-1})')
+
+% Make eigenvector orientation deterministic
+% Largest eigenvector should point generally in +x direction
+if V(1,1) < 0
+    V(:,1) = -V(:,1);
+end
+
+% Make second eigenvector form a right-handed coordinate system
+if det(V) < 0
+    V(:,2) = -V(:,2);
+end
+
+% Center
+x0 = log10(Model.parameters{2,2});
+y0 = log10(Model.parameters{1,2});
+mu = [x0; y0];
+
+% Chi-square scaling
+chi2val = icdf('chi2',0.95,2);
+
+% Principal-axis lengths
+a = sqrt(chi2val * lambda(1));   % LARGE variance -> x
+b = sqrt(chi2val * lambda(2));   % SMALL variance  -> y
+
+% Parameterize ellipse DIRECTLY in eigenvector coordinates
+t = linspace(0,2*pi,300);
+
+xEllipse = a*cos(t);
+yEllipse = b*sin(t);
+
+% Plot in eigenvector coordinates
+figure(204);
+clf;
+hold on;
+
+plot(xEllipse,yEllipse,...
+    'k-',...
+    'LineWidth',2);
+
+plot(0,0,...
+    'ks',...
+    'MarkerSize',8,...
+    'MarkerFaceColor','w',...
+    'LineWidth',2);
+
+% Principal axes
+quiver(0,0,...
+    a,0,...
+    0,...
+    'r',...
+    'LineWidth',2,...
+    'MaxHeadSize',0.5);
+
+quiver(0,0,...
+    0,b,...
+    0,...
+    'b',...
+    'LineWidth',2,...
+    'MaxHeadSize',0.5);
+
+xlabel('Largest variance eigenvector');
+ylabel('Smallest variance eigenvector');
+
+axis equal;
+grid on;
 
 
 %% FIM Calculations
@@ -2054,6 +2225,149 @@ ModelGen.plotFSP
 
 
 
+
+
+
+
+
+
+
+%% Extra Stuff
+%% Extra Stuff
+%% Extra Stuff
+%% 1D plots of likelihood function - Kr
+% nCellsInExperiment = zeros(size(Model_chg.tSpan));
+% nCellsInExperiment([2,13,31]) = 200;
+% Model_chg.parameters{5,2} = star_kon;
+% Model_chg.parameters{6,2} = final_koff;
+% Model_chg.ssaOptions.Nexp = 1;
+% Model_chg = Model_chg.solve;
+% Model_chg.sampleDataFromFSP(saveFile='likelihoodData.csv',nCells=nCellsInExperiment,species2save={'mRNA'});
+% Model_chg = Model_chg.loadData('likelihoodData.csv', {'mRNA', 'exp1_mRNA'});
+% 
+% pars = cell2mat(Model_chg.parameters(:,2));
+% inter_idx = 35;
+% par_idx = 5;
+% 
+% varyingPar = logspace(-2,2);
+% likelihoods = zeros(size(varyingPar));
+% 
+% for i = 1:length(varyingPar)
+%     pars(par_idx) = varyingPar(i); i
+%     computeGrad = false;
+%     if i == inter_idx
+%         computeGrad = true;
+%     end
+%     [logL, grad, ~] = Model_chg.computeLikelihood(pars, [], computeGrad);
+%     likelihoods(i) = logL;
+%     if i == inter_idx
+%         gradients = grad;
+%     end
+% end
+% 
+% fims = Model_chg.computeFIM(scale='log',freePars=[1:6],...
+%     observed={'mRNA'});
+% 
+% nCellsInExperiment = Model.dataSet.nCells;
+% fim = Model_chg.totalFim(fims,nCellsInExperiment);
+% 
+% %%
+% figure(6)
+% semilogx(varyingPar, likelihoods, 'b-'); hold on
+% grid on
+% 
+% % Save original axis limits
+% xlim0 = xlim;
+% ylim0 = ylim;
+% 
+% % Point and slope
+% x1 = varyingPar(inter_idx);
+% y1 = likelihoods(inter_idx);
+% m = gradients(par_idx)*x1*log(10);
+% 
+% % ---------------- Tangent line ----------------
+% lineDecade = 0.5;
+% x = logspace(log10(x1)-lineDecade, log10(x1)+lineDecade, 50);
+% y = y1 + m*(log10(x)-log10(x1));
+% semilogx(x, y, 'Color', [0 0.5 0],  'LineWidth', 2)
+% 
+% % Point
+% semilogx(x1, y1, 'ro', 'MarkerFaceColor', 'r')
+% 
+% % % ---------------- Small slope triangle ----------------
+% % triDecade = 0.08;
+% % 
+% % x2 = x1*10^triDecade;
+% % y2 = y1;
+% % y3 = y1 + m*triDecade;
+% % 
+% % % Run
+% % semilogx([x1 x2], [y1 y2], 'k-', 'LineWidth', 1.5)
+% % 
+% % % Rise
+% % semilogx([x2 x2], [y2 y3], 'k-', 'LineWidth', 1.5)
+% 
+% % % ---------------- Restore original axes ----------------
+% % xlim(xlim0)
+% % ylim(ylim0)
+% 
+% % Peak parameter and likelihood
+% pars = cell2mat(Model_chg.parameters(:,2));
+% [~, idx] = min(abs(varyingPar - pars(par_idx)));
+% x1 = varyingPar(idx);
+% y1 = likelihoods(idx);
+% 
+% % Hessian / curvature
+% d2 = -fim{1}(par_idx,par_idx);
+% 
+% % Work entirely in log10(parameter) space
+% u1 = log10(x1);
+% 
+% % Small region around peak
+% width = 0.25;
+% u = linspace(u1-width, u1+width, 100);
+% x_quad = 10.^u;
+% 
+% % Convert curvature from linear parameter space to log space
+% d2_log = d2 * (x1)^2;
+% 
+% % Taylor expansion around peak (first derivative ~ 0)
+% y_quad = y1 + 0.5*d2_log*(u-u1).^2;
+% 
+% % Plot quadratic
+% semilogx(x_quad, y_quad, ...
+%     'Color',[1 0.5 0], ...
+%     'LineWidth',2);
+% 
+% xlabel('varyingPar')
+% ylabel('Likelihood')
+% title(sprintf('Slope = %.3g', m))
+% legend('Likelihood', 'Tangent', 'Point', 'Location', 'best')
+% 
+% 
+% return
+% 
+% %% 1D plots of likelihood function - gamma
+% pars = cell2mat(Model.parameters(:,2));
+% varyingPar = logspace(-4,0);
+% likelihoods = zeros(size(varyingPar));
+% gradients = cell(size(varyingPar));
+% 
+% for i = 1:length(varyingPar)
+%     pars(4) = varyingPar(i);
+%     computeGrad = false;
+%     if i == inter_idx
+%         computeGrad = true;
+%     end
+%     [logL, grad, ~] = Model.computeLikelihood(pars, [], true);
+%     likelihoods(i) = logL;
+%     if i == inter_idx
+%         gradients = grad;
+%     end
+% end
+% 
+% figure(4)
+% semilogx(varyingPar, likelihoods)
 
 
 
