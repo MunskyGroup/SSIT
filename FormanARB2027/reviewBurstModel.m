@@ -1899,6 +1899,7 @@ end
 
 %% Draw experiments
 Ncells = 600;
+tt = linspace(min(Model_chg.tSpan), max(Model_chg.tSpan), 100);
 
 % exp 1 - steady states
 exp1NCells = zeros(size(FIM));
@@ -1906,15 +1907,24 @@ exp1NCells(1,5, [1,31]) = Ncells/2;
 
 figure(205)
 hold on
-y = (Model_chg.tSpan > 1)*Sarray(5) + ...
-    (Model_chg.tSpan <= 1)*Sarray(1);
-plot(Model_chg.tSpan, y)
+
+f = @(t)(t > 1)*Sarray(5) + (t <= 1)*Sarray(1);
+
 xx = [Model_chg.tSpan(1), Model_chg.tSpan(31)];
-yy = [y(1), y(31)];
-plot(xx, yy, 'x', ...
-    'MarkerSize', 20, ...
+yy = [f(Model_chg.tSpan(1)), f(Model_chg.tSpan(31))];
+
+plot(tt, f(tt), 'k-', 'LineWidth', 3)
+
+% Alpha proportional to number of cells
+alpha1 = (Ncells) / Ncells;
+alpha = min(alpha1 + 0.2, 1);
+
+scatter(xx, yy, 1000, 'r', 'x', ...
     'LineWidth', 3, ...
-    'Color', 'k');
+    'MarkerEdgeAlpha', alpha);
+
+ylim([0,35])
+
 
 % exp 2 - steady state plus one during transition
 exp2NCells = zeros(size(FIM));
@@ -1922,15 +1932,23 @@ exp2NCells(1,5, [1,6,31]) = Ncells/3;
 
 figure(206)
 hold on
-y = (Model_chg.tSpan > 1)*Sarray(5) + ...
-    (Model_chg.tSpan <= 1)*Sarray(1);
-plot(Model_chg.tSpan, y)
-xx = [Model_chg.tSpan(1),Model_chg.tSpan(6), Model_chg.tSpan(31)];
-yy = [y(1), y(6), y(31)];
-plot(xx, yy, 'x', ...
-    'MarkerSize', 40/3, ...
+
+f = @(t)(t > 1)*Sarray(5) + (t <= 1)*Sarray(1);
+
+xx = [Model_chg.tSpan(1), Model_chg.tSpan(6), Model_chg.tSpan(31)];
+yy = [f(Model_chg.tSpan(1)), f(Model_chg.tSpan(6)), f(Model_chg.tSpan(31))];
+
+plot(tt, f(tt), 'k-', 'LineWidth', 3)
+
+% Alpha proportional to number of cells
+alpha2 = (Ncells*(2/3)) / Ncells;
+alpha = min(alpha2 + 0.2, 1);
+
+scatter(xx, yy, 1000, 'r', 'x', ...
     'LineWidth', 3, ...
-    'Color', 'k');
+    'MarkerEdgeAlpha', alpha);
+
+ylim([0,35])
 
 
 % exp 3 - multiple of exp 2
@@ -1940,25 +1958,34 @@ exp3NCells(5, 3, [1,6,31]) = Ncells/6;
 
 figure(207)
 hold on
-y = (Model_chg.tSpan > 1)*Sarray(5) + ...
-    (Model_chg.tSpan <= 1)*Sarray(1);
-plot(Model_chg.tSpan, y)
-xx = [Model_chg.tSpan(1), Model_chg.tSpan(6), Model_chg.tSpan(31)];
-yy = [y(1), y(6), y(31)];
-plot(xx, yy, 'x', ...
-    'MarkerSize', 40/6, ...
-    'LineWidth', 3, ...
-    'Color', 'k');
-y = (Model_chg.tSpan > 1)*Sarray(3) + ...
-    (Model_chg.tSpan <= 1)*Sarray(5);
-plot(Model_chg.tSpan, y)
-xx = [Model_chg.tSpan(1), Model_chg.tSpan(6), Model_chg.tSpan(31)];
-yy = [y(1), y(6), y(31)];
-plot(xx, yy, 'x', ...
-    'MarkerSize', 40/6, ...
-    'LineWidth', 3, ...
-    'Color', 'k');
 
+f = @(t)(t > 1)*Sarray(5) + (t <= 1)*Sarray(1);
+
+plot(tt, f(tt), 'k-', 'LineWidth', 3)
+
+xx = [Model_chg.tSpan(1), Model_chg.tSpan(6), Model_chg.tSpan(31)];
+yy = [f(Model_chg.tSpan(1)), f(Model_chg.tSpan(6)), f(Model_chg.tSpan(31))];
+
+% Alpha for Ncells/6
+alpha3 = (Ncells/3) / Ncells;
+alpha = min(alpha3 + 0.2, 1);
+
+scatter(xx, yy, 1000, 'r', 'x', ...
+    'LineWidth', 3, ...
+    'MarkerEdgeAlpha', alpha3);
+
+f = @(t)(t > 1)*Sarray(3) + (t <= 1)*Sarray(5);
+
+plot(tt, f(tt), 'k-', 'LineWidth', 3)
+
+xx = [Model_chg.tSpan(1), Model_chg.tSpan(6), Model_chg.tSpan(31)];
+yy = [f(Model_chg.tSpan(1)), f(Model_chg.tSpan(6)), f(Model_chg.tSpan(31))];
+
+scatter(xx, yy, 1000, 'r', 'x', ...
+    'LineWidth', 3, ...
+    'MarkerEdgeAlpha', alpha);
+
+ylim([0,35])
 
 
 %% FIM for different experiment designs.
@@ -2031,34 +2058,132 @@ for i = 1:length(OptExperiment)
 end
 disp(['Determinant of FIM for optimized measurements: ',num2str(det(FIM_Opt))])
 
+%% Draw optimized experiment design
+figure(208)
+clf
+hold on
 
+J = find(OptExperiment);
+experiments = [];
+ssExperiments = [];
+
+for j = 1:length(J)
+    optimizedParams = OptExperiment(J(j));
+    paramIndices = indsFims(J(j), :);
+
+    if paramIndices(1) == paramIndices(2)
+        % steady state
+        ssExperiments = [ssExperiments; paramIndices, optimizedParams];
+    else
+        % new experiment
+        experiments = [experiments; paramIndices, optimizedParams];
+    end
+end
+experiments
+
+[uniqueExperiments, ~, ic] = unique(experiments(:, 1:2), 'rows');
+
+nUniqueExperiments = size(uniqueExperiments, 1);
+
+for i = 1:size(uniqueExperiments, 1)
+
+    % First two columns define the experiment
+    startState = uniqueExperiments(i, 1);
+    endState   = uniqueExperiments(i, 2);
+
+    % Step function
+    f = @(t) (t > 1)*Sarray(endState) + ...
+             (t <= 1)*Sarray(startState);
+
+    % Draw step function
+    plot(tt, f(tt), 'k-', 'LineWidth', 3);
+
+end
+
+ylim([0, 35])
+
+for i = 1:size(ssExperiments, 1)
+    ssConc = ssExperiments(i,1);
+
+    possibleExperiments = find(any(uniqueExperiments == ssConc, 2));
+    matches = uniqueExperiments(possibleExperiments,:) == ssConc;
+    col = zeros(size(possibleExperiments));
+    
+    col(matches(:,1)) = 1;
+    col(matches(:,2)) = 2;
+
+    if ~isempty(possibleExperiments)
+        for j = 1:length(possibleExperiments)
+
+            tIndex = 1 + (col(j) == 2)*30;
+
+            newExperiment = [uniqueExperiments(possibleExperiments(j),:), ...
+                             tIndex, ...
+                             ssExperiments(i,4)/length(possibleExperiments)];
+
+            % Look for an existing entry matching the first 3 columns
+            match = all(experiments(:,1:3) == newExperiment(1:3), 2);
+
+            if any(match)
+                % Add cells to existing entry
+                experiments(match,4) = experiments(match,4) + newExperiment(4);
+            else
+                % Append as a new entry
+                experiments = [experiments; newExperiment];
+            end
+
+        end
+    end
+end
+experiments
+
+for i = 1:size(experiments, 1)
+
+    initialConc = experiments(i,1);
+    finalConc   = experiments(i,2);
+    tIndex      = experiments(i,3);
+    nCells      = experiments(i,4);
+
+    f = @(t)(t > 1)*Sarray(finalConc) + (t <= 1)*Sarray(initialConc);
+
+    x = Model_chg.tSpan(tIndex);
+
+    alpha = min(nCells / Ncells + 0.2, 1);
+
+    scatter(x, f(x), 1000, 'r', 'x', ...
+        'LineWidth', 3, ...
+        'MarkerEdgeAlpha', alpha);
+
+end
+
+ylim([0,35])
 
 %% Plot FIM 
-figure(208);
+figure(209);
 clf;
 plotHeatmap(FIM_Exp1^(-1), {'k_{on,init}', 'k_{off,init}', 'k_r', '\gamma', 'k_{on,final}', 'k_{off,final}'}, ...
     {'k_{on,init}', 'k_{off,init}', 'k_r', '\gamma', 'k_{on,final}', 'k_{off,final}'}, ...
     'I^{-1} - Exp 1')
 
-figure(209);
+figure(210);
 plotHeatmap(FIM_Exp2^(-1), {'k_{on,init}', 'k_{off,init}', 'k_r', '\gamma', 'k_{on,final}', 'k_{off,final}'}, ...
     {'k_{on,init}', 'k_{off,init}', 'k_r', '\gamma', 'k_{on,final}', 'k_{off,final}'}, ...
     'I^{-1} - Exp 2')
 
-figure(210);
+figure(211);
 clf;
 plotHeatmap(FIM_Exp3^(-1), {'k_{on,init}', 'k_{off,init}', 'k_r', '\gamma', 'k_{on,final}', 'k_{off,final}'}, ...
     {'k_{on,init}', 'k_{off,init}', 'k_r', '\gamma', 'k_{on,final}', 'k_{off,final}'}, ...
     'I^{-1} - Exp 3')
 
-figure(211);
+figure(212);
 clf;
 plotHeatmap(FIM_Opt^(-1), {'k_{on,init}', 'k_{off,init}', 'k_r', '\gamma', 'k_{on,final}', 'k_{off,final}'}, ...
     {'k_{on,init}', 'k_{off,init}', 'k_r', '\gamma', 'k_{on,final}', 'k_{off,final}'}, ...
     'I^{-1} - Exp Opt')
 
 % Use figure 209 as the reference
-refFig = figure(209);
+refFig = figure(210);
 refAx = gca;
 refCb = colorbar(refAx);
 
@@ -2067,7 +2192,7 @@ refCLim = refAx.CLim;
 refCMap = colormap(refAx);
 
 % Apply to the other figures
-for figNum = [208 210 211]
+for figNum = [209 211 212]
 
     fig = figure(figNum);
     ax = gca;
@@ -2169,18 +2294,6 @@ for a = 1:length(vNCells)
 end
 
 %% Plot Optimality Criteria
-% figure(212);
-% plot(vNCells, DOpt);
-% set(gca, 'XScale', 'log', 'YScale', 'log');
-% 
-% figure(213);
-% plot(vNCells, EOpt);
-% set(gca, 'XScale', 'log', 'YScale', 'log');
-% 
-% figure(214);
-% plot(vNCells, DsOpt);
-% set(gca, 'XScale', 'log', 'YScale', 'log');
-
 % Cell counts
 x = vNCells(:);
 
@@ -2190,13 +2303,13 @@ names = {'DOpt', 'EOpt', 'DsOpt'};
 
 for k = 1:length(data)
 
-    figure(211+k);
+    figure(212+k);
     clf
 
     Y = data{k};
 
     % Plot all experiments
-    plot(x, Y, 'o-', 'LineWidth', 1.2);
+    plot(x, Y, '-', 'LineWidth', 2);
     hold on;
 
     % ---- Fit lines in log-log space ----
@@ -2253,11 +2366,11 @@ for k = 1:length(data)
                 'LineWidth', 2);
 
             % Annotate number of cells
-            text(xIntersect, yOpt300, ...
-                sprintf('  %.0f cells', xIntersect), ...
-                'FontSize', 10, ...
-                'FontWeight', 'bold', ...
-                'VerticalAlignment', 'bottom');
+            % text(xIntersect, yOpt300, ...
+            %     sprintf('  %.0f cells', xIntersect), ...
+            %     'FontSize', 10, ...
+            %     'FontWeight', 'bold', ...
+            %     'VerticalAlignment', 'bottom');
         end
     end
 
@@ -2274,11 +2387,97 @@ for k = 1:length(data)
 end
 
 
+%% Export Figures for Paper
+outputFolder = 'AnnualReview_Figures';
+
+if ~exist(outputFolder, 'dir')
+    mkdir(outputFolder);
+end
+
+% Overall paper canvas
+fullWidth = 6.33;
+fullHeight = 7.9;
+
+% 4 x 3 grid
+plotWidth = fullWidth / 4;
+plotHeight = fullHeight / 4;
+
+for figNum = 201:215
+
+    fig = figure(figNum);
+
+    % Remove figure-level title
+    sgtitle(fig, '');
+
+    % Find all axes
+    axesList = findall(fig, 'Type', 'Axes');
+
+    for i = 1:length(axesList)
+
+        ax = axesList(i);
+
+        % Remove title
+        ax.Title.String = '';
+        ax.Title.Visible = 'off';
+
+        % Remove axis labels
+        ax.XLabel.String = '';
+        ax.XLabel.Visible = 'off';
+
+        ax.YLabel.String = '';
+        ax.YLabel.Visible = 'off';
+
+        % Remove ticks and tick labels
+        % ax.XTick = [];
+        % ax.YTick = [];
+
+        ax.XTickLabel = [];
+        ax.YTickLabel = [];
+
+        % Remove tick marks
+        % ax.TickLength = [0 0];
+
+    end
+
+    % Remove legends
+    legends = findall(fig, 'Type', 'Legend');
+
+    if ~isempty(legends)
+        delete(legends);
+    end
+
+    % Remove colorbar labels/ticks
+    colorbars = findall(fig, 'Type', 'ColorBar');
+
+    for i = 1:length(colorbars)
+
+        cb = colorbars(i);
+
+        cb.TickLabels = [];
+        cb.Label.String = '';
+
+    end
+
+    % Set physical dimensions for 4 x 3 grid
+    fig.Units = 'inches';
+    fig.Position(3:4) = [plotWidth plotHeight];
+
+    % Export
+    fileName = sprintf('figure%d.svg', figNum);
+
+    exportgraphics(fig, ...
+        fullfile(outputFolder, fileName), ...
+        'ContentType', 'vector');
+
+end
+
+disp('Figures 101-108 exported successfully.');
 
 
 
 
 
+return
 
 %% Figure 4
 %% Figure 4
