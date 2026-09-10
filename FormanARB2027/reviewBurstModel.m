@@ -350,7 +350,7 @@ plotHeatmap( ...
 
 
 %% Setup - MLE FIM relationship - Gaussian
-rng(1);
+rng(2);
 
 % True parameters
 theta_true = [100, 50];
@@ -1187,9 +1187,6 @@ ax.TickLength = [0.015 0.015];
 
 
 %% MLE and sensitivity for multiple cell numbers
-
-rng(1);  % Reproducibility
-
 % Can contain as many cell numbers as you want
 cell_numbers = [2 4 10 50 100 200 500];
 nSets = 10000;
@@ -1331,7 +1328,6 @@ set(gca, 'YScale', 'log')
 
 
 %% MSE of MLE vs number of cells
-
 mleMSE = zeros(size(cell_numbers));
 
 for n = 1:length(cell_numbers)
@@ -2015,7 +2011,7 @@ for iS0 = 1:length(Sarray)
         end
     end
 end
-OptExperiment = Model_chg.optimizeCellCounts(allFims,600,'D-opt');
+OptExperiment = Model_chg.optimizeCellCounts(allFims,Ncells,'D-opt');
 J = find(OptExperiment);
 disp(['Optimized Experiment Design:'])
 for j = 1:length(J)
@@ -2094,104 +2090,188 @@ for figNum = [208 210 211]
 end
 
 
-%% Plots of FIM predicted uncertainties
-freePars = [1:4];
-f1 = figure(205);
-f2 = figure(206);
-f3 = figure(207);
+%% Optimality vs number of cells
+vNCells = round(logspace(1, 3, 10));
 
-% The following plots the heatmap showing the
-Model.plotFIMResults(FIM_Opt^(-1)/log(10)^2, 'log',...
-    Model.parameters(freePars,1),...
-    [Model.parameters{freePars,2}],...
-    PlotEllipses=true,EllipseFigure=f1,...
-    FigureHandle=f3,...
-    LogThreshold=-4,...
-    HeatMapType='invfim',...
-    MatrixType='invfim');
+nExperiments = 4;
+experimentFIMs = cell(length(vNCells), nExperiments);
+EOpt = zeros(length(vNCells), nExperiments);
+DOpt = zeros(length(vNCells), nExperiments);
 
-    % Colors=struct('EllipseColors',[0.9 0.6 0.2],...
-    % 'CenterSquare',[0.96,0.47,0.16]),...
+DsOptIdx = 4;
+DsOpt = zeros(length(vNCells), nExperiments);
 
+for a = 1:length(vNCells)
+    Ncells = vNCells(a)
 
-%% Plot eigen values and fim
-f4 = figure(204);
-Model.plotFIMResults(FIM_Opt^(-1)/log(10)^2, 'log',...
-    Model.parameters(freePars,1),...
-    [Model.parameters{freePars,2}],...
-    PlotEllipses=true,EllipseFigure=f4,...
-    EllipsePairs=[1,2], ...
-    FigureHandle=f3,...
-    LogThreshold=-4,...
-    HeatMapType='invfim',...
-    MatrixType='invfim');
+    % exp 1 - steady states
+    exp1NCells = zeros(size(FIM));
+    exp1NCells(1,5, [1,31]) = Ncells/2;
+    
+    % exp 2 - steady state plus one during transition
+    exp2NCells = zeros(size(FIM));
+    exp2NCells(1,5, [1,6,31]) = Ncells/3;
+    
+    % exp 3 - multiple of exp 2
+    exp3NCells = zeros(size(FIM));
+    exp3NCells(1, 5, [1,6,31]) = Ncells/6;
+    exp3NCells(5, 3, [1,6,31]) = Ncells/6;
 
-hold on
+    experiments = {exp1NCells, exp2NCells, exp3NCells};
 
-C = FIM_Opt^(-1)/log(10)^2;
+    for b = 1:length(experiments)
+        % compute fim for each experiment
+        cells4experiment = experiments{b};
+        runningFIM = zeros(size(FIM{1}));
+        for i = 1:size(FIM,1)
+            for j = 1:size(FIM,2)
+                for k = 1:size(FIM,3)
+                    runningFIM = runningFIM + ...
+                        cells4experiment(i,j,k) .* FIM{i,j,k};
+                end
+            end
+        end
+        experimentFIMs{a,b} = runningFIM;
+    
+        % compute optimality 
+        [V,D] = eig(runningFIM);
+        EOpt(a,b) = min(diag(D));
+        DOpt(a,b) = det(runningFIM);
+        DsOpt(a,b) = runningFIM(DsOptIdx, DsOptIdx);
 
-% Parameters corresponding to your ellipse pair
-C2 = C([1 2],[1 2]);
+    end
+    % compute optimal optimality 
+    % D opt
+    OptExperiment = Model_chg.optimizeCellCounts(allFims,Ncells,'D-opt');
+    FIM_Opt = 0;
+    for i = 1:length(OptExperiment)
+        FIM_Opt = FIM_Opt + OptExperiment(i)*allFims{i};
+    end
+    DOpt(a,nExperiments) = det(FIM_Opt);
 
-% Eigenvectors/eigenvalues
-[V,D] = eig(C2);
+    % E opt 
+    OptExperiment = Model_chg.optimizeCellCounts(allFims,Ncells,'E-opt');
+    FIM_Opt = 0;
+    for i = 1:length(OptExperiment)
+        FIM_Opt = FIM_Opt + OptExperiment(i)*allFims{i};
+    end
+    [V,D] = eig(FIM_Opt);
+    EOpt(a,nExperiments) = min(diag(D));
 
-% Sort eigenvalues from smallest to largest
-[lambda,idx] = sort(diag(D));
-V = V(:,idx);
+    % Ds opt 
+    OptExperiment = Model_chg.optimizeCellCounts(allFims,Ncells,sprintf('D-opt-sub%d',DsOptIdx));
+    FIM_Opt = 0;
+    for i = 1:length(OptExperiment)
+        FIM_Opt = FIM_Opt + OptExperiment(i)*allFims{i};
+    end
+    DsOpt(a,nExperiments) = FIM_Opt(DsOptIdx,DsOptIdx);
 
-% Center of ellipse
-x0 = log10(Model.parameters{2,2});
-y0 = log10(Model.parameters{1,2});
+end
 
-% Scale factor for visualization
-scale = 2;
+%% Plot Optimality Criteria
+% figure(212);
+% plot(vNCells, DOpt);
+% set(gca, 'XScale', 'log', 'YScale', 'log');
+% 
+% figure(213);
+% plot(vNCells, EOpt);
+% set(gca, 'XScale', 'log', 'YScale', 'log');
+% 
+% figure(214);
+% plot(vNCells, DsOpt);
+% set(gca, 'XScale', 'log', 'YScale', 'log');
 
-% Small eigenvalue direction
-quiver(x0,y0,...
-    V(2,1)*sqrt(lambda(1))*scale,...
-    V(1,1)*sqrt(lambda(1))*scale,...
-    0,...
-    'LineWidth',2,...
-    'Color','r',...
-    'MaxHeadSize',0.5);
+% Cell counts
+x = vNCells(:);
 
-% Large eigenvalue direction
-quiver(x0,y0,...
-    V(2,2)*sqrt(lambda(2))*scale,...
-    V(1,2)*sqrt(lambda(2))*scale,...
-    0,...
-    'LineWidth',2,...
-    'Color','b',...
-    'MaxHeadSize',0.5);
+% Matrices of performance metrics
+data = {DOpt, EOpt, DsOpt};
+names = {'DOpt', 'EOpt', 'DsOpt'};
 
-% TODO - Add MLE estimates to plot
-% TODO - change exp for this to acheive MLE spread
-% TODO - plot FIM-1 for optimatlity descriptions 
-%% IDK what I was doing here 
-nCellsInExperiment = zeros(size(Model.tSpan));
-nCellsInExperiment([1]) = 1;
-Model = Model.solve;
-Model.ssaOptions.Nexp = 5000;
+for k = 1:length(data)
 
-Model.fittingOptions.modelVarsToFit = [1];
+    figure(211+k);
+    clf
 
-% Model_chg.plotFSP(plotType='meansAndDevs', SpeciesIdx=[2], Title='testing steady state') % Test successful 
-Model.sampleDataFromFSP(saveFile='dataForFIMIntro.csv',nCells=nCellsInExperiment,species2save={'mRNA'});
-Model = Model.loadData('dataForFIMIntro.csv', {'mRNA', 'exp1_mRNA'});
+    Y = data{k};
 
+    % Plot all experiments
+    plot(x, Y, 'o-', 'LineWidth', 1.2);
+    hold on;
 
+    % ---- Fit lines in log-log space ----
+    % Each column is an experiment
+    coeff = zeros(2, size(Y,2));
 
+    for j = 1:size(Y,2)
+        coeff(:,j) = polyfit(log10(x), log10(Y(:,j)), 1);
+    end
 
-return
+    % Smooth x values for fitted lines
+    xfit = logspace(log10(min(x)), log10(max(x)), 200);
 
+    % Plot fitted lines
+    for j = 1:size(Y,2)
+        yfit = 10.^(polyval(coeff(:,j), log10(xfit)));
 
+        % plot(xfit, yfit, '--', 'LineWidth', 1.5);
+    end
 
+    % ---- Optimal design at 300 cells ----
+    xOpt = 150;
 
+    % Evaluate optimal-design fit at 300 cells
+    yOpt300 = 10.^(polyval(coeff(:,end), log10(xOpt)));
 
+    % Horizontal line through optimality at 300 cells
+    yline(yOpt300, 'k-', 'LineWidth', 2, ...
+        'DisplayName', 'Optimal @ 300 cells');
 
+    % Mark optimal point
+    plot(xOpt, yOpt300, 'kp', ...
+        'MarkerSize', 12, ...
+        'MarkerFaceColor', 'k');
 
+    % ---- Find intersections with other experiments ----
+    for j = 1:size(Y,2)-1
 
+        % log10(y) = m*log10(x) + b
+        m = coeff(1,j);
+        b = coeff(2,j);
+
+        % Solve:
+        % log10(yOpt300) = m*log10(x) + b
+        logxIntersect = (log10(yOpt300) - b) / m;
+        xIntersect = 10^logxIntersect;
+
+        % Only display intersections within plotted range
+        if xIntersect >= min(xfit) && xIntersect <= max(xfit)
+
+            % Plot intersection
+            plot(xIntersect, yOpt300, 'rx', ...
+                'MarkerSize', 12, ...
+                'LineWidth', 2);
+
+            % Annotate number of cells
+            text(xIntersect, yOpt300, ...
+                sprintf('  %.0f cells', xIntersect), ...
+                'FontSize', 10, ...
+                'FontWeight', 'bold', ...
+                'VerticalAlignment', 'bottom');
+        end
+    end
+
+    % Log axes
+    set(gca, 'XScale', 'log', 'YScale', 'log');
+
+    xlabel('Number of Cells');
+    ylabel(names{k});
+    title(names{k});
+
+    grid on;
+    legend('Location', 'best');
+    hold off;
+end
 
 
 
@@ -2273,7 +2353,7 @@ MLE_PDO_Corrected = Model_BinomialPDO.estimateMLEspread(nCells=nCellsInExperimen
 % current analysis only allows for a single define experiment (i.e., the
 % change from a pre-specified S0 to a pre-specified S1). The experiment
 % design option is to decide on the time points at which to take the
-% observations and how many cells to observe at each time point.
+% observations and how masny cells to observe at each time point.
 
 N = 50;
 vDropOut = linspace(0,0.98,N);
@@ -2577,6 +2657,102 @@ ModelGen.plotFSP
 % Model_chg.plotFIMResults(f, 'log', Model_chg.parameters(1:5), [Model_chg.parameters{1:5,2}] ,PlotEllipses=true, Colors=struct('EllipseColors',[0.9 0.6 0.2],...
 %     'CenterSquare',[0.96,0.47,0.16]))
 % see marginal improvement in intial steady state 
+
+%% Plots of FIM predicted uncertainties
+% freePars = [1:4];
+% f1 = figure(205);
+% f2 = figure(206);
+% f3 = figure(207);
+% 
+% % The following plots the heatmap showing the
+% Model.plotFIMResults(FIM_Opt^(-1)/log(10)^2, 'log',...
+%     Model.parameters(freePars,1),...
+%     [Model.parameters{freePars,2}],...
+%     PlotEllipses=true,EllipseFigure=f1,...
+%     FigureHandle=f3,...
+%     LogThreshold=-4,...
+%     HeatMapType='invfim',...
+%     MatrixType='invfim');
+% 
+%     % Colors=struct('EllipseColors',[0.9 0.6 0.2],...
+%     % 'CenterSquare',[0.96,0.47,0.16]),...
+
+
+%% Plot eigen values and fim
+% f4 = figure(204);
+% Model.plotFIMResults(FIM_Opt^(-1)/log(10)^2, 'log',...
+%     Model.parameters(freePars,1),...
+%     [Model.parameters{freePars,2}],...
+%     PlotEllipses=true,EllipseFigure=f4,...
+%     EllipsePairs=[1,2], ...
+%     FigureHandle=f3,...
+%     LogThreshold=-4,...
+%     HeatMapType='invfim',...
+%     MatrixType='invfim');
+% 
+% hold on
+% 
+% C = FIM_Opt^(-1)/log(10)^2;
+% 
+% % Parameters corresponding to your ellipse pair
+% C2 = C([1 2],[1 2]);
+% 
+% % Eigenvectors/eigenvalues
+% [V,D] = eig(C2);
+% 
+% % Sort eigenvalues from smallest to largest
+% [lambda,idx] = sort(diag(D));
+% V = V(:,idx);
+% 
+% % Center of ellipse
+% x0 = log10(Model.parameters{2,2});
+% y0 = log10(Model.parameters{1,2});
+% 
+% % Scale factor for visualization
+% scale = 2;
+% 
+% % Small eigenvalue direction
+% quiver(x0,y0,...
+%     V(2,1)*sqrt(lambda(1))*scale,...
+%     V(1,1)*sqrt(lambda(1))*scale,...
+%     0,...
+%     'LineWidth',2,...
+%     'Color','r',...
+%     'MaxHeadSize',0.5);
+% 
+% % Large eigenvalue direction
+% quiver(x0,y0,...
+%     V(2,2)*sqrt(lambda(2))*scale,...
+%     V(1,2)*sqrt(lambda(2))*scale,...
+%     0,...
+%     'LineWidth',2,...
+%     'Color','b',...
+%     'MaxHeadSize',0.5);
+
+% TODO - Add MLE estimates to plot
+% TODO - change exp for this to acheive MLE spread
+% TODO - plot FIM-1 for optimatlity descriptions 
+%% IDK what I was doing here 
+% nCellsInExperiment = zeros(size(Model.tSpan));
+% nCellsInExperiment([1]) = 1;
+% Model = Model.solve;
+% Model.ssaOptions.Nexp = 5000;
+% 
+% Model.fittingOptions.modelVarsToFit = [1];
+% 
+% % Model_chg.plotFSP(plotType='meansAndDevs', SpeciesIdx=[2], Title='testing steady state') % Test successful 
+% Model.sampleDataFromFSP(saveFile='dataForFIMIntro.csv',nCells=nCellsInExperiment,species2save={'mRNA'});
+% Model = Model.loadData('dataForFIMIntro.csv', {'mRNA', 'exp1_mRNA'});
+% 
+% 
+% 
+% 
+% return
+
+
+
+
+
 
 
 %% Functions 
