@@ -350,7 +350,7 @@ plotHeatmap( ...
 
 
 %% Setup - MLE FIM relationship - Gaussian
-rng(2);
+rng(75);
 
 % True parameters
 theta_true = [100, 50];
@@ -960,6 +960,7 @@ disp('Figures 10-20 exported successfully.');
 
 
 %% MLE FIM relationship - Single cell - Bursting Model
+rng(172)
 Model_chg.tSpan = linspace(0,25,31);
 nCellsInExperiment = zeros(size(Model_chg.tSpan));
 nCellsInExperiment([1]) = 1;
@@ -1326,6 +1327,14 @@ legend('MLE variance', 'FIM prediction', ...
 set(gca, 'XScale', 'log')
 set(gca, 'YScale', 'log')
 
+ax = gca;
+ax.Box = 'on';
+ax.LineWidth = 1;
+ax.FontSize = 11;
+ax.FontWeight = 'bold';
+ax.XColor = 'k';
+ax.YColor = 'k';
+ax.TickLength = [0.008 0.008];
 
 %% MSE of MLE vs number of cells
 mleMSE = zeros(size(cell_numbers));
@@ -1391,12 +1400,12 @@ title('MSE Between Empirical Variance and FIM Estimate')
 
 ax = gca;
 ax.Box = 'on';
-ax.LineWidth = 1.5;
+ax.LineWidth = 1;
 ax.FontSize = 11;
 ax.FontWeight = 'bold';
 ax.XColor = 'k';
 ax.YColor = 'k';
-ax.TickLength = [0.015 0.015];
+ax.TickLength = [0.008 0.008];
 
 %% Burst Frequency Model
 Model = SSIT('Empty');
@@ -1537,6 +1546,15 @@ quiver(x0,y0,...
     'Color','b',...
     'MaxHeadSize',0.5);
 
+ax = gca;
+ax.Box = 'on';
+ax.LineWidth = 1.5;
+ax.FontSize = 11;
+ax.FontWeight = 'bold';
+ax.XColor = 'k';
+ax.YColor = 'k';
+ax.TickLength = [0.015 0.015];
+
 
 if false
     % TODO: add MLE to this plot 
@@ -1616,22 +1634,31 @@ plot(0,0,...
 quiver(0,0,...
     a,0,...
     0,...
-    'r',...
+    'b',...
     'LineWidth',2,...
     'MaxHeadSize',0.5);
 
 quiver(0,0,...
     0,b,...
     0,...
-    'b',...
+    'r',...
     'LineWidth',2,...
     'MaxHeadSize',0.5);
 
 xlabel('Largest variance eigenvector');
 ylabel('Smallest variance eigenvector');
 
-axis equal;
-grid on;
+grid on
+
+ax = gca;
+ax.Box = 'on';
+ax.LineWidth = 1.5;
+ax.FontSize = 11;
+ax.FontWeight = 'bold';
+ax.XColor = 'k';
+ax.YColor = 'k';
+ax.TickLength = [0.015 0.015];
+axis equal
 
 
 %% Export Figures for Paper
@@ -1653,11 +1680,20 @@ for figNum = 101:112
 
     fig = figure(figNum);
 
-    % Remove figure-level title
-    sgtitle(fig, '');
-
     % Find all axes
     axesList = findall(fig, 'Type', 'Axes');
+
+    % SAVE TICKS BEFORE RESIZING
+    savedXTicks = cell(size(axesList));
+    savedYTicks = cell(size(axesList));
+
+    for i = 1:length(axesList)
+        savedXTicks{i} = axesList(i).XTick;
+        savedYTicks{i} = axesList(i).YTick;
+    end
+
+    % Remove figure-level title
+    sgtitle(fig, '');
 
     for i = 1:length(axesList)
 
@@ -1674,15 +1710,13 @@ for figNum = 101:112
         ax.YLabel.String = '';
         ax.YLabel.Visible = 'off';
 
-        % Remove ticks and tick labels
-        % ax.XTick = [];
-        % ax.YTick = [];
-
+        % Remove tick labels
         ax.XTickLabel = [];
         ax.YTickLabel = [];
 
-        % Remove tick marks
-        % ax.TickLength = [0 0];
+        % FORCE ticks to remain fixed
+        ax.XTick = savedXTicks{i};
+        ax.YTick = savedYTicks{i};
 
     end
 
@@ -1705,9 +1739,19 @@ for figNum = 101:112
 
     end
 
-    % Set physical dimensions for 4 x 3 grid
+    % Set physical dimensions
     fig.Units = 'inches';
     fig.Position(3:4) = [plotWidth plotHeight];
+
+    % Reapply ticks AFTER resizing
+    for i = 1:length(axesList)
+
+        ax = axesList(i);
+
+        ax.XTick = savedXTicks{i};
+        ax.YTick = savedYTicks{i};
+
+    end
 
     % Export
     fileName = sprintf('figure%d.svg', figNum);
@@ -1718,7 +1762,7 @@ for figNum = 101:112
 
 end
 
-disp('Figures 101-108 exported successfully.');
+disp('Figures 101-112 exported successfully.');
 
 
 
@@ -1788,6 +1832,14 @@ quiver(x0,y0,...
     'LineWidth',2,...
     'Color','b',...
     'MaxHeadSize',0.5);
+ax = gca;
+ax.Box = 'on';
+ax.LineWidth = 1.5;
+ax.FontSize = 11;
+ax.FontWeight = 'bold';
+ax.XColor = 'k';
+ax.YColor = 'k';
+ax.TickLength = [0.015 0.015];
 
 figure(202); % heatmap of I^(-1)
 clf
@@ -1879,6 +1931,14 @@ ylabel('Smallest variance eigenvector');
 axis equal;
 grid on;
 
+ax = gca;
+ax.Box = 'on';
+ax.LineWidth = 1.5;
+ax.FontSize = 11;
+ax.FontWeight = 'bold';
+ax.XColor = 'k';
+ax.YColor = 'k';
+ax.TickLength = [0.015 0.015];
 
 %% FIM Calculations
 % Sarray = [1:5];
@@ -1915,6 +1975,14 @@ yy = [f(Model_chg.tSpan(1)), f(Model_chg.tSpan(31))];
 
 plot(tt, f(tt), 'k-', 'LineWidth', 3)
 
+dx = tt(end) - tt(end-1);
+dy = f(tt(end)) - f(tt(end-1));
+
+quiver(tt(end-1), f(tt(end-1)), dx, dy, 0, ...
+    'Color', 'k', ...
+    'LineWidth', 3, ...
+    'MaxHeadSize', 100);
+
 % Alpha proportional to number of cells
 alpha1 = (Ncells) / Ncells;
 alpha = min(alpha1 + 0.2, 1);
@@ -1923,8 +1991,9 @@ scatter(xx, yy, 1000, 'r', 'x', ...
     'LineWidth', 3, ...
     'MarkerEdgeAlpha', alpha);
 
-ylim([0,35])
-
+ylim([-5,35])
+ax = gca;
+ax.LineWidth = 1.5;
 
 % exp 2 - steady state plus one during transition
 exp2NCells = zeros(size(FIM));
@@ -1939,6 +2008,12 @@ xx = [Model_chg.tSpan(1), Model_chg.tSpan(6), Model_chg.tSpan(31)];
 yy = [f(Model_chg.tSpan(1)), f(Model_chg.tSpan(6)), f(Model_chg.tSpan(31))];
 
 plot(tt, f(tt), 'k-', 'LineWidth', 3)
+dx = tt(end) - tt(end-1);
+dy = f(tt(end)) - f(tt(end-1));
+quiver(tt(end-1), f(tt(end-1)), dx, dy, 0, ...
+    'Color', 'k', ...
+    'LineWidth', 3, ...
+    'MaxHeadSize', 100);
 
 % Alpha proportional to number of cells
 alpha2 = (Ncells*(2/3)) / Ncells;
@@ -1948,8 +2023,9 @@ scatter(xx, yy, 1000, 'r', 'x', ...
     'LineWidth', 3, ...
     'MarkerEdgeAlpha', alpha);
 
-ylim([0,35])
-
+ylim([-5,35])
+ax = gca;
+ax.LineWidth = 1.5;
 
 % exp 3 - multiple of exp 2
 exp3NCells = zeros(size(FIM));
@@ -1962,6 +2038,12 @@ hold on
 f = @(t)(t > 1)*Sarray(5) + (t <= 1)*Sarray(1);
 
 plot(tt, f(tt), 'k-', 'LineWidth', 3)
+dx = tt(end) - tt(end-1);
+dy = f(tt(end)) - f(tt(end-1));
+quiver(tt(end-1), f(tt(end-1)), dx, dy, 0, ...
+    'Color', 'k', ...
+    'LineWidth', 3, ...
+    'MaxHeadSize', 100);
 
 xx = [Model_chg.tSpan(1), Model_chg.tSpan(6), Model_chg.tSpan(31)];
 yy = [f(Model_chg.tSpan(1)), f(Model_chg.tSpan(6)), f(Model_chg.tSpan(31))];
@@ -1976,7 +2058,14 @@ scatter(xx, yy, 1000, 'r', 'x', ...
 
 f = @(t)(t > 1)*Sarray(3) + (t <= 1)*Sarray(5);
 
-plot(tt, f(tt), 'k-', 'LineWidth', 3)
+plot(tt, f(tt), 'b-', 'LineWidth', 3)
+dx = tt(end) - tt(end-1);
+dy = f(tt(end)) - f(tt(end-1));
+quiver(tt(end-1), f(tt(end-1)), dx, dy, 0, ...
+    'Color', 'b', ...
+    'LineWidth', 3, ...
+    'MaxHeadSize', 100);
+
 
 xx = [Model_chg.tSpan(1), Model_chg.tSpan(6), Model_chg.tSpan(31)];
 yy = [f(Model_chg.tSpan(1)), f(Model_chg.tSpan(6)), f(Model_chg.tSpan(31))];
@@ -1985,7 +2074,9 @@ scatter(xx, yy, 1000, 'r', 'x', ...
     'LineWidth', 3, ...
     'MarkerEdgeAlpha', alpha);
 
-ylim([0,35])
+ylim([-5,35])
+ax = gca;
+ax.LineWidth = 1.5;
 
 
 %% FIM for different experiment designs.
@@ -2085,6 +2176,8 @@ experiments
 
 nUniqueExperiments = size(uniqueExperiments, 1);
 
+colors = {'k', 'b', 'g'};
+
 for i = 1:size(uniqueExperiments, 1)
 
     % First two columns define the experiment
@@ -2096,11 +2189,22 @@ for i = 1:size(uniqueExperiments, 1)
              (t <= 1)*Sarray(startState);
 
     % Draw step function
-    plot(tt, f(tt), 'k-', 'LineWidth', 3);
+    plot(tt, f(tt), '-', ...
+        'Color', colors{mod(i, length(colors))+1}, ...
+        'LineWidth', 3);
+
+    % Add arrow at the end of the curve
+    dx = tt(end) - tt(end-1);
+    dy = f(tt(end)) - f(tt(end-1));
+
+    quiver(tt(end-1), f(tt(end-1)), dx, dy, 0, ...
+        'Color', colors{mod(i, length(colors))+1}, ...
+        'LineWidth', 3, ...
+        'MaxHeadSize', 100);
 
 end
 
-ylim([0, 35])
+ylim([-5, 35])
 
 for i = 1:size(ssExperiments, 1)
     ssConc = ssExperiments(i,1);
@@ -2155,8 +2259,9 @@ for i = 1:size(experiments, 1)
         'MarkerEdgeAlpha', alpha);
 
 end
-
-ylim([0,35])
+ax = gca;
+ax.LineWidth = 1.5;
+ylim([-5,35])
 
 %% Plot FIM 
 figure(209);
@@ -2341,9 +2446,11 @@ for k = 1:length(data)
         'DisplayName', 'Optimal @ 300 cells');
 
     % Mark optimal point
-    plot(xOpt, yOpt300, 'kp', ...
-        'MarkerSize', 12, ...
-        'MarkerFaceColor', 'k');
+    % plot(xOpt, yOpt300, 'kp', ...
+    %     'MarkerSize', 12, ...
+    %     'MarkerFaceColor', 'k');
+    xOpt
+    xline(xOpt, 'k-', 'LineWidth', 2)
 
     % ---- Find intersections with other experiments ----
     for j = 1:size(Y,2)-1
@@ -2355,15 +2462,16 @@ for k = 1:length(data)
         % Solve:
         % log10(yOpt300) = m*log10(x) + b
         logxIntersect = (log10(yOpt300) - b) / m;
-        xIntersect = 10^logxIntersect;
+        xIntersect = 10^logxIntersect
 
         % Only display intersections within plotted range
         if xIntersect >= min(xfit) && xIntersect <= max(xfit)
 
             % Plot intersection
-            plot(xIntersect, yOpt300, 'rx', ...
-                'MarkerSize', 12, ...
-                'LineWidth', 2);
+            % plot(xIntersect, yOpt300, 'rx', ...
+            %     'MarkerSize', 12, ...
+            %     'LineWidth', 2);
+            xline(xIntersect, 'r-', 'LineWidth', 2)
 
             % Annotate number of cells
             % text(xIntersect, yOpt300, ...
@@ -2384,6 +2492,9 @@ for k = 1:length(data)
     grid on;
     legend('Location', 'best');
     hold off;
+
+    ax = gca;
+    ax.LineWidth = 1.5;
 end
 
 
