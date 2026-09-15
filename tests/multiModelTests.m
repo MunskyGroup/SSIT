@@ -30,7 +30,7 @@ classdef multiModelTests < matlab.unittest.TestCase
             tc.Poiss.ssaOptions.Nexp = 1;
             delete 'testData1.csv'
             tc.Poiss.sampleDataFromFSP(tc.PoissSolution,'testData1.csv');
-            tc.Poiss = tc.Poiss.loadData('testData1.csv',{'rna','exp1_s1'});
+            tc.Poiss = tc.Poiss.loadData('testData1.csv');
 
             tc.Poiss2 = tc.Poiss;
             tc.Poiss2.ssaOptions.nSimsPerExpt = 100;
@@ -40,7 +40,7 @@ classdef multiModelTests < matlab.unittest.TestCase
             [tc.Poiss2Solution,tc.Poiss2.fspOptions.bounds] = tc.Poiss2.solve(returnType='soln');
             delete 'testData2.csv'
             tc.Poiss2.sampleDataFromFSP(tc.Poiss2Solution,'testData2.csv');
-            tc.Poiss2 = tc.Poiss2.loadData('testData2.csv',{'rna','exp1_s1'});
+            tc.Poiss2 = tc.Poiss2.loadData('testData2.csv');
 
          end  
     end
@@ -74,8 +74,8 @@ classdef multiModelTests < matlab.unittest.TestCase
         function loadHybridModelFromFile(tc)
             delete('exampleResultsTest.mat')
             
-            DataSettings = {'testData1.csv',{'rna','exp1_s1'},{};...
-                'testData2.csv',{'rna','exp1_s1'},{}};
+            DataSettings = {'testData1.csv',{},{};...
+                'testData2.csv',{},{}};
             
             Pipeline = 'multiModelFittingPipelineExample';
             pipelineArgs.maxIter = 10;
