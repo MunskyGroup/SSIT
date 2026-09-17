@@ -1762,7 +1762,7 @@ ax.TickLength = [0.015 0.015];
 axis equal
 
 %% Export Figures for Paper
-if true
+if false
 outputFolder = 'AnnualReview_Figures';
 
 if ~exist(outputFolder, 'dir')
@@ -2604,7 +2604,7 @@ end
 
 %% Export Figures for Paper
 
-if true
+if false
 outputFolder = 'AnnualReview_Figures';
 
 if ~exist(outputFolder, 'dir')
@@ -2715,7 +2715,7 @@ f1 = figure(301); clf;
 Model_chg.fspOptions.bounds = [];
 Model_chg.fspOptions.stateSpace = [];
 Model_chg = Model_chg.solve(solver='fsp');
-Model_chg.plotFSP(figureNums=f1,plotType='marginals',indTimes=length(Model.tSpan),speciesNames='mRNA',Colors={'r'})
+Model_chg.plotFSP(figureNums=f1,plotType='marginals',indTimes=length(Model_chg.tSpan),speciesNames='mRNA',Colors={'r'})
 
 % Add a Binomial PDO 
 dropOut = 0.6; % fraction dropout
@@ -2724,7 +2724,7 @@ Model_BinomialPDO.pdoOptions.type = 'Binomial';
 Model_BinomialPDO.pdoOptions.unobservedSpecies = 'gON';
 Model_BinomialPDO.pdoOptions.props.CaptureProbabilityS1 = 0;    % Gene State is not measured
 Model_BinomialPDO.pdoOptions.props.CaptureProbabilityS2 = 1-dropOut; % 95% dropout from RNA
-[~,Model_BinomialPDO] = Model_BinomialPDO.generatePDO( ...
+[~,Model_BinomialPDO] = Model_BinomialPDO.generatePDO(...
     showPlot=true, Title='Binomial PDO');
 fPDO = gcf;
 f2 = figure(302);
@@ -2741,8 +2741,8 @@ Model_BinomialPDO.plotFSP(figureNums=f1,plotType='marginals',indTimes=length(Mod
 
 %% PDO - Show effect on MLE estimation.
 % First, generate the MLE scatter plot and FIM overlay (same as above).
-freePars = [1:4];
-nCellsInExperiment = 0*Model.tSpan;
+freePars = [1:5];
+nCellsInExperiment = 0*Model_chg.tSpan;
 nCellsInExperiment([1,11,31]) = 200;
 nMLE = 40;
 MLE_noDistortion = Model_BinomialPDO.estimateMLEspread(nCells=nCellsInExperiment,...
@@ -2771,8 +2771,48 @@ MLE_PDO_Corrected = Model_BinomialPDO.estimateMLEspread(nCells=nCellsInExperimen
 %     freePars=freePars,restart=false,useDistortions=true,correctDistortions=true,...
 %     nIter = 500,startPars=exp(MLE_PDO_Corrected.mhSamples));
 
+%% Plot the spread of the mle and FIM estiamte
+% f1 = figure(303);
+% FIMs = Model_chg.computeFIM(freePars=(1:5),scale='log');
+% FIMTotal = Model_chg.totalFim(FIMs,nCellsInExperiment);
+% FIM = FIMTotal{1};
+% 
+% Model_chg.plotFIMResults(FIM^(-1)/log(10)^2, 'log',...
+%     Model_chg.parameters(1:5,1),...
+%     [Model_chg.parameters{1:5,2}],...
+%     PlotEllipses=true, ...
+%     EllipseFigure=f1,...
+%     Colors = struct('EllipseColors',[0, 0, 0],'CenterSquare',[0,0,0]), ...
+%     EllipsePairs=[1,2], ...
+%     FigureHandle=f1,...
+%     LogThreshold=-4,...
+%     HeatMapType='invfim',...
+%     MatrixType='invfim');
+% hold on
+% scatter(MLE_noDistortion.mhSamples(:,2), MLE_noDistortion.mhSamples(:,1))
 
-return
+
+% figure(304)
+% scatter(MLE_PDO_Uncorrected.mhSamples(:,2), MLE_PDO_Uncorrected.mhSamples(:,1))
+% 
+% figure(305)
+% scatter(MLE_PDO_Corrected.mhSamples(:,2), MLE_PDO_Corrected.mhSamples(:,1))
+% FIMs = Model_BinomialPDO.computeFIM(scale='log',freePars=opts.freePars,...
+%                     observed=opts.observableSpecies);
+% FIMTotal = Model_BinomialPDO.totalFim(FIMs,nCellsInExperiment);
+% FIM = FIMTotal{1};
+% 
+% figure(306)
+% scatter(MLE_noDistortion.mhSamples(:,2), MLE_noDistortion.mhSamples(:,1))
+% 
+% figure(307)
+% scatter(MLE_PDO_Uncorrected.mhSamples(:,2), MLE_PDO_Uncorrected.mhSamples(:,1))
+% 
+% figure(308)
+% scatter(MLE_PDO_Corrected.mhSamples(:,2), MLE_PDO_Corrected.mhSamples(:,1))
+% 
+
+
 %% Fig 4G,H,I -- CRLB vs drop out.
 % In this section, we compute the FIM for different dropout fractions.  The
 % current analysis only allows for a single define experiment (i.e., the
@@ -2782,8 +2822,8 @@ return
 
 N = 50;
 vDropOut = linspace(0,0.98,N);
-OptExptVsDropOut = zeros(50,length(Model.tSpan));
-ModelPDO = Model;
+OptExptVsDropOut = zeros(50,length(Model_chg.tSpan));
+ModelPDO = Model_chg;
 ModelPDO = ModelPDO.solve(solver='fspsens');
 ModelPDO.pdoOptions.type = 'Binomial';
 ModelPDO.pdoOptions.unobservedSpecies = 'gON';
