@@ -2697,19 +2697,37 @@ end
 %% Figure 4
 %% Figure 4
 %% PDO - Effect on Distributions
-% Pick a parameter set that has an interesting looking PDF.
-%                                     PRIOR
-Model.parameters = {'kon0',0.01;...  % logn(-1,2)
-    'koff0',0.01;...                   % logn(0,2)
-    'kr',1;...                     % logn(1,2)
-    'g',0.1;...                    % logn(-2,2)
-    'kD',3;...                     % logn(1,2)
-    'S0',1;...                      % NA (initial input concentration)
-    'S1',5};                        % NA (final input concentration)
+Model_chg = SSIT('Empty');
+Model_chg.species = {'gON','mRNA'};
+Model_chg.initialCondition = [0;0];
+Model_chg.parameters = {'kon0', star_kon;...
+    'koff0', star_koff;... 
+    'kr',100;... 
+    'g',gr;... 
+    'kon1', final_kon;
+    };
 
-Model_chg.parameters{1,2} = star_kon;
-Model_chg.parameters{2,2} = star_koff;
-Model_chg.parameters{5,2} = final_kon;
+Model_chg.inputExpressions = {'I', ...
+    't>=1'};
+
+Model_chg = Model_chg.addReaction(struct(...
+    'propensity',{'(kon0 + (kon1-kon0)*I)*(1-gON)'},...
+    'stoichiometry',{{'gON',1}}));
+
+Model_chg = Model_chg.addReaction(struct(...
+    'propensity',{'(koff0)*gON'},...
+    'stoichiometry',{{'gON',-1}}));
+
+Model_chg = Model_chg.addReaction(struct(...
+    'propensity',{'kr*gON'},...
+    'stoichiometry',{{'mRNA',1}}));
+
+Model_chg = Model_chg.addReaction(struct(...
+    'propensity',{'g*mRNA'},...
+    'stoichiometry',{{'mRNA',-1}}));
+
+Model_chg.fspOptions.initApproxSS = true;
+Model_chg.tSpan = linspace(0,15,31);
 
 f1 = figure(301); clf;
 Model_chg.fspOptions.bounds = [];
