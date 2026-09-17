@@ -148,7 +148,7 @@ Model_chg = Model_chg.addReaction(struct(...
     'stoichiometry',{{'mRNA',-1}}));
 
 Model_chg.fspOptions.initApproxSS = true;
-Model_chg.tSpan = linspace(0,25,31);
+Model_chg.tSpan = linspace(0,15,31);
 
 Model_chg = Model_chg.solve;
 Model_chg.plotFSP(plotType='marginals', SpeciesIdx=[2], indTimes=31, figureNums=2, Title='')
@@ -185,6 +185,7 @@ ax.LineWidth = 2;
 % Canvas: 6.33 x 7.9 inches
 % Each figure row: 1.975 inches high
 
+if false
 outputFolder = 'AnnualReview_Figures';
 
 if ~exist(outputFolder, 'dir')
@@ -295,12 +296,13 @@ exportgraphics(fig, ...
     'ContentType', 'vector');
 
 disp('All SVG figures exported successfully.');
-
+end
 
 %% Figure 2
 %% Figure 2
 %% Figure 2
 %% Simple experiment and eigenvector analysis
+Model_chg.fspOptions.fspTol = 1e-4;
 Model_chg.tSpan = linspace(0,7.5,31); % update time specific to the time scale
 nCellsInExperiment = 0*Model_chg.tSpan;
 nCellsInExperiment([1]) = 1;
@@ -871,6 +873,7 @@ end
 
 
 %% Export Figures for Paper Supplimental Figure
+if false
 outputFolder = 'AnnualReview_Figures';
 
 if ~exist(outputFolder, 'dir')
@@ -955,7 +958,7 @@ for figNum = 10:20
 end
 
 disp('Figures 10-20 exported successfully.');
-
+end
 
 
 
@@ -973,12 +976,17 @@ Model_chg.ssaOptions.Nexp = 5000;
 
 Model_chg.fittingOptions.modelVarsToFit = [1];
 
+% remove koff1 from model
+Model_chg.propensityFunctions{2} = 'koff0*gON';
+Model_chg.parameters = Model_chg.parameters(1:end-1,:);
+Model_chg = Model_chg.formPropensitiesGeneral();
+
 % Model_chg.plotFSP(plotType='meansAndDevs', SpeciesIdx=[2], Title='testing steady state') % Test successful 
 Model_chg.sampleDataFromFSP(saveFile='dataForFIMIntro.csv',nCells=nCellsInExperiment,species2save={'mRNA'});
 Model_chg = Model_chg.loadData('dataForFIMIntro.csv', {'mRNA', 'exp1_mRNA'});
 
-kon_domain = logspace(-2,2.5, 200); 
-count_domain = 0:200;
+kon_domain = logspace(0,3, 200); 
+count_domain = 0:300;
 
 pars = [Model_chg.parameters{:,2}];
 
@@ -1022,6 +1030,7 @@ set(gca, 'XScale', 'log')
 xlabel('k_{on}')
 ylabel('Log-Likelihood')
 legend('Likelihood', 'True k_{on}', 'MLE', 'Location', 'best')
+xlim([10^1, 10^2.5])
 % grid on
 
 %% MLE FIM relationship - Multiple cell - Bursting Model - Compute
@@ -1083,6 +1092,7 @@ ax.FontWeight = 'bold';
 ax.XColor = 'k';
 ax.YColor = 'k';
 ax.TickLength = [0.015 0.015];
+xlim([10^1, 10^2.5])
 
 %% MLE FIM relationship - MLE Spread
 L = likelihoods(samples+1,:);
@@ -1460,7 +1470,7 @@ Model_chg.tSpan = linspace(0,10,31);
 Model_chg.parameters{1,2} = star_kon;
 Model_chg.parameters{2,2} = star_koff;
 Model_chg.parameters{5,2} = final_kon;
-Model_chg.parameters{6,2} = star_koff;
+% Model_chg.parameters{6,2} = star_koff;
 Model_chg = Model_chg.solve;
 
 % Model_chg.plotFSP(plotType='meansAndDevs', SpeciesIdx=[2], Colors=[1 0
@@ -1469,23 +1479,24 @@ Model_chg = Model_chg.solve;
 %% Verification of FIM using CRLB (spread of MLE)
 nCellsInExperiment = 0*Model_chg.tSpan;
 nCellsInExperiment([1,6,31]) = 200;
-nMLE = 200;
+nMLE = 300;
 Model_chg.fittingOptions.modelVarsToFit = [1:2];
 if false
-    % TODO: There is a bias, idk from where, might be the size
     MLE = Model_chg.estimateMLEspread(nCells=nCellsInExperiment,observableSpecies={'mRNA'},nMLE=nMLE,simsSaveFile='BurstFIMSims.csv',freePars=[1:2],restart=true);
     MLE = Model_chg.estimateMLEspread(nCells=nCellsInExperiment,observableSpecies={'mRNA'},nMLE=nMLE,simsSaveFile='BurstFIMSims.csv',freePars=[1:2],startPars=exp(MLE.mhSamples),restart=false);
     FIMs = Model_chg.computeFIM(scale='log',freePars=[1:2],...
         observed={'mRNA'});
     FIMTotal = Model_chg.totalFim(FIMs,nCellsInExperiment);
     Model_chg.plotMHResults(MLE,FIM=FIMTotal,fimScale='log',truncateChain=false);
+    save('MLEForCRLBVerifications.mat', 'MLE')
 end
-
+load('MLEForCRLBVerifications.mat', 'MLE')
 
 %% MLE FIM convergence in 2D and eigen vectors
+
 f1 = figure(109); % fim ellipse
 clf
-f2 = figure(150); % default fim analsysis
+f2 = figure(150); % default fim analysis
 clf
 
 
@@ -1528,6 +1539,36 @@ y0 = log10(Model_chg.parameters{1,2});
 % Scale factor for visualization
 scale = 2;
 
+% MLE estimates
+MLElog = [MLE.mhSamples(:,2)/log(10), ...
+          MLE.mhSamples(:,1)/log(10)];
+
+% MLE mean and covariance
+muMLE = mean(MLElog,1)';
+CMLE = cov(MLElog);
+
+% Eigenvectors/eigenvalues of MLE covariance
+[VMLE,DMLE] = eig(CMLE);
+
+[lambdaMLE,idxMLE] = sort(diag(DMLE),'descend');
+VMLE = VMLE(:,idxMLE);
+
+% 95% confidence ellipse
+chi2val = icdf('chi2',0.95,2);
+
+aMLE = sqrt(chi2val*lambdaMLE(1));
+bMLE = sqrt(chi2val*lambdaMLE(2));
+
+t = linspace(0,2*pi,300);
+
+MLEellipse = VMLE * ...
+    [aMLE*cos(t); bMLE*sin(t)];
+
+% MLE estimates
+scatter(MLElog(:,1), ...
+        MLElog(:,2), ...
+        10, [0.5 0.5 0.5], 'filled');
+
 % Small eigenvalue direction
 quiver(x0,y0,...
     V(2,1)*sqrt(lambda(1))*scale,...
@@ -1555,11 +1596,19 @@ ax.XColor = 'k';
 ax.YColor = 'k';
 ax.TickLength = [0.015 0.015];
 
+% MLE covariance ellipse
+plot(muMLE(1) + MLEellipse(1,:), ...
+     muMLE(2) + MLEellipse(2,:), ...
+     'c-', ...
+     'LineWidth',2);
 
-if false
-    % TODO: add MLE to this plot 
+% MLE mean
+% plot(muMLE(1),muMLE(2),...
+%     'ro',...
+%     'MarkerSize',8,...
+%     'MarkerFaceColor','r',...
+%     'LineWidth',2);
 
-end
 
 figure(110); % heatmap of I^(-1)
 clf
@@ -1578,7 +1627,7 @@ clf
 V = V(:, idx);
 
 % Rebuild diagonal eigenvalue matrix
-D = diag(lambda);
+D = sqrt(diag(lambda));
 
 % Plot V*D
 plotHeatmap(V*D, ...
@@ -1587,48 +1636,99 @@ plotHeatmap(V*D, ...
     'V(I^{-1}) \lambda(I^{-1})')
 
 % Make eigenvector orientation deterministic
-% Largest eigenvector should point generally in +x direction
 if V(1,1) < 0
     V(:,1) = -V(:,1);
 end
 
-% Make second eigenvector form a right-handed coordinate system
 if det(V) < 0
     V(:,2) = -V(:,2);
 end
 
-% Center
-x0 = log10(Model_chg.parameters{2,2});
-y0 = log10(Model_chg.parameters{1,2});
-mu = [x0; y0];
+% Center in the SAME parameter ordering as C and V:
+% [kon, koff]
+mu = [log10(Model_chg.parameters{1,2}); ...
+      log10(Model_chg.parameters{2,2})];
 
 % Chi-square scaling
 chi2val = icdf('chi2',0.95,2);
 
 % Principal-axis lengths
-a = sqrt(chi2val * lambda(1));   % LARGE variance -> x
-b = sqrt(chi2val * lambda(2));   % SMALL variance  -> y
+a = sqrt(chi2val * lambda(1));
+b = sqrt(chi2val * lambda(2));
 
-% Parameterize ellipse DIRECTLY in eigenvector coordinates
+% Parameterize ellipse
 t = linspace(0,2*pi,300);
 
 xEllipse = a*cos(t);
 yEllipse = b*sin(t);
+
+% Put MLE estimates into [kon, koff] ordering
+MLE_FIMorder = [MLE.mhSamples(:,1)/log(10), ...
+                MLE.mhSamples(:,2)/log(10)];
+
+% Rotate MLE estimates into FIM eigenvector coordinates
+MLErot = V' * (MLE_FIMorder' - mu);
+
+% MLE mean in FIM eigenvector coordinates
+muMLE_FIMorder = mean(MLE_FIMorder,1)';
+
+muMLERot = V' * (muMLE_FIMorder - mu);
+
+% MLE covariance in FIM eigenvector coordinates
+CMLE = cov(MLE_FIMorder);
+
+CMLErot = V' * CMLE * V;
+
+% Eigenvectors/eigenvalues of rotated MLE covariance
+[VMLErot,DMLErot] = eig(CMLErot);
+
+[lambdaMLErot,idxMLErot] = sort(diag(DMLErot),'descend');
+VMLErot = VMLErot(:,idxMLErot);
+
+% MLE ellipse in rotated coordinates
+aMLERot = sqrt(chi2val*lambdaMLErot(1));
+bMLERot = sqrt(chi2val*lambdaMLErot(2));
+
+MLEellipseRot = VMLErot * ...
+    [aMLERot*cos(t); bMLERot*sin(t)];
 
 % Plot in eigenvector coordinates
 figure(112);
 clf;
 hold on;
 
-plot(xEllipse,yEllipse,...
-    'k-',...
-    'LineWidth',2);
+% FIM ellipse
+plot(xEllipse,...
+     yEllipse,...
+     'k-',...
+     'LineWidth',2);
 
+% MLE estimates
+scatter(MLErot(1,:),...
+        MLErot(2,:),...
+        10,...
+        [0.5 0.5 0.5],...
+        'filled');
+
+% MLE covariance ellipse
+plot(muMLERot(1) + MLEellipseRot(1,:),...
+     muMLERot(2) + MLEellipseRot(2,:),...
+     'c-',...
+     'LineWidth',2);
+
+% FIM center
 plot(0,0,...
     'ks',...
     'MarkerSize',8,...
     'MarkerFaceColor','w',...
     'LineWidth',2);
+
+% MLE mean
+% plot(muMLERot(1),muMLERot(2),...
+%     'ro',...
+%     'MarkerSize',8,...
+%     'MarkerFaceColor','r',...
+%     'LineWidth',2);
 
 % Principal axes
 quiver(0,0,...
@@ -1658,10 +1758,11 @@ ax.FontWeight = 'bold';
 ax.XColor = 'k';
 ax.YColor = 'k';
 ax.TickLength = [0.015 0.015];
+
 axis equal
 
-
 %% Export Figures for Paper
+if true
 outputFolder = 'AnnualReview_Figures';
 
 if ~exist(outputFolder, 'dir')
@@ -1670,7 +1771,7 @@ end
 
 % Overall paper canvas
 fullWidth = 6.33;
-fullHeight = 7.9;
+fullHeight = 6.33;
 
 % 4 x 3 grid
 plotWidth = fullWidth / 3;
@@ -1763,7 +1864,7 @@ for figNum = 101:112
 end
 
 disp('Figures 101-112 exported successfully.');
-
+end
 
 
 %% Figure 3
@@ -1775,16 +1876,16 @@ clf
 f2 = figure(250); % default fim analsysis
 clf
 
-Model_chg.fittingOptions.modelVarsToFit = [1:6];
-FIMs = Model_chg.computeFIM(scale='log',freePars=[1:6],...
+Model_chg.fittingOptions.modelVarsToFit = [1:5];
+FIMs = Model_chg.computeFIM(scale='log',freePars=[1:5],...
     observed={'mRNA'});
 FIMTotal = Model_chg.totalFim(FIMs,nCellsInExperiment);
 
 FIM = FIMTotal{1};
 
 Model_chg.plotFIMResults(FIM^(-1)/log(10)^2, 'log',...
-    Model_chg.parameters(1:6,1),...
-    [Model_chg.parameters{1:6,2}],...
+    Model_chg.parameters(1:5,1),...
+    [Model_chg.parameters{1:5,2}],...
     PlotEllipses=true, ...
     EllipseFigure=f1,...
     Colors = struct('EllipseColors',[0, 0, 0],'CenterSquare',[0,0,0]), ...
@@ -1843,7 +1944,7 @@ ax.TickLength = [0.015 0.015];
 
 figure(202); % heatmap of I^(-1)
 clf
-plotHeatmap(C, {'k_{on,init}', 'k_{off,init}', 'k_r', '\gamma', 'k_{on,final}', 'k_{off,final}'}, {'k_{on,init}', 'k_{off,init}', 'k_r', '\gamma', 'k_{on,final}', 'k_{off,final}'}, 'I^{-1}')
+plotHeatmap(C, {'k_{on,init}', 'k_{off}', 'k_r', '\gamma', 'k_{on,final}'}, {'k_{on,init}', 'k_{off}', 'k_r', '\gamma', 'k_{on,final}'}, 'I^{-1}')
 
 
 figure(203); % heatmap of eig(I^(-1))
@@ -1858,12 +1959,12 @@ clf
 V = V(:, idx);
 
 % Rebuild diagonal eigenvalue matrix
-D = diag(lambda);
+D = sqrt(diag(lambda));
 
 % Plot V*D
 plotHeatmap(V*D, ...
-    {'k_{on,init}', 'k_{off,init}', 'k_r', '\gamma', 'k_{on,final}', 'k_{off,final}'}, ...
-    {'\lambda_{1}', '\lambda_{2}', '\lambda_{3}', '\lambda_{4}', '\lambda_{5}', '\lambda_{6}'}, ...
+    {'k_{on,init}', 'k_{off}', 'k_r', '\gamma', 'k_{on,final}'}, ...
+    {'\lambda_{1}', '\lambda_{2}', '\lambda_{3}', '\lambda_{4}', '\lambda_{5}'}, ...
     'V(I^{-1}) \lambda(I^{-1})')
 
 % Make eigenvector orientation deterministic
@@ -1914,14 +2015,14 @@ plot(0,0,...
 quiver(0,0,...
     a,0,...
     0,...
-    'r',...
+    'b',...
     'LineWidth',2,...
     'MaxHeadSize',0.5);
 
 quiver(0,0,...
     0,b,...
     0,...
-    'b',...
+    'r',...
     'LineWidth',2,...
     'MaxHeadSize',0.5);
 
@@ -1953,7 +2054,7 @@ for iS0 = 1:length(Sarray)
         % 'S0+(S1-S0)*(t>0)' already accounts for the shift Sarray(iS1)-Sarray(iS0) 
         Model_chg = Model_chg.changeParameter({'kon0',Sarray(iS0);'kon1',Sarray(iS1)});
         Model_chg = Model_chg.solve;
-        FIM(iS0,iS1,:) = Model_chg.computeFIM(freePars=(1:6),scale='log');
+        FIM(iS0,iS1,:) = Model_chg.computeFIM(freePars=(1:5),scale='log');
     end
 end
 
@@ -1963,7 +2064,8 @@ tt = linspace(min(Model_chg.tSpan), max(Model_chg.tSpan), 100);
 
 % exp 1 - steady states
 exp1NCells = zeros(size(FIM));
-exp1NCells(1,5, [1,31]) = Ncells/2;
+exp1NCells(5,5, 1) = Ncells/2;
+exp1NCells(1,1, 1) = Ncells/2;
 
 figure(205)
 hold on
@@ -2266,25 +2368,25 @@ ylim([-5,35])
 %% Plot FIM 
 figure(209);
 clf;
-plotHeatmap(FIM_Exp1^(-1), {'k_{on,init}', 'k_{off,init}', 'k_r', '\gamma', 'k_{on,final}', 'k_{off,final}'}, ...
-    {'k_{on,init}', 'k_{off,init}', 'k_r', '\gamma', 'k_{on,final}', 'k_{off,final}'}, ...
+plotHeatmap(FIM_Exp1^(-1), {'k_{on,init}', 'k_{off}', 'k_r', '\gamma', 'k_{on,final}'}, ...
+    {'k_{on,init}', 'k_{off}', 'k_r', '\gamma', 'k_{on,final}'}, ...
     'I^{-1} - Exp 1')
 
 figure(210);
-plotHeatmap(FIM_Exp2^(-1), {'k_{on,init}', 'k_{off,init}', 'k_r', '\gamma', 'k_{on,final}', 'k_{off,final}'}, ...
-    {'k_{on,init}', 'k_{off,init}', 'k_r', '\gamma', 'k_{on,final}', 'k_{off,final}'}, ...
+plotHeatmap(FIM_Exp2^(-1), {'k_{on}', 'k_{off}', 'k_r', '\gamma', 'k_{on,final}'}, ...
+    {'k_{on,init}', 'k_{off}', 'k_r', '\gamma', 'k_{on,final}'}, ...
     'I^{-1} - Exp 2')
 
 figure(211);
 clf;
-plotHeatmap(FIM_Exp3^(-1), {'k_{on,init}', 'k_{off,init}', 'k_r', '\gamma', 'k_{on,final}', 'k_{off,final}'}, ...
-    {'k_{on,init}', 'k_{off,init}', 'k_r', '\gamma', 'k_{on,final}', 'k_{off,final}'}, ...
+plotHeatmap(FIM_Exp3^(-1), {'k_{on}', 'k_{off}', 'k_r', '\gamma', 'k_{on,final}'}, ...
+    {'k_{on,init}', 'k_{off}', 'k_r', '\gamma', 'k_{on,final}'}, ...
     'I^{-1} - Exp 3')
 
 figure(212);
 clf;
-plotHeatmap(FIM_Opt^(-1), {'k_{on,init}', 'k_{off,init}', 'k_r', '\gamma', 'k_{on,final}', 'k_{off,final}'}, ...
-    {'k_{on,init}', 'k_{off,init}', 'k_r', '\gamma', 'k_{on,final}', 'k_{off,final}'}, ...
+plotHeatmap(FIM_Opt^(-1), {'k_{on,init}', 'k_{off}', 'k_r', '\gamma', 'k_{on,final}'}, ...
+    {'k_{on,init}', 'k_{off}', 'k_r', '\gamma', 'k_{on,final}'}, ...
     'I^{-1} - Exp Opt')
 
 % Use figure 209 as the reference
@@ -2297,7 +2399,7 @@ refCLim = refAx.CLim;
 refCMap = colormap(refAx);
 
 % Apply to the other figures
-for figNum = [209 211 212]
+for figNum = [211 212]
 
     fig = figure(figNum);
     ax = gca;
@@ -2321,7 +2423,8 @@ end
 
 
 %% Optimality vs number of cells
-vNCells = round(logspace(1, 3, 10));
+vNCells = round(logspace(2, 3, 10));
+vNCells = [100, 300, 600, 1000];
 
 nExperiments = 4;
 experimentFIMs = cell(length(vNCells), nExperiments);
@@ -2336,7 +2439,8 @@ for a = 1:length(vNCells)
 
     % exp 1 - steady states
     exp1NCells = zeros(size(FIM));
-    exp1NCells(1,5, [1,31]) = Ncells/2;
+    exp1NCells(5,5, 1) = Ncells/2;
+    exp1NCells(1,1, 1) = Ncells/2;
     
     % exp 2 - steady state plus one during transition
     exp2NCells = zeros(size(FIM));
@@ -2499,6 +2603,8 @@ end
 
 
 %% Export Figures for Paper
+
+if true
 outputFolder = 'AnnualReview_Figures';
 
 if ~exist(outputFolder, 'dir')
@@ -2507,7 +2613,7 @@ end
 
 % Overall paper canvas
 fullWidth = 6.33;
-fullHeight = 7.9;
+fullHeight = 6.33;
 
 % 4 x 3 grid
 plotWidth = fullWidth / 4;
@@ -2584,11 +2690,8 @@ end
 
 disp('Figures 101-108 exported successfully.');
 
+end
 
-
-
-
-return
 
 %% Figure 4
 %% Figure 4
@@ -2604,21 +2707,31 @@ Model.parameters = {'kon0',0.01;...  % logn(-1,2)
     'S0',1;...                      % NA (initial input concentration)
     'S1',5};                        % NA (final input concentration)
 
-f1 = figure(1); clf;
-Model.fspOptions.bounds = [];
-Model.fspOptions.stateSpace = [];
-Model = Model.solve(solver='fsp');
-Model.plotFSP(figureNums=f1,plotType='marginals',indTimes=length(Model.tSpan),speciesNames='mRNA',Colors={'r'})
+Model_chg.parameters{1,2} = star_kon;
+Model_chg.parameters{2,2} = star_koff;
+Model_chg.parameters{5,2} = final_kon;
+
+f1 = figure(301); clf;
+Model_chg.fspOptions.bounds = [];
+Model_chg.fspOptions.stateSpace = [];
+Model_chg = Model_chg.solve(solver='fsp');
+Model_chg.plotFSP(figureNums=f1,plotType='marginals',indTimes=length(Model.tSpan),speciesNames='mRNA',Colors={'r'})
 
 % Add a Binomial PDO 
-f2 = figure(2); clf;
 dropOut = 0.6; % fraction dropout
-Model_BinomialPDO = Model;
+Model_BinomialPDO = Model_chg;
 Model_BinomialPDO.pdoOptions.type = 'Binomial';
 Model_BinomialPDO.pdoOptions.unobservedSpecies = 'gON';
 Model_BinomialPDO.pdoOptions.props.CaptureProbabilityS1 = 0;    % Gene State is not measured
 Model_BinomialPDO.pdoOptions.props.CaptureProbabilityS2 = 1-dropOut; % 95% dropout from RNA
-[~,Model_BinomialPDO] = Model_BinomialPDO.generatePDO(showPlot=true,Title='Binomial PDO');
+[~,Model_BinomialPDO] = Model_BinomialPDO.generatePDO( ...
+    showPlot=true, Title='Binomial PDO');
+fPDO = gcf;
+f2 = figure(302);
+clf;
+copyobj(allchild(fPDO), f2);
+
+close(fPDO);
 
 figure(f1)
 hold on
@@ -2658,6 +2771,8 @@ MLE_PDO_Corrected = Model_BinomialPDO.estimateMLEspread(nCells=nCellsInExperimen
 %     freePars=freePars,restart=false,useDistortions=true,correctDistortions=true,...
 %     nIter = 500,startPars=exp(MLE_PDO_Corrected.mhSamples));
 
+
+return
 %% Fig 4G,H,I -- CRLB vs drop out.
 % In this section, we compute the FIM for different dropout fractions.  The
 % current analysis only allows for a single define experiment (i.e., the
@@ -3072,300 +3187,422 @@ function plotHeatmap(M,rowNames,colNames,titleText,logThreshold)
 % Standalone heatmap using the same log transformation and colormap
 % as plotFIMResults.
 %
+% Infinite values are displayed at the maximum color scale and labeled
+% with +inf / -inf rather than +/-.
+%
 %   M             : matrix to display
 %   rowNames      : row names
 %   colNames      : column names
 %   titleText     : optional title
-%   logThreshold  : optional log10 threshold, default = 0
+%   logThreshold  : optional log10 threshold, default = -5
 %
 % Example:
 %
 %   plotHeatmap(M,params,params,'FIM',-4)
 
-    if nargin < 4
-        titleText = '';
-    end
+if nargin < 4
+titleText = '';
+end
 
-    if nargin < 5
-        logThreshold = -6;
-    end
+if nargin < 5
+logThreshold = -5;
+end
 
-    % -------------------------------------------------------------
-    % Check dimensions
-    % -------------------------------------------------------------
+% -------------------------------------------------------------
+% Check dimensions
+% -------------------------------------------------------------
 
-    if size(M,1) ~= numel(rowNames)
-        error('Number of row names must equal number of rows.');
-    end
+if size(M,1) ~= numel(rowNames)
+error('Number of row names must equal number of rows.');
+end
 
-    if size(M,2) ~= numel(colNames)
-        error('Number of column names must equal number of columns.');
-    end
+if size(M,2) ~= numel(colNames)
+error('Number of column names must equal number of columns.');
+end
 
-    rowNames = cellstr(rowNames);
-    colNames = cellstr(colNames);
+rowNames = cellstr(rowNames);
+colNames = cellstr(colNames);
 
-    % -------------------------------------------------------------
-    % EXACT SAME LOG TRANSFORMATION AS plotFIMResults
-    % -------------------------------------------------------------
+% -------------------------------------------------------------
+% Log transformation
+% -------------------------------------------------------------
 
-    threshold = 10^logThreshold;
+threshold = 10^logThreshold;
 
-    posValues = ...
-        1*(M >= threshold) + ...
-       -1*(M <= -threshold);
+isPosInf = isinf(M) & M > 0;
+isNegInf = isinf(M) & M < 0;
+isInf    = isPosInf | isNegInf;
 
-    logMag = ...
-        max(0,log10(abs(M))-logThreshold) .* posValues;
+% -------------------------------------------------------------
+% Transform finite values only
+% -------------------------------------------------------------
 
-    fimDisp = logMag;
+Mfinite = M;
+Mfinite(isInf) = NaN;
 
-    % -------------------------------------------------------------
-    % Color range
-    % -------------------------------------------------------------
+posValues = ...
+1*(Mfinite >= threshold) + ...
+-1*(Mfinite <= -threshold);
 
-    x1 = max(abs(fimDisp),[],'all');
+logMag = ...
+max(0,log10(abs(Mfinite))-logThreshold) .* posValues;
 
-    if x1 == 0
-        error('LogThreshold is set too high.');
-    end
+fimDisp = logMag;
 
-    % -------------------------------------------------------------
-    % Same colorbar logic as plotFIMResults
-    % -------------------------------------------------------------
+% -------------------------------------------------------------
+% Determine maximum finite display value
+% -------------------------------------------------------------
 
-    if logThreshold > 0
+finiteDisp = fimDisp(isfinite(fimDisp));
 
-        rangeColors = ...
-            [-x1,-abs(logThreshold),abs(logThreshold),x1];
+if isempty(finiteDisp)
 
-        cbTicks = [ ...
-            floor(rangeColors(1)):rangeColors(2), ...
-            0, ...
-            rangeColors(3):ceil(rangeColors(4))];
+% Entire matrix is infinite
+x1 = 1;
 
-        cbTickLabels = [ ...
-            arrayfun(@(v) sprintf('-10^{%g}', ...
-                -v+logThreshold), ...
-                cbTicks(1:end/2), ...
-                'UniformOutput',false), ...
-            {['\pm 10^{',num2str(logThreshold),'}']}, ...
-            arrayfun(@(v) sprintf('10^{%g}', ...
-                v+logThreshold), ...
-                cbTicks(end/2+1:end), ...
-                'UniformOutput',false)];
+else
 
-    elseif logThreshold < 0
+x1 = max(abs(finiteDisp),[],'all');
 
-        rangeColors = [-x1,0,x1];
+if x1 == 0
+    x1 = 1;
+end
 
-        cbTicks = [ ...
-            floor(rangeColors(1)):0, ...
-            1:ceil(rangeColors(3))];
+end
 
-        cbTickLabels = [ ...
-            arrayfun(@(v) sprintf('-10^{%g}', ...
-                -v+logThreshold), ...
-                cbTicks(1:end/2), ...
-                'UniformOutput',false), ...
-            {['\pm 10^{',num2str(logThreshold),'}']}, ...
-            arrayfun(@(v) sprintf('10^{%g}', ...
-                v+logThreshold), ...
-                cbTicks(end/2+1:end), ...
-                'UniformOutput',false)];
+% -------------------------------------------------------------
+% Make the color scale symmetric and integer-bounded
+%
+% This is important because the colorbar ticks and the colormap
+% must use exactly the same endpoints.
+% -------------------------------------------------------------
+
+colorMax = ceil(x1);
+
+if colorMax == 0
+colorMax = 1;
+end
+
+% -------------------------------------------------------------
+% Assign Inf values directly to the color-scale endpoints
+%
+% +Inf -> +colorMax -> darkest red
+% -Inf -> -colorMax -> darkest blue
+% -------------------------------------------------------------
+
+fimDisp(isPosInf) = colorMax;
+fimDisp(isNegInf) = -colorMax;
+
+% -------------------------------------------------------------
+% Color range
+% -------------------------------------------------------------
+
+rangeColors = [-colorMax, 0, colorMax];
+
+% -------------------------------------------------------------
+% Colorbar ticks
+% -------------------------------------------------------------
+
+cbTicks = [ ...
+floor(rangeColors(1)):0, ...
+1:ceil(rangeColors(3))];
+
+% Remove any duplicate zero
+cbTicks = unique(cbTicks,'stable');
+
+% -------------------------------------------------------------
+% Colorbar labels
+% -------------------------------------------------------------
+
+if logThreshold < 0
+
+cbTickLabels = cell(size(cbTicks));
+
+for k = 1:numel(cbTicks)
+
+    v = cbTicks(k);
+
+    if v < 0
+
+        cbTickLabels{k} = sprintf( ...
+            '$-10^{%g}$', ...
+            -v + logThreshold);
+
+    elseif v == 0
+
+        cbTickLabels{k} = ...
+            ['$\pm 10^{',num2str(logThreshold),'}$'];
 
     else
 
-        rangeColors = [-x1,0,x1];
-
-        cbTicks = [ ...
-            floor(rangeColors(1)):0, ...
-            1:ceil(rangeColors(3))];
-
-        cbTickLabels = [ ...
-            arrayfun(@(v) sprintf('-10^{%g}', ...
-                -v), ...
-                cbTicks(1:end/2), ...
-                'UniformOutput',false), ...
-            {'0'}, ...
-            arrayfun(@(v) sprintf('10^{%g}', ...
-                v), ...
-                cbTicks(end/2+1:end), ...
-                'UniformOutput',false)];
-
-    end
-
-    % -------------------------------------------------------------
-    % Colormap -- EXACT SAME FUNCTION AS plotFIMResults
-    % -------------------------------------------------------------
-
-    cmap = blueWhiteFlatRed( ...
-        cbTicks(1), ...
-        0, ...
-        0, ...
-        cbTicks(end));
-
-    % -------------------------------------------------------------
-    % Plot
-    % -------------------------------------------------------------
-
-    imagesc(fimDisp);
-
-    ax = gca;
-
-    axis square;
-
-    colormap(ax,cmap);
-
-    clim([cbTicks(1),cbTicks(end)]);
-
-    % -------------------------------------------------------------
-    % Colorbar
-    % -------------------------------------------------------------
-
-    cb = colorbar;
-
-    cb.Ticks = cbTicks;
-    cb.TickLabels = cbTickLabels;
-    cb.TickLabelInterpreter = 'latex';
-
-    cb.Label.String = 'Value';
-
-    % -------------------------------------------------------------
-    % Axis formatting
-    % -------------------------------------------------------------
-
-    ax.XTick = 1:numel(colNames);
-    ax.YTick = 1:numel(rowNames);
-
-    ax.XTickLabel = colNames;
-    ax.YTickLabel = rowNames;
-
-    ax.FontSize = 11;
-    ax.LineWidth = 0.5;
-    ax.TickDir = 'out';
-    ax.Box = 'on';
-
-    xlabel('Parameter');
-    ylabel('Parameter');
-
-    % -------------------------------------------------------------
-    % Cell boundaries
-    % -------------------------------------------------------------
-
-    hold on;
-
-    for x = 0.5:1:size(M,2)+0.5
-
-        plot([x x], ...
-             [0.5 size(M,1)+0.5], ...
-             'Color',[0.5 0.5 0.5], ...
-             'LineWidth',0.5);
-
-    end
-
-    for y = 0.5:1:size(M,1)+0.5
-
-        plot([0.5 size(M,2)+0.5], ...
-             [y y], ...
-             'Color',[0.5 0.5 0.5], ...
-             'LineWidth',0.5);
-
-    end
-
-    % -------------------------------------------------------------
-    % +/- overlay
-    % -------------------------------------------------------------
-
-    for i = 1:size(M,1)
-
-        for j = 1:size(M,2)
-
-            if M(i,j) >= threshold
-
-                txt = '+';
-
-            elseif M(i,j) <= -threshold
-
-                txt = '-';
-
-            else
-
-                continue;
-
-            end
-
-            text(j,i,txt, ...
-                'HorizontalAlignment','center', ...
-                'VerticalAlignment','middle', ...
-                'FontWeight','bold', ...
-                'Color','k');
-
-        end
-
-    end
-
-    hold off;
-
-    % -------------------------------------------------------------
-    % Title
-    % -------------------------------------------------------------
-
-    if ~isempty(titleText)
-
-        title(titleText, ...
-            'FontSize',14, ...
-            'FontWeight','normal');
+        cbTickLabels{k} = sprintf( ...
+            '$10^{%g}$', ...
+            v + logThreshold);
 
     end
 
 end
 
+elseif logThreshold > 0
+
+cbTickLabels = cell(size(cbTicks));
+
+for k = 1:numel(cbTicks)
+
+    v = cbTicks(k);
+
+    if v < 0
+
+        cbTickLabels{k} = sprintf( ...
+            '$-10^{%g}$', ...
+            -v + logThreshold);
+
+    elseif v == 0
+
+        cbTickLabels{k} = ...
+            ['$\pm 10^{',num2str(logThreshold),'}$'];
+
+    else
+
+        cbTickLabels{k} = sprintf( ...
+            '$10^{%g}$', ...
+            v + logThreshold);
+
+    end
+
+end
+
+else
+
+cbTickLabels = cell(size(cbTicks));
+
+for k = 1:numel(cbTicks)
+
+    v = cbTicks(k);
+
+    if v < 0
+
+        cbTickLabels{k} = sprintf( ...
+            '$-10^{%g}$', ...
+            -v);
+
+    elseif v == 0
+
+        cbTickLabels{k} = '$0$';
+
+    else
+
+        cbTickLabels{k} = sprintf( ...
+            '$10^{%g}$', ...
+            v);
+
+    end
+
+end
+
+end
+
+% -------------------------------------------------------------
+% Colormap
+%
+% The endpoints are now EXACTLY:
+%
+%   -colorMax -> dark blue
+%   0         -> white
+%   +colorMax -> dark red
+%
+% -------------------------------------------------------------
+
+cmap = blueWhiteFlatRed( ...
+-colorMax, ...
+0, ...
+0, ...
+colorMax);
+
+% -------------------------------------------------------------
+% Plot
+% -------------------------------------------------------------
+
+imagesc(fimDisp);
+
+ax = gca;
+
+axis square;
+
+colormap(ax,cmap);
+
+% IMPORTANT:
+% Explicitly use the same endpoints as the colormap.
+clim([-colorMax,colorMax]);
+
+% -------------------------------------------------------------
+% Colorbar
+% -------------------------------------------------------------
+
+cb = colorbar;
+
+cb.Ticks = cbTicks;
+cb.TickLabels = cbTickLabels;
+cb.TickLabelInterpreter = 'latex';
+
+cb.Label.String = 'Value';
+
+% -------------------------------------------------------------
+% Axis formatting
+% -------------------------------------------------------------
+
+ax.XTick = 1:numel(colNames);
+ax.YTick = 1:numel(rowNames);
+
+ax.XTickLabel = colNames;
+ax.YTickLabel = rowNames;
+
+ax.FontSize = 11;
+ax.LineWidth = 0.5;
+ax.TickDir = 'out';
+ax.Box = 'on';
+
+xlabel('Parameter');
+ylabel('Parameter');
+
+% -------------------------------------------------------------
+% Cell boundaries
+% -------------------------------------------------------------
+
+hold on;
+
+for x = 0.5:1:size(M,2)+0.5
+
+plot([x x], ...
+     [0.5 size(M,1)+0.5], ...
+     'Color',[0.5 0.5 0.5], ...
+     'LineWidth',0.5);
+
+end
+
+for y = 0.5:1:size(M,1)+0.5
+
+plot([0.5 size(M,2)+0.5], ...
+     [y y], ...
+     'Color',[0.5 0.5 0.5], ...
+     'LineWidth',0.5);
+
+end
+
+% -------------------------------------------------------------
+% Overlay symbols
+% -------------------------------------------------------------
+
+for i = 1:size(M,1)
+
+for j = 1:size(M,2)
+
+    % -----------------------------------------------------
+    % Infinite values
+    % -----------------------------------------------------
+
+    if isPosInf(i,j)
+
+        txt = '+\infty';
+        fontSize = 5;
+
+    elseif isNegInf(i,j)
+
+        txt = '-\infty';
+        fontSize = 5;
+
+    % -----------------------------------------------------
+    % Normal finite values
+    % -----------------------------------------------------
+
+    elseif M(i,j) >= threshold
+
+        txt = '+';
+        fontSize = 11;
+
+    elseif M(i,j) <= -threshold
+
+        txt = '-';
+        fontSize = 11;
+
+    else
+
+        continue;
+
+    end
+
+    text(j,i,txt, ...
+        'HorizontalAlignment','center', ...
+        'VerticalAlignment','middle', ...
+        'FontWeight','bold', ...
+        'FontSize',fontSize, ...
+        'Color','k', ...
+        'Interpreter','tex');
+
+end
+
+end
+
+hold off;
+
+% -------------------------------------------------------------
+% Title
+% -------------------------------------------------------------
+
+if ~isempty(titleText)
+
+title(titleText, ...
+    'FontSize',14, ...
+    'FontWeight','normal');
+
+end
+
+end
 
 % =============================================================
 % Blue -> white -> red
-% EXACTLY the same helper used in plotFIMResults
 % =============================================================
 
 function cmap = blueWhiteFlatRed(x1,x2,x3,x4,n)
 
-    if nargin < 5
-        n = 256;
-    end
+if nargin < 5
+n = 256;
+end
 
-    xs = linspace(x1,x4,n);
+xs = linspace(x1,x4,n);
 
-    blue  = [0 0 0.6];
-    white = [1 1 1];
-    red   = [0.6 0 0];
+blue  = [0 0 0.6];
+white = [1 1 1];
+red   = [0.6 0 0];
 
-    cmap = zeros(n,3);
+cmap = zeros(n,3);
 
-    for i = 1:n
+for i = 1:n
 
-        x = xs(i);
+x = xs(i);
 
-        if x <= x2
+if x <= x2
 
-            t = (x-x1)/(x2-x1);
+    t = (x-x1)/(x2-x1);
 
-            cmap(i,:) = ...
-                (1-t)*blue + t*white;
+    cmap(i,:) = ...
+        (1-t)*blue + t*white;
 
-        elseif x <= x3
+elseif x <= x3
 
-            cmap(i,:) = white;
+    cmap(i,:) = white;
 
-        else
+else
 
-            t = (x-x3)/(x4-x3);
+    t = (x-x3)/(x4-x3);
 
-            cmap(i,:) = ...
-                (1-t)*white + t*red;
+    cmap(i,:) = ...
+        (1-t)*white + t*red;
 
-        end
+end
 
-    end
+
+end
 
 end
 
