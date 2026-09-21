@@ -2730,10 +2730,12 @@ Model_chg.fspOptions.initApproxSS = true;
 Model_chg.tSpan = linspace(0,15,31);
 
 f1 = figure(301); clf;
+f3 = figure(303); clf;
 Model_chg.fspOptions.bounds = [];
 Model_chg.fspOptions.stateSpace = [];
 Model_chg = Model_chg.solve(solver='fsp');
-Model_chg.plotFSP(figureNums=f1,plotType='marginals',indTimes=length(Model_chg.tSpan),speciesNames='mRNA',Colors={'r'})
+Model_chg.plotFSP(figureNums=f1,plotType='marginals',indTimes=length(Model_chg.tSpan),speciesNames='mRNA',Colors={'k'})
+Model_chg.plotFSP(figureNums=f3,plotType='marginals',indTimes=length(Model_chg.tSpan),speciesNames='mRNA',Colors={'k'}) %  lineProps={'LineWidth',2,'LineStyle','--'}
 
 % Add a Binomial PDO 
 dropOut = 0.6; % fraction dropout
@@ -2748,87 +2750,192 @@ fPDO = gcf;
 f2 = figure(302);
 clf;
 copyobj(allchild(fPDO), f2);
-
 close(fPDO);
 
-figure(f1)
+figure(f3)
 hold on
-Model_BinomialPDO.plotFSP(figureNums=f1,plotType='marginals',indTimes=length(Model_BinomialPDO.tSpan),...
-    speciesNames='mRNA',includePDO=true,Colors={'k'})
+Model_BinomialPDO.plotFSP(figureNums=f3,plotType='marginals',indTimes=length(Model_BinomialPDO.tSpan),...
+    speciesNames='mRNA',includePDO=true,Colors={'r'})
 % set(gca,'yscale','log','ylim',[1e-5,1])
 
 %% PDO - Show effect on MLE estimation.
 % First, generate the MLE scatter plot and FIM overlay (same as above).
-freePars = [1:5];
+freePars = [1:4];
 nCellsInExperiment = 0*Model_chg.tSpan;
 nCellsInExperiment([1,11,31]) = 200;
-nMLE = 40;
-MLE_noDistortion = Model_BinomialPDO.estimateMLEspread(nCells=nCellsInExperiment,...
-    observableSpecies={'mRNA'},nMLE=nMLE,simsSaveFile='BurstFIMSimsPDO.csv',...
-    freePars=freePars,restart=true,useDistortions=false,correctDistortions=false,...
-    nIter = 500);
+nMLE = 500;
 
-%% Next, find MLE estimates WITHOUT correcting for the distortion. 
-nMLE = 40;
-MLE_PDO_Uncorrected = Model_BinomialPDO.estimateMLEspread(nCells=nCellsInExperiment,...
-    observableSpecies={'mRNA'},nMLE=nMLE,simsSaveFile='BurstFIMSimsPDO.csv',...
-    freePars=freePars,restart=true,useDistortions=true,correctDistortions=false,...
-    nIter = 500);
-% MLE_PDO_Uncorrected = Model_BinomialPDO.estimateMLEspread(nCells=nCellsInExperiment,...
-%     observableSpecies={'mRNA'},nMLE=nMLE,simsSaveFile='BurstFIMSimsPDO.csv',...
-%     freePars=freePars,restart=true,useDistortions=true,correctDistortions=false,...
-%     nIter = 500,startPars=exp(MLE_PDO_Uncorrected.mhSamples));
+if false
+    MLE_noDistortion = Model_BinomialPDO.estimateMLEspread(nCells=nCellsInExperiment,...
+        observableSpecies={'mRNA'},nMLE=nMLE,simsSaveFile='BurstFIMSimsPDO.csv',...
+        freePars=freePars,restart=true,useDistortions=false,correctDistortions=false,...
+        nIter = 500);
+    
+    % Next, find MLE estimates WITHOUT correcting for the distortion. 
+    MLE_PDO_Uncorrected = Model_BinomialPDO.estimateMLEspread(nCells=nCellsInExperiment,...
+        observableSpecies={'mRNA'},nMLE=nMLE,simsSaveFile='BurstFIMSimsPDO.csv',...
+        freePars=freePars,restart=true,useDistortions=true,correctDistortions=false,...
+        nIter = 500);
+ 
+    % Next, find MLE estimates with correcting for the distortion. 
+    Model_chg = Model_chg.solve(solver='fsp');
+    MLE_PDO_Corrected = Model_BinomialPDO.estimateMLEspread(nCells=nCellsInExperiment,...
+        observableSpecies={'mRNA'},nMLE=nMLE,simsSaveFile='BurstFIMSimsPDO.csv',...
+        freePars=freePars,restart=false,useDistortions=true,correctDistortions=true,...
+        nIter = 500);
 
-%% Next, find MLE estimates with correcting for the distortion. 
-MLE_PDO_Corrected = Model_BinomialPDO.estimateMLEspread(nCells=nCellsInExperiment,...
-    observableSpecies={'mRNA'},nMLE=nMLE,simsSaveFile='BurstFIMSimsPDO.csv',...
-    freePars=freePars,restart=false,useDistortions=true,correctDistortions=true,...
-    nIter = 500);
-% MLE_PDO_Corrected = Model_BinomialPDO.estimateMLEspread(nCells=nCellsInExperiment,...
-%     observableSpecies={'mRNA'},nMLE=nMLE,simsSaveFile='BurstFIMSimsPDO.csv',...
-%     freePars=freePars,restart=false,useDistortions=true,correctDistortions=true,...
-%     nIter = 500,startPars=exp(MLE_PDO_Corrected.mhSamples));
+    save('MLEforDistortions.mat', 'MLE_noDistortion', 'MLE_PDO_Uncorrected', 'MLE_PDO_Corrected')
+
+end
+
+load('MLEforDistortions.mat')
+
 
 %% Plot the spread of the mle and FIM estiamte
-% f1 = figure(303);
-% FIMs = Model_chg.computeFIM(freePars=(1:5),scale='log');
-% FIMTotal = Model_chg.totalFim(FIMs,nCellsInExperiment);
-% FIM = FIMTotal{1};
-% 
-% Model_chg.plotFIMResults(FIM^(-1)/log(10)^2, 'log',...
-%     Model_chg.parameters(1:5,1),...
-%     [Model_chg.parameters{1:5,2}],...
-%     PlotEllipses=true, ...
-%     EllipseFigure=f1,...
-%     Colors = struct('EllipseColors',[0, 0, 0],'CenterSquare',[0,0,0]), ...
-%     EllipsePairs=[1,2], ...
-%     FigureHandle=f1,...
-%     LogThreshold=-4,...
-%     HeatMapType='invfim',...
-%     MatrixType='invfim');
-% hold on
-% scatter(MLE_noDistortion.mhSamples(:,2), MLE_noDistortion.mhSamples(:,1))
+% plot unaltered spread
+f1 = figure(304);
+
+fTrash = figure(350);
+
+FIMs = Model_chg.computeFIM(freePars=(1:5),scale='log');
+FIMTotal = Model_chg.totalFim(FIMs,nCellsInExperiment);
+FIM = FIMTotal{1};
+
+MLElog = MLE_noDistortion.mhSamples/log(10);
+
+Model_chg.plotFIMResults(FIM^(-1)/log(10)^2, 'log',...
+    Model_chg.parameters(1:5,1),...
+    [Model_chg.parameters{1:5,2}],...
+    PlotEllipses=true, ...
+    EllipseFigure=f1,...
+    Colors=struct('EllipseColors',[0,0,0],'CenterSquare',[0,0,0]),...
+    EllipsePairs=[1,2],...
+    FigureHandle=fTrash,...
+    LogThreshold=-4,...
+    HeatMapType='invfim',...
+    MatrixType='invfim');
+
+hold on
+
+scatter(MLElog(:,2),MLElog(:,1),10,[0.5 0.5 0.5],'filled');
+plotMLEEllipse(MLElog(:,2),MLElog(:,1),0.95);
 
 
-% figure(304)
-% scatter(MLE_PDO_Uncorrected.mhSamples(:,2), MLE_PDO_Uncorrected.mhSamples(:,1))
-% 
-% figure(305)
-% scatter(MLE_PDO_Corrected.mhSamples(:,2), MLE_PDO_Corrected.mhSamples(:,1))
-% FIMs = Model_BinomialPDO.computeFIM(scale='log',freePars=opts.freePars,...
-%                     observed=opts.observableSpecies);
-% FIMTotal = Model_BinomialPDO.totalFim(FIMs,nCellsInExperiment);
-% FIM = FIMTotal{1};
-% 
-% figure(306)
-% scatter(MLE_noDistortion.mhSamples(:,2), MLE_noDistortion.mhSamples(:,1))
-% 
-% figure(307)
-% scatter(MLE_PDO_Uncorrected.mhSamples(:,2), MLE_PDO_Uncorrected.mhSamples(:,1))
-% 
-% figure(308)
-% scatter(MLE_PDO_Corrected.mhSamples(:,2), MLE_PDO_Corrected.mhSamples(:,1))
-% 
+f1 = figure(305);
+
+Model_chg.plotFIMResults(FIM^(-1)/log(10)^2, 'log',...
+    Model_chg.parameters(1:5,1),...
+    [Model_chg.parameters{1:5,2}],...
+    PlotEllipses=true, ...
+    EllipseFigure=f1,...
+    Colors=struct('EllipseColors',[0,0,0],'CenterSquare',[0,0,0]),...
+    EllipsePairs=[3,4],...
+    FigureHandle=fTrash,...
+    LogThreshold=-4,...
+    HeatMapType='invfim',...
+    MatrixType='invfim');
+
+hold on
+
+scatter(MLElog(:,4),MLElog(:,3),10,[0.5 0.5 0.5],'filled');
+
+plotMLEEllipse(MLElog(:,4),MLElog(:,3),0.95);
+
+% plot distorted
+
+f1 = figure(306);
+
+FIMs = Model_chg.computeFIM(freePars=(1:5),scale='log');
+FIMTotal = Model_chg.totalFim(FIMs,nCellsInExperiment);
+FIM = FIMTotal{1};
+
+MLElog = MLE_PDO_Uncorrected.mhSamples/log(10);
+
+Model_BinomialPDO.plotFIMResults(FIM^(-1)/log(10)^2, 'log',...
+    Model_chg.parameters(1:5,1),...
+    [Model_chg.parameters{1:5,2}],...
+    PlotEllipses=true, ...
+    EllipseFigure=f1,...
+    Colors=struct('EllipseColors',[0,0,0],'CenterSquare',[0,0,0]),...
+    EllipsePairs=[1,2],...
+    FigureHandle=fTrash,...
+    LogThreshold=-4,...
+    HeatMapType='invfim',...
+    MatrixType='invfim');
+
+hold on
+
+scatter(MLElog(:,2),MLElog(:,1),10,[0.5 0.5 0.5],'filled');
+plotMLEEllipse(MLElog(:,2),MLElog(:,1),0.95);
+
+
+f1 = figure(307);
+
+Model_BinomialPDO.plotFIMResults(FIM^(-1)/log(10)^2, 'log',...
+    Model_chg.parameters(1:5,1),...
+    [Model_chg.parameters{1:5,2}],...
+    PlotEllipses=true, ...
+    EllipseFigure=f1,...
+    Colors=struct('EllipseColors',[0,0,0],'CenterSquare',[0,0,0]),...
+    EllipsePairs=[3,4],...
+    FigureHandle=fTrash,...
+    LogThreshold=-4,...
+    HeatMapType='invfim',...
+    MatrixType='invfim');
+
+hold on
+
+scatter(MLElog(:,4),MLElog(:,3),10,[0.5 0.5 0.5],'filled');
+plotMLEEllipse(MLElog(:,4),MLElog(:,3),0.95);
+
+% plot corrected distorted
+
+f1 = figure(308);
+
+FIMs = Model_BinomialPDO.computeFIM(freePars=(1:5),scale='log');
+FIMTotal = Model_BinomialPDO.totalFim(FIMs,nCellsInExperiment);
+FIM = FIMTotal{1};
+
+MLElog = MLE_PDO_Corrected.mhSamples/log(10);
+
+Model_BinomialPDO.plotFIMResults(FIM^(-1)/log(10)^2, 'log',...
+    Model_chg.parameters(1:5,1),...
+    [Model_chg.parameters{1:5,2}],...
+    PlotEllipses=true, ...
+    EllipseFigure=f1,...
+    Colors=struct('EllipseColors',[0,0,0],'CenterSquare',[0,0,0]),...
+    EllipsePairs=[1,2],...
+    FigureHandle=fTrash,...
+    LogThreshold=-4,...
+    HeatMapType='invfim',...
+    MatrixType='invfim');
+
+hold on
+
+scatter(MLElog(:,2),MLElog(:,1),10,[0.5 0.5 0.5],'filled');
+plotMLEEllipse(MLElog(:,2),MLElog(:,1),0.95);
+
+
+f1 = figure(309);
+
+Model_chg.plotFIMResults(FIM^(-1)/log(10)^2, 'log',...
+    Model_chg.parameters(1:5,1),...
+    [Model_chg.parameters{1:5,2}],...
+    PlotEllipses=true, ...
+    EllipseFigure=f1,...
+    Colors=struct('EllipseColors',[0,0,0],'CenterSquare',[0,0,0]),...
+    EllipsePairs=[3,4],...
+    FigureHandle=fTrash,...
+    LogThreshold=-4,...
+    HeatMapType='invfim',...
+    MatrixType='invfim');
+
+hold on
+
+scatter(MLElog(:,4),MLElog(:,3),10,[0.5 0.5 0.5],'filled');
+plotMLEEllipse(MLElog(:,4),MLElog(:,3),0.95);
+
+
 
 
 %% Fig 4G,H,I -- CRLB vs drop out.
@@ -2867,7 +2974,7 @@ for i = 1:N
 end
 
 % Plot the determinant of the inverse FIM versus the drop out rate
-figure(41); clf;
+figure(310); clf;
 plot(vDropOut,1./detFIMOrig,'b',vDropOut,1./detFIMOpt,'r--','linewidth',3)  
 set(gca,'yscale','log')
 xlabel('Drop Out Fraction')
@@ -2876,18 +2983,18 @@ ylabel('Det(FIM^{-1})')
 % Plot the nmber of cells that need to be measured to achieve the same
 % information (same expected determinant of FIM) as was achieved when we
 % did the original experiment design with 600 cells.
-figure(42); clf;
+figure(311); clf;
 plot(vDropOut,nCellsOrig,'b',vDropOut,nCellsOpt,'r--','linewidth',3)  
 set(gca,'yscale','log')
 xlabel('Drop Out Fraction')
 ylabel('Required Number of Cells')
 
-figure(43); clf;
+figure(312); clf;
 % Plot the optimal experiment design versus the dropout rate, constrained
 % to have the same original number of cells (600).  In this plot, the
 % colors will represent the fraction of cells that are measure at each time
 % point.
-pcolor(vDropOut,[Model.tSpan,Model.tSpan(end)+Model.tSpan(end)-Model.tSpan(end-1)],[OptExperiment,zeros(N,1)]'/600)  
+pcolor(vDropOut,[Model_chg.tSpan,Model_chg.tSpan(end)+Model_chg.tSpan(end)-Model_chg.tSpan(end-1)],[OptExperiment,zeros(N,1)]'/600)  
 % set(gca,'yscale','log')
 ylabel('Measurement Time')
 xlabel('Drop Out Fraction')
@@ -2900,6 +3007,110 @@ c.Label.String = 'Fraction of Cells'
 
 
 
+%% Export Figures for Paper
+if true
+outputFolder = 'AnnualReview_Figures';
+
+if ~exist(outputFolder, 'dir')
+    mkdir(outputFolder);
+end
+
+% Overall paper canvas
+fullWidth = 6.33;
+fullHeight = 6.33;
+
+% 4 x 3 grid
+plotWidth = fullWidth / 3;
+plotHeight = fullHeight / 3;
+
+for figNum = 301:312
+
+    fig = figure(figNum);
+
+    % Find all axes
+    axesList = findall(fig, 'Type', 'Axes');
+
+    % SAVE TICKS BEFORE RESIZING
+    savedXTicks = cell(size(axesList));
+    savedYTicks = cell(size(axesList));
+
+    for i = 1:length(axesList)
+        savedXTicks{i} = axesList(i).XTick;
+        savedYTicks{i} = axesList(i).YTick;
+    end
+
+    % Remove figure-level title
+    sgtitle(fig, '');
+
+    for i = 1:length(axesList)
+
+        ax = axesList(i);
+
+        % Remove title
+        ax.Title.String = '';
+        ax.Title.Visible = 'off';
+
+        % Remove axis labels
+        ax.XLabel.String = '';
+        ax.XLabel.Visible = 'off';
+
+        ax.YLabel.String = '';
+        ax.YLabel.Visible = 'off';
+
+        % Remove tick labels
+        ax.XTickLabel = [];
+        ax.YTickLabel = [];
+
+        % FORCE ticks to remain fixed
+        ax.XTick = savedXTicks{i};
+        ax.YTick = savedYTicks{i};
+
+    end
+
+    % Remove legends
+    legends = findall(fig, 'Type', 'Legend');
+
+    if ~isempty(legends)
+        delete(legends);
+    end
+
+    % Remove colorbar labels/ticks
+    colorbars = findall(fig, 'Type', 'ColorBar');
+
+    for i = 1:length(colorbars)
+
+        cb = colorbars(i);
+
+        cb.TickLabels = [];
+        cb.Label.String = '';
+
+    end
+
+    % Set physical dimensions
+    fig.Units = 'inches';
+    fig.Position(3:4) = [plotWidth plotHeight];
+
+    % Reapply ticks AFTER resizing
+    for i = 1:length(axesList)
+
+        ax = axesList(i);
+
+        ax.XTick = savedXTicks{i};
+        ax.YTick = savedYTicks{i};
+
+    end
+
+    % Export
+    fileName = sprintf('figure%d.svg', figNum);
+
+    exportgraphics(fig, ...
+        fullfile(outputFolder, fileName), ...
+        'ContentType', 'vector');
+
+end
+
+disp('Figures 101-112 exported successfully.');
+end
 
 
 %%
@@ -3622,45 +3833,85 @@ end
 % =============================================================
 
 function cmap = blueWhiteFlatRed(x1,x2,x3,x4,n)
+    
+    if nargin < 5
+    n = 256;
+    end
+    
+    xs = linspace(x1,x4,n);
+    
+    blue  = [0 0 0.6];
+    white = [1 1 1];
+    red   = [0.6 0 0];
+    
+    cmap = zeros(n,3);
+    
+    for i = 1:n
+    
+    x = xs(i);
+    
+    if x <= x2
+    
+        t = (x-x1)/(x2-x1);
+    
+        cmap(i,:) = ...
+            (1-t)*blue + t*white;
+    
+    elseif x <= x3
+    
+        cmap(i,:) = white;
+    
+    else
+    
+        t = (x-x3)/(x4-x3);
+    
+        cmap(i,:) = ...
+            (1-t)*white + t*red;
+    
+    end
+    
+    
+    end
 
-if nargin < 5
-n = 256;
 end
 
-xs = linspace(x1,x4,n);
 
-blue  = [0 0 0.6];
-white = [1 1 1];
-red   = [0.6 0 0];
 
-cmap = zeros(n,3);
+function h = plotMLEEllipse(x,y,confidence)
 
-for i = 1:n
+    % Remove invalid samples
+    valid = isfinite(x) & isfinite(y);
+    x = x(valid);
+    y = y(valid);
 
-x = xs(i);
+    % Mean of MLE samples
+    mu = [mean(x), mean(y)];
 
-if x <= x2
+    % Empirical covariance
+    C = cov([x y]);
 
-    t = (x-x1)/(x2-x1);
+    % Eigenvectors/eigenvalues of covariance matrix
+    [V,D] = eig(C);
 
-    cmap(i,:) = ...
-        (1-t)*blue + t*white;
+    % Sort eigenvalues from largest to smallest
+    [lambda,idx] = sort(diag(D),'descend');
+    V = V(:,idx);
 
-elseif x <= x3
+    % Chi-square scaling for a 2D confidence ellipse
+    scale = sqrt(chi2inv(confidence,2));
 
-    cmap(i,:) = white;
+    % Parametric ellipse
+    theta = linspace(0,2*pi,300);
 
-else
+    ellipse = V * diag(sqrt(lambda)) * scale * ...
+              [cos(theta); sin(theta)];
 
-    t = (x-x3)/(x4-x3);
+    ellipse(1,:) = ellipse(1,:) + mu(1);
+    ellipse(2,:) = ellipse(2,:) + mu(2);
 
-    cmap(i,:) = ...
-        (1-t)*white + t*red;
+    % Plot ellipse
+    h = plot(ellipse(1,:),ellipse(2,:),...
+        'c-',...
+        'LineWidth',2);
 
 end
-
-
-end
-
-end
-
