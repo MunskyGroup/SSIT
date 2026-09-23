@@ -11,6 +11,7 @@ classdef Forman2027
         kon_domain = logspace(-2,1,3000);
         Model;
         ModelKoff;
+        Model_BinomialPDO;
         nCellsInExperiment;
         FIM = [];
         exp1NCells =[];
@@ -462,10 +463,10 @@ classdef Forman2027
             Model_chg.fittingOptions.modelVarsToFit = [1];
             % T = array2table(obj.count_domain, ...
             %     'VariableNames', compose("exp%d_mRNA", obj.count_domain));
-            % 
+            %
             % T.time = 0;
             % T = movevars(T, 'time', 'Before', 1);
-            % 
+            %
             % writetable(T, 'fakeData.csv');
             % pars = [Model_chg.parameters{:,2}];
             log_probs_v_pars = zeros(ceil(Model_chg.fspOptions.bounds(4)), length(obj.kon_domain));
@@ -741,7 +742,7 @@ classdef Forman2027
             ax.TickLength = [0.015 0.015];
 
 
-            %% 2E MLE variance and FIM Convergence 
+            %% 2E MLE variance and FIM Convergence
 
             mleVar = zeros(size(cell_numbers));
             fimVar = zeros(size(cell_numbers));
@@ -757,7 +758,7 @@ classdef Forman2027
             end
 
             axes(ax2E2);
-            
+
             plot(cell_numbers, mleVar, 'ko-', ...
                 'LineWidth', 2, ...
                 'MarkerFaceColor', 'k')
@@ -784,7 +785,7 @@ classdef Forman2027
             ax2E2.XColor = 'k';
             ax2E2.YColor = 'k';
             ax2E2.TickLength = [0.008 0.008];
-            
+
             %% 2F - MSE of MLE vs number of cells
             mleMSE = zeros(size(cell_numbers));
 
@@ -875,9 +876,7 @@ classdef Forman2027
             FIMTotal = Model_chg.totalFim(FIMs,obj.nCellsInExperiment);
             Model_chg.plotMHResults(MLE,FIM=FIMTotal,fimScale='log',truncateChain=false);
         end
-
-
-        function xxx(obj)
+        function makeFig2H(obj)
             f1 = figure(109); % fim ellipse
             clf
             f2 = figure(150); % default fim analysis
@@ -1995,6 +1994,234 @@ classdef Forman2027
 
         end
 
+        %% Figure 4
+        function obj = makeFig4ABC(obj,f4A,f4B,f4C)
+            arguments
+                obj
+                f4A
+                f4B
+                f4C
+            end
+            Model_chg = obj.ModelKoff;
+
+            % Solve and plot FSP without PDO effect.
+            Model_chg.fspOptions.bounds = [];
+            Model_chg.fspOptions.stateSpace = [];
+            Model_chg = Model_chg.solve(solver='fsp');
+            Model_chg.plotFSP(figureNums=f4A,plotType='marginals',indTimes=length(Model_chg.tSpan),speciesNames='mRNA',Colors={'k'})
+            Model_chg.plotFSP(figureNums=f4C,plotType='marginals',indTimes=length(Model_chg.tSpan),speciesNames='mRNA',Colors={'k'}) %  lineProps={'LineWidth',2,'LineStyle','--'}
+
+            % Create and plot Binomial PDO
+            dropOut = 0.6; % fraction dropout
+            obj.Model_BinomialPDO = Model_chg;
+            obj.Model_BinomialPDO.pdoOptions.type = 'Binomial';
+            obj.Model_BinomialPDO.pdoOptions.unobservedSpecies = 'gON';
+            obj.Model_BinomialPDO.pdoOptions.props.CaptureProbabilityS1 = 0;    % Gene State is not measured
+            obj.Model_BinomialPDO.pdoOptions.props.CaptureProbabilityS2 = 1-dropOut; % 95% dropout from RNA
+            [~,obj.Model_BinomialPDO] = obj.Model_BinomialPDO.generatePDO(...
+                showPlot=true, Title='Binomial PDO');
+            fPDO = gcf;
+            clf;
+            copyobj(allchild(fPDO), f4B);
+            close(fPDO);
+
+            %Plot distributons with effect of PDO
+            figure(f4C)
+            hold on
+            obj.Model_BinomialPDO.plotFSP(figureNums=f4C,plotType='marginals',indTimes=length(obj.Model_BinomialPDO.tSpan),...
+                speciesNames='mRNA',includePDO=true,Colors={'r'})
+        end
+
+        function obj = prepareFig4DEF(obj,opts)
+            arguments
+                obj
+                opts.nMLE = 20;
+            end
+
+            % First, generate the MLE scatter plot and FIM overlay (same as above).
+            freePars = [1:4];
+            nMLE = opts.nMLE;
+
+            MLE_noDistortion = obj.Model_BinomialPDO.estimateMLEspread(nCells=obj.nCellsInExperiment,...
+                observableSpecies={'mRNA'},nMLE=nMLE,simsSaveFile='BurstFIMSimsPDO.csv',...
+                freePars=freePars,restart=true,useDistortions=false,correctDistortions=false,...
+                nIter = 500);
+
+            % Next, find MLE estimates WITHOUT correcting for the distortion.
+            MLE_PDO_Uncorrected = obj.Model_BinomialPDO.estimateMLEspread(nCells=obj.nCellsInExperiment,...
+                observableSpecies={'mRNA'},nMLE=nMLE,simsSaveFile='BurstFIMSimsPDO.csv',...
+                freePars=freePars,restart=true,useDistortions=true,correctDistortions=false,...
+                nIter = 500);
+
+            % Next, find MLE estimates with correcting for the distortion.
+            % Model_chg = Model_chg.solve(solver='fsp');
+            MLE_PDO_Corrected = obj.Model_BinomialPDO.estimateMLEspread(nCells=obj.nCellsInExperiment,...
+                observableSpecies={'mRNA'},nMLE=nMLE,simsSaveFile='BurstFIMSimsPDO.csv',...
+                freePars=freePars,restart=false,useDistortions=true,correctDistortions=true,...
+                nIter = 500);
+
+            save('MLEforDistortions.mat', 'MLE_noDistortion', 'MLE_PDO_Uncorrected', 'MLE_PDO_Corrected')
+
+        end
+
+        function makeFigs4DEF(obj)
+            load('MLEforDistortions.mat')
+
+            %% Plot the spread of the mle and FIM estiamte
+            % plot unaltered spread
+            f1 = figure(304);
+
+            fTrash = figure(350);
+
+            Model_chg = obj.ModelKoff;
+
+            FIMs = Model_chg.computeFIM(freePars=(1:5),scale='log');
+            FIMTotal = Model_chg.totalFim(FIMs,obj.nCellsInExperiment);
+            FIM = FIMTotal{1};
+
+            MLElog = MLE_noDistortion.mhSamples/log(10);
+
+            Model_chg.plotFIMResults(FIM^(-1)/log(10)^2, 'log',...
+                Model_chg.parameters(1:5,1),...
+                [Model_chg.parameters{1:5,2}],...
+                PlotEllipses=true, ...
+                EllipseFigure=f1,...
+                EllipseLevel=0.95,...
+                Colors=struct('EllipseColors',[0,0,0],'CenterSquare',[0,0,0]),...
+                EllipsePairs=[1,2],...
+                FigureHandle=fTrash,...
+                LogThreshold=-4,...
+                HeatMapType='invfim',...
+                MatrixType='invfim');
+
+            hold on
+
+            scatter(MLElog(:,2),MLElog(:,1),10,[0.5 0.5 0.5],'filled');
+            obj.plotMLEEllipse(MLElog(:,2),MLElog(:,1),0.95);
+
+
+            f1 = figure(305);
+
+            Model_chg.plotFIMResults(FIM^(-1)/log(10)^2, 'log',...
+                Model_chg.parameters(1:5,1),...
+                [Model_chg.parameters{1:5,2}],...
+                PlotEllipses=true, ...
+                EllipseLevel=0.95,...
+                EllipseFigure=f1,...
+                Colors=struct('EllipseColors',[0,0,0],'CenterSquare',[0,0,0]),...
+                EllipsePairs=[3,4],...
+                FigureHandle=fTrash,...
+                LogThreshold=-4,...
+                HeatMapType='invfim',...
+                MatrixType='invfim');
+
+            hold on
+
+            scatter(MLElog(:,4),MLElog(:,3),10,[0.5 0.5 0.5],'filled');
+
+            obj.plotMLEEllipse(MLElog(:,4),MLElog(:,3),0.95);
+
+            % plot distorted
+
+            f1 = figure(306);
+
+            FIMs = Model_chg.computeFIM(freePars=(1:5),scale='log');
+            FIMTotal = Model_chg.totalFim(FIMs,obj.nCellsInExperiment);
+            FIM = FIMTotal{1};
+
+            MLElog = MLE_PDO_Uncorrected.mhSamples/log(10);
+
+            obj.Model_BinomialPDO.plotFIMResults(FIM^(-1)/log(10)^2, 'log',...
+                Model_chg.parameters(1:5,1),...
+                [Model_chg.parameters{1:5,2}],...
+                PlotEllipses=true, ...
+                EllipseFigure=f1,...
+                EllipseLevel=0.95,...
+                Colors=struct('EllipseColors',[0,0,0],'CenterSquare',[0,0,0]),...
+                EllipsePairs=[1,2],...
+                FigureHandle=fTrash,...
+                LogThreshold=-4,...
+                HeatMapType='invfim',...
+                MatrixType='invfim');
+
+            hold on
+
+            scatter(MLElog(:,2),MLElog(:,1),10,[0.5 0.5 0.5],'filled');
+            obj.plotMLEEllipse(MLElog(:,2),MLElog(:,1),0.95);
+
+
+            f1 = figure(307);
+
+            obj.Model_BinomialPDO.plotFIMResults(FIM^(-1)/log(10)^2, 'log',...
+                Model_chg.parameters(1:5,1),...
+                [Model_chg.parameters{1:5,2}],...
+                PlotEllipses=true, ...
+                EllipseFigure=f1,...
+                EllipseLevel=0.95,...
+                Colors=struct('EllipseColors',[0,0,0],'CenterSquare',[0,0,0]),...
+                EllipsePairs=[3,4],...
+                FigureHandle=fTrash,...
+                LogThreshold=-4,...
+                HeatMapType='invfim',...
+                MatrixType='invfim');
+
+            hold on
+
+            scatter(MLElog(:,4),MLElog(:,3),10,[0.5 0.5 0.5],'filled');
+            obj.plotMLEEllipse(MLElog(:,4),MLElog(:,3),0.95);
+
+            % plot corrected distorted
+
+            f1 = figure(308);
+
+            FIMs = obj.Model_BinomialPDO.computeFIM(freePars=(1:5),scale='log');
+            FIMTotal = obj.Model_BinomialPDO.totalFim(FIMs,obj.nCellsInExperiment);
+            FIM = FIMTotal{1};
+
+            MLElog = MLE_PDO_Corrected.mhSamples/log(10);
+
+            obj.Model_BinomialPDO.plotFIMResults(FIM^(-1)/log(10)^2, 'log',...
+                Model_chg.parameters(1:5,1),...
+                [Model_chg.parameters{1:5,2}],...
+                PlotEllipses=true, ...
+                EllipseFigure=f1,...
+                EllipseLevel=0.95,...
+                Colors=struct('EllipseColors',[0,0,0],'CenterSquare',[0,0,0]),...
+                EllipsePairs=[1,2],...
+                FigureHandle=fTrash,...
+                LogThreshold=-4,...
+                HeatMapType='invfim',...
+                MatrixType='invfim');
+
+            hold on
+
+            scatter(MLElog(:,2),MLElog(:,1),10,[0.5 0.5 0.5],'filled');
+            obj.plotMLEEllipse(MLElog(:,2),MLElog(:,1),0.95);
+
+
+            f1 = figure(309);
+
+            Model_chg.plotFIMResults(FIM^(-1)/log(10)^2, 'log',...
+                Model_chg.parameters(1:5,1),...
+                [Model_chg.parameters{1:5,2}],...
+                PlotEllipses=true, ...
+                EllipseLevel=0.95,...
+                EllipseFigure=f1,...
+                Colors=struct('EllipseColors',[0,0,0],'CenterSquare',[0,0,0]),...
+                EllipsePairs=[3,4],...
+                FigureHandle=fTrash,...
+                LogThreshold=-4,...
+                HeatMapType='invfim',...
+                MatrixType='invfim');
+
+            hold on
+
+            scatter(MLElog(:,4),MLElog(:,3),10,[0.5 0.5 0.5],'filled');
+            obj.plotMLEEllipse(MLElog(:,4),MLElog(:,3),0.95);
+
+
+
+        end
     end
     methods (Static)
         %% Functions
