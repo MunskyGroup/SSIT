@@ -3682,27 +3682,44 @@ classdef SSIT
             end
 
             if isempty(NcGuess)
-                % Distributed available cells among experiments.
+                % Distribute available cells among all experiments.
                 NcGuess = NcFixed;
-                iExpt = 1;
-                while nCellsTotalNew>0&&iExpt<=length(NcGuess)
-                    avblSlots = NcMax(iExpt) - NcFixed(iExpt);
-                    if avblSlots>=nCellsTotalNew
-                        NcGuess(iExpt) = NcGuess(iExpt) + nCellsTotalNew;
-                        iExpt = inf;
-                    else
-                        while avblSlots >= incrementAdd
-                            NcGuess(iExpt) = NcGuess(iExpt) + incrementAdd;
-                            nCellsTotalNew = nCellsTotalNew - incrementAdd;
-                            avblSlots = avblSlots - incrementAdd;
-                        end
-                        iExpt = iExpt + 1;
-                        if iExpt>length(NcGuess)&&nCellsTotalNew>=0
-                            NcDNewDesign = NcGuess - NcFixed;
-                            warning('All cells have been distributed.')
-                            return
-                        end
+                iExpt = length(NcGuess);
+                noMoreSpace = false;
+                while nCellsTotalNew>0&&~noMoreSpace  %iExpt<=length(NcGuess)
+                    iExpt = iExpt+1;
+                    if iExpt == length(NcGuess)+1
+                        iExpt = 1;
+                        noMoreSpace = true;
                     end
+                    avblSlots = NcMax(iExpt) - NcFixed(iExpt);
+                    if avblSlots>=incrementAdd
+                        NcGuess(iExpt) = NcGuess(iExpt) + incrementAdd;
+                        nCellsTotalNew = nCellsTotalNew - incrementAdd;
+                        noMoreSpace = false;
+                    end
+                    if iExpt==length(NcGuess)&&noMoreSpace
+                        NcDNewDesign = NcGuess - NcFixed;
+                        warning('All cells have been distributed.')
+                        return
+                    end
+
+                    % if avblSlots>=nCellsTotalNew
+                    %     NcGuess(iExpt) = NcGuess(iExpt) + nCellsTotalNew;
+                    %     iExpt = inf;
+                    % else
+                    %     while avblSlots >= incrementAdd
+                    %         NcGuess(iExpt) = NcGuess(iExpt) + incrementAdd;
+                    %         nCellsTotalNew = nCellsTotalNew - incrementAdd;
+                    %         avblSlots = avblSlots - incrementAdd;
+                    %     end
+                    %     iExpt = iExpt + 1;
+                    %     if iExpt>length(NcGuess)&&nCellsTotalNew>=0
+                    %         NcDNewDesign = NcGuess - NcFixed;
+                    %         warning('All cells have been distributed.')
+                    %         return
+                    %     end
+                    % end
                 end
             else
                 NcGuess = NcFixed+NcGuess;
