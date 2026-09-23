@@ -26,7 +26,7 @@ classdef Forman2027
         FIM_Exp2
         FIM_Exp3
         FIM_Opt
-
+        freeParsFig4 = [1:4]
 
     end
 
@@ -2039,25 +2039,25 @@ classdef Forman2027
             end
 
             % First, generate the MLE scatter plot and FIM overlay (same as above).
-            freePars = [1:4];
+            % obj.freeParsFig4 = [1:4];
             nMLE = opts.nMLE;
 
             MLE_noDistortion = obj.Model_BinomialPDO.estimateMLEspread(nCells=obj.nCellsInExperiment,...
                 observableSpecies={'mRNA'},nMLE=nMLE,simsSaveFile='BurstFIMSimsPDO.csv',...
-                freePars=freePars,restart=true,useDistortions=false,correctDistortions=false,...
+                freePars=obj.freeParsFig4,restart=true,useDistortions=false,correctDistortions=false,...
                 nIter = 500);
 
             % Next, find MLE estimates WITHOUT correcting for the distortion.
             MLE_PDO_Uncorrected = obj.Model_BinomialPDO.estimateMLEspread(nCells=obj.nCellsInExperiment,...
                 observableSpecies={'mRNA'},nMLE=nMLE,simsSaveFile='BurstFIMSimsPDO.csv',...
-                freePars=freePars,restart=true,useDistortions=true,correctDistortions=false,...
+                freePars=obj.freeParsFig4,restart=true,useDistortions=true,correctDistortions=false,...
                 nIter = 500);
 
             % Next, find MLE estimates with correcting for the distortion.
             % Model_chg = Model_chg.solve(solver='fsp');
             MLE_PDO_Corrected = obj.Model_BinomialPDO.estimateMLEspread(nCells=obj.nCellsInExperiment,...
                 observableSpecies={'mRNA'},nMLE=nMLE,simsSaveFile='BurstFIMSimsPDO.csv',...
-                freePars=freePars,restart=false,useDistortions=true,correctDistortions=true,...
+                freePars=obj.freeParsFig4,restart=false,useDistortions=true,correctDistortions=true,...
                 nIter = 500);
 
             save('MLEforDistortions.mat', 'MLE_noDistortion', 'MLE_PDO_Uncorrected', 'MLE_PDO_Corrected')
@@ -2075,7 +2075,7 @@ classdef Forman2027
 
             Model_chg = obj.ModelKoff;
 
-            FIMs = Model_chg.computeFIM(freePars=(1:5),scale='log');
+            FIMs = Model_chg.computeFIM(freePars=obj.freeParsFig4,scale='log');
             FIMTotal = Model_chg.totalFim(FIMs,obj.nCellsInExperiment);
             FIM = FIMTotal{1};
 
@@ -2125,7 +2125,7 @@ classdef Forman2027
 
             f1 = figure(306);
 
-            FIMs = Model_chg.computeFIM(freePars=(1:5),scale='log');
+            FIMs = Model_chg.computeFIM(freePars=obj.freeParsFig4,scale='log');
             FIMTotal = Model_chg.totalFim(FIMs,obj.nCellsInExperiment);
             FIM = FIMTotal{1};
 
@@ -2174,7 +2174,7 @@ classdef Forman2027
 
             f1 = figure(308);
 
-            FIMs = obj.Model_BinomialPDO.computeFIM(freePars=(1:5),scale='log');
+            FIMs = obj.Model_BinomialPDO.computeFIM(freePars=obj.freeParsFig4,scale='log');
             FIMTotal = obj.Model_BinomialPDO.totalFim(FIMs,obj.nCellsInExperiment);
             FIM = FIMTotal{1};
 
@@ -2218,10 +2218,72 @@ classdef Forman2027
 
             scatter(MLElog(:,4),MLElog(:,3),10,[0.5 0.5 0.5],'filled');
             obj.plotMLEEllipse(MLElog(:,4),MLElog(:,3),0.95);
+        end
+        function makeFig4GHI(obj)
+            % In this section, we compute the FIM for different dropout fractions.  The
+            % current analysis only allows for a single define experiment (i.e., the
+            % change from a pre-specified S0 to a pre-specified S1). The experiment
+            % design option is to decide on the time points at which to take the
+            % observations and how masny cells to observe at each time point.           
+            N = 50;
+            vDropOut = linspace(0,0.98,N);
+            OptExptVsDropOut = zeros(50,length(Model_chg.tSpan));
+            ModelPDO = obj.ModelKoff;
+            ModelPDO = ModelPDO.solve(solver='fspsens');
+            ModelPDO.pdoOptions.type = 'Binomial';
+            ModelPDO.pdoOptions.unobservedSpecies = 'gON';
+            TotalFim = cell(N,1);
+            detFIMOrig = zeros(N,1);
+            detFIMOpt = zeros(N,1);
+            nCellsOrig = zeros(N,1);
+            nCellsOpt = zeros(N,1);
+            NCellsTotal = sum(obj.nCellsInExperiment);
+            for i = 1:N
+                dropOut = vDropOut(i);
+                ModelPDO.pdoOptions.props.CaptureProbabilityS1 = 0;    % Gene State is not measured
+                ModelPDO.pdoOptions.props.CaptureProbabilityS2 = 1-dropOut; % 95% dropout from RNA
+                [~,ModelPDO] = ModelPDO.generatePDO;
+                FIMs = ModelPDO.computeFIM(scale='log',freePars=obj.freeParsFig4,...
+                    observed={'mRNA'});
+                OptExperiment(i,:) = ModelPDO.optimizeCellCounts(FIMs,NCellsTotal,'D-opt');
+                TotalFimOrig(i,1) = ModelPDO.totalFim(FIMs,obj.nCellsInExperiment);
+                TotalFimOpt(i,1) = ModelPDO.totalFim(FIMs,OptExperiment(i,:));
+                detFIMOrig(i) = det(TotalFimOrig{i,1});
+                detFIMOpt(i) = det(TotalFimOpt{i,1});
+                nCellsOrig(i) = NCellsTotal*(detFIMOrig(1)/detFIMOrig(i))^(1/4);
+                nCellsOpt(i) = NCellsTotal*(detFIMOrig(1)/detFIMOpt(i))^(1/4);
+            end
 
+            % Plot the determinant of the inverse FIM versus the drop out rate
+            figure(310); clf;
+            plot(vDropOut,1./detFIMOrig,'b',vDropOut,1./detFIMOpt,'r--','linewidth',3)
+            set(gca,'yscale','log')
+            xlabel('Drop Out Fraction')
+            ylabel('Det(FIM^{-1})')
 
+            % Plot the nmber of cells that need to be measured to achieve the same
+            % information (same expected determinant of FIM) as was achieved when we
+            % did the original experiment design with 600 cells.
+            figure(311); clf;
+            plot(vDropOut,nCellsOrig,'b',vDropOut,nCellsOpt,'r--','linewidth',3)
+            set(gca,'yscale','log')
+            xlabel('Drop Out Fraction')
+            ylabel('Required Number of Cells')
+
+            figure(312); clf;
+            % Plot the optimal experiment design versus the dropout rate, constrained
+            % to have the same original number of cells (600).  In this plot, the
+            % colors will represent the fraction of cells that are measure at each time
+            % point.
+            pcolor(vDropOut,[ModelPDO.tSpan,ModelPDO.tSpan(end)+(ModelPDO.tSpan(end)-ModelPDO.tSpan(end-1))],[OptExperiment,zeros(N,1)]'/600)
+            % set(gca,'yscale','log')
+            ylabel('Measurement Time')
+            xlabel('Drop Out Fraction')
+            c = colorbar;
+            c.Label.String = 'Fraction of Cells'
 
         end
+
     end
     methods (Static)
         %% Functions
