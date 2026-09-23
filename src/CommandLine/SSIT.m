@@ -3649,6 +3649,8 @@ classdef SSIT
                     met = @(A)max(0,det(inv(A)));
                 case 'E-opt'
                     met = @(A)-min(eig(A));
+                case 'E-cov'
+                    met = @(A)max(0,1/min(eig(A)));
                 case 'Trace'
                     met = @(A)-trace(A);
                 otherwise
