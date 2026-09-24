@@ -3,6 +3,7 @@ Forman = Forman2027;
 f1B=figure(101); ax1B = gca;
 Forman.makeFig1B(ax1B);
 
+%%
 f1C1=figure(102);
 f1C2=figure(103);
 f1C3=figure(104); 
@@ -63,8 +64,9 @@ f3D1 = figure(314);
 f3D2 = figure(315);
 f3D3 = figure(316);
 Forman = Forman.makeFig3D(f3D1,f3D2,f3D3);
-fignums = [f3A1,f3A2,f3A3,f3A4,f3A5,f3B1,f3B2,f3B3,f3B4,f3C1,f3C2,f3C3,f3C4,f3D1,f3D2,f3D3];
-Forman.exportFigs3(fignums,'AnnualReview_Figures',fileType='pdf')
+
+% fignums = [f3A1,f3A2,f3A3,f3A4,f3A5,f3B1,f3B2,f3B3,f3B4,f3C1,f3C2,f3C3,f3C4,f3D1,f3D2,f3D3];
+% Forman.exportFigs3(fignums,'AnnualReview_Figures',fileType='pdf')
 
 %% Figure 4ABC 
 f4A = figure(401);
@@ -73,6 +75,6 @@ f4C = figure(403);
 Forman = Forman.makeFig4ABC(f4A,f4B,f4C);
 
 %% Figure 4DEF
-Forman = Forman.prepareFig4DEF(nMLE=200);
+Forman = Forman.prepareFig4DEF(nMLE=20);
 %%
 Forman.makeFigs4DEF;

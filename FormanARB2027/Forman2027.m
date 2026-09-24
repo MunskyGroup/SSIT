@@ -4,6 +4,8 @@ classdef Forman2027
         kr = 100;
         gr = 1;
         N = 100;
+        kD = 10;
+        koff_inf = 0.01;
         star_koff = 10;
         mu1 = 2;
         mu2 = 75;
@@ -11,6 +13,7 @@ classdef Forman2027
         kon_domain = logspace(-2,1,3000);
         Model;
         ModelKoff;
+        ModelKoffSig;
         Model_BinomialPDO;
         nCellsInExperiment;
         FIM = [];
@@ -26,7 +29,7 @@ classdef Forman2027
         FIM_Exp2
         FIM_Exp3
         FIM_Opt
-        freeParsFig4 = [1:4]
+        freeParsFig4 = [1:5]
 
     end
 
@@ -35,10 +38,14 @@ classdef Forman2027
         final_kon
         final_koff
         Sarray
+        star_S
+        final_S
     end
 
     methods
+        %% Preliminary Model Definitions.
         function obj = Forman2027()
+            %%
             Model = SSIT('Empty');
             Model.species = {'gON','mRNA'};
             Model.initialCondition = [0;0];
@@ -77,50 +84,92 @@ classdef Forman2027
 
             obj.Model = Model;
 
-            ModelKoff = SSIT('Empty');
-            ModelKoff.species = {'gON','mRNA'};
-            ModelKoff.initialCondition = [0;0];
-            ModelKoff.parameters = {'kon0', obj.star_kon;...
-                'koff0', obj.star_koff;...
+            %%
+            % ModelKoff = SSIT('Empty');
+            % ModelKoff.species = {'gON','mRNA'};
+            % ModelKoff.initialCondition = [0;0];
+            % ModelKoff.parameters = {'kon0', obj.star_kon;...
+            %     'koff0', obj.star_koff;...
+            %     'kr',obj.kr;...
+            %     'g',obj.gr;...
+            %     'koff1', obj.final_koff; ...
+            %     };
+            % 
+            % ModelKoff.inputExpressions = {'I', ...
+            %     't>=1'};
+            % 
+            % ModelKoff = ModelKoff.addReaction(struct(...
+            %     'propensity',{'kon0*(1-gON)'},...
+            %     'stoichiometry',{{'gON',1}}));
+            % 
+            % ModelKoff = ModelKoff.addReaction(struct(...
+            %     'propensity',{'(koff0 + (koff1-koff0)*I)*gON'},...
+            %     'stoichiometry',{{'gON',-1}}));
+            % 
+            % ModelKoff = ModelKoff.addReaction(struct(...
+            %     'propensity',{'kr*gON'},...
+            %     'stoichiometry',{{'mRNA',1}}));
+            % 
+            % ModelKoff = ModelKoff.addReaction(struct(...
+            %     'propensity',{'g*mRNA'},...
+            %     'stoichiometry',{{'mRNA',-1}}));
+            % 
+            % ModelKoff.fspOptions.initApproxSS = true;
+            % ModelKoff.tSpan = linspace(0,25,31);
+            % 
+            % ModelKoff = ModelKoff.formPropensitiesGeneral('Forman2027Koff');
+            % ModelKoff = ModelKoff.solve;
+            % 
+            % obj.ModelKoff = ModelKoff;
+            % 
+            % obj.nCellsInExperiment = 0*ModelKoff.tSpan;
+            % obj.nCellsInExperiment([1,6,31]) = 200;
+
+            %%
+            ModelKoffSig = SSIT('Empty');
+            ModelKoffSig.species = {'gON','mRNA'};
+            ModelKoffSig.initialCondition = [0;0];
+            ModelKoffSig.parameters = {'kon', obj.star_kon;...
+                'koff_inf', obj.koff_inf;...
                 'kr',obj.kr;...
                 'g',obj.gr;...
-                'koff1', obj.final_koff; ...
+                'kD',obj.kD;...
+                'S1', obj.star_S; ...
+                'S2', obj.final_S; ...
                 };
 
-            ModelKoff.inputExpressions = {'I', ...
-                't>=1'};
+            ModelKoffSig.inputExpressions = {'I', ...
+                'S1 + (S2-S1)*(t>=0)'};
 
-            ModelKoff = ModelKoff.addReaction(struct(...
-                'propensity',{'kon0*(1-gON)'},...
+            ModelKoffSig = ModelKoffSig.addReaction(struct(...
+                'propensity',{'kon*(1-gON)'},...
                 'stoichiometry',{{'gON',1}}));
 
-            ModelKoff = ModelKoff.addReaction(struct(...
-                'propensity',{'(koff0 + (koff1-koff0)*I)*gON'},...
+            ModelKoffSig = ModelKoffSig.addReaction(struct(...
+                'propensity',{'koff_inf*(kD+I)/(I)*gON'},...
                 'stoichiometry',{{'gON',-1}}));
 
-            ModelKoff = ModelKoff.addReaction(struct(...
+            ModelKoffSig = ModelKoffSig.addReaction(struct(...
                 'propensity',{'kr*gON'},...
                 'stoichiometry',{{'mRNA',1}}));
 
-            ModelKoff = ModelKoff.addReaction(struct(...
+            ModelKoffSig = ModelKoffSig.addReaction(struct(...
                 'propensity',{'g*mRNA'},...
                 'stoichiometry',{{'mRNA',-1}}));
 
-            ModelKoff.fspOptions.initApproxSS = true;
-            ModelKoff.tSpan = linspace(0,25,31);
+            ModelKoffSig.fspOptions.initApproxSS = true;
+            ModelKoffSig.tSpan = linspace(0,25,31);
 
-            ModelKoff = ModelKoff.formPropensitiesGeneral('Forman2027Koff');
-            ModelKoff = ModelKoff.solve;
+            ModelKoffSig = ModelKoffSig.formPropensitiesGeneral('Forman2027KoffSig');
+            ModelKoffSig = ModelKoffSig.solve;
 
-            obj.ModelKoff = ModelKoff;
+            obj.ModelKoffSig = ModelKoffSig;
 
-            obj.nCellsInExperiment = 0*ModelKoff.tSpan;
-            obj.nCellsInExperiment([1,6,31]) = 200;
-
+            obj.nCellsInExperiment = 0*ModelKoffSig.tSpan;
+            obj.nCellsInExperiment([1,6,31]) = 200;           
         end
-
         function Sarray = get.Sarray(obj)
-            Sarray = linspace(obj.star_koff, obj.final_koff, 5);
+            Sarray = [0.001,0.01,0.1,1,10,100];
         end
         function star_kon = get.star_kon(obj)
             g = (obj.mu1*obj.gr)/obj.kr;
@@ -130,9 +179,16 @@ classdef Forman2027
             g = (obj.mu2*obj.gr)/obj.kr;
             final_kon = (g*obj.star_koff)/(1-g);
         end
+        function star_S = get.star_S(obj)
+            star_S = obj.kD*obj.koff_inf/(obj.star_koff-obj.koff_inf);
+        end
+        function final_S = get.final_S(obj)
+            final_S = obj.kD*obj.koff_inf/(obj.final_koff-obj.koff_inf);
+        end
         function final_koff = get.final_koff(obj)
             final_koff = (obj.kr*obj.star_kon)/(obj.mu2*obj.gr)-obj.star_kon;
         end
+        %% Figure 1
         function makeFig1B(obj,ax1B)
             arguments
                 obj
@@ -395,20 +451,20 @@ classdef Forman2027
             disp('All SVG figures exported successfully.');
 
         end
+        
+        %% Figure 2
         function obj = makeFigs2A(obj,ax2A)
             arguments
                 obj
                 ax2A
             end
-
-            Model_chg = obj.ModelKoff;
+            Model_chg = obj.ModelKoffSig;
             Model_chg.fittingOptions.modelVarsToFit = [1];
             rng(172)
             nCellsInExperiment = zeros(size(Model_chg.tSpan));
             nCellsInExperiment([1]) = obj.nCellsFig2;
             Model_chg = Model_chg.solve;
             Model_chg.ssaOptions.Nexp = 5000;
-
 
             % Model_chg.plotFSP(plotType='meansAndDevs', SpeciesIdx=[2], Title='testing steady state') % Test successful
             Model_chg.sampleDataFromFSP(saveFile='dataForFIMIntro.csv',nCells=nCellsInExperiment,species2save={'mRNA'});
@@ -453,40 +509,23 @@ classdef Forman2027
             % xlim([10^1, 10^2.5])
             % grid on
         end
-
         function prepareFigs2B(obj)
             arguments
                 obj
             end
             %% MLE FIM relationship - Multiple cell - Bursting Model - Compute
-            Model_chg = obj.ModelKoff;
+            Model_chg = obj.ModelKoffSig;
             Model_chg.fittingOptions.modelVarsToFit = [1];
-            % T = array2table(obj.count_domain, ...
-            %     'VariableNames', compose("exp%d_mRNA", obj.count_domain));
-            %
-            % T.time = 0;
-            % T = movevars(T, 'time', 'Before', 1);
-            %
-            % writetable(T, 'fakeData.csv');
-            % pars = [Model_chg.parameters{:,2}];
             log_probs_v_pars = zeros(ceil(Model_chg.fspOptions.bounds(4)), length(obj.kon_domain));
             for i = 1:length(obj.kon_domain)
                 Model_chg.parameters{1,2} = obj.kon_domain(i);
-                % Model_chg.parameters(:,2) = num2cell(pars);
                 Model_chg = Model_chg.solve(solver='fsp');
-                % for j = 1:length(obj.count_domain)
-                %     Model_chg = Model_chg.loadData('fakeData.csv', {'mRNA', sprintf('exp%d_mRNA',j-1)});
-                %     Model_chg = Model_chg.loadData('fakeData.csv', {'mRNA', sprintf('exp%d_mRNA',j-1)});
-                %     probs_v_pars(j, i) = Model_chg.computeLikelihood(obj.kon_domain(i),[],false,true);
-                % end
-
                 log_probs_v_pars(1:Model_chg.Solutions.fsp{1}.p.data.size(2), i) =...
                     log(double(Model_chg.Solutions.fsp{1}.p.sumOver(1).data));
             end
             save('probs_v_pars.mat', 'log_probs_v_pars')
 
         end
-
         function obj = makeFigs2BtoF(obj,ax2B,ax2C,ax2D,f2E,ax2E2,ax2F1,ax2F2,opts)
             arguments
                 obj
@@ -618,7 +657,7 @@ classdef Forman2027
             % xline(1/mleVar_log, 'b--', 'LineWidth', 2)
 
             % Model FIM
-            Model_chg = obj.ModelKoff;
+            Model_chg = obj.ModelKoffSig;
             Model_chg.fittingOptions.modelVarsToFit = [1];
             FIM = Model_chg.computeFIM();
             FIMEstimate = FIM{1};
@@ -852,13 +891,12 @@ classdef Forman2027
             ax2F2.TickLength = [0.008 0.008];
 
         end
-
         function prepareFig2G(obj,opts)
             arguments
                 obj
                 opts.nMLE = 200;
             end
-            Model_chg = obj.ModelKoff;
+            Model_chg = obj.ModelKoffSig;
 
             %% Verification of FIM using CRLB (spread of MLE)
             Model_chg.fittingOptions.modelVarsToFit = [1:2];
@@ -867,7 +905,7 @@ classdef Forman2027
             save('MLEForCRLBVerifications.mat', 'MLE')
         end
         function makeFig2G(obj)
-            Model_chg = obj.ModelKoff;
+            Model_chg = obj.ModelKoffSig;
             Model_chg.fittingOptions.modelVarsToFit = [1:2];
             load('MLEForCRLBVerifications.mat', 'MLE')
 
@@ -882,7 +920,7 @@ classdef Forman2027
             f2 = figure(150); % default fim analysis
             clf
 
-            Model_chg = obj.ModelKoff;
+            Model_chg = obj.ModelKoffSig;
             Model_chg.fittingOptions.modelVarsToFit = [1:2];
             load('MLEForCRLBVerifications.mat', 'MLE')
 
@@ -1147,15 +1185,9 @@ classdef Forman2027
 
             axis equal
         end
-
         function makeFigs3A(obj,f3A1,f3A2,f3A3,f3A4,f3A5)
 
-            Model_chg = obj.ModelKoff;
-
-            % f1 = figure(201); % fim ellipse
-            % clf
-            % f2 = figure(250); % default fim analsysis
-            % clf
+            Model_chg = obj.ModelKoffSig;
 
             Model_chg.fittingOptions.modelVarsToFit = [1:5];
             FIMs = Model_chg.computeFIM(scale='log',freePars=[1:5],...
@@ -1325,29 +1357,22 @@ classdef Forman2027
         end
 
         function obj = prepareFIMS(obj)
-            Model_chg = obj.ModelKoff;
-            % Sarray = [1:5];
-            % Sarray = linspace(obj.star_koff, obj.final_koff, 5);
-            % Model.tSpan = [0:30];
+            Model_chg = obj.ModelKoffSig;
             Model_chg.solutionScheme = 'fspsens';
+            Model_chg.fspOptions.fspTol = 1e-5;
             obj.FIM = cell(length(obj.Sarray),length(obj.Sarray),length(Model_chg.tSpan));
-            for iS0 = 1:length(obj.Sarray)
-                for iS1 = 1:length(obj.Sarray)
-                    % Model = Model.changeParameter({'S0',obj.Sarray(iS0);'S1',obj.Sarray(iS1)-obj.Sarray(iS0)});
-                    % This leads to problems because the associated input expression
-                    % 'S0+(S1-S0)*(t>0)' already accounts for the shift obj.Sarray(iS1)-obj.Sarray(iS0)
-                    Model_chg = Model_chg.changeParameter({'koff0',obj.Sarray(iS0);'koff1',obj.Sarray(iS1)});
-                    Model_chg = Model_chg.solve;
-                    obj.FIM(iS0,iS1,:) = Model_chg.computeFIM(freePars=(1:5),scale='log');
+            for iS1 = 1:length(obj.Sarray)
+                for iS2 = 1:length(obj.Sarray)
+                    Model_chg = Model_chg.changeParameter({'S1',obj.Sarray(iS1);'S2',obj.Sarray(iS2)});
+                    obj.FIM(iS1,iS2,:) = Model_chg.computeFIM(freePars=(1:5),scale='log');
                 end
             end
 
         end
 
         function obj = makeFig3B(obj,f3B1,f3B2,f3B3,f3B4)
-            Model_chg = obj.ModelKoff;
+            Model_chg = obj.ModelKoffSig;
             obj.tt = linspace(min(Model_chg.tSpan), max(Model_chg.tSpan), 100);
-            % Sarray = linspace(obj.star_koff, obj.final_koff, 5);
 
             % exp 1 - steady states
             obj.exp1NCells = zeros(size(obj.FIM));
@@ -1357,7 +1382,7 @@ classdef Forman2027
             figure(f3B1)
             hold on
 
-            f = @(t)(t > 1)*obj.Sarray(5) + (t <= 1)*obj.Sarray(1);
+            f = @(t)(t > 1)*obj.Sarray(end) + (t <= 1)*obj.Sarray(1);
 
             xx = [Model_chg.tSpan(1), Model_chg.tSpan(31)];
             yy = [f(Model_chg.tSpan(1)), f(Model_chg.tSpan(31))];
@@ -1391,7 +1416,7 @@ classdef Forman2027
             figure(f3B2)
             hold on
 
-            f = @(t)(t > 1)*obj.Sarray(5) + (t <= 1)*obj.Sarray(1);
+            f = @(t)(t > 1)*obj.Sarray(end) + (t <= 1)*obj.Sarray(1);
 
             xx = [Model_chg.tSpan(1), Model_chg.tSpan(6), Model_chg.tSpan(31)];
             yy = [f(Model_chg.tSpan(1)), f(Model_chg.tSpan(6)), f(Model_chg.tSpan(31))];
@@ -1424,7 +1449,7 @@ classdef Forman2027
             figure(f3B3)
             hold on
 
-            f = @(t)(t > 1)*obj.Sarray(5) + (t <= 1)*obj.Sarray(1);
+            f = @(t)(t > 1)*obj.Sarray(end) + (t <= 1)*obj.Sarray(1);
 
             plot(obj.tt, f(obj.tt), 'k-', 'LineWidth', 3)
             dx = obj.tt(end) - obj.tt(end-1);
@@ -1445,7 +1470,7 @@ classdef Forman2027
                 'LineWidth', 3, ...
                 'MarkerEdgeAlpha', alpha3);
 
-            f = @(t)(t > 1)*obj.Sarray(3) + (t <= 1)*obj.Sarray(5);
+            f = @(t)(t > 1)*obj.Sarray(3) + (t <= 1)*obj.Sarray(end);
 
             plot(obj.tt, f(obj.tt), 'b-', 'LineWidth', 3)
             dx = obj.tt(end) - obj.tt(end-1);
@@ -1620,7 +1645,7 @@ classdef Forman2027
         end
 
         function obj = optimizeExperiment(obj)
-            Model_chg = obj.ModelKoff;
+            Model_chg = obj.ModelKoffSig;
 
             obj.allFims = {}; %cell(numel(FIM),1);
             obj.indsFims = []; zeros(numel(obj.FIM),3);
@@ -1717,7 +1742,7 @@ classdef Forman2027
 
         function obj = makeFig3D(obj,f3D1,f3D2,f3D3)
 
-            Model_chg =obj.ModelKoff;
+            Model_chg =obj.ModelKoffSig;
             % vNCells = round(logspace(2, 3, 10));
             vNCells = [100, 300, 600, 1000];
 
@@ -2002,7 +2027,7 @@ classdef Forman2027
                 f4B
                 f4C
             end
-            Model_chg = obj.ModelKoff;
+            Model_chg = obj.ModelKoffSig;
 
             % Solve and plot FSP without PDO effect.
             Model_chg.fspOptions.bounds = [];
@@ -2039,7 +2064,6 @@ classdef Forman2027
             end
 
             % First, generate the MLE scatter plot and FIM overlay (same as above).
-            % obj.freeParsFig4 = [1:4];
             nMLE = opts.nMLE;
 
             MLE_noDistortion = obj.Model_BinomialPDO.estimateMLEspread(nCells=obj.nCellsInExperiment,...
@@ -2073,7 +2097,7 @@ classdef Forman2027
 
             fTrash = figure(350);
 
-            Model_chg = obj.ModelKoff;
+            Model_chg = obj.ModelKoffSig;
 
             FIMs = Model_chg.computeFIM(freePars=obj.freeParsFig4,scale='log');
             FIMTotal = Model_chg.totalFim(FIMs,obj.nCellsInExperiment);
@@ -2228,7 +2252,7 @@ classdef Forman2027
             N = 50;
             vDropOut = linspace(0,0.98,N);
             OptExptVsDropOut = zeros(50,length(Model_chg.tSpan));
-            ModelPDO = obj.ModelKoff;
+            ModelPDO = obj.ModelKoffSig;
             ModelPDO = ModelPDO.solve(solver='fspsens');
             ModelPDO.pdoOptions.type = 'Binomial';
             ModelPDO.pdoOptions.unobservedSpecies = 'gON';
