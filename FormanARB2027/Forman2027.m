@@ -453,14 +453,15 @@ classdef Forman2027
         end
         
         %% Figure 2
-        function obj = makeFigs2A(obj,ax2A)
+        function obj = makeFigs2A(obj,ax2A, opts)
             arguments
                 obj
                 ax2A
+                opts.xlims = [10^1, 10^2.5]
+                opts.ylims = [-10, 0]
             end
             Model_chg = obj.ModelKoffSig;
             Model_chg.fittingOptions.modelVarsToFit = [1];
-            rng(172)
             nCellsInExperiment = zeros(size(Model_chg.tSpan));
             nCellsInExperiment([1]) = obj.nCellsFig2;
             Model_chg = Model_chg.solve;
@@ -480,6 +481,8 @@ classdef Forman2027
             end
 
             axes(ax2A)
+            xlim(opts.xlims)
+            ylim(opts.ylims)
             plot(obj.kon_domain, likelihoods, 'LineWidth', 1.5)
             hold on
 
@@ -506,7 +509,6 @@ classdef Forman2027
             xlabel('k_{on}')
             ylabel('Log-Likelihood')
             legend('Likelihood', 'True k_{on}', 'MLE', 'Location', 'best')
-            % xlim([10^1, 10^2.5])
             % grid on
         end
         function prepareFigs2B(obj)
@@ -537,6 +539,8 @@ classdef Forman2027
                 ax2F1
                 ax2F2
                 opts.Nsamps = 20
+                opts.xlims = [10^1, 10^2.5]
+                opts.ylims = [-40, -1]
             end
 
             %% MLE FIM relationship - Multiple cell - Bursting Model - Plotting
@@ -560,6 +564,7 @@ classdef Forman2027
             plot(ax2B,obj.kon_domain, sumLogL', 'lineWidth', 1.5)
             set(gca, 'XScale', 'log')
 
+            ylim(opts.ylims)
             ylims = ylim;
             ymin = ylims(1);
 
@@ -914,8 +919,8 @@ classdef Forman2027
             FIMTotal = Model_chg.totalFim(FIMs,obj.nCellsInExperiment);
             Model_chg.plotMHResults(MLE,FIM=FIMTotal,fimScale='log',truncateChain=false);
         end
-        function makeFig2H(obj)
-            f1 = figure(109); % fim ellipse
+        function makeFig2H(obj, f2g1, f2g2, f2h1, f2h2)
+            f1 = figure(f2g1); % fim ellipse
             clf
             f2 = figure(150); % default fim analysis
             clf
@@ -978,7 +983,7 @@ classdef Forman2027
             VMLE = VMLE(:,idxMLE);
 
             % 95% confidence ellipse
-            chi2val = icdf('chi2',0.95,2);
+            chi2val = icdf('chi2',0.9,2);
 
             aMLE = sqrt(chi2val*lambdaMLE(1));
             bMLE = sqrt(chi2val*lambdaMLE(2));
@@ -1034,12 +1039,12 @@ classdef Forman2027
             %     'LineWidth',2);
 
 
-            figure(110); % heatmap of I^(-1)
+            figure(f2h1); % heatmap of I^(-1)
             clf
             obj.plotHeatmap(C, {'k_{on}', 'k_{off}'}, {'k_{on}', 'k_{off}'}, 'I^{-1}')
 
 
-            figure(111); % heatmap of eig(I^(-1))
+            figure(f2h2); % heatmap of eig(I^(-1))
             clf
 
             [V, D] = eig(C);
@@ -1054,7 +1059,7 @@ classdef Forman2027
             D = sqrt(diag(lambda));
 
             % Plot V*D
-            obj.plotHeatmap(V*D, ...
+            obj.plotHeatmap(D, ...
                 {'k_{on}', 'k_{off}'}, ...
                 {'\lambda_{1}', '\lambda_{2}'}, ...
                 'V(I^{-1}) \lambda(I^{-1})')
@@ -1074,7 +1079,7 @@ classdef Forman2027
                 log10(Model_chg.parameters{2,2})];
 
             % Chi-square scaling
-            chi2val = icdf('chi2',0.95,2);
+            chi2val = icdf('chi2',0.9,2);
 
             % Principal-axis lengths
             a = sqrt(chi2val * lambda(1));
@@ -1117,7 +1122,7 @@ classdef Forman2027
                 [aMLERot*cos(t); bMLERot*sin(t)];
 
             % Plot in eigenvector coordinates
-            figure(112);
+            figure(f2g2);
             clf;
             hold on;
 
@@ -1275,7 +1280,7 @@ classdef Forman2027
             D = sqrt(diag(lambda));
 
             % Plot V*D
-            obj.plotHeatmap(V*D, ...
+            obj.plotHeatmap(D, ...
                 {'k_{on,init}', 'k_{off}', 'k_r', '\gamma', 'k_{on,final}'}, ...
                 {'\lambda_{1}', '\lambda_{2}', '\lambda_{3}', '\lambda_{4}', '\lambda_{5}'}, ...
                 'V(I^{-1}) \lambda(I^{-1})')
@@ -1684,23 +1689,27 @@ classdef Forman2027
         function obj = makeFig3C(obj,f3C1,f3C2,f3C3,f3C4)
             figure(f3C1);
             clf;
+            fprintf('steady state experiment determinate %e\n', det(obj.FIM_Exp1^(-1)))
             obj.plotHeatmap(obj.FIM_Exp1^(-1), {'k_{on,init}', 'k_{off}', 'k_r', '\gamma', 'k_{on,final}'}, ...
                 {'k_{on,init}', 'k_{off}', 'k_r', '\gamma', 'k_{on,final}'}, ...
                 'I^{-1} - Exp 1')
 
             figure(f3C2);
+            fprintf('transient experiment determinate %e\n', det(obj.FIM_Exp1^(-1)))
             obj.plotHeatmap(obj.FIM_Exp2^(-1), {'k_{on}', 'k_{off}', 'k_r', '\gamma', 'k_{on,final}'}, ...
                 {'k_{on,init}', 'k_{off}', 'k_r', '\gamma', 'k_{on,final}'}, ...
                 'I^{-1} - Exp 2')
 
             figure(f3C3);
             clf;
+            fprintf('intuitive experiment determinate %e\n', det(obj.FIM_Exp1^(-1)))
             obj.plotHeatmap(obj.FIM_Exp3^(-1), {'k_{on}', 'k_{off}', 'k_r', '\gamma', 'k_{on,final}'}, ...
                 {'k_{on,init}', 'k_{off}', 'k_r', '\gamma', 'k_{on,final}'}, ...
                 'I^{-1} - Exp 3')
 
             figure(f3C4);
             clf;
+            fprintf('optimal experiment determinate %e\n', det(obj.FIM_Exp1^(-1)))
             obj.plotHeatmap(obj.FIM_Opt^(-1), {'k_{on,init}', 'k_{off}', 'k_r', '\gamma', 'k_{on,final}'}, ...
                 {'k_{on,init}', 'k_{off}', 'k_r', '\gamma', 'k_{on,final}'}, ...
                 'I^{-1} - Exp Opt')
@@ -1715,7 +1724,7 @@ classdef Forman2027
             refCMap = colormap(refAx);
 
             % Apply to the other figures
-            for figNum = [f3C3 f3C4]
+            for figNum = [f3C1 f3C3 f3C4]
 
                 fig = figure(figNum);
                 ax = gca;
