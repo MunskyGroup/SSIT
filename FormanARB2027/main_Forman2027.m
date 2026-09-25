@@ -38,8 +38,8 @@ Forman.makeFig2G;
 Forman.makeFig2H(f2g1, f2g2, f2h1, f2h2);
 
 %% 
-% fignums = [f2a, f2b, f2c, f2d, f2e, f2f, f2g1, f2g2, f2h1, f2h2];
-% Forman.exportFigs3(fignums,'AnnualReview_Figures',fileType='svg')
+fignums = [f2a, f2b, f2c, f2d, f2e, f2f, f2g1, f2g2, f2h1, f2h2];
+Forman.exportFigs3(fignums,'AnnualReview_Figures',fileType='svg')
 %% Figure 3 A
 f3A1 = figure(301); 
 f3A2 = figure(302);
@@ -101,10 +101,10 @@ Forman.makeFigs4DEF(f4d1, f4d2, f4e1, f4e2, f4f1, f4f2);
 f4g = figure(410);
 f4h = figure(411);
 f4i = figure(412);
-Forman.freeParsFig4 = [1:5];
 Forman.makeFig4GHI(f4g, f4h, f4i);
 
 
 %%
-fignums = [f4A,f4B,f4C,f4d1,f4d2,f4e1,f4e2,f4f1,f4f2, f4g, f4h, f4i];
+% fignums = [f4A,f4B,f4C,f4d1,f4d2,f4e1,f4e2,f4f1,f4f2, f4g, f4h, f4i];
+fignums = [f4g, f4h, f4i];
 Forman.exportFigs3(fignums,'AnnualReview_Figures',fileType='svg')

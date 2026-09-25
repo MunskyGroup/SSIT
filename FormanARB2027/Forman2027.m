@@ -542,6 +542,7 @@ classdef Forman2027
                 opts.Nsamps = 20
                 opts.xlims = [10^1, 10^2.5]
                 opts.ylims = [-40, -1]
+                opts.xlimsCells = [1, 10^2.5]
             end
 
             %% MLE FIM relationship - Multiple cell - Bursting Model - Plotting
@@ -830,6 +831,7 @@ classdef Forman2027
             ax2E2.XColor = 'k';
             ax2E2.YColor = 'k';
             ax2E2.TickLength = [0.008 0.008];
+            ax2E2.XLim = opts.xlimsCells;
 
             %% 2F - MSE of MLE vs number of cells
             mleMSE = zeros(size(cell_numbers));
@@ -895,6 +897,7 @@ classdef Forman2027
             ax2F2.XColor = 'k';
             ax2F2.YColor = 'k';
             ax2F2.TickLength = [0.008 0.008];
+            ax2F2.XLim = opts.xlimsCells;
 
         end
         function prepareFig2G(obj,opts)
@@ -1029,7 +1032,7 @@ classdef Forman2027
             % MLE covariance ellipse
             plot(muMLE(1) + MLEellipse(1,:), ...
                 muMLE(2) + MLEellipse(2,:), ...
-                'c-', ...
+                'c--', ...
                 'LineWidth',2);
 
             % MLE mean
@@ -1143,7 +1146,7 @@ classdef Forman2027
             % MLE covariance ellipse
             plot(muMLERot(1) + MLEellipseRot(1,:),...
                 muMLERot(2) + MLEellipseRot(2,:),...
-                'c-',...
+                'c--',...
                 'LineWidth',2);
 
             % FIM center
@@ -1194,6 +1197,7 @@ classdef Forman2027
         function makeFigs3A(obj,f3A1,f3A2,f3A3,f3A4,f3A5)
 
             Model_chg = obj.ModelKoffSig;
+            paramIdx2Plot = [1,3];
 
             Model_chg.fittingOptions.modelVarsToFit = [1:5];
             FIMs = Model_chg.computeFIM(scale='log',freePars=[1:5],...
@@ -1208,7 +1212,7 @@ classdef Forman2027
                 PlotEllipses=true, ...
                 EllipseFigure=f3A1,...
                 Colors = struct('EllipseColors',[0, 0, 0],'CenterSquare',[0,0,0]), ...
-                EllipsePairs=[1,2], ...
+                EllipsePairs=paramIdx2Plot, ...
                 FigureHandle=f3A2,...
                 LogThreshold=-4,...
                 HeatMapType='invfim',...
@@ -1219,7 +1223,7 @@ classdef Forman2027
             C = FIM^(-1)/log(10)^2;
 
             % Parameters corresponding to your ellipse pair
-            C2 = C([1 2],[1 2]);
+            C2 = C(paramIdx2Plot,paramIdx2Plot);
 
             % Eigenvectors/eigenvalues
             [V,D] = eig(C2);
@@ -1229,8 +1233,8 @@ classdef Forman2027
             V = V(:,idx);
 
             % Center of ellipse
-            x0 = log10(Model_chg.parameters{2,2});
-            y0 = log10(Model_chg.parameters{1,2});
+            x0 = log10(Model_chg.parameters{paramIdx2Plot(2),2});
+            y0 = log10(Model_chg.parameters{paramIdx2Plot(1),2});
 
             % Scale factor for visualization
             scale = 2;
@@ -1298,8 +1302,8 @@ classdef Forman2027
             end
 
             % Center
-            x0 = log10(Model_chg.parameters{2,2});
-            y0 = log10(Model_chg.parameters{1,2});
+            x0 = log10(Model_chg.parameters{paramIdx2Plot(2),2});
+            y0 = log10(Model_chg.parameters{paramIdx2Plot(1),2});
             mu = [x0; y0];
 
             % Chi-square scaling
@@ -1751,6 +1755,10 @@ classdef Forman2027
         end
 
         function obj = makeFig3D(obj,f3D1,f3D2,f3D3)
+            ylimDopt = [10^(-16), 10^-6];
+            ylimEopt = [10^(-1), 10^0];
+            ylimDsubopt = [10^(-5), 10^0];
+
 
             Model_chg =obj.ModelKoffSig;
             % vNCells = round(logspace(2, 3, 10));
@@ -1844,6 +1852,7 @@ classdef Forman2027
             names = {'DOpt', 'EOpt', 'DsOpt'};
 
             figs = [f3D1,f3D2,f3D3];
+            allYlims = {ylimDopt, ylimEopt, ylimDsubopt};
             for k = 1:length(data)
 
                 figure(figs(k));
@@ -1930,7 +1939,7 @@ classdef Forman2027
                 grid on;
                 legend('Location', 'best');
                 hold off;
-
+                ylim(allYlims{k})
                 ax = gca;
                 ax.LineWidth = 1.5;
             end
@@ -2263,7 +2272,8 @@ classdef Forman2027
             % observations and how masny cells to observe at each time point.           
             N = 50;
             Model_chg = obj.Model_BinomialPDO;
-            vDropOut = linspace(0,0.98,N);
+            Model_chg.tSpan = linspace(min(Model_chg.tSpan), max(Model_chg.tSpan), 16)
+            vDropOut = linspace(0,0.8,N);
             OptExptVsDropOut = zeros(50,length(Model_chg.tSpan));
             ModelPDO = obj.ModelKoffSig;
             ModelPDO = ModelPDO.solve(solver='fspsens');
@@ -2783,7 +2793,7 @@ classdef Forman2027
 
             % Plot ellipse
             h = plot(ellipse(1,:),ellipse(2,:),...
-                'c-',...
+                'c--',...
                 'LineWidth',2);
 
         end
