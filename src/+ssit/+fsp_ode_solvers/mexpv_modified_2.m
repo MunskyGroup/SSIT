@@ -280,6 +280,7 @@ while tNow < t_out && i_prt<=length(Time_array)
     % end
     if sum(abs((Ain*w)))<(btol/(max(Time_array)-min(Time_array)))
         % Detect SS and quit early
+        err_loc = btol;
         t_step = min([Time_array(i_prt)-tNow,nextFixedTime-tNow]);
     else
 
