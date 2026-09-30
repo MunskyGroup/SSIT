@@ -128,3 +128,8 @@ SBML_test_cases/00010/Time-Course.txt
 /doNotCommit
 FormanARB2027/defaultSimData.csv
 /FormanARB2027/AnnualReview_Figures
+/Examples/FormanARB2027/AnnualReview_Figures
+Examples/FormanARB2027/defaultSimData.csv
+Examples/FormanARB2027/MLEforDistortions.mat
+Examples/FormanARB2027/TMPModelFIM.m
+Examples/FormanARB2027/reviewBurstModel.m
