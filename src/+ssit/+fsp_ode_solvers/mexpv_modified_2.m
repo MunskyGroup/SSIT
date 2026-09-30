@@ -188,6 +188,7 @@ gamma = 0.9; delta = 1.2;
 mb    = m; t_out   = abs(t);
 s_error = 0;
 rndoff= anorm*eps;
+err_loc = 0;
 
 k1 = 2; xm = 1/m; normv = norm(vin); beta = normv;
 fact = (((m+1)/exp(1))^(m+1))*sqrt(2*pi*(m+1));
