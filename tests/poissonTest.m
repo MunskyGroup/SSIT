@@ -749,5 +749,19 @@ classdef poissonTest < matlab.unittest.TestCase
                 'Datafield led to incorrec totals.');
             
         end
-    end
+
+
+        function TestModelAlreadyAtSteadyState(testCase)
+            % Set all parameters to zero. This will ensure that the model
+            % is at steady state, since no reactions will ever fire, and
+            % thus the distribution of the system's states will be unable
+            % to change.
+
+            paramValues = testCase.Poiss.parameters(:, 2);
+            numParams = length(paramValues);
+            newParamValues = num2cell(zeros(numParams, 1));
+            testCase.Poiss.parameters(:, 2) = newParamValues;
+            testCase.Poiss.solve;            
+        end % TestModelAlreadyAtSteadyState
+    end % Tests
 end
