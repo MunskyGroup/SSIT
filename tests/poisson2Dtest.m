@@ -144,16 +144,25 @@ classdef poisson2Dtest < matlab.unittest.TestCase
         end
    
         function likelihoodFunctions(testCase)
-            % This will test if the code can calculated the likelihood
+            % This will test if the code can calculate the likelihood
             % functions correctly for full and partial state information.
             delete 'testData.csv'
             testCase.TwoDPoiss.ssaOptions.nSimsPerExpt = 1000;
             testCase.TwoDPoiss.ssaOptions.Nexp = 1;
             testCase.TwoDPoiss.sampleDataFromFSP(testCase.TwoDPoissSolution,'testData.csv');
 
-            modelBoth = testCase.TwoDPoiss.loadData('testData.csv',{'rna1','exp1_s1';'rna2','exp1_s2'});
+            modelBoth = testCase.TwoDPoiss.loadData('testData.csv');
             modelBothLogL = modelBoth.computeLikelihood;
-            modelA = testCase.TwoDPoiss.loadData('testData.csv',{'rna1','exp1_s1'});
+
+            % Because SSIT data loading is greedy in the sense of loading
+            % all data available in a provided file, manually drop the rna2
+            % data from the file provided for fitting to partial state
+            % information.
+
+            testData = readtable("testData.csv");
+            testData = testData(:, ["exp1_rna1" "time"]);
+            writetable(testData, "testData_pruned.csv")
+            modelA = testCase.TwoDPoiss.loadData("testData_pruned.csv");
             modelALogL = modelA.computeLikelihood;
 
             DATA = modelBoth.dataSet.DATA;
@@ -203,7 +212,7 @@ classdef poisson2Dtest < matlab.unittest.TestCase
             testCase.TwoDPoiss.ssaOptions.Nexp = 1;
             testCase.TwoDPoiss.sampleDataFromFSP(testCase.TwoDPoissSolution,'testData.csv');
 
-            modelBoth = testCase.TwoDPoiss.loadData('testData.csv',{'rna1','exp1_s1';'rna2','exp1_s2'});
+            modelBoth = testCase.TwoDPoiss.loadData('testData.csv');
 
             % Change numbers of cells
             modelBoth.dataSet.nCells(:) = 30;
