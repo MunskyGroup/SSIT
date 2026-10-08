@@ -105,6 +105,10 @@ function txtOut = stripOmitnanClause(txtIn)
 %   ..., 'omitnan', <any expression>)
 % where <any expression> may itself contain nested parentheses.
 
+if length(txtIn)==1
+    txtIn = txtIn{1};
+end
+
 txtOut = txtIn;
 searchStart = 1;
 
@@ -162,6 +166,7 @@ end
 
 function depth = parenDepthAt(txt,idx)
 % Parenthesis depth at position idx (ignoring quoted strings).
+
 depth = 0;
 inSingle = false;
 inDouble = false;
