@@ -3368,22 +3368,27 @@ classdef SSIT
             %   * 'nCellsTotalNew' - the total number of cells to be
             %       measured, spread out among the Nt time points
             %   * 'FIMmetric' - type of optimization, allowable metrics are:
+            %       'E-opt' (default) - maximize the smallest eigenvalue of
+            %                           the FIM
             %       'D-opt' - maximize the expected determinant of the FIM
-            %       'D-cov' - minimize the expected determinant of the MLE
-            %                 covariance
-            %       'E-opt' - maximize the smallest eigenvalue of the FIM
-            %       'Trace' - maximize the trace of the FIM            
-            %       'D-opt-sub-inv[<i1>,<i2>,...]' 
-            %               - minimize the determinant of the inverse FIM 
-            %                 for the specified indices, (all other 
-            %                 parameters are assumed to be fixed)
-            %       'D-cov-sub' - accounts for estimation uncertainty of 
-            %                 fixed parameters
+            %       'D-cov' - minimize the mean determinant of the
+            %                 approximate covariance (generalized variance)
+            %       'Trace' - maximize the trace of the FIM   
             %       'D-opt-sub[<i1>,<i2>,...]' 
-            %               - maximize the determinant of the FIM for the
-            %                 specified indices, (only the parameters in
-            %                 obj.fittingOptions.modelVarsToFit are assumed
-            %                 to be free)
+            %               - maximize the determinant of the selected 
+            %                 parameters of the FIM (for the specified 
+            %                 indices) are assumed to be free)
+            %       'D-opt-sub-inv[<i1>,<i2>,...]' 
+            %               - minimize the determinant of the selected 
+            %                 parameters' approximate covariance
+            %                 conditional on the other parameters being
+            %                 fixed
+            %       'D-cov-sub' - minimizes the selected parameters' 
+            %                     covariance determinant while accounting
+            %                     for uncertainty in the other parameters 
+            %                     represented in the full FIM (nuisance-
+            %                     adjusted Ds-optimality)
+
             %   * 'Nc' - an optimal guess for the optimal experiment
             %            design
             %   * 'NcFixed' - a minimal number of cells to measure at each
