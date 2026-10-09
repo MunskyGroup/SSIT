@@ -3377,12 +3377,11 @@ classdef SSIT
             %       'D-opt-sub[<i1>,<i2>,...]' 
             %               - maximize the determinant of the selected 
             %                 parameters of the FIM (for the specified 
-            %                 indices) are assumed to be free)
+            %                 indices), with other parameters fixed
             %       'D-opt-sub-inv[<i1>,<i2>,...]' 
             %               - minimize the determinant of the selected 
             %                 parameters' approximate covariance
-            %                 conditional on the other parameters being
-            %                 fixed
+            %                 conditional on the other (fixed) parameters 
             %       'D-cov-sub' - minimizes the selected parameters' 
             %                     covariance determinant while accounting
             %                     for uncertainty in the other parameters 
