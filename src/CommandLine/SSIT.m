@@ -3372,11 +3372,13 @@ classdef SSIT
             %       'D-cov' - minimize the expected determinant of the MLE
             %                 covariance
             %       'E-opt' - maximize the smallest eigenvalue of the FIM
-            %       'Trace' - maximize the trace of the FIM
+            %       'Trace' - maximize the trace of the FIM            
             %       'D-opt-sub-inv[<i1>,<i2>,...]' 
             %               - minimize the determinant of the inverse FIM 
             %                 for the specified indices, (all other 
-            %                 parameters are assumed to be free)
+            %                 parameters are assumed to be fixed)
+            %       'D-cov-sub' - accounts for estimation uncertainty of 
+            %                 fixed parameters
             %       'D-opt-sub[<i1>,<i2>,...]' 
             %               - maximize the determinant of the FIM for the
             %                 specified indices, (only the parameters in
