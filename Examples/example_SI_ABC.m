@@ -192,6 +192,9 @@ saveNames = unique({'scRNAseq'
     'parsABC'
     'minimumLoss'
     'ResultsABC'
+    'fitOptions'
+    'fitpars'
+    'parGuess'
     });
     
 save('example_SI_ABC',saveNames{:})
