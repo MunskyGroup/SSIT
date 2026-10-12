@@ -131,6 +131,7 @@ if isfield(ResultsABC, 'mhSamples')
     end
     nPars    = size(parChain, 2);
     mlePars  = cell2mat(Model_TSC22D3.parameters(fitpars,2));
+    parNames = Model_TSC22D3.parameters(fitpars,1);  % e.g., {'r1';'r2';'kon_0';...}
 
     figure;
     for k = 1:nPars
@@ -144,8 +145,8 @@ if isfield(ResultsABC, 'mhSamples')
             'DisplayName', 'ABC min-loss');
         hMLE = xline(mlePars(k), 'g', 'LineWidth', 1.5, ...
             'DisplayName', 'MLE');
-        title(sprintf('Parameter %d', k));
-        xlabel('\theta_k');
+        title(parNames{k}, 'Interpreter', 'none');
+        xlabel('Parameter value');
         ylabel('Posterior density (approx.)');
         legend([hInit hMLE hABC], 'Location', 'best');
     end
@@ -173,7 +174,6 @@ L_min  = minimumLoss;
 
 fprintf('Initial loss: %.3f,  Final (min) loss: %.3f\n', L_init, L_min);
 fprintf('Relative improvement: %.1f%%\n', 100 * (L_init - L_min)/L_init);
-
 
 %% Compare ABC posterior sample to MLE
 % TODO: Overlay parameter values and compute predictive distributions.
