@@ -674,7 +674,12 @@ classdef miscelaneousTests < matlab.unittest.TestCase
              
              %% Define Model/Data Combination
              % Specify data set to fit.
-             DataSettings = {'testData.csv',{'mRNA','exp1_s1'}};
+             % Here we do provide a linked-species array because
+             % testData.csv was generated using a model where the species
+             % names were "rna1" and "rna2"; neither of these matches the
+             % name of a species in the model used in this TC.
+             
+             DataSettings = {'testData.csv', {'mRNA','exp1_rna1'}};
 
              % Create model from preset, associate with data.
              Model = SSIT('BirthDeath',[],DataSettings);
