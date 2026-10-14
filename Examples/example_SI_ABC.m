@@ -133,24 +133,46 @@ if isfield(ResultsABC, 'mhSamples')
     mlePars  = cell2mat(Model_TSC22D3.parameters(fitpars,2));
     parNames = Model_TSC22D3.parameters(fitpars,1);  % e.g., {'r1';'r2';'kon_0';...}
 
-    figure;
+    fontSz = 10;                          % font size for all text
+    nCols  = 2;
+    nRows  = ceil(nPars/nCols);
+
+    fig = figure('Color', 'w', 'Units', 'centimeters', ...
+                 'Position', [2 2 22 14]);
+    t = tiledlayout(fig, nRows, nCols, ...
+        'TileSpacing', 'compact', 'Padding', 'compact');
+
     for k = 1:nPars
-        subplot(ceil(nPars/2), 2, k);
-        histogram(parChain(:,k), 40, 'Normalization', 'pdf', ...
+        ax = nexttile(t, k);
+        histogram(ax, parChain(:,k), 40, 'Normalization', 'pdf', ...
             'HandleVisibility', 'off');
-        hold on;        
-        hInit = xline(parGuess(k), 'b', 'LineWidth', 1.5, ...
+        hold(ax, 'on');
+        hInit = xline(ax, parGuess(k), 'b', 'LineWidth', 1.5, ...
             'DisplayName', 'Initial Guess');
-        hABC = xline(parsABC(k), 'r', 'LineWidth', 1.5, ...
-            'DisplayName', 'ABC min-loss');
-        hMLE = xline(mlePars(k), 'g', 'LineWidth', 1.5, ...
+        hMLE  = xline(ax, mlePars(k),  'g', 'LineWidth', 1.5, ...
             'DisplayName', 'MLE');
-        title(parNames{k}, 'Interpreter', 'none');
-        xlabel('Parameter value');
-        ylabel('Posterior density (approx.)');
-        legend([hInit hMLE hABC], 'Location', 'best');
+        hABC  = xline(ax, parsABC(k),  'r', 'LineWidth', 1.5, ...
+            'DisplayName', 'ABC min-loss');
+        title(ax, parNames{k}, 'Interpreter', 'none', ...
+            'FontSize', fontSz, 'FontWeight', 'bold');
+        set(ax, 'FontSize', fontSz, 'TitleFontSizeMultiplier', 1);
+
+        % x-axis label only on the bottom panel of each column:
+        if k + nCols > nPars
+            xlabel(ax, 'Parameter value', 'FontSize', fontSz);
+        end
     end
-    sgtitle(histogramTitle);
+
+    % One shared y-axis label and a single legend for the whole figure:
+    ylabel(t, 'Posterior density (approx.)', 'FontSize', fontSz);
+    lgd = legend(ax, [hInit hMLE hABC], 'FontSize', fontSz);
+    if nPars < nRows*nCols
+        lgd.Layout.Tile = nPars + 1;      % place legend in the empty tile
+    else
+        lgd.Layout.Tile = 'south';
+        lgd.Orientation = 'horizontal';
+    end
+    title(t, histogramTitle, 'FontSize', fontSz + 2);
 else
     warning('ResultsABC.mhSamples not found.');
 end
@@ -174,6 +196,7 @@ L_min  = minimumLoss;
 
 fprintf('Initial loss: %.3f,  Final (min) loss: %.3f\n', L_init, L_min);
 fprintf('Relative improvement: %.1f%%\n', 100 * (L_init - L_min)/L_init);
+
 
 %% Compare ABC posterior sample to MLE
 % TODO: Overlay parameter values and compute predictive distributions.
