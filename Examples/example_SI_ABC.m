@@ -123,6 +123,12 @@ disp(parsABC(:).');
 load('seqModels/Model_TSC22D3.mat')
 histogramTitle = 'ABC posterior marginals for TSC22D3';
 
+% Plot scale for the marginal histograms:
+%   'log10'  - histograms of log10(parameter) (recommended when posteriors
+%              span several orders of magnitude)
+%   'linear' - histograms of the raw parameter values
+plotScale = 'log10';
+
 if isfield(ResultsABC, 'mhSamples')
     if ~isfield(fitOptions, 'logForm') || fitOptions.logForm
         parChain = exp(ResultsABC.mhSamples);  % Default MH samples are stored in log-parameter space.
@@ -132,6 +138,24 @@ if isfield(ResultsABC, 'mhSamples')
     nPars    = size(parChain, 2);
     mlePars  = cell2mat(Model_TSC22D3.parameters(fitpars,2));
     parNames = Model_TSC22D3.parameters(fitpars,1);  % e.g., {'r1';'r2';'kon_0';...}
+
+    % Values to plot on the chosen scale (parameters are positive):
+    switch lower(plotScale)
+        case 'log10'
+            toPlot = @(x) log10(max(x, realmin));
+            xLabelStr = 'log_{10}(\theta)';
+            yLabelStr = 'Posterior density of log_{10}(\theta) (approx.)';
+        case 'linear'
+            toPlot = @(x) x;
+            xLabelStr = 'Parameter value';
+            yLabelStr = 'Posterior density (approx.)';
+        otherwise
+            error('plotScale must be ''log10'' or ''linear''.');
+    end
+    chainPlot = toPlot(parChain);
+    guessPlot = toPlot(parGuess(:));
+    mlePlot   = toPlot(mlePars(:));
+    abcPlot   = toPlot(parsABC(:));
 
     fontSz = 10;                          % font size for all text
     nCols  = 2;
@@ -144,14 +168,14 @@ if isfield(ResultsABC, 'mhSamples')
 
     for k = 1:nPars
         ax = nexttile(t, k);
-        histogram(ax, parChain(:,k), 40, 'Normalization', 'pdf', ...
+        histogram(ax, chainPlot(:,k), 40, 'Normalization', 'pdf', ...
             'HandleVisibility', 'off');
         hold(ax, 'on');
-        hInit = xline(ax, parGuess(k), 'b', 'LineWidth', 1.5, ...
+        hInit = xline(ax, guessPlot(k), 'b', 'LineWidth', 1.5, ...
             'DisplayName', 'Initial Guess');
-        hMLE  = xline(ax, mlePars(k),  'g', 'LineWidth', 1.5, ...
+        hMLE  = xline(ax, mlePlot(k),   'g', 'LineWidth', 1.5, ...
             'DisplayName', 'MLE');
-        hABC  = xline(ax, parsABC(k),  'r', 'LineWidth', 1.5, ...
+        hABC  = xline(ax, abcPlot(k),   'r', 'LineWidth', 1.5, ...
             'DisplayName', 'ABC min-loss');
         title(ax, parNames{k}, 'Interpreter', 'none', ...
             'FontSize', fontSz, 'FontWeight', 'bold');
@@ -159,12 +183,12 @@ if isfield(ResultsABC, 'mhSamples')
 
         % x-axis label only on the bottom panel of each column:
         if k + nCols > nPars
-            xlabel(ax, 'Parameter value', 'FontSize', fontSz);
+            xlabel(ax, xLabelStr, 'FontSize', fontSz);
         end
     end
 
     % One shared y-axis label and a single legend for the whole figure:
-    ylabel(t, 'Posterior density (approx.)', 'FontSize', fontSz);
+    ylabel(t, yLabelStr, 'FontSize', fontSz);
     lgd = legend(ax, [hInit hMLE hABC], 'FontSize', fontSz);
     if nPars < nRows*nCols
         lgd.Layout.Tile = nPars + 1;      % place legend in the empty tile
