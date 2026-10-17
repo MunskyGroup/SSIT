@@ -40,13 +40,6 @@ STL1_4state.tSpan = linspace(0,50,101);
     % 'verbose' defaults to false, prints completed sim number to screen.
     Model.ssaOptions.verbose=true;
     
-    % A negative initial time is used to allow model to equilibrate 
-    % before starting (burn-in). Large burn-in times cause long run times.
-    Model.tSpan = [-100,Model.tSpan];
-    
-    % Set the initial time:
-    Model.initialTime = -100; 
-    
     % Run iterations in parallel with multiple cores, or execute serially:
     Model.ssaOptions.useParallel = true;
     
@@ -56,9 +49,9 @@ STL1_4state.tSpan = linspace(0,50,101);
     % Plot SSA trajectories and means:
     Model.plotSSA(speciesIdx='all', numTraj=10,...
         speciesNames=Model.species, lineProps={'linewidth',4}, ...
-        Title="Bursting Gene", MeanOnly=true, TitleFontSize=32,...
+        Title="Bursting Gene", MeanOnly=false, TitleFontSize=32,...
         AxisLabelSize=24, TickLabelSize=24, LegendFontSize=20,...
-        LegendLocation='east', XLabel='Time', YLabel='Molecule Count');
+        LegendLocation='northeast', XLabel='Time', YLabel='Molecule Count');
 
     %% Make a video of the SSA trajectories being plotted:
     % Model.plotSSA(makeMovie=true,
@@ -74,13 +67,6 @@ STL1_4state.tSpan = linspace(0,50,101);
     % Set the number of simulations:
     STL1.ssaOptions.nSims=1000;
     
-    % A negative initial time is used to allow model to equilibrate 
-    % before starting (burn-in). Large burn-in times cause long run times.
-    STL1.tSpan = [-100,STL1.tSpan];
-
-    % Set the initial time:
-    STL1.initialTime = -100; 
-    
     % Run iterations in parallel with multiple cores, or execute serially:
     STL1.ssaOptions.useParallel = true;
     
@@ -90,9 +76,9 @@ STL1_4state.tSpan = linspace(0,50,101);
     % Plot SSA trajectories and means:
     STL1.plotSSA(speciesIdx='all', numTraj=100,...
         speciesNames=STL1.species, lineProps={'linewidth',4},...
-        Title="STL1", MeanOnly=true, TitleFontSize=32,...
+        Title="STL1", MeanOnly=false, TitleFontSize=32,...
         AxisLabelSize=24, TickLabelSize=24,...
-        LegendFontSize=20, LegendLocation='east',...
+        LegendFontSize=20, LegendLocation='northeast',...
         XLabel='Time', YLabel='Molecule Count');
 
     %% Make a video of the SSA trajectories being plotted:
