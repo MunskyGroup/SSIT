@@ -1781,7 +1781,7 @@ classdef SSIT
             obj.Solutions = [];
         end
 
-        function [obj] = calibratePDO(obj,dataFileName,measuredSpecies,...
+        function [obj,errorPDO] = calibratePDO(obj,dataFileName,measuredSpecies,...
             trueColumns,measuredColumns,pdoType,showPlot,parGuess,...
             conditions, opts)
             %% SSIT.calibratePDO - This function calibrates a probabilistic 
@@ -1954,7 +1954,7 @@ classdef SSIT
                     maxSize(i) = max(xTrue) + 1; % conditionalPmfs{ispec}(1:j, j) = pdf('bino', 0:j-1, j-1, lamb);
 
                     objPDO = @(x) -obj.findPdoError(pdoType, x, xTrue, xObsv);
-                    lambdaNew = fminsearch(objPDO, lambdaTemplate, options);
+                    [lambdaNew,errorPDO] = fminsearch(objPDO, lambdaTemplate, options);
 
                     if showPlot
                         [~,PDO] = obj.findPdoError(pdoType, lambdaNew, xTrue, xObsv);
@@ -2154,6 +2154,8 @@ classdef SSIT
                     Np = ceil(max(NmaxObs,lambda(1)+lambda(2)*NmaxTrue));
                 case 'AffinePoiss'
                     Np = ceil(max(NmaxObs,lambda(2)+lambda(3)*NmaxTrue));
+                case 'AffineNormal'
+                    Np = ceil(max(NmaxObs,lambda(2)+lambda(3)*NmaxTrue+3*lambda(4)));
                 case 'QuadPoiss'
                     Np = ceil(max(NmaxObs,lambda(2)+lambda(3)*NmaxTrue+lambda(4)*NmaxTrue^2));
                 case {'Binomial','MissingSpots'}
@@ -2167,6 +2169,8 @@ classdef SSIT
                         P(1:Np+1,xi+1) = pdf('poiss',[0:Np]',max(lambda(1),lambda(2)*xi));
                     case 'AffinePoiss'
                         P(1:Np+1,xi+1) = pdf('poiss',[0:Np]',max(lambda(1),lambda(2)+lambda(3)*xi));
+                    case 'AffineNormal'
+                        P(1:Np+1,xi+1) = pdf('Normal',[0:Np]',max(lambda(1),lambda(2)+lambda(3)*xi),lambda(4));
                     case 'QuadPoiss'
                         P(1:Np+1,xi+1) = pdf('poiss',[0:Np]',max(lambda(1),lambda(2)+lambda(3)*xi+lambda(4)*xi^2));
                     case {'Binomial','MissingSpots'} 
@@ -2193,6 +2197,8 @@ classdef SSIT
                 case 'LinPoiss'
                     logL = logL-1e4*(lambda(1)<0);
                 case 'AffinePoiss'
+                    logL = logL-1e4*(lambda(1)<0);
+                case 'AffineNormal'
                     logL = logL-1e4*(lambda(1)<0);
                 case {'Binomial','MissingSpots'}
                     logL = logL - 1e6*((lambda(1)<0) + (lambda(1)>1));
@@ -3597,9 +3603,9 @@ classdef SSIT
             %       measured, spread out among the Nt time points
             %   * 'FIMmetric' - type of optimization, allowable metrics are:
             %       'D-opt' - maximize the expected determinant of the FIM
-            %       'D-cov' - minimize the expected determinant of the MLE
-            %                 covariance
+            %       'D-cov' - minimize the expected determinant of inv(FIM)
             %       'E-opt' - maximize the smallest eigenvalue of the FIM
+            %       'E-cov' - minimize the largest eigenvalue of inv(FIM)
             %       'Trace' - maximize the trace of the FIM
             %       'D-opt-sub-inv[<i1>,<i2>,...]' 
             %               - minimize the determinant of the inverse FIM 
@@ -5101,7 +5107,7 @@ classdef SSIT
 
             % Check if the fit resulted in better parameters for max
             % posterior and update if so.
-            if nargout>=4||strcmpi(opts.returnType,'ssit')
+            if strcmpi(obj.solutionScheme,'fsp')&&(nargout>=4||strcmpi(opts.returnType,'ssit'))
                 if obj.computeLikelihood(exp(x0(:)))>obj.computeLikelihood([obj.parameters{obj.fittingOptions.modelVarsToFit,2}]')
                     % Update best parameters set in returned model.
                     obj.parameters(obj.fittingOptions.modelVarsToFit,2) = num2cell(exp(x0(:)));
