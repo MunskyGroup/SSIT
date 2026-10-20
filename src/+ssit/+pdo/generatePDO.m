@@ -436,6 +436,28 @@ switch app.DistortionTypeDropDown.Value
         end
 
 
+    case 'AffineNormal'
+        for ispec = 1:nSpecies
+            if maxSize(ispec)>1
+                for j = maxSize(ispec):-1:1
+                    mu = max(app.FIMTabOutputs.PDOProperties.props.PDOpars((ispec-1)*4+1),...
+                        app.FIMTabOutputs.PDOProperties.props.PDOpars((ispec-1)*4+2)+...
+                        app.FIMTabOutputs.PDOProperties.props.PDOpars((ispec-1)*4+3)*(j-1));
+                    sig = app.FIMTabOutputs.PDOProperties.props.PDOpars((ispec-1)*4+4);
+                    if isfield(app.FIMTabOutputs.PDOProperties.props,'pdoOutputRange')
+                        Np = app.FIMTabOutputs.PDOProperties.props.pdoOutputRange(ispec);
+                    else
+                        Np = ceil(mu+5*sig);
+                    end
+                    P2 = pdf('Normal',[0:Np],mu,sig);
+                    conditionalPmfs{ispec}(1:Np+1,j) = P2;
+                end
+            else
+                conditionalPmfs{ispec} = 1;
+            end
+        end
+
+
     case 'AffinePoissBounded'
         for ispec = 1:nSpecies
             if maxSize(ispec)>1
@@ -550,6 +572,8 @@ switch app.DistortionTypeDropDown.Value
                 conditionalPmfs{ispec} = 1;
             end
         end
+    otherwise
+        error('PDO type not recognized.')
 end
 % --------------------------------------------------------------------
 % Optional visualization of per-species conditional PMFs

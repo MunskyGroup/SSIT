@@ -1952,6 +1952,9 @@ classdef SSIT
                     end
 
                     maxSize(i) = max(xTrue) + 1; % conditionalPmfs{ispec}(1:j, j) = pdf('bino', 0:j-1, j-1, lamb);
+                    if ~isempty(obj.fspOptions.bounds)
+                        maxSize(i) = max(maxSize(i),ceil(obj.fspOptions.bounds(length(speciesStochastic)+i)));
+                    end
 
                     objPDO = @(x) -obj.findPdoError(pdoType, x, xTrue, xObsv);
                     [lambdaNew,errorPDO] = fminsearch(objPDO, lambdaTemplate, options);
