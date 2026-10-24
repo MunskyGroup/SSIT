@@ -13,25 +13,6 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% Load scRNA-seq model:
-% scRNAseq = SSIT;
-% scRNAseq.species = {'onGene';'rna'};
-% scRNAseq.initialCondition = [0;0];
-% scRNAseq.propensityFunctions = ...
-%     {'(kon_0+kon_1*Iupstream)*(2-onGene)';...
-%     'koff_0/(1+akoff*Iupstream)*onGene';...
-%     'kr_0*(2-onGene)+kr_1*onGene';'gr*rna'};
-% scRNAseq.stoichiometry = [1,-1,0,0;0,0,1,-1];
-% scRNAseq.inputExpressions = {'Iupstream',...
-%                              'exp(-r1*t*(t>=0))*(1-exp(-r2*t*(t>=0)))'};
-% scRNAseq.parameters = ({'r1',0.007620555135615; 'r2',0.998975820956359;...
-%                         'kon_0',0.01; 'kon_1',0.01; ...
-%                         'koff_0',20; 'akoff',0.2;...
-%                         'kr_0',1; 'kr_1',100; 'gr',1});
-% 
-% scRNAseq.pdoOptions.type = 'Binomial';
-% scRNAseq.pdoOptions.unobservedSpecies = 'onGene';
-% scRNAseq.pdoOptions.props.CaptureProbabilityS1 = 0;    % Gene State is not measured
-% scRNAseq.pdoOptions.props.CaptureProbabilityS2 = 0.05; % 95% dropout from RNA
 load('seqModels/Model_DUSP1.mat')
 scRNAseq = Model_DUSP1;
 
@@ -52,13 +33,9 @@ FIM = scRNAseq.evaluateExperiment(FIMs,scRNAseq.dataSet.nCells);
 COV = (0.5*FIM{1}+0.5*FIM{1}')^(-1);
 
 %% Set SSA options:
-
 %Set solution scheme to SSA:
 scRNAseq.solutionScheme = 'SSA';
 
-% Set number of simulations performed per experiment (small # for demo):
-scRNAseq.ssaOptions.nSimsPerExpt=1000;
-    
 % Equilibrate before starting (burn-in):
 scRNAseq.initialTime = -1000;
 
@@ -82,15 +59,16 @@ logPriorLoss = [];
 % 'MetropolisHastings' algorithm. Tune these depending on your problem size.
 
 fitOptions = struct();
-fitOptions.numberOfSamples       = 2000;          % Total MH iterations 
-fitOptions.burnIn                = 100;           % Discard burn-in samples
-fitOptions.thin                  = 5;             % Keep every nth sample
+fitOptions.numberOfSamples       = 1000;          % Total MH iterations 
+fitOptions.burnIn                = 0;           % Discard burn-in samples
+fitOptions.thin                  = 1;             % Keep every nth sample
 fitOptions.progress              = false;         % Do not plot progress of MCMC
-proposalWidthScale               = 0.05;           % Proposal scale
+fitOptions.recomputeCurrentState = true;          % Recompute Likelihood at each step in chain.
+proposalWidthScale               = 0.3;           % Proposal scale
 
 % Proposal distribution:
 % fitOptions.proposalDistribution  = @(x)x+proposalWidthScale*randn(size(x));
-fitOptions.proposalDistribution  = @(x)x+0.3*mvnrnd(0*x,COV);
+fitOptions.proposalDistribution  = @(x)x+proposalWidthScale*mvnrnd(0*x,COV);
 
 % Log prior:
 fitOptions.logPrior = @(x)-sum(log10(x).^2/2);
@@ -101,10 +79,23 @@ fitOptions.logPrior = @(x)-sum(log10(x).^2/2);
 parGuess = cell2mat(scRNAseq.parameters((fitpars),2));
 
 % Choose loss function for ABC (default: 'cdf_one_norm'):
-lossFunction = 'ksstat';
+lossFunction = 'marginal_loglik';
 
 % Enforce independence by downsampling SSA trajectories:
 enforceIndependence = true;
+
+%% Tune number of simulations
+% For SSA-based optimization to work properly, the standard deviation of
+% likelihood function evaluations should be less than 2.  Increase the
+% number of simulations to achieve this difference.
+scRNAseq.ssaOptions.nSimsPerExpt=4000;
+scRNAseq = scRNAseq.solve(solver='ssa');
+L = zeros(1,20);
+for k = 1:20
+    L(k) = scRNAseq.computeLossFunctionSSA('marginal_loglik',parGuess,false);
+end
+std(L)   % if well above ~2, noise in the model simulations will lead to low acceptance
+
 
 %% Run ABC search
 % This will:
@@ -118,9 +109,6 @@ enforceIndependence = true;
 %   minimumLossFunction     - value of the loss at that point
 %   Results                 - MH/ABC diagnostics and chains
 %   ModelABC                - model updated with 'pars'
-
-% Run one set of SSA to generate solver files.
-scRNAseq = scRNAseq.solve(solver='ssa');
 
 [parsABC, minimumLoss, ResultsABC] = ...
      scRNAseq.runABCsearch(parGuess, lossFunction, logPriorLoss,...
@@ -214,6 +202,7 @@ scRNAseq.solutionScheme = 'fsp';
 scRNAseq = scRNAseq.maximizeLikelihood(fitOptions=fitOptionFSP,...
     fitAlgorithm='MetropolisHastings');
 %% Plot 
+histogramTitle = 'FSP posterior marginals for DUSP1';
 
     if ~isfield(fitOptions, 'logForm') || fitOptions.logForm
         % parChainABC = exp(ResultsABC.mhSamples);  % Default MH samples are stored in log-parameter space.
