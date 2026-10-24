@@ -6,26 +6,50 @@
 %
 % This example:
 %   1. Defines a model for scRNA-seq genes with SSA solution scheme.
-%   2. Associates the template model with scRNA-seq data for gene TSC22D3.
+%   2. Associates the template model with scRNA-seq data for gene DUSP1.
 %   3. Defines a prior over parameters.
 %   4. Runs ABC via Metropolis–Hastings using 'cdf_one_norm' loss.
 %   5. Visualizes the ABC results.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-%% Define scRNA-seq model:
-scRNAseq = SSIT;
-scRNAseq.species = {'onGene';'rna'};
-scRNAseq.initialCondition = [0;0];
-scRNAseq.propensityFunctions = ...
-    {'(kon_0+kon_1*Iupstream)*(2-onGene)';...
-    'koff_0/(1+akoff*Iupstream)*onGene';...
-    'kr_0*(2-onGene)+kr_1*onGene';'gr*rna'};
-scRNAseq.stoichiometry = [1,-1,0,0;0,0,1,-1];
-scRNAseq.inputExpressions = {'Iupstream',...
-                             'exp(-r1*t*(t>=0))*(1-exp(-r2*t*(t>=0)))'};
-scRNAseq.parameters = ({'r1',0.01; 'r2',0.1; 'kon_0',0.01;...
-                        'kon_1',0.01; 'koff_0',20; 'akoff',0.2;...
-                        'kr_0',1; 'kr_1',100; 'gr',1});
+%% Load scRNA-seq model:
+% scRNAseq = SSIT;
+% scRNAseq.species = {'onGene';'rna'};
+% scRNAseq.initialCondition = [0;0];
+% scRNAseq.propensityFunctions = ...
+%     {'(kon_0+kon_1*Iupstream)*(2-onGene)';...
+%     'koff_0/(1+akoff*Iupstream)*onGene';...
+%     'kr_0*(2-onGene)+kr_1*onGene';'gr*rna'};
+% scRNAseq.stoichiometry = [1,-1,0,0;0,0,1,-1];
+% scRNAseq.inputExpressions = {'Iupstream',...
+%                              'exp(-r1*t*(t>=0))*(1-exp(-r2*t*(t>=0)))'};
+% scRNAseq.parameters = ({'r1',0.007620555135615; 'r2',0.998975820956359;...
+%                         'kon_0',0.01; 'kon_1',0.01; ...
+%                         'koff_0',20; 'akoff',0.2;...
+%                         'kr_0',1; 'kr_1',100; 'gr',1});
+% 
+% scRNAseq.pdoOptions.type = 'Binomial';
+% scRNAseq.pdoOptions.unobservedSpecies = 'onGene';
+% scRNAseq.pdoOptions.props.CaptureProbabilityS1 = 0;    % Gene State is not measured
+% scRNAseq.pdoOptions.props.CaptureProbabilityS2 = 0.05; % 95% dropout from RNA
+load('seqModels/Model_DUSP1.mat')
+scRNAseq = Model_DUSP1;
+
+%% Associate scRNA-seq data for gene DUSP1:
+scRNAseq = scRNAseq.loadData('data/Raw_DEX_UpRegulatedGenes_ForSSIT.csv',...
+                            {'rna','DUSP1'});
+
+% Choose which parameters to fit:
+fitpars = 8:9; % The first seven parameters are assumed to be known.
+scRNAseq.fittingOptions.modelVarsToFit = [fitpars]; 
+
+%% Compute FIM for use in proposal distribution
+scRNAseq = scRNAseq.solve(solver='fsp');
+[~,scRNAseq] = scRNAseq.generatePDO;
+scRNAseq = scRNAseq.solve(solver='fspsens');
+FIMs = scRNAseq.computeFIM(scale='log');
+FIM = scRNAseq.evaluateExperiment(FIMs,scRNAseq.dataSet.nCells);
+COV = (0.5*FIM{1}+0.5*FIM{1}')^(-1);
 
 %% Set SSA options:
 
@@ -33,21 +57,13 @@ scRNAseq.parameters = ({'r1',0.01; 'r2',0.1; 'kon_0',0.01;...
 scRNAseq.solutionScheme = 'SSA';
 
 % Set number of simulations performed per experiment (small # for demo):
-scRNAseq.ssaOptions.nSimsPerExpt=100;
+scRNAseq.ssaOptions.nSimsPerExpt=1000;
     
 % Equilibrate before starting (burn-in):
-scRNAseq.tSpan = [-100,scRNAseq.tSpan];
+scRNAseq.initialTime = -1000;
 
 % Run iterations in parallel with multiple cores:
 scRNAseq.ssaOptions.useParallel = true;
-
-%% Associate scRNA-seq data for gene TSC22D3:
-scRNAseq = scRNAseq.loadData('data/Raw_DEX_UpRegulatedGenes_ForSSIT.csv',...
-                            {'rna','TSC22D3'});
-
-% Choose which parameters to fit:
-fitpars = 1:9;
-scRNAseq.fittingOptions.modelVarsToFit = [fitpars]; 
 
 %% Set up a prior over parameters (logPriorLoss)
 % logPriorLoss should return a *loss* (positive penalty); smaller is better.
@@ -67,15 +83,17 @@ logPriorLoss = [];
 
 fitOptions = struct();
 fitOptions.numberOfSamples       = 2000;          % Total MH iterations 
-fitOptions.burnIn                = 200;            % Discard burn-in samples
-fitOptions.thin                  = 2;            % Keep every nth sample
-proposalWidthScale               = 0.5;           % Proposal scale
+fitOptions.burnIn                = 100;           % Discard burn-in samples
+fitOptions.thin                  = 5;             % Keep every nth sample
+fitOptions.progress              = false;         % Do not plot progress of MCMC
+proposalWidthScale               = 0.05;           % Proposal scale
 
 % Proposal distribution:
-fitOptions.proposalDistribution  = @(x)x+proposalWidthScale*randn(size(x));
+% fitOptions.proposalDistribution  = @(x)x+proposalWidthScale*randn(size(x));
+fitOptions.proposalDistribution  = @(x)x+0.3*mvnrnd(0*x,COV);
 
 % Log prior:
-fitOptions.logPrior = @(z) -sum((z-log10_mu).^2./(2*log10_sigma.^2));
+fitOptions.logPrior = @(x)-sum(log10(x).^2/2);
 
 % Initial parameter guess (optional, default: current Model.parameters):
 %parGuess = [];
@@ -83,7 +101,7 @@ fitOptions.logPrior = @(z) -sum((z-log10_mu).^2./(2*log10_sigma.^2));
 parGuess = cell2mat(scRNAseq.parameters((fitpars),2));
 
 % Choose loss function for ABC (default: 'cdf_one_norm'):
-lossFunction = 'cdf_one_norm';
+lossFunction = 'ksstat';
 
 % Enforce independence by downsampling SSA trajectories:
 enforceIndependence = true;
@@ -101,10 +119,10 @@ enforceIndependence = true;
 %   Results                 - MH/ABC diagnostics and chains
 %   ModelABC                - model updated with 'pars'
 
-% Compile and store the given reaction propensities:
-scRNAseq = scRNAseq.formPropensitiesGeneral('scRNAseq');
+% Run one set of SSA to generate solver files.
+scRNAseq = scRNAseq.solve(solver='ssa');
 
-[parsABC, minimumLoss, ResultsABC, scRNAseq] = ...
+[parsABC, minimumLoss, ResultsABC] = ...
      scRNAseq.runABCsearch(parGuess, lossFunction, logPriorLoss,...
                            fitOptions, enforceIndependence);
 
@@ -120,8 +138,8 @@ disp(parsABC(:).');
 %       ResultsABC.mhValue          - corresponding loss values
 %       ResultsABC.mhAcceptance     - MH acceptance fraction
 % Below we show a simple marginal histogram for each fitted parameter.
-load('seqModels/Model_TSC22D3.mat')
-histogramTitle = 'ABC posterior marginals for TSC22D3';
+% load('seqModels/Model_DUSP1.mat')
+histogramTitle = 'ABC posterior marginals for DUSP1';
 
 if isfield(ResultsABC, 'mhSamples')
     if ~isfield(fitOptions, 'logForm') || fitOptions.logForm
@@ -130,7 +148,7 @@ if isfield(ResultsABC, 'mhSamples')
         parChain = ResultsABC.mhSamples;
     end
     nPars    = size(parChain, 2);
-    mlePars  = cell2mat(Model_TSC22D3.parameters(fitpars,2));
+    mlePars  = cell2mat(Model_DUSP1.parameters(fitpars,2));
 
     figure;
     for k = 1:nPars
@@ -178,14 +196,52 @@ fprintf('Relative improvement: %.1f%%\n', 100 * (L_init - L_min)/L_init);
 %% Compare ABC posterior sample to MLE
 % TODO: Overlay parameter values and compute predictive distributions.
 
-theta_TSC22D3 = cell2mat(Model_TSC22D3.parameters(1:9,2));
+theta_DUSP1 = cell2mat(Model_DUSP1.parameters(1:9,2));
 
 L_MLE = scRNAseq.computeLossFunctionSSA(lossFunction,...
-                                        theta_TSC22D3, enforceIndependence);
+                                        theta_DUSP1, enforceIndependence);
 L_min  = minimumLoss;
 
 fprintf('MLE loss: %.3f,  Final (min) ABC loss: %.3f\n', L_MLE, L_min);
 fprintf('Relative improvement: %.1f%%\n', 100 * (L_MLE - L_min)/L_MLE);
+
+%% Compare ABC posterior distribution to FSP-based Metropolis Hastings
+% Run Metropolis-Hastings (seeking acceptance ratio around 0.3-0.4):
+scRNAseq.tSpan = scRNAseq.tSpan(scRNAseq.tSpan>=0); % remove the negative time.
+scRNAseq.initialTime = 0;
+fitOptionFSP = fitOptions;
+scRNAseq.solutionScheme = 'fsp';
+scRNAseq = scRNAseq.maximizeLikelihood(fitOptions=fitOptionFSP,...
+    fitAlgorithm='MetropolisHastings');
+%% Plot 
+
+    if ~isfield(fitOptions, 'logForm') || fitOptions.logForm
+        % parChainABC = exp(ResultsABC.mhSamples);  % Default MH samples are stored in log-parameter space.
+        parChainFSP = exp(scRNAseq.Solutions.mhResults.mhSamples);  % FSP MH samples are stored in log-parameter space.
+    else
+        % parChainABC = ResultsABC.mhSamples;
+        parChainFSP = (scRNAseq.Solutions.mhResults.mhSamples); 
+    end
+    nPars    = size(parChainFSP, 2);
+
+    figure;
+    for k = 1:nPars
+        subplot(ceil(nPars/2), 2, k);
+        histogram(parChainFSP(:,k), 40, 'Normalization', 'pdf', ...
+            'HandleVisibility', 'off');
+        hold on;        
+        % hInit = xline(parGuess(k), 'b', 'LineWidth', 1.5, ...
+        %     'DisplayName', 'Initial Guess');
+        % hABC = xline(parsABC(k), 'r', 'LineWidth', 1.5, ...
+        %     'DisplayName', 'ABC min-loss');
+        % hMLE = xline(mlePars(k), 'g', 'LineWidth', 1.5, ...
+        %     'DisplayName', 'MLE');
+        title(sprintf('Parameter %d', k));
+        xlabel('\theta_k');
+        ylabel('Posterior density (approx.)');
+        % legend([hInit hMLE hABC], 'Location', 'best');
+    end
+    sgtitle(histogramTitle);
 
 %% Save SSA models & solutions
 saveNames = unique({'scRNAseq'
