@@ -2706,7 +2706,8 @@ classdef SSIT
 
                     % Call code to write a GPU friendly SSA code.
                     if ~isfield(obj.ssaOptions,'computeFile')||isempty(obj.ssaOptions.computeFile)
-                        load('SSITconfig.mat','pathToPropensityFuns');
+                        % load('SSITconfig.mat','pathToPropensityFuns');
+                        load('SSITconfig.mat');
 
                         if ~strcmpi(obj.propensityFilePrefix,'default')
                             obj.ssaOptions.computeFile = append(pathToPropensityFuns,filesep,obj.propensityFilePrefix,'_TmpGPUSSACode');
@@ -4544,24 +4545,76 @@ classdef SSIT
 
         function [lossFunction] = computeLossFunctionSSA(obj,lossFun,pars, ...
                 enforceIndependence, reuseExistingSolution)
-            % This function computes general loss functions forthe data given
-            % the model.
-            % obj -- (SSIT class)
-            % lossFun -- ('cdf_one_norm') Name of predefined loss function
-            % or handle to user-defined loss function. If using a
-            % userdefined loss function, it should take as inputs the
-            % histograms Hdata and Hmodel which will be evaluated for every
-            % time point and every species and the results will be summed
-            % together. Example:
-            %       customLossMeans = @(Hmod,Hdata)([0:length(Hmod)-1]*Hmod-[0:length(Hdata)-1]*Hdata).^2;
-            % pars -- parameters of model in linear space.  Matches the
-            %   order in obj.parameters, and downselected to the free
-            %   parameters in obj.fittingOptions.modelVarsToFit.
-            % enforceIndependence -- (false) flag to decide if SSA runs are
-            % split up to ensure each time point has independent data
-            % points.
-            % reuseExistingSolution -- (false) flag to reuse existing SSIT
-            %   solutions already in memory.
+            % computeLossFunctionSSA - Compare SSA simulations of the model
+            % to the loaded data using the 1D marginal distribution of each
+            % observed species at each fitted time point. Smaller values
+            % mean a better fit for every built-in option.
+            %
+            % Usage:
+            %   loss = Model.computeLossFunctionSSA(lossFun,pars, ...
+            %              enforceIndependence,reuseExistingSolution);
+            %
+            % Inputs:
+            %   lossFun -- name of a built-in loss (case-insensitive) or a
+            %     function handle. Built-in options:
+            %
+            %     CDF-based (Hmod, Hdata are CDFs on 0:Nmax, padded to the
+            %     same length):
+            %       'cdf_one_norm'    sum_x |F_mod(x)-F_data(x)|, summed
+            %                         over species and times.
+            %       'scaled_one_norm' 'cdf_one_norm' multiplied by the number
+            %                         of cells in the data (weights by sample size).
+            %       'maxks'           max_x |F_mod(x)-F_data(x)| over all
+            %                         species and times (largest KS
+            %                         distance; maximum, not a sum).
+            %
+            %     Sample-based (Hmod, Hdata are vectors of raw counts, one
+            %     entry per SSA trajectory / per cell):
+            %       'ksstat'          sum of -log(p), with p the two-sample
+            %                         KS p-value (tail probability) from kstest2.
+            %       'ksdensity'       sum of -log f(D), with f the asymptotic
+            %                         Kolmogorov density of the KS statistic D.
+            %                         Caution: f(D)->0 as D->0, so near-perfect
+            %                         matches are penalized.
+            %       'marginal_loglik' -sum_x n_data(x)*log p_mod(x), with p_mod
+            %                         the SSA histogram (pseudocount 0.5). An
+            %                         approximate -log-likelihood that ignores
+            %                         correlations between species.
+            %
+            %     Function handle: @(Hmod,Hdata) returning a scalar. It is
+            %     called with the CDFs (as for the CDF-based options) for
+            %     every species and time, and the results are summed.
+            %     Example (squared difference in means, computed from CDFs):
+            %       customLossMeans = @(Hmod,Hdata)(sum(1-Hmod)-sum(1-Hdata))^2;
+            %
+            %   pars -- model parameters in linear space, ordered as in
+            %     obj.parameters and restricted to
+            %     obj.fittingOptions.modelVarsToFit, followed by any PDO
+            %     parameters in obj.fittingOptions.pdoVarsToFit. If empty,
+            %     the values stored in obj.parameters are used.
+            %   enforceIndependence -- (true) if true, SSA trajectories are
+            %     split into consecutive blocks of obj.ssaOptions.nSimsPerExpt,
+            %     and block it is used for time it, so different time points
+            %     use statistically independent trajectories. This needs
+            %     nSimsPerExpt*numTimes trajectories. If false, every
+            %     trajectory is used at every time point.
+            %   reuseExistingSolution -- (false) if true, use obj.Solutions
+            %     instead of re-solving the model (pars is then ignored).
+            %
+            % Output:
+            %   lossFunction -- scalar loss summed (or maximized, for
+            %     'maxks') over the fitted species and times, minus the
+            %     log-prior obj.fittingOptions.logPrior(pars) if one is set.
+            %     For distance-style losses (not -log likelihoods), the
+            %     weight given to the prior is scale-dependent and
+            %     subjective; see note at the end of this function.
+            %
+            % Notes:
+            %   - Requires obj.solutionScheme = 'ssa' and loaded data.
+            %   - If a PDO is set, the distorted trajectories
+            %     (solutions.trajsDistorted) are compared to the data.
+            %   - Fitted times come from obj.fittingOptions.timesToFit, and
+            %     fitted species from obj.dataSet.linkedSpecies.
             arguments
                 obj
                 lossFun = 'KS'
@@ -4574,6 +4627,8 @@ classdef SSIT
                 error('computeLossFunctionSSA only meant for models using SSA solution scheme. Please change solutionScheme and try again.')
             end
 
+            % --- Step 1: Obtain SSA solutions (re-solve with pars unless
+            % reusing the solutions already stored in obj) ---
             if reuseExistingSolution
                 solutions = obj.Solutions;  % Load previous model solutions.
             else
@@ -4595,7 +4650,13 @@ classdef SSIT
                 nPdoPars = length(indsPdoParsToFit);
 
                 % Formulate PDO if one is used and it has adjustable
-                % parameters.
+                % parameters. pars = [model pars, PDO pars], so the PDO
+                % parameters are the entries after nModelPars.
+                % TODO: 'solutions' is not assigned until the model is
+                % solved below, so solutions.fsp is undefined here when
+                % reuseExistingSolution is false. Fitting PDO parameters
+                % through this function will likely error; check what
+                % generatePDO needs and pass it correctly.
                 if ~isempty(pars)&&nPdoPars>0
                     obj.pdoOptions.props.ParameterGuess(indsPdoParsToFit) = pars(nModelPars+1:end);
                     obj.pdoOptions.PDO = obj.generatePDO(obj.pdoOptions,[],solutions.fsp); % call method to generate the PDO.
@@ -4607,7 +4668,9 @@ classdef SSIT
                     pars = [obj.parameters{indsParsToFit,2}];
                 end
 
-                % save original parameters for later recovery
+                % Temporarily set the trial parameters, solve, then restore
+                % the originals so this function leaves obj.parameters
+                % unchanged.
                 originalPars = obj.parameters;
 
                 % remove duplicates from time span
@@ -4622,13 +4685,23 @@ classdef SSIT
                 obj.parameters =  originalPars; % Reset back to the original parameters.
             end
 
-            % If there is no logprior, use zero.
+            % Log-prior on pars (zero if no prior is set). This is a log
+            % probability (more unlikely = more negative), so it is
+            % subtracted from the loss at the end of this function.
             if ~isempty(obj.fittingOptions.logPrior)
                 logPrior = sum(obj.fittingOptions.logPrior(pars));
             else
                 logPrior = 0;
             end
 
+            % --- Step 2: Work out which data times and species to compare ---
+            % Convert timesToFit ('all' or indices) to a logical mask over
+            % the data times.
+            % TODO: this overwrites obj.fittingOptions.timesToFit with a
+            % logical mask. SSIT is a handle class, so on the next call the
+            % mask is treated as a list of indices (e.g. [1 1 0] -> index 1)
+            % and a different set of times is selected. Use a local
+            % variable instead of modifying obj.
             if strcmp(obj.fittingOptions.timesToFit,'all')
                 obj.fittingOptions.timesToFit = ones(1,length(obj.dataSet.app.ParEstFitTimesList.Value),'logical');
             else
@@ -4642,14 +4715,20 @@ classdef SSIT
             timesData = dataTensor.subs(:,1);
             timesUnique = unique(timesData);
 
-            % Map measurement times to the solution times.
-            Jtime = zeros(1,length(obj.dataSet.times(obj.fittingOptions.timesToFit)));
+            % fitTimeInds(it) = index into the data times of the it-th
+            % fitted time.
+            fitTimeInds = find(obj.fittingOptions.timesToFit);
+
+            % Jtime(it) = index in obj.tSpan closest to the it-th fitted
+            % data time.
+            Jtime = zeros(1,length(fitTimeInds));
             for it = 1:length(Jtime)
-                [~,Jtime(it)] = min(abs(obj.tSpan-obj.dataSet.times(it)));
+                [~,Jtime(it)] = min(abs(obj.tSpan-obj.dataSet.times(fitTimeInds(it))));
             end
             numTimes = length(Jtime);
 
-            % Map measurement species to observed species;
+            % Jspecies(is) = index in obj.species of the is-th species
+            % linked to the data.
             Jspecies = zeros(1, obj.dataSet.linkedSpecies.numEntries());
             
             matchedSpecies = obj.dataSet.linkedSpecies.keys();
@@ -4661,18 +4740,25 @@ classdef SSIT
 
             numSpecies = length(Jspecies);
 
-            % Extract SSA solutions at data times.
+            % Extract SSA solutions at data times (distorted by the PDO if
+            % one is set). ssaTrajs is [numSpecies x numTimes x
+            % numTrajectories].
             if isempty(obj.pdoOptions.PDO)
                 ssaTrajs = solutions.trajs(Jspecies,Jtime,:);
             else
                 ssaTrajs = solutions.trajsDistorted(Jspecies,Jtime,:);
             end
 
-            % Find 1D Histograms for Data and Model
+            % --- Step 3: Build per-species, per-time marginals ---
+            % Hdata{is,it}, Hmod{is,it}: CDFs on 0,1,2,... by default.
+            % For the sample-based losses they are replaced by raw sample
+            % vectors (see below).
             Hdata = cell(numSpecies,numTimes);
             Hmod = cell(numSpecies,numTimes);
+            NcellsAll = zeros(numSpecies,numTimes);  % Number of cells in data for each species and time.
             for is = 1:numSpecies
-                sumOver = [1:is-1,is+1:numSpecies];
+                % Marginalize the data tensor over all other species.
+                sumOver = setdiff(1:ndims(dataTensor),[1,is+1]);
                 if isempty(sumOver)
                     dataVecP = full(dataTensor);
                 else
@@ -4681,13 +4767,16 @@ classdef SSIT
                 for it = 1:numTimes
                     % Find CDF of current species and time from
                     % data.
-                    dataVecPt = double(dataVecP(it,:));
+                    dataVecPt = double(dataVecP(fitTimeInds(it),:));
                     H = cumsum(dataVecPt);
                     Ncells=H(end);
+                    NcellsAll(is,it) = Ncells;
                     Hdata{is,it} = H/Ncells;
 
                     % Find CDF of current species and time from
-                    % model.
+                    % model. With enforceIndependence, time it uses only
+                    % the it-th block of nSimsPerExpt trajectories. The
+                    % model support is extended to cover the data support.
                     if enforceIndependence
                         npe = obj.ssaOptions.nSimsPerExpt;
                         modelVec = squeeze(ssaTrajs(is,it,(it-1)*npe+1:it*npe));
@@ -4697,14 +4786,18 @@ classdef SSIT
                     H = cumsum(histcounts(modelVec,[0:max(max(modelVec),length(H))]))';
                     Hmod{is,it}=H/H(end);
 
-                    % Pad the shorter of the two vectors.
+                    % Pad the shorter CDF with 1 (a CDF is 1 beyond its
+                    % support) so both have equal length.
                     if length(Hdata{is,it})>length(Hmod{is,it})
                         Hmod{is,it}(end+1:length(Hdata{is,it})) = 1;
                     elseif length(Hdata{is,it})<length(Hmod{is,it})
                         Hdata{is,it}(end+1:length(Hmod{is,it})) = 1;
                     end
 
-                    if strcmpi(lossFun,'ksstat')
+                    % Sample-based losses need raw samples, not CDFs:
+                    % expand the data histogram back into one entry per
+                    % cell, and use the SSA samples directly.
+                    if any(strcmpi(lossFun,{'ksstat','ksdensity','marginal_loglik'}))
                         datVec = zeros(1,sum(dataVecPt));
                         k=0;
                         for i = 1:length(dataVecPt)
@@ -4718,7 +4811,9 @@ classdef SSIT
                 end
             end
 
+            % --- Step 4: Evaluate the loss over species and times ---
             if isa(lossFun,'function_handle')
+                % User-defined loss evaluated on the CDFs and summed.
                 lossFunction = 0;
                 for is = 1:numSpecies
                     for it = 1:numTimes
@@ -4729,6 +4824,7 @@ classdef SSIT
 
                 switch lower(lossFun)
                     case 'cdf_one_norm'
+                        % Sum of L1 distances between model and data CDFs.
                         lossFunction = 0;
                         for is = 1:numSpecies
                             for it = 1:numTimes
@@ -4736,13 +4832,17 @@ classdef SSIT
                             end
                         end
                     case 'scaled_one_norm'
+                        % L1 distance between CDFs, weighted by number of
+                        % cells in the data.
                         lossFunction = 0;
                         for is = 1:numSpecies
                             for it = 1:numTimes
-                                lossFunction = lossFunction + Ncells*sum(abs(Hmod{is,it}-Hdata{is,it}));
+                                lossFunction = lossFunction + NcellsAll(is,it)*sum(abs(Hmod{is,it}-Hdata{is,it}));
                             end
                         end
                     case 'maxks'
+                        % Largest KS distance (max |F_mod-F_data|) over all
+                        % species and times.
                         lossFunction = 0;
                         for is = 1:numSpecies
                             for it = 1:numTimes
@@ -4750,6 +4850,8 @@ classdef SSIT
                             end
                         end
                     case 'ksstat'
+                        % Sum of -log(p) with p the two-sample KS p-value
+                        % (tail probability).
                         lossFunction = 0;
                         for is = 1:numSpecies
                             for it = 1:numTimes
@@ -4757,12 +4859,62 @@ classdef SSIT
                                 lossFunction = lossFunction-log(p);
                             end
                         end
-
+                    case 'ksdensity'
+                        % -log of the asymptotic Kolmogorov density of the
+                        % two-sample KS statistic D (rather than its tail).
+                        lossFunction = 0;
+                        for is = 1:numSpecies
+                            for it = 1:numTimes
+                                [~,~,D] = kstest2(Hmod{is,it},Hdata{is,it});
+                                n1 = numel(Hmod{is,it});
+                                n2 = numel(Hdata{is,it});
+                                sqne = sqrt(n1*n2/(n1+n2));
+                                c = sqne + 0.12 + 0.11/sqne;   % same scaling as kstest2
+                                lam = c*D;
+                                if lam >= 1
+                                    j = (1:100)';
+                                    fLam = 8*lam*sum((-1).^(j-1).*j.^2.*exp(-2*j.^2*lam^2));
+                                else
+                                    % Theta-function form converges faster for small lam.
+                                    a = ((2*(1:100)'-1).^2)*pi^2/8;
+                                    fLam = sqrt(2*pi)/lam^2*sum((2*a/lam^2-1).*exp(-a/lam^2));
+                                end
+                                fD = c*fLam;   % density in D
+                                lossFunction = lossFunction - log(max(fD,realmin));
+                            end
+                        end
+                    case 'marginal_loglik'
+                        % -log likelihood of data under the model's
+                        % marginal PMFs (ignores cross-species correlations).
+                        lossFunction = 0;
+                        alpha = 0.5;   % pseudocount so unseen states don't give log(0)
+                        for is = 1:numSpecies
+                            for it = 1:numTimes
+                                xMax = max([Hmod{is,it};Hdata{is,it}]);
+                                edges = -0.5:1:xMax+0.5;
+                                nMod = histcounts(Hmod{is,it},edges);
+                                nDat = histcounts(Hdata{is,it},edges);
+                                pMod = (nMod+alpha)/(sum(nMod)+alpha*numel(nMod));
+                                lossFunction = lossFunction - sum(nDat.*log(pMod));
+                            end
+                        end
 
                     otherwise
                         error(['Loss function ''',lossFun,''' not defined'])
                 end
             end
+
+            % Add the prior. logPrior is a log probability (more unlikely
+            % = more negative) while the loss is minimized, so subtract it.
+            % NOTE: this gives a proper -log posterior only for
+            % likelihood-style losses ('marginal_loglik', and loosely
+            % 'ksstat'/'ksdensity'). For distance-style losses
+            % ('cdf_one_norm', 'scaled_one_norm', 'maxks', or most custom
+            % handles) the loss is not a log probability, so the relative
+            % weight of the prior depends on the arbitrary scale of the
+            % distance and is subjective. Choose the prior (or rescale it)
+            % with that in mind.
+            lossFunction = lossFunction - logPrior;
         end
 
         function fitErrors = likelihoodSweep(obj,parIndices,scalingRange,makePlot)
@@ -5002,6 +5154,7 @@ classdef SSIT
                     defaultFitOptions.suppressFSPExpansion = true;
                     defaultFitOptions.logForm = true;
                     defaultFitOptions.computeESS = true;
+                    defaultFitOptions.recomputeCurrentState = false;  % Set true for noisy (e.g., SSA-based) objectives.
                     defaultFitOptions.obj = [];
 
                     j=1;
@@ -5083,7 +5236,8 @@ classdef SSIT
                             'thin',allFitOptions.thin,'nchain',1,'burnin',allFitOptions.burnIn,...
                             'progress',allFitOptions.progress,...
                             'saveFileName',allFitOptions.saveFile,...
-                            'computeESS',allFitOptions.computeESS);
+                            'computeESS',allFitOptions.computeESS,...
+                            'recomputeCurrent',allFitOptions.recomputeCurrentState);
                         obj.Solutions.mhResults = otherResults;
                     else
                         try
@@ -5099,7 +5253,8 @@ classdef SSIT
                                 allFitOptions.isPropDistSymmetric,...
                                 'thin',allFitOptions.thin,'nchain',1,'burnin',allFitOptions.burnIn,...
                                 'progress',allFitOptions.progress,...
-                                'computeESS',allFitOptions.computeESS);
+                                'computeESS',allFitOptions.computeESS,...
+                                'recomputeCurrent',allFitOptions.recomputeCurrentState);
                             tmpMHSamp(iChain) = {mhSamples};
                             tmpMHAcceptance(iChain) = {mhAcceptance};
                             tmpMHValue(iChain) = {mhValue};
@@ -5172,6 +5327,11 @@ classdef SSIT
             %    logPriorLoss    -- (@(x)0) loss-style function for the prior
             %                       (e.g., quadratic in log10-space).
             %    fitOptions      -- ([]) options passed to maximizeLikelihood.
+            %                       Set fitOptions.recomputeCurrentState = true
+            %                       to re-evaluate the noisy SSA loss at the
+            %                       current state each MH step (prevents
+            %                       the chain sticking after a lucky draw;
+            %                       doubles the cost per step).
             %    enforceIndependence -- (false) downsample SSA to enforce
             %                       independence of simulated data points.
         
