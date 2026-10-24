@@ -2809,7 +2809,9 @@ classdef SSIT
                             Solution.trajsDistorted(iS,:,:) = Q;
                         end
                         trajsToWrite = Solution.trajsDistorted;
-                        disp('PDO applied to SSA results')
+                        if obj.ssaOptions.verbose
+                            disp('PDO applied to SSA results')
+                        end
                     end % [PDO exists]
 
                     % Save results if requested.
@@ -3338,7 +3340,7 @@ classdef SSIT
                             end
                         end
                         % Restrict to free parameters
-                        redSfree = redS(freeLocal); 
+                        redSfree = redS(fitParsGlobal(freeLocal)); 
                         %F = ssit.fim.computeSingleCellFim(sensSoln.data{it}.p.sumOver(indsUnobserved), redS, PDO);F = ssit.fim.computeSingleCellFim( ...
                         F = ssit.fim.computeSingleCellFim(sensSoln.data{it}.p.sumOver(indsUnobserved), redSfree, PDO);
                     end
@@ -4279,9 +4281,15 @@ classdef SSIT
 
             Nd = length(speciesStochastic);
             for i=Nd:-1:1
-                indsPlots(i) = max(contains(...
-                    obj.dataSet.linkedSpecies.keys(), ...
-                    speciesStochastic(i)));
+                try
+                    indsPlots(i) = max(contains(...
+                        obj.dataSet.linkedSpecies.keys(), ...
+                        speciesStochastic(i)));
+                catch
+                    indsPlots(i) = max(strcmp(...
+                        obj.dataSet.linkedSpecies(:,1), ...
+                        speciesStochastic(i)));
+                end
             end
             indsIgnore = setdiff(1:Nd,find(indsPlots),'stable');
 
@@ -4675,7 +4683,8 @@ classdef SSIT
                     % data.
                     dataVecPt = double(dataVecP(it,:));
                     H = cumsum(dataVecPt);
-                    Hdata{is,it} = H/H(end);
+                    Ncells=H(end);
+                    Hdata{is,it} = H/Ncells;
 
                     % Find CDF of current species and time from
                     % model.
@@ -4694,6 +4703,18 @@ classdef SSIT
                     elseif length(Hdata{is,it})<length(Hmod{is,it})
                         Hdata{is,it}(end+1:length(Hmod{is,it})) = 1;
                     end
+
+                    if strcmpi(lossFun,'ksstat')
+                        datVec = zeros(1,sum(dataVecPt));
+                        k=0;
+                        for i = 1:length(dataVecPt)
+                            datVec(k+1:k+dataVecPt(i)) = i-1;
+                            k=k+dataVecPt(i);
+                        end
+                        Hmod{is,it} = modelVec;
+                        Hdata{is,it} = datVec';                        
+                    end
+
                 end
             end
 
@@ -4714,6 +4735,13 @@ classdef SSIT
                                 lossFunction = lossFunction + sum(abs(Hmod{is,it}-Hdata{is,it}));
                             end
                         end
+                    case 'scaled_one_norm'
+                        lossFunction = 0;
+                        for is = 1:numSpecies
+                            for it = 1:numTimes
+                                lossFunction = lossFunction + Ncells*sum(abs(Hmod{is,it}-Hdata{is,it}));
+                            end
+                        end
                     case 'maxks'
                         lossFunction = 0;
                         for is = 1:numSpecies
@@ -4721,7 +4749,15 @@ classdef SSIT
                                 lossFunction = max(lossFunction,max(abs(Hmod{is,it}-Hdata{is,it})));
                             end
                         end
-                    case ''
+                    case 'ksstat'
+                        lossFunction = 0;
+                        for is = 1:numSpecies
+                            for it = 1:numTimes
+                                [h,p] = kstest2(Hmod{is,it},Hdata{is,it});
+                                lossFunction = lossFunction-log(p);
+                            end
+                        end
+
 
                     otherwise
                         error(['Loss function ''',lossFun,''' not defined'])
