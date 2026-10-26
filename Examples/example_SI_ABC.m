@@ -70,10 +70,11 @@ COV = (0.5*FIM{1}+0.5*FIM{1}')^(-1);        % FIM{1} = total FIM for the fitted 
 %Set solution scheme to SSA:
 scRNAseq.solutionScheme = 'SSA';
 
-% Start SSA trajectories at t = -200 so they reach steady state before
-% the experiment (t = 0). The FSP section below removes this extra time.
-% The data are only compared at the measured times (t >= 0).
-scRNAseq.initialTime = -200;
+% Start SSA trajectories at t = -1000 so they reach steady state before
+% the experiment (t = 0). The FSP section below removes this extra time as
+% it estimates the zero time SS directly. The data are only compared at the
+% measured times (t >= 0). 
+scRNAseq.initialTime = -1000;
 scRNAseq.tSpan = [scRNAseq.initialTime,scRNAseq.tSpan];
 
 % Run iterations in parallel with multiple cores:
