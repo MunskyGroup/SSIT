@@ -64,7 +64,8 @@ scRNAseq = scRNAseq.solve(solver='fsp');    % Initial FSP solve
 scRNAseq = scRNAseq.solve(solver='fspsens');% FSP Sensitivity solve
 FIMs = scRNAseq.computeFIM(scale='log');    % Compute FIMs
 FIM = scRNAseq.evaluateExperiment(FIMs,scRNAseq.dataSet.nCells,priorCovariance);
-COV = (0.5*FIM{1}+0.5*FIM{1}')^(-1);        % FIM{1} = total FIM for the fitted parameters; invert (enforcing symmetry)
+% FIM{1} = total FIM for the fitted parameters
+COV = (0.5*FIM{1}+0.5*transpose(FIM{1}))^(-1); % Enforce symmetry and invert
 
 %% Set SSA options:
 %Set solution scheme to SSA:
@@ -222,6 +223,8 @@ sgtitle(histogramTitle);
 % the FSP chain in scRNAseq.Solutions.mhResults) for later plotting.
 saveNames = unique({'scRNAseq'
     'ResultsABC'
+    'fitOptions'
+    'ABCMetricShort'
     });
 
 save('example_SI_ABC',saveNames{:})
