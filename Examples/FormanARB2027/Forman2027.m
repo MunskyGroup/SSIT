@@ -1759,17 +1759,23 @@ classdef Forman2027
             ylimEopt = [10^(-1), 10^0];
             ylimDsubopt = [10^(-5), 10^0];
 
-
             Model_chg =obj.ModelKoffSig;
             % vNCells = round(logspace(2, 3, 10));
             vNCells = [100, 300, 600, 1000];
 
-            nExperiments = 4;
-            experimentFIMs = cell(length(vNCells), nExperiments);
-            EOpt = zeros(length(vNCells), nExperiments);
-            DOpt = zeros(length(vNCells), nExperiments);
-
             DsOptIdx = 4;
+
+            % Designs: 3 hand-picked experiments followed by the D-, E-
+            % and Ds-optimal experiments.
+            nHandExperiments = 3;
+            optCriteria = {'D-cov', 'E-cov', sprintf('D-cov-sub%d',DsOptIdx)};
+            designNames = {'Exp 1','Exp 2','Exp 3', ...
+                'D-optimal','E-optimal',sprintf('D_s-optimal (\\theta_%d)',DsOptIdx)};
+            nExperiments = nHandExperiments + length(optCriteria);
+
+            experimentFIMs = cell(length(vNCells), nExperiments);
+            DOpt = zeros(length(vNCells), nExperiments);
+            EOpt = zeros(length(vNCells), nExperiments);
             DsOpt = zeros(length(vNCells), nExperiments);
 
             for a = 1:length(vNCells)
@@ -1791,8 +1797,8 @@ classdef Forman2027
 
                 experiments = {exp1NCells, exp2NCells, exp3NCells};
 
-                for b = 1:length(experiments)
-                    % compute fim for each experiment
+                % compute fim for each hand-picked experiment
+                for b = 1:nHandExperiments
                     cells4experiment = experiments{b};
                     runningFIM = zeros(size(obj.FIM{1}));
                     for i = 1:size(obj.FIM,1)
@@ -1804,43 +1810,26 @@ classdef Forman2027
                         end
                     end
                     experimentFIMs{a,b} = runningFIM;
-
-                    % compute optimality
-                    [V,D] = eig(runningFIM);
-                    EOpt(a,b) = 1/min(diag(D));
-                    DOpt(a,b) = 1/det(runningFIM);
-                    % DsOpt(a,b) = runningFIM(DsOptIdx, DsOptIdx);
-                    runningFIMInv = inv(runningFIM);
-                    DsOpt(a,b) = runningFIMInv(DsOptIdx, DsOptIdx);
-
                 end
-                % compute optimal optimality
-                % D opt
-                OptExperiment = Model_chg.optimizeCellCounts(obj.allFims,Ncells,'D-cov');
-                FIM_Opt = 0;
-                for i = 1:length(OptExperiment)
-                    FIM_Opt = FIM_Opt + OptExperiment(i)*obj.allFims{i};
-                end
-                DOpt(a,nExperiments) = 1/det(FIM_Opt);
 
-                % E opt
-                OptExperiment = Model_chg.optimizeCellCounts(obj.allFims,Ncells,'E-cov');
-                FIM_Opt = 0;
-                for i = 1:length(OptExperiment)
-                    FIM_Opt = FIM_Opt + OptExperiment(i)*obj.allFims{i};
+                % compute fim for each optimal experiment (D, E, Ds)
+                for c = 1:length(optCriteria)
+                    OptExperiment = Model_chg.optimizeCellCounts(obj.allFims,Ncells,optCriteria{c});
+                    FIM_Opt = 0;
+                    for i = 1:length(OptExperiment)
+                        FIM_Opt = FIM_Opt + OptExperiment(i)*obj.allFims{i};
+                    end
+                    experimentFIMs{a,nHandExperiments+c} = FIM_Opt;
                 end
-                [V,D] = eig(FIM_Opt);
-                EOpt(a,nExperiments) = 1/min(diag(D));
 
-                % Ds opt
-                OptExperiment = Model_chg.optimizeCellCounts(obj.allFims,Ncells,sprintf('D-cov-sub%d',DsOptIdx));
-                FIM_Opt = 0;
-                for i = 1:length(OptExperiment)
-                    FIM_Opt = FIM_Opt + OptExperiment(i)*obj.allFims{i};
+                % compute all optimality criteria for every design
+                for b = 1:nExperiments
+                    F = experimentFIMs{a,b};
+                    DOpt(a,b) = 1/det(F);
+                    EOpt(a,b) = 1/min(eig(F));
+                    FInv = inv(F);
+                    DsOpt(a,b) = FInv(DsOptIdx, DsOptIdx);
                 end
-                FIM_OptInv = inv(FIM_Opt);
-                DsOpt(a,nExperiments) = FIM_OptInv(DsOptIdx,DsOptIdx);
-
             end
 
             %% Plot Optimality Criteria
@@ -1850,6 +1839,13 @@ classdef Forman2027
             % Matrices of performance metrics
             data = {DOpt, EOpt, DsOpt};
             names = {'DOpt', 'EOpt', 'DsOpt'};
+
+            % Line styles: hand-picked experiments solid (default colors),
+            % optimal designs purple: D solid, E dashed, Ds dotted.
+            colors = lines(3);
+            purple = [0.49 0.18 0.56];
+            lineColors = [colors; purple; purple; purple];
+            lineStyles = {'-','-','-','-','--',':'};
 
             figs = [f3D1,f3D2,f3D3];
             allYlims = {ylimDopt, ylimEopt, ylimDsubopt};
@@ -1861,13 +1857,15 @@ classdef Forman2027
                 Y = data{k};
 
                 % Plot all experiments
-                plot(x, Y, '-', 'LineWidth', 2);
-                hold on;
+                for j = 1:nExperiments
+                    plot(x, Y(:,j), 'LineStyle', lineStyles{j}, 'LineWidth', 2, ...
+                        'Color', lineColors(j,:), 'DisplayName', designNames{j});
+                    hold on;
+                end
 
                 % ---- Fit lines in log-log space ----
                 % Each column is an experiment
                 coeff = zeros(2, size(Y,2));
-
                 for j = 1:size(Y,2)
                     coeff(:,j) = polyfit(log10(x), log10(Y(:,j)), 1);
                 end
@@ -1875,57 +1873,35 @@ classdef Forman2027
                 % Smooth x values for fitted lines
                 xfit = logspace(log10(min(x)), log10(max(x)), 200);
 
-                % Plot fitted lines
-                for j = 1:size(Y,2)
-                    yfit = 10.^(polyval(coeff(:,j), log10(xfit)));
-
-                    % plot(xfit, yfit, '--', 'LineWidth', 1.5);
-                end
-
-                % ---- Optimal design at 300 cells ----
+                % ---- Reference: best design at xOpt cells ----
+                % All criteria are smaller-is-better, so the best design
+                % is the one with the lowest fitted value at xOpt.
                 xOpt = 150;
+                yAtxOpt = 10.^(coeff(1,:)*log10(xOpt) + coeff(2,:));
+                [yOptRef, refCol] = min(yAtxOpt);
 
-                % Evaluate optimal-design fit at 300 cells
-                yOpt300 = 10.^(polyval(coeff(:,end), log10(xOpt)));
+                % Horizontal line through best optimality at xOpt cells
+                yline(yOptRef, 'k-', 'LineWidth', 2, ...
+                    'DisplayName', sprintf('%s @ %d cells', designNames{refCol}, xOpt));
+                xline(xOpt, 'k-', 'LineWidth', 2, 'HandleVisibility', 'off')
 
-                % Horizontal line through optimality at 300 cells
-                yline(yOpt300, 'k-', 'LineWidth', 2, ...
-                    'DisplayName', 'Optimal @ 300 cells');
-
-                % Mark optimal point
-                % plot(xOpt, yOpt300, 'kp', ...
-                %     'MarkerSize', 12, ...
-                %     'MarkerFaceColor', 'k');
-                xOpt
-                xline(xOpt, 'k-', 'LineWidth', 2)
-
-                % ---- Find intersections with other experiments ----
-                for j = 1:size(Y,2)-1
+                % ---- Find intersections with every other design ----
+                % (how many cells each design needs to match the best
+                % design at xOpt cells)
+                for j = setdiff(1:nExperiments, refCol)
 
                     % log10(y) = m*log10(x) + b
                     m = coeff(1,j);
                     b = coeff(2,j);
 
                     % Solve:
-                    % log10(yOpt300) = m*log10(x) + b
-                    logxIntersect = (log10(yOpt300) - b) / m;
+                    % log10(yOptRef) = m*log10(x) + b
+                    logxIntersect = (log10(yOptRef) - b) / m;
                     xIntersect = 10^logxIntersect
 
                     % Only display intersections within plotted range
                     if xIntersect >= min(xfit) && xIntersect <= max(xfit)
-
-                        % Plot intersection
-                        % plot(xIntersect, yOpt300, 'rx', ...
-                        %     'MarkerSize', 12, ...
-                        %     'LineWidth', 2);
-                        xline(xIntersect, 'r-', 'LineWidth', 2)
-
-                        % Annotate number of cells
-                        % text(xIntersect, yOpt300, ...
-                        %     sprintf('  %.0f cells', xIntersect), ...
-                        %     'FontSize', 10, ...
-                        %     'FontWeight', 'bold', ...
-                        %     'VerticalAlignment', 'bottom');
+                        xline(xIntersect, 'r-', 'LineWidth', 2, 'HandleVisibility', 'off')
                     end
                 end
 
