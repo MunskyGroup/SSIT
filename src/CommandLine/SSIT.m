@@ -3608,6 +3608,8 @@ classdef SSIT
             %   * 'nCellsTotalNew' - the total number of cells to be
             %       measured, spread out among the Nt time points
             %   * 'FIMmetric' - type of optimization, allowable metrics are:
+            %       'E-opt' (default) - maximize the smallest eigenvalue of
+            %                           the FIM
             %       'D-opt' - maximize the expected determinant of the FIM
             %       'D-cov' - minimize the expected determinant of inv(FIM)
             %       'E-opt' - maximize the smallest eigenvalue of the FIM
@@ -3618,10 +3620,15 @@ classdef SSIT
             %                 for the specified indices, (all other 
             %                 parameters are assumed to be free)
             %       'D-opt-sub[<i1>,<i2>,...]' 
-            %               - maximize the determinant of the FIM for the
-            %                 specified indices, (only the parameters in
-            %                 obj.fittingOptions.modelVarsToFit are assumed
-            %                 to be free)
+            %               - maximize the determinant of the selected 
+            %                 parameters of the FIM (for the specified 
+            %                 indices), with other parameters fixed
+            %       'D-cov-sub' - minimizes the selected parameters' 
+            %                 covariance determinant while accounting
+            %                 for uncertainty in the other parameters 
+            %                 represented in the full FIM (nuisance-
+            %                 adjusted Ds-optimality)
+
             %   * 'Nc' - an optimal guess for the optimal experiment
             %            design
             %   * 'NcFixed' - a minimal number of cells to measure at each
