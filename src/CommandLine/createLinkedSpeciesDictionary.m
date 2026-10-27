@@ -7,7 +7,7 @@ function d = createLinkedSpeciesDictionary(...
 %input array is not a model species of the input model.
 arguments (Input)
     species (:, :) cell {mustBeValidLinkedSpeciesArray}
-    model SSIT {mustBeScalarOrEmpty} = createArray(0, "SSIT")
+    model SSIT {mustBeScalarOrEmpty} = SSIT.empty(0, 0)
 end
 
 d = configureDictionary("string", "string");
@@ -61,7 +61,13 @@ function mustBeValidLinkedSpeciesArray(array)
     end
 
     % Validate that every model species name (column 1) is unique:
-    modelSpecies = createArray(1, numberOfRows, "string");
+    try
+        modelSpecies = createArray(1, numberOfRows, "string");
+    catch
+        % createArray requires R2024a+; strings() gives the same 1xN
+        % array of "" on older versions (R2016b+).
+        modelSpecies = strings(1, numberOfRows);
+    end
     for speciesIdx = 1:numberOfRows
         modelSpecies(speciesIdx) = string(array{speciesIdx, 1});
     end
