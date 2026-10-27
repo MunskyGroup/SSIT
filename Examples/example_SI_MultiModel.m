@@ -239,9 +239,9 @@ Models_mix = {STL1_4state_multi_1_mix, STL1_4state_multi_2_mix};
 % of its own parameters which must be stored in separate indices:
 ParsIndices_mix = {[1:11,12:13], [1:11,14:15]};
 
-% Place a constraint on the parameters for faster fitting, since it can be 
-% expected that some parameters should not change that much from one 
-% experiment to another:
+% Place a constraint on the two parameters that vary from experiment to
+% another. In this case, we constrain the replica-to-replica variance for
+% these two parameters.  
 constraint = @(x) -var(log10([x(12:13);x(14:15)]));
 
 % Combine models into one "MultiModel", specify parameters, and initialize:
