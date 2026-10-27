@@ -1158,7 +1158,7 @@ classdef SSIT
                         'k43',2.28; 'dr',0.294; 'kr1',4.68e-02; 'kr2',0.72;...
                         'kr3', 59.4; 'kr4', 3.24; 'r1',4.14e-03; 'r2',0.426;...
                         'A',9.3e+09; 'M',6.4e-04; 'n',3.1});
-                    obj.tSpan = linspace(0,50,100);
+                    obj.tSpan = linspace(0,50,101);
             end
             obj.propensitiesGeneral = [];
             obj.propensitiesGeneralODE = [];

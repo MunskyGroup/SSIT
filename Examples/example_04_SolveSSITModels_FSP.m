@@ -48,7 +48,7 @@ STL1_4state.tSpan = linspace(0,50,101);
     Model = Model.formPropensitiesGeneral('Model');
     
     % Solve with FSP:
-    Model = Model.solve(solve='FSP');
+    Model = Model.solve(solver='FSP');
     
     % Means and standard deviations:
     Model.plotFSP(speciesNames=Model.species,...

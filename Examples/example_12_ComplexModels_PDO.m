@@ -10,8 +10,8 @@
 % Use the STL1 model from example_1_CreateSSITModels, FSP solutions  
 % from example_04_SolveSSITModels_FSP, sensitivities computed in 
 % example_06_SensitivityAnalysis, FIM results from example_07_FIM,  
-% loaded data from example_08_LoadingandFittingData_DataLoading, and
-% Metropolis-Hastings results from example_10_LoadingandFittingData_MH
+% loaded data from example_09_LoadingandFittingData_DataLoading, and
+% Metropolis-Hastings results from example_11_LoadingandFittingData_MH
 %clear
 %close all
 
@@ -147,7 +147,8 @@ STL1_4state.plotFIMResults(fimTotal_free, 'log',...
 saveNames = unique({'STL1_4state_PDO'
     'STL1_4state_PDO_cyt'
     'STL1_4state_PDO_nuc'
-    'STL1_4state_PDO_intens'
+    'STL1_4state_PDO_intens_poiss'
+    'STL1_4state_PDO_intens_normal'
     'fimsPDO_cyt'
     'fimsPDO_nuc'
     'fimPDO_cyt'
