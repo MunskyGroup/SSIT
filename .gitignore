@@ -134,3 +134,5 @@ Examples/FormanARB2027/MLEforDistortions.mat
 Examples/FormanARB2027/TMPModelFIM.m
 Examples/FormanARB2027/reviewBurstModel.m
 TMPmh_*
+SSITPaperLaTex/
+.vscode/settings.json
