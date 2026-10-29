@@ -283,12 +283,12 @@ classdef modelReductionTest < matlab.unittest.TestCase
             fspSoln2 = Model2.solve(tc.TwoDPoissSolution.stateSpace,returnType='soln');
             redModelSolveTime = toc;
 
-            POD_SpeedUpFactor = tc.TwoDPoissSolution.time/redModelSolveTime
-            PODfinalError1 = max(abs(squeeze(cumsum(sum(double(fspSoln2.fsp{end}.p.data),[1,2,4]))) - ...
+            POD2_SpeedUpFactor = tc.TwoDPoissSolution.time/redModelSolveTime
+            POD2finalError1 = max(abs(squeeze(cumsum(sum(double(fspSoln2.fsp{end}.p.data),[1,2,4]))) - ...
                 squeeze(cumsum(sum(double(tc.TwoDPoissSolution.fsp{end}.p.data),[1,2,4])))));
-            PODfinalError2 = max(abs(squeeze(cumsum(sum(double(fspSoln2.fsp{end}.p.data),[1,2,3]))) - ...
+            POD2finalError2 = max(abs(squeeze(cumsum(sum(double(fspSoln2.fsp{end}.p.data),[1,2,3]))) - ...
             squeeze(cumsum(sum(double(tc.TwoDPoissSolution.fsp{end}.p.data),[1,2,3])))));
-            PODfinalError = (PODfinalError1+PODfinalError2)/2;
+            POD2finalError = (POD2finalError1+POD2finalError2)/2;
 
             % tc.TwoDPoiss.makePlot(tc.TwoDPoissSolution,'meansAndDevs',[1:10:201],[],1)
             % tc.TwoDPoiss.makePlot(tc.TwoDPoissSolution,'marginals',[51,101,151,201],[],[2,3])
@@ -296,10 +296,10 @@ classdef modelReductionTest < matlab.unittest.TestCase
             % Model2.makePlot(fspSoln2,'meansAndDevs',[1:10:201],[],1)
             % Model2.makePlot(fspSoln2,'marginals',[51,101,152,201],[],[2,3])
 
-            tc.verifyEqual(POD_SpeedUpFactor>1, true, ...
-                'POD Reduction was not faster than original');
-            tc.verifyEqual(PODfinalError<0.01, true, ...
-                'POD Reduction was not accurate enough');
+            tc.verifyEqual(POD2_SpeedUpFactor>1, true, ...
+                'POD2 Reduction was not faster than original');
+            tc.verifyEqual(POD2finalError<0.01, true, ...
+                'POD2 Reduction was not accurate enough');
         end
 
         % function QSSA(tc)
