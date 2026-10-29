@@ -126,3 +126,10 @@ testData.csv
 SBML_test_cases/00010/Time-Course.txt
 /Examples/New Folder With Items
 /doNotCommit
+/Examples/FormanARB2027/AnnualReview_Figures
+Examples/FormanARB2027/defaultSimData.csv
+.vscode/settings.json
+Examples/FormanARB2027/MLEforDistortions.mat
+Examples/FormanARB2027/reviewBurstModel.m
+Examples/FormanARB2027/TMPModelFIM.m
+SSITPaperLaTex/
