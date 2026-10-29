@@ -36,7 +36,7 @@ testModel = 7;
 %       species. The list of species to be assumed at QSSA must be
 %       specified in a vector 'reductionSpecies'. 
 
-reductionType = 'POD'; %{'Log Lump QSSA','Proper Orthogonal Decomposition','QSSA'};
+reductionType = 'Proper Orthogonal Decomposition'; %{'Log Lump QSSA','Proper Orthogonal Decomposition','QSSA'};
 reductionOrder = 25;
 qssaSpecies = 2;        % Only needed for the QSSA reduction scheme.
 podTimeSetSize = 200;   % Only needed for the POD reduction scheme.
@@ -95,7 +95,14 @@ switch testModel
         Model1.tSpan = linspace(0,20,21);
     case 7 % Time-Varying 3-Species Repressilator Model
         Model1 = SSIT('Repressilator');
-        Model1.propensityFunctions{1} = 'kn0*(1+cos(2*pi*t))+kn1*(1/(1+a*(x2^n)))';
+        % Split the time-varying production of x1 into two reactions so
+        % that each propensity factorizes as f(t)*g(x). A non-factorizable
+        % propensity (e.g., f(t)+g(x)) forces the full FSP matrix to be
+        % rebuilt and projected at every time step, which removes any
+        % speedup from the reduced model.
+        Model1.propensityFunctions{1} = 'kn1*(1/(1+a*(x2^n)))';
+        Model1.propensityFunctions{end+1} = 'kn0*(1+cos(2*pi*t))';
+        Model1.stoichiometry(:,end+1) = [1;0;0];
         Model1.tSpan = linspace(0,20,21);
 end
  
@@ -116,7 +123,7 @@ Model1.fspOptions.fspTol = inf;
 % at finer resolution. Note -- this means that the POD will be inefficient
 % for the initial set up of the reduction.  The benefits typically come
 % from solving the model multiple times with different parameters sets.
-if strcmp(reductionType,'Proper Orthogonal Decomposition')
+if ismember(reductionType,{'Proper Orthogonal Decomposition','POD','POD 2nd','POD2'})
     tSpan = Model1.tSpan;
     Model1.tSpan = linspace(min(Model1.tSpan),max(Model1.tSpan),podTimeSetSize);
     fspSoln2 = Model1.solve(returnType='soln');
@@ -141,18 +148,21 @@ Model2.modelReductionOptions.qssaSpecies = qssaSpecies;
 % Call SSIT to compute the model reduction transformation matrices.
 Model2 = Model2.computeModelReductionTransformMatrices(fspSoln2);
 
-% Solve the reduce model.
+% Solve the reduced model once to construct the reduced FSP matrices, then
+% solve again to record the reduced solution time.
+Model2 = Model2.solve;
 tic
 fspSolnRed = Model2.solve(returnType='soln');
 redModelSolveTime = toc
+speedUpFactor = fullModelSolveTime/redModelSolveTime
 
 %% Compare results
 nSpecies = length(Model1.species);
 for i = 1:nSpecies
-    PODfinalError(i) = max(abs(squeeze(cumsum(sum(double(fspSoln2.fsp{end}.p.data),setdiff((1:nSpecies),i)))) - ...
+    finalError(i) = max(abs(squeeze(cumsum(sum(double(fspSolnRed.fsp{end}.p.data),setdiff((1:nSpecies),i)))) - ...
         squeeze(cumsum(sum(double(fspSoln.fsp{end}.p.data),setdiff((1:nSpecies),i))))));
 
-    disp([Model1.species{i},': KS(Full,Red) = ',num2str(PODfinalError(i))])
+    disp([Model1.species{i},': KS(Full,Red) = ',num2str(finalError(i))])
 end
 
 
