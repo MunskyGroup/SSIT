@@ -7,33 +7,53 @@
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Model Reduction
 %   * Create reduced FSP models using different types of transformations
+%     and compare their accuracy and speed to the full FSP solution.
+%   * Both time-invariant and time-varying models are supported. For
+%     time-varying models, each time-dependent propensity should factorize
+%     as f(t)*g(x) (see model 4 below); otherwise the full FSP matrix must
+%     be rebuilt and projected at every time step, which removes any
+%     speedup from the reduction.
+%   * Model reduction is not available for hybrid (ODE/FSP) models.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 %% First, choose a model on which to illustrate the reduction approximation,
 % or you can create your own. Here are the example options defined below:
 %       (1)   2-species Poisson process
-%       (2)   Constant 3-Species repressilator model
-%       (3)   Time-varying 3-species repressilator model
-%       (4)   Time-varying 4-state STL1 Model
-%       (5)   Time-varying TXTL model from tests/modelReductionTest.m
-%       (6)   Goutsias gene regulation model (from example_Benchmarking.m)
-%       (7)   2-species toggle switch with gene states (from example_Benchmarking.m)
-%       (8)   MAPK model (from example_Benchmarking.m)
+%       (2)   Time-varying 2-species Poisson process
+%       (3)   3-species repressilator model
+%       (4)   Time-varying 3-species repressilator model
+%       (5)   Time-varying 4-state STL1 model (loaded from ExampleSaveFiles)
+%       (6)   Time-varying bursting transcription/translation (TXTL) model
+%       (7)   Time-varying 2-species toggle switch
 
 % Every combination of the models in 'testModels' and the reductions in
 % 'reductionTypes' will be tested, and the results summarized in a table.
-testModels = [1:8];
-modelNames = {'2-Species Poisson','Repressilator','TV Repressilator',...
-    'STL1','TXTL','Goutsias','Toggle2','MAPK'};
+% 'modelNames' and 'isTimeVarying' are indexed by model number, and
+% 'allowsTimeVarying' is indexed by position in 'reductionTypes'.
+testModels = [1:7];
+modelNames = {'2-Species Poisson','Time-Varying 2-Species Poisson',...
+    'Repressilator','TV Repressilator',...
+    '4-State STL1','Time-Varying Bursting TXTL','Time-Varying Toggle Switch'};
+isTimeVarying = [false,true,false,true,true,true,true];
 
-reductionTypes = {'POD2','Log Lump QSSA','QSSA'};    % {'Log Lump QSSA',
-                           %  'Proper Orthogonal Decomposition','QSSA'};
+reductionTypes = {'POD2',...
+    'Log Lump QSSA',...
+    'Linear State Lumping',...
+    'Logarithmic State Lumping',...
+    'QSSA',...
+    'Eigen Decomposition'};  
+allowsTimeVarying = [true,false,true,true,false,false];
+
 reductionOrder = 30;
 podTimeSetSize = 200;     % only needed for the POD reduction scheme
-makePlots = true;        % plot full vs. reduced for every combination
+makePlots = false;        % for each model, plot the full FSP (thick black) and all reductions (colors) together
+% Combinations of time-varying models (isTimeVarying) with reductions that
+% are not appropriate for time-varying problems (allowsTimeVarying = false)
+% are skipped.
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-%% Choose which type of model reduction to apply. Options include:
+%% Choose which type of model reduction to apply.
+% Options that can be used for time-invariant AND time-varying models:
 %   'Linear State Lumping' (LNSL) --
 %       State space is divided into linearly distributed bins.
 %       Then within each bin, the proability distribution is assumed to
@@ -44,42 +64,52 @@ makePlots = true;        % plot full vs. reduced for every combination
 %       Then within each bin, the proability distribution is assumed to
 %       be constant. The number of bins for each species is defined by
 %       reductionOrder.
-%   'Principle Orthogonal Decomposition' (POD) - 
-%       The infintesimal generator is projected onto the orthonorml
+%   'Proper Orthogonal Decomposition' (POD) -
+%       The infinitesimal generator is projected onto the orthonormal
 %       basis spanned by a previous solution of the full master
-%       equation at discrete time points.  This is done by perfoming
+%       equation at discrete time points.  This is done by performing
 %       SVD on the solutions and choosing the output space
-%       corresponding to the 'redOrder' largest singular values.
+%       corresponding to the 'reductionOrder' largest singular values.
 %       For best use, this reduction should be found using a
-%       fine time resolution in the calculation of the FSP. The size of the
-%       reduced model must be specified as 'reductionOrder'. Because the
-%       POD requires a solution of the FSP, this reduction is usually only
-%       helpful for situations where many solutions are needed (e.g.,
-%       during model fitting).
-%   'No Transform' - 
+%       fine time resolution in the calculation of the FSP (set by
+%       'podTimeSetSize'). Because the POD requires a solution of the
+%       FSP, this reduction is usually only helpful for situations where
+%       many solutions are needed (e.g., during model fitting).
+%   'POD2' (or 'POD 2nd') --
+%       Extension of POD that also includes the time derivatives of the CME
+%       solution (i.e., A*P(t_i)) in the set of vectors onto which the CME
+%       is projected. Only the vectors corresponding to the top
+%       'reductionOrder' singular values are kept for the projection.
+%   'No Transform' -
 %       Test case where no reduction is applied.
-%   Other Options that are only aplicable to time invariant systems:
-%   'Log Lump QSSA' (LGQSSA) -- 
+%
+% Options that are only applicable to time-invariant models (set
+% 'allowsTimeVarying' to false for these). Their bases are built from the
+% generator at the initial time, so they do not track time-varying rates:
+%   'QSSA' --
+%       Species listed in 'qssaSpecies' are assumed to be at
+%       quasi-steady state given the other species.
+%   'Log Lump QSSA' (LGQSSA) --
 %       Same as LGSL, but where the distribution within each lump is
 %       assumed to be distributed according to the quasi-steady state
-%       assumption. 
-%   'Dynamic Mode Decomposition' (DMD) -- 
-%   (POD2) --
-%       Extension of POD that also includes the time derivatives of the CME
-%       (i.e., A*P(t_i)) solution in the set of vectors onto which the CME
-%       is projected. Only the vectors corresponding top the top
-%       'reductionOrder' singular values are kept for the projection.
-%   'Eigen Decomposition'(ED) --
-%       The infintesimal generator is projected onto the eigenvectors
+%       assumption.
+%   'Eigen Decomposition' (ED) --
+%       The infinitesimal generator is projected onto the eigenvectors
 %       corresponding to its least negative eigenvalues. The number of
-%       eigenvectors for this projection is defined by 'reductionOrder'.      
+%       eigenvectors for this projection is defined by 'reductionOrder'.
+%
+% See src/+ssit/+fsp_model_reduction/getTransformMatrices.m for
+% additional, less-tested options (e.g., 'Dynamic Mode Decomposition',
+% 'POD Update').
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Results are saved after each combination to a separate table for each
 % model (named 'results_<modelName>'), using '-append' so that the results
 % for one model can be updated without re-running the others.
 resultsFile = 'example_SI_ModelReductionResults.mat';
-iCombo = 0;
+% One color per reduction type, so each method has the same color in
+% every model's plots.
+redColors = lines(length(reductionTypes));
 
 for iModel = 1:length(testModels)
     testModel = testModels(iModel);
@@ -99,13 +129,25 @@ for iModel = 1:length(testModels)
             indTimes = [1,4,7,11];
             indSpecies = [2];
             qssaSpecies = [1];  % Species that are replaced with QSSA
-        case 2 % Constant 3-Species Repressilator Model
+        case 2 % Time-Varying 2-Species Poisson
+            Model1 = SSIT;
+            Model1.species = {'x1';'x2'};
+            Model1.initialCondition = [0;0];
+            Model1.propensityFunctions = {'kr';'kr*cos(omega*t)';'gr*x1';'kp';'gp*x2'};
+            Model1.stoichiometry = [1,1,-1,0,0;0,0,0,1,-1];
+            Model1.parameters = ({'kr',40;'gr',1;'kp',20;'gp',1;'omega',2*pi});
+            Model1.fspOptions.initApproxSS = false;
+            Model1.tSpan = linspace(0,10,11);
+            indTimes = [1,4,7,11];
+            indSpecies = [2];
+            qssaSpecies = [1];  % Species that are replaced with QSSA
+        case 3 % 3-Species Repressilator Model
             Model1 = SSIT('Repressilator');
             Model1.tSpan = linspace(0,20,11);
             indTimes = [1,4,7,11];
             indSpecies = [3];
             qssaSpecies = [1,2];  % Species that are replaced with QSSA
-        case 3 % Time-varying 3-Species Repressilator Model
+        case 4 % Time-varying 3-Species Repressilator Model
             Model1 = SSIT('Repressilator');
             % Split the time-varying production of x1 into two reactions so
             % that each propensity factorizes as f(t)*g(x). A non-factorizable
@@ -119,21 +161,21 @@ for iModel = 1:length(testModels)
             indTimes = [1,4,7,11];
             indSpecies = [3];
             qssaSpecies = [1,2];  % Species that are replaced with QSSA
-        case 4 % Time-varying 4-state STL1 Model
+        case 5 % Time-varying 4-state STL1 Model
             % Load pre-computed FSP solutions:
             S = load('ExampleSaveFiles/example_11_LoadingandFittingData_MH.mat','STL1_4state');
             % Make a copy of the STL1 model to set up for model reduction:
-            Model1 = S.STL1_4state;
-        
+            Model1 = S.STL1_4state;       
             % 4-state STL1:
             % Set up to solve FSP solution again to time following expansion:
             Model1.fspOptions.initApproxSS = false;
             Model1.tSpan = linspace(0,50,11);
             indTimes = [1,4,7,11];
             indSpecies = [5];
-            qssaSpecies = [5];  % Species that are replaced with QSSA
-
-        case 5 % Time-varying Bursting TXTL Model
+            qssaSpecies = [1,2,3,4];  % Species that are replaced with QSSA
+        case 6 % Time-varying Bursting TXTL Model
+            % Gene switches on/off with a periodically modulated on-rate;
+            % active genes transcribe RNA, which is translated to protein.
             Model1 = SSIT();
             Model1.species = {'goff','gon','rna','prot'};
             Model1.initialCondition = [2;0;0;0];
@@ -144,125 +186,37 @@ for iModel = 1:length(testModels)
             indTimes = [51,101,151,201];
             indSpecies = [4];
             qssaSpecies = [3];  % Species that are replaced with QSSA
-        case 6 % Goutsias Gene Regulation Model (from example_Benchmarking.m)
-            Model1 = SSIT('Empty');
-            Model1.parameters = {'k1',0.043;'k2',0.0007;'k3',0.0715;'k4',0.0039;'k5',0.012e9/(6.0221415e23*1e-15);...
-                'k6',0.4791;'k7',0.00012e9/(6.0221415e23*1e-15);'k8',0.8765e-11;'k9',0.05e9/(6.0221415e23*1e-15);...
-                'k10',0.5};
-            Model1.species = {'D','DNA','M','RNA','DNAD','DNA2D'};
-            Model1.stoichiometry = [0, 0,0, 0,-1, 1,-1, 1, 1, -1;...
-                0, 0,0, 0,-1, 1, 0, 0, 0, 0;...
-                1,-1,0, 0, 0, 0, 0, 0,-2, 2;...
-                0, 0,1,-1, 0, 0, 0, 0, 0, 0;...
-                0, 0,0, 0, 1,-1,-1, 1, 0, 0;...
-                0, 0,0, 0, 0, 0, 1,-1, 0, 0];
-            Model1.initialCondition = [6;2;2;0;0;0];
-            % Reorder species DNA-RNA-Protein
-            Model1.species = Model1.species([2,5,6,4,3,1]);
-            Model1.initialCondition = Model1.initialCondition([2,5,6,4,3,1]);
-            Model1.stoichiometry = Model1.stoichiometry([2,5,6,4,3,1],:);
-            Model1.propensityFunctions = {'k1*RNA';'k2*M';'k3*DNAD';'k4*RNA';'k5*DNA*D';...
-                'k6*DNAD';'k7*DNAD*D';'k8*DNA2D';'(k9/2)*M*(M-1)';'k10*D'};
-            Model1 = Model1.addFSPConstraints(anticorrelatedPairs='all',correlatedPairs='all');
-            Model1.tSpan = linspace(0,1000,11);
-            indTimes = [1,4,7,11];
-            indSpecies = [6];
-            qssaSpecies = [1,2,3];  % Species that are replaced with QSSA
-        case 7 % 2-Species Toggle Switch with Gene States (from example_Benchmarking.m)
-            Model1 = SSIT('Empty');
-            Model1.parameters = {'k1',40;'k2',20;'k3',1;'k4',1;'k5',1e-5;...
-                'k6',3.5e-5;'k7',1;'k8',1};
-            Model1.species = {'GeneA';'GeneB';'A';'B';'bGeneB';'bGeneA'};
-            Model1.stoichiometry = [
-                0,  0,  0,  0,  0, -1,  0,  1
-                0,  0,  0,  0, -1,  0,  1,  0
-                1,  0, -1,  0, -2,  0,  2,  0
-                0,  1,  0, -1,  0, -2,  0,  2
-                0,  0,  0,  0,  1,  0, -1,  0
-                0,  0,  0,  0,  0,  1,  0, -1
-                ];
-            Model1.propensityFunctions = {'k1*GeneA';'k2*GeneB';'k3*A';'k4*B';...
-                '(k5/2)*A*(A-1)*GeneB';'(k6/2)*B*(B-1)*GeneA';'k7*bGeneB';'k8*bGeneA'};
-            Model1.initialCondition = [1;1;0;0;0;0];
-            Model1 = Model1.addFSPConstraints(anticorrelatedPairs='all',correlatedPairs='all');
-            Model1.tSpan = linspace(0,30,11);
-            indTimes = [1,4,7,11];
-            indSpecies = [3,4];
-            qssaSpecies = [1,2,5,6];  % Species that are replaced with QSSA
-        case 8 % MAPK Model (from example_Benchmarking.m)
+        case 7 % Time-Varying Toggle Switch
+            % Mutually repressing LacI/LamCI with an extra LamCI
+            % degradation reaction.
             Model1 = SSIT();
-            Model1.species = {'MKP3';'Kpp_MKP3';'KpT_MKP3_Y';'KpT_MKP3_T';...
-                'K_MKP3_T';'KpY_MKP3';'K_MKP3_Y';'KpT_MEK';'KpT';'KpY_MEK';...
-                'K_MEK_T';'KpY';'K_MEK_Y';'K';'MEK';'Kpp'};
-            Model1.initialCondition = zeros(length(Model1.species),1);
-            Model1.initialCondition(strcmp(Model1.species,'MKP3')) = 1;
-            Model1.initialCondition(strcmp(Model1.species,'K')) = 3;
-            Model1.parameters = {'s1',0.00024;'d1',0.0001;'s2',0.001;'d2',0.15;...
-                's3',0.005;'k1',0.375;'k_1',1.0;'k2',0.06;'k3',0.375;'k_3',1.0;...
-                'k4',4.5;'k5',0.375;'k_5',1.0;'k6',0.06;'k7',0.375;'k_7',1.0;...
-                'k8',4.5;'h1',0.015;'h_1',1.0;'h2',0.032;'h3',0.31;'h_3',0.01;...
-                'h4',0.01;'h_4',1.0;'h5',0.5;'h6',0.086;'h_6',0.0011;'h7',0.01;...
-                'h_7',1.0;'h8',0.47;'h9',0.14;'h_9',0.0018};
-            % Reactions: {propensity, {species, stoichiometry}}
-            rxns = {'s2',{'MEK',1};
-                'd2*MEK',{'MEK',-1};
-                's3*Kpp',{'MEK',1};
-                's1',{'K',1};
-                'd1*K',{'K',-1};
-                'd1*KpY',{'KpY',-1};
-                'd1*KpT',{'KpT',-1};
-                'd1*Kpp',{'Kpp',-1};
-                'k1*K*MEK',{'K',-1;'MEK',-1;'K_MEK_Y',1};
-                'k2*K_MEK_Y',{'K_MEK_Y',-1;'KpY',1;'MEK',1};
-                'k3*KpY*MEK',{'KpY',-1;'MEK',-1;'KpY_MEK',1};
-                'k_3*KpY_MEK',{'KpY_MEK',-1;'KpY',1;'MEK',1};
-                'k4*KpY_MEK',{'KpY_MEK',-1;'Kpp',1;'MEK',1};
-                'k5*K*MEK',{'K',-1;'MEK',-1;'K_MEK_T',1};
-                'k_5*K_MEK_T',{'K_MEK_T',-1;'K',1;'MEK',1};
-                'k6*K_MEK_T',{'K_MEK_T',-1;'KpT',1;'MEK',1};
-                'k7*KpT*MEK',{'KpT',-1;'MEK',-1;'KpT_MEK',1};
-                'k_7*KpT_MEK',{'KpT_MEK',-1;'KpT',1;'MEK',1};
-                'k8*KpT_MEK',{'KpT_MEK',-1;'Kpp',1;'MEK',1};
-                'h1*Kpp*MKP3',{'Kpp',-1;'MKP3',-1;'Kpp_MKP3',1};
-                'h_1*Kpp_MKP3',{'Kpp_MKP3',-1;'Kpp',1;'MKP3',1};
-                'h2*Kpp_MKP3',{'Kpp_MKP3',-1;'KpT_MKP3_Y',1};
-                'h3*KpT_MKP3_Y',{'KpT_MKP3_Y',-1;'KpT',1;'MKP3',1};
-                'h_3*KpT*MKP3',{'KpT',-1;'MKP3',-1;'KpT_MKP3_Y',1};
-                'h4*KpT*MKP3',{'KpT',-1;'MKP3',-1;'KpT_MKP3_T',1};
-                'h_4*KpT_MKP3_T',{'KpT_MKP3_T',-1;'KpT',1;'MKP3',1};
-                'h5*KpT_MKP3_T',{'KpT_MKP3_T',-1;'K_MKP3_T',1};
-                'h6*K_MKP3_T',{'K_MKP3_T',-1;'K',1;'MKP3',1};
-                'h_6*K*MKP3',{'K',-1;'MKP3',-1;'K_MKP3_T',1};
-                'h7*KpY*MKP3',{'KpY',-1;'MKP3',-1;'KpY_MKP3',1};
-                'h_7*KpY_MKP3',{'KpY_MKP3',-1;'KpY',1;'MKP3',1};
-                'h8*KpY_MKP3',{'KpY_MKP3',-1;'K_MKP3_Y',1};
-                'h9*K_MKP3_Y',{'K_MKP3_Y',-1;'K',1;'MKP3',1};
-                'h_9*K*MKP3',{'K',-1;'MKP3',-1;'K_MKP3_Y',1}};
-            Model1.propensityFunctions = {};
-            Model1.stoichiometry = [];
-            for iRxn = 1:size(rxns,1)
-                Model1 = Model1.addReaction(struct('propensity',rxns(iRxn,1),...
-                    'stoichiometry',{rxns{iRxn,2}}));
-            end
-            % Add custom constraints based on sum of each monomer.
-            Model1.customConstraintFuns = ...
-                {'MKP3+Kpp_MKP3+KpT_MKP3_Y+KpT_MKP3_T+K_MKP3_T+KpY_MKP3+K_MKP3_Y';  % Sum of MKP3
-                'K+K_MEK_Y+K_MEK_T+K_MKP3_T+K_MKP3_Y';  % Sum of K
-                'Kpp+Kpp_MKP3'; % Sum of Kpp
-                'KpY+KpY_MEK+KpY_MKP3'; % Sum of KpY
-                'KpT+KpT_MEK+KpT_MKP3_Y+KpT_MKP3_T'; % Sum of KpT
-                'K+K_MEK_Y+K_MEK_T+K_MKP3_T+K_MKP3_Y+KpY+KpY_MEK+KpY_MKP3+KpT+KpT_MEK+KpT_MKP3_Y+KpT_MKP3_T'}; % Sum of all
-            Model1 = Model1.addFSPConstraints(anticorrelatedPairs='all',correlatedPairs='all');
-            Model1.fspOptions.fspTol = 1e-3;
-            Model1.tSpan = linspace(0,10,11);
+            Model1.parameters = {'kb',10;'ka',80;'M',20;'g',1};
+            Model1.species = {'LacI';'LamCI'};
+            Model1.stoichiometry = [1,-1,0, 0, 0;...
+                                    0, 0,1,-1,-1];
+            Model1.propensityFunctions = {'kb+ka*M^3/(M^3+LamCI^3)';...
+                'g*LacI';...
+                'kb+ka*M^3/(M^3+LacI^3)';...
+                'g*LamCI';...
+                'g*(1+cos(2*pi/10*t))*LamCI';...
+                };
+            Model1.initialCondition = [0;0];
+            Model1.customConstraintFuns = {'(LacI-3).^2.*(LamCI-3).^2'};
+            Model1.tSpan = linspace(0,100,11);
             indTimes = [1,4,7,11];
-            indSpecies = [16];
-            qssaSpecies = [];  % Species that are replaced with QSSA
+            indSpecies = [2];
+            qssaSpecies = [1];  % Species that are replaced with QSSA
+
     end
 
     % Solve the original Model (once per model, for comparison)
     % Solve once to get the necessary FSP projection space.
     Model1 = Model1.formPropensitiesGeneral(['ModRedModel',num2str(testModel)]);
+    % Check that the time-varying flag matches the model's propensities.
+    if any(cellfun(@(f)f.isTimeDependent,Model1.propensitiesGeneral))~=isTimeVarying(testModel)
+        warning('isTimeVarying(%d) does not match the propensities of model ''%s''.',...
+            testModel,modelNames{testModel})
+    end
     Model1 = Model1.solve(solver='FSP');
 
     % Solve again to record FSP solution time following expansion.
@@ -289,6 +243,30 @@ for iModel = 1:length(testModels)
 
     nSpecies = length(Model1.species);
 
+    % Set up comparison figures for this model: one figure of means +/- SD
+    % versus time, and one figure of marginal distributions at indTimes for
+    % each species in indSpecies. Figures for model iModel are numbered
+    % 100*iModel+1 (means) and 100*iModel+1+j (marginals of species j).
+    % The full FSP solution is plotted in thick black, and each reduction
+    % is added below in its own color. On the means plot, each curve is
+    % shifted slightly in time (by xShift, about 1% of the time range per
+    % curve, centered on the true times) so that the error bars do not
+    % overlap.
+    if makePlots
+        xStep = 0.01*(max(Model1.tSpan)-min(Model1.tSpan));
+        xShift = @(k)xStep*(k-length(reductionTypes)/2);  % k = 0 (full), iRed (reductions)
+        fMeans = figure(100*iModel+1); clf(fMeans);
+        sgtitle(fMeans,[modelNames{testModel},' - means \pm SD']);
+        fMarg = gobjects(1,length(indSpecies));
+        for j = 1:length(indSpecies)
+            fMarg(j) = figure(100*iModel+1+j); clf(fMarg(j));
+            sgtitle(fMarg(j),[modelNames{testModel},' - ',...
+                Model1.species{indSpecies(j)},' marginal distributions']);
+        end
+        plotReductionComparison(fMeans,fMarg,fspSoln,Model1,indSpecies,indTimes,...
+            'Full FSP',{'Color','k','LineWidth',3},xShift(0));
+    end
+
     % Load any previously saved results for this model.
     resultsVarName = matlab.lang.makeValidName(['results_',modelNames{testModel}]);
     if isfile(resultsFile)&&ismember(resultsVarName,who('-file',resultsFile))
@@ -300,12 +278,13 @@ for iModel = 1:length(testModels)
 
     for iRed = 1:length(reductionTypes)
         reductionType = reductionTypes{iRed};
-        iCombo = iCombo+1;
         status = 'OK';
         redModelSolveTime = NaN;
         maxKS = NaN;
 
-        if strcmp(reductionType,'QSSA')&&isempty(qssaSpecies)
+        if isTimeVarying(testModel)&&~allowsTimeVarying(iRed)
+            status = 'Skipped: reduction requires a time-invariant model';
+        elseif strcmp(reductionType,'QSSA')&&isempty(qssaSpecies)
             status = 'QSSA Reduction Requires at least one QSSA Species';
         elseif strcmp(reductionType,'QSSA')&&length(Model1.species)==length(qssaSpecies)
             status = 'QSSA Reduction Requires at least one non-QSSA Species';
@@ -316,21 +295,25 @@ for iModel = 1:length(testModels)
                 fspSoln2 = fspSoln;
             end
 
-            try
+            % try
                 % Solving the reduced models
                 % Make a copy of the full model.
                 Model2 = Model1;
 
-                % Set the solver to use ModelReduction
+                % Set the solver to use ModelReduction. FSP expansion is
+                % already suppressed (fspTol = inf above), as required when
+                % using model reductions.
                 Model2.modelReductionOptions.useModReduction = true;
-                % FSP expansion should be supressed when using Model Reductions
 
-                % Set type and order of Model Recution
+                % Set type and order of Model Reduction
                 Model2.modelReductionOptions.reductionType = reductionType;
                 Model2.modelReductionOptions.reductionOrder = reductionOrder;
                 Model2.modelReductionOptions.qssaSpecies = qssaSpecies;
 
                 % Call SSIT to compute the model reduction transformation matrices.
+                % TODO -- This has been seen to fail on "Model 4" with Linear
+                % State Lumping. The model numbering has since changed, so
+                % recheck which model (STL1 is now model 5) is affected.
                 Model2 = Model2.computeModelReductionTransformMatrices(fspSoln2);
 
                 % Solve the reduced model once to construct the reduced FSP
@@ -350,9 +333,9 @@ for iModel = 1:length(testModels)
                         squeeze(cumsum(sum(double(fspSolnRed.fsp{end}.p.data),setdiff((1:nSpecies),i))))));
                 end
                 maxKS = max(finalError);
-            catch err
-                status = err.message;
-            end
+            % catch err
+            %     status = err.message;
+            % end
         end
 
         % Update this model's results table (replacing any earlier result
@@ -375,36 +358,10 @@ for iModel = 1:length(testModels)
         % disp(newRow)
 
         if makePlots&&strcmp(status,'OK')
-            % Make Figures to compare the results. Here, we will plot the
-            % original model in blue and the reduced model in red lines.
-            figTitle = [modelNames{testModel},' - ',reductionType];
-
-            % Means and standard deviations:
-            f1 = figure(2*iCombo-1); clf;
-            Model1.plotFSP(speciesNames=Model1.species(indSpecies),...
-                plotType='meansAndDevs', lineProps={'linewidth',2},...
-                Title=figTitle, TitleFontSize=26,...
-                AxisLabelSize=20, TickLabelSize=20, YLabel='Molecule Count',...
-                XLabel='Time', LegendFontSize=20, LegendLocation='southeast',...
-                figureNums=f1);
-            hold(gca,'on');
-            Model2.plotFSP(speciesNames=Model2.species(indSpecies),...
-                plotType='meansAndDevs', lineProps={'linewidth',2,'LineStyle','--'},...
-                Title=figTitle, TitleFontSize=26,...
-                AxisLabelSize=20, TickLabelSize=20, YLabel='Molecule Count',...
-                XLabel='Time', LegendFontSize=20, LegendLocation='southeast',...
-                figureNums=f1,Colors={'r'});
-
-            % Marginal distributions:
-            f2 = figure(2*iCombo); clf;
-            Model1.plotFSP(speciesNames=Model1.species(indSpecies),...
-                plotType='marginals', indTimes=indTimes,...
-                lineProps={'linewidth',2}, Colors={'b'},figureNums=f2);
-            hold(gca,'on');
-            Model2.plotFSP(speciesNames=Model2.species(indSpecies),...
-                plotType='marginals', indTimes=indTimes,...
-                lineProps={'linewidth',2,'LineStyle','--'}, Colors={'r'},...
-                figureNums=f2);
+            % Add this reduction to the model's comparison figures as a
+            % dashed colored line.
+            plotReductionComparison(fMeans,fMarg,fspSolnRed,Model1,indSpecies,indTimes,...
+                reductionType,{'Color',redColors(iRed,:),'LineWidth',1.5,'LineStyle','--'},xShift(iRed));
         end
         %% Summary table of errors and efficiencies
         % Combine the saved results for all models (including models run in
@@ -414,4 +371,64 @@ for iModel = 1:length(testModels)
         resultsTable = vertcat(savedResults{:});
         disp(resultsTable)
     end
+end
+
+%% Local functions
+function plotReductionComparison(fMeans,fMarg,soln,Model,indSpecies,indTimes,label,lineProps,xShift)
+% Add one FSP solution (full or reduced) to a model's comparison figures:
+%   fMeans -- mean (line) with +/- SD error bars versus time, with one
+%             subplot per species in indSpecies (square grid). The curve is
+%             shifted by xShift in time so that error bars from different
+%             reductions do not overlap. Error bars are drawn at no more
+%             than ~20 time points to keep long time series readable.
+%   fMarg  -- array of figures, one per species in indSpecies, each
+%             showing the marginal distributions at the times in indTimes
+%             in a square grid (e.g., 2x2 for 4 times, 3x3 for 9 times).
+% 'label' is used in the legend, and 'lineProps' sets color/width/style.
+nSpecies = length(Model.species);
+nTimes = length(soln.fsp);
+nPlotSp = length(indSpecies);
+nRows = ceil(sqrt(nPlotSp));
+nPlotT = length(indTimes);
+nRowsT = ceil(sqrt(nPlotT));
+t = Model.tSpan(1:nTimes)+xShift;
+indErr = unique(round(linspace(1,nTimes,min(nTimes,20))));
+lineColor = lineProps{find(strcmp(lineProps,'Color'),1)+1};
+for j = 1:nPlotSp
+    s = indSpecies(j);
+
+    % Means and standard deviations versus time.
+    mu = zeros(1,nTimes);
+    sd = zeros(1,nTimes);
+    for it = 1:nTimes
+        pmf = getMarginal(soln.fsp{it},s,nSpecies);
+        x = 0:length(pmf)-1;
+        mu(it) = x*pmf;
+        sd(it) = sqrt(max(0,(x.^2)*pmf-mu(it)^2));
+    end
+    set(0,'CurrentFigure',fMeans);
+    ax = subplot(nRows,nRows,j); hold(ax,'on');
+    plot(ax,t,mu,lineProps{:},'DisplayName',label);
+    errorbar(ax,t(indErr),mu(indErr),sd(indErr),'LineStyle','none',...
+        'Color',lineColor,'LineWidth',1,'HandleVisibility','off');
+    xlabel(ax,'Time'); ylabel(ax,[Model.species{s},' count']);
+    if j==1, legend(ax,'Location','best'); end
+
+    % Marginal distributions at the selected times.
+    set(0,'CurrentFigure',fMarg(j));
+    for k = 1:nPlotT
+        pmf = getMarginal(soln.fsp{indTimes(k)},s,nSpecies);
+        ax = subplot(nRowsT,nRowsT,k); hold(ax,'on');
+        stairs(ax,(0:length(pmf)-1)-0.5,pmf,lineProps{:},'DisplayName',label);
+        title(ax,sprintf('t = %.3g',Model.tSpan(indTimes(k))));
+        xlabel(ax,[Model.species{s},' count']); ylabel(ax,'Probability');
+        if k==1, legend(ax,'Location','best'); end
+    end
+end
+end
+
+function pmf = getMarginal(fspTimePoint,s,nSpecies)
+% Marginal distribution (column vector) of species s at one FSP time point.
+pmf = sum(double(fspTimePoint.p.data),setdiff(1:nSpecies,s));
+pmf = pmf(:);
 end

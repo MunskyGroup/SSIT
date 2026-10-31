@@ -427,6 +427,7 @@ while (tNow < maxOutputTime)
     else
         if useReducedModel
             fspErrorCondition.fspTol = inf;
+            fspErrorCondition.nSinks = 0;
             if isTimeInvariant==1 % If no parameters are functions of time.
                 jac = sparse(AfspRed.createSingleMatrix(tNow, parameters,modRedTransformMatrices));
                 matvec = @(~,p) jac*p;

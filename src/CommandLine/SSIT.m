@@ -968,7 +968,7 @@ classdef SSIT
             % This method replaces the initial condition with a previous
             % solution of the SSIT.
             % Example:
-            %   Model1 = SSIT('Toggle');  % Load the toggle model.
+            %   Model1 = SSIT('ToggleSwitch');  % Load the toggle model.
             %   Model1.tSpan = linspace(0,10,11);
             %   Model1 = Model1.solve(solver='fsp');
             %   Model1.plotFSP(figureNums=1,plotType='meansAndDevs',Colors={'r'});hold on
