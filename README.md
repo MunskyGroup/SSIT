@@ -94,39 +94,44 @@ To get started with the Command line Tools, navigate to the directory "Examples"
 
 ### Numbered examples (`Examples/example_<N>*.m`)
 
-- [Examples/example_0_Complete_Manuscript.m](Examples/example_0_Complete_Manuscript.m): Runs all example code from the manuscript.
-- [Examples/example_1_CreateSSITModels.m](Examples/example_1_CreateSSITModels.m): Create, save, and load SSIT models. ([html of expected results](https://htmlpreview.github.io/?https://github.com/MunskyGroup/SSIT/blob/main/Examples/html/example_1_CreateSSITModels.html))
-- [Examples/example_2_SolveSSITModels_ODE.m](Examples/example_2_SolveSSITModels_ODE.m): Solve and visualize models using ODE-based approaches. ([html of expected results](https://htmlpreview.github.io/?https://github.com/MunskyGroup/SSIT/blob/main/Examples/html/example_2_SolveSSITModels_ODE.html))
-- [Examples/example_3_SolveSSITModels_SSA.m](Examples/example_3_SolveSSITModels_SSA.m): Solve and visualize models using SSA simulations. ([html of expected results](https://htmlpreview.github.io/?https://github.com/MunskyGroup/SSIT/blob/main/Examples/html/example_3_SolveSSITModels_SSA.html))
-- [Examples/example_4_SolveSSITModels_FSP.m](Examples/example_4_SolveSSITModels_FSP.m): Solve and visualize models using the FSP method. ([html of expected results](https://htmlpreview.github.io/?https://github.com/MunskyGroup/SSIT/blob/main/Examples/html/example_4_SolveSSITModels_FSP.html))
-- [Examples/example_5_SolveSSITModels_EscapeTimes.m](Examples/example_5_SolveSSITModels_EscapeTimes.m): Compute escape-time distributions from stochastic models. ([html of expected results](https://htmlpreview.github.io/?https://github.com/MunskyGroup/SSIT/blob/main/Examples/html/example_5_SolveSSITModels_EscapeTimes.html))
-- [Examples/example_6_SensitivityAnalysis.m](Examples/example_6_SensitivityAnalysis.m): Run parameter sensitivity analysis for CME/FSP solutions. ([html of expected results](https://htmlpreview.github.io/?https://github.com/MunskyGroup/SSIT/blob/main/Examples/html/example_6_SensitivityAnalysis.html))
-- [Examples/example_7_FIM.m](Examples/example_7_FIM.m): Compute the Fisher Information Matrix (FIM). ([html of expected results](https://htmlpreview.github.io/?https://github.com/MunskyGroup/SSIT/blob/main/Examples/html/example_7_FIM.html))
-- [Examples/example_7b_FIM_ExperimentDesign.m](Examples/example_7b_FIM_ExperimentDesign.m): Use FIM-based optimality criteria for experiment design.
-- [Examples/example_8_LoadingandFittingData_DataLoading.m](Examples/example_8_LoadingandFittingData_DataLoading.m): Load Hog1/STL1 data sets for inference workflows.
-- [Examples/example_8b_LoadingandFittingData_SimulatingData.m](Examples/example_8b_LoadingandFittingData_SimulatingData.m): Simulate synthetic data for loading/fitting workflows.
-- [Examples/example_9_LoadingandFittingData_MLE.m](Examples/example_9_LoadingandFittingData_MLE.m): Fit model parameters using maximum likelihood estimation.
-- [Examples/example_10_LoadingandFittingData_MH.m](Examples/example_10_LoadingandFittingData_MH.m): Fit time-varying data using Metropolis-Hastings sampling.
-- [Examples/example_10b_LoadingandFittingData_MH_with_FIM.m](Examples/example_10b_LoadingandFittingData_MH_with_FIM.m): Combine Metropolis-Hastings fitting with FIM analysis.
-- [Examples/example_11_LoadingandFittingData_CrossValidation.m](Examples/example_11_LoadingandFittingData_CrossValidation.m): Perform cross-validation for model fitting performance.
-- [Examples/example_12_ComplexModels_ModelReduction.m](Examples/example_12_ComplexModels_ModelReduction.m): Apply model-reduction methods for complex CME models.
-- [Examples/example_13_ComplexModels_Hybrid.m](Examples/example_13_ComplexModels_Hybrid.m): Build and solve hybrid deterministic-stochastic models.
-- [Examples/example_14_ComplexModels_PDO.m](Examples/example_14_ComplexModels_PDO.m): Include probabilistic distortion operators (PDOs) in model fitting.
-- [Examples/example_15_ComplexModels_MultiModel.m](Examples/example_15_ComplexModels_MultiModel.m): Fit multiple related models/data sets with shared parameters.
-- [Examples/example_16_PipelinesAndClusterComputing.m](Examples/example_16_PipelinesAndClusterComputing.m): Run SSIT pipelines for batch and cluster computing.
+- **example_00_AllManuscriptExamples**: Runs all example code from the manuscript. [[script](Examples/example_00_AllManuscriptExamples.m)] [[html of expected results](https://htmlpreview.github.io/?https://github.com/MunskyGroup/SSIT/blob/main/Examples/html/example_00_AllManuscriptExamples.html)]
+- **example_01_CreateSSITModels**: Create, save, and load SSIT models. [[script](Examples/example_01_CreateSSITModels.m)] [[html of expected results](https://htmlpreview.github.io/?https://github.com/MunskyGroup/SSIT/blob/main/Examples/html/example_01_CreateSSITModels.html)]
+- **example_02_SolveSSITModels_ODE**: Solve and visualize models using ODE-based approaches. [[script](Examples/example_02_SolveSSITModels_ODE.m)] [[html of expected results](https://htmlpreview.github.io/?https://github.com/MunskyGroup/SSIT/blob/main/Examples/html/example_02_SolveSSITModels_ODE.html)]
+- **example_03_SolveSSITModels_SSA**: Solve and visualize models using SSA simulations. [[script](Examples/example_03_SolveSSITModels_SSA.m)] [[html of expected results](https://htmlpreview.github.io/?https://github.com/MunskyGroup/SSIT/blob/main/Examples/html/example_03_SolveSSITModels_SSA.html)]
+- **example_04_SolveSSITModels_FSP**: Solve and visualize models using the FSP method. [[script](Examples/example_04_SolveSSITModels_FSP.m)] [[html of expected results](https://htmlpreview.github.io/?https://github.com/MunskyGroup/SSIT/blob/main/Examples/html/example_04_SolveSSITModels_FSP.html)]
+- **example_05_SolveSSITModels_EscapeTimes**: Compute escape-time distributions from stochastic models. [[script](Examples/example_05_SolveSSITModels_EscapeTimes.m)] [[html of expected results](https://htmlpreview.github.io/?https://github.com/MunskyGroup/SSIT/blob/main/Examples/html/example_05_SolveSSITModels_EscapeTimes.html)]
+- **example_06_SensitivityAnalysis**: Run parameter sensitivity analysis for CME/FSP solutions. [[script](Examples/example_06_SensitivityAnalysis.m)] [[html of expected results](https://htmlpreview.github.io/?https://github.com/MunskyGroup/SSIT/blob/main/Examples/html/example_06_SensitivityAnalysis.html)]
+- **example_07_FIM**: Compute the Fisher Information Matrix (FIM). [[script](Examples/example_07_FIM.m)] [[html of expected results](https://htmlpreview.github.io/?https://github.com/MunskyGroup/SSIT/blob/main/Examples/html/example_07_FIM.html)]
+- **example_08_FIM_ExperimentDesign**: Use FIM-based optimality criteria for experiment design. [[script](Examples/example_08_FIM_ExperimentDesign.m)] [[html of expected results](https://htmlpreview.github.io/?https://github.com/MunskyGroup/SSIT/blob/main/Examples/html/example_08_FIM_ExperimentDesign.html)]
+- **example_09_LoadingandFittingData_DataLoading**: Load Hog1/STL1 data sets for inference workflows. [[script](Examples/example_09_LoadingandFittingData_DataLoading.m)] [[html of expected results](https://htmlpreview.github.io/?https://github.com/MunskyGroup/SSIT/blob/main/Examples/html/example_09_LoadingandFittingData_DataLoading.html)]
+- **example_10_LoadingandFittingData_MLE**: Fit model parameters using maximum likelihood estimation. [[script](Examples/example_10_LoadingandFittingData_MLE.m)] [[html of expected results](https://htmlpreview.github.io/?https://github.com/MunskyGroup/SSIT/blob/main/Examples/html/example_10_LoadingandFittingData_MLE.html)]
+- **example_11_LoadingandFittingData_MH**: Fit time-varying data using Metropolis-Hastings sampling. [[script](Examples/example_11_LoadingandFittingData_MH.m)] [[html of expected results](https://htmlpreview.github.io/?https://github.com/MunskyGroup/SSIT/blob/main/Examples/html/example_11_LoadingandFittingData_MH.html)]
+- **example_11b_LoadingandFittingData_MH_with_FIM**: Combine Metropolis-Hastings fitting with FIM analysis. [[script](Examples/example_11b_LoadingandFittingData_MH_with_FIM.m)] [[html of expected results](https://htmlpreview.github.io/?https://github.com/MunskyGroup/SSIT/blob/main/Examples/html/example_11b_LoadingandFittingData_MH_with_FIM.html)]
+- **example_12_ComplexModels_PDO**: Include probabilistic distortion operators (PDOs) in model fitting. [[script](Examples/example_12_ComplexModels_PDO.m)] [[html of expected results](https://htmlpreview.github.io/?https://github.com/MunskyGroup/SSIT/blob/main/Examples/html/example_12_ComplexModels_PDO.html)]
+- **example_13_ComplexModels_MultiModel**: Fit multiple related models/data sets with shared parameters. [[script](Examples/example_13_ComplexModels_MultiModel.m)] [[html of expected results](https://htmlpreview.github.io/?https://github.com/MunskyGroup/SSIT/blob/main/Examples/html/example_13_ComplexModels_MultiModel.html)]
+- **example_14_PipelinesAndClusterComputing**: Run SSIT pipelines for batch and cluster computing. [[script](Examples/example_14_PipelinesAndClusterComputing.m)] [[html of expected results](https://htmlpreview.github.io/?https://github.com/MunskyGroup/SSIT/blob/main/Examples/html/example_14_PipelinesAndClusterComputing.html)]
 
 ### scRNAseq examples (`Examples/example_scRNAseq_<N>*.m`)
 
-- [Examples/example_scRNAseq_1_BatchFitManyGenes.m](Examples/example_scRNAseq_1_BatchFitManyGenes.m): Define a template scRNA-seq model and generate PDO-aware data mapping.
-- [Examples/example_scRNAseq_2_BatchFitManyGenes.m](Examples/example_scRNAseq_2_BatchFitManyGenes.m): Configure and run a pipeline to batch-fit many genes.
-- [Examples/example_scRNAseq_3_BatchFitManyGenes.m](Examples/example_scRNAseq_3_BatchFitManyGenes.m): Collect and plot scRNA-seq batch-fitting results.
+- **example_scRNAseq_1_BatchFitManyGenes**: Define a template scRNA-seq model and generate PDO-aware data mapping. [[script](Examples/example_scRNAseq_1_BatchFitManyGenes.m)]
+- **example_scRNAseq_2_BatchFitManyGenes**: Configure and run a pipeline to batch-fit many genes. [[script](Examples/example_scRNAseq_2_BatchFitManyGenes.m)]
+- **example_scRNAseq_3_BatchFitManyGenes**: Collect and plot scRNA-seq batch-fitting results. [[script](Examples/example_scRNAseq_3_BatchFitManyGenes.m)]
 
 ### SI examples (`Examples/example_SI*.m`)
 
-- [Examples/example_SI_ABC.m](Examples/example_SI_ABC.m): Demonstrate approximate Bayesian computation (ABC) workflows.
-- [Examples/example_SI_Epidemics.m](Examples/example_SI_Epidemics.m): Model epidemic data with SI/SIS/SIR/SEIS-style models.
-- [Examples/example_SI_Moments.m](Examples/example_SI_Moments.m): Solve and visualize models using moment-based analyses.
-- [Examples/example_SI_SBML.m](Examples/example_SI_SBML.m): Demonstrate importing and working with SBML-formatted models.
+- **example_SI_ABC**: Demonstrate approximate Bayesian computation (ABC) workflows. [[script](Examples/example_SI_ABC.m)] [[html of expected results](https://htmlpreview.github.io/?https://github.com/MunskyGroup/SSIT/blob/main/Examples/html/example_SI_ABC.html)]
+- **example_SI_CrossValidation**: Evaluate fitted models using cross-validation. [[script](Examples/example_SI_CrossValidation.m)] [[html of expected results](https://htmlpreview.github.io/?https://github.com/MunskyGroup/SSIT/blob/main/Examples/html/example_SI_CrossValidation.html)]
+- **example_SI_Epidemics**: Model epidemic data with SI/SIS/SIR/SEIS-style models. [[script](Examples/example_SI_Epidemics.m)] [[html of expected results](https://htmlpreview.github.io/?https://github.com/MunskyGroup/SSIT/blob/main/Examples/html/example_SI_Epidemics.html)]
+- **example_SI_Hybrid**: Build and solve hybrid deterministic-stochastic models. [[script](Examples/example_SI_Hybrid.m)] [[html of expected results](https://htmlpreview.github.io/?https://github.com/MunskyGroup/SSIT/blob/main/Examples/html/example_SI_Hybrid.html)]
+- **example_SI_ModelReduction**: Apply model-reduction methods for complex CME models. [[script](Examples/example_SI_ModelReduction.m)] [[html of expected results](https://htmlpreview.github.io/?https://github.com/MunskyGroup/SSIT/blob/main/Examples/html/example_SI_ModelReduction.html)]
+- **example_SI_Moments**: Solve and visualize models using moment-based analyses. [[script](Examples/example_SI_Moments.m)] [[html of expected results](https://htmlpreview.github.io/?https://github.com/MunskyGroup/SSIT/blob/main/Examples/html/example_SI_Moments.html)]
+- **example_SI_MultiModel**: Fit multiple models and data sets with shared parameters. [[script](Examples/example_SI_MultiModel.m)] [[html of expected results](https://htmlpreview.github.io/?https://github.com/MunskyGroup/SSIT/blob/main/Examples/html/example_SI_MultiModel.html)]
+- **example_SI_SBML**: Demonstrate importing and working with SBML-formatted models. [[script](Examples/example_SI_SBML.m)] [[html of expected results](https://htmlpreview.github.io/?https://github.com/MunskyGroup/SSIT/blob/main/Examples/html/example_SI_SBML.html)]
+
+### Other examples
+
+- **example_Benchmarking**: Reproduce benchmarking example times from the manuscript. [[script](Examples/example_Benchmarking.m)] [[html of expected results](https://htmlpreview.github.io/?https://github.com/MunskyGroup/SSIT/blob/main/Examples/html/example_Benchmarking.html)]
+- **example_ModelReduction_benchmark**: Create reduced FSP models using different projection-based transformations. [[script](Examples/example_ModelReduction_benchmark.m)] [[html of expected results](https://htmlpreview.github.io/?https://github.com/MunskyGroup/SSIT/blob/main/Examples/html/example_ModelReduction_benchmark.html)]
 
 Or you can start creating and solving models as follows.
 

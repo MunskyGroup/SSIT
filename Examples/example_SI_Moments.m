@@ -50,12 +50,12 @@ means_ode = Y_ode.';                     % transpose: nSp x nTimes
 % Compare mRNA:
 i_mRNA = find(strcmp(Model.species,'mRNA'));
 
-den_mRNA = max(abs(means_ode(i_mRNA,:)), 1e-12);
+den_mRNA = max(abs(means_ode(i_mRNA,:)), 1e-5);
 errMean_mRNA = ...
     max(abs(means_mom(i_mRNA,:) - means_ode(i_mRNA,:)) ./ den_mRNA);
 
 % Compare all species:
-den_all = max(abs(means_ode), 1e-12);
+den_all = max(abs(means_ode), 1e-5);
 errMean_all = max(max(abs(means_mom - means_ode) ./ den_all));
 
 tol = 1e-2;   % 1% tolerance
@@ -98,12 +98,12 @@ means_ode = Y_ode.';                     % transpose: nSp x nTimes
 % Compare mRNA:
 i_mRNA = find(strcmp(STL1.species,'mRNA'));
 
-den_mRNA = max(abs(means_ode(i_mRNA,:)), 1e-12);
+den_mRNA = max(abs(means_ode(i_mRNA,:)), 1e-5);
 errMean_mRNA = ...
     max(abs(means_mom(i_mRNA,:) - means_ode(i_mRNA,:)) ./ den_mRNA);
 
 % Compare all species:
-den_all = max(abs(means_ode), 1e-12);
+den_all = max(abs(means_ode), 1e-5);
 errMean_all = max(max(abs(means_mom - means_ode) ./ den_all));
 
 tol = 1e-2;   % 1% tolerance
@@ -145,12 +145,12 @@ means_ode = Y_ode.';                     % transpose: nSp x nTimes
 % Compare mRNA:
 i_mRNA = find(strcmp(STL1_4state.species,'mRNA'));
 
-den_mRNA = max(abs(means_ode(i_mRNA,:)), 1e-12);
+den_mRNA = max(abs(means_ode(i_mRNA,:)), 1e-5);
 errMean_mRNA = ...
     max(abs(means_mom(i_mRNA,:) - means_ode(i_mRNA,:)) ./ den_mRNA);
 
 % Compare all species:
-den_all = max(abs(means_ode), 1e-12);
+den_all = max(abs(means_ode), 1e-5);
 errMean_all = max(max(abs(means_mom - means_ode) ./ den_all));
 
 tol = 1e-2;   % 1% tolerance

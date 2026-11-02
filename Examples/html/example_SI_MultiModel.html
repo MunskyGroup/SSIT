@@ -9,7 +9,7 @@ To make changes, update the MATLAB code and republish this document.
 <title>example_SI_MultiModel</title>
 <meta name="generator" content="MATLAB 25.2">
 <link rel="schema.DC" href="http://purl.org/dc/elements/1.1/">
-<meta name="DC.date" content="2026-07-27">
+<meta name="DC.date" content="2026-11-01">
 <meta name="DC.source" content="example_SI_MultiModel.m">
 <style type="text/css">
 html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
@@ -234,25 +234,28 @@ Input Signals:
      Hog1(t) = A*(((1-(exp(1)^(-r1*(t-t0))))*exp(1)^(-r2*(t-t0)))/(1+((1-(exp(1)^(-r1*(t-t0))))*exp(1)^(-r2*(t-t0)))/M))^n*(t&gt;t0)
  
 Model Parameters:
-    {'t0'  }    {[4.8416e+00]}
-    {'k12' }    {[7.5352e+02]}
-    {'k21o'}    {[7.9198e+04]}
-    {'k21i'}    {[2.8557e+00]}
-    {'k23' }    {[3.9852e-01]}
-    {'k34' }    {[7.8228e-01]}
-    {'k32' }    {[2.8594e+00]}
-    {'k43' }    {[3.7263e-01]}
-    {'dr'  }    {[2.3021e-01]}
-    {'kr1' }    {[7.0724e-02]}
-    {'kr2' }    {[3.4795e-01]}
-    {'kr3' }    {[6.8515e+01]}
-    {'kr4' }    {[5.6187e+00]}
-    {'r1'  }    {[4.1400e-03]}
-    {'r2'  }    {[4.2600e-01]}
-    {'A'   }    {[9.3000e+09]}
-    {'M'   }    {[6.4000e-04]}
-    {'n'   }    {[3.1000e+00]}
+    {'t0'  }    {[    4.818738421146135]}
+    {'k12' }    {[2.228336683772342e+02]}
+    {'k21o'}    {[2.537039331190975e+04]}
+    {'k21i'}    {[    2.352133351395808]}
+    {'k23' }    {[    0.357830102277987]}
+    {'k34' }    {[    3.941907227258211]}
+    {'k32' }    {[    2.065886278296316]}
+    {'k43' }    {[    1.565282558422368]}
+    {'dr'  }    {[    0.236349278619251]}
+    {'kr1' }    {[    0.075293763706836]}
+    {'kr2' }    {[    0.651581019906344]}
+    {'kr3' }    {[   74.728050587181272]}
+    {'kr4' }    {[    4.268996577029162]}
+    {'r1'  }    {[    0.004140000000000]}
+    {'r2'  }    {[    0.426000000000000]}
+    {'A'   }    {[9.300000000000000e+09]}
+    {'M'   }    {[6.400000000000001e-04]}
+    {'n'   }    {[    3.100000000000000]}
+
+
 ans = 
+
   SSIT with properties:
 
                        parameters: {18&times;2 cell}
@@ -284,12 +287,13 @@ ans =
        propensitiesGeneralMeanJac: []
        propensitiesGeneralMoments: []
     propensitiesGeneralMomentsJac: []
-             propensityFilePrefix: 'STL1_4state'
+             propensityFilePrefix: "STL1_4state"
                         Solutions: [1&times;1 struct]
                       description: {'Add model description here'}
                          GUIProps: []
                    fspConstraints: [1&times;1 struct]
                    pars_container: [18&times;1 containers.Map]
+
 </pre>
 <h2 id="5">Example script to show how multiple SSIT models and data sets can be fit</h2>
 <h2 id="6">simultaneously. This is most useful in situations where:</h2>
@@ -367,12 +371,12 @@ STL1_4state_multi_2_single.parameters = singleModel.SSITModels{1}.parameters;
 <pre class="codeoutput"> 
 Exiting: Maximum number of iterations has been exceeded
          - increase MaxIter option.
-         Current function value: 24761.525333 
+         Current function value: 24831.743684 
 
  
 Exiting: Maximum number of iterations has been exceeded
          - increase MaxIter option.
-         Current function value: 24759.790796 
+         Current function value: 24775.938245 
 
 </pre>
 <h2 id="12">Ex(1): Adding new model+data to an existing MultiModel</h2>
@@ -405,7 +409,7 @@ combinedModel = combinedModel.updateModels(allParsCombined);
 <pre class="codeoutput"> 
 Exiting: Maximum number of iterations has been exceeded
          - increase MaxIter option.
-         Current function value: 45843.945994 
+         Current function value: 45937.299754 
 
 </pre>
 <h2 id="13">Ex(2): Completely independent parameters</h2>
@@ -453,7 +457,7 @@ combinedModelIndependent = <span class="keyword">...</span>
 <pre class="codeoutput"> 
 Exiting: Maximum number of iterations has been exceeded
          - increase MaxIter option.
-         Current function value: 86298.352462 
+         Current function value: 84139.483602 
 
 </pre>
 <img vspace="5" hspace="5" src="example_SI_MultiModel_01.png" alt=""> <img vspace="5" hspace="5" src="example_SI_MultiModel_02.png" alt=""> <img vspace="5" hspace="5" src="example_SI_MultiModel_03.png" alt=""> <img vspace="5" hspace="5" src="example_SI_MultiModel_04.png" alt=""> <img vspace="5" hspace="5" src="example_SI_MultiModel_05.png" alt=""> <img vspace="5" hspace="5" src="example_SI_MultiModel_06.png" alt=""> <img vspace="5" hspace="5" src="example_SI_MultiModel_07.png" alt=""> <img vspace="5" hspace="5" src="example_SI_MultiModel_08.png" alt=""> <h2 id="16">Ex(3): Completely dependent parameters</h2>
@@ -500,7 +504,7 @@ combinedModelDependent = <span class="keyword">...</span>
 <pre class="codeoutput"> 
 Exiting: Maximum number of iterations has been exceeded
          - increase MaxIter option.
-         Current function value: 45791.278042 
+         Current function value: 45890.297586 
 
 </pre>
 <img vspace="5" hspace="5" src="example_SI_MultiModel_09.png" alt=""> <img vspace="5" hspace="5" src="example_SI_MultiModel_10.png" alt=""> <img vspace="5" hspace="5" src="example_SI_MultiModel_11.png" alt=""> <img vspace="5" hspace="5" src="example_SI_MultiModel_12.png" alt=""> <img vspace="5" hspace="5" src="example_SI_MultiModel_13.png" alt=""> <img vspace="5" hspace="5" src="example_SI_MultiModel_14.png" alt=""> <img vspace="5" hspace="5" src="example_SI_MultiModel_15.png" alt=""> <img vspace="5" hspace="5" src="example_SI_MultiModel_16.png" alt=""> <h2 id="19">Note: This example is shown for illustration purposes only.</h2>
@@ -528,12 +532,12 @@ STL1_4state_multi_2_mix.fittingOptions.modelVarsToFit = [1:11,12:13];
 Models_mix = {STL1_4state_multi_1_mix, STL1_4state_multi_2_mix};
 </pre>
 <h2 id="22">Define how parameters are assigned to sub-models by their indices</h2>
-<p>In this example, the first 16 parameters are shared, and each model has 2 of its own parameters which must be stored in separate indices:</p>
+<p>In this example, the first 11 parameters are shared, and each model has 2 of its own parameters which must be stored in separate indices:</p>
 <pre class="codeinput">ParsIndices_mix = {[1:11,12:13], [1:11,14:15]};
 
-<span class="comment">% Place a constraint on the parameters for faster fitting, since it can be</span>
-<span class="comment">% expected that some parameters should not change that much from one</span>
-<span class="comment">% experiment to another:</span>
+<span class="comment">% Place a constraint on the two parameters that vary from experiment to</span>
+<span class="comment">% another. In this case, we constrain the replica-to-replica variance for</span>
+<span class="comment">% these two parameters.</span>
 constraint = @(x) -var(log10([x(12:13);x(14:15)]));
 
 <span class="comment">% Combine models into one "MultiModel", specify parameters, and initialize:</span>
@@ -556,7 +560,7 @@ combinedModelMixed = combinedModelMixed.updateModels(allParsMixed, true);
 <pre class="codeoutput"> 
 Exiting: Maximum number of iterations has been exceeded
          - increase MaxIter option.
-         Current function value: 74504.037953 
+         Current function value: 74360.686260 
 
 </pre>
 <img vspace="5" hspace="5" src="example_SI_MultiModel_17.png" alt=""> <img vspace="5" hspace="5" src="example_SI_MultiModel_18.png" alt=""> <img vspace="5" hspace="5" src="example_SI_MultiModel_19.png" alt=""> <img vspace="5" hspace="5" src="example_SI_MultiModel_20.png" alt=""> <img vspace="5" hspace="5" src="example_SI_MultiModel_21.png" alt=""> <img vspace="5" hspace="5" src="example_SI_MultiModel_22.png" alt=""> <img vspace="5" hspace="5" src="example_SI_MultiModel_23.png" alt=""> <img vspace="5" hspace="5" src="example_SI_MultiModel_24.png" alt=""> <h2 id="23">Ex(5): Different models, same data</h2>
@@ -845,10 +849,12 @@ Forming Propensity Functions.
 Forming Propensity Functions.
 Forming Propensity Functions.
 Forming Propensity Functions.
+Forming Propensity Functions.
+Forming Propensity Functions.
  
 Exiting: Maximum number of iterations has been exceeded
          - increase MaxIter option.
-         Current function value: 103728.462140 
+         Current function value: 118147.128330 
 
 Forming Propensity Functions.
 </pre>
@@ -1097,13 +1103,13 @@ STL1_4state_multi_2_mix.fittingOptions.modelVarsToFit = [1:11,12:13];
 Models_mix = {STL1_4state_multi_1_mix, STL1_4state_multi_2_mix};
 
 %% Define how parameters are assigned to sub-models by their indices  
-% In this example, the first 16 parameters are shared, and each model has 2
+% In this example, the first 11 parameters are shared, and each model has 2
 % of its own parameters which must be stored in separate indices:
 ParsIndices_mix = {[1:11,12:13], [1:11,14:15]};
 
-% Place a constraint on the parameters for faster fitting, since it can be 
-% expected that some parameters should not change that much from one 
-% experiment to another:
+% Place a constraint on the two parameters that vary from experiment to
+% another. In this case, we constrain the replica-to-replica variance for
+% these two parameters.  
 constraint = @(x) -var(log10([x(12:13);x(14:15)]));
 
 % Combine models into one "MultiModel", specify parameters, and initialize:

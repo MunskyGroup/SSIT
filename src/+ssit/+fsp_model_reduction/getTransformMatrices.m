@@ -13,7 +13,7 @@ phiPlot = [];
 
 SolnNeeded = {'Proper Orthogonal Decomposition','POD 2nd','POD Update',...
     'Dynamic Mode Decomposition','Eigen Decomposition Initial',...
-    'POD','DMD','POD2','ED'};
+    'POD','DMD','POD2','ED','EDI'};
 if isfield(fspSoln,'fsp')
     nStates = size(fspSoln.A_total,1);
     nTimes = length(fspSoln.fsp);
@@ -64,10 +64,22 @@ switch redType
         cprod = [1,cumprod(binns(1:end-1))]';
         phi_inds = (phi_map-1)*cprod+1;
 
-        phi = zeros(nStates,binns(end)*cprod(end));
+        % phi = zeros(nStates,binns(end)*cprod(end));
+        % phi(sub2ind(size(phi),(1:nStates)',phi_inds))=1;
+        % phi = orth(phi);
+        % phi_inv = phi';
+
+        phi = sparse(nStates,binns(end)*cprod(end));
         phi(sub2ind(size(phi),(1:nStates)',phi_inds))=1;
-        phi = orth(phi);
+
+        % Remove un-needed lumped states that are not represented in the FSP state
+        % space.
+        nonEmptyColumns = sum(phi,1)~=0;
+        phi = phi(:,nonEmptyColumns);
+
         phi_inv = phi';
+        phi = phi./sum(phi,1);
+  
     case {'Logarithmic State Lumping','LGSL'}
         %'Logarithmic State Lumping' -- 
         %   State space is divided into logarithmically distributed bins.
@@ -224,9 +236,30 @@ switch redType
         %'Eigen Decomposition' --
         %   The infintesimal generator is projected onto the eigenvectors
         %   corresponding to its least negative eigenvalues. The number of
-        %   eigenvectors for this projection is defined by 'redOrder'.  
-        [phi,~] = eigs(fspSoln.A_total,redOrder,0);
-        phi_inv = phi';
+        %   eigenvectors for this projection is defined by 'redOrder'.
+        %   Because A is not symmetric, an oblique (Petrov-Galerkin)
+        %   projection is used: phi spans the right eigenvectors, and
+        %   phi_inv is built from the left eigenvectors (eigenvectors of
+        %   A') so that phi_inv*phi = I.
+        [V,~] = eigs(fspSoln.A_total,redOrder,0);
+        [W,~] = eigs(fspSoln.A_total',redOrder,0);
+        [phi,phi_inv] = obliqueProjection(V,W);
+
+    case {'Eigen Decomposition Initial','EDI'}
+        %'Eigen Decomposition Initial' --
+        %   Same as 'Eigen Decomposition', but the basis also includes the
+        %   initial condition P(0) and its initial rate of change A*P(0),
+        %   so that the reduced model starts exactly at P(0). The
+        %   'redOrder' right eigenvectors with the least negative
+        %   eigenvalues are combined with [P(0), A*P(0)], giving up to
+        %   redOrder+2 basis vectors. The test (left) space is formed in
+        %   the same way from the left eigenvectors and [P(0), A'*P(0)],
+        %   and an oblique (Petrov-Galerkin) projection is used.
+        P0 = Solns(:,1);
+        [V,~] = eigs(fspSoln.A_total,redOrder,0);
+        [W,~] = eigs(fspSoln.A_total',redOrder,0);
+        [phi,phi_inv] = obliqueProjection([P0,fspSoln.A_total*P0,V],...
+            [P0,fspSoln.A_total'*P0,W]);
     case 'Balanced Model Truncation (HSV)'
         %'Balanced Model Truncation (HSV)' -- 
         %   The projection is chosen according to the Henkel Singular
@@ -340,4 +373,14 @@ function keys =  state2key( states )
 
 keys = num2cell(uint64(states), 1)';
 
+end
+function [phi,phi_inv] = obliqueProjection(V,W)
+% Petrov-Galerkin projection onto span(V) along the test space span(W).
+% Complex vectors are split into real and imaginary parts so that both
+% bases are real. Returns an orthonormal trial basis phi and a left
+% inverse phi_inv (phi_inv*phi = I), so that the reduced generator is
+% phi_inv*A*phi and the projection of P(0) onto span(phi) is exact.
+phi = orth([real(V),imag(V)]);
+psi = orth([real(W),imag(W)]);
+phi_inv = pinv(psi'*phi)*psi';
 end

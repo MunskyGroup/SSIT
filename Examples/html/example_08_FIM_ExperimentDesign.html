@@ -9,7 +9,7 @@ To make changes, update the MATLAB code and republish this document.
 <title>example_08_FIM_ExperimentDesign</title>
 <meta name="generator" content="MATLAB 25.2">
 <link rel="schema.DC" href="http://purl.org/dc/elements/1.1/">
-<meta name="DC.date" content="2026-07-26">
+<meta name="DC.date" content="2026-10-31">
 <meta name="DC.source" content="example_08_FIM_ExperimentDesign.m">
 <style type="text/css">
 html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
@@ -120,15 +120,10 @@ table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px soli
 <pre class="codeinput">load(<span class="string">'ExampleSaveFiles/example_9_LoadingandFittingData_DataLoading.mat'</span>)
 
 <span class="comment">% Compute FIM results:</span>
-fimResults = STL1_4state.computeFIM(scale=<span class="string">'log'</span>);
+fimResults = STL1_4state.computeFIM(scale=<span class="string">'log'</span>,observed=<span class="string">'mRNA'</span>);
 
 <span class="comment">% Get the number of cells from loaded experimental data using 'nCells':</span>
-cellCounts_data = STL1_4state.dataSet.nCells*<span class="keyword">...</span>
-                 ones(size(STL1_4state.tSpan));
-
-<span class="comment">% Compile and store propensities:</span>
-STL1_4state = <span class="keyword">...</span>
-    STL1_4state.formPropensitiesGeneral(<span class="string">'STL1_4state_design'</span>);
+nTotal = sum(STL1_4state.dataSet.nCells);
 </pre>
 <h2 id="5">Experiment Design</h2>
 <p>Find the FIM-based designs for a total cells</p>
@@ -142,8 +137,6 @@ STL1_4state = <span class="keyword">...</span>
 <span class="comment">% combinations, where D-opt-sub[9:13]' are the mRNA-specific parameters</span>
 <span class="comment">% `dr' and `kr1',`kr2',`kr3', and `kr4' (degradation and transcription</span>
 <span class="comment">% reactions).  All other parameters are assumed to be known and fixed.</span>
-nCol = sum(cellCounts_data);
-nTotal = nCol(1);
 nCellsOpt_Dcov = <span class="keyword">...</span>
     STL1_4state.optimizeCellCounts(fimResults,nTotal,<span class="string">'D-cov'</span>);
 nCellsOpt_Trace = <span class="keyword">...</span>
@@ -206,15 +199,10 @@ legend(<span class="string">'Trace Design'</span>,<span class="string">'D-cov De
 load('ExampleSaveFiles/example_9_LoadingandFittingData_DataLoading.mat')
 
 % Compute FIM results:
-fimResults = STL1_4state.computeFIM(scale='log');
+fimResults = STL1_4state.computeFIM(scale='log',observed='mRNA');
 
 % Get the number of cells from loaded experimental data using 'nCells':
-cellCounts_data = STL1_4state.dataSet.nCells*...
-                 ones(size(STL1_4state.tSpan));
-
-% Compile and store propensities:
-STL1_4state = ...
-    STL1_4state.formPropensitiesGeneral('STL1_4state_design');
+nTotal = sum(STL1_4state.dataSet.nCells);
 
 %% Experiment Design
 % Find the FIM-based designs for a total cells 
@@ -228,8 +216,6 @@ STL1_4state = ...
 % combinations, where D-opt-sub[9:13]' are the mRNA-specific parameters 
 % `dr' and `kr1',`kr2',`kr3', and `kr4' (degradation and transcription 
 % reactions).  All other parameters are assumed to be known and fixed.
-nCol = sum(cellCounts_data);
-nTotal = nCol(1);
 nCellsOpt_Dcov = ...
     STL1_4state.optimizeCellCounts(fimResults,nTotal,'D-cov');
 nCellsOpt_Trace = ...

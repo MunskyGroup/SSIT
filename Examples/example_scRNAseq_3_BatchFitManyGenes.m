@@ -69,14 +69,21 @@ for iGene = 1:length(geneNames)
 end
 
 %% Make figures
-Xvals = (Pars(:,3) + Pars(:,4)*0.956)./Pars(:,3);  % activation ratio KON;
-Yvals = (1 + Pars(:,6)*0.956); % activation ratio KOFF
+% Maximum of the shared upstream signal I(t) = exp(-r1*t)*(1-exp(-r2*t)),
+% which occurs at t = log((r1+r2)/r1)/r2:
+iRef = find(fileExists,1);
+r1 = Pars(iRef,1);
+r2 = Pars(iRef,2);
+Imax = (r1/(r1+r2))^(r1/r2)*r2/(r1+r2);
+
+Xvals = (Pars(:,3) + Pars(:,4)*Imax)./Pars(:,3);  % activation ratio KON;
+Yvals = (1 + Pars(:,6)*Imax); % activation ratio KOFF
 
 Xvals1 = Pars(:,3);
-Xvals2 = (Pars(:,3) + Pars(:,4)*0.956);
+Xvals2 = (Pars(:,3) + Pars(:,4)*Imax);
 
 Yvals1 = Pars(:,5);
-Yvals2 = Pars(:,5)./(1 + Pars(:,6)*0.956);
+Yvals2 = Pars(:,5)./(1 + Pars(:,6)*Imax);
 
 figure(1); clf;
 J = 0*Xvals1;

@@ -63,7 +63,7 @@ for i=1:2
 
     % Set MH runtime options (number of samples, burnin, thin, etc.):
     MHOptions.numberOfSamples = 2000;
-    MHOptions.burnin = 200;
+    MHOptions.burnin = 500;
     MHOptions.thin = 2;
 
     % Run Metropolis-Hastings (seeking acceptance ratio around 0.3-0.4): 

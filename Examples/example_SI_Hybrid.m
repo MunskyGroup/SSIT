@@ -26,7 +26,7 @@ STL1_4state.summarizeModel
 % faster than full FSP solutions.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
-% Create a copy of our models:
+% Create a copy of the 4-state STL1 model:
 STL1_hybrid = STL1_4state;
 
 % Set the times at distributions will be computed:

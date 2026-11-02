@@ -6,6 +6,14 @@
 %   SSITMultiModel
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
+%% Preliminaries
+% Use the scRNA-seq gene models saved in 'seqModels/' by
+% example_scRNAseq_1_BatchFitManyGenes (run that script first)
+% clear
+% close all
+
+% example_scRNAseq_1_BatchFitManyGenes
+
 % Select scRNA-seq models to include in multimodel:
   ModelNames = {'Model_DUSP1','Model_RUNX1','Model_BIRC3'};
 

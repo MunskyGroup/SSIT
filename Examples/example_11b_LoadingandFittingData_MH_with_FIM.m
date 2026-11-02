@@ -112,9 +112,7 @@ STL1_4state.plotFits(plotType="all",lineProps={'linewidth',2},...
 
 %% Save models & MH results:
 saveNames = unique({'STL1_4state'
-    'fimTotal'
     'FIMfree'
-    'COVfree'
     });
     
 save('ExampleSaveFiles/example_11b_LoadingandFittingData_MH_with_FIM',saveNames{:})

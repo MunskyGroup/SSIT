@@ -9,7 +9,7 @@ To make changes, update the MATLAB code and republish this document.
 <title>example_Benchmarking</title>
 <meta name="generator" content="MATLAB 25.2">
 <link rel="schema.DC" href="http://purl.org/dc/elements/1.1/">
-<meta name="DC.date" content="2026-07-26">
+<meta name="DC.date" content="2026-10-31">
 <meta name="DC.source" content="example_Benchmarking.m">
 <style type="text/css">
 html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
@@ -221,19 +221,22 @@ modSetsToRun = (9);
 <pre class="codeoutput">*******************************************************
 Running benchmarks for model: Phage with time set: 30
 Benchmark Complete
+
 ans = 
+
   struct with fields:
 
-                          writeFSPcodes: 6.6225e+01
-                        initialFSPSolve: 7.1614e+00
-                     subsequentFSPSolve: 3.9732e-01
+                          writeFSPcodes: 79.560883166666670
+                        initialFSPSolve: 9.749789916666666
+                     subsequentFSPSolve: 0.417686375000000
                                 fspSize: 868
                                  bounds: [187&times;1 double]
-                   initialSSASolve_1run: 9.3101e+00
-    subsequentSSASolve_10000runs_serial: 6.2928e-01
-                         simBiologyTime: 1.6587e+00
-                        initialODEsolve: 2.6359e+00
-                     subsequentODEsolve: 2.4484e-01
+                   initialSSASolve_1run: 11.076236333333334
+    subsequentSSASolve_10000runs_serial: 0.749523791666667
+                         simBiologyTime: 1.128595125000000
+                        initialODEsolve: 3.548900458333333
+                     subsequentODEsolve: 0.264703000000000
+
 </pre>
 <pre class="codeinput">
 <span class="keyword">end</span>
@@ -1042,13 +1045,30 @@ FSP subsequent solve:
     <span class="keyword">catch</span>
     <span class="keyword">end</span>
 </pre>
-<pre class="codeoutput">simBiologyTime =
-   1.6587e+00
+<pre class="codeoutput">
+simBiologyTime =
+
+   1.128595125000000
+
+
 meansSB =
-  Columns 1 through 6
-   6.2020e-01   7.9910e-01   6.1610e-01   3.4960e-01   1.9060e-01   3.8190e-01
-  Columns 7 through 11
-   3.0200e-02   1.0300e-02   2.0000e-03   1.2760e-01   1.1835e+00
+
+  Columns 1 through 3
+
+   0.620699999999948   0.795199999999929   0.626099999999947
+
+  Columns 4 through 6
+
+   0.346299999999978   0.192899999999995   0.371099999999975
+
+  Columns 7 through 9
+
+   0.033000000000000   0.011900000000000   0.002800000000000
+
+  Columns 10 through 11
+
+   0.128700000000002   1.167799999999911
+
 </pre>
 <pre class="codeinput">
 <span class="keyword">end</span>

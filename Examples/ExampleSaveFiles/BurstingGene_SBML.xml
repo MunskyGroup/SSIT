@@ -1,0 +1,88 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<sbml xmlns="http://www.sbml.org/sbml/level2/version4" level="2" version="4">
+  <annotation>
+    <SimBiology xmlns="http://www.mathworks.com">
+      <Version Major="25" Minor="2" Point="0"/>
+    </SimBiology>
+  </annotation>
+  <model id="mw7dbb679b_df8b_47f3_8e80_29e6cd670f3d" name="simpleModel">
+    <listOfCompartments>
+      <compartment id="mw09a4b923_31f8_48ef_bcf3_47c672b23b08" name="unnamed" size="1" constant="true"/>
+    </listOfCompartments>
+    <listOfSpecies>
+      <species id="mwa1b8b4b2_8e91_4617_bf9d_09dde57eefc7" name="offGene" compartment="mw09a4b923_31f8_48ef_bcf3_47c672b23b08" initialConcentration="1" boundaryCondition="false" constant="false"/>
+      <species id="mw2216a804_4e3c_40cb_8273_f12fe6134bda" name="onGene" compartment="mw09a4b923_31f8_48ef_bcf3_47c672b23b08" initialConcentration="0" boundaryCondition="false" constant="false"/>
+      <species id="mwa43c83d6_c510_4527_8ba9_030743b0c378" name="mRNA" compartment="mw09a4b923_31f8_48ef_bcf3_47c672b23b08" initialConcentration="0" boundaryCondition="false" constant="false"/>
+    </listOfSpecies>
+    <listOfParameters>
+      <parameter id="mw17504e01_7280_4304_941c_c198f1d959df" name="kon" value="0.2" constant="true"/>
+      <parameter id="mwdd0926b4_b59e_45d2_98f5_f040ee1d309a" name="koff" value="0.2" constant="true"/>
+      <parameter id="mw9da47d3d_e4d4_4986_b9da_9d9560170962" name="kr" value="10" constant="true"/>
+      <parameter id="mw94ef1a67_ec39_42e3_b7a0_9b1e34ffbe66" name="dr" value="5" constant="true"/>
+    </listOfParameters>
+    <listOfReactions>
+      <reaction id="mwcbbfaecd_3d40_4611_af02_8fa6fa71d45c" name="Reaction_1" reversible="false">
+        <listOfReactants>
+          <speciesReference species="mwa1b8b4b2_8e91_4617_bf9d_09dde57eefc7" stoichiometry="1"/>
+        </listOfReactants>
+        <listOfProducts>
+          <speciesReference species="mw2216a804_4e3c_40cb_8273_f12fe6134bda" stoichiometry="1"/>
+        </listOfProducts>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <times/>
+              <ci> mw17504e01_7280_4304_941c_c198f1d959df </ci>
+              <ci> mwa1b8b4b2_8e91_4617_bf9d_09dde57eefc7 </ci>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+      <reaction id="mw2220c7c0_3720_4905_bde9_6fc2eb62c671" name="Reaction_2" reversible="false">
+        <listOfReactants>
+          <speciesReference species="mw2216a804_4e3c_40cb_8273_f12fe6134bda" stoichiometry="1"/>
+        </listOfReactants>
+        <listOfProducts>
+          <speciesReference species="mwa1b8b4b2_8e91_4617_bf9d_09dde57eefc7" stoichiometry="1"/>
+        </listOfProducts>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <times/>
+              <ci> mwdd0926b4_b59e_45d2_98f5_f040ee1d309a </ci>
+              <ci> mw2216a804_4e3c_40cb_8273_f12fe6134bda </ci>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+      <reaction id="mw5bc16193_c141_48d1_9b3f_bd71df810260" name="Reaction_3" reversible="false">
+        <listOfProducts>
+          <speciesReference species="mwa43c83d6_c510_4527_8ba9_030743b0c378" stoichiometry="1"/>
+        </listOfProducts>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <times/>
+              <ci> mw9da47d3d_e4d4_4986_b9da_9d9560170962 </ci>
+              <ci> mw2216a804_4e3c_40cb_8273_f12fe6134bda </ci>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+      <reaction id="mwa1f28af6_a03f_4d5c_bca8_4f3dfa6be68b" name="Reaction_4" reversible="false">
+        <listOfReactants>
+          <speciesReference species="mwa43c83d6_c510_4527_8ba9_030743b0c378" stoichiometry="1"/>
+        </listOfReactants>
+        <kineticLaw>
+          <math xmlns="http://www.w3.org/1998/Math/MathML">
+            <apply>
+              <times/>
+              <ci> mw94ef1a67_ec39_42e3_b7a0_9b1e34ffbe66 </ci>
+              <ci> mwa43c83d6_c510_4527_8ba9_030743b0c378 </ci>
+            </apply>
+          </math>
+        </kineticLaw>
+      </reaction>
+    </listOfReactions>
+  </model>
+</sbml>

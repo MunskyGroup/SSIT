@@ -17,7 +17,7 @@ addpath(genpath('../src'));
 %   an inactive gene ('offGene'), an activated gene ('onGene'), and mRNA. 
 %%  There are four reactions, each with a unique rate parameter: 
 %   activation ('kon'), inactivation ('koff'), transcription ('kr'), 
-%   and mRNA degradation ('gr')
+%   and mRNA degradation ('dr')
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 
 % Create an SSIT instance and call it 'Model':

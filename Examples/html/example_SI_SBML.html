@@ -9,7 +9,7 @@ To make changes, update the MATLAB code and republish this document.
 <title>example_SI_SBML</title>
 <meta name="generator" content="MATLAB 25.2">
 <link rel="schema.DC" href="http://purl.org/dc/elements/1.1/">
-<meta name="DC.date" content="2026-07-28">
+<meta name="DC.date" content="2026-11-01">
 <meta name="DC.source" content="example_SI_SBML.m">
 <style type="text/css">
 html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
@@ -76,14 +76,267 @@ table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px soli
 </head>
 <body>
 <div class="content">
-<h1>example_SI_SBML</h1>
-<p>Example script to demonstrate the loading of a model from SBML</p>
-<pre class="codeinput">Model = SSIT();
-Model = Model.createModelFromSBML(<span class="string">'../SBML_test_cases/00010/00010-sbml-l1v2.xml'</span>,true);
-Model = Model.formPropensitiesGeneral(<span class="string">'SBMEModel'</span>);
-Model.summarizeModel;
-Model = Model.solve(solver=<span class="string">'FSP'</span>);
-Model.plotFSP(speciesNames=Model.species, plotType=<span class="string">'meansAndDevs'</span>)
+<h2>Contents</h2>
+<div>
+<ul>
+<li>
+<a href="#1">SSIT/Examples/example_SI_SBML</a>
+</li>
+<li>
+<a href="#2">SBML: Systems Biology Markup Language</a>
+</li>
+<li>
+<a href="#3">Preliminaries</a>
+</li>
+<li>
+<a href="#4">Ex(1): Export the Bursting Gene model to an SBML file</a>
+</li>
+<li>
+<a href="#5">Ex(2): Create a new SSIT model by loading the SBML file</a>
+</li>
+<li>
+<a href="#6">Ex(3): Load a model from the SBML test suite</a>
+</li>
+</ul>
+</div>
+<h2 id="1">SSIT/Examples/example_SI_SBML</h2>
+<pre class="codeinput">
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<h2 id="2">SBML: Systems Biology Markup Language</h2>
+<pre class="language-matlab">* Export an <span class="string">SSIT</span> <span class="string">model</span> <span class="string">to</span> <span class="string">an</span> <span class="string">SBML</span> <span class="string">file</span>
+* Create an <span class="string">SSIT</span> <span class="string">model</span> <span class="string">by</span> <span class="string">loading</span> <span class="string">an</span> <span class="string">SBML</span> <span class="string">file</span>
+(Requires the MATLAB SimBiology toolbox)
+</pre>
+<pre class="codeinput">
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<h2 id="3">Preliminaries</h2>
+<p>Use the Bursting Gene model from example_01_CreateSSITModels clear close all addpath(genpath('../src'));</p>
+<pre class="codeinput">
+<span class="comment">% example_01_CreateSSITModels</span>
+
+<span class="comment">% Load the Bursting Gene model created in example_01_CreateSSITModels:</span>
+load(<span class="string">'ExampleSaveFiles/example_1_CreateSSITModels.mat'</span>,<span class="string">'Model'</span>)
+
+<span class="comment">% View model summary:</span>
+Model.summarizeModel
+
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<pre class="codeoutput">Species:
+     offGene; IC = 1;  discrete stochastic
+     onGene; IC = 0;  discrete stochastic
+     mRNA; IC = 0;  discrete stochastic
+ 
+Reactions:
+  Reaction 1:
+     s1: 1*offGene --&gt; 1*onGene
+     w1: kon * offGene
+  Reaction 2:
+     s2: 1*onGene --&gt; 1*offGene
+     w2: koff * onGene
+  Reaction 3:
+     s3: NULL --&gt; 1*mRNA
+     w3: kr * onGene
+  Reaction 4:
+     s4: 1*mRNA --&gt; NULL
+     w4: dr * mRNA
+ 
+Model Parameters:
+    {'kon' }    {[0.200000000000000]}
+    {'koff'}    {[0.200000000000000]}
+    {'kr'  }    {[               10]}
+    {'dr'  }    {[                5]}
+
+
+ans = 
+
+  SSIT with properties:
+
+                       parameters: {4&times;2 cell}
+                          species: {3&times;1 cell}
+                    stoichiometry: [3&times;4 double]
+              propensityFunctions: {4&times;1 cell}
+                 inputExpressions: {}
+                    specialEvents: []
+             customConstraintFuns: {}
+                       fspOptions: [1&times;1 struct]
+                      sensOptions: [1&times;1 struct]
+                       ssaOptions: [1&times;1 struct]
+                       pdoOptions: [1&times;1 struct]
+                   fittingOptions: [1&times;1 struct]
+                 initialCondition: [3&times;1 double]
+                     initialProbs: 1
+                      initialTime: 0
+                            tSpan: [0 0.500000000000000 1 &hellip; ] (1&times;21 double)
+                   solutionScheme: 'FSP'
+                    odeIntegrator: 'ode23s'
+                  solutionSchemes: {}
+            modelReductionOptions: [1&times;1 struct]
+                          dataSet: []
+                        useHybrid: 0
+                    hybridOptions: [1&times;1 struct]
+              propensitiesGeneral: []
+           propensitiesGeneralODE: []
+          propensitiesGeneralMean: []
+       propensitiesGeneralMeanJac: []
+       propensitiesGeneralMoments: []
+    propensitiesGeneralMomentsJac: []
+             propensityFilePrefix: 'default'
+                        Solutions: []
+                      description: {'Add model description here'}
+                         GUIProps: []
+                   fspConstraints: [1&times;1 struct]
+                   pars_container: [4&times;1 containers.Map]
+
+</pre>
+<h2 id="4">Ex(1): Export the Bursting Gene model to an SBML file</h2>
+<pre class="codeinput">
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+
+<span class="comment">% Name of the SBML file to create:</span>
+sbmlFile = <span class="string">'ExampleSaveFiles/BurstingGene_SBML.xml'</span>;
+
+<span class="comment">% Convert the model to SimBiology and write it to the SBML file:</span>
+Model.exportToSBML(sbmlFile);
+
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<h2 id="5">Ex(2): Create a new SSIT model by loading the SBML file</h2>
+<pre class="codeinput">
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+
+<span class="comment">% Create an empty SSIT model and load the SBML file into it:</span>
+Model_SBML = SSIT;
+Model_SBML = Model_SBML.createModelFromSBML(sbmlFile);
+
+<span class="comment">% View model summary (should match the original Bursting Gene model):</span>
+Model_SBML.summarizeModel
+
+<span class="comment">% Set the times at which distributions will be computed:</span>
+Model_SBML.tSpan = linspace(0,50,101);
+
+<span class="comment">% Compile and store the reaction propensities:</span>
+Model_SBML = Model_SBML.formPropensitiesGeneral(<span class="string">'Model_SBML'</span>);
+
+<span class="comment">% Solve with FSP:</span>
+Model_SBML = Model_SBML.solve(solver=<span class="string">'FSP'</span>);
+
+<span class="comment">% Plot means and standard deviations:</span>
+Model_SBML.plotFSP(speciesNames=Model_SBML.species,<span class="keyword">...</span>
+    plotType=<span class="string">'meansAndDevs'</span>, lineProps={<span class="string">'linewidth'</span>,4},<span class="keyword">...</span>
+    Title=<span class="string">'Bursting Gene (from SBML)'</span>, TitleFontSize=26,<span class="keyword">...</span>
+    AxisLabelSize=20, TickLabelSize=20, YLabel=<span class="string">'Molecule Count'</span>,<span class="keyword">...</span>
+    XLabel=<span class="string">'Time'</span>, LegendFontSize=20, LegendLocation=<span class="string">'southeast'</span>);
+
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+</pre>
+<pre class="codeoutput">Species:
+     offGene; IC = 1;  discrete stochastic
+     onGene; IC = 0;  discrete stochastic
+     mRNA; IC = 0;  discrete stochastic
+ 
+Reactions:
+  Reaction 1:
+     s1: 1*offGene --&gt; 1*onGene
+     w1: kon*offGene
+  Reaction 2:
+     s2: 1*onGene --&gt; 1*offGene
+     w2: koff*onGene
+  Reaction 3:
+     s3: NULL --&gt; 1*mRNA
+     w3: kr*onGene
+  Reaction 4:
+     s4: 1*mRNA --&gt; NULL
+     w4: dr*mRNA
+ 
+Model Parameters:
+    {'kon' }    {[0.200000000000000]}
+    {'koff'}    {[0.200000000000000]}
+    {'kr'  }    {[               10]}
+    {'dr'  }    {[                5]}
+
+Species:
+     offGene; IC = 1;  discrete stochastic
+     onGene; IC = 0;  discrete stochastic
+     mRNA; IC = 0;  discrete stochastic
+ 
+Reactions:
+  Reaction 1:
+     s1: 1*offGene --&gt; 1*onGene
+     w1: kon*offGene
+  Reaction 2:
+     s2: 1*onGene --&gt; 1*offGene
+     w2: koff*onGene
+  Reaction 3:
+     s3: NULL --&gt; 1*mRNA
+     w3: kr*onGene
+  Reaction 4:
+     s4: 1*mRNA --&gt; NULL
+     w4: dr*mRNA
+ 
+Model Parameters:
+    {'kon' }    {[0.200000000000000]}
+    {'koff'}    {[0.200000000000000]}
+    {'kr'  }    {[               10]}
+    {'dr'  }    {[                5]}
+
+
+ans = 
+
+  SSIT with properties:
+
+                       parameters: {4&times;2 cell}
+                          species: {3&times;1 cell}
+                    stoichiometry: [3&times;4 double]
+              propensityFunctions: {4&times;1 cell}
+                 inputExpressions: {}
+                    specialEvents: []
+             customConstraintFuns: {}
+                       fspOptions: [1&times;1 struct]
+                      sensOptions: [1&times;1 struct]
+                       ssaOptions: [1&times;1 struct]
+                       pdoOptions: [1&times;1 struct]
+                   fittingOptions: [1&times;1 struct]
+                 initialCondition: [3&times;1 double]
+                     initialProbs: 1
+                      initialTime: 0
+                            tSpan: [0 0.500000000000000 1 &hellip; ] (1&times;21 double)
+                   solutionScheme: 'FSP'
+                    odeIntegrator: 'ode23s'
+                  solutionSchemes: {}
+            modelReductionOptions: [1&times;1 struct]
+                          dataSet: []
+                        useHybrid: 0
+                    hybridOptions: [1&times;1 struct]
+              propensitiesGeneral: []
+           propensitiesGeneralODE: []
+          propensitiesGeneralMean: []
+       propensitiesGeneralMeanJac: []
+       propensitiesGeneralMoments: []
+    propensitiesGeneralMomentsJac: []
+             propensityFilePrefix: 'default'
+                        Solutions: []
+                      description: {'Add model description here'}
+                         GUIProps: []
+                   fspConstraints: [1&times;1 struct]
+                   pars_container: [4&times;1 containers.Map]
+
+</pre>
+<img vspace="5" hspace="5" src="example_SI_SBML_01.png" alt=""> <h2 id="6">Ex(3): Load a model from the SBML test suite</h2>
+<pre class="codeinput">
+<span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
+
+<span class="comment">% The second argument (scaleVolume=true) rescales non-integer initial</span>
+<span class="comment">% amounts to integer molecule counts:</span>
+Model_Test = SSIT();
+Model_Test = Model_Test.createModelFromSBML(<span class="keyword">...</span>
+    <span class="string">'../SBML_test_cases/00010/00010-sbml-l1v2.xml'</span>,true);
+Model_Test = Model_Test.formPropensitiesGeneral(<span class="string">'SBMLModel'</span>);
+Model_Test.summarizeModel;
+Model_Test = Model_Test.solve(solver=<span class="string">'FSP'</span>);
+Model_Test.plotFSP(speciesNames=Model_Test.species, plotType=<span class="string">'meansAndDevs'</span>)
 </pre>
 <pre class="codeoutput">Fractional species values detected.  Scaling by Vol=500000 and rounding.
  
@@ -101,9 +354,10 @@ Reactions:
      w2: k2*(S3/Volume)*Volume
  
 Model Parameters:
-    {'k1'    }    {[3.5000e+00]}
-    {'k2'    }    {[1.5000e+00]}
-    {'Volume'}    {[    500000]}
+    {'k1'    }    {[3.500000000000000]}
+    {'k2'    }    {[1.500000000000000]}
+    {'Volume'}    {[           500000]}
+
 Species:
      S1; IC = 50;  discrete stochastic
      S2; IC = 100;  discrete stochastic
@@ -118,11 +372,12 @@ Reactions:
      w2: k2*(S3/Volume)*Volume
  
 Model Parameters:
-    {'k1'    }    {[3.5000e+00]}
-    {'k2'    }    {[1.5000e+00]}
-    {'Volume'}    {[    500000]}
+    {'k1'    }    {[3.500000000000000]}
+    {'k2'    }    {[1.500000000000000]}
+    {'Volume'}    {[           500000]}
+
 </pre>
-<img vspace="5" hspace="5" src="example_SI_SBML_01.png" alt=""> <p class="footer">
+<img vspace="5" hspace="5" src="example_SI_SBML_02.png" alt=""> <p class="footer">
 <br>
 <a href="https://www.mathworks.com/products/matlab/">Published with MATLAB&reg; R2025b</a>
 <br>
@@ -130,14 +385,80 @@ Model Parameters:
 </div>
 <!--
 ##### SOURCE BEGIN #####
-%% example_SI_SBML
-% Example script to demonstrate the loading of a model from SBML
-Model = SSIT();
-Model = Model.createModelFromSBML('../SBML_test_cases/00010/00010-sbml-l1v2.xml',true);
-Model = Model.formPropensitiesGeneral('SBMEModel');
-Model.summarizeModel;
-Model = Model.solve(solver='FSP');
-Model.plotFSP(speciesNames=Model.species, plotType='meansAndDevs')
+%% SSIT/Examples/example_SI_SBML
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% SBML: Systems Biology Markup Language
+%   * Export an SSIT model to an SBML file
+%   * Create an SSIT model by loading an SBML file
+%   (Requires the MATLAB SimBiology toolbox)
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+%% Preliminaries
+% Use the Bursting Gene model from example_01_CreateSSITModels
+% clear
+% close all
+% addpath(genpath('../src'));
+
+% example_01_CreateSSITModels
+
+% Load the Bursting Gene model created in example_01_CreateSSITModels:
+load('ExampleSaveFiles/example_1_CreateSSITModels.mat','Model')
+
+% View model summary:
+Model.summarizeModel
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Ex(1): Export the Bursting Gene model to an SBML file
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Name of the SBML file to create:
+sbmlFile = 'ExampleSaveFiles/BurstingGene_SBML.xml';
+
+% Convert the model to SimBiology and write it to the SBML file:
+Model.exportToSBML(sbmlFile);
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Ex(2): Create a new SSIT model by loading the SBML file
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% Create an empty SSIT model and load the SBML file into it:
+Model_SBML = SSIT;
+Model_SBML = Model_SBML.createModelFromSBML(sbmlFile);
+
+% View model summary (should match the original Bursting Gene model):
+Model_SBML.summarizeModel
+
+% Set the times at which distributions will be computed:
+Model_SBML.tSpan = linspace(0,50,101);
+
+% Compile and store the reaction propensities:
+Model_SBML = Model_SBML.formPropensitiesGeneral('Model_SBML');
+
+% Solve with FSP:
+Model_SBML = Model_SBML.solve(solver='FSP');
+
+% Plot means and standard deviations:
+Model_SBML.plotFSP(speciesNames=Model_SBML.species,...
+    plotType='meansAndDevs', lineProps={'linewidth',4},...
+    Title='Bursting Gene (from SBML)', TitleFontSize=26,...
+    AxisLabelSize=20, TickLabelSize=20, YLabel='Molecule Count',...
+    XLabel='Time', LegendFontSize=20, LegendLocation='southeast');
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+%% Ex(3): Load a model from the SBML test suite
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+% The second argument (scaleVolume=true) rescales non-integer initial
+% amounts to integer molecule counts:
+Model_Test = SSIT();
+Model_Test = Model_Test.createModelFromSBML(...
+    '../SBML_test_cases/00010/00010-sbml-l1v2.xml',true);
+Model_Test = Model_Test.formPropensitiesGeneral('SBMLModel');
+Model_Test.summarizeModel;
+Model_Test = Model_Test.solve(solver='FSP');
+Model_Test.plotFSP(speciesNames=Model_Test.species, plotType='meansAndDevs')
+
 ##### SOURCE END #####
 -->
 </body>

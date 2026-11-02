@@ -46,6 +46,17 @@ function [smpl,accept,value,bestfound,bestObjToNow,ess] = metropolisHastingsSamp
 %   value of N is 1. SMPL is a matrix containing the samples. The last
 %   dimension contains the indices for individual chains.
 %
+%   SMPL = MHSAMPLE(...,'recomputeCurrent',RC) controls whether the log
+%   density of the current state is re-evaluated at every step. RC is a
+%   logical value. The default (false) stores the value from when the
+%   state was accepted and reuses it, which is exact and efficient for a
+%   deterministic PDF. Set RC to true when the PDF is a noisy estimate
+%   (e.g., SSA-based likelihoods); otherwise a single lucky over-estimate
+%   can make the chain stick. This "Monte Carlo within Metropolis"
+%   variant doubles the number of PDF evaluations and samples an
+%   approximate, rather than exact, posterior (Andrieu & Roberts, 2009,
+%   Ann. Stat. 37:697).
+%
 %   [SMPL,ACCEPT] = MHSAMPLE(...) also returns ACCEPT as the acceptance
 %   rate of the proposed distribution. ACCEPT is a scalar if a single chain
 %   is generated and is a vector if multiple chains are generated.
@@ -88,13 +99,13 @@ function [smpl,accept,value,bestfound,bestObjToNow,ess] = metropolisHastingsSamp
 % parse the information in the name/value pairs 
 pnames = {'pdf' ,'logpdf', 'proppdf','logproppdf','proprnd', ...
     'burnin','thin','symmetric','nchains','progress','saveFileName', ...
-    'computeESS','essMaxLag','essMethod'};
+    'computeESS','essMaxLag','essMethod','recomputeCurrent'};
 
 dflts  = {[] [] [],[],[] 0,1,false,1,false,'tmpMHResults', ...
-    true,[], 'initialPositive'};
+    true,[], 'initialPositive',false};
 
 [pdf,logpdf,proppdf,logproppdf, proprnd,burnin,thin,sym,nchain,progress,saveFileName, ...
-    computeESS,essMaxLag,essMethod] = internal.stats.parseArgs(pnames, dflts, varargin{:});
+    computeESS,essMaxLag,essMethod,recomputeCurrent] = internal.stats.parseArgs(pnames, dflts, varargin{:});
 
 if exist(saveFileName,'file')||exist([saveFileName,'.mat'],'file')
     load(saveFileName,'value','smpl','bestfound'); 
@@ -195,6 +206,14 @@ end
 
 for i = iStart:nsamples*thin
     y = proprnd(x0); % sample from proposal dist'n
+    if recomputeCurrent
+        % Re-evaluate the current state for noisy objective functions.
+        % Keep the stored value if the new evaluation is not finite.
+        logpdf_x0_new = logpdf(x0);
+        if isfinite(logpdf_x0_new)
+            logpdf_x0 = logpdf_x0_new;
+        end
+    end
     if ~sym
         q1 = logproppdf(x0,y);
         q2 = logproppdf(y,x0);

@@ -9,7 +9,7 @@ To make changes, update the MATLAB code and republish this document.
 <title>example_ModelReduction_benchmark</title>
 <meta name="generator" content="MATLAB 25.2">
 <link rel="schema.DC" href="http://purl.org/dc/elements/1.1/">
-<meta name="DC.date" content="2026-07-26">
+<meta name="DC.date" content="2026-10-31">
 <meta name="DC.source" content="example_ModelReduction_benchmark.m">
 <style type="text/css">
 html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
@@ -128,7 +128,7 @@ table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px soli
     species. The list <span class="string">of</span> <span class="string">species</span> <span class="string">to</span> <span class="string">be</span> <span class="string">assumed</span> <span class="string">at</span> <span class="string">QSSA</span> <span class="string">must</span> <span class="string">be</span>
     specified <span class="string">in</span> <span class="string">a</span> <span class="string">vector</span> <span class="string">'reductionSpecies'.</span>
 </pre>
-<pre class="codeinput">reductionType = <span class="string">'POD'</span>; <span class="comment">%{'Log Lump QSSA','Proper Orthogonal Decomposition','QSSA'};</span>
+<pre class="codeinput">reductionType = <span class="string">'Proper Orthogonal Decomposition'</span>; <span class="comment">%{'Log Lump QSSA','Proper Orthogonal Decomposition','QSSA'};</span>
 reductionOrder = 25;
 qssaSpecies = 2;        <span class="comment">% Only needed for the QSSA reduction scheme.</span>
 podTimeSetSize = 200;   <span class="comment">% Only needed for the POD reduction scheme.</span>
@@ -187,7 +187,14 @@ podTimeSetSize = 200;   <span class="comment">% Only needed for the POD reductio
         Model1.tSpan = linspace(0,20,21);
     <span class="keyword">case</span> 7 <span class="comment">% Time-Varying 3-Species Repressilator Model</span>
         Model1 = SSIT(<span class="string">'Repressilator'</span>);
-        Model1.propensityFunctions{1} = <span class="string">'kn0*(1+cos(2*pi*t))+kn1*(1/(1+a*(x2^n)))'</span>;
+        <span class="comment">% Split the time-varying production of x1 into two reactions so</span>
+        <span class="comment">% that each propensity factorizes as f(t)*g(x). A non-factorizable</span>
+        <span class="comment">% propensity (e.g., f(t)+g(x)) forces the full FSP matrix to be</span>
+        <span class="comment">% rebuilt and projected at every time step, which removes any</span>
+        <span class="comment">% speedup from the reduced model.</span>
+        Model1.propensityFunctions{1} = <span class="string">'kn1*(1/(1+a*(x2^n)))'</span>;
+        Model1.propensityFunctions{end+1} = <span class="string">'kn0*(1+cos(2*pi*t))'</span>;
+        Model1.stoichiometry(:,end+1) = [1;0;0];
         Model1.tSpan = linspace(0,20,21);
 <span class="keyword">end</span>
 </pre>
@@ -208,7 +215,7 @@ Model1.fspOptions.fspTol = inf;
 <span class="comment">% at finer resolution. Note -- this means that the POD will be inefficient</span>
 <span class="comment">% for the initial set up of the reduction.  The benefits typically come</span>
 <span class="comment">% from solving the model multiple times with different parameters sets.</span>
-<span class="keyword">if</span> strcmp(reductionType,<span class="string">'Proper Orthogonal Decomposition'</span>)
+<span class="keyword">if</span> ismember(reductionType,{<span class="string">'Proper Orthogonal Decomposition'</span>,<span class="string">'POD'</span>,<span class="string">'POD 2nd'</span>,<span class="string">'POD2'</span>})
     tSpan = Model1.tSpan;
     Model1.tSpan = linspace(min(Model1.tSpan),max(Model1.tSpan),podTimeSetSize);
     fspSoln2 = Model1.solve(returnType=<span class="string">'soln'</span>);
@@ -217,8 +224,11 @@ Model1.fspOptions.fspTol = inf;
     fspSoln2 = Model1.Solutions;
 <span class="keyword">end</span>
 </pre>
-<pre class="codeoutput">fullModelSolveTime =
-   1.1180e+02
+<pre class="codeoutput">
+fullModelSolveTime =
+
+  79.263864708333330
+
 </pre>
 <h2 id="5">Solving the reduced models</h2>
 <p>Make a copy of the full model.</p>
@@ -236,21 +246,32 @@ Model2.modelReductionOptions.qssaSpecies = qssaSpecies;
 <span class="comment">% Call SSIT to compute the model reduction transformation matrices.</span>
 Model2 = Model2.computeModelReductionTransformMatrices(fspSoln2);
 
-<span class="comment">% Solve the reduce model.</span>
+<span class="comment">% Solve the reduced model once to construct the reduced FSP matrices, then</span>
+<span class="comment">% solve again to record the reduced solution time.</span>
+Model2 = Model2.solve;
 tic
 fspSolnRed = Model2.solve(returnType=<span class="string">'soln'</span>);
 redModelSolveTime = toc
+speedUpFactor = fullModelSolveTime/redModelSolveTime
 </pre>
-<pre class="codeoutput">redModelSolveTime =
-   1.6934e+01
+<pre class="codeoutput">
+redModelSolveTime =
+
+   0.609206583333333
+
+
+speedUpFactor =
+
+     1.301099936816726e+02
+
 </pre>
 <h2 id="6">Compare results</h2>
 <pre class="codeinput">nSpecies = length(Model1.species);
 <span class="keyword">for</span> i = 1:nSpecies
-    PODfinalError(i) = max(abs(squeeze(cumsum(sum(double(fspSoln2.fsp{end}.p.data),setdiff((1:nSpecies),i)))) - <span class="keyword">...</span>
+    finalError(i) = max(abs(squeeze(cumsum(sum(double(fspSolnRed.fsp{end}.p.data),setdiff((1:nSpecies),i)))) - <span class="keyword">...</span>
         squeeze(cumsum(sum(double(fspSoln.fsp{end}.p.data),setdiff((1:nSpecies),i))))));
 
-    disp([Model1.species{i},<span class="string">': KS(Full,Red) = '</span>,num2str(PODfinalError(i))])
+    disp([Model1.species{i},<span class="string">': KS(Full,Red) = '</span>,num2str(finalError(i))])
 <span class="keyword">end</span>
 
 
@@ -265,9 +286,9 @@ Model2.makePlot(fspSolnRed,<span class="string">'marginals'</span>,[],[],[2:nSpe
 figure(2);legend(<span class="string">'Full'</span>,<span class="string">'Reduced'</span>,<span class="string">'Location'</span>,<span class="string">'eastoutside'</span>)
 figure(3);legend(<span class="string">'Full'</span>,<span class="string">'Reduced'</span>,<span class="string">'Location'</span>,<span class="string">'eastoutside'</span>)
 </pre>
-<pre class="codeoutput">x1: KS(Full,Red) = 5.2568e-05
-x2: KS(Full,Red) = 5.2568e-05
-x3: KS(Full,Red) = 5.2568e-05
+<pre class="codeoutput">x1: KS(Full,Red) = 0.022594
+x2: KS(Full,Red) = 0.027783
+x3: KS(Full,Red) = 0.04427
 </pre>
 <img vspace="5" hspace="5" src="example_ModelReduction_benchmark_01.png" alt=""> <img vspace="5" hspace="5" src="example_ModelReduction_benchmark_02.png" alt=""> <img vspace="5" hspace="5" src="example_ModelReduction_benchmark_03.png" alt=""> <img vspace="5" hspace="5" src="example_ModelReduction_benchmark_04.png" alt=""> <p class="footer">
 <br>
@@ -315,7 +336,7 @@ testModel = 7;
 %       species. The list of species to be assumed at QSSA must be
 %       specified in a vector 'reductionSpecies'. 
 
-reductionType = 'POD'; %{'Log Lump QSSA','Proper Orthogonal Decomposition','QSSA'};
+reductionType = 'Proper Orthogonal Decomposition'; %{'Log Lump QSSA','Proper Orthogonal Decomposition','QSSA'};
 reductionOrder = 25;
 qssaSpecies = 2;        % Only needed for the QSSA reduction scheme.
 podTimeSetSize = 200;   % Only needed for the POD reduction scheme.
@@ -374,7 +395,14 @@ switch testModel
         Model1.tSpan = linspace(0,20,21);
     case 7 % Time-Varying 3-Species Repressilator Model
         Model1 = SSIT('Repressilator');
-        Model1.propensityFunctions{1} = 'kn0*(1+cos(2*pi*t))+kn1*(1/(1+a*(x2^n)))';
+        % Split the time-varying production of x1 into two reactions so
+        % that each propensity factorizes as f(t)*g(x). A non-factorizable
+        % propensity (e.g., f(t)+g(x)) forces the full FSP matrix to be
+        % rebuilt and projected at every time step, which removes any
+        % speedup from the reduced model.
+        Model1.propensityFunctions{1} = 'kn1*(1/(1+a*(x2^n)))';
+        Model1.propensityFunctions{end+1} = 'kn0*(1+cos(2*pi*t))';
+        Model1.stoichiometry(:,end+1) = [1;0;0];
         Model1.tSpan = linspace(0,20,21);
 end
  
@@ -395,7 +423,7 @@ Model1.fspOptions.fspTol = inf;
 % at finer resolution. Note REPLACE_WITH_DASH_DASH this means that the POD will be inefficient
 % for the initial set up of the reduction.  The benefits typically come
 % from solving the model multiple times with different parameters sets.
-if strcmp(reductionType,'Proper Orthogonal Decomposition')
+if ismember(reductionType,{'Proper Orthogonal Decomposition','POD','POD 2nd','POD2'})
     tSpan = Model1.tSpan;
     Model1.tSpan = linspace(min(Model1.tSpan),max(Model1.tSpan),podTimeSetSize);
     fspSoln2 = Model1.solve(returnType='soln');
@@ -420,18 +448,21 @@ Model2.modelReductionOptions.qssaSpecies = qssaSpecies;
 % Call SSIT to compute the model reduction transformation matrices.
 Model2 = Model2.computeModelReductionTransformMatrices(fspSoln2);
 
-% Solve the reduce model.
+% Solve the reduced model once to construct the reduced FSP matrices, then
+% solve again to record the reduced solution time.
+Model2 = Model2.solve;
 tic
 fspSolnRed = Model2.solve(returnType='soln');
 redModelSolveTime = toc
+speedUpFactor = fullModelSolveTime/redModelSolveTime
 
 %% Compare results
 nSpecies = length(Model1.species);
 for i = 1:nSpecies
-    PODfinalError(i) = max(abs(squeeze(cumsum(sum(double(fspSoln2.fsp{end}.p.data),setdiff((1:nSpecies),i)))) - ...
+    finalError(i) = max(abs(squeeze(cumsum(sum(double(fspSolnRed.fsp{end}.p.data),setdiff((1:nSpecies),i)))) - ...
         squeeze(cumsum(sum(double(fspSoln.fsp{end}.p.data),setdiff((1:nSpecies),i))))));
 
-    disp([Model1.species{i},': KS(Full,Red) = ',num2str(PODfinalError(i))])
+    disp([Model1.species{i},': KS(Full,Red) = ',num2str(finalError(i))])
 end
 
 

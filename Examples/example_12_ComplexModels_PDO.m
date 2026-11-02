@@ -10,8 +10,8 @@
 % Use the STL1 model from example_1_CreateSSITModels, FSP solutions  
 % from example_04_SolveSSITModels_FSP, sensitivities computed in 
 % example_06_SensitivityAnalysis, FIM results from example_07_FIM,  
-% loaded data from example_08_LoadingandFittingData_DataLoading, and
-% Metropolis-Hastings results from example_10_LoadingandFittingData_MH
+% loaded data from example_09_LoadingandFittingData_DataLoading, and
+% Metropolis-Hastings results from example_11_LoadingandFittingData_MH
 %clear
 %close all
 
@@ -28,10 +28,10 @@ load('ExampleSaveFiles/example_7_FIM.mat')
 load('ExampleSaveFiles/example_11_LoadingandFittingData_MH.mat')
 
 % View model summary:
-STL1_4state_MH.summarizeModel
+STL1_4state.summarizeModel
 
 % Create a copy of the STL1 model for PDO:
-STL1_4state_PDO = STL1_4state_MH;
+STL1_4state_PDO = STL1_4state;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% PDO Calculations
@@ -74,12 +74,21 @@ STL1_4state_PDO_nuc = ...
 % Model: μ(x) = max(λ₁, λ₂ + λ₃·x)
 parGuess = [0, 2000, 0];
 
-STL1_4state_PDO_intens = STL1_4state_PDO;
-STL1_4state_PDO_intens = STL1_4state_PDO_intens.calibratePDO( ...
+STL1_4state_PDO_intens_poiss = STL1_4state_PDO;
+[STL1_4state_PDO_intens_poiss, errorPoisson] = STL1_4state_PDO_intens_poiss.calibratePDO( ...
     'data/filtered_data_2M_NaCl_Step.csv', {'mRNA'},...
     {'RNA_STL1_total_TS3Full'}, {'STL1_avg_int_TS3Full'}, 'AffinePoiss',...
     true, parGuess, {'Replica',1}, LegendLocation="southeast", ...
-    Title="4-state STL1 (Affine PDO: Average intensity)", FontSize=24,...
+    Title="4-state STL1 (Affine Poisson PDO: Average intensity)", FontSize=24,...
+    XLabel="True mRNA counts",YLabel="Average intensities (binned)");
+
+parGuess = [0, 2000, 1, 100];
+STL1_4state_PDO_intens_normal = STL1_4state_PDO;
+[STL1_4state_PDO_intens_normal,errorGaussian] = STL1_4state_PDO_intens_normal.calibratePDO( ...
+    'data/filtered_data_2M_NaCl_Step.csv', {'mRNA'},...
+    {'RNA_STL1_total_TS3Full'}, {'STL1_avg_int_TS3Full'}, 'AffineNormal',...
+    true, parGuess, {'Replica',1}, LegendLocation="southeast", ...
+    Title="4-state STL1 (Affine Normal PDO: Average intensity)", FontSize=24,...
     XLabel="True mRNA counts",YLabel="Average intensities (binned)");
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -138,7 +147,8 @@ STL1_4state.plotFIMResults(fimTotal_free, 'log',...
 saveNames = unique({'STL1_4state_PDO'
     'STL1_4state_PDO_cyt'
     'STL1_4state_PDO_nuc'
-    'STL1_4state_PDO_intens'
+    'STL1_4state_PDO_intens_poiss'
+    'STL1_4state_PDO_intens_normal'
     'fimsPDO_cyt'
     'fimsPDO_nuc'
     'fimPDO_cyt'

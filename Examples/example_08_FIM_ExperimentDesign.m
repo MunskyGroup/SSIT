@@ -18,15 +18,10 @@
 load('ExampleSaveFiles/example_9_LoadingandFittingData_DataLoading.mat')
 
 % Compute FIM results:
-fimResults = STL1_4state.computeFIM(scale='log');
+fimResults = STL1_4state.computeFIM(scale='log',observed='mRNA');
 
 % Get the number of cells from loaded experimental data using 'nCells':
-cellCounts_data = STL1_4state.dataSet.nCells*...
-                 ones(size(STL1_4state.tSpan));
-
-% Compile and store propensities:
-STL1_4state = ...
-    STL1_4state.formPropensitiesGeneral('STL1_4state_design');
+nTotal = sum(STL1_4state.dataSet.nCells);
 
 %% Experiment Design
 % Find the FIM-based designs for a total cells 
@@ -40,8 +35,6 @@ STL1_4state = ...
 % combinations, where D-opt-sub[9:13]' are the mRNA-specific parameters 
 % `dr' and `kr1',`kr2',`kr3', and `kr4' (degradation and transcription 
 % reactions).  All other parameters are assumed to be known and fixed.
-nCol = sum(cellCounts_data);
-nTotal = nCol(1);
 nCellsOpt_Dcov = ...
     STL1_4state.optimizeCellCounts(fimResults,nTotal,'D-cov');
 nCellsOpt_Trace = ...

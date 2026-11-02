@@ -9,7 +9,7 @@ To make changes, update the MATLAB code and republish this document.
 <title>example_SI_CrossValidation</title>
 <meta name="generator" content="MATLAB 25.2">
 <link rel="schema.DC" href="http://purl.org/dc/elements/1.1/">
-<meta name="DC.date" content="2026-07-27">
+<meta name="DC.date" content="2026-11-01">
 <meta name="DC.source" content="example_SI_CrossValidation.m">
 <style type="text/css">
 html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
@@ -178,25 +178,28 @@ Input Signals:
      Hog1(t) = A*(((1-(exp(1)^(-r1*(t-t0))))*exp(1)^(-r2*(t-t0)))/(1+((1-(exp(1)^(-r1*(t-t0))))*exp(1)^(-r2*(t-t0)))/M))^n*(t&gt;t0)
  
 Model Parameters:
-    {'t0'  }    {[4.7864e+00]}
-    {'k12' }    {[5.9836e+02]}
-    {'k21o'}    {[5.7389e+04]}
-    {'k21i'}    {[3.0437e+00]}
-    {'k23' }    {[4.2320e-01]}
-    {'k34' }    {[5.1486e+00]}
-    {'k32' }    {[9.5772e+00]}
-    {'k43' }    {[1.1092e+00]}
-    {'dr'  }    {[2.2323e-01]}
-    {'kr1' }    {[6.8307e-02]}
-    {'kr2' }    {[2.1864e-01]}
-    {'kr3' }    {[1.3539e+02]}
-    {'kr4' }    {[2.2281e+01]}
-    {'r1'  }    {[4.1400e-03]}
-    {'r2'  }    {[4.2600e-01]}
-    {'A'   }    {[9.3000e+09]}
-    {'M'   }    {[6.4000e-04]}
-    {'n'   }    {[3.1000e+00]}
+    {'t0'  }    {[    4.770417059382935]}
+    {'k12' }    {[   99.107163365588320]}
+    {'k21o'}    {[9.215112563659051e+03]}
+    {'k21i'}    {[    3.498940301110078]}
+    {'k23' }    {[    0.379359819375265]}
+    {'k34' }    {[    2.098934318891336]}
+    {'k32' }    {[    5.368845545376994]}
+    {'k43' }    {[    0.724819360890009]}
+    {'dr'  }    {[    0.233150893841714]}
+    {'kr1' }    {[    0.073365841025408]}
+    {'kr2' }    {[    0.267892459404368]}
+    {'kr3' }    {[1.068857069456730e+02]}
+    {'kr4' }    {[   13.673278739782990]}
+    {'r1'  }    {[    0.004140000000000]}
+    {'r2'  }    {[    0.426000000000000]}
+    {'A'   }    {[9.300000000000000e+09]}
+    {'M'   }    {[6.400000000000001e-04]}
+    {'n'   }    {[    3.100000000000000]}
+
+
 ans = 
+
   SSIT with properties:
 
                        parameters: {18&times;2 cell}
@@ -228,12 +231,13 @@ ans =
        propensitiesGeneralMeanJac: []
        propensitiesGeneralMoments: []
     propensitiesGeneralMomentsJac: []
-             propensityFilePrefix: 'STL1_4state'
+             propensityFilePrefix: "STL1_4state"
                         Solutions: [1&times;1 struct]
                       description: {'Add model description here'}
                          GUIProps: []
                    fspConstraints: [1&times;1 struct]
                    pars_container: [18&times;1 containers.Map]
+
 </pre>
 <h2 id="5">Perform Cross-Validation fitting different replicas at the same time</h2>
 <pre>using SSITMultiModel</pre>
@@ -286,7 +290,7 @@ CrossValidationModel.compareParameters(fignum,useRelative);
 <pre class="codeoutput"> 
 Exiting: Maximum number of iterations has been exceeded
          - increase MaxIter option.
-         Current function value: 37837.192002 
+         Current function value: 37878.662629 
 
 </pre>
 <img vspace="5" hspace="5" src="example_SI_CrossValidation_01.png" alt=""> <h2 id="7">Save model &amp; cross-validation results:</h2>
