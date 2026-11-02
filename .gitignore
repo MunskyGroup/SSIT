@@ -136,3 +136,4 @@ Examples/FormanARB2027/reviewBurstModel.m
 TMPmh_*
 SSITPaperLaTex/
 .vscode/settings.json
+tests/testData_pruned.csv

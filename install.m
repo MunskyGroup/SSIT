@@ -156,7 +156,6 @@ if ~isCluster&&runExamples
         'example_SI_CrossValidation.m'
         'example_SI_Epidemics.m'
         'example_SI_Hybrid.m'
-        'example_SI_MAPK.m'
         'example_SI_ModelReduction.m'
         'example_SI_Moments.m'
         'example_SI_MultiModel.m'
