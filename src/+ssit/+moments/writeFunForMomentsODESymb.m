@@ -184,13 +184,13 @@ if ~includeSecondMom
             % matlabFunctionSSIT(jac,{t,x,ParameterX},jacobianFileName); % save moment equation as a matlab function
             jacCreated = true;
         else
-            if exist([jacobianFileName,'.m'],'file')
-                delete([jacobianFileName,'.m'])
+            if exist(append(jacobianFileName,'.m'),'file')
+                delete(append(jacobianFileName,'.m'))
             end
             jacCreated = false;
         end
     catch
-        delete(jacobianFileName)
+        delete(append(jacobianFileName,'.m'))
         jacCreated = false;
     end
 else
@@ -311,11 +311,15 @@ else
             % matlabFunctionSSIT(jac,{t,v,ParameterX},jacobianFileName); % save moment equation as a matlab function
             jacCreated = true;
         else
-            delete([jacobianFileName,'.m'])
+            if exist(append(jacobianFileName,'.m'),'file')
+                delete(append(jacobianFileName,'.m'))
+            end            
             jacCreated = false;
         end
     catch
-        delete([jacobianFileName,'.m'])
+        if exist(append(jacobianFileName,'.m'),'file')
+            delete(append(jacobianFileName,'.m'))
+        end
         jacCreated = false;
     end
 end
