@@ -5101,11 +5101,18 @@ classdef SSIT
                         error('AdaptMH only available for returnType of "SSST".')
                     end
                     
-                    obj = obj.maximizeLikelihood(parGuess,allFitOptions,...
-                        'metropolishastings',returnType='ssit');
+                    sufficientSamples = false;
+                    while ~sufficientSamples
+                        obj = obj.maximizeLikelihood(parGuess,allFitOptions,...
+                            'metropolishastings',returnType='ssit');
 
-                    if obj.Solutions.mhResults.mhAcceptance*allFitOptions.numberOfSamples<2*length(obj.parameters)
-                        error(['Initial Acceptance too small: ',num2str(obj.Solutions.mhResults.mhAcceptance),'. Decrease proposal or request longer chain.'])
+                        if obj.Solutions.mhResults.mhAcceptance*allFitOptions.numberOfSamples<2*length(obj.parameters)
+                            allFitOptions.numberOfSamples = allFitOptions.numberOfSamples*2;
+                            allFitOptions.CovFIMscale = allFitOptions.CovFIMscale/2;
+                            % warning(['Initial Acceptance too small: ',num2str(obj.Solutions.mhResults.mhAcceptance),'. Decrease proposal or request longer chain.'])
+                        else
+                            sufficientSamples = true;
+                        end
                     end
 
                     finalRun = false;
