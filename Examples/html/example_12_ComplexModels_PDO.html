@@ -9,7 +9,7 @@ To make changes, update the MATLAB code and republish this document.
 <title>example_12_ComplexModels_PDO</title>
 <meta name="generator" content="MATLAB 25.2">
 <link rel="schema.DC" href="http://purl.org/dc/elements/1.1/">
-<meta name="DC.date" content="2026-07-26">
+<meta name="DC.date" content="2026-10-31">
 <meta name="DC.source" content="example_12_ComplexModels_PDO.m">
 <style type="text/css">
 html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
@@ -120,7 +120,7 @@ table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px soli
 <span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
 </pre>
 <h2 id="3">Preliminaries</h2>
-<p>Use the STL1 model from example_1_CreateSSITModels, FSP solutions from example_04_SolveSSITModels_FSP, sensitivities computed in example_06_SensitivityAnalysis, FIM results from example_07_FIM, loaded data from example_08_LoadingandFittingData_DataLoading, and Metropolis-Hastings results from example_10_LoadingandFittingData_MH</p>
+<p>Use the STL1 model from example_1_CreateSSITModels, FSP solutions from example_04_SolveSSITModels_FSP, sensitivities computed in example_06_SensitivityAnalysis, FIM results from example_07_FIM, loaded data from example_09_LoadingandFittingData_DataLoading, and Metropolis-Hastings results from example_11_LoadingandFittingData_MH</p>
 <pre class="codeinput">
 <span class="comment">%clear</span>
 <span class="comment">%close all</span>
@@ -138,17 +138,120 @@ table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px soli
 load(<span class="string">'ExampleSaveFiles/example_11_LoadingandFittingData_MH.mat'</span>)
 
 <span class="comment">% View model summary:</span>
-STL1_4state_MH.summarizeModel
+STL1_4state.summarizeModel
 
 <span class="comment">% Create a copy of the STL1 model for PDO:</span>
-STL1_4state_PDO = STL1_4state_MH;
+STL1_4state_PDO = STL1_4state;
 
 <span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
 </pre>
-<pre class="codeoutput error">Unable to resolve the name 'STL1_4state_MH.summarizeModel'.
-Error in example_12_ComplexModels_PDO (line 31)
-STL1_4state_MH.summarizeModel
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^</pre>
+<pre class="codeoutput">Species:
+     g1; IC = 1;  discrete stochastic
+     g2; IC = 0;  discrete stochastic
+     g3; IC = 0;  discrete stochastic
+     g4; IC = 0;  discrete stochastic
+     mRNA; IC = 0;  discrete stochastic
+ 
+Reactions:
+  Reaction 1:
+     s1: 1*g1 --&gt; 1*g2
+     w1: k12*g1
+  Reaction 2:
+     s2: 1*g2 --&gt; 1*g1
+     w2: (max(0,k21o*(1-k21i*Hog1)))*g2
+  Reaction 3:
+     s3: 1*g2 --&gt; 1*g3
+     w3: k23*g2
+  Reaction 4:
+     s4: 1*g3 --&gt; 1*g2
+     w4: k32*g3
+  Reaction 5:
+     s5: 1*g3 --&gt; 1*g4
+     w5: k34*g3
+  Reaction 6:
+     s6: 1*g4 --&gt; 1*g3
+     w6: k43*g4
+  Reaction 7:
+     s7: NULL --&gt; 1*mRNA
+     w7: kr1*g1
+  Reaction 8:
+     s8: NULL --&gt; 1*mRNA
+     w8: kr2*g2
+  Reaction 9:
+     s9: NULL --&gt; 1*mRNA
+     w9: kr3*g3
+  Reaction 10:
+     s10: NULL --&gt; 1*mRNA
+     w10: kr4*g4
+  Reaction 11:
+     s11: 1*mRNA --&gt; NULL
+     w11: dr*mRNA
+ 
+Input Signals:
+     Hog1(t) = A*(((1-(exp(1)^(-r1*(t-t0))))*exp(1)^(-r2*(t-t0)))/(1+((1-(exp(1)^(-r1*(t-t0))))*exp(1)^(-r2*(t-t0)))/M))^n*(t&gt;t0)
+ 
+Model Parameters:
+    {'t0'  }    {[    4.770417059382935]}
+    {'k12' }    {[   99.107163365588320]}
+    {'k21o'}    {[9.215112563659051e+03]}
+    {'k21i'}    {[    3.498940301110078]}
+    {'k23' }    {[    0.379359819375265]}
+    {'k34' }    {[    2.098934318891336]}
+    {'k32' }    {[    5.368845545376994]}
+    {'k43' }    {[    0.724819360890009]}
+    {'dr'  }    {[    0.233150893841714]}
+    {'kr1' }    {[    0.073365841025408]}
+    {'kr2' }    {[    0.267892459404368]}
+    {'kr3' }    {[1.068857069456730e+02]}
+    {'kr4' }    {[   13.673278739782990]}
+    {'r1'  }    {[    0.004140000000000]}
+    {'r2'  }    {[    0.426000000000000]}
+    {'A'   }    {[9.300000000000000e+09]}
+    {'M'   }    {[6.400000000000001e-04]}
+    {'n'   }    {[    3.100000000000000]}
+
+
+ans = 
+
+  SSIT with properties:
+
+                       parameters: {18&times;2 cell}
+                          species: {5&times;1 cell}
+                    stoichiometry: [5&times;11 double]
+              propensityFunctions: {11&times;1 cell}
+                 inputExpressions: {1&times;2 cell}
+                    specialEvents: []
+             customConstraintFuns: {}
+                       fspOptions: [1&times;1 struct]
+                      sensOptions: [1&times;1 struct]
+                       ssaOptions: [1&times;1 struct]
+                       pdoOptions: [1&times;1 struct]
+                   fittingOptions: [1&times;1 struct]
+                 initialCondition: [5&times;1 double]
+                     initialProbs: 1
+                      initialTime: 0
+                            tSpan: [0 1 2 4 6 8 10 15 20 25 30 35 40 45 50 55]
+                   solutionScheme: 'FSP'
+                    odeIntegrator: 'ode23s'
+                  solutionSchemes: {}
+            modelReductionOptions: [1&times;1 struct]
+                          dataSet: [1&times;1 struct]
+                        useHybrid: 0
+                    hybridOptions: [1&times;1 struct]
+              propensitiesGeneral: {1&times;11 cell}
+           propensitiesGeneralODE: []
+          propensitiesGeneralMean: []
+       propensitiesGeneralMeanJac: []
+       propensitiesGeneralMoments: []
+    propensitiesGeneralMomentsJac: []
+             propensityFilePrefix: "STL1_4state"
+                        Solutions: [1&times;1 struct]
+                      description: {'Add model description here'}
+                         GUIProps: []
+                   fspConstraints: [1&times;1 struct]
+                   pars_container: [18&times;1 containers.Map]
+
+</pre>
 <h2 id="5">PDO Calculations</h2>
 <h2 id="6">Ex(1): Calibrate PDO from cytoplasmic mRNA count data</h2>
 <p>Calibrate Binomial PDOs from empirical data under the `missing spot' assumption from Vo et al. (2013). 'RNA_STL1_total_TS3Full' is the full mRNA count and represents the `true' data; `RNA_STL1_cyto_TS3Full' is the mRNA count from only cytoplasm and `RNA_STL1_nuc_TS3Full' is the mRNA count from only the nucleus.</p>
@@ -174,7 +277,7 @@ STL1_4state_PDO_nuc = <span class="keyword">...</span>
 
 <span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
 </pre>
-<h2 id="7">Ex(2): Calibrate PDO from average intensity data</h2>
+<img vspace="5" hspace="5" src="example_12_ComplexModels_PDO_01.png" alt=""> <img vspace="5" hspace="5" src="example_12_ComplexModels_PDO_02.png" alt=""> <h2 id="7">Ex(2): Calibrate PDO from average intensity data</h2>
 <p>Calibrate the PDO from empirical data. Here, the number of spots has been measured using different assays in data column 'RNA_STL1_total_TS3Full' for the 'true' data set (mRNA spot counts) and in the columns 'STL1_avg_int_TS3Full' for integrated intensity. We calibrate an 'AffinePoiss' PDO where the obervation probability is a Poisson distribution where the mean value is affine linearly related to the true value: P(y|x) = Poiss(a0 + a1*x)</p>
 <pre class="codeinput">
 <span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
@@ -182,17 +285,26 @@ STL1_4state_PDO_nuc = <span class="keyword">...</span>
 <span class="comment">% Model: μ(x) = max(λ₁, λ₂ + λ₃&middot;x)</span>
 parGuess = [0, 2000, 0];
 
-STL1_4state_PDO_intens = STL1_4state_PDO;
-STL1_4state_PDO_intens = STL1_4state_PDO_intens.calibratePDO( <span class="keyword">...</span>
+STL1_4state_PDO_intens_poiss = STL1_4state_PDO;
+[STL1_4state_PDO_intens_poiss, errorPoisson] = STL1_4state_PDO_intens_poiss.calibratePDO( <span class="keyword">...</span>
     <span class="string">'data/filtered_data_2M_NaCl_Step.csv'</span>, {<span class="string">'mRNA'</span>},<span class="keyword">...</span>
     {<span class="string">'RNA_STL1_total_TS3Full'</span>}, {<span class="string">'STL1_avg_int_TS3Full'</span>}, <span class="string">'AffinePoiss'</span>,<span class="keyword">...</span>
     true, parGuess, {<span class="string">'Replica'</span>,1}, LegendLocation=<span class="string">"southeast"</span>, <span class="keyword">...</span>
-    Title=<span class="string">"4-state STL1 (Affine PDO: Average intensity)"</span>, FontSize=24,<span class="keyword">...</span>
+    Title=<span class="string">"4-state STL1 (Affine Poisson PDO: Average intensity)"</span>, FontSize=24,<span class="keyword">...</span>
+    XLabel=<span class="string">"True mRNA counts"</span>,YLabel=<span class="string">"Average intensities (binned)"</span>);
+
+parGuess = [0, 2000, 1, 100];
+STL1_4state_PDO_intens_normal = STL1_4state_PDO;
+[STL1_4state_PDO_intens_normal,errorGaussian] = STL1_4state_PDO_intens_normal.calibratePDO( <span class="keyword">...</span>
+    <span class="string">'data/filtered_data_2M_NaCl_Step.csv'</span>, {<span class="string">'mRNA'</span>},<span class="keyword">...</span>
+    {<span class="string">'RNA_STL1_total_TS3Full'</span>}, {<span class="string">'STL1_avg_int_TS3Full'</span>}, <span class="string">'AffineNormal'</span>,<span class="keyword">...</span>
+    true, parGuess, {<span class="string">'Replica'</span>,1}, LegendLocation=<span class="string">"southeast"</span>, <span class="keyword">...</span>
+    Title=<span class="string">"4-state STL1 (Affine Normal PDO: Average intensity)"</span>, FontSize=24,<span class="keyword">...</span>
     XLabel=<span class="string">"True mRNA counts"</span>,YLabel=<span class="string">"Average intensities (binned)"</span>);
 
 <span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
 </pre>
-<h2 id="8">FIM + PDO analyses</h2>
+<img vspace="5" hspace="5" src="example_12_ComplexModels_PDO_03.png" alt=""> <img vspace="5" hspace="5" src="example_12_ComplexModels_PDO_04.png" alt=""> <h2 id="8">FIM + PDO analyses</h2>
 <pre class="language-matlab">* Analyze FIM <span class="string">with</span> <span class="string">PDO</span> <span class="string">for</span> <span class="string">cytoplasmic</span> <span class="string">&amp;</span> <span class="string">nuclear</span> <span class="string">mRNA</span> <span class="string">counts</span>
 </pre>
 <pre class="codeinput">
@@ -244,11 +356,64 @@ STL1_4state.plotFIMResults(fimTotal_free, <span class="string">'log'</span>,<spa
     FigureHandle=f24, Colors=struct(<span class="string">'EllipseColors'</span>,[0.9 0.6 0.2],<span class="keyword">...</span>
     <span class="string">'CenterSquare'</span>,[0.96,0.47,0.16]));
 </pre>
-<h2 id="9">Save PDO models + results:</h2>
+<pre class="codeoutput">
+eigDisp =
+
+   2.000000000480718
+   2.000000005711970
+   2.000000224827643
+   2.000001818945032
+   2.000335058127646
+   2.001235326386287
+   2.014729772222912
+   2.022701585962472
+   2.043799181237050
+   2.209302062188669
+   3.322555108378215
+   3.637919579485072
+   5.048166261650382
+
+
+eigDisp =
+
+   2.000000000001490
+   2.000000000007712
+   2.000000000497373
+   2.000000008224335
+   2.000004488534031
+   2.000032276818914
+   2.000207514634754
+   2.002574346907055
+   2.009648087318092
+   2.024896191552311
+   2.522405253271821
+   3.351977158865419
+   4.940363401177845
+
+
+eigDisp =
+
+  -2.450821320849772
+  -0.347330683647960
+   0.304940512818534
+   1.118908337804811
+   1.357119686999540
+   2.142020573498368
+   2.683568601127382
+   2.789212636052817
+   3.250194648210733
+   3.441007350146510
+   3.894108774718813
+   4.177253453606612
+   4.643879178185496
+
+</pre>
+<img vspace="5" hspace="5" src="example_12_ComplexModels_PDO_05.png" alt=""> <img vspace="5" hspace="5" src="example_12_ComplexModels_PDO_06.png" alt=""> <img vspace="5" hspace="5" src="example_12_ComplexModels_PDO_07.png" alt=""> <img vspace="5" hspace="5" src="example_12_ComplexModels_PDO_08.png" alt=""> <img vspace="5" hspace="5" src="example_12_ComplexModels_PDO_09.png" alt=""> <h2 id="9">Save PDO models + results:</h2>
 <pre class="codeinput">saveNames = unique({<span class="string">'STL1_4state_PDO'</span>
     <span class="string">'STL1_4state_PDO_cyt'</span>
     <span class="string">'STL1_4state_PDO_nuc'</span>
-    <span class="string">'STL1_4state_PDO_intens'</span>
+    <span class="string">'STL1_4state_PDO_intens_poiss'</span>
+    <span class="string">'STL1_4state_PDO_intens_normal'</span>
     <span class="string">'fimsPDO_cyt'</span>
     <span class="string">'fimsPDO_nuc'</span>
     <span class="string">'fimPDO_cyt'</span>
@@ -279,8 +444,8 @@ save(<span class="string">'ExampleSaveFiles/example_12_PDO'</span>,saveNames{:})
 % Use the STL1 model from example_1_CreateSSITModels, FSP solutions  
 % from example_04_SolveSSITModels_FSP, sensitivities computed in 
 % example_06_SensitivityAnalysis, FIM results from example_07_FIM,  
-% loaded data from example_08_LoadingandFittingData_DataLoading, and
-% Metropolis-Hastings results from example_10_LoadingandFittingData_MH
+% loaded data from example_09_LoadingandFittingData_DataLoading, and
+% Metropolis-Hastings results from example_11_LoadingandFittingData_MH
 %clear
 %close all
 
@@ -297,10 +462,10 @@ load('ExampleSaveFiles/example_7_FIM.mat')
 load('ExampleSaveFiles/example_11_LoadingandFittingData_MH.mat')
 
 % View model summary:
-STL1_4state_MH.summarizeModel
+STL1_4state.summarizeModel
 
 % Create a copy of the STL1 model for PDO:
-STL1_4state_PDO = STL1_4state_MH;
+STL1_4state_PDO = STL1_4state;
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% PDO Calculations
@@ -343,12 +508,21 @@ STL1_4state_PDO_nuc = ...
 % Model: μ(x) = max(λ₁, λ₂ + λ₃·x)
 parGuess = [0, 2000, 0];
 
-STL1_4state_PDO_intens = STL1_4state_PDO;
-STL1_4state_PDO_intens = STL1_4state_PDO_intens.calibratePDO( ...
+STL1_4state_PDO_intens_poiss = STL1_4state_PDO;
+[STL1_4state_PDO_intens_poiss, errorPoisson] = STL1_4state_PDO_intens_poiss.calibratePDO( ...
     'data/filtered_data_2M_NaCl_Step.csv', {'mRNA'},...
     {'RNA_STL1_total_TS3Full'}, {'STL1_avg_int_TS3Full'}, 'AffinePoiss',...
     true, parGuess, {'Replica',1}, LegendLocation="southeast", ...
-    Title="4-state STL1 (Affine PDO: Average intensity)", FontSize=24,...
+    Title="4-state STL1 (Affine Poisson PDO: Average intensity)", FontSize=24,...
+    XLabel="True mRNA counts",YLabel="Average intensities (binned)");
+
+parGuess = [0, 2000, 1, 100];
+STL1_4state_PDO_intens_normal = STL1_4state_PDO;
+[STL1_4state_PDO_intens_normal,errorGaussian] = STL1_4state_PDO_intens_normal.calibratePDO( ...
+    'data/filtered_data_2M_NaCl_Step.csv', {'mRNA'},...
+    {'RNA_STL1_total_TS3Full'}, {'STL1_avg_int_TS3Full'}, 'AffineNormal',...
+    true, parGuess, {'Replica',1}, LegendLocation="southeast", ...
+    Title="4-state STL1 (Affine Normal PDO: Average intensity)", FontSize=24,...
     XLabel="True mRNA counts",YLabel="Average intensities (binned)");
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -407,7 +581,8 @@ STL1_4state.plotFIMResults(fimTotal_free, 'log',...
 saveNames = unique({'STL1_4state_PDO'
     'STL1_4state_PDO_cyt'
     'STL1_4state_PDO_nuc'
-    'STL1_4state_PDO_intens'
+    'STL1_4state_PDO_intens_poiss'
+    'STL1_4state_PDO_intens_normal'
     'fimsPDO_cyt'
     'fimsPDO_nuc'
     'fimPDO_cyt'

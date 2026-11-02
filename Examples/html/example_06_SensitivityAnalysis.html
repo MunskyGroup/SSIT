@@ -9,7 +9,7 @@ To make changes, update the MATLAB code and republish this document.
 <title>example_06_SensitivityAnalysis</title>
 <meta name="generator" content="MATLAB 25.2">
 <link rel="schema.DC" href="http://purl.org/dc/elements/1.1/">
-<meta name="DC.date" content="2026-07-26">
+<meta name="DC.date" content="2026-10-31">
 <meta name="DC.source" content="example_06_SensitivityAnalysis.m">
 <style type="text/css">
 html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
@@ -112,6 +112,9 @@ table td { padding:7px 5px; text-align:left; vertical-align:top; border:1px soli
 <li>
 <a href="#11">Save models &amp; sensitivities</a>
 </li>
+<li>
+<a href="#12">Local helper functions</a>
+</li>
 </ul>
 </div>
 <h2 id="1">SSIT/Examples/example_06_SensitivityAnalysis</h2>
@@ -163,11 +166,14 @@ Reactions:
      w4: dr * mRNA
  
 Model Parameters:
-    {'kon' }    {[2.0000e-01]}
-    {'koff'}    {[2.0000e-01]}
-    {'kr'  }    {[        10]}
-    {'dr'  }    {[         5]}
+    {'kon' }    {[0.200000000000000]}
+    {'koff'}    {[0.200000000000000]}
+    {'kr'  }    {[               10]}
+    {'dr'  }    {[                5]}
+
+
 ans = 
+
   SSIT with properties:
 
                        parameters: {4&times;2 cell}
@@ -185,7 +191,7 @@ ans =
                  initialCondition: [3&times;1 double]
                      initialProbs: 1
                       initialTime: 0
-                            tSpan: [0 5.0000e-01 1 &hellip; ] (1&times;101 double)
+                            tSpan: [0 0.500000000000000 1 &hellip; ] (1&times;101 double)
                    solutionScheme: 'FSP'
                     odeIntegrator: 'ode23s'
                   solutionSchemes: {}
@@ -199,12 +205,13 @@ ans =
        propensitiesGeneralMeanJac: []
        propensitiesGeneralMoments: []
     propensitiesGeneralMomentsJac: []
-             propensityFilePrefix: 'Model'
+             propensityFilePrefix: "Model"
                         Solutions: [1&times;1 struct]
                       description: {'Add model description here'}
                          GUIProps: []
                    fspConstraints: [1&times;1 struct]
                    pars_container: [4&times;1 containers.Map]
+
 Species:
      offGene; IC = 1;  discrete stochastic
      onGene; IC = 0;  discrete stochastic
@@ -228,15 +235,18 @@ Input Signals:
      Hog1(t) = (a0+a1*exp(-r1*t)*(1-exp(-r2*t))*(t&gt;0))
  
 Model Parameters:
-    {'kon' }    {[2.0000e-01]}
-    {'koff'}    {[2.0000e-01]}
-    {'kr'  }    {[        10]}
-    {'dr'  }    {[         5]}
-    {'a0'  }    {[         5]}
-    {'a1'  }    {[        10]}
-    {'r1'  }    {[1.0000e-01]}
-    {'r2'  }    {[2.0000e-01]}
+    {'kon' }    {[0.200000000000000]}
+    {'koff'}    {[0.200000000000000]}
+    {'kr'  }    {[               10]}
+    {'dr'  }    {[                5]}
+    {'a0'  }    {[                5]}
+    {'a1'  }    {[               10]}
+    {'r1'  }    {[0.100000000000000]}
+    {'r2'  }    {[0.200000000000000]}
+
+
 ans = 
+
   SSIT with properties:
 
                        parameters: {8&times;2 cell}
@@ -254,7 +264,7 @@ ans =
                  initialCondition: [3&times;1 double]
                      initialProbs: 1
                       initialTime: 0
-                            tSpan: [0 5.0000e-01 1 &hellip; ] (1&times;101 double)
+                            tSpan: [0 0.500000000000000 1 &hellip; ] (1&times;101 double)
                    solutionScheme: 'FSP'
                     odeIntegrator: 'ode23s'
                   solutionSchemes: {}
@@ -268,12 +278,13 @@ ans =
        propensitiesGeneralMeanJac: []
        propensitiesGeneralMoments: []
     propensitiesGeneralMomentsJac: []
-             propensityFilePrefix: 'STL1'
+             propensityFilePrefix: "STL1"
                         Solutions: [1&times;1 struct]
                       description: {'Add model description here'}
                          GUIProps: []
                    fspConstraints: [1&times;1 struct]
                    pars_container: [8&times;1 containers.Map]
+
 Species:
      g1; IC = 1;  discrete stochastic
      g2; IC = 0;  discrete stochastic
@@ -320,25 +331,28 @@ Input Signals:
      Hog1(t) = A*(((1-(exp(1)^(-r1*(t-t0))))*exp(1)^(-r2*(t-t0)))/(1+((1-(exp(1)^(-r1*(t-t0))))*exp(1)^(-r2*(t-t0)))/M))^n*(t&gt;t0)
  
 Model Parameters:
-    {'t0'  }    {[3.1700e+00]}
-    {'k12' }    {[        78]}
-    {'k21o'}    {[    192000]}
-    {'k21i'}    {[      3200]}
-    {'k23' }    {[4.0200e-01]}
-    {'k34' }    {[7.8000e+00]}
-    {'k32' }    {[1.6200e+00]}
-    {'k43' }    {[2.2800e+00]}
-    {'dr'  }    {[2.9400e-01]}
-    {'kr1' }    {[4.6800e-02]}
-    {'kr2' }    {[7.2000e-01]}
-    {'kr3' }    {[5.9400e+01]}
-    {'kr4' }    {[3.2400e+00]}
-    {'r1'  }    {[4.1400e-03]}
-    {'r2'  }    {[4.2600e-01]}
-    {'A'   }    {[9.3000e+09]}
-    {'M'   }    {[6.4000e-04]}
-    {'n'   }    {[3.1000e+00]}
+    {'t0'  }    {[    3.170000000000000]}
+    {'k12' }    {[                   78]}
+    {'k21o'}    {[               192000]}
+    {'k21i'}    {[                 3200]}
+    {'k23' }    {[    0.402000000000000]}
+    {'k34' }    {[    7.800000000000000]}
+    {'k32' }    {[    1.620000000000000]}
+    {'k43' }    {[    2.280000000000000]}
+    {'dr'  }    {[    0.294000000000000]}
+    {'kr1' }    {[    0.046800000000000]}
+    {'kr2' }    {[    0.720000000000000]}
+    {'kr3' }    {[   59.399999999999999]}
+    {'kr4' }    {[    3.240000000000000]}
+    {'r1'  }    {[    0.004140000000000]}
+    {'r2'  }    {[    0.426000000000000]}
+    {'A'   }    {[9.300000000000000e+09]}
+    {'M'   }    {[6.400000000000001e-04]}
+    {'n'   }    {[    3.100000000000000]}
+
+
 ans = 
+
   SSIT with properties:
 
                        parameters: {18&times;2 cell}
@@ -356,7 +370,7 @@ ans =
                  initialCondition: [5&times;1 double]
                      initialProbs: 1
                       initialTime: 0
-                            tSpan: [0 5.0000e-01 1 &hellip; ] (1&times;101 double)
+                            tSpan: [0 0.500000000000000 1 &hellip; ] (1&times;101 double)
                    solutionScheme: 'FSP'
                     odeIntegrator: 'ode23s'
                   solutionSchemes: {}
@@ -370,12 +384,13 @@ ans =
        propensitiesGeneralMeanJac: []
        propensitiesGeneralMoments: []
     propensitiesGeneralMomentsJac: []
-             propensityFilePrefix: 'STL1_4state'
+             propensityFilePrefix: "STL1_4state"
                         Solutions: [1&times;1 struct]
                       description: {'Add model description here'}
                          GUIProps: []
                    fspConstraints: [1&times;1 struct]
                    pars_container: [18&times;1 containers.Map]
+
 </pre>
 <h2 id="5">Ex(1): Solve sensitivities of the bursting gene model</h2>
 <pre>from example_01_CreateSSITModels</pre>
@@ -391,6 +406,7 @@ Model.plotFSP(speciesNames=Model.species(3), plotType=<span class="string">'sens
    indTimes=40, lineProps={<span class="string">'linewidth'</span>,3}, AxisLabelSize=12,<span class="keyword">...</span>
    TickLabelSize=12, XLim=[0,10], TitleFontSize=22,<span class="keyword">...</span>
    Title=<span class="string">"Bursting Gene"</span>, Colors=[0.93,0.69,0.13])
+shareAxisLabels(gcf, 14)
 
 <span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
 </pre>
@@ -408,6 +424,7 @@ STL1.plotFSP(speciesNames=STL1.species(3), plotType=<span class="string">'sens'<
     indTimes=40, lineProps={<span class="string">'linewidth'</span>,3}, AxisLabelSize=12,<span class="keyword">...</span>
     TickLabelSize=12, XLim=[0,10], Title=<span class="string">"STL1"</span>,<span class="keyword">...</span>
     TitleFontSize=22, Colors=[0.93,0.69,0.13])
+shareAxisLabels(gcf, 14)
 
 <span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
 </pre>
@@ -422,9 +439,10 @@ STL1.plotFSP(speciesNames=STL1.species(3), plotType=<span class="string">'sens'<
 
 <span class="comment">% Plot the results from the sensitivity analysis</span>
 STL1_4state.plotFSP(speciesNames=STL1_4state.species(5),<span class="keyword">...</span>
-    plotType=<span class="string">'sens'</span>, indTimes=40, lineProps={<span class="string">'linewidth'</span>,3},<span class="keyword">...</span>
+    plotType=<span class="string">'sens'</span>, indTimes=51, lineProps={<span class="string">'linewidth'</span>,3},<span class="keyword">...</span>
     Colors=[0.23,0.67,0.2], AxisLabelSize=15, TickLabelSize=12,<span class="keyword">...</span>
     XLim=[0,100], Title=<span class="string">"4-state STL1 (t=25 min.)"</span>, TitleFontSize=24)
+shareAxisLabels(gcf, 17)
 </pre>
 <img vspace="5" hspace="5" src="example_06_SensitivityAnalysis_03.png" alt=""> <h2 id="11">Save models &amp; sensitivities</h2>
 <pre class="codeinput">saveNames = unique({ <span class="keyword">...</span>
@@ -434,6 +452,34 @@ STL1_4state.plotFSP(speciesNames=STL1_4state.species(5),<span class="keyword">..
     });
 
 save(<span class="string">'ExampleSaveFiles/example_6_SensitivityAnalysis'</span>,saveNames{:})
+</pre>
+<h2 id="12">Local helper functions</h2>
+<pre class="codeinput">
+<span class="keyword">function</span> shareAxisLabels(fig, fontSize)
+<span class="comment">% Replace the per-subplot x/y labels with a single shared label per figure.</span>
+ax = findobj(fig, <span class="string">'Type'</span>, <span class="string">'axes'</span>);
+<span class="keyword">if</span> isempty(ax), <span class="keyword">return</span>; <span class="keyword">end</span>
+xl = ax(1).XLabel.String;
+yl = ax(1).YLabel.String;
+<span class="keyword">for</span> k = 1:numel(ax)
+    xlabel(ax(k), <span class="string">''</span>);
+    ylabel(ax(k), <span class="string">''</span>);
+<span class="keyword">end</span>
+<span class="comment">% Invisible axes spanning all subplots, used only to hold the shared labels</span>
+<span class="comment">% (works in all MATLAB versions; supxlabel/supylabel need R2020b+).</span>
+pos = vertcat(ax.Position);
+left = min(pos(:,1));  bottom = min(pos(:,2));
+right = max(pos(:,1) + pos(:,3));  top = max(pos(:,2) + pos(:,4));
+bigAx = axes(fig, <span class="string">'Position'</span>, [left, bottom, right-left, top-bottom], <span class="keyword">...</span>
+    <span class="string">'Visible'</span>, <span class="string">'off'</span>, <span class="string">'HitTest'</span>, <span class="string">'off'</span>, <span class="string">'HandleVisibility'</span>, <span class="string">'off'</span>);
+bigAx.XLabel.Visible = <span class="string">'on'</span>;
+bigAx.YLabel.Visible = <span class="string">'on'</span>;
+xlabel(bigAx, xl, <span class="string">'FontSize'</span>, fontSize);
+ylabel(bigAx, yl, <span class="string">'FontSize'</span>, fontSize);
+<span class="comment">% Nudge labels outward so they clear the subplot tick labels</span>
+bigAx.XLabel.Units = <span class="string">'normalized'</span>;  bigAx.XLabel.Position(2) = -0.08;
+bigAx.YLabel.Units = <span class="string">'normalized'</span>;  bigAx.YLabel.Position(1) = -0.06;
+<span class="keyword">end</span>
 </pre>
 <p class="footer">
 <br>
@@ -482,6 +528,7 @@ Model.plotFSP(speciesNames=Model.species(3), plotType='sens',...
    indTimes=40, lineProps={'linewidth',3}, AxisLabelSize=12,...
    TickLabelSize=12, XLim=[0,10], TitleFontSize=22,...
    Title="Bursting Gene", Colors=[0.93,0.69,0.13])
+shareAxisLabels(gcf, 14)  
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(2): Solve sensitivities of the time-varying STL1 yeast model
@@ -497,6 +544,7 @@ STL1.plotFSP(speciesNames=STL1.species(3), plotType='sens',...
     indTimes=40, lineProps={'linewidth',3}, AxisLabelSize=12,...
     TickLabelSize=12, XLim=[0,10], Title="STL1",...
     TitleFontSize=22, Colors=[0.93,0.69,0.13])
+shareAxisLabels(gcf, 14)  
 
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
 %% Ex(3): Solve sensitivities of the 4-state time-varying STL1 yeast model
@@ -508,9 +556,10 @@ STL1_4state = STL1_4state.solve(solver='fspSens');
 
 % Plot the results from the sensitivity analysis
 STL1_4state.plotFSP(speciesNames=STL1_4state.species(5),...
-    plotType='sens', indTimes=40, lineProps={'linewidth',3},...
+    plotType='sens', indTimes=51, lineProps={'linewidth',3},...
     Colors=[0.23,0.67,0.2], AxisLabelSize=15, TickLabelSize=12,...
     XLim=[0,100], Title="4-state STL1 (t=25 min.)", TitleFontSize=24)
+shareAxisLabels(gcf, 17)  
 
 
 %% Save models & sensitivities
@@ -521,6 +570,34 @@ saveNames = unique({ ...
     });
     
 save('ExampleSaveFiles/example_6_SensitivityAnalysis',saveNames{:})
+
+%% Local helper functions
+function shareAxisLabels(fig, fontSize)
+% Replace the per-subplot x/y labels with a single shared label per figure.
+ax = findobj(fig, 'Type', 'axes');
+if isempty(ax), return; end
+xl = ax(1).XLabel.String;
+yl = ax(1).YLabel.String;
+for k = 1:numel(ax)
+    xlabel(ax(k), '');
+    ylabel(ax(k), '');
+end
+% Invisible axes spanning all subplots, used only to hold the shared labels
+% (works in all MATLAB versions; supxlabel/supylabel need R2020b+).
+pos = vertcat(ax.Position);
+left = min(pos(:,1));  bottom = min(pos(:,2));
+right = max(pos(:,1) + pos(:,3));  top = max(pos(:,2) + pos(:,4));
+bigAx = axes(fig, 'Position', [left, bottom, right-left, top-bottom], ...
+    'Visible', 'off', 'HitTest', 'off', 'HandleVisibility', 'off');
+bigAx.XLabel.Visible = 'on';
+bigAx.YLabel.Visible = 'on';
+xlabel(bigAx, xl, 'FontSize', fontSize);
+ylabel(bigAx, yl, 'FontSize', fontSize);
+% Nudge labels outward so they clear the subplot tick labels
+bigAx.XLabel.Units = 'normalized';  bigAx.XLabel.Position(2) = -0.08;
+bigAx.YLabel.Units = 'normalized';  bigAx.YLabel.Position(1) = -0.06;
+end
+
 ##### SOURCE END #####
 -->
 </body>

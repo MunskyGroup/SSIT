@@ -9,7 +9,7 @@ To make changes, update the MATLAB code and republish this document.
 <title>example_07_FIM</title>
 <meta name="generator" content="MATLAB 25.2">
 <link rel="schema.DC" href="http://purl.org/dc/elements/1.1/">
-<meta name="DC.date" content="2026-07-26">
+<meta name="DC.date" content="2026-10-31">
 <meta name="DC.source" content="example_07_FIM.m">
 <style type="text/css">
 html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
@@ -178,11 +178,14 @@ Reactions:
      w4: dr * mRNA
  
 Model Parameters:
-    {'kon' }    {[2.0000e-01]}
-    {'koff'}    {[2.0000e-01]}
-    {'kr'  }    {[        10]}
-    {'dr'  }    {[         5]}
+    {'kon' }    {[0.200000000000000]}
+    {'koff'}    {[0.200000000000000]}
+    {'kr'  }    {[               10]}
+    {'dr'  }    {[                5]}
+
+
 ans = 
+
   SSIT with properties:
 
                        parameters: {4&times;2 cell}
@@ -200,7 +203,7 @@ ans =
                  initialCondition: [3&times;1 double]
                      initialProbs: 1
                       initialTime: 0
-                            tSpan: [0 5.0000e-01 1 &hellip; ] (1&times;101 double)
+                            tSpan: [0 0.500000000000000 1 &hellip; ] (1&times;101 double)
                    solutionScheme: 'FSP'
                     odeIntegrator: 'ode23s'
                   solutionSchemes: {}
@@ -214,12 +217,13 @@ ans =
        propensitiesGeneralMeanJac: []
        propensitiesGeneralMoments: []
     propensitiesGeneralMomentsJac: []
-             propensityFilePrefix: 'Model'
+             propensityFilePrefix: "Model"
                         Solutions: [1&times;1 struct]
                       description: {'Add model description here'}
                          GUIProps: []
                    fspConstraints: [1&times;1 struct]
                    pars_container: [4&times;1 containers.Map]
+
 Species:
      offGene; IC = 1;  discrete stochastic
      onGene; IC = 0;  discrete stochastic
@@ -243,15 +247,18 @@ Input Signals:
      Hog1(t) = (a0+a1*exp(-r1*t)*(1-exp(-r2*t))*(t&gt;0))
  
 Model Parameters:
-    {'kon' }    {[2.0000e-01]}
-    {'koff'}    {[2.0000e-01]}
-    {'kr'  }    {[        10]}
-    {'dr'  }    {[         5]}
-    {'a0'  }    {[         5]}
-    {'a1'  }    {[        10]}
-    {'r1'  }    {[1.0000e-01]}
-    {'r2'  }    {[2.0000e-01]}
+    {'kon' }    {[0.200000000000000]}
+    {'koff'}    {[0.200000000000000]}
+    {'kr'  }    {[               10]}
+    {'dr'  }    {[                5]}
+    {'a0'  }    {[                5]}
+    {'a1'  }    {[               10]}
+    {'r1'  }    {[0.100000000000000]}
+    {'r2'  }    {[0.200000000000000]}
+
+
 ans = 
+
   SSIT with properties:
 
                        parameters: {8&times;2 cell}
@@ -269,7 +276,7 @@ ans =
                  initialCondition: [3&times;1 double]
                      initialProbs: 1
                       initialTime: 0
-                            tSpan: [0 5.0000e-01 1 &hellip; ] (1&times;101 double)
+                            tSpan: [0 0.500000000000000 1 &hellip; ] (1&times;101 double)
                    solutionScheme: 'FSP'
                     odeIntegrator: 'ode23s'
                   solutionSchemes: {}
@@ -283,12 +290,13 @@ ans =
        propensitiesGeneralMeanJac: []
        propensitiesGeneralMoments: []
     propensitiesGeneralMomentsJac: []
-             propensityFilePrefix: 'STL1'
+             propensityFilePrefix: "STL1"
                         Solutions: [1&times;1 struct]
                       description: {'Add model description here'}
                          GUIProps: []
                    fspConstraints: [1&times;1 struct]
                    pars_container: [8&times;1 containers.Map]
+
 Species:
      g1; IC = 1;  discrete stochastic
      g2; IC = 0;  discrete stochastic
@@ -335,25 +343,28 @@ Input Signals:
      Hog1(t) = A*(((1-(exp(1)^(-r1*(t-t0))))*exp(1)^(-r2*(t-t0)))/(1+((1-(exp(1)^(-r1*(t-t0))))*exp(1)^(-r2*(t-t0)))/M))^n*(t&gt;t0)
  
 Model Parameters:
-    {'t0'  }    {[3.1700e+00]}
-    {'k12' }    {[        78]}
-    {'k21o'}    {[    192000]}
-    {'k21i'}    {[      3200]}
-    {'k23' }    {[4.0200e-01]}
-    {'k34' }    {[7.8000e+00]}
-    {'k32' }    {[1.6200e+00]}
-    {'k43' }    {[2.2800e+00]}
-    {'dr'  }    {[2.9400e-01]}
-    {'kr1' }    {[4.6800e-02]}
-    {'kr2' }    {[7.2000e-01]}
-    {'kr3' }    {[5.9400e+01]}
-    {'kr4' }    {[3.2400e+00]}
-    {'r1'  }    {[4.1400e-03]}
-    {'r2'  }    {[4.2600e-01]}
-    {'A'   }    {[9.3000e+09]}
-    {'M'   }    {[6.4000e-04]}
-    {'n'   }    {[3.1000e+00]}
+    {'t0'  }    {[    3.170000000000000]}
+    {'k12' }    {[                   78]}
+    {'k21o'}    {[               192000]}
+    {'k21i'}    {[                 3200]}
+    {'k23' }    {[    0.402000000000000]}
+    {'k34' }    {[    7.800000000000000]}
+    {'k32' }    {[    1.620000000000000]}
+    {'k43' }    {[    2.280000000000000]}
+    {'dr'  }    {[    0.294000000000000]}
+    {'kr1' }    {[    0.046800000000000]}
+    {'kr2' }    {[    0.720000000000000]}
+    {'kr3' }    {[   59.399999999999999]}
+    {'kr4' }    {[    3.240000000000000]}
+    {'r1'  }    {[    0.004140000000000]}
+    {'r2'  }    {[    0.426000000000000]}
+    {'A'   }    {[9.300000000000000e+09]}
+    {'M'   }    {[6.400000000000001e-04]}
+    {'n'   }    {[    3.100000000000000]}
+
+
 ans = 
+
   SSIT with properties:
 
                        parameters: {18&times;2 cell}
@@ -371,7 +382,7 @@ ans =
                  initialCondition: [5&times;1 double]
                      initialProbs: 1
                       initialTime: 0
-                            tSpan: [0 5.0000e-01 1 &hellip; ] (1&times;101 double)
+                            tSpan: [0 0.500000000000000 1 &hellip; ] (1&times;101 double)
                    solutionScheme: 'FSP'
                     odeIntegrator: 'ode23s'
                   solutionSchemes: {}
@@ -385,12 +396,13 @@ ans =
        propensitiesGeneralMeanJac: []
        propensitiesGeneralMoments: []
     propensitiesGeneralMomentsJac: []
-             propensityFilePrefix: 'STL1_4state'
+             propensityFilePrefix: "STL1_4state"
                         Solutions: [1&times;1 struct]
                       description: {'Add model description here'}
                          GUIProps: []
                    fspConstraints: [1&times;1 struct]
                    pars_container: [18&times;1 containers.Map]
+
 </pre>
 <h2 id="5">Ex(1): Compute the Fisher Information Matrix for the bursting gene model</h2>
 <pre>from example_01_CreateSSITModels</pre>
@@ -416,23 +428,37 @@ Model.plotFIMResults(Model_fimTotal, <span class="string">'log'</span>, Model.pa
 
 <span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
 </pre>
-<pre class="codeoutput">Model_fimTotal =
+<pre class="codeoutput">
+Model_fimTotal =
+
   1&times;1 cell array
+
     {4&times;4 double}
+
+
 Model_mleCovEstimate =
+
   1&times;1 cell array
+
     {4&times;4 double}
+
+
 Model_fimMetrics = 
+
   struct with fields:
 
-          det: 4.8027e+24
-        trace: 1.6623e+07
-    minEigVal: 1.6309e+05
+          det: 2.109305490315611e+24
+        trace: 2.115898986336505e+07
+    minEigVal: 6.484580742368766e+04
+
+
 eigDisp =
-   5.2124e+00
-   5.7798e+00
-   6.6223e+00
-   7.0669e+00
+
+   4.811881902214749
+   5.875207094878545
+   6.383587392695757
+   7.253463093293457
+
 </pre>
 <img vspace="5" hspace="5" src="example_07_FIM_01.png" alt=""> <img vspace="5" hspace="5" src="example_07_FIM_02.png" alt=""> <h2 id="7">Ex(2): Compute the Fisher Information Matrix for the STL1 yeast model</h2>
 <pre>from example_01_CreateSSITModels</pre>
@@ -461,27 +487,41 @@ STL1.plotFIMResults(STL1_fimTotal, <span class="string">'log'</span>, STL1.param
 <span class="comment">%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%</span>
 </pre>
 <pre class="codeoutput">FIM has rank 7 and is not invertable for this experiment design
+
 STL1_fimTotal =
+
   1&times;1 cell array
+
     {8&times;8 double}
+
+
 STL1_mleCovEstimate =
+
   1&times;1 cell array
+
     {8&times;8 double}
+
+
 STL1_fimMetrics = 
+
   struct with fields:
 
-          det: 5.0910e+00
-        trace: 3.5112e+04
-    minEigVal: 1.3162e-11
+          det: 5.090969747517737
+        trace: 3.511216682728963e+04
+    minEigVal: 1.316191260137211e-11
+
+
 eigDisp =
-  -1.0857e+01
-  -1.7100e+00
-   4.1386e-02
-   1.1807e+00
-   1.4471e+00
-   2.6353e+00
-   3.4946e+00
-   4.4985e+00
+
+ -10.857265520336703
+  -1.709960616935673
+   0.041386362252699
+   1.180724533218231
+   1.447144379769165
+   2.635309911266308
+   3.494576939931083
+   4.498490088274430
+
 </pre>
 <img vspace="5" hspace="5" src="example_07_FIM_03.png" alt=""> <img vspace="5" hspace="5" src="example_07_FIM_04.png" alt=""> <h2 id="9">Ex(3): Compute the FIM for the 4-state STL1 yeast model</h2>
 <pre>from example_01_CreateSSITModels</pre>
@@ -517,30 +557,52 @@ fims_free = STL1_4state.computeFIM(scale=<span class="string">'log'</span>,obser
     STL1_4state.evaluateExperiment(fims_free,cellCounts)
 </pre>
 <pre class="codeoutput">FIM has rank 17 and is not invertable for this experiment design
+
 fimTotal_full =
+
   1&times;1 cell array
+
     {18&times;18 double}
+
+
 mleCovEstimate_full =
+
   1&times;1 cell array
+
     {18&times;18 double}
+
+
 fimMetrics_full = 
+
   struct with fields:
 
-          det: 5.1000e-01
-        trace: 2.4188e+05
-    minEigVal: 7.8425e-14
+          det: 0.209791971002418
+        trace: 2.419093298753826e+05
+    minEigVal: 8.264024327560181e-14
+
+
 fimTotal_free =
+
   1&times;1 cell array
+
     {13&times;13 double}
+
+
 mleCovEstimate_free =
+
   1&times;1 cell array
+
     {13&times;13 double}
+
+
 fimMetrics_free = 
+
   struct with fields:
 
-          det: 1.6206e+27
-        trace: 7.2720e+04
-    minEigVal: 5.5396e-03
+          det: 1.009396393445501e+27
+        trace: 7.273450358538549e+04
+    minEigVal: 0.003541430139997
+
 </pre>
 <h2 id="13">Plot the FIMs (full):</h2>
 <pre class="codeinput">f1 = figure(11);
@@ -559,39 +621,45 @@ STL1_4state.plotFIMResults(fimTotal_free, <span class="string">'log'</span>,<spa
     Colors=struct(<span class="string">'EllipseColors'</span>,[0.9 0.6 0.2],<span class="keyword">...</span>
     <span class="string">'CenterSquare'</span>,[0.96,0.47,0.16]));
 </pre>
-<pre class="codeoutput">eigDisp =
-  -1.6000e+01
-  -6.9784e+00
-  -5.0308e+00
-  -3.1130e+00
-  -2.2572e+00
-  -1.6840e+00
-  -3.4103e-01
-   3.1129e-01
-   1.1292e+00
-   2.1120e+00
-   2.5945e+00
-   2.7618e+00
-   3.2006e+00
-   3.4363e+00
-   3.6749e+00
-   4.0313e+00
-   4.4180e+00
-   5.2896e+00
+<pre class="codeoutput">
 eigDisp =
-  -2.2565e+00
-  -3.4113e-01
-   3.0975e-01
-   1.1251e+00
-   1.3540e+00
-   2.1414e+00
-   2.6814e+00
-   2.7892e+00
-   3.2503e+00
-   3.4413e+00
-   3.8940e+00
-   4.1772e+00
-   4.6438e+00
+
+ -13.027703703193680
+  -6.933750305614939
+  -4.485807510845794
+  -2.746557556010476
+  -2.520161279140684
+  -2.446468492217558
+  -0.347115897060538
+   0.305651906775154
+   1.122730805902676
+   2.112917219004574
+   2.595791530994003
+   2.762186579446207
+   3.200595533419170
+   3.436096272135388
+   3.675120607704284
+   4.031315105167285
+   4.418042762248851
+   5.289610586344839
+
+
+eigDisp =
+
+  -2.450821320849772
+  -0.347330683647960
+   0.304940512818534
+   1.118908337804811
+   1.357119686999540
+   2.142020573498368
+   2.683568601127382
+   2.789212636052817
+   3.250194648210733
+   3.441007350146510
+   3.894108774718813
+   4.177253453606612
+   4.643879178185496
+
 </pre>
 <img vspace="5" hspace="5" src="example_07_FIM_05.png" alt=""> <img vspace="5" hspace="5" src="example_07_FIM_06.png" alt=""> <img vspace="5" hspace="5" src="example_07_FIM_07.png" alt=""> <p>Note: If detI(θ)=0, then at least one eigenvalue =0. That means the FIM is rank-deficient, so there is at least one non-trivial linear combination of parameters whose variance (via the Cram&eacute;r&ndash;Rao bound) is infinite. That direction is locally non-identifiable at ; the likelihood is flat in that direction. If detI(θ) is nonzero but extremely small, that usually means one or more eigenvalues are tiny (but not exactly zero). Then there is practical non-identifiability or very strong parameter correlation: those directions in parameter space are only very weakly constrained by your experiment.</p>
 <pre class="codeinput">

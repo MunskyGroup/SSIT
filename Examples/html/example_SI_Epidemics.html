@@ -9,7 +9,7 @@ To make changes, update the MATLAB code and republish this document.
 <title>example_SI_Epidemics</title>
 <meta name="generator" content="MATLAB 25.2">
 <link rel="schema.DC" href="http://purl.org/dc/elements/1.1/">
-<meta name="DC.date" content="2026-07-27">
+<meta name="DC.date" content="2026-11-01">
 <meta name="DC.source" content="example_SI_Epidemics.m">
 <style type="text/css">
 html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
@@ -149,7 +149,10 @@ Reactions:
  
 Model Parameters:
     {'kI'}    {[1]}
+
+
 ans = 
+
   SSIT with properties:
 
                        parameters: {'kI'  [1]}
@@ -167,7 +170,7 @@ ans =
                  initialCondition: [2&times;1 double]
                      initialProbs: 1
                       initialTime: 0
-                            tSpan: [0 5.0000e-01 1 1.5000e+00 &hellip; ] (1&times;21 double)
+                            tSpan: [0 0.500000000000000 1 &hellip; ] (1&times;21 double)
                    solutionScheme: 'FSP'
                     odeIntegrator: 'ode23s'
                   solutionSchemes: {}
@@ -187,6 +190,7 @@ ans =
                          GUIProps: []
                    fspConstraints: [1&times;1 struct]
                    pars_container: [1&times;1 containers.Map]
+
 </pre>
 <h2 id="4">Define SIS Model</h2>
 <p>Set up a simple model where susceptible (S) individuals become infected (I) at rate kI and become susceptible again at rate kS</p>
@@ -225,9 +229,12 @@ Reactions:
      w2: kS*I
  
 Model Parameters:
-    {'kI'}    {[         1]}
-    {'kS'}    {[2.0000e-01]}
+    {'kI'}    {[                1]}
+    {'kS'}    {[0.200000000000000]}
+
+
 ans = 
+
   SSIT with properties:
 
                        parameters: {2&times;2 cell}
@@ -245,7 +252,7 @@ ans =
                  initialCondition: [2&times;1 double]
                      initialProbs: 1
                       initialTime: 0
-                            tSpan: [0 5.0000e-01 1 1.5000e+00 &hellip; ] (1&times;21 double)
+                            tSpan: [0 0.500000000000000 1 &hellip; ] (1&times;21 double)
                    solutionScheme: 'FSP'
                     odeIntegrator: 'ode23s'
                   solutionSchemes: {}
@@ -265,6 +272,7 @@ ans =
                          GUIProps: []
                    fspConstraints: [1&times;1 struct]
                    pars_container: [2&times;1 containers.Map]
+
 </pre>
 <h2 id="5">Define SIR Model</h2>
 <p>Set up a simple model where susceptible (S) individuals become infected (I) at rate kI and are removed (R) - e.g., recovered with immunity, quarantined, etc. - at rate kR</p>
@@ -306,9 +314,12 @@ Reactions:
      w2: kR*I
  
 Model Parameters:
-    {'kI'}    {[         1]}
-    {'kR'}    {[2.0000e-01]}
+    {'kI'}    {[                1]}
+    {'kR'}    {[0.200000000000000]}
+
+
 ans = 
+
   SSIT with properties:
 
                        parameters: {2&times;2 cell}
@@ -326,7 +337,7 @@ ans =
                  initialCondition: [3&times;1 double]
                      initialProbs: 1
                       initialTime: 0
-                            tSpan: [0 5.0000e-01 1 1.5000e+00 &hellip; ] (1&times;21 double)
+                            tSpan: [0 0.500000000000000 1 &hellip; ] (1&times;21 double)
                    solutionScheme: 'FSP'
                     odeIntegrator: 'ode23s'
                   solutionSchemes: {}
@@ -346,6 +357,7 @@ ans =
                          GUIProps: []
                    fspConstraints: [1&times;1 struct]
                    pars_container: [2&times;1 containers.Map]
+
 </pre>
 <h2 id="6">Define SEIR Model</h2>
 <p>Set up a simple model where susceptible (S) individuals become infected but are not yet infectious - i.e., enter a latency period (E) - at rate kE, become infectious (I) at rate kI, and are removed (R) - e.g., recovered with immunity, quarantined, etc. - at rate kR</p>
@@ -392,10 +404,13 @@ Reactions:
      w3: kR*I
  
 Model Parameters:
-    {'kE'}    {[5.0000e-01]}
-    {'kI'}    {[5.0000e-01]}
-    {'kR'}    {[2.0000e-01]}
+    {'kE'}    {[0.500000000000000]}
+    {'kI'}    {[0.500000000000000]}
+    {'kR'}    {[0.200000000000000]}
+
+
 ans = 
+
   SSIT with properties:
 
                        parameters: {3&times;2 cell}
@@ -413,7 +428,7 @@ ans =
                  initialCondition: [4&times;1 double]
                      initialProbs: 1
                       initialTime: 0
-                            tSpan: [0 5.0000e-01 1 1.5000e+00 &hellip; ] (1&times;21 double)
+                            tSpan: [0 0.500000000000000 1 &hellip; ] (1&times;21 double)
                    solutionScheme: 'FSP'
                     odeIntegrator: 'ode23s'
                   solutionSchemes: {}
@@ -433,6 +448,7 @@ ans =
                          GUIProps: []
                    fspConstraints: [1&times;1 struct]
                    pars_container: [3&times;1 containers.Map]
+
 </pre>
 <h2 id="7">Compute Ordinary Differential Equations (ODEs)</h2>
 <pre class="codeinput">

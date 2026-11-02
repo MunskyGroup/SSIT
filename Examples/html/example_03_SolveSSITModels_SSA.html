@@ -9,7 +9,7 @@ To make changes, update the MATLAB code and republish this document.
 <title>example_03_SolveSSITModels_SSA</title>
 <meta name="generator" content="MATLAB 25.2">
 <link rel="schema.DC" href="http://purl.org/dc/elements/1.1/">
-<meta name="DC.date" content="2026-07-26">
+<meta name="DC.date" content="2026-10-31">
 <meta name="DC.source" content="example_03_SolveSSITModels_SSA.m">
 <style type="text/css">
 html,body,div,span,applet,object,iframe,h1,h2,h3,h4,h5,h6,p,blockquote,pre,a,abbr,acronym,address,big,cite,code,del,dfn,em,font,img,ins,kbd,q,s,samp,small,strike,strong,tt,var,b,u,i,center,dl,dt,dd,ol,ul,li,fieldset,form,label,legend,table,caption,tbody,tfoot,thead,tr,th,td{margin:0;padding:0;border:0;outline:0;font-size:100%;vertical-align:baseline;background:transparent}body{line-height:1}ol,ul{list-style:none}blockquote,q{quotes:none}blockquote:before,blockquote:after,q:before,q:after{content:'';content:none}:focus{outine:0}ins{text-decoration:none}del{text-decoration:line-through}table{border-collapse:collapse;border-spacing:0}
@@ -176,11 +176,14 @@ Reactions:
      w4: dr * mRNA
  
 Model Parameters:
-    {'kon' }    {[2.0000e-01]}
-    {'koff'}    {[2.0000e-01]}
-    {'kr'  }    {[        10]}
-    {'dr'  }    {[         5]}
+    {'kon' }    {[0.200000000000000]}
+    {'koff'}    {[0.200000000000000]}
+    {'kr'  }    {[               10]}
+    {'dr'  }    {[                5]}
+
+
 ans = 
+
   SSIT with properties:
 
                        parameters: {4&times;2 cell}
@@ -198,7 +201,7 @@ ans =
                  initialCondition: [3&times;1 double]
                      initialProbs: 1
                       initialTime: 0
-                            tSpan: [0 5.0000e-01 1 1.5000e+00 &hellip; ] (1&times;21 double)
+                            tSpan: [0 0.500000000000000 1 &hellip; ] (1&times;21 double)
                    solutionScheme: 'FSP'
                     odeIntegrator: 'ode23s'
                   solutionSchemes: {}
@@ -218,6 +221,7 @@ ans =
                          GUIProps: []
                    fspConstraints: [1&times;1 struct]
                    pars_container: [4&times;1 containers.Map]
+
 Species:
      offGene; IC = 1;  discrete stochastic
      onGene; IC = 0;  discrete stochastic
@@ -241,15 +245,18 @@ Input Signals:
      Hog1(t) = (a0+a1*exp(-r1*t)*(1-exp(-r2*t))*(t&gt;0))
  
 Model Parameters:
-    {'kon' }    {[2.0000e-01]}
-    {'koff'}    {[2.0000e-01]}
-    {'kr'  }    {[        10]}
-    {'dr'  }    {[         5]}
-    {'a0'  }    {[         5]}
-    {'a1'  }    {[        10]}
-    {'r1'  }    {[1.0000e-01]}
-    {'r2'  }    {[2.0000e-01]}
+    {'kon' }    {[0.200000000000000]}
+    {'koff'}    {[0.200000000000000]}
+    {'kr'  }    {[               10]}
+    {'dr'  }    {[                5]}
+    {'a0'  }    {[                5]}
+    {'a1'  }    {[               10]}
+    {'r1'  }    {[0.100000000000000]}
+    {'r2'  }    {[0.200000000000000]}
+
+
 ans = 
+
   SSIT with properties:
 
                        parameters: {8&times;2 cell}
@@ -267,7 +274,7 @@ ans =
                  initialCondition: [3&times;1 double]
                      initialProbs: 1
                       initialTime: 0
-                            tSpan: [0 5.0000e-01 1 1.5000e+00 &hellip; ] (1&times;21 double)
+                            tSpan: [0 0.500000000000000 1 &hellip; ] (1&times;21 double)
                    solutionScheme: 'FSP'
                     odeIntegrator: 'ode23s'
                   solutionSchemes: {}
@@ -287,6 +294,7 @@ ans =
                          GUIProps: []
                    fspConstraints: [1&times;1 struct]
                    pars_container: [8&times;1 containers.Map]
+
 Species:
      g1; IC = 1;  discrete stochastic
      g2; IC = 0;  discrete stochastic
@@ -333,25 +341,28 @@ Input Signals:
      Hog1(t) = A*(((1-(exp(1)^(-r1*(t-t0))))*exp(1)^(-r2*(t-t0)))/(1+((1-(exp(1)^(-r1*(t-t0))))*exp(1)^(-r2*(t-t0)))/M))^n*(t&gt;t0)
  
 Model Parameters:
-    {'t0'  }    {[3.1700e+00]}
-    {'k12' }    {[        78]}
-    {'k21o'}    {[    192000]}
-    {'k21i'}    {[      3200]}
-    {'k23' }    {[4.0200e-01]}
-    {'k34' }    {[7.8000e+00]}
-    {'k32' }    {[1.6200e+00]}
-    {'k43' }    {[2.2800e+00]}
-    {'dr'  }    {[2.9400e-01]}
-    {'kr1' }    {[4.6800e-02]}
-    {'kr2' }    {[7.2000e-01]}
-    {'kr3' }    {[5.9400e+01]}
-    {'kr4' }    {[3.2400e+00]}
-    {'r1'  }    {[4.1400e-03]}
-    {'r2'  }    {[4.2600e-01]}
-    {'A'   }    {[9.3000e+09]}
-    {'M'   }    {[6.4000e-04]}
-    {'n'   }    {[3.1000e+00]}
+    {'t0'  }    {[    3.170000000000000]}
+    {'k12' }    {[                   78]}
+    {'k21o'}    {[               192000]}
+    {'k21i'}    {[                 3200]}
+    {'k23' }    {[    0.402000000000000]}
+    {'k34' }    {[    7.800000000000000]}
+    {'k32' }    {[    1.620000000000000]}
+    {'k43' }    {[    2.280000000000000]}
+    {'dr'  }    {[    0.294000000000000]}
+    {'kr1' }    {[    0.046800000000000]}
+    {'kr2' }    {[    0.720000000000000]}
+    {'kr3' }    {[   59.399999999999999]}
+    {'kr4' }    {[    3.240000000000000]}
+    {'r1'  }    {[    0.004140000000000]}
+    {'r2'  }    {[    0.426000000000000]}
+    {'A'   }    {[9.300000000000000e+09]}
+    {'M'   }    {[6.400000000000001e-04]}
+    {'n'   }    {[    3.100000000000000]}
+
+
 ans = 
+
   SSIT with properties:
 
                        parameters: {18&times;2 cell}
@@ -369,7 +380,7 @@ ans =
                  initialCondition: [5&times;1 double]
                      initialProbs: 1
                       initialTime: 0
-                            tSpan: [0 5.0000e-01 1 1.5000e+00 &hellip; ] (1&times;21 double)
+                            tSpan: [0 0.500000000000000 1 &hellip; ] (1&times;21 double)
                    solutionScheme: 'FSP'
                     odeIntegrator: 'ode23s'
                   solutionSchemes: {}
@@ -389,6 +400,7 @@ ans =
                          GUIProps: []
                    fspConstraints: [1&times;1 struct]
                    pars_container: [18&times;1 containers.Map]
+
 </pre>
 <h2 id="4">Ex(1): Use Gillepsie's Stochastic Simulation Algorithm (SSA)</h2>
 <p>to solve the time evolution of state space probabilities for the bursting gene example model from example_1_CreateSSITModels</p>
@@ -404,13 +416,6 @@ ans =
     <span class="comment">% 'verbose' defaults to false, prints completed sim number to screen.</span>
     Model.ssaOptions.verbose=true;
 
-    <span class="comment">% A negative initial time is used to allow model to equilibrate</span>
-    <span class="comment">% before starting (burn-in). Large burn-in times cause long run times.</span>
-    Model.tSpan = [-100,Model.tSpan];
-
-    <span class="comment">% Set the initial time:</span>
-    Model.initialTime = -100;
-
     <span class="comment">% Run iterations in parallel with multiple cores, or execute serially:</span>
     Model.ssaOptions.useParallel = true;
 
@@ -420,9 +425,9 @@ ans =
     <span class="comment">% Plot SSA trajectories and means:</span>
     Model.plotSSA(speciesIdx=<span class="string">'all'</span>, numTraj=10,<span class="keyword">...</span>
         speciesNames=Model.species, lineProps={<span class="string">'linewidth'</span>,4}, <span class="keyword">...</span>
-        Title=<span class="string">"Bursting Gene"</span>, MeanOnly=true, TitleFontSize=32,<span class="keyword">...</span>
+        Title=<span class="string">"Bursting Gene"</span>, MeanOnly=false, TitleFontSize=32,<span class="keyword">...</span>
         AxisLabelSize=24, TickLabelSize=24, LegendFontSize=20,<span class="keyword">...</span>
-        LegendLocation=<span class="string">'east'</span>, XLabel=<span class="string">'Time'</span>, YLabel=<span class="string">'Molecule Count'</span>);
+        LegendLocation=<span class="string">'northeast'</span>, XLabel=<span class="string">'Time'</span>, YLabel=<span class="string">'Molecule Count'</span>);
 </pre>
 <pre class="codeoutput">1000 SSA Runs Completed
 </pre>
@@ -440,13 +445,6 @@ ans =
 <p>Set the number of simulations:</p>
 <pre class="codeinput">    STL1.ssaOptions.nSims=1000;
 
-    <span class="comment">% A negative initial time is used to allow model to equilibrate</span>
-    <span class="comment">% before starting (burn-in). Large burn-in times cause long run times.</span>
-    STL1.tSpan = [-100,STL1.tSpan];
-
-    <span class="comment">% Set the initial time:</span>
-    STL1.initialTime = -100;
-
     <span class="comment">% Run iterations in parallel with multiple cores, or execute serially:</span>
     STL1.ssaOptions.useParallel = true;
 
@@ -456,9 +454,9 @@ ans =
     <span class="comment">% Plot SSA trajectories and means:</span>
     STL1.plotSSA(speciesIdx=<span class="string">'all'</span>, numTraj=100,<span class="keyword">...</span>
         speciesNames=STL1.species, lineProps={<span class="string">'linewidth'</span>,4},<span class="keyword">...</span>
-        Title=<span class="string">"STL1"</span>, MeanOnly=true, TitleFontSize=32,<span class="keyword">...</span>
+        Title=<span class="string">"STL1"</span>, MeanOnly=false, TitleFontSize=32,<span class="keyword">...</span>
         AxisLabelSize=24, TickLabelSize=24,<span class="keyword">...</span>
-        LegendFontSize=20, LegendLocation=<span class="string">'east'</span>,<span class="keyword">...</span>
+        LegendFontSize=20, LegendLocation=<span class="string">'northeast'</span>,<span class="keyword">...</span>
         XLabel=<span class="string">'Time'</span>, YLabel=<span class="string">'Molecule Count'</span>);
 </pre>
 <img vspace="5" hspace="5" src="example_03_SolveSSITModels_SSA_03.png" alt=""> <img vspace="5" hspace="5" src="example_03_SolveSSITModels_SSA_04.png" alt=""> <h2 id="11">Make a video of the SSA trajectories being plotted:</h2>
@@ -565,13 +563,6 @@ STL1_4state.tSpan = linspace(0,50,101);
     % 'verbose' defaults to false, prints completed sim number to screen.
     Model.ssaOptions.verbose=true;
     
-    % A negative initial time is used to allow model to equilibrate 
-    % before starting (burn-in). Large burn-in times cause long run times.
-    Model.tSpan = [-100,Model.tSpan];
-    
-    % Set the initial time:
-    Model.initialTime = -100; 
-    
     % Run iterations in parallel with multiple cores, or execute serially:
     Model.ssaOptions.useParallel = true;
     
@@ -581,9 +572,9 @@ STL1_4state.tSpan = linspace(0,50,101);
     % Plot SSA trajectories and means:
     Model.plotSSA(speciesIdx='all', numTraj=10,...
         speciesNames=Model.species, lineProps={'linewidth',4}, ...
-        Title="Bursting Gene", MeanOnly=true, TitleFontSize=32,...
+        Title="Bursting Gene", MeanOnly=false, TitleFontSize=32,...
         AxisLabelSize=24, TickLabelSize=24, LegendFontSize=20,...
-        LegendLocation='east', XLabel='Time', YLabel='Molecule Count');
+        LegendLocation='northeast', XLabel='Time', YLabel='Molecule Count');
 
     %% Make a video of the SSA trajectories being plotted:
     % Model.plotSSA(makeMovie=true,
@@ -599,13 +590,6 @@ STL1_4state.tSpan = linspace(0,50,101);
     % Set the number of simulations:
     STL1.ssaOptions.nSims=1000;
     
-    % A negative initial time is used to allow model to equilibrate 
-    % before starting (burn-in). Large burn-in times cause long run times.
-    STL1.tSpan = [-100,STL1.tSpan];
-
-    % Set the initial time:
-    STL1.initialTime = -100; 
-    
     % Run iterations in parallel with multiple cores, or execute serially:
     STL1.ssaOptions.useParallel = true;
     
@@ -615,9 +599,9 @@ STL1_4state.tSpan = linspace(0,50,101);
     % Plot SSA trajectories and means:
     STL1.plotSSA(speciesIdx='all', numTraj=100,...
         speciesNames=STL1.species, lineProps={'linewidth',4},...
-        Title="STL1", MeanOnly=true, TitleFontSize=32,...
+        Title="STL1", MeanOnly=false, TitleFontSize=32,...
         AxisLabelSize=24, TickLabelSize=24,...
-        LegendFontSize=20, LegendLocation='east',...
+        LegendFontSize=20, LegendLocation='northeast',...
         XLabel='Time', YLabel='Molecule Count');
 
     %% Make a video of the SSA trajectories being plotted:
