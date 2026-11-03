@@ -1,4 +1,4 @@
-# SIT: Stochastic System Identification Toolkit — A comprehensive MATLAB toolkit for Chemical Master Equation and Finite State Projection analyses to infer predictive models for single-cell data.
+# SSIT: Stochastic System Identification Toolkit — A comprehensive MATLAB toolkit for Chemical Master Equation and Finite State Projection analyses to infer predictive models for single-cell data.
 
 ![SSIT](https://github.com/MunskyGroup/SSIT/blob/main/images/GraphicalAbstract.png)
 
