@@ -1,0 +1,66 @@
+cff-version: 1.2.0
+message: "If you use the SSIT in your research, please cite it using the metadata below."
+type: software
+title: "Stochastic System Identification Toolkit (SSIT)"
+abstract: >-
+  MATLAB toolkit to specify and solve the Chemical Master Equation (CME) for
+  discrete stochastic models of single-cell gene regulation. The SSIT supports
+  finite state projection (FSP), stochastic simulation (SSA), moment and ODE
+  analyses, sensitivity analysis, Fisher information and experiment design,
+  and parameter inference (MLE, Metropolis-Hastings, ABC) from single-cell
+  data such as smFISH.
+authors:
+  - given-names: Alex
+    family-names: Popinga
+    affiliation: Colorado State University
+  - given-names: Jack
+    family-names: Forman
+    affiliation: Colorado State University
+  - given-names: Dmitri
+    family-names: Svetlov
+    affiliation: Colorado State University
+  - given-names: Huy
+    family-names: Vo
+  - given-names: Joshua
+    family-names: Cook
+  - given-names: Eric
+    family-names: Ron
+  - given-names: Brian
+    family-names: Munsky
+    affiliation: Colorado State University
+    email: brian.munsky@colostate.edu
+repository-code: "https://github.com/MunskyGroup/SSIT"
+license: BSD-3-Clause
+version: 1.2.2
+keywords:
+  - chemical master equation
+  - finite state projection
+  - stochastic simulation algorithm
+  - continuous-time Markov chain
+  - stochastic gene expression
+  - single-cell
+  - smFISH
+  - parameter estimation
+  - Bayesian inference
+  - Fisher information
+  - experiment design
+  - systems biology
+  - MATLAB
+preferred-citation:
+  type: article
+  title: "The Stochastic System Identification Toolkit (SSIT) to model, fit, predict, and design experiments"
+  authors:
+    - given-names: Alex
+      family-names: Popinga
+    - given-names: Jack
+      family-names: Forman
+    - given-names: Dmitri
+      family-names: Svetlov
+    - given-names: Huy
+      family-names: Vo
+    - given-names: Brian
+      family-names: Munsky
+  journal: bioRxiv
+  year: 2026
+  doi: 10.64898/2026.02.20.707039
+  url: "https://www.biorxiv.org/content/10.64898/2026.02.20.707039v2"
