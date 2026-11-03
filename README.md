@@ -1,4 +1,4 @@
-# MATLAB Stochastic System Identification Toolkit (SSIT) for modeling single-cell fluorescence microscopy data
+# SIT: Stochastic System Identification Toolkit — A comprehensive MATLAB toolkit for Chemical Master Equation and Finite State Projection analyses to infer predictive models for single-cell data.
 
 ![SSIT](https://github.com/MunskyGroup/SSIT/blob/main/images/GraphicalAbstract.png)
 
@@ -6,7 +6,7 @@ Authors: Alex Popinga, Jack Forman, Dmitri Svetlov, Huy Vo, Joshua Cook, Eric Ro
 
 [![License](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
 
-The SSIT allows users to specify and solve the **Chemical Master Equation** (CME) for discrete stochastic models, especially those used for the analysis of single-cell gene regulaton.  
+The SSIT allows users to specify and solve the **Chemical Master Equation** (CME) for discrete stochastic models, including finite state projection (FSP), stochastic simulation algorithm (SSA), and moments closures and methods to apply these tools to experimental data, infer parameters and their uncertainties, and design optimal experiments to improve the predictive modeling of single-cell gene regulation.  
 
 **[To learn more about the capabilities and use of the SSIT, please read our pre-print on the bioRxiv!](https://www.biorxiv.org/content/10.64898/2026.02.20.707039v2)**
 
