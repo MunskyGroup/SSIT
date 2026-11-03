@@ -5,6 +5,9 @@
 Authors: Alex Popinga, Jack Forman, Dmitri Svetlov, Huy Vo, Joshua Cook, Eric Ron, Brian Munsky
 
 [![License](https://img.shields.io/badge/License-BSD_3--Clause-blue.svg)](https://opensource.org/licenses/BSD-3-Clause)
+[![bioRxiv](https://img.shields.io/badge/bioRxiv-10.64898%2F2026.02.20.707039-b31b1b.svg)](https://www.biorxiv.org/content/10.64898/2026.02.20.707039v2)
+[![View SSIT on File Exchange](https://www.mathworks.com/matlabcentral/images/matlab-file-exchange.svg)](https://www.mathworks.com/matlabcentral/fileexchange/136856-ssit)
+[![DOI](https://zenodo.org/badge/DOI/10.5281/zenodo.10023437.svg)](https://doi.org/10.5281/zenodo.10023437)
 
 The SSIT allows users to specify and solve the **Chemical Master Equation** (CME) for discrete stochastic models, including finite state projection (FSP), stochastic simulation algorithm (SSA), and moments closures and methods to apply these tools to experimental data, infer parameters and their uncertainties, and design optimal experiments to improve the predictive modeling of single-cell gene regulation.  
 

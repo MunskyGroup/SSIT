@@ -30,6 +30,10 @@ authors:
     affiliation: Colorado State University
     email: brian.munsky@colostate.edu
 repository-code: "https://github.com/MunskyGroup/SSIT"
+identifiers:
+  - type: doi
+    value: 10.5281/zenodo.10023437
+    description: Zenodo archive of the SSIT software
 license: BSD-3-Clause
 version: 1.2.2
 keywords:
