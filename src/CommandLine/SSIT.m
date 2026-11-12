@@ -144,6 +144,9 @@ classdef SSIT
         %       'unobservedSpecies',[]
         %       'PDO',[]
         pdoOptions = struct('unobservedSpecies',[],'PDO',[]);
+        % Options for the PGF solver (solutionScheme = 'pgf'); see
+        % ssit.pgf.defaultOptions for the fields and their defaults.
+        pgfOptions = ssit.pgf.defaultOptions();
         % Options for FIM analyses
         %   defaults:
         %       'modelVarsToFit','all'
@@ -205,6 +208,13 @@ classdef SSIT
         % Model description
         description = {'Add model description here'};
         GUIProps = [];  % Structure to hold GUI information for faster loading and saving.
+    end
+
+    properties (Hidden, Transient)
+        % Setup of the last PGF solve (translated model, sparse grid,
+        % operators), reused while the model structure is unchanged; see
+        % ssit.pgf.solve.  Not saved with the model.
+        pgfCache = [];
     end
 
     properties (Dependent)
@@ -2514,6 +2524,10 @@ classdef SSIT
             %   F.solutionScheme = 'fspSens'
             %   [soln,bounds] = F.solve(returnType='soln');  % Returns the sensitivity and the
             %                             % bounds for the FSP projection
+            %   F = F.solve(solver='pgf');  % PGF on a sparse grid (polynomial
+            %                             % propensities); F.Solutions.pgf holds G,
+            %                             % means, covs. Options: F.pgfOptions
+            %                             % (see ssit.pgf.defaultOptions).
             % See also: SSIT.makePlot for information on how to visualize
             % the solution data. 
 
@@ -3021,6 +3035,12 @@ classdef SSIT
                         bConstraints = max(obj.fspConstraints.f((reshape(Solution.moments(1:nSp,:),[nSp,length(obj.tSpan)]))),[],2);
                         bConstraints = max(bConstraints,obj.fspConstraints.b);
                     end
+
+                case 'pgf'
+                    % Probability generating function on a sparse grid
+                    % (polynomial propensities only); see ssit.pgf.solve.
+                    [Solution.pgf, obj.pgfCache] = ssit.pgf.solve(obj, [], obj.pgfCache);
+                    bConstraints = [];
             end
 
             if nargout>=3
@@ -3999,6 +4019,7 @@ classdef SSIT
             % Define other properties needed in other functions.
             
             obj.dataSet.linkedSpecies = linkedSpecies;
+            obj.dataSet.tensorSpecies = TAB.Properties.VariableNames(2:end); % species of the dataTensor dimensions
             obj.dataSet.times = times';
 
             obj.dataSet.app.SpeciesForFitPlot.Items = linkedSpecies.keys();
@@ -4159,6 +4180,14 @@ classdef SSIT
                 stateSpace =[];
                 computeSensitivity = false;
                 reuseExistingSolution = false
+            end
+
+            if strcmpi(obj.solutionScheme,'pgf')
+                % PGF approximate likelihood (pgfOptions.loss); see
+                % ssit.pgf.fitSetup. No gradient or fit solutions.
+                logL = ssit.pgf.logLikelihood(ssit.pgf.fitSetup(obj),pars);
+                gradient = []; fitSolutions = [];
+                return
             end
 
             if reuseExistingSolution
@@ -5030,6 +5059,12 @@ classdef SSIT
                 objFun = @(x)-obj.computeLikelihood(exp(x),FSPsoln.stateSpace);  % We want to MAXIMIZE the likelihood.
             elseif strcmpi(obj.solutionScheme,'ode')  % Set solution scheme to ode.
                 objFun = @(x)-obj.computeLikelihoodODE(exp(x));  % We want to MAXIMIZE the likelihood.
+            elseif strcmpi(obj.solutionScheme,'pgf')  % PGF fit, set up once (ssit.pgf.fitSetup).
+                pgfFit = ssit.pgf.fitSetup(obj);
+                objFun = @(x)-ssit.pgf.logLikelihood(pgfFit,exp(x));
+                if ~isfield(allFitOptions,'obj')||isempty(allFitOptions.obj)
+                    allFitOptions.obj = @(p)ssit.pgf.logLikelihood(pgfFit,p);  % used by MH
+                end
             end
 
             x0 = log(parGuess);
@@ -5037,6 +5072,13 @@ classdef SSIT
             switch lower(fitAlgorithm)
                 case 'fminsearch'
                     [x0,likelihood,~,otherResults]  = fminsearch(objFun,x0,allFitOptions);
+
+                case {'levenbergmarquardt','lm'}
+                    % PGF only: ssit.pgf.levenbergMarquardt (no toolbox).
+                    if ~strcmpi(obj.solutionScheme,'pgf')
+                        error('SSIT:maximizeLikelihood','fitAlgorithm ''levenbergMarquardt'' requires solutionScheme = ''pgf''.')
+                    end
+                    [x0,likelihood,otherResults] = ssit.pgf.levenbergMarquardt(pgfFit,x0,allFitOptions);
 
                 case 'fminunc'
                     obj.fspOptions.fspTol = inf;
@@ -5318,6 +5360,10 @@ classdef SSIT
             if strcmpi(obj.solutionScheme,'fsp')&&(nargout>=4||strcmpi(opts.returnType,'ssit'))
                 if obj.computeLikelihood(exp(x0(:)))>obj.computeLikelihood([obj.parameters{obj.fittingOptions.modelVarsToFit,2}]')
                     % Update best parameters set in returned model.
+                    obj.parameters(obj.fittingOptions.modelVarsToFit,2) = num2cell(exp(x0(:)));
+                end
+            elseif strcmpi(obj.solutionScheme,'pgf')&&(nargout>=4||strcmpi(opts.returnType,'ssit'))
+                if objFun(x0(:))<objFun(log([obj.parameters{obj.fittingOptions.modelVarsToFit,2}]'))
                     obj.parameters(obj.fittingOptions.modelVarsToFit,2) = num2cell(exp(x0(:)));
                 end
             end
