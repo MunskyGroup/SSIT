@@ -212,6 +212,7 @@ end
 % If using a SS approximation for initial condition, this may require
 % iteration.
 expandSS = true;
+validatedQSSVec = [];   % last validated steady-state vector (warm start)
 while expandSS
     expandSS = false;
 
@@ -274,46 +275,35 @@ while expandSS
         jacR = jac(1:end-constraintCount,1:end-constraintCount);
         jacB = jac(end-constraintCount+1:end,1:end-constraintCount);
 
-        try
-            % Compute the least negative EVP.
-            warning('off')
-            
-            if ~exist('eigVec','var')
-                [eigVec,eigVal]  = eigs(jacR,1,'lr');
-            end
-            opts.v0 = [eigVec;zeros(size(jacR,1)-length(eigVec),1)];
-            [eigVec,eigVal]  = eigs(jacR,1,'lr',opts);
+        % Validated quasi-steady-state (Perron vector of jacR) by
+        % shift-invert eigs, with a reflecting linear solve as the last
+        % resort (see ssit.fsp.validatedQSS). A candidate is only accepted
+        % after validation, so a non-converged eigs result can no longer
+        % be mistaken for a steady state (which previously also drove
+        % spurious FSP expansions). Warm-start only from a validated vector
+        % from the previous (smaller) FSP.
+        v0 = [];
+        if ~isempty(validatedQSSVec)
+            v0 = [validatedQSSVec;zeros(size(jacR,1)-length(validatedQSSVec),1)];
+        end
+        [eigVec,qssInfo] = ssit.fsp.validatedQSS(jacR,jacB,v0);
+        if qssInfo.ok
+            validatedQSSVec = eigVec;
+        else
+            validatedQSSVec = [];
+            warning('SSIT:adaptiveFspSolve:QSSNotValidated', ...
+                'Steady-state initial distribution could not be validated (%s). Using %s distribution.', ...
+                qssInfo.message, qssInfo.method);
+        end
+        if verbose && ~strcmp(qssInfo.method,'smallestabs')
+            fprintf('Steady-state initial distribution computed with method ''%s'' (%s).\n', ...
+                qssInfo.method, qssInfo.message);
+        end
 
-            % Check that largest EVP is within tolerance to accept as
-            % steady state. Otherwise expand further.
-            % if eigVal>-minEscapeRate
-            eigVec = abs(eigVec)/sum(abs(eigVec));
-            if sum(abs(jacB*eigVec))>minEscapeRate
-                expandSS = true;
-            end
-        catch
-            try
-                % Compute the least negative EVP.
-                [eigVec,eigVal] = eigs(jacR,1);
-                % Check that largest EVP is within tolerance to accept as
-                % steady state. Otherwise expand further.
-                eigVec = abs(eigVec)/sum(abs(eigVec));
-                if sum(abs(jacB*eigVec))>minEscapeRate
-                % if eigVal>-1e-5
-                    % eigVec = eigVec/sum(eigVec);
-                % else
-                    expandSS = true;
-                end
-            catch
-                % If sparse eig function does not work, try null().
-                try
-                    eigVec = null(full(jacR));
-                catch
-                    % If nothing works, use uniform and give warning.
-                    disp('Could not find null space. Using uniform.')
-                    eigVec = ones(size(jac,1),1);
-                end
-            end
+        % Expand the FSP further if too much probability escapes from
+        % the steady-state distribution.
+        if qssInfo.escape>minEscapeRate
+            expandSS = true;
         end
 
         % Expand steady state state space if needed.
