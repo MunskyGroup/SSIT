@@ -2943,7 +2943,12 @@ classdef SSIT
                                         trajObservations = ...
                                             (i-1)*Nt*obj.ssaOptions.nSimsPerExpt+(j-1)*obj.ssaOptions.nSimsPerExpt+k;
                                         for s = 1:size(Solution.trajs,1)
-                                            warning('off')
+                                            % Growing the table row by row raises MATLAB:table:RowsAddedExistingVars.
+                                            % Show it once, then turn off only that warning.
+                                            [~,lastWarnId] = lastwarn;
+                                            if strcmp(lastWarnId,'MATLAB:table:RowsAddedExistingVars')
+                                                warning('off','MATLAB:table:RowsAddedExistingVars');
+                                            end
 
                                             tableColumn = ...
                                                 "exp" + i + "_" + obj.species{s};
@@ -2965,7 +2970,12 @@ classdef SSIT
                                 for i = 1:obj.ssaOptions.Nexp
                                     for k=1:obj.ssaOptions.Nsims
                                         for s = 1:size(Solution.trajs,1)
-                                            warning('off')
+                                            % Growing the table row by row raises MATLAB:table:RowsAddedExistingVars.
+                                            % Show it once, then turn off only that warning.
+                                            [~,lastWarnId] = lastwarn;
+                                            if strcmp(lastWarnId,'MATLAB:table:RowsAddedExistingVars')
+                                                warning('off','MATLAB:table:RowsAddedExistingVars');
+                                            end
 
                                             tableColumn = ...
                                                 "exp" + i + "_" + obj.species{s};
@@ -3260,7 +3270,12 @@ classdef SSIT
                     A.time(tableRows) = obj.tSpan(iT);
                     for ie = 1:obj.ssaOptions.Nexp
                         for s = 1:size(Solution.trajs,1)
-                            warning('off')
+                            % Growing the table row by row raises MATLAB:table:RowsAddedExistingVars.
+                            % Show it once, then turn off only that warning.
+                            [~,lastWarnId] = lastwarn;
+                            if strcmp(lastWarnId,'MATLAB:table:RowsAddedExistingVars')
+                                warning('off','MATLAB:table:RowsAddedExistingVars');
+                            end
 
                             tableColumn = ...
                                 "exp" + ie + "_" + species2save{s};
@@ -5634,8 +5649,15 @@ classdef SSIT
                 jac = jac(1:end-numConstraints,1:end-numConstraints);
                 jac = jac+diag(sum(jac));
                 try
-                    warning('off')
+                    % jac is singular by construction, so eigs may warn.
+                    % Show such a warning once, then turn off only that
+                    % warning.
+                    lastwarn('');
                     [eigVec,~] = eigs(jac,1,'smallestabs');
+                    [~,lastWarnId] = lastwarn;
+                    if ~isempty(lastWarnId)
+                        warning('off',lastWarnId);
+                    end
                 catch
                     try
                         [eigVec,~] = eigs(jac,0);

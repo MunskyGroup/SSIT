@@ -343,8 +343,12 @@ classdef FspMatrix
                 A = [gA,gB;gC,gD];
                 aNaN = isnan(A);
                 if sum(aNaN,"all")>0
-                    warning('NaNs detected and set to zero in jacobian.  Results may be inaccurate.')
-                    warning('off')
+                    % Show this warning once, then turn off only this
+                    % warning (not all warnings) for the rest of the session.
+                    warning('SSIT:FspMatrix:NaNJacobian', ...
+                        ['NaNs detected and set to zero in jacobian.  Results may be inaccurate. ', ...
+                        '(Further occurrences of this warning are suppressed.)'])
+                    warning('off','SSIT:FspMatrix:NaNJacobian')
                     A(aNaN)=0;
                 end
             end
