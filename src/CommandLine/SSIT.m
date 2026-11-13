@@ -2132,6 +2132,106 @@ classdef SSIT
             obj.pdoOptions.PDO = pdo;
         end
 
+        function inds = pdoParIndices(obj)
+            % SSIT.pdoParIndices - Indices (into
+            % pdoOptions.props.ParameterGuess) of the PDO parameters
+            % selected for fitting by fittingOptions.pdoVarsToFit.
+            pdoVars = obj.fittingOptions.pdoVarsToFit;
+            if isempty(pdoVars)
+                inds = [];
+            elseif (ischar(pdoVars)||isstring(pdoVars))&&strcmpi(pdoVars,'all')
+                inds = 1:length(obj.pdoParameterGuess);
+            elseif islogical(pdoVars)
+                inds = find(pdoVars);
+            else
+                inds = pdoVars;
+            end
+        end
+
+        function guess = pdoParameterGuess(obj)
+            % SSIT.pdoParameterGuess - Current numeric PDO parameter
+            % vector (pdoOptions.props.ParameterGuess), or [] if none.
+            guess = [];
+            if isfield(obj.pdoOptions,'props')&&isfield(obj.pdoOptions.props,'ParameterGuess')
+                guess = obj.pdoOptions.props.ParameterGuess;
+                if ischar(guess)||isstring(guess)
+                    guess = eval(guess);
+                end
+            end
+            guess = reshape(guess,1,[]);
+        end
+
+        function pars = getFitParameters(obj)
+            % SSIT.getFitParameters - Returns the current values of all
+            % free parameters as a row vector: model parameters
+            % (fittingOptions.modelVarsToFit) followed by PDO parameters
+            % (fittingOptions.pdoVarsToFit). This is the parameter
+            % ordering used by computeLikelihood and maximizeLikelihood.
+            modelVars = obj.fittingOptions.modelVarsToFit;
+            if (ischar(modelVars)||isstring(modelVars))&&strcmpi(modelVars,'all')
+                modelVars = 1:size(obj.parameters,1);
+            end
+            pars = [obj.parameters{modelVars,2}];
+            indsPdo = obj.pdoParIndices;
+            if ~isempty(indsPdo)
+                guess = obj.pdoParameterGuess;
+                pars = [pars,guess(indsPdo)];
+            end
+        end
+
+        function obj = setFitParameters(obj,pars)
+            % SSIT.setFitParameters - Sets all free parameters from a
+            % vector ordered as in getFitParameters (model parameters
+            % followed by PDO parameters). If PDO parameters are included,
+            % pdoOptions.props.ParameterGuess is updated and the PDO is
+            % regenerated. If only the model parameters are supplied, the
+            % PDO parameters are left unchanged.
+            modelVars = obj.fittingOptions.modelVarsToFit;
+            if (ischar(modelVars)||isstring(modelVars))&&strcmpi(modelVars,'all')
+                modelVars = 1:size(obj.parameters,1);
+            end
+            nModelPars = length(modelVars);
+            indsPdo = obj.pdoParIndices;
+            if length(pars)~=nModelPars+length(indsPdo) && length(pars)~=nModelPars
+                error('SSIT:setFitParameters:wrongSize', ...
+                    'Expected %d parameters (%d model + %d PDO), got %d.', ...
+                    nModelPars+length(indsPdo),nModelPars,length(indsPdo),length(pars));
+            end
+            obj.parameters(modelVars,2) = num2cell(pars(1:nModelPars));
+            if ~isempty(indsPdo) && length(pars)>nModelPars
+                guess = obj.pdoParameterGuess;
+                guess(indsPdo) = pars(nModelPars+1:end);
+                obj.pdoOptions.props.ParameterGuess = guess;
+                obj = obj.regeneratePDO;
+            end
+        end
+
+        function obj = regeneratePDO(obj)
+            % SSIT.regeneratePDO - Rebuilds pdoOptions.PDO from the current
+            % pdoOptions (e.g., after changing PDO parameters), keeping the
+            % size of the existing PDO, or using the stored FSP solution if
+            % there is no existing PDO.
+            if ~isempty(obj.pdoOptions.PDO)
+                if isfield(obj.hybridOptions,'upstreamODEs')
+                    speciesStochastic = setdiff(obj.species,obj.hybridOptions.upstreamODEs,'stable');
+                else
+                    speciesStochastic = obj.species;
+                end
+                if isempty(obj.pdoOptions.unobservedSpecies)
+                    indsObserved = 1:length(speciesStochastic);
+                else
+                    indsObserved = find(~ismember(speciesStochastic,obj.pdoOptions.unobservedSpecies));
+                end
+                maxSize = ones(1,length(speciesStochastic));
+                for k = 1:length(indsObserved)
+                    maxSize(indsObserved(k)) = size(obj.pdoOptions.PDO.conditionalPmfs{k},2);
+                end
+                obj.pdoOptions.PDO = obj.generatePDO(obj.pdoOptions,[],[],[],maxSize);
+            elseif isfield(obj.Solutions,'fsp')&&~isempty(obj.Solutions.fsp)
+                obj.pdoOptions.PDO = obj.generatePDO(obj.pdoOptions,[],obj.Solutions.fsp);
+            end
+        end
+
         function [logL,P] = findPdoError(obj,pdoType,lambda,True,Distorted)
             % This function calculates the likelihood of observed data
             % given true data and an assumed PDO model.
@@ -4193,12 +4293,16 @@ classdef SSIT
             if reuseExistingSolution
                 solutions = obj.Solutions;  % Solve the FSP analysis
 
-                if strcmp(obj.fittingOptions.pdoVarsToFit,'all')
-                    indsPdoParsToFit = [1:length(obj.pdoOptions.props.ParameterGuess)];
-                else
-                    indsPdoParsToFit = obj.fittingOptions.pdoVarsToFit;
-                end
+                indsPdoParsToFit = obj.pdoParIndices;
                 nPdoPars = length(indsPdoParsToFit);
+                if strcmp(obj.fittingOptions.modelVarsToFit,'all')
+                    nModelPars = size(obj.parameters,1);
+                else
+                    nModelPars = length(obj.fittingOptions.modelVarsToFit);
+                end
+                if isempty(pars)
+                    pars = obj.getFitParameters;
+                end
 
             else
                 % Reset state space if it has inconsistencies
@@ -4216,17 +4320,13 @@ classdef SSIT
                 nModelPars = length(indsParsToFit);
 
                 % then for PDO parameters
-                if strcmp(obj.fittingOptions.pdoVarsToFit,'all')
-                    indsPdoParsToFit = [1:length(obj.pdoOptions.props.ParameterGuess)];
-                else
-                    indsPdoParsToFit = obj.fittingOptions.pdoVarsToFit;
-                end
+                indsPdoParsToFit = obj.pdoParIndices;
                 nPdoPars = length(indsPdoParsToFit);
 
                 % if parameters are not provided, use the ones stored in the
-                % SSIT object.
+                % SSIT object (model parameters followed by PDO parameters).
                 if isempty(pars)
-                    pars = [obj.parameters{indsParsToFit,2}];
+                    pars = obj.getFitParameters;
                 end
 
                 % save original parameters
@@ -4275,8 +4375,12 @@ classdef SSIT
 
             % Formulate PDO if one is used and it has adjustable
             % parameters.
-            if ~isempty(pars)&&nPdoPars>0
-                obj.pdoOptions.props.ParameterGuess(indsPdoParsToFit) = pars(nModelPars+1:end);
+            % pars = [model pars, PDO pars]; if only model parameters are
+            % supplied, the stored PDO parameters are kept.
+            if nPdoPars>0&&length(pars)==nModelPars+nPdoPars
+                guess = obj.pdoParameterGuess;
+                guess(indsPdoParsToFit) = pars(nModelPars+1:end);
+                obj.pdoOptions.props.ParameterGuess = guess;
                 obj.pdoOptions.PDO = obj.generatePDO(obj.pdoOptions,[],solutions.fsp); % call method to generate the PDO.
             end
 
@@ -5042,7 +5146,8 @@ classdef SSIT
                 obj.fittingOptions.modelVarsToFit = (1:size(obj.parameters,1));
             end
             if isempty(parGuess)
-                parGuess = [obj.parameters{obj.fittingOptions.modelVarsToFit,2}]';
+                % Model parameters followed by any PDO parameters.
+                parGuess = obj.getFitParameters';
             end
 
             if strcmpi(obj.solutionScheme,'fspsens')   % Set solution scheme to FSP.
@@ -5358,9 +5463,9 @@ classdef SSIT
             % Check if the fit resulted in better parameters for max
             % posterior and update if so.
             if strcmpi(obj.solutionScheme,'fsp')&&(nargout>=4||strcmpi(opts.returnType,'ssit'))
-                if obj.computeLikelihood(exp(x0(:)))>obj.computeLikelihood([obj.parameters{obj.fittingOptions.modelVarsToFit,2}]')
-                    % Update best parameters set in returned model.
-                    obj.parameters(obj.fittingOptions.modelVarsToFit,2) = num2cell(exp(x0(:)));
+                if obj.computeLikelihood(exp(x0(:)))>obj.computeLikelihood(obj.getFitParameters')
+                    % Update best parameters set (model and PDO) in returned model.
+                    obj = obj.setFitParameters(exp(x0(:)'));
                 end
             elseif strcmpi(obj.solutionScheme,'pgf')&&(nargout>=4||strcmpi(opts.returnType,'ssit'))
                 if objFun(x0(:))<objFun(log([obj.parameters{obj.fittingOptions.modelVarsToFit,2}]'))

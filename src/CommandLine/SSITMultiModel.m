@@ -41,15 +41,15 @@ classdef SSITMultiModel
                     'Parameter Indices', ...
                     'All Independent','All Identical','Abort','Abort');
                 switch answer
-                    case 'All Independent' 
+                    case 'All Independent'
                         k = 0;
                         for i = 1:length(SSITMods)
-                            parIndices{i} = k+[1:length(SSITMods{i}.fittingOptions.modelVarsToFit)];
+                            parIndices{i} = k+[1:length(SMM.SSITModels{i}.getFitParameters)];
                             k = max(parIndices{i});
                         end
-                    case 'All Identical' 
+                    case 'All Identical'
                         for i = 1:length(SSITMods)
-                            parIndices{i} = [1:length(SSITMods{1}.fittingOptions.modelVarsToFit)];
+                            parIndices{i} = [1:length(SMM.SSITModels{1}.getFitParameters)];
                         end
                     case 'Abort'
                         return
@@ -61,10 +61,10 @@ classdef SSITMultiModel
             SMM.parameterConstraints = parConstraints;
             
             % Update statespaces if they are provide or are available.
+            nMod = length(SSITMods);
             if ~isempty(stateSpaces)
                 SMM.fspStateSpaces = stateSpaces;
             else
-                nMod = length(SSITMods);
                 SMM.fspStateSpaces = cell(1,nMod);
                 for i = 1:nMod
                     if isfield(SMM.SSITModels{i}.Solutions,'stateSpace')
@@ -76,8 +76,11 @@ classdef SSITMultiModel
                 % if ischar(SMM.SSITModels{i}.fittingOptions.modelVarsToFit)&&strcmpi(SMM.SSITModels{i}.fittingOptions.modelVarsToFit,'all')
                 %     SMM.SSITModels{i}.fittingOptions.modelVarsToFit = [1:size(SMM.SSITModels{i}.parameters,1)];
                 % end
+                % Free parameters of model i: model parameters
+                % (modelVarsToFit) followed by any PDO parameters
+                % (pdoVarsToFit).
                 SMM.parameters(1,SMM.parameterIndices{i}) = ...
-                    [SMM.SSITModels{i}.parameters{SMM.SSITModels{i}.fittingOptions.modelVarsToFit,2}];
+                    SMM.SSITModels{i}.getFitParameters;
             end
         end
 
@@ -106,7 +109,7 @@ classdef SSITMultiModel
             nMod = length(SMM.SSITModels);
             for i = 1:nMod
                 SMM.parameters(1,SMM.parameterIndices{i}) = ...
-                    [SMM.SSITModels{i}.parameters{SMM.SSITModels{i}.fittingOptions.modelVarsToFit,2}];
+                    SMM.SSITModels{i}.getFitParameters;
             end
         end
 
@@ -219,8 +222,10 @@ classdef SSITMultiModel
             
             Nmods = length(SMM.SSITModels);
             for i = 1:Nmods
-                SMM.SSITModels{i}.parameters(SMM.SSITModels{i}.fittingOptions.modelVarsToFit,2) = ...
-                    num2cell(parameters(SMM.parameterIndices{i}));
+                % Sets model parameters and, if included, PDO parameters
+                % (which also regenerates the PDO).
+                SMM.SSITModels{i} = SMM.SSITModels{i}.setFitParameters( ...
+                    parameters(SMM.parameterIndices{i}));
                 if makeplot
                     solnType = SMM.SSITModels{i}.solutionScheme;
                     SMM.SSITModels{i}.solutionScheme = 'FSP';
@@ -531,7 +536,9 @@ classdef SSITMultiModel
             plotMat = zeros(nMod,nPars);
             for iMod = 1:nMod
                 plotMat(iMod,:) = [SMM.SSITModels{iMod}.parameters{:,2}];
-                plotMat(iMod,SMM.SSITModels{iMod}.fittingOptions.modelVarsToFit) = SMM.parameters(SMM.parameterIndices{iMod});
+                modelVars = SMM.SSITModels{iMod}.fittingOptions.modelVarsToFit;
+                modPars = SMM.parameters(SMM.parameterIndices{iMod});
+                plotMat(iMod,modelVars) = modPars(1:length(modelVars)); % exclude PDO parameters
             end
             if relative
                 plotMatRel = plotMat./repmat(mean(plotMat),nMod,1);

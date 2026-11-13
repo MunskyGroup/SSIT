@@ -270,6 +270,63 @@ switch app.DistortionTypeDropDown.Value
             end
         end
 
+    case 'Intensity Binning - Parametrized'
+        % Maps a discrete true count x to a measured (integer) intensity y
+        % that is uniformly distributed within a bin:
+        %   x = 0  -> y uniform on the integers in [L, T)
+        %   x >= 1 -> y uniform on the integers in [T+(x-1)*W, T+x*W)
+        % Per-species properties (S1, S2, ...), each either numeric or a
+        % function (handle or char) of the PDO parameter vector C:
+        %   BinThresholdS<i> - T, lower edge of bin 1 (required)
+        %   BinWidthS<i>     - W, width of bins x >= 1 (required)
+        %   LowerBoundS<i>   - L, lower edge of bin 0 (optional, default 0)
+        % PDO parameters C are given by paramsPDO or by
+        % props.ParameterGuess, and can be fit using
+        % fittingOptions.pdoVarsToFit. Example (shared width, two species):
+        %   props.ParameterGuess = 82;
+        %   props.BinThresholdS1 = 1087;  props.BinWidthS1 = '@(C)C(1)';
+        %   props.BinThresholdS2 = 1971;  props.BinWidthS2 = '@(C)C(1)/0.55';
+        if variablePDO
+            error('SSIT:generatePDO:noDerivatives', ...
+                ['PDO derivatives are not defined for ''Intensity Binning - Parametrized'' ', ...
+                '(bin assignments are piecewise constant in the parameters).'])
+        end
+        props = app.FIMTabOutputs.PDOProperties.props;
+        if isempty(paramsPDO)
+            if isfield(props,'ParameterGuess')
+                paramsPDO = props.ParameterGuess;
+                if ischar(paramsPDO)||isstring(paramsPDO)
+                    paramsPDO = eval(paramsPDO);
+                end
+            end
+        end
+        for ispec = 1:nSpecies
+            sp = num2str(ispec);
+            if maxSize(ispec)>1 && isfield(props,['BinWidthS',sp])
+                T = evalPdoProperty(props.(['BinThresholdS',sp]),paramsPDO);
+                W = evalPdoProperty(props.(['BinWidthS',sp]),paramsPDO);
+                if isfield(props,['LowerBoundS',sp])
+                    L = evalPdoProperty(props.(['LowerBoundS',sp]),paramsPDO);
+                else
+                    L = 0;
+                end
+                if ~(W>0) || ~(T>L) || L<0
+                    error('SSIT:generatePDO:badBins', ...
+                        'Species %d: need BinWidth > 0 and BinThreshold > LowerBound >= 0 (got W=%g, T=%g, L=%g).', ...
+                        ispec,W,T,L)
+                end
+                nObs = ceil(T + (maxSize(ispec)-1)*W);  % observations 0..nObs-1 cover all bins
+                [Y,X] = ndgrid(0:nObs-1, 0:maxSize(ispec)-1);
+                C = intensityBinningPmf(Y,X,T,W,L);
+                conditionalPmfs{ispec} = C./sum(C,1);   % guard against round-off at bin edges
+            elseif maxSize(ispec)>1
+                % No binning defined for this species (e.g., unobserved).
+                conditionalPmfs{ispec} = eye(maxSize(ispec));
+            else
+                conditionalPmfs{ispec} = 1;
+            end
+        end
+
     case 'BinoPoiss'
         if variablePDO
             dCdLam = cell(nSpecies,2*nSpecies);
@@ -654,3 +711,28 @@ end
 if nargout>1
     pdo = app.FIMTabOutputs.distortionOperator;
 end
+
+function val = evalPdoProperty(prop,C)
+% Evaluate a PDO property that is either numeric or a function of the PDO
+% parameter vector C (function handle or char/string definition).
+if isnumeric(prop)
+    val = prop;
+else
+    if ischar(prop)||isstring(prop)
+        prop = str2func(prop);
+    end
+    val = prop(C);
+end
+
+function P = intensityBinningPmf(y,x,T,W,L)
+% Probability of observing integer intensity y given true count x for the
+% 'Intensity Binning - Parametrized' PDO. Count 0 is uniform over the
+% integers in [L,T); count x>=1 is uniform over the integers in
+% [T+(x-1)W, T+xW). Vectorized over y and x.
+bin = -ones(size(y));               % -1 marks y below L (impossible)
+bin(y>=L & y<T) = 0;
+above = y>=T;
+bin(above) = floor((y(above)-T)/W) + 1;
+nInBin = ceil(T + x*W) - ceil(T + (x-1)*W);   % integers in [T+(x-1)W, T+xW)
+nInBin(x==0) = ceil(T) - ceil(L);             % integers in [L,T)
+P = (bin==x)./nInBin;
