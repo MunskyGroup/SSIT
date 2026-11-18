@@ -2834,9 +2834,11 @@ classdef SSIT
                             fileparts(obj.ssaOptions.computeFile);
                         if strlength(filePath) > 0
                             % MATLAB creates nonexistent folders within a
-                            % path and will not modify a folder that
-                            % already exists.
-                            mkdir(filePath);
+                            % path. Only call mkdir if needed, since it
+                            % warns when the folder already exists.
+                            if ~isfolder(filePath)
+                                mkdir(filePath);
+                            end
                             addpath(filePath);
                         end
 
@@ -4699,7 +4701,7 @@ classdef SSIT
         end
 
         function [lossFunction] = computeLossFunctionSSA(obj,lossFun,pars, ...
-                enforceIndependence, reuseExistingSolution)
+                enforceIndependence, reuseExistingSolution, opts)
             % computeLossFunctionSSA - Compare SSA simulations of the model
             % to the loaded data using the 1D marginal distribution of each
             % observed species at each fitted time point. Smaller values
@@ -4735,6 +4737,18 @@ classdef SSIT
             %                         the SSA histogram (pseudocount 0.5). An
             %                         approximate -log-likelihood that ignores
             %                         correlations between species.
+            %       'kde_loglik'      -sum over cells of log P_kde(data state),
+            %                         where P_kde is a kernel density estimate
+            %                         of the JOINT distribution of all observed
+            %                         species, built from the SSA samples
+            %                         (ssit.ssa.kdeLogLikelihood). The KDE
+            %                         fills in states not visited by the SSA,
+            %                         so this approximates the FSP
+            %                         -log-likelihood (computeLikelihood) and
+            %                         converges to it as the number of SSA
+            %                         runs grows. Options: kdeBandwidth,
+            %                         kdeMinBandwidth, kdeProbFloor,
+            %                         kdeBiasCorrection.
             %
             %     Function handle: @(Hmod,Hdata) returning a scalar. It is
             %     called with the CDFs (as for the CDF-based options) for
@@ -4755,6 +4769,19 @@ classdef SSIT
             %     trajectory is used at every time point.
             %   reuseExistingSolution -- (false) if true, use obj.Solutions
             %     instead of re-solving the model (pars is then ignored).
+            %   Name-value options (used by 'kde_loglik' only):
+            %     kdeBandwidth    -- 'lcv' (default; likelihood cross-validation),
+            %                        'silverman', or kernel widths (scalar or
+            %                        one per observed species).
+            %     kdeMinBandwidth -- minimum kernel width ([] = 0.5 for
+            %                        'silverman', 0.01 otherwise).
+            %     kdeProbFloor    -- (1e-10) minimum probability per state.
+            %     kdeBiasCorrection -- 'none' (default) or 'jensen': add the
+            %                        delta-method correction Var(P)/(2P^2) to
+            %                        each log P_kde, removing (to leading
+            %                        order) the downward bias of the log of a
+            %                        noisy estimate, which dominates the bias
+            %                        for small numbers of SSA runs.
             %
             % Output:
             %   lossFunction -- scalar loss summed (or maximized, for
@@ -4776,11 +4803,16 @@ classdef SSIT
                 pars = [];
                 enforceIndependence = true
                 reuseExistingSolution = false
+                opts.kdeBandwidth = 'lcv'
+                opts.kdeMinBandwidth = []
+                opts.kdeProbFloor (1,1) double = 1e-10
+                opts.kdeBiasCorrection {mustBeMember(opts.kdeBiasCorrection,{'none','jensen'})} = 'none'
             end
 
             if ~strcmpi(obj.solutionScheme,'ssa')
                 error('computeLossFunctionSSA only meant for models using SSA solution scheme. Please change solutionScheme and try again.')
             end
+            isKDE = (ischar(lossFun)||isstring(lossFun)) && strcmpi(lossFun,'kde_loglik');
 
             % --- Step 1: Obtain SSA solutions (re-solve with pars unless
             % reusing the solutions already stored in obj) ---
@@ -4911,18 +4943,22 @@ classdef SSIT
             Hdata = cell(numSpecies,numTimes);
             Hmod = cell(numSpecies,numTimes);
             NcellsAll = zeros(numSpecies,numTimes);  % Number of cells in data for each species and time.
-            for is = 1:numSpecies
+            % ('kde_loglik' uses the joint data directly, so it skips this.)
+            for is = 1:numSpecies*(~isKDE)
                 % Marginalize the data tensor over all other species.
                 sumOver = setdiff(1:ndims(dataTensor),[1,is+1]);
+                % (double() converts the tensor-toolbox object to an array;
+                % sum() is not defined for tensor objects.)
                 if isempty(sumOver)
-                    dataVecP = full(dataTensor);
+                    dataVecP = double(full(dataTensor));
                 else
-                    dataVecP = sum(full(dataTensor),sumOver);
+                    dataVecP = sum(double(full(dataTensor)),sumOver);
                 end
                 for it = 1:numTimes
                     % Find CDF of current species and time from
                     % data.
-                    dataVecPt = double(dataVecP(fitTimeInds(it),:));
+                    % Column vector, to match the model CDF below.
+                    dataVecPt = reshape(double(dataVecP(fitTimeInds(it),:)),[],1);
                     H = cumsum(dataVecPt);
                     Ncells=H(end);
                     NcellsAll(is,it) = Ncells;
@@ -5054,6 +5090,30 @@ classdef SSIT
                             end
                         end
 
+                    case 'kde_loglik'
+                        % -log likelihood of the joint data (all observed
+                        % species together) under a kernel density estimate
+                        % built from the SSA samples at each time.
+                        lossFunction = 0;
+                        dataSubs = double(dataTensor.subs);
+                        dataVals = double(dataTensor.vals);
+                        for it = 1:numTimes
+                            rows = dataSubs(:,1)==fitTimeInds(it);
+                            dataStates = dataSubs(rows,2:end)-1;
+                            if enforceIndependence
+                                npe = obj.ssaOptions.nSimsPerExpt;
+                                trajInds = (it-1)*npe+1:it*npe;
+                            else
+                                trajInds = 1:size(ssaTrajs,3);
+                            end
+                            samples = reshape(ssaTrajs(:,it,trajInds),numSpecies,[])';
+                            logLt = ssit.ssa.kdeLogLikelihood(samples, dataStates, ...
+                                dataVals(rows), bandwidth=opts.kdeBandwidth, ...
+                                minBandwidth=opts.kdeMinBandwidth, probFloor=opts.kdeProbFloor, ...
+                                biasCorrection=opts.kdeBiasCorrection);
+                            lossFunction = lossFunction - logLt;
+                        end
+
                     otherwise
                         error(['Loss function ''',lossFun,''' not defined'])
                 end
@@ -5062,7 +5122,7 @@ classdef SSIT
             % Add the prior. logPrior is a log probability (more unlikely
             % = more negative) while the loss is minimized, so subtract it.
             % NOTE: this gives a proper -log posterior only for
-            % likelihood-style losses ('marginal_loglik', and loosely
+            % likelihood-style losses ('kde_loglik', 'marginal_loglik', and loosely
             % 'ksstat'/'ksdensity'). For distance-style losses
             % ('cdf_one_norm', 'scaled_one_norm', 'maxks', or most custom
             % handles) the loss is not a log probability, so the relative
@@ -5070,6 +5130,141 @@ classdef SSIT
             % distance and is subjective. Choose the prior (or rescale it)
             % with that in mind.
             lossFunction = lossFunction - logPrior;
+        end
+
+        function results = ssaLikelihoodConvergence(obj,opts)
+            % ssaLikelihoodConvergence - Mean and standard deviation of an
+            % SSA-based objective function (computeLossFunctionSSA) versus
+            % the number of SSA runs, optionally compared to the exact FSP
+            % value.
+            %
+            % Usage:
+            %   results = Model.ssaLikelihoodConvergence(nSimsList=[10 100 1000], ...
+            %       nReps=10, lossFun='kde_loglik', compareFSP=true);
+            %
+            % Name-value options:
+            %   nSimsList  -- ([10 30 100 300 1000 3000]) numbers of SSA runs
+            %                 per time point (ssaOptions.nSimsPerExpt when
+            %                 enforceIndependence is true, otherwise
+            %                 ssaOptions.Nsims).
+            %   nReps      -- (10) independent repetitions per number of runs.
+            %   lossFun    -- ('kde_loglik') objective passed to
+            %                 computeLossFunctionSSA.
+            %   pars       -- ([]) parameters (as for computeLossFunctionSSA);
+            %                 empty uses those stored in the model.
+            %   enforceIndependence -- (true) passed to computeLossFunctionSSA.
+            %   compareFSP -- (true) also compute the exact objective
+            %                 -computeLikelihood(pars) with the FSP (only
+            %                 meaningful for likelihood-type objectives such
+            %                 as 'kde_loglik' and 'marginal_loglik').
+            %   makePlot   -- (true) plot mean +/- std versus number of runs
+            %                 and the std on log-log axes.
+            %   kdeBandwidth, kdeMinBandwidth, kdeProbFloor, kdeBiasCorrection -- KDE options
+            %                 passed to computeLossFunctionSSA.
+            %
+            % Output (struct):
+            %   nSims, values (numel(nSims) x nReps), mean, std,
+            %   secondsPerEval, fspObjective (NaN if not computed), lossFun,
+            %   and figureHandle (if plotted).
+            arguments
+                obj
+                opts.nSimsList (1,:) double {mustBePositive,mustBeInteger} = [10 30 100 300 1000 3000]
+                opts.nReps (1,1) double {mustBePositive,mustBeInteger} = 10
+                opts.lossFun = 'kde_loglik'
+                opts.pars = []
+                opts.enforceIndependence (1,1) logical = true
+                opts.compareFSP (1,1) logical = true
+                opts.makePlot (1,1) logical = true
+                opts.kdeBandwidth = 'lcv'
+                opts.kdeMinBandwidth = []
+                opts.kdeProbFloor (1,1) double = 1e-10
+                opts.kdeBiasCorrection {mustBeMember(opts.kdeBiasCorrection,{'none','jensen'})} = 'none'
+            end
+
+            nN = numel(opts.nSimsList);
+            values = nan(nN, opts.nReps);
+            secondsPerEval = nan(nN, 1);
+            objSSA = obj;
+            objSSA.solutionScheme = 'SSA';
+            for iN = 1:nN
+                N = opts.nSimsList(iN);
+                if opts.enforceIndependence
+                    objSSA.ssaOptions.nSimsPerExpt = N;
+                    objSSA.ssaOptions.Nexp = 1;
+                else
+                    objSSA.ssaOptions.nSimsPerExpt = NaN;
+                    objSSA.ssaOptions.Nsims = N;
+                end
+                tStart = tic;
+                for iRep = 1:opts.nReps
+                    values(iN,iRep) = objSSA.computeLossFunctionSSA(opts.lossFun, ...
+                        opts.pars, opts.enforceIndependence, false, ...
+                        kdeBandwidth=opts.kdeBandwidth, ...
+                        kdeMinBandwidth=opts.kdeMinBandwidth, ...
+                        kdeProbFloor=opts.kdeProbFloor, ...
+                        kdeBiasCorrection=opts.kdeBiasCorrection);
+                end
+                secondsPerEval(iN) = toc(tStart)/opts.nReps;
+                fprintf('N = %6d SSA runs: objective = %.4g +/- %.3g (%.2f s per evaluation)\n', ...
+                    N, mean(values(iN,:)), std(values(iN,:)), secondsPerEval(iN));
+            end
+
+            fspObjective = NaN;
+            if opts.compareFSP
+                try
+                    objFSP = obj;
+                    objFSP.solutionScheme = 'FSP';
+                    fspObjective = -objFSP.computeLikelihood(opts.pars);
+                    fprintf('Exact FSP objective (-log likelihood): %.4g\n', fspObjective);
+                catch err
+                    warning('SSIT:ssaLikelihoodConvergence:FSPFailed', ...
+                        'Could not compute the FSP objective: %s', err.message);
+                end
+            end
+
+            results = struct('nSims', opts.nSimsList(:), 'values', values, ...
+                'mean', mean(values,2), 'std', std(values,0,2), ...
+                'secondsPerEval', secondsPerEval, 'fspObjective', fspObjective, ...
+                'lossFun', {opts.lossFun});
+
+            if opts.makePlot
+                lossName = opts.lossFun;
+                if isa(lossName,'function_handle'), lossName = func2str(lossName); end
+                fig = figure('Name','SSA objective versus number of runs');
+                tl = tiledlayout(fig,1,2,'TileSpacing','compact');
+                title(tl, sprintf('SSA objective ''%s'' (%d repetitions per point)', ...
+                    lossName, opts.nReps), 'Interpreter','none');
+
+                ax1 = nexttile(tl); hold(ax1,'on');
+                errorbar(ax1, results.nSims, results.mean, results.std, 'o-', ...
+                    'LineWidth', 1.5, 'DisplayName', 'SSA mean \pm std');
+                if isfinite(fspObjective)
+                    yline(ax1, fspObjective, 'r--', 'LineWidth', 1.5, 'DisplayName', 'exact (FSP)');
+                end
+                hold(ax1,'off'); grid(ax1,'on');
+                set(ax1, 'XScale', 'log');
+                xlabel(ax1, 'number of SSA runs per time point');
+                ylabel(ax1, 'objective (-log likelihood)');
+                legend(ax1, 'Location', 'best');
+
+                ax2 = nexttile(tl); hold(ax2,'on');
+                loglog(ax2, results.nSims, results.std, 'o-', 'LineWidth', 1.5, ...
+                    'DisplayName', 'std of objective');
+                if results.std(1) > 0
+                    loglog(ax2, results.nSims, results.std(1)*sqrt(results.nSims(1)./results.nSims), ...
+                        'k:', 'LineWidth', 1.2, 'DisplayName', '\propto N^{-1/2}');
+                end
+                if isfinite(fspObjective)
+                    loglog(ax2, results.nSims, abs(results.mean - fspObjective), 's-', ...
+                        'LineWidth', 1.5, 'DisplayName', '|mean - exact|');
+                end
+                hold(ax2,'off'); grid(ax2,'on');
+                set(ax2, 'XScale', 'log', 'YScale', 'log');
+                xlabel(ax2, 'number of SSA runs per time point');
+                ylabel(ax2, 'std / bias');
+                legend(ax2, 'Location', 'best');
+                results.figureHandle = fig;
+            end
         end
 
         function fitErrors = likelihoodSweep(obj,parIndices,scalingRange,makePlot)
