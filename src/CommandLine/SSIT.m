@@ -4749,6 +4749,14 @@ classdef SSIT
             %                         runs grows. Options: kdeBandwidth,
             %                         kdeMinBandwidth, kdeProbFloor,
             %                         kdeBiasCorrection.
+            %       'kde_marginal_loglik' as 'kde_loglik', but each observed
+            %                         species is compared separately (1D
+            %                         KDE of its marginal) and the results
+            %                         are summed, i.e., the species are
+            %                         treated as independent. Ignores
+            %                         correlations between species but
+            %                         needs far fewer SSA runs than the
+            %                         joint KDE when 2+ species are observed.
             %
             %     Function handle: @(Hmod,Hdata) returning a scalar. It is
             %     called with the CDFs (as for the CDF-based options) for
@@ -4769,7 +4777,7 @@ classdef SSIT
             %     trajectory is used at every time point.
             %   reuseExistingSolution -- (false) if true, use obj.Solutions
             %     instead of re-solving the model (pars is then ignored).
-            %   Name-value options (used by 'kde_loglik' only):
+            %   Name-value options (used by 'kde_loglik' and 'kde_marginal_loglik' only):
             %     kdeBandwidth    -- 'lcv' (default; likelihood cross-validation),
             %                        'silverman', or kernel widths (scalar or
             %                        one per observed species).
@@ -4812,7 +4820,7 @@ classdef SSIT
             if ~strcmpi(obj.solutionScheme,'ssa')
                 error('computeLossFunctionSSA only meant for models using SSA solution scheme. Please change solutionScheme and try again.')
             end
-            isKDE = (ischar(lossFun)||isstring(lossFun)) && strcmpi(lossFun,'kde_loglik');
+            isKDE = (ischar(lossFun)||isstring(lossFun)) && any(strcmpi(lossFun,{'kde_loglik','kde_marginal_loglik'}));
 
             % --- Step 1: Obtain SSA solutions (re-solve with pars unless
             % reusing the solutions already stored in obj) ---
@@ -5090,10 +5098,14 @@ classdef SSIT
                             end
                         end
 
-                    case 'kde_loglik'
+                    case {'kde_loglik','kde_marginal_loglik'}
                         % -log likelihood of the joint data (all observed
                         % species together) under a kernel density estimate
-                        % built from the SSA samples at each time.
+                        % built from the SSA samples at each time
+                        % ('kde_loglik'), or the sum over species of the
+                        % -log likelihoods of the marginal data under 1D
+                        % KDEs ('kde_marginal_loglik', independence).
+                        marginalOnly = strcmpi(lossFun,'kde_marginal_loglik');
                         lossFunction = 0;
                         dataSubs = double(dataTensor.subs);
                         dataVals = double(dataTensor.vals);
@@ -5107,11 +5119,24 @@ classdef SSIT
                                 trajInds = 1:size(ssaTrajs,3);
                             end
                             samples = reshape(ssaTrajs(:,it,trajInds),numSpecies,[])';
-                            logLt = ssit.ssa.kdeLogLikelihood(samples, dataStates, ...
-                                dataVals(rows), bandwidth=opts.kdeBandwidth, ...
-                                minBandwidth=opts.kdeMinBandwidth, probFloor=opts.kdeProbFloor, ...
-                                biasCorrection=opts.kdeBiasCorrection);
-                            lossFunction = lossFunction - logLt;
+                            if ~marginalOnly
+                                logLt = ssit.ssa.kdeLogLikelihood(samples, dataStates, ...
+                                    dataVals(rows), bandwidth=opts.kdeBandwidth, ...
+                                    minBandwidth=opts.kdeMinBandwidth, probFloor=opts.kdeProbFloor, ...
+                                    biasCorrection=opts.kdeBiasCorrection);
+                                lossFunction = lossFunction - logLt;
+                            else
+                                for is = 1:numSpecies
+                                    [uS,~,jS] = unique(dataStates(:,is));
+                                    cS = accumarray(jS, dataVals(rows));
+                                    bw = opts.kdeBandwidth;
+                                    if isnumeric(bw) && ~isscalar(bw), bw = bw(is); end
+                                    logLt = ssit.ssa.kdeLogLikelihood(samples(:,is), uS, cS, ...
+                                        bandwidth=bw, minBandwidth=opts.kdeMinBandwidth, ...
+                                        probFloor=opts.kdeProbFloor, biasCorrection=opts.kdeBiasCorrection);
+                                    lossFunction = lossFunction - logLt;
+                                end
+                            end
                         end
 
                     otherwise
@@ -5808,6 +5833,11 @@ classdef SSIT
             %   logPrior ([]) -- log prior of the linear parameters; empty
             %       uses obj.fittingOptions.logPrior (if set), else none.
             %   lossFun ('kde_loglik') -- likelihood-type SSA objective.
+            %   marginalsOnly (false) -- if true, compare only the marginal
+            %       distribution of each observed species (1D KDEs, species
+            %       treated as independent): sets lossFun =
+            %       'kde_marginal_loglik'. Much less noisy than the joint
+            %       KDE for 2+ species, but ignores their correlation.
             %   kdeBandwidth ('lcv'), kdeMinBandwidth ([]),
             %   kdeProbFloor (1e-10), kdeBiasCorrection ('jensen').
             %   levels ([300 600 1200 2400 4800 9600]) -- runs per time
@@ -5844,6 +5874,7 @@ classdef SSIT
                 opts.proposalDistribution = @(x)x+0.05*randn(size(x))
                 opts.logPrior = []
                 opts.lossFun = 'kde_loglik'
+                opts.marginalsOnly (1,1) logical = false
                 opts.kdeBandwidth = 'lcv'
                 opts.kdeMinBandwidth = []
                 opts.kdeProbFloor (1,1) double = 1e-10
@@ -5856,6 +5887,14 @@ classdef SSIT
                 opts.recalibrateEvery (1,1) double {mustBePositive} = Inf
                 opts.saveFile = ''
                 opts.verbose (1,1) logical = true
+            end
+
+            if opts.marginalsOnly
+                if ~any(strcmpi(opts.lossFun,{'kde_loglik','kde_marginal_loglik'}))
+                    error('SSIT:runSequentialABC:marginalsOnly', ...
+                        'marginalsOnly requires the KDE objective (lossFun ''kde_loglik'').');
+                end
+                opts.lossFun = 'kde_marginal_loglik';
             end
 
             % Working model: SSA, numeric parameter indices, tSpan that
