@@ -5186,6 +5186,7 @@ classdef SSIT
             secondsPerEval = nan(nN, 1);
             objSSA = obj;
             objSSA.solutionScheme = 'SSA';
+            objSSA = objSSA.solve(solver='ssa');
             for iN = 1:nN
                 N = opts.nSimsList(iN);
                 if opts.enforceIndependence
@@ -5766,6 +5767,194 @@ classdef SSIT
 
             % Update model with results
             obj.parameters(obj.fittingOptions.modelVarsToFit,2) = num2cell(pars(:));
+            obj.Solutions.ABC = Results;
+        end
+
+        function [pars,Results,obj] = runSequentialABC(obj,parGuess,opts)
+            % runSequentialABC - Metropolis-Hastings sampling with an
+            % SSA-based log-likelihood, using a sequential accept/reject
+            % test based on the calibrated noise of the SSA estimate.
+            %
+            %   [pars,Results,obj] = M.runSequentialABC(parGuess, numberOfSamples=500, ...)
+            %
+            % Steps:
+            %   1. Calibration (at parGuess): the std sigma(N) of the SSA
+            %      log-likelihood estimate for each N in opts.levels (runs
+            %      per time point), from ssaLikelihoodConvergence with
+            %      opts.calibrationReps repeats. Saved to
+            %      opts.calibrationFile and reused if the file matches
+            %      (same parameters, levels, and objective) unless
+            %      opts.recalibrate = true.
+            %   2. Metropolis-Hastings in log-parameter space
+            %      (ssit.parest.sequentialMHSample). For each proposal, draw
+            %      u and the threshold tau = log(u) - delta(log prior);
+            %      estimate the log-likelihood difference LLD at the
+            %      proposal and the current state from levels(1) fresh
+            %      SSA runs each; accept or reject if |LLDhat - tau| >
+            %      z*sqrt(2)*sigma(N); otherwise double the runs (pooling
+            %      with earlier runs) and test again. At the last level,
+            %      the plain MH rule (accept if LLDhat >= tau) is used.
+            %   3. Optional recalibration of sigma(N) at the current state
+            %      after every opts.recalibrateEvery acceptances.
+            %
+            % Inputs:
+            %   parGuess -- ([]) starting values of the parameters in
+            %       obj.fittingOptions.modelVarsToFit (linear space);
+            %       empty uses obj.parameters.
+            % Name-value options:
+            %   numberOfSamples (500), thin (1), burnIn (0)
+            %   proposalDistribution (@(x)x+0.05*randn(size(x))) -- symmetric
+            %       proposal in log-parameter space.
+            %   logPrior ([]) -- log prior of the linear parameters; empty
+            %       uses obj.fittingOptions.logPrior (if set), else none.
+            %   lossFun ('kde_loglik') -- likelihood-type SSA objective.
+            %   kdeBandwidth ('lcv'), kdeMinBandwidth ([]),
+            %   kdeProbFloor (1e-10), kdeBiasCorrection ('jensen').
+            %   levels ([300 600 1200 2400 4800 9600]) -- runs per time
+            %       point at each stage (each stage doubles the runs).
+            %   z (2.5) -- confidence multiplier for an early decision.
+            %   calibrationReps (10) -- repeats per level for calibration.
+            %   calibrationFile ('') -- .mat file for the calibration.
+            %   recalibrate (false) -- force a new initial calibration.
+            %   recalibrateEvery (Inf) -- recalibrate after every K-th
+            %       acceptance (K = recalibrateEvery).
+            %   saveFile ('') -- progress file; an interrupted run resumes.
+            %   verbose (true)
+            %
+            % Outputs:
+            %   pars    -- best parameters found (highest estimated
+            %              log-posterior; noisy).
+            %   Results -- struct: mhSamples (log parameters, as for
+            %              maximizeLikelihood), mhAcceptance, mhValue,
+            %              decisionLevel, decidedByMHRule,
+            %              simsPerParameterSet, sigmaHistory, calibration,
+            %              levels, z.
+            %   obj     -- model with parameters set to pars and
+            %              obj.Solutions.ABC = Results.
+            %
+            % Note: as in maximizeLikelihood with logForm = true, the
+            % prior is evaluated on the linear parameters without a
+            % log-transform Jacobian.
+            arguments
+                obj
+                parGuess = []
+                opts.numberOfSamples (1,1) double {mustBePositive,mustBeInteger} = 500
+                opts.thin (1,1) double {mustBePositive,mustBeInteger} = 1
+                opts.burnIn (1,1) double {mustBeNonnegative,mustBeInteger} = 0
+                opts.proposalDistribution = @(x)x+0.05*randn(size(x))
+                opts.logPrior = []
+                opts.lossFun = 'kde_loglik'
+                opts.kdeBandwidth = 'lcv'
+                opts.kdeMinBandwidth = []
+                opts.kdeProbFloor (1,1) double = 1e-10
+                opts.kdeBiasCorrection {mustBeMember(opts.kdeBiasCorrection,{'none','jensen'})} = 'jensen'
+                opts.levels (1,:) double {mustBePositive,mustBeInteger} = [300 600 1200 2400 4800 9600]
+                opts.z (1,1) double {mustBePositive} = 2.5
+                opts.calibrationReps (1,1) double {mustBePositive,mustBeInteger} = 10
+                opts.calibrationFile = ''
+                opts.recalibrate (1,1) logical = false
+                opts.recalibrateEvery (1,1) double {mustBePositive} = Inf
+                opts.saveFile = ''
+                opts.verbose (1,1) logical = true
+            end
+
+            % Working model: SSA, numeric parameter indices, tSpan that
+            % includes initialTime, and no prior inside the loss (the prior
+            % enters through the MH threshold instead).
+            if ~strcmpi(obj.solutionScheme,'ssa')
+                obj.solutionScheme = 'SSA';
+            end
+            if ischar(obj.fittingOptions.modelVarsToFit)&&strcmp(obj.fittingOptions.modelVarsToFit,'all')
+                obj.fittingOptions.modelVarsToFit = 1:size(obj.parameters,1);
+            end
+            idx = obj.fittingOptions.modelVarsToFit;
+            if isempty(parGuess)
+                parGuess = [obj.parameters{idx,2}];
+            end
+            parGuess = parGuess(:)';
+            logPrior = opts.logPrior;
+            if isempty(logPrior) && ~isempty(obj.fittingOptions.logPrior)
+                logPrior = obj.fittingOptions.logPrior;
+            end
+            if isempty(logPrior)
+                logPriorX = @(x) 0;
+            else
+                logPriorX = @(x) sum(logPrior(exp(x)));
+            end
+            W = obj;
+            W.fittingOptions.logPrior = [];
+            W.tSpan = unique([W.initialTime, W.tSpan]);
+            W.ssaOptions.Nexp = 1;
+            W = W.solve(solver='ssa');          % make sure SSA files exist
+            kdeOpts = struct('kdeBandwidth',opts.kdeBandwidth, ...
+                'kdeMinBandwidth',opts.kdeMinBandwidth, ...
+                'kdeProbFloor',opts.kdeProbFloor, ...
+                'kdeBiasCorrection',opts.kdeBiasCorrection);
+
+            calibrate = @(theta) W.ssaLikelihoodConvergence(nSimsList=opts.levels, ...
+                nReps=opts.calibrationReps, lossFun=opts.lossFun, pars=theta, ...
+                enforceIndependence=true, compareFSP=false, makePlot=false, ...
+                kdeBandwidth=opts.kdeBandwidth, kdeMinBandwidth=opts.kdeMinBandwidth, ...
+                kdeProbFloor=opts.kdeProbFloor, kdeBiasCorrection=opts.kdeBiasCorrection);
+
+            % 1. Initial calibration (load if it matches).
+            calibration = [];
+            calFile = char(opts.calibrationFile);
+            if ~isempty(calFile) && isfile(calFile) && ~opts.recalibrate
+                C = load(calFile, 'calibration');
+                c = C.calibration;
+                if isequal(c.levels(:)', opts.levels) && isequal(c.lossFun, opts.lossFun) ...
+                        && isequal(c.kdeBiasCorrection, opts.kdeBiasCorrection) ...
+                        && numel(c.pars) == numel(parGuess) ...
+                        && max(abs(log(c.pars(:)') - log(parGuess))) < 1e-10
+                    calibration = c;
+                    fprintf('Loaded SSA likelihood calibration from %s.\n', calFile);
+                else
+                    fprintf('Calibration in %s does not match; recalibrating.\n', calFile);
+                end
+            end
+            if isempty(calibration)
+                fprintf('Calibrating SSA likelihood noise at %d levels (%d repeats each)...\n', ...
+                    numel(opts.levels), opts.calibrationReps);
+                r = calibrate(parGuess);
+                calibration = struct('levels', opts.levels, 'sigma', r.std(:)', ...
+                    'mean', r.mean(:)', 'values', r.values, ...
+                    'secondsPerEval', r.secondsPerEval(:)', 'pars', parGuess, ...
+                    'parIndices', idx, 'lossFun', opts.lossFun, ...
+                    'kdeBiasCorrection', opts.kdeBiasCorrection, ...
+                    'kdeBandwidth', opts.kdeBandwidth, 'nReps', opts.calibrationReps, ...
+                    'date', char(datetime('now')));
+                if ~isempty(calFile)
+                    save(calFile, 'calibration');
+                    fprintf('Saved SSA likelihood calibration to %s.\n', calFile);
+                end
+            end
+            fprintf('sigma(logL) at N = %s: %s\n', mat2str(calibration.levels), ...
+                mat2str(calibration.sigma, 3));
+
+            % 2. Sequential MH in log-parameter space.
+            estimator = @(x, n, st) ssit.parest.ssaLogLBatchEstimator(W, exp(x), n, st, ...
+                opts.lossFun, kdeOpts);
+            recalFun = @(x) reshape(calibrate(exp(x)).std, 1, []);
+            [smpl, accept, value, info] = ssit.parest.sequentialMHSample( ...
+                log(parGuess), opts.numberOfSamples, estimator, opts.levels, ...
+                calibration.sigma, proprnd=opts.proposalDistribution, ...
+                logprior=logPriorX, z=opts.z, thin=opts.thin, burnin=opts.burnIn, ...
+                recalibrateEvery=opts.recalibrateEvery, recalibrateFun=recalFun, ...
+                saveFileName=opts.saveFile, verbose=opts.verbose);
+
+            Results = struct('mhSamples', smpl, 'mhAcceptance', accept, 'mhValue', value, ...
+                'decisionLevel', info.decisionLevel, 'decidedByMHRule', info.decidedByMHRule, ...
+                'accepted', info.accepted, 'simsPerParameterSet', info.simsPerParameterSet, ...
+                'sigmaHistory', info.sigmaHistory, 'recalibratedAtStep', info.recalibratedAtStep, ...
+                'calibration', calibration, 'levels', opts.levels, 'z', opts.z);
+            dec = info.decisionLevel(info.decisionLevel > 0);
+            fprintf('Acceptance %.3f. Steps decided at each level %s: %s; by MH rule at the last level: %d.\n', ...
+                accept, mat2str(opts.levels), mat2str(accumarray(dec(:), 1, [numel(opts.levels) 1])'), ...
+                sum(info.decidedByMHRule));
+
+            pars = exp(info.bestfound);
+            obj.parameters(idx,2) = num2cell(pars(:));
             obj.Solutions.ABC = Results;
         end
 

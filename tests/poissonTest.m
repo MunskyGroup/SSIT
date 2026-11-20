@@ -656,6 +656,88 @@ classdef poissonTest < matlab.unittest.TestCase
             FIMOptExptBase = Model.totalFim(fimResults,NcOptExperimentBase+NcBase);
             % Model.plotMHResults(MHResults,FIM=[FIM,FIMOptExpt,FIMOptExptBase])
 
+        end
+
+        function TestSeqSSAMH(testCase)
+
+            %% Test also the sequential ABC (runSequentialABC): SSA/KDE
+            % likelihood with a calibrated, sequential accept/reject test.
+            % It should give a posterior similar to MH with the exact FSP
+            % likelihood and to the FIM.
+            % Small data set (4 times x 100 cells) so that the posterior
+            % is wide enough for SSA-based likelihoods to resolve.
+            Small = SSIT;
+            Small.species = {'rna'};
+            Small.initialCondition = 0;
+            Small.propensityFunctions = {'kr';'gr*rna'};
+            Small.stoichiometry = [1,-1];
+            Small.parameters = ({'kr',10;'gr',1});
+            Small.tSpan = [0 0.5 1 2];
+            Small.fspOptions.fspTol = 1e-6;
+            Small = Small.formPropensitiesGeneral('PoissSmallABC',true);
+            smallSoln = Small.solve(returnType='soln');
+            dataFileSmall = [tempname,'_PoissSmallABC.csv'];
+            rng(7);
+            Small.sampleDataFromFSP(smallSoln,dataFileSmall,100*ones(1,4));
+            Small = Small.loadData(dataFileSmall,{'rna','exp1_rna'});
+            delete(dataFileSmall)
+            Small.fittingOptions.modelVarsToFit = [1,2];
+            parsTrue = [Small.parameters{:,2}];
+
+            % (a) FIM (log parameters) at the true parameters.
+            SmallSens = Small;
+            SmallSens.solutionScheme = 'fspSens';
+            sensSoln = SmallSens.solve(returnType='soln');
+            fimSmall = SmallSens.computeFIM(sensSoln.sens,'log');
+            fimTotal = SmallSens.evaluateExperiment(fimSmall,Small.dataSet.nCells);
+            covFIM = inv(fimTotal{1});
+            sdFIM = sqrt(diag(covFIM))';
+
+            % (b) Metropolis-Hastings with the exact (FSP) likelihood.
+            SmallFSP = Small;
+            SmallFSP.solutionScheme = 'FSP';
+            MHopts = struct('numberOfSamples',3000,'burnIn',200,'thin',1, ...
+                'progress',false,'numChains',1,'useFIMforMetHast',false, ...
+                'proposalDistribution',@(x)x+mvnrnd(0*x,covFIM), ...
+                'saveFile',[tempname,'_MHsmall.mat']);
+            [~,~,MHsmall] = SmallFSP.maximizeLikelihood(parsTrue',MHopts,'MetropolisHastings');
+            if isfile(MHopts.saveFile), delete(MHopts.saveFile); end
+            mnMH = mean(MHsmall.mhSamples,1);
+            sdMH = std(MHsmall.mhSamples,0,1);
+
+            % (c) Sequential ABC with the SSA/KDE likelihood.
+            SmallSSA = Small;
+            SmallSSA.solutionScheme = 'SSA';
+            SmallSSA = SmallSSA.solve(solver='ssa');   % compile the SSA once
+            rng(11);
+            calFile = [tempname,'_seqABCcal.mat'];
+            [~,ABCsmall] = SmallSSA.runSequentialABC(parsTrue, ...
+                numberOfSamples=600, burnIn=50, ...
+                proposalDistribution=@(x)x+mvnrnd(0*x,covFIM), ...
+                calibrationReps=10, calibrationFile=calFile, verbose=false,...
+                levels=100*2.^[1:8]);
+            if isfile(calFile), delete(calFile); end
+            mnABC = mean(ABCsmall.mhSamples,1);
+            sdABC = std(ABCsmall.mhSamples,0,1);
+
+            fprintf(['log-parameter posterior (kr, gr):\n', ...
+                '  FIM   sd %s\n  MH    mean %s sd %s (acc %.2f)\n', ...
+                '  ABC   mean %s sd %s (acc %.2f; MH-rule steps %d of %d)\n'], ...
+                mat2str(sdFIM,3), mat2str(mnMH,3), mat2str(sdMH,3), MHsmall.mhAcceptance, ...
+                mat2str(mnABC,3), mat2str(sdABC,3), ABCsmall.mhAcceptance, ...
+                sum(ABCsmall.decidedByMHRule), numel(ABCsmall.decidedByMHRule));
+
+            % Checks (log parameters): MH agrees with the FIM, and the
+            % sequential ABC agrees with MH.
+            testCase.verifyTrue(all(abs(mnMH-log(parsTrue)) < 3*sdFIM), ...
+                'FSP Metropolis-Hastings mean is more than 3 FIM std from the true parameters.');
+            testCase.verifyTrue(all(sdMH./sdFIM > 0.7 & sdMH./sdFIM < 1.4), ...
+                'FSP Metropolis-Hastings posterior std differs from the FIM estimate by more than 40%.');
+            testCase.verifyTrue(all(abs(mnABC-mnMH) < 0.5*sdFIM), ...
+                'Sequential ABC posterior mean differs from Metropolis-Hastings by more than 0.5 FIM std.');
+            testCase.verifyTrue(all(sdABC./sdMH > 0.6 & sdABC./sdMH < 1.6), ...
+                'Sequential ABC posterior std differs from Metropolis-Hastings by more than 60%.');
+
         end 
         
         function LoadModelTest(testCase)
