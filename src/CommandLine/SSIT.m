@@ -5845,6 +5845,10 @@ classdef SSIT
             %   z (2.5) -- confidence multiplier for an early decision.
             %   calibrationReps (10) -- repeats per level for calibration.
             %   calibrationFile ('') -- .mat file for the calibration.
+            %   calibration ([]) -- calibration struct from an earlier run
+            %       (Results.calibration); used as is (no matching to
+            %       parGuess), e.g., to keep one calibration across
+            %       successive tuning runs that restart from new parameters.
             %   recalibrate (false) -- force a new initial calibration.
             %   recalibrateEvery (Inf) -- recalibrate after every K-th
             %       acceptance (K = recalibrateEvery).
@@ -5883,6 +5887,7 @@ classdef SSIT
                 opts.z (1,1) double {mustBePositive} = 2.5
                 opts.calibrationReps (1,1) double {mustBePositive,mustBeInteger} = 10
                 opts.calibrationFile = ''
+                opts.calibration = []
                 opts.recalibrate (1,1) logical = false
                 opts.recalibrateEvery (1,1) double {mustBePositive} = Inf
                 opts.saveFile = ''
@@ -5936,10 +5941,16 @@ classdef SSIT
                 kdeBandwidth=opts.kdeBandwidth, kdeMinBandwidth=opts.kdeMinBandwidth, ...
                 kdeProbFloor=opts.kdeProbFloor, kdeBiasCorrection=opts.kdeBiasCorrection);
 
-            % 1. Initial calibration (load if it matches).
+            % 1. Initial calibration (given, loaded if it matches, or new).
             calibration = [];
             calFile = char(opts.calibrationFile);
-            if ~isempty(calFile) && isfile(calFile) && ~opts.recalibrate
+            if ~isempty(opts.calibration) && ~opts.recalibrate
+                calibration = opts.calibration;
+                if ~isequal(calibration.levels(:)', opts.levels) || ~isequal(calibration.lossFun, opts.lossFun)
+                    error('SSIT:runSequentialABC:calibration', ...
+                        'The supplied calibration was made for other levels or another objective.');
+                end
+            elseif ~isempty(calFile) && isfile(calFile) && ~opts.recalibrate
                 C = load(calFile, 'calibration');
                 c = C.calibration;
                 if isequal(c.levels(:)', opts.levels) && isequal(c.lossFun, opts.lossFun) ...
