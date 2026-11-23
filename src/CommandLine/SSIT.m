@@ -4700,7 +4700,7 @@ classdef SSIT
             logLSpread = std(logLSpreadVector);
         end
 
-        function [lossFunction] = computeLossFunctionSSA(obj,lossFun,pars, ...
+        function [lossFunction,figHandle,kdeBandwidths] = computeLossFunctionSSA(obj,lossFun,pars, ...
                 enforceIndependence, reuseExistingSolution, opts)
             % computeLossFunctionSSA - Compare SSA simulations of the model
             % to the loaded data using the 1D marginal distribution of each
@@ -4779,8 +4779,9 @@ classdef SSIT
             %     instead of re-solving the model (pars is then ignored).
             %   Name-value options (used by 'kde_loglik' and 'kde_marginal_loglik' only):
             %     kdeBandwidth    -- 'lcv' (default; likelihood cross-validation),
-            %                        'silverman', or kernel widths (scalar or
-            %                        one per observed species).
+            %                        'silverman', or kernel widths: a scalar,
+            %                        one per observed species (1 x d), or one
+            %                        row per fitted time (numTimes x d).
             %     kdeMinBandwidth -- minimum kernel width ([] = 0.5 for
             %                        'silverman', 0.01 otherwise).
             %     kdeProbFloor    -- (1e-10) minimum probability per state.
@@ -4790,6 +4791,42 @@ classdef SSIT
             %                        order) the downward bias of the log of a
             %                        noisy estimate, which dominates the bias
             %                        for small numbers of SSA runs.
+            %     kdeLcvCenter    -- ([]) for kdeBandwidth = 'lcv': widths
+            %                        around which to search (scalar, 1 x d,
+            %                        or numTimes x d); [] = normal-reference
+            %                        widths.
+            %     kdeLcvFactors   -- (logspace(-2,0.5,21)) candidate factors
+            %                        multiplying those widths.
+            %     kdeOutlierFraction -- (0) outlier-robust likelihood: each
+            %                        cell's probability is (1-eps)*P_kde +
+            %                        eps*q, with q uniform over the box of
+            %                        states 0..kdeOutlierSupport-1. Bounds
+            %                        the influence of cells far in the
+            %                        model's tails (see
+            %                        ssit.ssa.kdeLogLikelihood). Changes the
+            %                        likelihood (assumes an outlier fraction
+            %                        eps in the data).
+            %     kdeOutlierSupport -- ([]) states per observed species of
+            %                        the background (1 x d or scalar);
+            %                        [] = largest state in the whole data
+            %                        set + 1 (same for all times).
+            %   Name-value option (any lossFun):
+            %     plotMarginals   -- (false) if true, plot the data and model
+            %                        marginal distributions of each fitted
+            %                        species (rows) at each fitted time
+            %                        (columns): data histogram (bars), SSA
+            %                        histogram (line) and, for the KDE
+            %                        losses, the 1D KDE of the SSA samples
+            %                        (dashed); and, in a second figure, the
+            %                        mean +/- std versus time of each
+            %                        species (data vs SSA). Uses the same
+            %                        SSA samples as
+            %                        the loss (the per-time blocks when
+            %                        enforceIndependence is true). Does not
+            %                        change the loss.
+            %     plotOnlyIfBelow -- (Inf) make the plots only if the loss
+            %                        (including the prior) is below this
+            %                        value, e.g., the best loss so far.
             %
             % Output:
             %   lossFunction -- scalar loss summed (or maximized, for
@@ -4798,6 +4835,12 @@ classdef SSIT
             %     For distance-style losses (not -log likelihoods), the
             %     weight given to the prior is scale-dependent and
             %     subjective; see note at the end of this function.
+            %   figHandle -- [marginals figure, mean/std figure] when
+            %     plotMarginals is true ([] otherwise).
+            %   kdeBandwidths -- (KDE losses) kernel widths used, one row per
+            %     fitted time and one column per observed species ([] for
+            %     other losses); can be passed back as kdeBandwidth to fix
+            %     the widths.
             %
             % Notes:
             %   - Requires obj.solutionScheme = 'ssa' and loaded data.
@@ -4815,7 +4858,15 @@ classdef SSIT
                 opts.kdeMinBandwidth = []
                 opts.kdeProbFloor (1,1) double = 1e-10
                 opts.kdeBiasCorrection {mustBeMember(opts.kdeBiasCorrection,{'none','jensen'})} = 'none'
+                opts.kdeLcvCenter = []
+                opts.kdeLcvFactors (1,:) double = logspace(-2,0.5,21)
+                opts.kdeOutlierFraction (1,1) double = 0
+                opts.kdeOutlierSupport (1,:) double = []
+                opts.plotMarginals (1,1) logical = false
+                opts.plotOnlyIfBelow (1,1) double = Inf
             end
+            figHandle = [];
+            kdeBandwidths = [];
 
             if ~strcmpi(obj.solutionScheme,'ssa')
                 error('computeLossFunctionSSA only meant for models using SSA solution scheme. Please change solutionScheme and try again.')
@@ -5107,8 +5158,22 @@ classdef SSIT
                         % KDEs ('kde_marginal_loglik', independence).
                         marginalOnly = strcmpi(lossFun,'kde_marginal_loglik');
                         lossFunction = 0;
+                        kdeBandwidths = nan(numTimes, numSpecies);
+                        bwAll = opts.kdeBandwidth;
+                        perTimeBW = isnumeric(bwAll) && size(bwAll,1) > 1;
+                        if perTimeBW && size(bwAll,1) ~= numTimes
+                            error('SSIT:computeLossFunctionSSA:kdeBandwidth', ...
+                                'kdeBandwidth has %d rows but there are %d fitted times.', ...
+                                size(bwAll,1), numTimes);
+                        end
                         dataSubs = double(dataTensor.subs);
                         dataVals = double(dataTensor.vals);
+                        % Outlier background box: the same for all times.
+                        outSupport = opts.kdeOutlierSupport;
+                        if isempty(outSupport)
+                            outSupport = max(dataSubs(:,2:end),[],1);  % = largest state + 1
+                        end
+                        outSupport = outSupport(:)'.*ones(1,numSpecies);
                         for it = 1:numTimes
                             rows = dataSubs(:,1)==fitTimeInds(it);
                             dataStates = dataSubs(rows,2:end)-1;
@@ -5119,22 +5184,38 @@ classdef SSIT
                                 trajInds = 1:size(ssaTrajs,3);
                             end
                             samples = reshape(ssaTrajs(:,it,trajInds),numSpecies,[])';
+                            if perTimeBW
+                                bwT = bwAll(it,:);
+                            else
+                                bwT = bwAll;
+                            end
+                            cT = opts.kdeLcvCenter;
+                            if size(cT,1) > 1, cT = cT(it,:); end
                             if ~marginalOnly
-                                logLt = ssit.ssa.kdeLogLikelihood(samples, dataStates, ...
-                                    dataVals(rows), bandwidth=opts.kdeBandwidth, ...
+                                [logLt,~,hUsed] = ssit.ssa.kdeLogLikelihood(samples, dataStates, ...
+                                    dataVals(rows), bandwidth=bwT, ...
                                     minBandwidth=opts.kdeMinBandwidth, probFloor=opts.kdeProbFloor, ...
-                                    biasCorrection=opts.kdeBiasCorrection);
+                                    biasCorrection=opts.kdeBiasCorrection, ...
+                                    lcvCenter=cT, lcvFactors=opts.kdeLcvFactors, ...
+                                    outlierFraction=opts.kdeOutlierFraction, outlierSupport=outSupport);
                                 lossFunction = lossFunction - logLt;
+                                kdeBandwidths(it,:) = hUsed;
                             else
                                 for is = 1:numSpecies
                                     [uS,~,jS] = unique(dataStates(:,is));
                                     cS = accumarray(jS, dataVals(rows));
-                                    bw = opts.kdeBandwidth;
+                                    bw = bwT;
                                     if isnumeric(bw) && ~isscalar(bw), bw = bw(is); end
-                                    logLt = ssit.ssa.kdeLogLikelihood(samples(:,is), uS, cS, ...
+                                    cS1 = cT;
+                                    if ~isscalar(cS1) && ~isempty(cS1), cS1 = cS1(is); end
+                                    [logLt,~,hUsed] = ssit.ssa.kdeLogLikelihood(samples(:,is), uS, cS, ...
                                         bandwidth=bw, minBandwidth=opts.kdeMinBandwidth, ...
-                                        probFloor=opts.kdeProbFloor, biasCorrection=opts.kdeBiasCorrection);
+                                        probFloor=opts.kdeProbFloor, biasCorrection=opts.kdeBiasCorrection, ...
+                                        lcvCenter=cS1, lcvFactors=opts.kdeLcvFactors, ...
+                                        outlierFraction=opts.kdeOutlierFraction, ...
+                                        outlierSupport=outSupport(is));
                                     lossFunction = lossFunction - logLt;
+                                    kdeBandwidths(it,is) = hUsed;
                                 end
                             end
                         end
@@ -5155,6 +5236,17 @@ classdef SSIT
             % distance and is subjective. Choose the prior (or rescale it)
             % with that in mind.
             lossFunction = lossFunction - logPrior;
+
+            % Optional plots of the data and model marginals and of the
+            % means/stds vs time (do not affect the loss). With
+            % plotOnlyIfBelow, plots are made only if the loss improves on
+            % that value (e.g., the best loss found so far).
+            if opts.plotMarginals && lossFunction < opts.plotOnlyIfBelow
+                isKDEloss = (ischar(lossFun)||isstring(lossFun)) && ...
+                    any(strcmpi(lossFun,{'kde_loglik','kde_marginal_loglik'}));
+                figHandle = SSIT.plotSSAMarginals(obj, dataTensor, ssaTrajs, ...
+                    fitTimeInds, Jspecies, enforceIndependence, isKDEloss, opts);
+            end
         end
 
         function results = ssaLikelihoodConvergence(obj,opts)
@@ -5184,8 +5276,10 @@ classdef SSIT
             %                 as 'kde_loglik' and 'marginal_loglik').
             %   makePlot   -- (true) plot mean +/- std versus number of runs
             %                 and the std on log-log axes.
-            %   kdeBandwidth, kdeMinBandwidth, kdeProbFloor, kdeBiasCorrection -- KDE options
-            %                 passed to computeLossFunctionSSA.
+            %   kdeBandwidth, kdeMinBandwidth, kdeProbFloor, kdeBiasCorrection,
+            %   kdeLcvCenter, kdeLcvFactors, kdeOutlierFraction,
+            %   kdeOutlierSupport -- KDE options passed to
+            %                 computeLossFunctionSSA.
             %
             % Output (struct):
             %   nSims, values (numel(nSims) x nReps), mean, std,
@@ -5204,6 +5298,10 @@ classdef SSIT
                 opts.kdeMinBandwidth = []
                 opts.kdeProbFloor (1,1) double = 1e-10
                 opts.kdeBiasCorrection {mustBeMember(opts.kdeBiasCorrection,{'none','jensen'})} = 'none'
+                opts.kdeLcvCenter = []
+                opts.kdeLcvFactors (1,:) double = logspace(-2,0.5,21)
+                opts.kdeOutlierFraction (1,1) double = 0
+                opts.kdeOutlierSupport (1,:) double = []
             end
 
             nN = numel(opts.nSimsList);
@@ -5228,7 +5326,10 @@ classdef SSIT
                         kdeBandwidth=opts.kdeBandwidth, ...
                         kdeMinBandwidth=opts.kdeMinBandwidth, ...
                         kdeProbFloor=opts.kdeProbFloor, ...
-                        kdeBiasCorrection=opts.kdeBiasCorrection);
+                        kdeBiasCorrection=opts.kdeBiasCorrection, ...
+                        kdeLcvCenter=opts.kdeLcvCenter, kdeLcvFactors=opts.kdeLcvFactors, ...
+                        kdeOutlierFraction=opts.kdeOutlierFraction, ...
+                        kdeOutlierSupport=opts.kdeOutlierSupport);
                 end
                 secondsPerEval(iN) = toc(tStart)/opts.nReps;
                 fprintf('N = %6d SSA runs: objective = %.4g +/- %.3g (%.2f s per evaluation)\n', ...
@@ -5840,8 +5941,37 @@ classdef SSIT
             %       KDE for 2+ species, but ignores their correlation.
             %   kdeBandwidth ('lcv'), kdeMinBandwidth ([]),
             %   kdeProbFloor (1e-10), kdeBiasCorrection ('jensen').
+            %   kdeOutlierFraction (0), kdeOutlierSupport ([]) --
+            %       outlier-robust likelihood: each cell's probability is
+            %       (1-eps)*P_kde + eps*q, with q uniform over the observed
+            %       range (see computeLossFunctionSSA). Bounds the influence
+            %       of the few cells far in the model's tails, which
+            %       otherwise dominate the noise of the SSA estimate. The
+            %       calibration must use the same value.
             %   levels ([300 600 1200 2400 4800 9600]) -- runs per time
-            %       point at each stage (each stage doubles the runs).
+            %       point at each stage (e.g., doubling; any increasing
+            %       list is allowed).
+            %   enforceIndependence (true) -- if true, each time point uses
+            %       its own block of N SSA runs (N*numTimes runs per
+            %       parameter set); if false, the same N runs are used at
+            %       every time point (numTimes-fold fewer runs). The
+            %       calibration uses the same setting.
+            %   bandwidthMode ('lcv') -- how KDE kernel widths are chosen:
+            %       'lcv'   full likelihood cross-validation search (21
+            %               candidates) at every evaluation;
+            %       'local' reference widths are chosen once, at the
+            %               calibration parameters (median of the 'lcv'
+            %               widths over bandwidthReps SSA repeats) for each
+            %               level, fitted time and species
+            %               (calibration.bandwidthTable); every evaluation
+            %               then re-chooses the widths by cross-validation
+            %               over localFactors times these reference widths
+            %               (much cheaper, still adaptive);
+            %       'fixed' the reference widths are used as they are (no
+            %               search; fastest, but noisier in tests).
+            %   bandwidthReps (3) -- SSA repeats used for the reference widths.
+            %   localFactors (logspace(log10(0.7),log10(1.4),5)) --
+            %       candidate factors for 'local'.
             %   z (2.5) -- confidence multiplier for an early decision.
             %   calibrationReps (10) -- repeats per level for calibration.
             %   calibrationFile ('') -- .mat file for the calibration.
@@ -5854,6 +5984,15 @@ classdef SSIT
             %       acceptance (K = recalibrateEvery).
             %   saveFile ('') -- progress file; an interrupted run resumes.
             %   verbose (true)
+            %   plotNewBest (false) -- when the chain accepts a new best
+            %       parameter set (highest estimated log posterior), plot
+            %       the data vs model marginals and means/stds vs time
+            %       (computeLossFunctionSSA plotMarginals), using the SSA
+            %       runs already made for that parameter set. Earlier plots
+            %       are replaced.
+            %   newBestFigurePrefix ('') -- if set, these figures are also
+            %       saved as <prefix>_marginals.(fig/png) and
+            %       <prefix>_meanStd.(fig/png) (overwritten at each new best).
             %
             % Outputs:
             %   pars    -- best parameters found (highest estimated
@@ -5883,7 +6022,13 @@ classdef SSIT
                 opts.kdeMinBandwidth = []
                 opts.kdeProbFloor (1,1) double = 1e-10
                 opts.kdeBiasCorrection {mustBeMember(opts.kdeBiasCorrection,{'none','jensen'})} = 'jensen'
+                opts.kdeOutlierFraction (1,1) double {mustBeInRange(opts.kdeOutlierFraction,0,1,'exclude-upper')} = 0
+                opts.kdeOutlierSupport (1,:) double = []
                 opts.levels (1,:) double {mustBePositive,mustBeInteger} = [300 600 1200 2400 4800 9600]
+                opts.enforceIndependence (1,1) logical = true
+                opts.bandwidthMode {mustBeMember(opts.bandwidthMode,{'lcv','local','fixed'})} = 'lcv'
+                opts.bandwidthReps (1,1) double {mustBePositive,mustBeInteger} = 3
+                opts.localFactors (1,:) double {mustBePositive} = logspace(log10(0.7),log10(1.4),5)
                 opts.z (1,1) double {mustBePositive} = 2.5
                 opts.calibrationReps (1,1) double {mustBePositive,mustBeInteger} = 10
                 opts.calibrationFile = ''
@@ -5892,6 +6037,8 @@ classdef SSIT
                 opts.recalibrateEvery (1,1) double {mustBePositive} = Inf
                 opts.saveFile = ''
                 opts.verbose (1,1) logical = true
+                opts.plotNewBest (1,1) logical = false
+                opts.newBestFigurePrefix = ''
             end
 
             if opts.marginalsOnly
@@ -5933,28 +6080,40 @@ classdef SSIT
             kdeOpts = struct('kdeBandwidth',opts.kdeBandwidth, ...
                 'kdeMinBandwidth',opts.kdeMinBandwidth, ...
                 'kdeProbFloor',opts.kdeProbFloor, ...
-                'kdeBiasCorrection',opts.kdeBiasCorrection);
+                'kdeBiasCorrection',opts.kdeBiasCorrection, ...
+                'kdeOutlierFraction',opts.kdeOutlierFraction);
+            kdeOpts.kdeOutlierSupport = opts.kdeOutlierSupport;
+            kdeOpts.bandwidthMode = opts.bandwidthMode;
+            kdeOpts.bandwidthLevels = opts.levels;
+            kdeOpts.bandwidthTable = {};
+            kdeOpts.localFactors = opts.localFactors;
 
-            calibrate = @(theta) W.ssaLikelihoodConvergence(nSimsList=opts.levels, ...
-                nReps=opts.calibrationReps, lossFun=opts.lossFun, pars=theta, ...
-                enforceIndependence=true, compareFSP=false, makePlot=false, ...
-                kdeBandwidth=opts.kdeBandwidth, kdeMinBandwidth=opts.kdeMinBandwidth, ...
-                kdeProbFloor=opts.kdeProbFloor, kdeBiasCorrection=opts.kdeBiasCorrection);
+            calibrate = @(theta, kOpts) ssit.parest.calibrateSSALogL(W, theta, opts.levels, ...
+                opts.calibrationReps, opts.lossFun, kOpts, opts.enforceIndependence);
+            sameFix = @(c) strcmp(ssit.parest.calibrationBandwidthMode(c), opts.bandwidthMode) && ...
+                (~strcmp(opts.bandwidthMode,'local') || ...
+                (isfield(c,'localFactors') && isequal(c.localFactors, opts.localFactors))) && ...
+                ssit.parest.calibrationOutlierMatches(c, opts.kdeOutlierFraction, opts.kdeOutlierSupport);
 
             % 1. Initial calibration (given, loaded if it matches, or new).
             calibration = [];
             calFile = char(opts.calibrationFile);
             if ~isempty(opts.calibration) && ~opts.recalibrate
                 calibration = opts.calibration;
-                if ~isequal(calibration.levels(:)', opts.levels) || ~isequal(calibration.lossFun, opts.lossFun)
+                if ~isequal(calibration.levels(:)', opts.levels) || ~isequal(calibration.lossFun, opts.lossFun) ...
+                        || (~isfield(calibration,'enforceIndependence') || calibration.enforceIndependence) ~= opts.enforceIndependence ...
+                        || ~sameFix(calibration)
                     error('SSIT:runSequentialABC:calibration', ...
-                        'The supplied calibration was made for other levels or another objective.');
+                        ['The supplied calibration was made for other levels, another objective, ', ...
+                        'or another enforceIndependence, bandwidthMode or kdeOutlierFraction setting.']);
                 end
             elseif ~isempty(calFile) && isfile(calFile) && ~opts.recalibrate
                 C = load(calFile, 'calibration');
                 c = C.calibration;
                 if isequal(c.levels(:)', opts.levels) && isequal(c.lossFun, opts.lossFun) ...
                         && isequal(c.kdeBiasCorrection, opts.kdeBiasCorrection) ...
+                        && (~isfield(c,'enforceIndependence') || c.enforceIndependence) == opts.enforceIndependence ...
+                        && sameFix(c) ...
                         && numel(c.pars) == numel(parGuess) ...
                         && max(abs(log(c.pars(:)') - log(parGuess))) < 1e-10
                     calibration = c;
@@ -5964,16 +6123,30 @@ classdef SSIT
                 end
             end
             if isempty(calibration)
+                bwTable = {};
+                if ~strcmp(opts.bandwidthMode,'lcv')
+                    fprintf('Choosing reference KDE bandwidths at %d levels (%d repeats each)...\n', ...
+                        numel(opts.levels), opts.bandwidthReps);
+                    bwTable = ssit.parest.selectFixedBandwidths(W, parGuess, opts.levels, ...
+                        opts.bandwidthReps, opts.lossFun, kdeOpts, opts.enforceIndependence);
+                end
+                kdeOpts.bandwidthTable = bwTable;
                 fprintf('Calibrating SSA likelihood noise at %d levels (%d repeats each)...\n', ...
                     numel(opts.levels), opts.calibrationReps);
-                r = calibrate(parGuess);
+                r = calibrate(parGuess, kdeOpts);
                 calibration = struct('levels', opts.levels, 'sigma', r.std(:)', ...
                     'mean', r.mean(:)', 'values', r.values, ...
                     'secondsPerEval', r.secondsPerEval(:)', 'pars', parGuess, ...
                     'parIndices', idx, 'lossFun', opts.lossFun, ...
                     'kdeBiasCorrection', opts.kdeBiasCorrection, ...
                     'kdeBandwidth', opts.kdeBandwidth, 'nReps', opts.calibrationReps, ...
+                    'enforceIndependence', opts.enforceIndependence, ...
+                    'bandwidthMode', opts.bandwidthMode, ...
                     'date', char(datetime('now')));
+                calibration.bandwidthTable = bwTable;
+                calibration.localFactors = opts.localFactors;
+                calibration.kdeOutlierFraction = opts.kdeOutlierFraction;
+                calibration.kdeOutlierSupport = opts.kdeOutlierSupport;
                 if ~isempty(calFile)
                     save(calFile, 'calibration');
                     fprintf('Saved SSA likelihood calibration to %s.\n', calFile);
@@ -5982,23 +6155,35 @@ classdef SSIT
             fprintf('sigma(logL) at N = %s: %s\n', mat2str(calibration.levels), ...
                 mat2str(calibration.sigma, 3));
 
+            % Reference bandwidths (if any) for the likelihood evaluations.
+            if isfield(calibration,'bandwidthTable')
+                kdeOpts.bandwidthTable = calibration.bandwidthTable;
+            end
+
             % 2. Sequential MH in log-parameter space.
             estimator = @(x, n, st) ssit.parest.ssaLogLBatchEstimator(W, exp(x), n, st, ...
-                opts.lossFun, kdeOpts);
-            recalFun = @(x) reshape(calibrate(exp(x)).std, 1, []);
+                opts.lossFun, kdeOpts, opts.enforceIndependence);
+            recalFun = @(x) reshape(calibrate(exp(x), kdeOpts).std, 1, []);
+            if opts.plotNewBest
+                newBestFun = @(x, st, val) ssit.parest.plotSSAStateFit(W, st, ...
+                    opts.lossFun, kdeOpts, val, opts.newBestFigurePrefix, opts.enforceIndependence);
+            else
+                newBestFun = [];
+            end
             [smpl, accept, value, info] = ssit.parest.sequentialMHSample( ...
                 log(parGuess), opts.numberOfSamples, estimator, opts.levels, ...
                 calibration.sigma, proprnd=opts.proposalDistribution, ...
                 logprior=logPriorX, z=opts.z, thin=opts.thin, burnin=opts.burnIn, ...
                 recalibrateEvery=opts.recalibrateEvery, recalibrateFun=recalFun, ...
-                saveFileName=opts.saveFile, verbose=opts.verbose);
+                saveFileName=opts.saveFile, verbose=opts.verbose, onNewBest=newBestFun);
 
             Results = struct('mhSamples', smpl, 'mhAcceptance', accept, 'mhValue', value, ...
                 'decisionLevel', info.decisionLevel, 'decidedByMHRule', info.decidedByMHRule, ...
                 'accepted', info.accepted, 'simsPerParameterSet', info.simsPerParameterSet, ...
                 'sigmaHistory', info.sigmaHistory, 'recalibratedAtStep', info.recalibratedAtStep, ...
-                'calibration', calibration, 'levels', opts.levels, 'z', opts.z);
-            dec = info.decisionLevel(info.decisionLevel > 0);
+                'calibration', calibration, 'levels', opts.levels, 'z', opts.z, ...
+                'enforceIndependence', opts.enforceIndependence);
+            dec = info.decisionLevel(info.decisionLevel > 0 & info.decisionLevel <= numel(opts.levels));
             fprintf('Acceptance %.3f. Steps decided at each level %s: %s; by MH rule at the last level: %d.\n', ...
                 accept, mat2str(opts.levels), mat2str(accumarray(dec(:), 1, [numel(opts.levels) 1])'), ...
                 sum(info.decidedByMHRule));
@@ -9522,6 +9707,97 @@ end
         end
     end
     methods (Static)
+        function fig = plotSSAMarginals(obj, dataTensor, ssaTrajs, fitTimeInds, ...
+                Jspecies, enforceIndependence, isKDEloss, kdeOpts)
+            % plotSSAMarginals - Plot data vs SSA model marginal
+            % distributions for each fitted species (rows) and time
+            % (columns), and (second figure) the mean +/- std versus time
+            % of each species, data vs model. Called by
+            % computeLossFunctionSSA(..., plotMarginals=true). Returns
+            % both figure handles, fig = [marginals, meansAndStds].
+            numSpecies = numel(Jspecies);
+            numTimes = numel(fitTimeInds);
+            mnD = nan(numSpecies,numTimes); sdD = mnD; mnM = mnD; sdM = mnD;
+            dataSubs = double(dataTensor.subs);
+            dataVals = double(dataTensor.vals);
+            fig = figure('Name','SSA model vs data marginals');
+            tl = tiledlayout(fig, numSpecies, numTimes, 'TileSpacing','compact','Padding','compact');
+            for is = 1:numSpecies
+                for it = 1:numTimes
+                    ax = nexttile(tl); hold(ax,'on');
+                    rows = dataSubs(:,1)==fitTimeInds(it);
+                    xData = dataSubs(rows,is+1)-1;
+                    nData = accumarray(xData+1, dataVals(rows));
+                    if enforceIndependence
+                        npe = obj.ssaOptions.nSimsPerExpt;
+                        xMod = squeeze(ssaTrajs(is,it,(it-1)*npe+1:it*npe));
+                    else
+                        xMod = squeeze(ssaTrajs(is,it,:));
+                    end
+                    xMod = xMod(isfinite(xMod));
+                    vD = (0:numel(nData)-1)';
+                    mnD(is,it) = sum(vD.*nData)/sum(nData);
+                    sdD(is,it) = sqrt(sum((vD-mnD(is,it)).^2.*nData)/max(1,sum(nData)-1));
+                    mnM(is,it) = mean(xMod);
+                    sdM(is,it) = std(xMod);
+                    xMax = max([numel(nData)-1; xMod(:)]);
+                    nData(end+1:xMax+1) = 0;
+                    nMod = accumarray(xMod(:)+1, 1, [xMax+1 1]);
+                    % Wide supports are shown with integer-width bins
+                    % merged into at most ~60 bins.
+                    w = max(1, ceil((xMax+1)/60));
+                    edges = 0:w:xMax+w;
+                    binD = accumarray(floor((0:xMax)'/w)+1, nData)/max(1,sum(nData))/w;
+                    binM = accumarray(floor((0:xMax)'/w)+1, nMod)/max(1,sum(nMod))/w;
+                    centers = edges(1:end-1) + (w-1)/2;
+                    bar(ax, centers, binD, 1, 'FaceColor',[0.75 0.75 0.75], ...
+                        'EdgeColor','none', 'DisplayName','data');
+                    stairs(ax, [edges(1:end-1), edges(end)] - 0.5, [binM; binM(end)], ...
+                        'b', 'LineWidth', 1.3, 'DisplayName','SSA');
+                    if isKDEloss && numel(xMod) > 1
+                        bw = kdeOpts.kdeBandwidth;
+                        if isnumeric(bw) && size(bw,1) > 1, bw = bw(it,:); end
+                        if isnumeric(bw) && ~isscalar(bw), bw = bw(is); end
+                        [~, pK] = ssit.ssa.kdeLogLikelihood(xMod(:), (0:xMax)', ones(xMax+1,1), ...
+                            bandwidth=bw, minBandwidth=kdeOpts.kdeMinBandwidth, ...
+                            probFloor=0);
+                        plot(ax, 0:xMax, pK, 'r--', 'LineWidth', 1.2, 'DisplayName','SSA KDE');
+                    end
+                    xlim(ax, [-0.5, xMax+0.5]);
+                    if is == 1
+                        title(ax, sprintf('t = %g', obj.dataSet.times(fitTimeInds(it))));
+                    end
+                    if it == 1
+                        ylabel(ax, obj.species{Jspecies(is)}, 'Interpreter','none');
+                    end
+                    if is == 1 && it == 1
+                        legend(ax, 'Location','best');
+                    end
+                end
+            end
+            title(tl, sprintf('Data vs SSA marginals (%d SSA runs per time point)', numel(xMod)));
+
+            % Mean +/- std versus time, one panel per species.
+            t = obj.dataSet.times(fitTimeInds);
+            t = t(:)';
+            fig2 = figure('Name','SSA model vs data: mean and std vs time');
+            tl2 = tiledlayout(fig2, 1, numSpecies, 'TileSpacing','compact','Padding','compact');
+            for is = 1:numSpecies
+                ax = nexttile(tl2); hold(ax,'on');
+                fill(ax, [t, fliplr(t)], [mnM(is,:)+sdM(is,:), fliplr(mnM(is,:)-sdM(is,:))], ...
+                    [0.8 0.85 1], 'EdgeColor','none', 'DisplayName','SSA mean \pm std');
+                plot(ax, t, mnM(is,:), 'b-', 'LineWidth', 1.5, 'DisplayName','SSA mean');
+                errorbar(ax, t, mnD(is,:), sdD(is,:), 'ko', 'MarkerFaceColor','k', ...
+                    'LineWidth', 1.1, 'DisplayName','data mean \pm std');
+                xlabel(ax, 'time'); ylabel(ax, 'count');
+                title(ax, obj.species{Jspecies(is)}, 'Interpreter','none');
+                grid(ax,'on');
+                if is == 1, legend(ax,'Location','best'); end
+            end
+            title(tl2, sprintf('Mean \\pm std vs time (%d SSA runs per time point)', numel(xMod)));
+            fig = [fig, fig2];
+        end
+
         function plotMHResultsStatic(obj,mhResults,FIM,fimScale,mhPlotScale,...
                 scatterFig,ess,showConvergence,plotColors,names,latexFileName,...
                 showMLE,descriptions,parameterReorder,showMarginalPosteriors,...

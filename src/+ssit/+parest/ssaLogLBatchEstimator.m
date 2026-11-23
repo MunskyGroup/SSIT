@@ -1,4 +1,4 @@
-function [logL, state] = ssaLogLBatchEstimator(model, theta, nTotal, state, lossFun, kdeOpts)
+function [logL, state] = ssaLogLBatchEstimator(model, theta, nTotal, state, lossFun, kdeOpts, enforceIndependence)
 % ssit.parest.ssaLogLBatchEstimator - SSA-based log-likelihood estimate
 % that can be refined by adding more SSA runs.
 %
@@ -22,7 +22,14 @@ function [logL, state] = ssaLogLBatchEstimator(model, theta, nTotal, state, loss
 %   lossFun -- likelihood-type loss for computeLossFunctionSSA (e.g.,
 %              'kde_loglik').
 %   kdeOpts -- struct with kdeBandwidth, kdeMinBandwidth, kdeProbFloor,
-%              kdeBiasCorrection.
+%              kdeBiasCorrection, and optionally fixed widths
+%              bandwidthTable / bandwidthLevels (see
+%              ssit.parest.kdeArgsForRuns).
+%   enforceIndependence -- (true) if true, each time point uses its own
+%              block of nTotal trajectories (nTotal*numTimes runs in
+%              all); if false, the same nTotal trajectories are used at
+%              every time point (numTimes-fold fewer runs).
+if nargin < 7, enforceIndependence = true; end
 if isempty(state)
     state = struct('npe', 0, 'sol', []);
 end
@@ -31,7 +38,12 @@ if nAdd > 0
     M = model;
     M.parameters(M.fittingOptions.modelVarsToFit,2) = num2cell(theta(:));
     M.ssaOptions.Nexp = 1;
-    M.ssaOptions.nSimsPerExpt = nAdd;
+    if enforceIndependence
+        M.ssaOptions.nSimsPerExpt = nAdd;
+    else
+        M.ssaOptions.nSimsPerExpt = NaN;
+        M.ssaOptions.Nsims = nAdd;
+    end
     sol = M.solve(returnType='soln');
     state.sol = ssit.ssa.poolSSABatches(state.sol, state.npe, sol, nAdd);
     state.npe = nTotal;
@@ -40,7 +52,6 @@ M = model;
 M.Solutions = state.sol;
 M.ssaOptions.Nexp = 1;
 M.ssaOptions.nSimsPerExpt = state.npe;
-logL = -M.computeLossFunctionSSA(lossFun, [], true, true, ...
-    kdeBandwidth=kdeOpts.kdeBandwidth, kdeMinBandwidth=kdeOpts.kdeMinBandwidth, ...
-    kdeProbFloor=kdeOpts.kdeProbFloor, kdeBiasCorrection=kdeOpts.kdeBiasCorrection);
+kdeArgs = ssit.parest.kdeArgsForRuns(kdeOpts, state.npe);
+logL = -M.computeLossFunctionSSA(lossFun, [], enforceIndependence, true, kdeArgs{:});
 end

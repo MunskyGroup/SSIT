@@ -12,7 +12,9 @@ function sol = poolSSABatches(solA, npeA, solB, npeB)
 % trajectories). Block b of the result is block b of solA followed by
 % block b of solB. Fields 'trajs' and (if present) 'trajsDistorted' are
 % pooled; all other fields are taken from solB. If solA is empty, solB is
-% returned unchanged.
+% returned unchanged. For solutions without blocks (enforceIndependence =
+% false), pass npeA and npeB = the numbers of trajectories; the result is
+% then a plain concatenation.
 if isempty(solA) || npeA == 0
     sol = solB;
     return

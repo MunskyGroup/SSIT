@@ -31,15 +31,36 @@ function [logL, pData, h, correction] = kdeLogLikelihood(samples, dataStates, da
 %   * maxGrid      - (5e7) largest number of lattice points for the grid
 %                    method; larger problems use the pairwise method.
 %   * lcvFactors   - (logspace(-2,0.5,21)) candidate factors c for 'lcv'.
+%   * lcvCenter    - ([]) widths (scalar or 1 x d) around which 'lcv'
+%                    searches: candidates are c*lcvCenter instead of
+%                    c*hRef. With narrow lcvFactors (e.g., 0.7 to 1.4),
+%                    this re-chooses the width near a known good value at
+%                    a fraction of the cost of the full search.
 %   * biasCorrection - 'none' (default) or 'jensen'. With 'jensen', a
 %                    delta-method correction for the downward bias of the
 %                    log of a noisy estimate is added to each state's
 %                    log-probability (see Method).
+%   * outlierFraction - (0) outlier-robust likelihood: each cell is
+%                    modeled as coming from the model with probability
+%                    1-eps and from a broad background q with probability
+%                    eps, i.e., P(y) = (1-eps)*P_kde(y) + eps*q(y). This
+%                    bounds the influence of cells far in the model's
+%                    tails (log P(y) >= log(eps*q)), which otherwise
+%                    dominate the noise of the SSA estimate. Note that it
+%                    changes the likelihood being approximated (it assumes
+%                    an outlier fraction eps in the data).
+%   * outlierSupport - ([]) 1 x d (or scalar) number of states per species
+%                    of the uniform background, q(y) = 1/prod(outlierSupport)
+%                    for 0 <= y_j < outlierSupport(j) (0 outside). [] = the
+%                    largest observed state + 1. Use the same value for
+%                    every time point and parameter set, e.g., from the
+%                    whole data set, so that q does not change.
 %
 % Outputs:
 %   * logL  - sum_m dataCounts(m)*(log(pData(m)) + correction(m)).
-%   * pData - (M x 1) KDE probability of each observed state (after the
-%             floor).
+%   * pData - (M x 1) KDE probability of each observed state (mixed with
+%             the outlier background if outlierFraction > 0, and after
+%             the floor).
 %   * h     - (1 x d) bandwidths used.
 %   * correction - (M x 1) Jensen correction added to each log(pData(m))
 %             (zeros when biasCorrection = 'none').
@@ -81,7 +102,10 @@ arguments
     opts.probFloor (1,1) double {mustBeNonnegative} = 1e-10
     opts.maxGrid (1,1) double {mustBePositive} = 5e7
     opts.lcvFactors (1,:) double {mustBePositive} = logspace(-2,0.5,21)
+    opts.lcvCenter (1,:) double = []
     opts.biasCorrection {mustBeMember(opts.biasCorrection,{'none','jensen'})} = 'none'
+    opts.outlierFraction (1,1) double {mustBeInRange(opts.outlierFraction,0,1,'exclude-upper')} = 0
+    opts.outlierSupport (1,:) double = []
 end
 
 [N, d] = size(samples);
@@ -144,7 +168,11 @@ switch rule
         h = max(hRef, hMin);
     case 'lcv'
         if useGrid
-            h = lcvBandwidth(samples, G, hRef, hMin, opts.lcvFactors, opts.probFloor);
+            hScale = hRef;
+            if ~isempty(opts.lcvCenter)
+                hScale = opts.lcvCenter(:)' .* ones(1, d);
+            end
+            h = lcvBandwidth(samples, G, hScale, hMin, opts.lcvFactors, opts.probFloor);
         else
             warning('SSIT:kdeLogLikelihood:lcvTooLarge', ...
                 'Lattice too large for ''lcv''; using ''silverman'' widths.');
@@ -171,10 +199,26 @@ else
     [pData, p2Data] = pairwiseKDE(samples, dataStates, h);
 end
 
+% Outlier-robust mixture: P = (1-eps)*P_kde + eps*q, with q uniform on the
+% box 0..outlierSupport-1 (default: up to the largest observed state).
+epsOut = opts.outlierFraction;
+pKde = pData;
+if epsOut > 0
+    support = opts.outlierSupport;
+    if isempty(support)
+        support = max(dataStates, [], 1) + 1;
+    end
+    support = support(:)' .* ones(1, d);
+    inBox = all(dataStates < support, 2);
+    q = inBox / prod(support);
+    pData = (1 - epsOut)*pKde + epsOut*q;
+end
+
 correction = zeros(size(pData));
 if doJensen
+    % Var(P) = (1-eps)^2 Var(P_kde); the background term has no noise.
     ok = pData > opts.probFloor;
-    relVar = (p2Data(ok) - pData(ok).^2) ./ ((N-1) * pData(ok).^2);
+    relVar = (1 - epsOut)^2 * (p2Data(ok) - pKde(ok).^2) ./ ((N-1) * pData(ok).^2);
     correction(ok) = min(max(relVar, 0), 1) / 2;
 end
 

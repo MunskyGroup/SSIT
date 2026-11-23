@@ -37,6 +37,9 @@ function [smpl, accept, value, info] = sequentialMHSample(start, nsamples, estim
 %   saveFileName      -- ('') if set, progress is saved after every step
 %                        and an interrupted run resumes from this file.
 %   verbose           -- (true) print one line per step.
+%   onNewBest         -- ([]) @(x, state, value) called when an accepted
+%                        state has a higher estimate than any before
+%                        (state = the estimator state of that proposal).
 %
 % Outputs:
 %   smpl   -- (nsamples x p) chain.
@@ -65,6 +68,7 @@ arguments
     opts.recalibrateFun = []
     opts.saveFileName = ''
     opts.verbose (1,1) logical = true
+    opts.onNewBest = []
 end
 if ~isfield(opts, 'proprnd')
     error('SSIT:sequentialMHSample:noProposal', 'A proposal sampler proprnd is required.');
@@ -79,8 +83,22 @@ end
 nSteps = opts.burnin + nsamples*opts.thin;
 p = numel(start);
 saveFile = char(opts.saveFileName);
+canResume = false;
 if ~isempty(saveFile) && isfile(saveFile)
     S = load(saveFile);
+    % Resume only if the saved run used the same levels, chain length,
+    % thinning/burn-in and number of parameters.
+    canResume = all(isfield(S, {'smpl','info','x'})) && isfield(S.info,'levels') ...
+        && isequal(S.info.levels(:)', levels(:)') ...
+        && isequal(size(S.smpl), [nsamples p]) ...
+        && numel(S.info.decisionLevel) == nSteps && numel(S.x) == p;
+    if ~canResume
+        warning('SSIT:sequentialMHSample:staleSaveFile', ...
+            ['%s was saved with different settings (levels, length, thin/burn-in ', ...
+            'or parameters); starting a new chain and overwriting it.'], saveFile);
+    end
+end
+if canResume
     smpl = S.smpl; value = S.value; info = S.info; x = S.x; lpx = S.lpx;
     sigma = S.sigma; iStart = S.iStep + 1; nAcc = S.nAcc; nAccAll = S.nAccAll;
     fprintf('Resuming sequential MH from step %d of %d (%s).\n', iStart, nSteps, saveFile);
@@ -135,6 +153,14 @@ for iStep = iStart:nSteps
         if iStep > opts.burnin, nAcc = nAcc + 1; end
         if curValue > info.bestValue
             info.bestValue = curValue; info.bestfound = x;
+            if ~isempty(opts.onNewBest)
+                try
+                    opts.onNewBest(x, stY, curValue);
+                catch err
+                    warning('SSIT:sequentialMHSample:onNewBest', ...
+                        'onNewBest callback failed: %s', err.message);
+                end
+            end
         end
         if isfinite(opts.recalibrateEvery) && mod(nAccAll, opts.recalibrateEvery) == 0 ...
                 && ~isempty(opts.recalibrateFun)
